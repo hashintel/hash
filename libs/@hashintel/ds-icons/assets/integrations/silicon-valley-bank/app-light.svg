@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="silicon-valley-bank-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="silicon-valley-bank-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="silicon-valley-bank-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#silicon-valley-bank-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#silicon-valley-bank-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#silicon-valley-bank-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="silicon-valley-bank-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#silicon-valley-bank-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="silicon-valley-bank-app-light-SVB_Silicon_Valley_Bank_Horiz" viewBox="0 0 216.369379 99.79" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs>
+        <g />
+    </defs>
+    <path d="M27.66,49.56C20.83,48.39,15,47.42,15,42.62c0-3.95,3.53-6.3,9.4-6.3,6.2,0,9.72,3.2,9.72,8.86H47.21c0-11.1-8.55-17.62-22.86-17.62s-23,6.09-23,16.23c0,12.29,11.11,14.1,20.4,15.6,7.05,1.17,13.35,2.24,13.35,7.9,0,4.49-3.95,7-10.79,7-7,0-11.21-3.52-11.21-9.51H0C0,76.48,9,83.31,24.35,83.31S48.7,76.69,48.7,65.69c0-12.61-11.53-14.53-21-16.13" fill="#003149" />
+    <polygon points="76.22 77.12 76.06 77.12 63.81 28.63 48.7 28.63 64.32 82.24 65.15 82.24 85.49 82.24 87.97 82.24 103.59 28.63 88.47 28.63 76.22 77.12" fill="#003149" />
+    <path d="M134.8,72.28c-6.37,0-10.8-3.72-12.63-9.78a23.73,23.73,0,0,1-.94-6.87,23.23,23.23,0,0,1,.94-6.7c1.69-5.66,5.74-10.07,12.63-10.07,10.27,0,13.56,8.3,13.56,16.77,0,9.84-4.52,16.65-13.56,16.65m4.48-44.58a17.64,17.64,0,0,0-17,11.16h-.16V0h-14.1V82.24H117l5.21-9.4h.16a18.85,18.85,0,0,0,17,10.62c14.3.2,23.5-11.45,23.5-27.87,0-16.72-8.53-27.88-23.5-27.88" fill="#003149" />
+    <polygon points="180.37 11.07 169.25 17.97 190.32 55.43 169.25 92.89 180.37 99.79 216.19 55.43 180.37 11.07" fill="#00c0ff" />
+</svg></g></svg>

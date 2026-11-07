@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="manulife-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="manulife-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="manulife-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#manulife-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#manulife-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#manulife-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="manulife-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="2.02381"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#manulife-app-mono-dark-mono)"><defs><clipPath id="manulife-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#manulife-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.1202 0.12548 5.11685 5.61553" id="manulife-app-mono-dark-svg9535" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="manulife-app-mono-dark-symbol-crop"><rect x="0.0" y="0.0" width="7.088311580000001" height="5.8664849" /></clipPath></defs><g clip-path="url(#manulife-app-mono-dark-symbol-crop)"><defs id="manulife-app-mono-dark-defs9529">
+    <clipPath id="manulife-app-mono-dark-clipPath159" clipPathUnits="userSpaceOnUse">
+      <path id="manulife-app-mono-dark-path157" d="m 36.064,955.299 h 86.696 v 15.879 H 36.064 Z" />
+    </clipPath>
+  </defs>
+  <g id="manulife-app-mono-dark-layer1" transform="translate(-67.877663,-185.07747)" fill="#111111">
+    <g id="manulife-app-mono-dark-g9655" transform="translate(0.13229202,-0.13228764)">
+      <path d="m 84.273751,188.77539 -0.441678,0.0526 c -0.384175,0.0476 -0.720725,0.18415 -0.720725,0.51012 0,0.23142 0.199672,0.38947 0.457553,0.38947 0.305153,0 0.557389,-0.20003 0.715433,-0.40005 v -0.5521 z m 0.0053,1.40441 v -0.33126 c -0.157692,0.18415 -0.410281,0.3997 -0.857603,0.3997 -0.515408,0 -0.941564,-0.32632 -0.941564,-0.88371 0,-0.67875 0.636411,-0.92569 1.2573,-0.99413 l 0.242006,-0.0265 c 0.236713,-0.0212 0.320675,-0.1524 0.320675,-0.31009 0,-0.19473 -0.183798,-0.33655 -0.462492,-0.33655 -0.321028,0 -0.631472,0.23107 -0.747183,0.41522 l -0.3683,-0.43639 c 0.22613,-0.29492 0.62618,-0.49988 1.14688,-0.49988 0.6731,0 1.062567,0.34713 1.062567,0.92569 v 2.07786 z" id="manulife-app-mono-dark-path163" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 86.156455,190.17998 h -0.646994 v -2.93511 h 0.646994 v 0.33126 c 0.231422,-0.21061 0.578556,-0.40005 0.957439,-0.40005 0.347133,0 0.820208,0.20038 0.820208,0.91546 v 2.08844 h -0.646641 v -1.92017 c 0,-0.28928 -0.121003,-0.53657 -0.420864,-0.53657 -0.247298,0 -0.562681,0.21025 -0.710142,0.34748 z" id="manulife-app-mono-dark-path167" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 90.211071,187.24472 h 0.646994 v 2.93511 h -0.668161 v -0.31538 c -0.178858,0.16827 -0.468136,0.38382 -0.847019,0.38382 -0.378531,0 -0.904522,-0.20003 -0.904522,-0.93627 v -2.06728 h 0.646994 v 1.85667 c 0,0.34219 0.147461,0.57891 0.452261,0.57891 0.252589,0 0.489303,-0.16334 0.673453,-0.3683 z" id="manulife-app-mono-dark-path171" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 92.219506,190.17998 h -0.646994 v -3.86115 l 0.646994,-0.64171 z" id="manulife-app-mono-dark-path175" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path id="manulife-app-mono-dark-path177" d="m 93.607898,190.17991 h -0.673453 v -2.93512 h 0.673453 z m -0.33655,-4.25556 c 0.220839,0 0.409928,0.18415 0.409928,0.41028 0,0.22613 -0.189089,0.41557 -0.409928,0.41557 -0.226483,0 -0.415925,-0.18944 -0.415925,-0.41557 0,-0.22613 0.189442,-0.41028 0.415925,-0.41028" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 95.658948,187.78119 h -0.615597 v 2.39889 h -0.646642 v -2.39889 h -0.394758 v -0.53657 h 0.394758 v -0.60502 c 0,-0.48401 0.310092,-0.9204 0.920397,-0.9204 0.283986,0 0.5207,0.0787 0.662517,0.1524 l -0.204964,0.50518 c -0.08961,-0.0526 -0.22613,-0.10513 -0.357717,-0.10513 -0.205316,0 -0.373591,0.1524 -0.373591,0.40499 v 0.56798 h 0.767997 z" id="manulife-app-mono-dark-path181" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 97.75212,188.39136 c 0,-0.35736 -0.226131,-0.69427 -0.620536,-0.69427 -0.378531,0 -0.673453,0.35772 -0.684036,0.69427 z m -1.325386,0.49459 c 0.0053,0.47343 0.347133,0.80998 0.752122,0.80998 0.305153,0 0.620536,-0.20496 0.757414,-0.45226 l 0.404989,0.37853 c -0.236714,0.34713 -0.694267,0.62583 -1.22555,0.62583 -0.836436,0 -1.357136,-0.63112 -1.357136,-1.536 0,-0.87277 0.56268,-1.53564 1.37795,-1.53564 0.77858,0 1.325739,0.51012 1.293989,1.70956 z" id="manulife-app-mono-dark-path185" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 78.767349,190.17998 h -0.70485 v -4.07423 h 0.762706 l 1.199444,2.00448 h 0.01058 l 1.1938,-2.00448 h 0.747184 v 4.07423 h -0.710495 v -2.88537 h -0.01023 l -1.236486,2.05176 -1.241073,-2.05176 h -0.01058 z" id="manulife-app-mono-dark-path189" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 71.951611,186.36066 v 4.58329 l 1.018469,-1.01882 v -4.58294 z" id="manulife-app-mono-dark-path193" fill="#00AC5B" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 69.914708,190.94381 1.018469,-1.01847 v -4.58329 l -1.018469,1.01847 z" id="manulife-app-mono-dark-path197" fill="#00AC5B" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 67.877663,190.94381 1.018469,-1.01847 v -4.58329 l -1.018469,1.01847 z" id="manulife-app-mono-dark-path201" fill="#00AC5B" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+    </g>
+  </g>
+</g></svg></g></g></svg>

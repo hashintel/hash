@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="american-airlines-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="american-airlines-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="american-airlines-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#american-airlines-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#american-airlines-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#american-airlines-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="american-airlines-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26782432566 -0.900978164213 -0.0909544511412 0 1.25975694101" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#american-airlines-app-mono-light-mono)"><defs><clipPath id="american-airlines-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#american-airlines-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.18514 24 23.62971" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#19aade" d="M0 0.2198H2.98S4.751 0.1228 5.877 1.4778L12.377 9.6778H7.817S5.797 9.7658 4.974 8.3918Z" /><path fill="#e02527" d="M10.25 17.1128L12.93 21.5418S13.914 23.7818 17.167 23.7818H24L14.323 12.0838 10.251 13.0138S9.131 14.4888 10.251 17.1138" /><path fill="#71251d" d="M15.78 13.8438L14.204 11.9438 10.258 13.0138S9.138 14.4888 10.258 17.1138L10.424 17.3928C10.411 17.2198 10.289 14.5118 15.78 13.8468Z" /><path fill="#e8ebee" d="M10.412 17.3858S9.173 14.2038 13.212 12.6778C13.212 12.6778 16.092 11.6498 18.015 12.2598 18.015 12.2598 17.881 9.9338 13.156 10.0928 13.156 10.0928 10.661 10.0748 8.696 10.7598 8.696 10.7598 6.619 11.3138 8.163 13.6948Z" /></svg></g></g></svg>

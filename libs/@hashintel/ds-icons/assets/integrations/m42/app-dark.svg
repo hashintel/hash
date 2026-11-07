@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="m42-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="m42-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="m42-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#m42-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#m42-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#m42-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="m42-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#m42-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78.99483 32" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#m42-app-dark-clip0_1123_307)"><path d="M50.8281 31.9999V27.4844C50.8281 21.927 53.2328 19.0592 59.8679 16.8504L67.9637 14.2142C70.7869 13.2256 71.8201 12.2815 71.8201 10.2153C71.8201 7.81063 70.5019 6.44798 65.3274 6.44798C59.5384 6.44798 57.7928 8.18469 57.7928 11.6759V12.2904H50.8727V11.6759C50.8727 5.55736 55.0586 0.00878906 65.559 0.00878906C75.0619 0.00878906 78.9272 4.3372 78.9272 10.3133C78.9272 15.9153 75.2578 18.694 69.6558 20.2437L62.7892 22.1229C59.7343 23.067 58.2737 23.156 58.2737 25.6498H66.512H78.8381V31.9999H50.837H50.8281Z" fill="#F5F7FA" /><path d="M27.0571 19.1037L36.7025 8.6122H37.2279V19.6203H44.2817V0.471924H36.0969L22.1408 15.7817L8.1848 0.471924H0V19.6203V25.9793V31.9999H7.06262V25.9793V19.6203V8.6122H7.57918L17.2246 19.1037L17.661 19.6203H27.0571V19.1037Z" fill="#F5F7FA" /><path d="M44.2902 25.9795H37.2275V32.0001H44.2902V25.9795Z" fill="#F5F7FA" /><path d="M44.2818 19.6204H37.2192H27.0572H17.6611L18.151 20.1547L23.5481 25.9794H37.2192H44.2818H49.0822V19.6204H44.2818Z" fill="#36BFC9" /></g><defs><clipPath id="m42-app-dark-clip0_1123_307"><rect width="80" height="32" fill="#212E3E" /></clipPath></defs></svg></g></svg>

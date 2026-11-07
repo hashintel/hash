@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="roche-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="roche-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="roche-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#roche-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#roche-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#roche-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="roche-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#roche-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 39.066667" fill="#79B9FF" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill-rule="evenodd" d="M16.2 39h39.7L72 19.5 55.9 0H16.2L0 19.5 16.2 39zM55 37H17L2.6 19.4 17.1 2H55l14.5 17.6L55 36.9zM17 19.1v6.9h-2.2V10.8h4.3c1.2 0 2 .3 2.8 1 .6.8 1 1.7 1 3a4 4 0 01-.6 2.2c-.3.6-.8 1-1.4 1.3.3.1.6.4.9.7l.4 1.5.6 5.5h-2.2l-.5-5.3c-.1-.5-.2-.9-.5-1.1-.2-.2-.5-.4-1-.4H17zm0-6.4v4.4H19c.5 0 1-.1 1.2-.5.4-.4.5-1 .5-1.7 0-.8-.2-1.3-.5-1.7-.2-.3-.7-.5-1.2-.5H17zm13 13c-.5.3-1.2.5-2 .5s-1.4-.2-2-.6c-.6-.3-1.1-.9-1.4-1.6-.4-.6-.5-1.5-.5-2.4v-2c0-1 .1-1.8.5-2.5A3.7 3.7 0 0128 15c.8 0 1.4.2 2 .6.6.4 1.1.9 1.4 1.6.4.7.5 1.5.5 2.4v2.1c0 1-.1 1.8-.5 2.4-.3.7-.8 1.3-1.4 1.6zm-3.4-2.1c.4.4.8.6 1.4.6.6 0 1-.2 1.4-.6.3-.5.5-1.1.5-2v-2.2a3 3 0 00-.5-1.9c-.4-.4-.8-.6-1.4-.6-.6 0-1 .2-1.4.6a3 3 0 00-.5 1.9v2.3c0 .8.2 1.4.5 1.9zm13.5 1.7c-.6.6-1.5 1-2.5 1-1.2 0-2.2-.5-2.9-1.3a5 5 0 01-1-3.4v-2a5 5 0 011-3.4c.8-.9 1.7-1.3 3-1.3 1 0 1.9.3 2.5 1 .6.5 1 1.4 1.2 2.5l-2 .5c-.2-1.4-.8-2-1.8-2-.6 0-1 .2-1.4.6-.3.5-.5 1.1-.5 1.9v2.3c0 .8.2 1.4.5 1.9.4.4.8.6 1.4.6.5 0 .9-.1 1.2-.5.3-.3.5-.8.6-1.5l2 .5c-.2 1.1-.6 2-1.3 2.6zm4.9-6.5V26h-2V10.8h2V16c.2-.3.5-.5 1-.8a3 3 0 011.4-.3c1 0 1.7.3 2.2 1 .5.5.8 1.4.8 2.5V26h-2v-7.2c0-.6-.2-1.1-.5-1.5-.3-.3-.7-.5-1.2-.5s-1 .2-1.2.5A2 2 0 0045 19zm13.6-2.7c.6.8 1 2 1 3.3V21H54v.9c0 .8.2 1.4.5 1.9.4.4.8.6 1.3.6s.9-.1 1.2-.5c.3-.3.5-.7.6-1.3l1.8.4c-.1 1-.5 1.8-1.1 2.4-.7.6-1.5.9-2.5.9-1.2 0-2-.4-2.8-1.3-.7-.8-1-2-1-3.4v-2c0-1 .1-1.7.5-2.5.3-.6.8-1.2 1.3-1.6.6-.3 1.3-.5 2-.5 1.2 0 2 .4 2.8 1.2zm-1.4 1.3c-.4-.5-.8-.7-1.4-.7-.5 0-1 .2-1.2.7-.4.4-.5 1-.5 1.8v.3h3.5v-.4a3 3 0 00-.4-1.7z" clip-rule="evenodd" fill="#79B9FF" /></svg></g></svg>

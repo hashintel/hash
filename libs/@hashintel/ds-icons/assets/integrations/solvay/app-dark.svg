@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="solvay-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="solvay-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="solvay-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#solvay-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#solvay-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#solvay-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="solvay-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#solvay-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 845.88232 894.11772" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><g transform="scale(4)"><path d="M 0,0 H 211.47058 V 223.52944 H 0 Z" fill="#0096FF" stroke-width="0.755857" stroke-miterlimit="0" /><g fill="#FFFFFF" transform="translate(25.588238,101.17647)" fill-opacity="1"><path d="m 97.9274,23.2789 c -1.1778,2.871 -2.7146,3.3838 -4.7637,3.3838 -2.049,0 -3.5858,-0.5128 -4.7636,-3.3838 L 78.8203,0.512939 h 6.248 L 90.3442,13.6928 c 1.2787,3.1779 2.2548,5.847 2.8679,7.8458 0.6656,-1.9988 1.6377,-4.7688 2.8679,-7.8458 l 5.276,-13.179861 h 6.147 L 97.9233,23.2789 Z" fill="#FFFFFF" fill-opacity="1" /><path d="M 124.609,3.38381 C 123.379,0.51282 121.895,0 119.846,0 c -2.049,0 -3.485,0.460327 -4.764,3.38381 l -9.834,22.76599 h 6.095 l 1.843,-4.6154 h 13.267 l 1.843,4.6154 h 6.147 z m -9.475,13.33329 1.743,-4.256 c 1.279,-3.12938 2.307,-5.74194 2.973,-7.69227 0.665,1.95033 1.69,4.61538 2.92,7.69227 l 1.742,4.256 h -9.374 z" fill="#FFFFFF" fill-opacity="1" /><path d="m 148.17,22.7661 v 3.3838 h -5.889 v -3.3838 c 0,-2.4631 0.101,-2.976 -1.13,-4.9747 L 130.446,0.512939 h 6.66 L 143.2,10.6684 c 0.973,1.591 1.59,2.6651 2.15,3.8966 0.513,-1.2315 1.126,-2.2572 2.102,-3.8966 L 153.599,0.512939 H 160 L 149.295,17.7954 c -1.23,1.9988 -1.125,2.5116 -1.125,4.9748" fill="#FFFFFF" fill-opacity="1" /><path d="m 54.7078,13.2283 c 0,8.5646 -5.1751,13.4343 -13.9845,13.4343 -8.3495,0 -13.7262,-4.4619 -13.7262,-13.3818 C 26.9971,4.36099 32.6804,0 40.9775,0 c 8.297,0 13.7262,4.76883 13.7262,13.2283 m -5.9939,0.101 c 0,-5.64103 -3.0211,-8.41107 -7.9381,-8.41107 -4.9169,0 -7.7848,2.82253 -7.7848,8.25767 0,5.9479 3.1745,8.5645 8.043,8.5645 4.8685,0 7.684,-3.077 7.684,-8.4111" fill="#FFFFFF" fill-opacity="1" /><path d="M 80.5749,21.2317 V 26.154 H 66.6953 c -4.1989,0 -6.5586,-2.2048 -6.5586,-6.0004 V 0.512939 h 5.8406 V 21.2317 Z" fill="#FFFFFF" fill-opacity="1" /><path d="m 11.2174,26.6667 c -4.50552,0 -7.42584,-0.3594 -10.652699,-1.0257 v -4.9747 c 2.767039,0.6662 5.429199,1.179 10.652699,1.179 4.5095,0 5.8406,-0.9731 5.8406,-2.77 0,-1.6919 -1.2302,-2.5641 -6.0947,-3.3838 C 2.30317,14.2055 0,11.7424 0,7.58732 0,2.5641 4.04568,0 11.2698,0 c 2.9687,0 6.607,0.306885 9.9347,1.07813 V 6.0529 c -3.8399,-0.8722 -6.966,-1.23158 -9.9387,-1.23158 -3.79158,0 -5.27593,0.61781 -5.27593,2.41066 0,1.53846 1.02452,2.46315 6.55453,3.48882 8.6561,1.5909 10.4994,4.1025 10.4994,7.9467 0,4.4619 -3.4325,7.9992 -11.8305,7.9992" fill="#FFFFFF" fill-opacity="1" /></g></g></svg></g></svg>

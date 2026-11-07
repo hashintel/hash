@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="amgen-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="amgen-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="amgen-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amgen-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amgen-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#amgen-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="amgen-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.318682171363 -1.07206721053 -0.108226024329 0 1.49897540622" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#amgen-app-mono-light-mono)"><defs><clipPath id="amgen-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#amgen-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="amgen-app-mono-light-Layer_1" viewBox="0 0 1781.72 454.46" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs>
+    <g />
+  </defs>
+  <path d="m1121.17,153.25c-22.02-30.83-51.96-49.32-93.36-49.32-67.82,0-123.3,55.49-123.3,124.18s55.49,124.18,123.3,124.18c49.32,0,91.6-29.06,110.97-71.34h-126.83v-102.17h232.51V20.26h206.97v102.17h-108.33v56.37h108.33v102.17h-108.33v52.84h108.33v99.52c3.52,0-206.97,0-206.97,0v-149.72c-24.66,112.73-115.38,170.86-216.66,170.86s-184.95-59.89-208.73-164.7v145.32h-101.28v-241.32s-59.01,51.96-59.01,241.32h-104.81c0-189.36-59.01-241.32-59.01-241.32v241.32h-102.17V15.85c117.14,0,194.64,132.11,213.14,209.61,18.5-77.5,96-209.61,213.14-209.61v139.16C839.34,62.53,931.82,0,1028.7,0s185.83,74.86,204.33,153.25h-111.85Z" fill="#0063c3" />
+  <path d="m1676.04,435.08c-14.97-113.61-89.83-194.64-89.83-194.64v194.64h-108.33V22.02c23.78,0,110.09,46.68,198.17,173.5V22.02h105.69v412.18h-105.69v.88Z" fill="#0063c3" />
+  <path d="m133.87,331.16c-2.64,11.45-21.14,74.86-28.18,103.93H0c14.09-51.96,41.39-140.92,70.46-200.81,28.18-59.01,63.41-124.18,122.42-168.22,27.3-20.26,79.27-59.89,176.15-51.08v420.11h-102.17v-103.93h-132.99Zm132.99-96v-97.76c-32.59,22.9-67.82,65.17-88.95,97.76h88.95Z" fill="#0063c3" />
+</svg></g></g></svg>

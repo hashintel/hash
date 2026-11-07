@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="waabi-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="waabi-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="waabi-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#waabi-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#waabi-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#waabi-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="waabi-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#waabi-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.11793 2.42066 75.23586 20.17992" fill="none" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M4.0284 22.5C6.49162 22.5 7.95416 21.0128 8.49299 18.2949L9.69894 11.9359C9.77592 11.5257 10.0068 11.218 10.3661 11.218C10.7253 11.218 10.9562 11.5257 11.0332 11.9359L12.2391 18.2949C12.778 21.0128 14.2405 22.5 16.7037 22.5C18.9873 22.5 20.7321 20.9616 20.7321 18.1154V8.14104H17.1399V18.2949C17.1399 18.9872 16.9603 19.2949 16.5498 19.2949C16.2419 19.2949 15.9596 19.0385 15.8313 18.2949L14.651 12.1154C14.1379 9.39745 12.5727 8.06412 10.3661 8.06412C8.18508 8.06412 6.59425 9.39745 6.08108 12.1154L4.90079 18.2949C4.74684 19.0385 4.49025 19.2949 4.18235 19.2949C3.77181 19.2949 3.5922 18.9872 3.5922 18.2949V8.14104H0V18.1154C0 20.9616 1.74478 22.5 4.0284 22.5Z" fill="#F5F7FA" /><path d="M29.0713 22.5C31.2266 22.5 32.5095 21.7051 33.3562 20.5513V22.2436H36.9484V15.1923C36.9484 9.9359 33.3562 7.88462 29.764 7.88462C26.1718 7.88462 22.5283 9.9359 22.5283 15.1923C22.5283 20.4487 26.1718 22.5 29.0713 22.5ZM29.764 19.6795C27.7114 19.6795 26.1718 18.3718 26.1718 15.1923C26.1718 12.0641 27.66 10.7051 29.764 10.7051C31.9194 10.7051 33.3562 12.0897 33.3562 15.1923C33.3562 18.3462 31.8167 19.6795 29.764 19.6795ZM45.1592 22.5C47.3145 22.5 48.5974 21.7051 49.4442 20.5513V22.2436H53.0364V15.1923C53.0364 9.9359 49.4442 7.88462 45.852 7.88462C42.2598 7.88462 38.6162 9.9359 38.6162 15.1923C38.6162 20.4487 42.2598 22.5 45.1592 22.5ZM45.8776 19.6795C43.8249 19.6795 42.2854 18.3718 42.2854 15.1923C42.2854 12.0641 43.7736 10.7051 45.8776 10.7051C48.0329 10.7051 49.4698 12.0897 49.4698 15.1923C49.4698 18.3462 47.9303 19.6795 45.8776 19.6795ZM61.9912 19.6795C59.8359 19.6795 58.399 18.2949 58.399 15.1923C58.399 12.0385 59.9385 10.7051 61.9912 10.7051C64.0439 10.7051 65.5834 12.0128 65.5834 15.1923C65.5834 18.3205 64.0952 19.6795 61.9912 19.6795ZM62.0169 22.5C65.6091 22.5 69.2526 20.4487 69.2526 15.1923C69.2526 9.9359 65.6091 7.88462 62.7096 7.88462C60.5543 7.88462 59.2714 8.67949 58.4247 9.83333V3.01282H54.8325V15.1923C54.8325 20.4487 58.4247 22.5 62.0169 22.5ZM71.0487 22.2436H74.6409V8.14103H71.0487V22.2436ZM72.8448 6.83333C74.1534 6.83333 75.0001 6.03846 75.0001 4.65385C75.0001 3.34615 74.2047 2.5 72.8448 2.5C71.5105 2.5 70.6638 3.29487 70.6638 4.65385C70.6638 5.98718 71.4592 6.83333 72.8448 6.83333Z" fill="#F5F7FA" /></svg></g></svg>

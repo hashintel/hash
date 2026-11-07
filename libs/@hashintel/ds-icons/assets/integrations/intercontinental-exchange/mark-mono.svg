@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="intercontinental-exchange-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#intercontinental-exchange-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.10347 0.10347 15.13888 15.13888" id="intercontinental-exchange-mark-mono-svg3304" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs id="intercontinental-exchange-mark-mono-defs3298">
+    <clipPath id="intercontinental-exchange-mark-mono-clipPath672" clipPathUnits="userSpaceOnUse">
+      <path id="intercontinental-exchange-mark-mono-path670" d="M 0,0 H 612 V 792 H 0 Z" />
+    </clipPath>
+  </defs>
+  <g id="intercontinental-exchange-mark-mono-layer1" transform="translate(-142.34585,-232.29049)" fill="#111111">
+    <g id="intercontinental-exchange-mark-mono-g3352" transform="matrix(2.3750001,0,0,2.3750001,-241.3756,-395.39154)" stroke-width="0.42105263">
+      <path id="intercontinental-exchange-mark-mono-path664" d="m 163.91539,270.67914 h 0.38665 v -1.91135 h -0.38665 z" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.14853801" />
+      <g transform="matrix(0.35277777,0,0,-0.35277777,-22.61832,302.85495)" id="intercontinental-exchange-mark-mono-g666" stroke-width="0.42105263">
+        <g clip-path="url(#intercontinental-exchange-mark-mono-clipPath672)" id="intercontinental-exchange-mark-mono-g668" stroke-width="0.42105263">
+          <g transform="translate(533.6227,95.9542)" id="intercontinental-exchange-mark-mono-g674" stroke-width="0.42105263">
+            <path id="intercontinental-exchange-mark-mono-path676" d="M 0,0 C 0.542,0 0.886,-0.132 1.079,-0.242 L 1.154,-0.285 1.412,0.594 1.361,0.619 C 1.104,0.749 0.592,0.9 0,0.9 c -0.855,0 -1.586,-0.281 -2.113,-0.813 -0.51,-0.514 -0.792,-1.246 -0.792,-2.059 0,-0.814 0.255,-1.507 0.737,-2.006 0.485,-0.503 1.163,-0.769 1.961,-0.769 0.684,0 1.262,0.175 1.548,0.325 l 0.046,0.025 -0.193,0.851 -0.076,-0.033 c -0.282,-0.124 -0.627,-0.257 -1.151,-0.257 -1.056,0 -1.765,0.766 -1.765,1.907 0,0.54 0.164,1.025 0.462,1.367 C -1.015,-0.194 -0.554,0 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.42105263" />
+          </g>
+          <g transform="translate(537.8665,96.0414)" id="intercontinental-exchange-mark-mono-g678" stroke-width="0.42105263">
+            <path id="intercontinental-exchange-mark-mono-path680" d="M 0,0 C 0.361,0 0.652,-0.11 0.866,-0.328 1.207,-0.675 1.258,-1.195 1.263,-1.424 H -1.395 C -1.308,-0.861 -0.93,0 0,0 M 1.871,-0.087 C 1.478,0.509 0.857,0.824 0.076,0.824 c -0.758,0 -1.404,-0.295 -1.867,-0.851 -0.437,-0.525 -0.677,-1.258 -0.677,-2.065 0,-0.809 0.244,-1.494 0.707,-1.981 0.473,-0.498 1.15,-0.761 1.958,-0.761 0.846,0 1.437,0.188 1.784,0.345 l 0.051,0.023 -0.195,0.82 -0.074,-0.031 C 1.435,-3.816 1.034,-3.945 0.328,-3.945 c -0.493,0 -0.912,0.143 -1.213,0.413 -0.329,0.295 -0.506,0.727 -0.529,1.284 h 3.7 l 0.012,0.104 c 0.012,0.101 0.029,0.238 0.029,0.412 0,0.287 -0.045,1.021 -0.456,1.645" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.42105263" />
+          </g>
+        </g>
+      </g>
+      <g transform="matrix(0.35277777,0,0,-0.35277777,161.62262,264.34286)" id="intercontinental-exchange-mark-mono-g682" stroke-width="0.42105263">
+        <path id="intercontinental-exchange-mark-mono-path684" d="m 0,0 v -18 h 3.567 v 2.046 H 2.046 V -2.046 H 15.993 V -9.73 H 18 V 0 Z" fill="#73C7E8" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.42105263" />
+      </g>
+    </g>
+  </g>
+</svg></g></svg>

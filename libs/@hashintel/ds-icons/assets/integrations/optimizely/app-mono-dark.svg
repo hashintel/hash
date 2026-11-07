@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="optimizely-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="optimizely-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="optimizely-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#optimizely-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#optimizely-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#optimizely-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="optimizely-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.260897310033 -0.877675240526 -0.0886020027489 0 1.22717455331" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#optimizely-app-mono-dark-mono)"><defs><clipPath id="optimizely-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#optimizely-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="7.221 6.74671 64.4844 73.83443" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M35.1253 80.5058C42.6728 80.5058 49.3571 77.7029 56.3297 70.7303L62.0794 64.9806C68.6209 58.3677 71.6398 49.5267 71.6398 39.1039C71.6398 19.5527 60.6422 6.83044 43.8226 6.83044C36.2759 6.83044 29.5907 9.34599 22.619 16.2463L16.8684 21.9969C10.3993 28.466 7.30884 37.3793 7.30884 47.8012C7.30884 67.4961 18.2342 80.5058 35.1253 80.5058Z" fill="#0D3A29" /><path d="M43.8228 9.63391C28.5841 9.63391 18.7371 21.0627 18.7371 39.1036C18.7371 57.4327 28.5841 69.0053 43.8228 69.0053C58.9892 69.0053 68.8363 57.4327 68.8363 39.1036C68.8363 21.0627 58.9892 9.63391 43.8228 9.63391ZM43.7509 55.5641C39.2224 55.5641 36.2034 49.2387 36.2034 39.1042C36.2034 29.2563 39.2224 23.0754 43.7509 23.0754C48.2079 23.0754 51.2983 29.2563 51.2983 39.1042C51.2983 49.2387 48.2079 55.5641 43.7509 55.5641Z" fill="#ABFF44" /></svg></g></g></svg>

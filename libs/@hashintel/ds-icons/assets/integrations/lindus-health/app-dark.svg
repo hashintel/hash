@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lindus-health-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lindus-health-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lindus-health-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lindus-health-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lindus-health-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lindus-health-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lindus-health-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lindus-health-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.10229 -0.148 86.86743 69.79886" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M67.9436 64.469C78.284 64.469 86.6666 56.0909 86.6666 45.7559C86.6666 35.4209 78.284 27.0428 67.9436 27.0428C57.6033 27.0428 49.2207 35.4209 49.2207 45.7559C49.2207 56.0909 57.6033 64.469 67.9436 64.469Z" fill="#FBFB56" /><path d="M34.786 0C48.7444 0 60.783 8.21805 66.3224 20.077C52.8594 20.9131 42.1989 32.0901 42.1989 45.756C42.1989 53.6196 45.728 60.6587 51.2905 65.3784C46.3795 68.0291 40.7591 69.5336 34.786 69.5336C15.5735 69.5356 0 53.9683 0 34.7678C0 15.5654 15.5735 0 34.786 0Z" fill="#FF7300" /></svg></g></svg>

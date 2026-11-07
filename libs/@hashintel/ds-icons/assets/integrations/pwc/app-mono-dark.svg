@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pwc-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="pwc-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="pwc-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pwc-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pwc-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#pwc-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="pwc-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.66667"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#pwc-app-mono-dark-mono)"><defs><clipPath id="pwc-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#pwc-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="175.1484 5.19305 184.92454 44.8239" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="pwc-app-mono-dark-brand-symbol-bounds"><rect x="151.48379999999997" y="5.5" width="208.44619999999998" height="52.152" /></clipPath></defs><g clip-path="url(#pwc-app-mono-dark-brand-symbol-bounds)"><g transform="translate(8.7367 44.79)"><path d="m179.01-17.156-12.299 22.126 78.703 0.0082282 13.131-22.143v-3e-6z" fill="#FD5108" stroke-width="2.1088" /><path d="m271.66-39.284-12.299 22.126 78.703 0.0082 13.131-22.143v-2e-6z" fill="#FD5108" stroke-width="2.1088" /><g transform="matrix(.39636 0 0 .39636 -59.129 -37.953)"><path d="m805.26 177.46c-31.69 5.6338-48.592 29.577-48.592 71.127 0 42.254 22.535 70.423 55.634 70.423 16.197 0 30.282-5.6338 59.859-20.423v34.507c-35.915 16.901-57.042 21.127-85.211 21.127-31.69 0-54.225-7.7465-71.831-26.761-18.31-18.31-28.169-42.254-28.169-69.718 0-59.859 45.07-101.41 110.56-101.41 42.958 0 73.239 20.423 73.239 49.296 0 19.014-14.085 32.394-34.507 32.394-10.563 0-19.014-3.5211-30.986-9.8592" /><path d="m646.81 257.74c28.873-35.915 39.437-50.704 39.437-68.31 0-17.606-14.085-33.099-33.803-33.099-11.268 0-21.831 6.338-26.761 11.972v73.944c-47.183 63.38-47.183 63.38-47.183 63.38v-143.66h-45.07l-74.648 123.24v-123.24h-25.352l-68.31 15.493v17.606l37.324 3.5211v152.82h47.183l71.831-118.31v118.31h52.817" /><path d="m222.16 327.46h10.563c38.028 0 59.155-23.239 59.155-69.718 0-38.732-16.901-59.859-48.592-59.859-4.2254 0-10.563 0.70422-21.127 2.8169zm0 83.099c30.986 7.0423 30.986 7.0423 30.986 7.0423v17.606h-121.83v-17.606c28.169-7.0423 28.169-7.0423 28.169-7.0423v-212.68h-30.986v-17.606l73.944-22.535h19.718v25.352c34.507-21.127 46.479-24.648 64.789-24.648 40.845 0 71.831 38.028 71.831 90.845 0 60.563-41.549 102.11-104.93 102.11-7.0422 0-19.014-0.70422-31.69-1.4084" /></g></g></g></svg></g></g></svg>

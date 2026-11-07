@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64.0 17.664" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 23.168 64 17.664" fill="#F5F7FA" x="0" y="0" width="64.0" height="17.664"><path fill="#F5F7FA" d="M4.482 27.62v6.792c0 .985-.343 1.327-.957 1.327-.656 0-1.028-.37-1.028-1.041v-.942H0v.441c0 2.271.87 3.825 3.567 3.825 2.397 0 3.568-1.154 3.568-3.438l.001-6.964zm12.144.041v2.452H15.33v1.716h1.295v3.324c0 2.123.557 2.754 2.739 2.754.466 0 .932-.06 1.398-.075v-1.88c-.225 0-.45.028-.662.028-.557 0-.918-.135-.918-.75v-3.401h1.58v-1.716h-1.58V27.66Zm12.877 0v2.452H28.21v1.716h1.294v3.324c0 2.123.556 2.754 2.739 2.754.466 0 .932-.06 1.4-.075v-1.88c-.226 0-.452.028-.663.028-.557 0-.919-.135-.919-.75v-3.401h1.582v-1.716H32.06V27.66ZM11.59 29.833c-2.282 0-4.176 1.7-4.176 4.072 0 2.596 1.717 4.117 4.237 4.117 1.73 0 3.385-.775 3.848-2.564h-2.371c-.239.566-.837.848-1.448.848-1.075 0-1.686-.7-1.73-1.76h5.684c.119-2.624-1.269-4.713-4.044-4.713Zm12.916.02c-1.518 0-3.527.507-3.527 2.367 0 2.084 1.994 2.127 3.585 2.53.447.104 1.236.223 1.236.817 0 .61-.699.819-1.19.819-.356 0-.7-.09-.937-.269a1.036 1.036 0 0 1-.417-.862l-2.412.001c.074 2.157 1.949 2.768 3.779 2.768 1.742 0 3.705-.685 3.705-2.752 0-.641-.4-1.771-1.963-2.083-1.162-.254-2.857-.388-2.857-1.116 0-.537.67-.581 1.087-.581.313 0 .596.06.803.192.208.135.327.343.327.67h2.336c-.089-2.009-1.86-2.5-3.555-2.5zm13.25.02c-.877 0-1.767.15-2.45.536-.683.4-1.157 1.054-1.202 2.063h2.36c.12-.653.564-.965 1.261-.965.52 0 1.218.223 1.218.802 0 .475-.238.624-.668.712-1.752.357-4.481.162-4.481 2.671 0 1.589 1.156 2.33 2.626 2.33.92 0 1.884-.266 2.538-.949.029.252.06.49.147.728h2.539c-.298-.61-.298-1.322-.298-1.974v-3.37c0-2.182-1.765-2.583-3.59-2.583zm4.124.213v7.723h2.53v-3.824c0-.965.654-1.83 1.904-1.83.29 0 .55.044.821.112l-1.901-1.93a2.227 2.227 0 0 0-.868 1.104h-.03v-1.355zm-30.29 1.462c.851 0 1.463.717 1.508 1.581H9.95c.149-.94.745-1.581 1.64-1.581zm27.323 2.646c.06 1.588-.34 2.27-1.544 2.27-.564 0-1.053-.25-1.053-.875 0-.609.474-.847 1.038-.98.549-.149 1.203-.193 1.559-.415z" /><path fill="#ff5111" d="m52.585 35.617-8.015 4.161 4.779-6.552-4.532-4.719h7.335l4.204-5.295.33 5.295H64l-7.005 4.636 1.545 7.645z" /></svg></svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><defs><filter id="adobe-firefly-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#adobe-firefly-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 168" fill="none" color="black" x="0.0" y="0.0" width="64" height="64">
+<path id="adobe-firefly-mark-mono-Vector" d="M137.871 0H30.129C13.4892 0 0 13.4892 0 30.129V137.871C0 154.511 13.4892 168 30.129 168H137.871C154.511 168 168 154.511 168 137.871V30.129C168 13.4892 154.511 0 137.871 0Z" fill="#000000" />
+<path id="adobe-firefly-mark-mono-Vector_2" d="M42.5525 44.5941H99.0745V62.9723H64.0517V76.2648H95.029V94.643H64.0517V122.037H42.5525V44.5941Z" fill="#FFFFFF" />
+<path id="adobe-firefly-mark-mono-Vector_3" d="M106.491 61.701H126.718V122.037H106.491V61.701Z" fill="#FFFFFF" />
+<path id="adobe-firefly-mark-mono-Vector_4" d="M120.162 50.428L127.373 52.0487C130.208 52.6875 132.176 49.2923 130.202 47.1569L125.191 41.7388C124.532 41.0231 124.265 40.0353 124.479 39.0829L126.104 31.8902C126.745 29.0628 123.34 27.099 121.2 29.0687L115.768 34.067C115.05 34.7235 114.059 34.9897 113.105 34.7768L105.894 33.156C103.059 32.5172 101.09 35.9125 103.065 38.0478L108.076 43.466C108.734 44.1817 109.001 45.1695 108.788 46.1218L107.163 53.3145C106.522 56.1419 109.926 58.1057 112.067 56.136L117.499 51.1378C118.217 50.4812 119.207 50.215 120.162 50.428Z" fill="#FFFFFF" />
+<defs>
+<clipPath id="adobe-firefly-mark-mono-clip0_2136_7474">
+<rect width="168" height="168" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

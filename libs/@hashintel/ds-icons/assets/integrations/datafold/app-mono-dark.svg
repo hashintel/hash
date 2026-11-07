@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="datafold-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="datafold-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="datafold-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#datafold-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#datafold-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#datafold-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="datafold-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.359183484172 -1.20831621768 -0.121980468284 0 1.68948017014" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#datafold-app-mono-dark-mono)"><defs><clipPath id="datafold-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#datafold-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="14.36129 10.39618 17.05958 21.27764" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M14.5879 31.6541L20.9541 29.4865L18.2669 26.6143L14.5879 31.6541Z" fill="#306AFA" /><path d="M21.637 28.7875L22.5051 19.1699L14.7998 21.455L21.637 28.7875Z" fill="#306AFA" /><path d="M22.5841 28.6133L27.3916 23.6909L23.3922 19.5957L22.5841 28.6133Z" fill="#306AFA" /><path d="M27.587 22.5431V14.5264L23.6654 18.5411L27.587 22.5431Z" fill="#306AFA" /><path d="M14.3849 10.4072L14.4015 20.5852L22.1017 18.2925L14.3849 10.4072Z" fill="#306AFA" /><path d="M20.8098 15.6128L23.0093 17.8659L25.0327 15.803L22.9302 10.4951L20.8098 15.6128Z" fill="#306AFA" /><path d="M28.501 14.4561L28.5189 17.4904L31.3949 18.0738L30.4847 15.333L28.501 14.4561Z" fill="#306AFA" /></svg></g></g></svg>

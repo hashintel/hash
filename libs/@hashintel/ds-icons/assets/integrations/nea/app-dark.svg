@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nea-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="nea-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nea-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nea-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nea-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nea-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nea-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nea-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 125.79 48" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#F5F7FA" d="M0 47.727h14.937C12.183 46.634 8.4 42.257 8.4 33.985V8.479L44.261 48V31.043L16.038 0H0c2.754 1.366 6.538 5.742 6.538 12.375v21.607c0 8.272-3.787 12.648-6.538 13.742zm86.726-18.395-.965 2.325h16.656l7.571 16.07h15.694c-2.754-1.913-5.506-4.923-9.428-13.196L99.941 0h-1.722l-5.023 12.17 8.121 17.162zM50.935 16.82v30.905h35.448l-4.198-7.794c-6.195 5.128-11.633 6.289-20.029 6.289V23.86c4.062 0 8.675.753 12.873 4.241v-9.777c-4.062 3.417-8.192 4.035-12.873 4.035V1.505c9.293 0 15.556 2.051 20.307 5.88L86.525 0H44.743c3.716 2.939 6.195 6.906 6.195 16.819z" /></svg></g></svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="schonfeld-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="schonfeld-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="schonfeld-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#schonfeld-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#schonfeld-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#schonfeld-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="schonfeld-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#schonfeld-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="46.96059 166.72218 985.16442 745.5528" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,1080.000000) scale(0.100000,-0.100000)" fill="#F5F7FA" stroke="none">
+<path d="M6480 9110 c-23 -4 -30 -9 -20 -13 8 -3 112 -11 230 -16 118 -6 231 -15 250 -21 19 -6 91 -17 160 -26 69 -8 148 -21 175 -29 28 -7 66 -16 86 -19 60 -10 267 -81 368 -126 168 -76 311 -168 436 -282 181 -164 312 -342 429 -582 85 -173 145 -353 210 -636 23 -100 54 -325 73 -540 16 -172 18 -299 16 -1095 -2 -857 -12 -1345 -33 -1610 -16 -195 -37 -384 -55 -480 -40 -210 -67 -343 -82 -395 -43 -152 -99 -315 -138 -405 -161 -369 -367 -622 -666 -818 -91 -59 -282 -145 -409 -184 -133 -41 -177 -52 -245 -63 -89 -13 -238 -62 -222 -72 27 -17 243 -5 497 28 63 8 160 19 215 24 119 12 322 47 550 96 207 44 496 135 659 207 128 57 299 150 376 204 116 82 273 226 357 325 171 203 296 423 390 688 92 258 138 486 174 870 24 259 36 673 45 1515 5 515 3 674 -10 870 -8 132 -22 285 -31 340 -22 142 -63 352 -79 405 -46 156 -63 206 -103 300 -24 58 -47 112 -52 120 -4 8 -27 51 -51 95 -56 105 -177 290 -244 373 -77 97 -268 277 -377 355 -85 61 -302 178 -436 235 -170 71 -594 193 -776 222 -38 6 -96 17 -130 24 -66 14 -284 45 -507 72 -345 41 -923 66 -1030 44z" />
+<path d="M3725 8440 c-215 -7 -525 -24 -640 -35 -466 -43 -845 -103 -1125 -177 -146 -38 -353 -110 -471 -163 -287 -129 -501 -291 -658 -498 -87 -115 -148 -232 -195 -368 -65 -194 -96 -403 -95 -664 0 -185 11 -319 39 -455 32 -156 59 -234 131 -377 51 -99 101 -170 194 -277 179 -205 478 -374 865 -489 243 -72 639 -134 1005 -158 99 -6 185 -14 190 -18 6 -3 620 -9 1365 -12 1304 -6 1360 -7 1500 -27 147 -21 219 -41 300 -82 74 -37 101 -60 140 -121 31 -49 40 -74 50 -146 10 -69 10 -105 1 -168 -20 -129 -68 -193 -201 -263 -142 -76 -350 -115 -725 -139 -190 -12 -428 -17 -880 -17 -663 -1 -923 9 -1145 45 -135 22 -291 59 -355 85 -141 56 -251 132 -317 219 -40 53 -88 169 -88 214 0 15 -6 36 -14 47 -14 19 -38 19 -1044 22 -1157 3 -1062 9 -1062 -73 0 -77 20 -247 41 -350 50 -241 118 -414 232 -587 131 -199 318 -371 542 -498 183 -105 398 -194 620 -258 410 -117 976 -196 1625 -225 330 -14 1481 -14 1810 1 269 12 687 45 780 62 30 5 102 14 160 20 175 17 595 101 725 145 22 7 72 23 110 35 199 63 431 173 587 277 181 121 341 297 452 495 40 72 94 213 122 315 13 51 34 147 47 215 20 110 22 156 22 423 0 266 -2 313 -22 420 -51 277 -107 429 -221 600 -68 103 -229 259 -347 337 -138 91 -328 179 -480 223 -33 10 -87 26 -120 35 -237 70 -528 118 -915 151 -226 20 -346 22 -1540 30 -712 4 -1313 11 -1335 14 -22 3 -115 12 -207 20 -231 21 -377 56 -486 117 -89 51 -129 121 -139 246 -14 181 64 284 267 354 88 30 230 55 445 80 193 22 231 23 1050 23 828 0 855 -1 1025 -23 96 -12 210 -32 253 -43 107 -27 202 -74 252 -123 42 -43 105 -145 105 -171 0 -9 11 -27 25 -40 l24 -25 1023 0 c563 0 1028 4 1035 8 18 11 31 53 27 87 -37 296 -59 409 -104 540 -22 64 -23 66 -68 166 -98 219 -290 417 -549 568 -163 94 -479 206 -733 259 -569 118 -1178 168 -2140 176 -294 2 -638 1 -765 -4z" />
+</g>
+</svg></g></svg>

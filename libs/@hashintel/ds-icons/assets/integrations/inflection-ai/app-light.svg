@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="inflection-ai-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="inflection-ai-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="inflection-ai-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#inflection-ai-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#inflection-ai-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#inflection-ai-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="inflection-ai-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#inflection-ai-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="#111111" fill-rule="evenodd" viewBox="7.46053 -0.0377 8.74466 24.0754" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M8.341 24c-.53 0-.841-.308-.841-.824v-.271c0-.514.248-.755.708-.926l1.025-.343c.708-.271.954-.583.954-1.303V3.667c0-.72-.246-1.029-.954-1.303L8.2 2.02c-.46-.171-.701-.408-.701-.926V.824C7.5.309 7.818 0 8.348 0h6.968c.531 0 .85.309.85.824v.271c0 .514-.249.755-.709.926l-1.031.34c-.743.272-.992.583-.992 1.303v16.664c0 .72.249 1.028.992 1.303l1.024.342c.46.172.708.408.708.926v.272c0 .515-.318.824-.85.824L8.342 24z" /></svg></g></svg>

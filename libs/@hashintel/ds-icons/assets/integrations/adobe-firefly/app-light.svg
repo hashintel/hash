@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-firefly-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-firefly-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-firefly-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-firefly-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-firefly-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-firefly-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-firefly-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-firefly-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 168" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-firefly-app-light-Vector" d="M137.871 0H30.129C13.4892 0 0 13.4892 0 30.129V137.871C0 154.511 13.4892 168 30.129 168H137.871C154.511 168 168 154.511 168 137.871V30.129C168 13.4892 154.511 0 137.871 0Z" fill="#EB1000" />
+<path id="adobe-firefly-app-light-Vector_2" d="M42.5525 44.5941H99.0745V62.9723H64.0517V76.2648H95.029V94.643H64.0517V122.037H42.5525V44.5941Z" fill="white" />
+<path id="adobe-firefly-app-light-Vector_3" d="M106.491 61.701H126.718V122.037H106.491V61.701Z" fill="white" />
+<path id="adobe-firefly-app-light-Vector_4" d="M120.162 50.428L127.373 52.0487C130.208 52.6875 132.176 49.2923 130.202 47.1569L125.191 41.7388C124.532 41.0231 124.265 40.0353 124.479 39.0829L126.104 31.8902C126.745 29.0628 123.34 27.099 121.2 29.0687L115.768 34.067C115.05 34.7235 114.059 34.9897 113.105 34.7768L105.894 33.156C103.059 32.5172 101.09 35.9125 103.065 38.0478L108.076 43.466C108.734 44.1817 109.001 45.1695 108.788 46.1218L107.163 53.3145C106.522 56.1419 109.926 58.1057 112.067 56.136L117.499 51.1378C118.217 50.4812 119.207 50.215 120.162 50.428Z" fill="white" />
+<defs>
+<clipPath id="adobe-firefly-app-light-clip0_2136_7474">
+<rect width="168" height="168" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

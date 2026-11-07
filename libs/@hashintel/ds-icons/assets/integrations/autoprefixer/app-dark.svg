@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="autoprefixer-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="autoprefixer-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="autoprefixer-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#autoprefixer-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#autoprefixer-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#autoprefixer-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="autoprefixer-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#autoprefixer-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 193" preserveAspectRatio="xMidYMid" fill="#E14D4B" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<g fill="#E14E4B">
+		<path d="M62.2594273,192.231662 L93.1619166,192.231662 L102.705332,159.511379 L150.422412,159.511379 L159.965828,192.231662 L192.68611,192.231662 L128.154442,0 L62.2594273,192.231662 L62.2594273,192.231662 Z M128.154442,83.6185008 L144.514583,136.334512 L111.7943,136.334512 L128.154442,83.6185008 L128.154442,83.6185008 Z M255.854434,154.512447 L252.673296,141.333444 L185.414936,134.516719 L194.049456,157.693586 L255.854434,154.512447 L255.854434,154.512447 Z M70.439498,136.334512 L3.18113862,143.151238 L0,156.330241 L62.2594273,159.511379 L70.439498,136.334512 L70.439498,136.334512 Z" />
+	</g>
+</svg></g></svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldman-sachs-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="goldman-sachs-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goldman-sachs-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#goldman-sachs-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#goldman-sachs-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#goldman-sachs-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="goldman-sachs-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.0494"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#goldman-sachs-app-mono-light-mono)"><defs><clipPath id="goldman-sachs-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#goldman-sachs-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.20743 0 32.0718 32" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<rect width="32" height="32" transform="translate(0.25)" fill="white" />
+<path d="M25.8318 14.8561C28.308 16.5787 29.2231 18.059 29.25 20.1584C29.3038 23.2536 27.2044 25.7836 22.5212 25.7836H10.7862C5.43012 25.7836 3.25 22.6077 3.25 16.2826C3.25 9.63457 6.12992 6.21635 11.4053 6.21635H15.7655V11.5455H14.8235C13.8007 8.34265 12.7779 7.10455 11.19 7.10455C8.79451 7.10455 7.8794 9.87681 7.8794 16.4441C7.8794 23.0114 8.65994 24.8147 10.9477 24.8147C12.7779 24.8147 13.4508 23.6573 13.4508 21.0735V19.0818C13.4508 17.3323 12.8587 16.6863 10.9477 16.4172V15.5021H17.1651V17.0631C17.1651 22.4193 18.9684 24.8416 22.2521 24.8416C24.2976 24.8416 25.6972 23.7919 25.6434 21.854C25.6165 20.6159 24.9974 19.6201 23.1134 18.2743L20.4218 16.3634C18.2686 14.8561 17.4343 13.295 17.4343 11.1957C17.4343 8.34265 19.426 6.21635 23.4363 6.21635H28.4425V11.5455H27.5005C26.4239 7.93892 24.8898 7.15838 23.3018 7.15838C21.6061 7.15838 20.6102 8.01967 20.6102 9.52691C20.6102 10.7112 21.1755 11.5725 22.8442 12.7567L25.8318 14.8561Z" fill="black" fill-opacity="0.95" />
+</svg></g></g></svg>

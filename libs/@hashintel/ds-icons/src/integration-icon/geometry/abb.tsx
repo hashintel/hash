@@ -1,0 +1,67 @@
+/* Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed. */
+export const markLight = ({ id: _id }: { id: string }) => (
+  <g fill="#FF000F">
+    <path d="M47 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H47V33z" />
+    <rect width="10" height="16" x="36" y="17" />
+    <path d="M57.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H47v16h10.3z" />
+    <rect width="10" height="16" x="36" />
+    <path d="M74 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H74V33z" />
+    <rect width="10" height="16" x="63" y="17" />
+    <path d="M84.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H74v16h10.3z" />
+    <rect width="10" height="16" x="63" />
+    <polygon points="5.7,17 0,33 8.3,33 10.7,26 16,26 16,17" />
+    <polygon points="16,0 11.7,0 6,16 16,16" />
+    <polygon points="17,26 22.3,26 24.7,33 33,33 27.3,17 17,17" />
+    <polygon points="27,16 21.3,0 17,0 17,16" />
+  </g>
+);
+export const markDark = ({ id: _id }: { id: string }) => (
+  <g fill="#FF000F">
+    <path d="M47 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H47V33z" />
+    <rect width="10" height="16" x="36" y="17" />
+    <path d="M57.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H47v16h10.3z" />
+    <rect width="10" height="16" x="36" />
+    <path d="M74 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H74V33z" />
+    <rect width="10" height="16" x="63" y="17" />
+    <path d="M84.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H74v16h10.3z" />
+    <rect width="10" height="16" x="63" />
+    <polygon points="5.7,17 0,33 8.3,33 10.7,26 16,26 16,17" />
+    <polygon points="16,0 11.7,0 6,16 16,16" />
+    <polygon points="17,26 22.3,26 24.7,33 33,33 27.3,17 17,17" />
+    <polygon points="27,16 21.3,0 17,0 17,16" />
+  </g>
+);
+export const logoLight = ({ id: _id }: { id: string }) => (
+  <svg fill="#FF000F" viewBox="-0.0676 -0.06835 86.34883 33.13669">
+    <path d="M47 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H47V33z" />
+    <rect width="10" height="16" x="36" y="17" />
+    <path d="M57.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H47v16h10.3z" />
+    <rect width="10" height="16" x="36" />
+    <path d="M74 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H74V33z" />
+    <rect width="10" height="16" x="63" y="17" />
+    <path d="M84.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H74v16h10.3z" />
+    <rect width="10" height="16" x="63" />
+    <polygon points="5.7,17 0,33 8.3,33 10.7,26 16,26 16,17" />
+    <polygon points="16,0 11.7,0 6,16 16,16" />
+    <polygon points="17,26 22.3,26 24.7,33 33,33 27.3,17 17,17" />
+    <polygon points="27,16 21.3,0 17,0 17,16" />
+  </svg>
+);
+export const logoDark = ({ id: _id }: { id: string }) => (
+  <svg fill="#FF000F" viewBox="-0.0676 -0.06835 86.34883 33.13669">
+    <path d="M47 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H47V33z" />
+    <rect width="10" height="16" x="36" y="17" />
+    <path d="M57.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H47v16h10.3z" />
+    <rect width="10" height="16" x="36" />
+    <path d="M74 33h2c6-.3 10.2-5 10.2-10.6 0-1.9-.4-3.8-1.3-5.3H74V33z" />
+    <rect width="10" height="16" x="63" y="17" />
+    <path d="M84.3 16c-1-1.4-2.4-2.5-3.9-3.3 1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7H74v16h10.3z" />
+    <rect width="10" height="16" x="63" />
+    <polygon points="5.7,17 0,33 8.3,33 10.7,26 16,26 16,17" />
+    <polygon points="16,0 11.7,0 6,16 16,16" />
+    <polygon points="17,26 22.3,26 24.7,33 33,33 27.3,17 17,17" />
+    <polygon points="27,16 21.3,0 17,0 17,16" />
+  </svg>
+);
+export const wordmarkLight = logoLight;
+export const wordmarkDark = logoDark;

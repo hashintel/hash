@@ -1,0 +1,127 @@
+/* Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed. */
+export const markLight = ({ id: _id }: { id: string }) => (
+  <g fill="#111111">
+    <path
+      fill="#900028"
+      fillRule="nonzero"
+      d="M513.57 24l136.9 401.392H1024L725.333 635.769l116.221 365.021-327.983-212.994-325.105 210.639 116.221-362.666L0 425.392h376.409z"
+    />
+  </g>
+);
+export const markDark = ({ id: _id }: { id: string }) => (
+  <g fill="#F5F7FA">
+    <path
+      fill="#F60044"
+      fillRule="nonzero"
+      d="M513.57 24l136.9 401.392H1024L725.333 635.769l116.221 365.021-327.983-212.994-325.105 210.639 116.221-362.666L0 425.392h376.409z"
+    />
+  </g>
+);
+export const logoLight = ({ id }: { id: string }) => (
+  <svg
+    id={`${id}-Layer_1`}
+    x="0px"
+    y="0px"
+    viewBox="0 0 637.4 199.7"
+    xmlSpace="preserve"
+    fill="#111111"
+  >
+    <polygon
+      points="397.7,198.9 397.6,179.5 365.4,179.6 365.4,161.5 397.5,161.4 397.5,142 365.3,142.1 364.9,19.8   397,19.6 397,0.3 345.5,0.5 346.2,199.1 "
+      fill="#990A2C"
+    />
+    <polygon
+      points="488.5,19.4 488.4,0 422.7,0.2 422.7,19.6 445.9,19.5 446.6,198.7 465.9,198.6 465.3,19.5 "
+      fill="#990A2C"
+    />
+    <path
+      d="M296.2,82.3c-0.1-21.1-9.1-37-22.5-49.1l0.4,104.6C289.5,118.9,296.3,102.2,296.2,82.3 M320.5,199.2  c-20.6-1.7-35.8-11.2-46.3-30.2l0.1,30.4l-19.3,0.1L254.2,0.7c39.3,9.8,61.2,52.9,61.3,80.9c0.1,27.9-6.4,43.2-31,70.7  c8.1,15.7,19.4,24.1,35.8,27.5L320.5,199.2z"
+      fill="#990A2C"
+    />
+    <path
+      d="M228.6,81.9C226.4,54.7,208,11,167.3,1l0.7,198.7l19.4-0.1l-0.1-34.8C187.2,164.9,232.4,128,228.6,81.9   M209.2,82.5c0.1,20-6.7,36.7-22.1,55.5l-0.4-104.5C200.2,45.6,209.1,61.5,209.2,82.5"
+      fill="#990A2C"
+    />
+    <polygon
+      points="57,43.5 72.3,88.1 113.9,88 80.7,111.5 93.8,152 57.3,128.5 21.2,152 34,111.6 0,88.4 41.9,88.2 "
+      fillRule="evenodd"
+      clipRule="evenodd"
+      fill="#990A2C"
+    />
+    <polygon
+      points="580.5,40.4 595.9,85 637.4,84.8 604.3,108.4 617.3,148.9 580.8,125.4 544.7,148.9 557.5,108.5   523.5,85.3 565.4,85.1 "
+      fillRule="evenodd"
+      clipRule="evenodd"
+      fill="#990A2C"
+    />
+  </svg>
+);
+export const logoDark = ({ id }: { id: string }) => (
+  <svg
+    id={`${id}-Layer_1`}
+    x="0px"
+    y="0px"
+    viewBox="0 0 637.4 199.7"
+    xmlSpace="preserve"
+    fill="#F5F7FA"
+  >
+    <polygon
+      points="397.7,198.9 397.6,179.5 365.4,179.6 365.4,161.5 397.5,161.4 397.5,142 365.3,142.1 364.9,19.8   397,19.6 397,0.3 345.5,0.5 346.2,199.1 "
+      fill="#F01B4E"
+    />
+    <polygon
+      points="488.5,19.4 488.4,0 422.7,0.2 422.7,19.6 445.9,19.5 446.6,198.7 465.9,198.6 465.3,19.5 "
+      fill="#F01B4E"
+    />
+    <path
+      d="M296.2,82.3c-0.1-21.1-9.1-37-22.5-49.1l0.4,104.6C289.5,118.9,296.3,102.2,296.2,82.3 M320.5,199.2  c-20.6-1.7-35.8-11.2-46.3-30.2l0.1,30.4l-19.3,0.1L254.2,0.7c39.3,9.8,61.2,52.9,61.3,80.9c0.1,27.9-6.4,43.2-31,70.7  c8.1,15.7,19.4,24.1,35.8,27.5L320.5,199.2z"
+      fill="#F01B4E"
+    />
+    <path
+      d="M228.6,81.9C226.4,54.7,208,11,167.3,1l0.7,198.7l19.4-0.1l-0.1-34.8C187.2,164.9,232.4,128,228.6,81.9   M209.2,82.5c0.1,20-6.7,36.7-22.1,55.5l-0.4-104.5C200.2,45.6,209.1,61.5,209.2,82.5"
+      fill="#F01B4E"
+    />
+    <polygon
+      points="57,43.5 72.3,88.1 113.9,88 80.7,111.5 93.8,152 57.3,128.5 21.2,152 34,111.6 0,88.4 41.9,88.2 "
+      fillRule="evenodd"
+      clipRule="evenodd"
+      fill="#F01B4E"
+    />
+    <polygon
+      points="580.5,40.4 595.9,85 637.4,84.8 604.3,108.4 617.3,148.9 580.8,125.4 544.7,148.9 557.5,108.5   523.5,85.3 565.4,85.1 "
+      fillRule="evenodd"
+      clipRule="evenodd"
+      fill="#F01B4E"
+    />
+  </svg>
+);
+const WordmarkLightSource = logoLight;
+export const wordmarkLight = ({ id }: { id: string }) => (
+  <svg viewBox="166.719937 0 322.285375 199.7" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="166.719937" y="0" width="322.285375" height="199.7" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="0" y="0" width="637.4" height="199.7">
+        <WordmarkLightSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);
+const WordmarkDarkSource = logoDark;
+export const wordmarkDark = ({ id }: { id: string }) => (
+  <svg viewBox="166.719937 0 322.285375 199.7" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="166.719937" y="0" width="322.285375" height="199.7" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="0" y="0" width="637.4" height="199.7">
+        <WordmarkDarkSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);

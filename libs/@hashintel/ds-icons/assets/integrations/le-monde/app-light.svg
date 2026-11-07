@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="le-monde-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="le-monde-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="le-monde-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#le-monde-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#le-monde-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#le-monde-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="le-monde-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#le-monde-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.79954 3.11078 263.62663 207.32604" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,216.000000) scale(0.100000,-0.100000)" fill="#111111" stroke="none">
+<path d="M407 2117 c-25 -19 -107 -135 -135 -191 -33 -66 -33 -105 0 -148 37 -49 94 -64 185 -49 37 6 107 13 154 17 81 6 87 5 115 -19 l29 -25 0 -524 0 -523 -28 -50 c-16 -27 -37 -59 -48 -71 -24 -26 -25 -64 -2 -64 19 0 212 114 286 169 28 20 64 62 85 96 l37 60 3 472 3 473 32 24 c18 13 52 34 75 46 38 18 46 19 60 8 81 -67 119 -104 134 -126 17 -25 18 -80 18 -824 0 -465 4 -799 9 -802 15 -10 254 115 289 150 l32 33 0 738 c0 652 2 741 16 761 8 12 19 22 24 22 5 0 29 14 53 30 25 17 52 30 60 30 12 0 211 -112 317 -178 12 -8 3 -21 -46 -66 -35 -31 -68 -72 -77 -94 -8 -20 -23 -85 -32 -143 -14 -91 -16 -178 -13 -600 3 -433 5 -498 20 -529 19 -41 63 -84 131 -129 l49 -31 81 49 c45 27 96 57 113 67 18 11 57 34 87 52 60 35 72 53 57 83 -13 24 -27 24 -65 -1 -33 -22 -66 -25 -95 -10 -42 23 -44 48 -48 624 -3 482 -1 560 14 635 17 90 33 130 62 159 31 31 96 77 145 102 42 22 63 50 37 50 -6 0 -15 11 -20 25 -10 26 -24 32 -35 15 -3 -5 -27 -19 -53 -31 -73 -32 -119 -23 -248 48 -60 33 -125 70 -144 82 -52 31 -59 34 -72 27 -25 -12 -172 -103 -265 -163 -36 -24 -72 -43 -80 -43 -9 0 -39 19 -67 43 -112 94 -217 169 -229 163 -33 -17 -126 -71 -176 -104 -119 -78 -161 -89 -161 -41 0 32 -64 104 -113 129 -36 18 -56 21 -118 18 -41 -3 -90 -10 -109 -18 -19 -7 -53 -19 -75 -27 -22 -9 -51 -21 -65 -28 -41 -20 -115 -37 -146 -33 -24 2 -30 8 -32 32 -4 34 13 78 39 102 26 23 24 31 -10 48 -22 12 -32 13 -44 3z" />
+<path d="M480 394 c-36 -14 -76 -29 -90 -33 -65 -21 -233 -133 -329 -219 -39 -35 -53 -53 -48 -65 10 -25 41 -21 91 13 50 34 126 69 219 102 49 17 85 21 177 22 107 0 119 -2 168 -28 35 -18 65 -45 89 -77 37 -52 43 -55 60 -38 6 6 20 16 31 23 38 22 174 101 190 111 9 6 43 25 75 44 53 30 58 36 55 64 -5 50 -28 55 -82 19 -26 -18 -53 -32 -60 -32 -7 0 -23 11 -35 24 -13 13 -53 39 -89 58 -66 32 -70 33 -212 35 -135 3 -150 1 -210 -23z" />
+</g>
+</svg></g></svg>

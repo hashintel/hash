@@ -1,0 +1,133 @@
+/* Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed. */
+export const markLight = ({ id }: { id: string }) => (
+  <g fill="#111111">
+    <radialGradient
+      id={`${id}-a`}
+      cx="130.38"
+      cy="157.17"
+      r="30.76"
+      fx="118.21"
+      fy="157.38"
+      gradientTransform="translate(-89.6 -116.4)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stopColor="#FFDB00" offset="0" />
+      <stop stopColor="#FDD603" offset=".05" />
+      <stop stopColor="#DF7531" offset="1" />
+    </radialGradient>
+    <circle cx="40.8" cy="40.8" r="30.8" fill={`url(#${id}-a)`} />
+  </g>
+);
+export const markDark = ({ id }: { id: string }) => (
+  <g fill="#F5F7FA">
+    <radialGradient
+      id={`${id}-a`}
+      cx="130.38"
+      cy="157.17"
+      r="30.76"
+      fx="118.21"
+      fy="157.38"
+      gradientTransform="translate(-89.6 -116.4)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stopColor="#FFDB00" offset="0" />
+      <stop stopColor="#FDD603" offset=".05" />
+      <stop stopColor="#DF7531" offset="1" />
+    </radialGradient>
+    <circle cx="40.8" cy="40.8" r="30.8" fill={`url(#${id}-a)`} />
+  </g>
+);
+export const logoLight = ({ id }: { id: string }) => (
+  <svg viewBox="9.67909 9.18067 663.64183 110.13867" fill="#111111">
+    <radialGradient
+      id={`${id}-a`}
+      cx="130.38"
+      cy="157.17"
+      r="30.76"
+      fx="118.21"
+      fy="157.38"
+      gradientTransform="translate(-89.6 -116.4)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stopColor="#FFDB00" offset="0" />
+      <stop stopColor="#FDD603" offset=".05" />
+      <stop stopColor="#DF7531" offset="1" />
+    </radialGradient>
+    <circle cx="40.8" cy="40.8" r="30.8" fill={`url(#${id}-a)`} />
+    <path
+      d="m248.9 112.8h17.1v-23.4h7.8v22.2c0 5.7-1.8 6.9-7.2 6.9h-18.3c-5.4 0-6.9-1.2-6.9-6.9v-22.2h7.5zm-54-23.5h7.8v11.2h18.9v-11.2h7.8v29.2h-7.8v-12.6h-18.9v12.6h-7.8zm-21.3 29.2h-7.8v-23.8h-13.2v-5.4h34.2v5.4h-13.2zm-38.7-24.1c2.1 0 3 0.6 3 2.4v3.3c0 2.1-0.9 2.4-3 2.4h-12.9v-8.1zm-20.7 24.1h7.8v-10.8h4.8l11.7 10.8h10.2l-12.6-10.8h2.7c4.5 0 6.6-1.8 6.6-5.7v-6.9c0-4.2-2.1-5.7-6.6-5.7h-24.6zm192-24.1c2.1 0 3 0.6 3 2.4v3.3c0 2.1-0.9 2.4-3 2.4h-13.2v-8.1zm-20.7 24.1h7.5v-10.8h5.1l11.4 10.8h10.5l-12.9-10.8h3c4.5 0 6.6-1.8 6.6-5.7v-6.9c0-4.2-2.1-5.7-6.6-5.7h-24.6zm-203.2-28 7.5 14.1h-15.3zm-23.7 28h8.7l3.9-7.5h21.9l4.2 7.5h9l-19.4-34.9h-8.5z"
+      fill="#EC6D05"
+    />
+    <path
+      d="m351.8 90.5 7.5 14.1h-15.3l7.5-14.1zm-23.7 28h8.4l4.2-7.5h21.9l4.2 7.5h9l-19.5-34.9h-8.4zm109.3-5.4v-18.3h10.2c6.6 0 9.3 4.5 9.3 9 0 6-3.6 9.3-9.3 9.3zm-7.8 5.4h18.6c12.6 0 16.5-7.2 16.5-14.7 0-8.1-4.8-14.4-16.5-14.4h-18.6zm134.7-24.1v6.3h16.8c5.4 0 7.2 1.5 7.2 6.9v3.9c0 5.7-1.8 6.9-7.2 6.9h-17.7c-5.4 0-7.2-1.2-7.2-6.9v-0.6l6.9-1.2v3.3h18.3v-6.6h-16.8c-5.4 0-7.2-1.5-7.2-6.9v-3.3c0-5.4 1.8-6.9 7.2-6.9h16.2c5.1 0 7.2 1.5 7.2 6.3v0.6l-6.9 1.5v-3.3zm35.4-5.1h29.4v5.1h-21.6v6.3h13.2v5.5h-13.2v6.6h21.9v5.7h-29.7zm-125.4 0h29.7v5.1h-21.9v6.3h13.2v5.5h-13.2v6.6h21.9v5.7h-29.7zm164.7 0h4.8l22.3 18.7v-18.7h6.9v29.2h-4.5l-22.3-18.7v18.7h-7.2zm-255 0h4.5l22.2 18.7v-18.7h7.2v29.2h-4.5l-22.5-18.7v18.7h-6.9zm151.5 5.1c1.8 0 3 0.6 3 2.4v3.3c0 2.1-1.2 2.4-3 2.4h-13.2v-8.1zm-21 24.1h7.8v-10.8h4.8l11.7 10.8h10.5l-12.9-10.8h3c4.2 0 6.3-1.8 6.3-5.7v-6.9c0-4.2-2.1-5.7-6.3-5.7h-24.9z"
+      fill="#E5381D"
+    />
+  </svg>
+);
+export const logoDark = ({ id }: { id: string }) => (
+  <svg viewBox="9.67909 9.18067 663.64183 110.13867" fill="#F5F7FA">
+    <radialGradient
+      id={`${id}-a`}
+      cx="130.38"
+      cy="157.17"
+      r="30.76"
+      fx="118.21"
+      fy="157.38"
+      gradientTransform="translate(-89.6 -116.4)"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stopColor="#FFDB00" offset="0" />
+      <stop stopColor="#FDD603" offset=".05" />
+      <stop stopColor="#DF7531" offset="1" />
+    </radialGradient>
+    <circle cx="40.8" cy="40.8" r="30.8" fill={`url(#${id}-a)`} />
+    <path
+      d="m248.9 112.8h17.1v-23.4h7.8v22.2c0 5.7-1.8 6.9-7.2 6.9h-18.3c-5.4 0-6.9-1.2-6.9-6.9v-22.2h7.5zm-54-23.5h7.8v11.2h18.9v-11.2h7.8v29.2h-7.8v-12.6h-18.9v12.6h-7.8zm-21.3 29.2h-7.8v-23.8h-13.2v-5.4h34.2v5.4h-13.2zm-38.7-24.1c2.1 0 3 0.6 3 2.4v3.3c0 2.1-0.9 2.4-3 2.4h-12.9v-8.1zm-20.7 24.1h7.8v-10.8h4.8l11.7 10.8h10.2l-12.6-10.8h2.7c4.5 0 6.6-1.8 6.6-5.7v-6.9c0-4.2-2.1-5.7-6.6-5.7h-24.6zm192-24.1c2.1 0 3 0.6 3 2.4v3.3c0 2.1-0.9 2.4-3 2.4h-13.2v-8.1zm-20.7 24.1h7.5v-10.8h5.1l11.4 10.8h10.5l-12.9-10.8h3c4.5 0 6.6-1.8 6.6-5.7v-6.9c0-4.2-2.1-5.7-6.6-5.7h-24.6zm-203.2-28 7.5 14.1h-15.3zm-23.7 28h8.7l3.9-7.5h21.9l4.2 7.5h9l-19.4-34.9h-8.5z"
+      fill="#EC6D05"
+    />
+    <path
+      d="m351.8 90.5 7.5 14.1h-15.3l7.5-14.1zm-23.7 28h8.4l4.2-7.5h21.9l4.2 7.5h9l-19.5-34.9h-8.4zm109.3-5.4v-18.3h10.2c6.6 0 9.3 4.5 9.3 9 0 6-3.6 9.3-9.3 9.3zm-7.8 5.4h18.6c12.6 0 16.5-7.2 16.5-14.7 0-8.1-4.8-14.4-16.5-14.4h-18.6zm134.7-24.1v6.3h16.8c5.4 0 7.2 1.5 7.2 6.9v3.9c0 5.7-1.8 6.9-7.2 6.9h-17.7c-5.4 0-7.2-1.2-7.2-6.9v-0.6l6.9-1.2v3.3h18.3v-6.6h-16.8c-5.4 0-7.2-1.5-7.2-6.9v-3.3c0-5.4 1.8-6.9 7.2-6.9h16.2c5.1 0 7.2 1.5 7.2 6.3v0.6l-6.9 1.5v-3.3zm35.4-5.1h29.4v5.1h-21.6v6.3h13.2v5.5h-13.2v6.6h21.9v5.7h-29.7zm-125.4 0h29.7v5.1h-21.9v6.3h13.2v5.5h-13.2v6.6h21.9v5.7h-29.7zm164.7 0h4.8l22.3 18.7v-18.7h6.9v29.2h-4.5l-22.3-18.7v18.7h-7.2zm-255 0h4.5l22.2 18.7v-18.7h7.2v29.2h-4.5l-22.5-18.7v18.7h-6.9zm151.5 5.1c1.8 0 3 0.6 3 2.4v3.3c0 2.1-1.2 2.4-3 2.4h-13.2v-8.1zm-21 24.1h7.8v-10.8h4.8l11.7 10.8h10.5l-12.9-10.8h3c4.2 0 6.3-1.8 6.3-5.7v-6.9c0-4.2-2.1-5.7-6.3-5.7h-24.9z"
+      fill="#E53B20"
+    />
+  </svg>
+);
+const WordmarkLightSource = logoLight;
+export const wordmarkLight = ({ id }: { id: string }) => (
+  <svg viewBox="58.000511 82.675459 615.320409 36.436853" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect
+          x="58.000511"
+          y="82.675459"
+          width="615.320409"
+          height="36.436853"
+        />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="9.67909" y="9.18067" width="663.64183" height="110.13867">
+        <WordmarkLightSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);
+const WordmarkDarkSource = logoDark;
+export const wordmarkDark = ({ id }: { id: string }) => (
+  <svg viewBox="58.000511 82.675459 615.320409 36.436853" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect
+          x="58.000511"
+          y="82.675459"
+          width="615.320409"
+          height="36.436853"
+        />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="9.67909" y="9.18067" width="663.64183" height="110.13867">
+        <WordmarkDarkSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);

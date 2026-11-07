@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="azadliq-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="azadliq-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="azadliq-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#azadliq-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#azadliq-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#azadliq-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="azadliq-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#azadliq-app-mono-dark-mono)"><defs><clipPath id="azadliq-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#azadliq-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.13477 -0.26146 196.80564 48.31591" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g id="azadliq-app-mono-dark-Layer_2"><g id="azadliq-app-mono-dark-Layer_1-2"><path d="M18.0249,39.2871H12.7236l-.7954,8.5059H0L7.687.5391H23.0615l7.687,47.2539H18.82ZM17.23,30.5117,15.374,10.665,13.5186,30.5117Z" /><path d="M55.0664,47.793H33.0649V38.7471L42.21,10.3281H33.7939V.5391h20.875V9.585l-9.1455,28.42h9.543Z" /><path d="M74.7456,39.2871H69.4443l-.7954,8.5059H56.7207L64.4077.5391H79.7822l7.687,47.2539H75.541ZM73.95,30.5117,72.0947,10.665,70.2393,30.5117Z" /><path d="M118.6123,12.4883V35.8447c0,8.4385-3.4463,11.9483-11.73,11.9483H91.4419V.5391h15.4409C115.166.5391,118.6123,4.05,118.6123,12.4883Zm-11.9287-1.3506c0-1.4854-.6626-2.16-2.1206-2.16h-1.1924v30.377h1.1924c1.458,0,2.1206-.6748,2.1206-2.16Z" /><path d="M143.3271,47.793H124.2417V.5391H136.17V38.0049h7.1572Z" /><path d="M159.5605.5391V47.793H147.6318V.5391Z" /><path d="M164.8594,13.6357C164.8594,3.8477,170.36,0,178.5117,0s13.6514,3.8477,13.6514,13.6357V40.502h4.373v7.291h-16.832c-9.1455,0-14.8447-3.5782-14.8447-13.0957Zm15.375,23.5586V10.665c0-1.5527-.3311-2.2275-1.7227-2.2275s-1.7236.6748-1.7236,2.2275V37.1943c0,1.5528.331,2.2276,1.7236,2.2276S180.2344,38.7471,180.2344,37.1943Z" /></g></g></svg></g></g></svg>

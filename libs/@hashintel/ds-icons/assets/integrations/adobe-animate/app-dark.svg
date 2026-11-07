@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-animate-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-animate-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-animate-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-animate-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-animate-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-animate-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-animate-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-animate-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 54" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M44.2692 0H9.73958C4.36299 0 0.00439453 4.35859 0.00439453 9.73519V44.2648C0.00439453 49.6414 4.36299 54 9.73958 54H44.2692C49.6458 54 54.0044 49.6414 54.0044 44.2648V9.73519C54.0044 4.35859 49.6458 0 44.2692 0Z" fill="#00005B" />
+<path d="M12.8638 14.4297H20.7827L29.6631 39.2214H22.4107L21.1895 35.4473H11.9019L10.6807 39.2214H3.72412L12.8638 14.4297ZM19.2651 29.5637L16.564 21.2383L13.8628 29.5637H19.2651Z" fill="#9999FF" />
+<path d="M31.1929 21.4614C33.6724 20.3884 36.9282 19.5742 40.481 19.5742C46.1421 19.5742 49.1763 22.3865 49.1763 27.6038V39.2227H42.7007V27.9739C42.7007 25.9019 41.8867 24.8286 39.8516 24.8286C38.9634 24.8286 38.3345 24.9397 37.6685 25.2356V39.2227H31.1929L31.1929 21.4614Z" fill="#9999FF" />
+</svg></g></svg>

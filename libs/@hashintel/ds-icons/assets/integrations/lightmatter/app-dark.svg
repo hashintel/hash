@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lightmatter-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lightmatter-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lightmatter-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lightmatter-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lightmatter-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lightmatter-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lightmatter-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lightmatter-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.16693 -0.13394 92.33385 46.2679" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M1.61852 41.7836H38.5037V46.0003H0V35.5225C18.8259 35.5225 33.563 20.4447 33.563 1.27808H38.5037C38.5037 23.2559 22.063 39.867 1.61852 39.867V41.7836V41.7836Z" fill="#FF3300" /><path d="M71.087 10.7759C71.087 4.47222 75.687 0 81.5647 0C87.3999 0 91.9999 4.47222 91.9999 10.7759V46H87.0166V10.8611C87.0166 6.85741 84.6314 4.68519 81.5647 4.68519C78.4555 4.68519 76.0703 6.85741 76.0703 10.8611V46H64.6981L52.0055 3.02407H50.0888V46H45.1055V1.27778H56.4777L69.2129 44.3389H71.1296V10.7759H71.087Z" fill="#FF3300" /></svg></g></svg>

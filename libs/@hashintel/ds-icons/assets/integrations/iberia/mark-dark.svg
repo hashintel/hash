@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2.94514 24 18.09599" fill="currentColor" x="0.0" y="0.0" width="64" height="64"><defs><linearGradient x1="75.453" y1="9.36" x2="103.641" y2="37.653" id="iberia-mark-dark-a" gradientTransform="matrix(.7767 0 0 -.44675 -57.879 26.46)" gradientUnits="userSpaceOnUse"><stop stop-color="#DF4148" offset="0%" /><stop stop-color="#E53647" offset="50%" /><stop stop-color="#E53647" offset="100%" /></linearGradient><linearGradient x1="87.158" y1=".691" x2="106.265" y2="19.51" id="iberia-mark-dark-b" gradientTransform="matrix(.76935 0 0 -.45101 -57.879 11.563)" gradientUnits="userSpaceOnUse"><stop stop-color="#ED7417" offset="0%" /><stop stop-color="#FACD08" offset="85%" /><stop stop-color="#FACD08" offset="100%" /></linearGradient></defs><path d="M4.24 16.741 0 21.021c14.719 0 18.189-3.46 20.213-8.17l1.7-4.434c-4.958.143-12.441 3.066-17.673 8.324" fill="url(#iberia-mark-dark-a)" fill-rule="evenodd" stroke="none" stroke-width=".589057" /><path d="m14.127 6.73-4.771 4.833c4.53-3.254 9.047-5.217 13.547-5.723L24 2.978c-6.662 0-7.57 1.457-9.873 3.752" fill="url(#iberia-mark-dark-b)" fill-rule="evenodd" stroke="none" stroke-width=".589057" /></svg></svg>

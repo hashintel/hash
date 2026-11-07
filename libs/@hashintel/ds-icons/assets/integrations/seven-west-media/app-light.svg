@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="seven-west-media-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="seven-west-media-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="seven-west-media-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#seven-west-media-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#seven-west-media-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#seven-west-media-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="seven-west-media-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#seven-west-media-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="seven-west-media-app-light-Icon_SWM" viewBox="-0.0977 -0.15639 86.69522 35.05978" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="seven-west-media-app-light-clip-path"><rect id="seven-west-media-app-light-Rectangle_112" width="86.5" height="34.747" transform="translate(0 0)" fill="none" /></clipPath></defs><g id="seven-west-media-app-light-Group_41" clip-path="url(#seven-west-media-app-light-clip-path)"><path id="seven-west-media-app-light-Path_32" d="M86.5,27.579v.073l-7.078,7.017-5.632-5.553-1.241,1.536c-4.239,4.568-11.757,4.889-16.76,1.375a8.552,8.552,0,0,1-2.1-1.961A12.478,12.478,0,0,1,48.616,33.6,13.294,13.294,0,0,1,32.929,28.3c-4.941-7.58,3.17-15.562,8.525-20.221a23.816,23.816,0,0,0,1.832-1.571,14.9,14.9,0,0,1-2.222-.159c-2.04-.282-5.646-1.708-7.484-.648A1.5,1.5,0,0,0,33.814,8.4l1.855.744C33.553,9.3,31.66,8.393,31.43,6.1,31.013,1.949,34.7.373,38.272.583c2.118.124,4.113,1,6.184,1.358,2.676.457,3.429-.151,5.421-1.685.074-.056.094-.141.22-.109-.045,7.759.1,15.535-.088,23.283l-6.5,5.794a11.5,11.5,0,0,0,9.226-.292c-5.312-6.917,1.194-14.458,6.226-19.167,1.173-1.1,2.439-2.1,3.663-3.145.03-.166-.073-.1-.182-.109a25.525,25.525,0,0,1-2.761-.242c-2-.353-4.166-1.312-6.213-.747a1.489,1.489,0,0,0-.414,2.83l2.026.865c-1.988.075-3.831-.627-4.229-2.761-.834-4.482,3.529-6.2,7.26-5.788,2.495.274,6.02,1.947,8.361,1.31A7.781,7.781,0,0,0,69.434.147V5.926L75.33,0l5.21,5.187,2.006-1.938c.127-.064.726.331.515.519-.8.831-1.7,1.6-2.419,2.487-.235,6.2.074,12.442-.072,18.655-.007.3-.213.655.029.915l3.31,3.282,2.005-1.937c.193-.1.393.341.585.407M62.842,29.333a12.651,12.651,0,0,0,8.169.15,9.633,9.633,0,0,0,2.584-1.3l.012-19.808c-.8-.969-1.788-1.833-2.682-2.739a8.827,8.827,0,0,0-1.49,1.5l-.016,16.3Zm-19.409-.145V7.316c-4.06,3.46-7.373,8.7-6.265,14.267a10.269,10.269,0,0,0,6.265,7.6m19.335.073.073-21.945c-4.048,3.44-7.316,8.507-6.348,14.058a10.426,10.426,0,0,0,6.275,7.887" fill="#1C67A7" /><path id="seven-west-media-app-light-Path_33" d="M5.566,34.747l.061-.415L25.69.1l.127-.1,7.362,12.319L20.361,34.747Z" fill="#E5001E" /><path id="seven-west-media-app-light-Path_34" d="M24.829,0,17.785,12.1l-.208.231H7.25a9.8,9.8,0,0,1-.717-1.112C4.433,7.8,2.087,4.006.207.489A1.4,1.4,0,0,1,0,0Z" fill="#E5001E" /></g></svg></g></svg>

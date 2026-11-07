@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vietjet-air-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="vietjet-air-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="vietjet-air-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vietjet-air-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vietjet-air-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#vietjet-air-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="vietjet-air-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299937592532 -1.00900924826 -0.101860273663 0 1.41080711445" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#vietjet-air-app-mono-dark-mono)"><defs><clipPath id="vietjet-air-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#vietjet-air-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 26.368 64 11.264" fill="#e12127" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M18.777 26.443c-1.058 0-1.613.591-1.613.591l-1.297 5.85c-.229 1.178.267 1.95 1.335 1.95 1.411 0 1.716-1.361 1.716-1.361a2.395 2.395 0 0 1-.573.074c-.648-.037-.534-.626-.495-.736l.762-3.495h1.07l.304-1.25h-1.068s.114-.48.343-1.583a3.047 3.047 0 0 0-.484-.04Zm13.235.074c-1.058 0-1.613.591-1.613.591l-1.26 5.777c-.229 1.177.268 1.95 1.336 1.95 1.411 0 1.717-1.362 1.717-1.362a2.395 2.395 0 0 1-.573.074c-.649-.037-.534-.626-.496-.736l.763-3.495h1.068l.267-1.177h-1.067s.114-.478.342-1.582a3.047 3.047 0 0 0-.484-.04zm14.844 1.357c-.967 0-1.983.228-2.612.559l-1.412 6.291h1.984l1.183-5.445c.343-.147.876-.147 1.334.037l.458-1.362a5.137 5.137 0 0 0-.935-.08zm-33.621.007c-1.259 0-2.289.552-2.937 1.472-.61.773-.953 1.876-.953 2.869 0 1.619 1.03 2.576 2.784 2.576 1.03 0 1.907-.221 2.48-.479l-.191-1.214c-.382.147-1.107.368-1.832.368-1.03 0-1.373-.625-1.335-1.471h4.081c.191-.589.306-1.399.306-1.767 0-1.508-.878-2.354-2.403-2.354zm13.273 0c-1.259 0-2.25.552-2.937 1.472-.572.773-.916 1.876-.916 2.869 0 1.619.992 2.576 2.746 2.576 1.03 0 1.908-.221 2.48-.479l-.19-1.214c-.382.147-1.107.368-1.832.368-1.03 0-1.373-.625-1.334-1.471h4.08c.191-.589.305-1.399.305-1.767 0-1.508-.876-2.354-2.402-2.354zm-5.76.147-1.182 5.482c-.229 1.14-.534 1.618-.878 1.913-.953.846-2.592.81-3.47-.147-.152 1.178.84 2.281 2.594 2.281 1.792 0 3.127-1.251 3.547-3.275l1.373-6.254zM0 28.065l.838 8.572H2.67l4.462-8.572H5.11l-2.784 5.813-.343-5.813Zm7.513 0-1.45 6.659H8.01l1.45-6.659zm29.827 0L32 36.637h1.945l1.107-1.913h2.707l-.038 1.913h1.983l-.343-8.572zm4.08 0-1.449 6.659h1.984l1.45-6.659zm-28.414.956c.572 0 .877.332.839.994 0 .22-.076.552-.114.736h-2.404c.115-.332.115-.405.267-.7.344-.661.84-1.03 1.412-1.03zm13.273 0c.534 0 .877.332.839.994 0 .22-.076.552-.114.736h-2.403c.114-.332.114-.405.267-.7.343-.661.84-1.03 1.411-1.03zm24.372.59c-.725 0-1.487.33-1.983 1.029-.42.589-.724 1.472-.724 2.208 0 1.177.724 1.913 1.715 1.913.61 0 1.07-.147 1.298-.368l-.115-.883c-.152.11-.42.184-.687.184-.42 0-.685-.294-.685-.92 0-.478.151-1.14.418-1.545.267-.441.61-.662.992-.662.229 0 .42.11.534.184l.458-.773c-.153-.147-.649-.368-1.22-.368zm3.471.036c-.953 0-1.678.405-2.174 1.104-.42.588-.687 1.47-.687 2.207 0 1.103.611 1.84 1.832 1.84.953 0 1.716-.441 2.174-1.104.42-.588.724-1.509.724-2.245 0-1.067-.648-1.802-1.869-1.802zm4.959 0c-.84 0-1.565.11-2.175.368l-1.03 4.709h1.488l.878-4.084c.19-.074.419-.11.648-.11.458 0 .687.183.687.478 0 .073-.038.11-.038.184l-.763 3.532h1.487l.84-3.937c.19-.147.457-.257.724-.257.42 0 .61.183.61.478 0 .073-.038.11-.038.184l-.763 3.532h1.488l.724-3.458c.039-.11.038-.22.152-.368 0-.736-.495-1.25-1.563-1.25-.877 0-1.525.256-1.869.513-.228-.294-.8-.514-1.487-.514zm-21.283.331-.04 3.532h-2.02zm16.21.552c.38 0 .534.294.534.736 0 .515-.191 1.36-.42 1.84-.19.44-.458.698-.878.698s-.533-.257-.533-.699c0-.515.19-1.36.42-1.839.19-.442.495-.736.876-.736zm-7.324 2.98c-.42 0-.8.368-.8.772 0 .295.228.516.571.516.42 0 .84-.368.801-.773 0-.294-.228-.515-.572-.515z" /></svg></g></g></svg>

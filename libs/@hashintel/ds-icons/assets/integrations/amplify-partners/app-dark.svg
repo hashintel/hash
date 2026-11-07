@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="amplify-partners-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="amplify-partners-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="amplify-partners-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amplify-partners-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amplify-partners-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#amplify-partners-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="amplify-partners-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#amplify-partners-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.25721 -0.08867 64.42521 50.17734" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M0.361328 50L17.9085 0H22.7593L5.21212 50H0.361328Z" fill="#FFFFFF" /><path d="M27.6097 0L10.0625 50H14.9133L32.4605 0H27.6097Z" fill="#FFFFFF" /><path fill-rule="evenodd" clip-rule="evenodd" d="M19.7715 50L37.298 0H41.1988L58.0073 40.5674C59.4257 44.0426 61.0569 45.5319 64.603 45.5319V50H41.9789V45.5319C44.8158 45.5319 46.8016 44.539 46.8016 42.0567C46.8016 41.3475 46.5888 40.2837 45.9505 38.5816L45.1704 36.5248H29.3548L29.2129 37.0213C28.8583 37.9433 28.291 40 28.291 41.5603C28.291 44.4681 30.2059 45.5319 33.1846 45.5319V50H19.7715ZM30.9151 32.1277H43.3264L36.5888 15.8865L30.9151 32.1277Z" fill="#FFFFFF" /></svg></g></svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="monaco-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="monaco-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="monaco-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#monaco-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#monaco-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#monaco-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="monaco-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#monaco-app-mono-dark-mono)"><defs><clipPath id="monaco-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#monaco-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22.073333 22" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M12.8678 0H9.17194C8.1522 0 7.32272 0.829489 7.32272 1.84922V5.4268C7.32272 6.54995 6.4125 7.46016 5.28935 7.46016H1.84922C0.829489 7.46016 0 8.28965 0 9.30939V13.0052C0 14.025 0.829489 14.8544 1.84922 14.8544H5.54505C6.56479 14.8544 7.39428 14.025 7.39428 13.0052V9.42807C7.39428 8.30492 8.30449 7.39471 9.42764 7.39471H12.8673C13.8871 7.39471 14.7166 6.56522 14.7166 5.54549V1.84922C14.7166 0.829489 13.8871 0 12.8673 0H12.8678Z" fill="#111111" />
+<path d="M20.1564 7.14648H16.4606C15.4408 7.14648 14.6113 7.97597 14.6113 8.99571V12.5733C14.6113 13.6964 13.7011 14.6066 12.578 14.6066H9.13829C8.11855 14.6066 7.28906 15.4361 7.28906 16.4559V20.1517C7.28906 21.1714 8.11855 22.0009 9.13829 22.0009H12.8341C13.8538 22.0009 14.6833 21.1714 14.6833 20.1517V16.5746C14.6833 15.4514 15.5935 14.5412 16.7167 14.5412H20.1564C21.1761 14.5412 22.0056 13.7117 22.0056 12.692V8.99614C22.0056 7.97641 21.1761 7.14692 20.1564 7.14692V7.14648Z" fill="#111111" />
+<g clip-path="url(#monaco-app-mono-dark-clip0_1158_8451)">
+</g>
+<defs>
+<clipPath id="monaco-app-mono-dark-clip0_1158_8451">
+<rect width="145.635" height="22" fill="#111111" transform="translate(30.25)" />
+</clipPath>
+</defs>
+</svg></g></g></svg>

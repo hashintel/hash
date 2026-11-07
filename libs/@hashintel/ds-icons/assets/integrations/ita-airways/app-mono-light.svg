@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ita-airways-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="ita-airways-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ita-airways-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ita-airways-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ita-airways-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ita-airways-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="ita-airways-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.292499668184 -0.983987594945 -0.0993343181698 0 1.3758215813" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ita-airways-app-mono-light-mono)"><defs><clipPath id="ita-airways-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ita-airways-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 18.58746 64 26.81597" fill="#000000" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#006e44" d="M5.2108 30.23V18.6432L2.6308 19.1732A3.21 3.21 0 0 0 0.0008 22.4031V34.003L2.5908 33.472A3.21 3.21 0 0 0 5.2208 30.242M36.9704 21.4261A3.75 3.75 0 0 1 33.9604 22.9071H24.8305V34.003H19.6206V22.8981H6.9207V18.6422H38.9403ZM56.6301 32.522L46.9702 19.2992 36.2004 34.003H29.9254L40.0803 20.1342A3.82 3.82 0 0 1 43.0863 18.6522H52.7431L64 34H59.6301A3.8 3.8 0 0 1 56.6251 32.52M58.2221 40.9169L57.0801 40.4239C56.7371 40.2719 56.3971 40.0009 56.3971 39.5779 56.3971 38.9299 56.8901 38.7029 57.4551 38.7029 58.2161 38.7029 58.9381 39.1589 59.5071 39.6909V38.2859A3.03 3.03 0 0 0 57.5301 37.5629C56.2001 37.5629 55.0961 38.2469 55.0961 39.6929 55.0961 40.6789 55.7061 41.2129 56.5431 41.5979L57.7971 42.1679C58.2191 42.3579 58.5951 42.5919 58.5951 43.0779 58.5951 43.8018 57.9491 44.0278 57.3051 44.0278 56.4281 44.0278 55.7821 43.6878 55.0221 43.0429V44.4488A3.66 3.66 0 0 0 57.2651 45.2088C58.6711 45.2088 59.8891 44.3338 59.8891 42.9669 59.8891 41.8639 59.1291 41.2949 58.2161 40.9139M47.7192 37.6839H46.2092L48.9492 41.7499V45.0938H50.3152V41.7489L53.0931 37.6839H51.5332L49.6702 40.4939ZM39.1993 45.0918L39.9623 43.4569H43.1183L43.8403 45.0918H45.2842L41.5283 37.3739 37.7613 45.0878ZM41.5293 40.1139L42.6313 42.3939H40.4613ZM32.1364 37.4539L30.1584 42.2409 28.3335 37.6809H26.8935L30.0134 45.3578 32.1034 40.4179 34.1154 45.3578 37.2713 37.6819H35.8654L34.0394 42.2419ZM23.0865 39.9609C23.0865 40.8079 22.4865 41.1009 21.7166 41.1009H20.9566V38.7809H21.7166C22.5165 38.7809 23.0865 39.1589 23.0865 39.9579M24.5365 39.9579C24.5365 38.4379 23.2465 37.6779 21.8365 37.6779H19.6366V45.0848H20.9666V42.1999H21.6566L23.7865 45.0858H25.3465L23.0645 41.9719A2.08 2.08 0 0 0 24.5475 39.9569M15.8776 37.6769H14.4676V45.0838H15.8776ZM5.5378 45.0848L6.2978 43.4519H9.4477L10.1777 45.0858H11.6597L7.8307 37.3699 4.0608 45.0848ZM7.8577 40.1079L8.9577 42.3879H6.7777Z" /><path fill="#c2251b" d="M41.4903 29.736L38.3713 34.002H44.6473L48.8472 28.265H44.4903A3.82 3.82 0 0 0 41.4873 29.746" /></svg></g></g></svg>

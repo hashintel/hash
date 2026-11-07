@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jd-sports-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="jd-sports-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="jd-sports-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jd-sports-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jd-sports-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#jd-sports-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="jd-sports-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#jd-sports-app-mono-light-mono)"><defs><clipPath id="jd-sports-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#jd-sports-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 124" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M78.4388 45.6235C77.4126 45.6235 76.6002 45.6235 76.1726 45.6235L71.1484 76.3242C71.6402 76.3242 72.4953 76.3242 73.5857 76.3242C79.7857 76.3242 90.5181 74.3146 92.8271 60.8242C93.6395 56.1849 92.9553 52.5077 90.6891 49.9422C87.5036 46.1794 81.6457 45.6235 78.4388 45.6235Z" fill="#111111" /><path d="M62 0C49.7376 0 37.7505 3.63624 27.5547 10.4489C17.3588 17.2615 9.41213 26.9446 4.7195 38.2736C0.0268636 49.6026 -1.20094 62.0688 1.19134 74.0956C3.58362 86.1224 9.48855 97.1698 18.1594 105.841C26.8303 114.511 37.8776 120.416 49.9044 122.809C61.9312 125.201 74.3974 123.973 85.7264 119.281C97.0554 114.588 106.738 106.641 113.551 96.4454C120.364 86.2495 124 74.2624 124 62C124 45.5566 117.468 29.7866 105.841 18.1594C94.2134 6.53212 78.4434 0 62 0V0ZM20.1393 92.1021C19.4239 92.109 18.709 92.0589 18.0014 91.9524L17.5311 91.931L19.4338 77.3503H20.0538C41.3262 77.3503 45.2173 33.0738 45.26 32.6035V32.1759H59.9262V32.7104C51.6952 87.8048 27.3869 92.1021 20.1393 92.1021ZM74.8276 90.3703H54.6669V89.8145L64.2235 32.0903H84.1276C87.5696 31.8749 91.0163 32.4311 94.2158 33.7183C97.4153 35.0055 100.287 36.9912 102.621 39.5303C107.174 44.8966 109.034 52.8283 107.602 61.3372C105.208 75.3193 94.069 90.3703 74.8276 90.3703Z" fill="#111111" /></svg></g></g></svg>

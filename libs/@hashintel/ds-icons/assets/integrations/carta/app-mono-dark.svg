@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="carta-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="carta-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="carta-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#carta-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#carta-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#carta-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="carta-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236737991266 -0.796401746725 -0.0803973799127 0 1.1135371179" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#carta-app-mono-dark-mono)"><defs><clipPath id="carta-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#carta-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="carta-app-mono-dark-Layer_1" viewBox="0 0 528 264" fill="#111111" color="black" x="12.0" y="12.0" width="40.0" height="40.0">
+  <defs>
+    </defs>
+  <path d="M0,0v264h528V0H0ZM517.44,253.44H10.56V10.56h506.88v242.88ZM69.26,137.15c0-26.47,22.34-42,42.39-42,14.35,0,27.74,5.38,34.9,17.78l-13.4,7.77c-2.31-3.49-5.47-6.35-9.17-8.3-3.71-1.96-7.85-2.98-12.05-2.95-11.79,0-25.81,9.2-25.81,27.42s13.41,27.58,26.93,27.58c9.4,0,17.21-5.24,21.84-13.33l13.7,6.33c-7.76,13.95-21.62,21.38-37.72,21.38-20.25-.02-41.6-15.58-41.6-41.69h0ZM197.5,178.83c11.14,0,21.66-4.91,27.09-12.05v9.81h16.55v-79.39h-16.55v9.83c-5.16-7.2-15.93-11.89-27.09-11.89-24.38,0-41.44,17.75-41.44,41.84s17.21,41.84,41.44,41.84ZM199.09,110.21c15.3,0,25.8,11.41,25.8,26.78s-10.51,26.78-25.8,26.78-26.14-11.57-26.14-27.1,10.84-26.47,26.14-26.47ZM330.1,112.96h-17.18v-15.85h17.34v-20.69h17.05v20.69h17.33v15.85h-17.33v63.61h-17.21v-63.61ZM412.2,178.83c11.16,0,21.68-4.91,27.11-12.05v9.81h16.58v-79.39h-16.58v9.83c-5.16-7.2-15.93-11.89-27.11-11.89-24.36,0-41.42,17.75-41.42,41.84s17.2,41.84,41.42,41.84ZM413.81,110.21c15.28,0,25.81,11.41,25.81,26.78s-10.53,26.78-25.81,26.78-26.14-11.57-26.14-27.1,10.84-26.47,26.14-26.47ZM278.62,176.49h-17.21v-79.39h15.77v14.78c3.9-8.78,9.77-14.5,19.3-14.98,1.97-.03,3.93,0,5.89.21l-.26,15.89c-13.69,0-23.47,7.34-23.47,27.79v35.72h-.01Z" fill="#1a1a1a" />
+</svg></g></g></svg>

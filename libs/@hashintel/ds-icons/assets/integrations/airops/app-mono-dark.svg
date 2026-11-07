@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="airops-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="airops-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="airops-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#airops-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#airops-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#airops-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="airops-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#airops-app-mono-dark-mono)"><defs><clipPath id="airops-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#airops-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="51.118042 141.570844 408.442938 230.097066" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
+<path d="M3448 3685 c-238 -40 -449 -161 -583 -335 -131 -170 -195 -372 -195 -615 0 -291 90 -522 276 -708 188 -188 431 -276 729 -264 231 9 414 75 577 206 218 176 338 448 338 766 0 514 -310 880 -807 954 -93 14 -238 12 -335 -4z m305 -370 c139 -36 248 -127 312 -259 53 -110 68 -195 63 -356 -4 -117 -9 -146 -34 -220 -53 -152 -136 -250 -263 -313 -64 -31 -69 -32 -201 -32 -131 0 -137 1 -203 32 -130 62 -228 187 -273 349 -25 89 -30 292 -10 390 42 208 181 365 361 410 70 17 180 17 248 -1z" />
+<path d="M1245 3343 c-341 -54 -574 -256 -678 -588 -39 -124 -51 -218 -51 -375 1 -275 76 -509 219 -683 75 -91 152 -150 263 -204 115 -55 239 -83 376 -83 212 0 374 74 517 236 24 27 52 61 61 74 16 24 17 20 17 -117 l1 -143 220 0 220 0 0 920 0 920 -220 0 -220 0 0 -146 0 -146 -36 49 c-102 136 -214 216 -368 265 -61 19 -254 32 -321 21z m350 -378 c174 -46 298 -175 351 -366 26 -93 26 -329 0 -419 -46 -158 -141 -288 -256 -349 -222 -118 -478 -48 -614 168 -70 110 -113 296 -102 438 9 102 38 210 79 288 38 73 136 174 197 203 107 51 236 65 345 37z" />
+</g>
+</svg></g></g></svg>

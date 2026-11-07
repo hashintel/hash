@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="cemex-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.225342546608 -0.758066741929 -0.0765274311623 0 1.0599367197" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#cemex-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.05806 -1.66359 1545.11611 967.32718" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cemex-mark-mono-cp1">
+			<path d="m-16098.75-1906.01h23043.22v12966.83h-23043.22z" />
+		</clipPath>
+	</defs>
+	<g id="cemex-mark-mono-Clip-Path: Page 1" clip-path="url(#cemex-mark-mono-cp1)">
+		<g id="cemex-mark-mono-Page 1">
+			<path id="cemex-mark-mono-Path 5" d="m1542.5 0.6h-192c-103.2 0-200.4 48-261.7 129.7l-626.4 833.2h192c103.2 0 200.4-48 261.6-130.9z" fill="#0003AA" />
+			<path id="cemex-mark-mono-Path 6" d="m1079.2 0.6h-192c-102 0-199.2 48-261.6 129.7l-625.3 833.2h199.2c98.4 0 190.9-45.6 249.7-123.7z" fill="#F02230" />
+		</g>
+	</g>
+</svg></g></svg>

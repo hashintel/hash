@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="therabody-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="therabody-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="therabody-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#therabody-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#therabody-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#therabody-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="therabody-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#therabody-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.19634 0 25.08309 25.05657" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M12.7372 0C5.82482 0 0.220703 5.60412 0.220703 12.5165C0.220703 19.429 5.82482 25.0331 12.7372 25.0331C19.6497 25.0331 25.2538 19.429 25.2538 12.5165C25.2456 5.60721 19.6466 0.00824135 12.7372 0ZM23.3995 12.5165C23.4016 14.4079 22.8957 16.2664 21.9367 17.8961L14.6668 8.80794H22.733C23.1749 9.99469 23.4005 11.2505 23.3995 12.5165ZM12.7372 1.8543C16.4489 1.85636 19.8918 3.78793 21.8295 6.95364H3.64498C5.5817 3.78793 9.02555 1.85636 12.7372 1.8543ZM2.74152 8.80794H10.8077L3.53785 17.8971C1.92048 15.1404 1.62791 11.8037 2.74152 8.80794ZM4.65867 19.464L11.8101 10.5242V23.1355C9.03894 22.8934 6.47073 21.5758 4.65867 19.464ZM13.6644 23.1355V10.5242L20.8158 19.463C19.0038 21.5748 16.4376 22.8934 13.6644 23.1355Z" fill="#F5F7FA" />
+</svg></g></svg>

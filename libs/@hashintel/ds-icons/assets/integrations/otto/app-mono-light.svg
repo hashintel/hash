@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="otto-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="otto-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="otto-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#otto-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#otto-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#otto-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="otto-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267321430685 -0.899286393348 -0.0907836655477 0 1.25739148958" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#otto-app-mono-light-mono)"><defs><clipPath id="otto-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#otto-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="8.33829 172.09555 495.32343 167.80889" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<path d="M439.187 172.58C414.513 172.58 394.488 180.172 380.347 195.926C382.34 190.516 383.479 183.873 383.574 175.996H297.212C278.421 175.996 267.602 184.253 260.199 205.606L263.995 175.996H176.874C160.93 175.996 149.921 183.683 145.935 198.583C135.211 181.216 115.946 172.58 91.6506 172.58C45.4326 172.58 15.3481 199.248 10.0335 256.19L9.36921 263.402C4.62403 314.271 31.3868 339.42 72.8597 339.42C119.078 339.42 149.067 312.468 154.477 255.525L155.141 248.313C156.375 235.216 155.521 223.923 152.768 214.242H191.869L180.67 310.19C178.392 329.265 188.737 337.997 206.009 337.997C216.544 337.997 220.15 337.332 224.136 336.668L237.992 214.242H283.546L272.347 310.19C270.069 329.265 280.414 337.997 297.686 337.997C308.221 337.997 311.827 337.332 315.813 336.668L329.669 214.242H352.066C359.848 214.242 366.112 212.439 370.952 208.833C363.929 221.265 359.279 237.019 357.476 256.095L356.811 263.308C352.066 314.176 378.734 339.325 420.302 339.325C466.52 339.325 496.509 312.373 501.919 255.431L502.583 248.218C507.328 197.729 480.66 172.58 439.187 172.58ZM108.923 245.276L108.449 250.685C105.317 289.216 92.7895 301.174 77.3202 301.174C63.3693 301.174 53.5943 291.779 55.5872 266.629L56.0618 261.03C59.0987 222.594 71.7209 210.446 87.1901 210.446C100.856 210.446 110.916 220.126 108.923 245.276ZM456.555 245.276L456.08 250.685C452.948 289.216 440.421 301.174 424.952 301.174C411.096 301.174 401.226 291.779 403.219 266.629L403.694 261.03C406.825 222.689 419.353 210.541 434.822 210.541C448.393 210.446 458.453 220.126 456.555 245.276Z" fill="#EB001F" />
+</svg></g></g></svg>

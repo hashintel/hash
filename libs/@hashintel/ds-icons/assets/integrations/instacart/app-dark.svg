@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="instacart-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="instacart-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="instacart-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#instacart-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#instacart-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#instacart-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="instacart-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#instacart-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="22.67159 11.92301 86.65682 108.15396" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M65.996 82.2c20.798 0 37.848 15.523 37.8 37.8H28.2c-.042-22.266 17.002-37.8 37.796-37.8Z" fill="#FF7009" /><path d="M97.173 29.515c-4.775 0-8.178 2.082-11.321 6.598L76.8 49.118V12H55.2v37.117L46.15 36.114c-3.143-4.516-6.546-6.598-11.322-6.598-7.206 0-12.003 5.32-12.027 11.875-.02 5.616 2.629 9.273 8.208 12.865L66 76.8l34.992-22.545c5.576-3.592 8.226-7.251 8.208-12.865-.023-6.554-4.821-11.875-12.027-11.875Z" fill="#0AAD0A" /></svg></g></svg>

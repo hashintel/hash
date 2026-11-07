@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tahoe-therapeutics-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="tahoe-therapeutics-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tahoe-therapeutics-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tahoe-therapeutics-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tahoe-therapeutics-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tahoe-therapeutics-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="tahoe-therapeutics-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tahoe-therapeutics-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.18282 0.78054 31.25825 26.44225" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="tahoe-therapeutics-app-dark-brand-symbol-bounds"><rect x="0.18282" y="0.67107" width="31.938074" height="26.88926" /></clipPath></defs><g clip-path="url(#tahoe-therapeutics-app-dark-brand-symbol-bounds)"><path d="M16.0987 0.81338L10.2263 6.79964C9.72783 7.28502 9.06057 7.55672 8.3662 7.55672H0.202519V0.8125H16.0996L16.0987 0.81338Z" fill="#F5F7FA" /><path d="M17.7589 7.01739L22.4763 2.05436C23.2739 1.25922 24.3525 0.8125 25.4755 0.8125H31.3945V7.01739C31.3945 7.01739 26.9688 7.01739 22.7969 7.01739C20.5781 7.01739 18.1385 8.79147 18.108 11.6845V27.1872H11.764V15.1285C11.764 13.9858 12.2178 12.8896 13.025 12.0849L17.7581 7.01827L17.7589 7.01739Z" fill="#F5F7FA" /><g clip-path="url(#tahoe-therapeutics-app-dark-clip0_428_8164)"><path fill-rule="evenodd" clip-rule="evenodd" d="M117.884 23.9339C115.796 21.5971 114.734 18.3398 114.734 14.162C114.734 9.98417 115.796 6.72688 117.92 4.42553C120.043 2.08878 123.017 0.92041 126.804 0.92041C130.592 0.92041 133.565 2.08878 135.689 4.42553C137.812 6.72688 138.874 9.98417 138.874 14.162C138.874 18.3398 137.812 21.5971 135.689 23.9339C133.6 26.2352 130.627 27.4036 126.804 27.4036C122.981 27.4036 120.008 26.2352 117.884 23.9339ZM118.132 12.3209V15.9323C118.132 21.3139 121.53 24.5003 126.804 24.5003C132.291 24.5003 135.476 21.1722 135.476 15.9323V12.3209C135.476 9.66552 134.697 7.57661 133.105 6.08958C131.547 4.56716 129.459 3.82365 126.804 3.82365C121.318 3.82365 118.132 7.11634 118.132 12.3209ZM159.898 27.0495H142.731V1.23908H159.898V4.17772H145.952V12.3563H157.721V15.1534H145.952V24.1109H159.898V27.0495ZM89.8121 27.0496H93.0331V15.2242H107.829V27.0496H111.014V1.23912H107.829V12.4626H93.0331V1.23912H89.8121V27.0496ZM86.6461 27.0495H83.0328L80.673 20.9584H68.3213L65.9615 27.0495H62.4588L72.5983 1.23318H76.4329L86.6461 27.0495ZM71.0497 13.8758L69.3537 18.3024H79.6407L77.9446 13.8758L74.6262 4.49121H74.4419L71.0497 13.8758ZM66.2982 1.23908H42.7656L43.6505 3.84727H53.0482V27.0495H56.2339V3.84727H65.0396L66.2982 1.23908Z" fill="#F5F7FA" /></g><defs><clipPath id="tahoe-therapeutics-app-dark-clip0_428_8164"><rect width="119.082" height="27.4579" fill="#111111" transform="translate(42.7656 0.270508)" /></clipPath></defs></g></svg></g></svg>

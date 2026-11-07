@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blacksky-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="blacksky-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="blacksky-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#blacksky-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#blacksky-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#blacksky-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="blacksky-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#blacksky-app-mono-light-mono)"><defs><clipPath id="blacksky-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#blacksky-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" baseProfile="tiny-ps" viewBox="-1.89665 28.59926 1086.36667 1547.74063" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="blacksky-app-mono-light-cp1">
+			<path d="M-2841.21 0L3815.37 0L3815.37 1599L-2841.21 1599L-2841.21 0Z" />
+		</clipPath>
+		<radialGradient id="blacksky-app-mono-light-grd1" gradientUnits="userSpaceOnUse" cx="1054.574" cy="802.052" r="795.294">
+			<stop offset="0.56" stop-color="#FAB216" />
+			<stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+		</radialGradient>
+	</defs>
+	<g clip-path="url(#blacksky-app-mono-light-cp1)">
+		<g>
+			<path d="M1161.93 1915.12C981.01 1572.07 886.45 1190.01 886.45 802.1C886.45 414.19 981.01 32.14 1161.93 -310.91L1222.79 -289.24C1045.41 47.14 952.7 421.75 952.7 802.1C952.7 1182.46 1045.41 1557.07 1222.79 1893.45L1161.93 1915.12Z" fill="url(#blacksky-app-mono-light-grd1)" />
+			<g>
+				<path fill-rule="evenodd" d="M450.78 1117.1L0.4 1117.1L0.4 487.97L424.74 487.97C563.02 487.97 655.51 544.59 655.51 647.75C655.51 719.55 611.51 784.26 519.02 790.55C616.9 796.64 691.43 841.58 691.43 944.04C691.43 1057.18 599.04 1117.1 450.78 1117.1ZM105.96 752.6L407.67 752.6C492.08 752.6 548.65 733.73 548.65 664.63C548.65 595.52 492.08 577.84 407.67 577.84L105.96 577.84L105.96 752.6ZM580.98 933.25C580.98 862.25 524.41 839.78 430.12 839.78L105.96 839.78L105.96 1027.22L430.12 1027.22C524.41 1027.22 580.98 1004.25 580.98 933.25Z" fill="#000000" />
+			</g>
+		</g>
+	</g>
+</svg></g></g></svg>

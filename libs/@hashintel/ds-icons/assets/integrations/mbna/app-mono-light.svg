@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mbna-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="mbna-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mbna-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mbna-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mbna-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mbna-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mbna-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327901474114 -1.10308153474 -0.111356944643 0 1.5423399535" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mbna-app-mono-light-mono)"><defs><clipPath id="mbna-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mbna-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="mbna-app-mono-light-svg4751" viewBox="17.46658 18.01844 765.63827 236.11264" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <g transform="translate(0,-247.62499)" id="mbna-app-mono-light-layer1">
+    <g id="mbna-app-mono-light-g5430" transform="matrix(6.0491285,0,0,-6.0491285,-170.46245,5169.0629)">
+        <g id="mbna-app-mono-light-g54">
+          <g id="mbna-app-mono-light-g116" transform="matrix(2.1569648,0,0,2.1569648,38.973485,800.55044)" fill="#006bb6" fill-opacity="1">
+            <path d="m 0,0 v -2.018 h 0.054 c 0.671,1.552 1.938,2.277 3.644,2.277 1.731,0 2.818,-0.725 3.592,-2.277 0.672,1.552 2.198,2.277 3.826,2.277 1.163,0 2.431,-0.414 3.207,-1.343 0.879,-1.036 0.697,-2.536 0.697,-3.854 v -8.193 h -3.8 v 6.954 c 0,0.516 0.05,1.808 -0.079,2.299 -0.206,0.828 -0.828,1.06 -1.626,1.06 -0.672,0 -1.374,-0.385 -1.656,-1.008 C 7.576,-4.448 7.602,-5.481 7.602,-6.177 v -6.954 h -3.8 v 6.954 c 0,1.37 0.259,3.383 -1.707,3.383 -1.991,0 -1.915,-1.962 -1.915,-3.383 v -6.954 H -3.616 V 0 Z" id="mbna-app-mono-light-path118" fill="#006bb6" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+          </g>
+          <g id="mbna-app-mono-light-g120" transform="matrix(2.1569648,0,0,2.1569648,83.497338,784.13217)" fill="#006bb6" fill-opacity="1">
+            <path d="m 0,0 c 0,-0.723 0.024,-1.548 0.438,-2.195 0.364,-0.569 0.903,-0.904 1.602,-0.904 2.144,0 2.144,2.74 2.144,4.161 0,1.472 0,4.214 -2.091,4.214 C 0.257,5.276 0,3.285 0,1.888 Z m -3.854,12.228 h 3.801 V 5.973 H 0.05 c 0.646,1.293 1.729,1.914 3.204,1.914 3.751,0 4.884,-3.724 4.884,-6.825 0,-3.438 -1.364,-6.827 -5.325,-6.827 -1.885,0 -2.789,0.701 -3.744,2.277 -0.467,-0.567 -0.621,-1.321 -0.855,-2.015 h -2.068 z" id="mbna-app-mono-light-path122" fill="#006bb6" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+          </g>
+          <g id="mbna-app-mono-light-g124" transform="matrix(2.1569648,0,0,2.1569648,103.70724,800.55044)" fill="#006bb6" fill-opacity="1">
+            <path d="m 0,0 h 3.601 v -2.224 h 0.046 c 0.781,1.68 1.86,2.483 3.776,2.483 1.236,0 2.456,-0.389 3.233,-1.449 0.722,-0.981 0.722,-2.636 0.722,-3.826 v -8.115 H 7.577 v 7.054 c 0,1.344 0.187,3.31 -1.732,3.31 -0.67,0 -1.292,-0.385 -1.604,-0.979 C 3.852,-4.499 3.805,-5.249 3.805,-6.077 v -7.054 H 0 Z" id="mbna-app-mono-light-path126" fill="#006bb6" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+          </g>
+          <g id="mbna-app-mono-light-g128" transform="matrix(2.1569648,0,0,2.1569648,148.60748,785.80576)" fill="#006bb6" fill-opacity="1">
+            <path d="m 0,0 c -1.449,-0.153 -4.111,-0.489 -4.111,-2.404 0,-1.031 0.62,-1.734 1.679,-1.734 0.778,0 1.472,0.418 1.913,1.088 C 0.024,-2.221 0,-1.447 0,-0.517 Z M 0.364,-6.279 C 0.205,-5.61 0.151,-4.911 0.18,-4.238 -0.906,-5.79 -2.046,-6.541 -4.009,-6.541 c -2.324,0 -4.139,1.239 -4.139,3.724 0,1.937 1.218,3.257 2.95,3.905 1.499,0.567 3.593,0.67 5.198,0.826 v 0.313 c 0,0.567 0.049,1.241 -0.338,1.727 -0.338,0.444 -0.984,0.625 -1.552,0.625 -1.214,0 -2.274,-0.625 -2.274,-1.915 L -7.758,3.002 C -7.374,6.177 -4.27,7.111 -1.503,7.111 -0.157,7.111 1.601,6.8 2.655,5.92 4.002,4.834 3.876,3.387 3.876,1.808 v -6.125 c 0,-0.671 0.049,-1.315 0.263,-1.962 z" id="mbna-app-mono-light-path130" fill="#006bb6" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+          </g>
+        </g>
+      </g>
+    </g>
+</svg></g></g></svg>

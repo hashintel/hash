@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="marlboro-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="marlboro-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="marlboro-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#marlboro-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#marlboro-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#marlboro-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="marlboro-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#marlboro-app-mono-dark-mono)"><defs><clipPath id="marlboro-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#marlboro-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="marlboro-app-mono-dark-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 1131.5 637.00382" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<path d="M384.8,620.1" fill="#A01F1F" />
+<g>
+	<path d="M152,499.6L173,348.9h77.5v24.6h-13.1v232.7h13.1v25.5h-80.1v-25.5H186V411.4l-33.1,220.2h-33.5L89.1,411.4v194.8h11.7   v25.5H55.3v-25.5h12.2V373.4H55.3v-24.6h75.1L152,499.6z" />
+	<path d="M564.2,605.9v25.2h-69.8v-25.2h11.8V332.6h-12.4v-24.3h60.3v297.7H564.2z" />
+	<path d="M652.2,418.4c15.7,0,28.8,9.4,37.4,28.1c8.6,18.8,13.3,47.7,13.3,81.5c0,34.9-3.4,60.7-11.4,79   c-8,18.3-20.5,27.5-35.7,27.5c-6.6,0-13.1-1.4-17.8-4.3s-7.5-5.6-12-11.9l-3.2,12.8h-52.9v-25.2h10.9V332.6h-12.7v-24.3h59.7v123   C631.5,424.3,642.8,418.4,652.2,418.4z M650,453.7c-2-5.2-5.3-7.8-9.8-7.8c-4,0-8.5,4.2-10,9.1c-1.5,4.9-2.3,12.3-2.3,25.8v78.8   v17.7c0,4.3,0.1,7.7,0.4,10.1c0.3,2.4,0.5,4.3,0.8,5.6c0.3,1.3,0.6,2.7,1.1,4.1c1.8,4.3,6.2,9.1,10,9.1c5,0,8.4-3.3,10.2-9.9   c1.8-6.6,2.6-19.1,2.6-37.5v-80.1C653,467.2,652,458.9,650,453.7z" />
+	<path d="M823.5,444.9c-10.9-18.3-26.9-27.5-48-27.5c-21.1,0-37.1,9.2-48,27.5c-10.9,18.3-16.4,45.4-16.4,81.3s5.4,63,16.2,81.5   c10.8,18.5,26.5,27.7,47,27.7c43.7,0,65.5-36.5,65.5-109.7C839.9,490.2,834.4,463.3,823.5,444.9z M788.6,525.9   c0,69.3,0,86.9-13.3,86.9c-4.2,0-9.1-1.2-11.3-16c-2.2-14.8-1.5-41.8-1.5-70.5s-0.4-56,1.8-70.7c2.2-14.7,6.9-15.5,11.2-15.5   c6.6,0,9.5,3.3,11.7,18C789.4,472.8,788.6,497.5,788.6,525.9z" />
+	<path d="M1059.8,444.9c-10.9-18.3-26.9-27.5-48-27.5c-21.1,0-37.1,9.2-48,27.5c-10.9,18.3-16.4,45.4-16.4,81.3s5.4,63,16.2,81.5   c10.8,18.5,26.5,27.7,47,27.7c43.7,0,65.5-36.5,65.5-109.7C1076.2,490.2,1070.7,463.3,1059.8,444.9z M1024.9,525.9   c0,69.3,0,86.9-13.3,86.9c-4.2,0-9.1-1.2-11.3-16c-2.2-14.8-1.5-41.8-1.5-70.5s-0.4-56,1.8-70.7c2.2-14.7,6.9-15.5,11.2-15.5   c6.6,0,9.5,3.3,11.7,18C1025.7,472.8,1024.9,497.5,1024.9,525.9z" />
+	<path d="M920.1,488.3c4.7,2.4,10.4,2.6,15.1,0.1c14.3-7.5,13.4-33.8,13.4-33.8c0-11.1-0.9-20.1-5.7-26.9   c-4.9-6.8-10.1-9.6-18.1-9.6c-15.3,0-23.7,14-28.2,20l-1.5-14.3h-57.4v24.1H849v158.5h-11.2v24.8h73.6v-24.8H898V474.2   c0-23.8,12.8-29,12.8-29s-4.1,4.1-4.1,17.1C906.7,478.5,914.3,485.4,920.1,488.3z" />
+	<path d="M472.1,488.3c4.7,2.4,10.4,2.6,15.1,0.1c14.3-7.5,13.4-33.8,13.4-33.8c0-11.1-0.9-20.1-5.7-26.9   c-4.9-6.8-10.1-9.6-18.1-9.6c-15.3,0-23.7,14-28.2,20l-1.5-14.3h-57.4v24.1H401v158.5h-11.2v24.8h73.6v-24.8H450V474.2   c0-23.8,12.8-29,12.8-29s-4.1,4.1-4.1,17.1C458.7,478.5,466.3,485.4,472.1,488.3z" />
+	<path d="M379.5,600.7c0,0-11.4,9.5-11.4-12.8V487.6c0-18.9-0.2-34-6-43.7c-9.4-15.4-22.8-25.8-48.2-25.8   c-18.1,0-30.7,3.3-41.3,11.5c-10.6,8.3-16.8,21.3-16.8,35.6c0,8.6,4.2,17.6,9,23.6c4.8,6,10.9,7.2,18.3,7.2c6.5,0,11.3-2.7,16-8.1   c4.7-5.4,6-11.9,6.2-19.3c0.2-6.5-1.7-10.6-3.4-13.8c-1.7-3.1-3.5-5.7-7.8-10c0,0,3.8-4.1,9.9-4.1c6.5,0,11.1,1.1,13.8,5.1   c2.6,4,3.9,10.7,3.9,20.1v39.6c0,2.7-2.2,4.9-4.9,4.9h-14c-5.8,0-18.8,1.3-24.7,4.6c-5.8,3.2-15.6,9.4-20.5,22.8   c-3.3,9-5.9,19.3-5.9,31.3c0,18.6,4.4,36.6,12.4,47.3c8,10.7,16.1,17.9,30,17.9c22.7,0,32.3-17.6,32.3-17.6   c5.5,6.6,9.4,10.6,13.5,13c4.2,2.4,8.7,4.8,18.3,4.8c15.9,0,26.6-14.8,26.6-14.8L379.5,600.7z M321.7,580.1c0,9.1-1.5,14.9-3.3,19   c-1.8,4.1-3.8,6.2-7.8,6.2c-8.6,0-12.4-10.3-12.4-32.5c0-8,0.3-14.5,0.8-19.5c0.5-5,1.5-10.7,2.9-13.5c1.4-2.9,3.5-4.8,6.1-5.8   c2.6-1,5.1-1.5,9.3-1.5h0.8c1.9,0,3.5,1.6,3.5,3.5V580.1z" />
+</g>
+<polygon points="1131.5,0 1131.5,343.2 562.2,203.1 0,341.5 0,0 " fill="#E51515" />
+</svg></g></g></svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bytedance-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="bytedance-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bytedance-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bytedance-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bytedance-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bytedance-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bytedance-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bytedance-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-2.36065 -1.84879 2856.27769 2492.00802" preserveAspectRatio="xMidYMid meet" id="bytedance-app-dark-svg30" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="bytedance-app-dark-defs34" />
+  <g id="bytedance-app-dark-g68" transform="translate(-5889.2439,-88.063461)">
+    <path d="m 5889.2439,198.14279 495.357,143.10312 V 2322.6738 l -495.357,143.1031 z" id="bytedance-app-dark-path58" fill="#3259b4" fill-opacity="1" stroke="none" stroke-width="10px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+    <path d="m 6670.8071,1210.8726 484.3491,121.0872 v 1067.7695 l -484.3491,99.0714 z" id="bytedance-app-dark-path60" fill="#3c8cff" fill-opacity="1" stroke="none" stroke-width="10px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+    <path d="M 7496.4021,1001.7219 7947.7273,880.63461 V 2190.5786 l -451.3252,-132.0952 z" id="bytedance-app-dark-path62" fill="#00c8d2" fill-opacity="1" stroke="none" stroke-width="10px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+    <path d="m 8244.9415,88.063461 495.357,143.103119 V 2454.769 l -495.357,121.0872 z" id="bytedance-app-dark-path64" fill="#78e6dd" fill-opacity="1" stroke="none" stroke-width="10px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+    </g>
+
+</svg></g></svg>

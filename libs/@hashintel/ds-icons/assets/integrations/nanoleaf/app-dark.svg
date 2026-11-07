@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nanoleaf-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="nanoleaf-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nanoleaf-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nanoleaf-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nanoleaf-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nanoleaf-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nanoleaf-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nanoleaf-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="1.22743 0 45.68913 48" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g clip-path="url(#nanoleaf-app-dark-clip0_6072_1123)">
+<path fill="#48A06A" d="M12.869 0.0683634C16.986 -0.235801 23.5576 0.483164 29.9188 2.00879C36.6864 3.63348 40.422 6.5814 42.4608 11.1465C45.2777 17.4565 46.3078 22.3898 46.7811 27.4453C47.0835 30.6756 46.675 33.6963 44.8856 36.0283C43.6411 37.6506 42.3243 39.0327 40.9159 40.3555L44.2801 44.2031C45.0444 45.0756 44.9684 46.4265 44.1141 47.207C43.2599 47.9875 41.9347 47.9103 41.1727 47.0381L37.8085 43.1895L37.8065 43.1875C36.3888 44.4349 34.922 45.5848 33.2411 46.6436C30.7706 48.1974 27.7854 48.2682 24.6776 47.5986C19.8125 46.547 15.1295 44.946 9.30847 41.376C5.09457 38.7916 2.65126 34.6676 1.83386 27.6172C1.06727 20.9911 1.1113 14.2397 1.87097 10.0967C2.42278 7.09052 3.51957 4.26125 5.26257 2.67188C7.00125 1.08257 9.87885 0.290018 12.869 0.0683634ZM25.2313 28.6807C23.5782 26.7896 20.7384 26.6268 18.8866 28.3125C17.0348 30.0008 16.8754 32.9009 18.5262 34.792C20.1795 36.6831 23.0191 36.8461 24.871 35.1602C26.7227 33.4719 26.8821 30.5718 25.2313 28.6807ZM35.0145 19.7598C33.3613 17.8688 30.5216 17.7067 28.6698 19.3926C26.818 21.0809 26.6585 23.9809 28.3094 25.8721C29.9626 27.763 32.8024 27.9259 34.6542 26.2402C36.506 24.5519 36.6655 21.6509 35.0145 19.7598ZM22.5575 15.5674C20.9044 13.6764 18.0646 13.5137 16.2128 15.1992C14.3609 16.8876 14.2015 19.7886 15.8524 21.6797C17.5057 23.5706 20.3454 23.7328 22.1971 22.0469C24.0488 20.3585 24.2084 17.4585 22.5575 15.5674Z" />
+</g>
+<defs>
+<clipPath id="nanoleaf-app-dark-clip0_6072_1123">
+<rect fill="white" height="48" width="48" />
+</clipPath>
+</defs>
+</svg></g></svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="air-india-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="air-india-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="air-india-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-india-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-india-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#air-india-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="air-india-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.417846556059 -1.40566254418 -0.141902734466 0 1.96541183471" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.008"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#air-india-app-mono-dark-mono)"><defs><clipPath id="air-india-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#air-india-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.42514 0 23.15314 24" fill="#fed9a0" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M23.485 16.5771c.2537-1.878-.2032-3.5021-.5842-4.568-.2661-.7486-.4817-1.345-.6725-1.878-.8626-2.4234-1.0275-2.8676-1.624-5.291l-.2031-.7995-.7867-.2538c-2.3854-.774-2.8041-.9643-5.1642-2.0175-.52-.2284-1.104-.4948-1.8272-.812-.8503-.368-2.1445-.8756-3.705-.9264-2.3983-.0888-4.6948.8882-6.8394 2.893l.0383-.0126C1.5712 3.3935 1.013 3.9518.4418 4.599c0 0 .013.038.1395-.0634.749-.609 3.198-2.893 9.8596.1015 3.2734 1.4718 6.4202 2.7788 6.4202 2.7788s1.028 3.2356 2.2081 6.6362c2.3978 6.89-.0889 9.136-.7613 9.8211-.102.1142-.0636.1269-.0636.1269.9645-.6979 1.7382-1.3957 2.3854-2.081 1.624-1.6368 2.5885-3.426 2.8553-5.3419z" fill="url(#air-india-app-mono-dark-a)" /><path d="m20.4141 4.0152-.7867-.2538c-2.3854-.774-2.804-.9643-5.1641-2.0175-.5206-.2284-1.1041-.4948-1.8272-.812-.8503-.368-2.1446-.8756-3.7056-.9263-2.3977-.0888-4.6948.8882-6.8388 2.893l.0377-.0127C1.5842 3.3681 1.026 3.9264.4548 4.5735c0 0 .0123.0381.1395-.0634.7484-.609 3.1974-2.893 9.859.1015 3.274 1.4719 6.4207 2.7788 6.4207 2.7788z" /><defs><linearGradient id="air-india-app-mono-dark-a" x1="198.42" y1="71.1854" x2="157.529" y2="15.5605" gradientUnits="userSpaceOnUse" gradientTransform="matrix(.6175 0 0 .6175 -90.0162 -9.6252)"><stop offset=".1805" stop-color="#fed9a0" /><stop offset=".3124" stop-color="#ecc890" /><stop offset=".5738" stop-color="#bf9a66" /><stop offset=".7464" stop-color="#9e7947" /></linearGradient></defs></svg></g></g></svg>

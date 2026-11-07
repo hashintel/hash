@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="omada-health-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="omada-health-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="omada-health-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omada-health-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#omada-health-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#omada-health-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="omada-health-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#omada-health-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05347 -0.0508 40.12608 40.10158" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs><clipPath id="omada-health-app-dark-omada-health-left"><rect x="-0.23402" y="-0.26569" width="45.186562450000004" height="40.53138" /></clipPath></defs><g clip-path="url(#omada-health-app-dark-omada-health-left)"><g fill-rule="nonzero" fill="none">
+        <path d="M59.916 10.117c-5.495 0-9.956 4.46-9.956 9.956 0 5.495 4.46 9.955 9.956 9.955 5.494 0 9.955-4.46 9.955-9.955-.013-5.495-4.46-9.956-9.955-9.956zm0 15.67a5.717 5.717 0 0 1-5.715-5.714 5.717 5.717 0 0 1 5.715-5.715 5.717 5.717 0 0 1 5.714 5.715 5.717 5.717 0 0 1-5.714 5.714zM122.441 29.614h2.6a.26.26 0 0 0 .258-.258V10.789a.26.26 0 0 0-.259-.258h-3.736a.26.26 0 0 0-.259.258v1.539c-1.461-1.461-3.594-2.21-5.715-2.21-5.495 0-9.955 4.46-9.955 9.955s4.46 9.955 9.955 9.955c2.12 0 4.241-.75 5.715-2.21l1.19 1.693a.21.21 0 0 0 .206.103zm-7.11-3.827a5.717 5.717 0 0 1-5.715-5.714 5.717 5.717 0 0 1 5.714-5.715 5.717 5.717 0 0 1 5.715 5.715 5.717 5.717 0 0 1-5.715 5.714zM76.659 29.356V18.599c0-2.483 2.043-4.577 4.525-4.538a4.44 4.44 0 0 1 4.37 4.447v10.848a.26.26 0 0 0 .259.258h3.814a.26.26 0 0 0 .259-.258V18.599c0-2.483 2.03-4.577 4.525-4.538a4.44 4.44 0 0 1 4.37 4.447v10.848a.26.26 0 0 0 .258.258h3.75a.26.26 0 0 0 .259-.258V17.358a7.267 7.267 0 0 0-7.267-7.24h-.013c-2.56 0-5.223 1.318-6.62 3.283l-.284.388-.271-.4a7.26 7.26 0 0 0-6.051-3.285c-2.095 0-4.099.918-5.392 2.405l-.31.35-1.577-2.238c-.052-.064-.13-.116-.207-.116h-2.483a.26.26 0 0 0-.258.259V29.33a.26.26 0 0 0 .258.259h3.801c.169.025.285-.078.285-.233zM144.835 29.614h2.599a.26.26 0 0 0 .258-.258V2.838a.26.26 0 0 0-.258-.259h-3.737a.26.26 0 0 0-.258.259v9.49c-1.461-1.461-3.595-2.21-5.715-2.21-5.495 0-9.956 4.46-9.956 9.955s4.46 9.955 9.956 9.955c2.12 0 4.254-.75 5.715-2.21l1.189 1.693c.052.065.13.116.207.103zm-7.111-3.827a5.717 5.717 0 0 1-5.715-5.714 5.717 5.717 0 0 1 5.715-5.715 5.717 5.717 0 0 1 5.715 5.715 5.708 5.708 0 0 1-5.715 5.714zM167.241 29.614h2.599a.26.26 0 0 0 .259-.258V10.789a.26.26 0 0 0-.259-.258h-3.737a.26.26 0 0 0-.258.258v1.539c-1.461-1.461-3.594-2.21-5.715-2.21-5.495 0-9.955 4.46-9.955 9.955s4.46 9.955 9.955 9.955c2.12 0 4.241-.75 5.715-2.21l1.19 1.693a.21.21 0 0 0 .206.103zm-7.11-3.827a5.717 5.717 0 0 1-5.716-5.714 5.717 5.717 0 0 1 5.715-5.715 5.717 5.717 0 0 1 5.715 5.715 5.717 5.717 0 0 1-5.715 5.714z" fill="#5B8389" />
+        <path d="M27.812 27.972 16.098 39.686c-.064.065-.155.09-.232.065a19.17 19.17 0 0 1-4.267-1.396.276.276 0 0 1-.13-.35.27.27 0 0 1 .052-.077l13.136-13.11a6.7 6.7 0 0 0 0-9.477 6.688 6.688 0 0 0-9.477 0L2.044 28.477a.25.25 0 0 1-.362 0 .27.27 0 0 1-.052-.078 20.6 20.6 0 0 1-1.396-4.267A.294.294 0 0 1 .3 23.9l11.727-11.714c4.357-4.357 11.43-4.357 15.786 0 4.357 4.357 4.357 11.43 0 15.786zm6.31-22.096c-7.835-7.835-20.584-7.835-28.419 0a19.97 19.97 0 0 0-5.702 11.52.2.2 0 0 0 .168.22c.065.013.117-.013.169-.052L8.87 9.031c6.102-6.103 16.006-6.103 22.109 0 6.103 6.103 6.103 16.006 0 22.11l-8.533 8.532a.187.187 0 0 0 0 .272.191.191 0 0 0 .168.052 20.043 20.043 0 0 0 11.533-5.702c7.809-7.848 7.809-20.596-.026-28.419zM21.49 21.663a2.24 2.24 0 0 0-.052-3.155 2.225 2.225 0 0 0-3.103 0l-13.95 13.95a.258.258 0 0 0-.014.35c.427.517.867 1.008 1.345 1.487.479.478.97.918 1.487 1.344.103.078.259.078.35-.012L21.49 21.663z" fill="#EB724A" />
+    </g>
+</g></svg></g></svg>

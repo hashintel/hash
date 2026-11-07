@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hankook-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hankook-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hankook-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hankook-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hankook-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hankook-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="hankook-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.412899167088 -1.3890192112 -0.14022257697 0 1.94214095526" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hankook-app-mono-dark-mono)"><defs><clipPath id="hankook-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hankook-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="9.82838 9.28731 121.3557 71.09774" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+ <path d="m113.64 9.52c-2.1569 20.631-14.694 38.226-32.379 47.627-0.49952 0.26588-0.96336-0.40514-0.52829-0.76423 13.685-11.351 22.635-28.068 23.509-46.863h-17.355c-2.1385 15.98-12.223 29.49-26.217 36.546-0.49262 0.24746-0.93574-0.40168-0.5237-0.7654 10.091-8.9074 16.684-21.582 17.512-35.78h-17.396c-1.2292 7.2522-4.9457 13.538-9.7257 18.768-11.753 12.863-30.73 14.289-39.939 13.569 0 0-0.43392-0.0702-0.57088 0.27392-0.14733 0.36946 0.26587 0.60197 0.26587 0.60197 15.31 8.5943 27.496 16.726 49.691 33.054 5.451 4.0088 10.603 5.1679 16.015 3.9006 34.599-8.1086 54.731-43.89 54.948-70.167z" fill="#EC6608" />
+</svg></g></g></svg>

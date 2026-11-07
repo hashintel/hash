@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="piaget-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="piaget-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="piaget-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#piaget-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#piaget-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#piaget-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="piaget-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#piaget-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.31886 0 92.36229 36" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+                    <path d="M23.9 28.5V12.1c0-2.3.3-3.2 1.5-3.4v-.1h-6v.1c1.2.3 1.5 1.1 1.5 3.4v16.4c0 2.3-.3 3.2-1.5 3.4v.1h6v-.1c-1.2-.2-1.5-1.1-1.5-3.4M91.1 0l.3 1.3L92.6 6h-.1c-.6-1.1-1.4-2.9-2.6-3.9-1.7-1.4-4.3-1-5.3-1V30c0 4.1.2 5.6 2.8 5.9v.1h-8.9v-.1c2.6-.2 2.8-1.8 2.8-5.9V1.1c-.6.1-2.9-.3-4.6.6S74.3 4.6 73.5 6h-.1L75 0zM74.6 8.6l1.3 4.2h-.1c-1.3-3-2.5-3.3-5.9-3.2h-2.1v9.9h1.7c1.7 0 3-.3 2.7-3h.1l1.5 5.8h-.1v-.1c-.7-1.6-1.9-1.6-3.2-1.6h-2.6V31h1.2c4.3 0 6.2-1.2 7.5-4.4h.1L75 32H63.5c1.2-.3 1.3-1.2 1.3-3.5V12.1c0-2.3-.1-3.1-1.3-3.4v-.1zM53.7 19.9c2.3.4 2.6 1.7 2.6 5.1v3.1c0 .6-.2 2.9-1.8 3.6-.7.3-1.1.3-1.6.3-.4 0-1.3-.3-1.8-.8-.9-.7-1.3-1.7-1.8-4.2-.3-1.6-.6-4.3-.6-7.1s.3-5.5.8-7.1c.8-2.7 2.3-4.1 4.1-4.1 1.5 0 4.1.7 5.8 4.7h.1l-1.3-4.1-.2-.7h-.1c0 .2 0 .5-.3.5s-.6-.3-.8-.4c-.9-.6-2-.9-3.3-.9-2 0-8.3.7-8.3 12.2 0 11.7 5.9 13 7.7 13 .7 0 1.7-.3 2.4-.6.5-.2 1.1-.5 2.5-.5.5 0 1 .2 1.7.2V19.9zM8.6 0H.4v.1C3 .4 3.3 1.6 3.3 5.9V30c0 4.3-.3 5.6-2.8 5.9v.1h8.9v-.1c-2.5-.3-2.8-1.6-2.8-5.9V18.8h1.5c5 0 9.3-2.3 9.3-9.4-.1-6.8-3-9.4-8.8-9.4zm-.4 1.1c4.3 0 5.6 2.6 5.6 8.2 0 6.5-3.2 8.3-6.2 8.3H6.5V1.1zM44.8 32c-1.3-.4-2-1-2.6-3.1L36 6.1l-6.6 22.6c-.8 2.6-1.4 3.2-2.1 3.2v.1h3.9v-.1c-1.7-.3-1.2-1.6-.5-4l2-7.3h3.9l2.2 8c.7 2.2-.7 3.1-1.9 3.3v.1zM33.1 19.5l1.6-5.8 1.6 5.8z" />
+            </svg></g></svg>

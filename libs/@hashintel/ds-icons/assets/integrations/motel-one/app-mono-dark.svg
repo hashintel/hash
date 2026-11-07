@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="motel-one-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="motel-one-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="motel-one-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#motel-one-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#motel-one-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#motel-one-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="motel-one-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.462006125653 -1.55421816118 -0.15689954032 0 2.17312382715" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#motel-one-app-mono-dark-mono)"><defs><clipPath id="motel-one-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#motel-one-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.97371 3.97371 22.05257 15.04569" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g fill="none"><g><path fill="#00AEB7" d="M7.351 17.527c-2.592 0-4.51-1.316-4.51-3.377c0-3.693 5.38-8.777 12.384-8.914c3.126-.058 5.876.943 5.955 3.77c.1 3.534-5.045 7.893-8.072 7.893c-.653 0-.851-.431-.851-.863c0-.686.554-2.083 1.148-3.634l1.68-4.417c.041-.098 0-.156-.078-.156h-.95c-.1 0-.14.02-.199.058c-1.621.885-2.473 1.14-4.056 1.334c-.059 0-.1.039-.12.099l-.317.903c-.02.06 0 .098.08.098h.968c.77 0 .95.197.95.668c0 .412-.12.865-.79 2.788l-.397 1.12c-.554 1.57-1.187 2.63-2.829 2.63zM7.707 19C15.937 19 23 13.62 23 8.81C23 5.276 19.498 4 16.372 4C7.766 4 1 9.87 1 14.326C1 17.547 4.086 19 7.707 19" /></g></g></svg></g></g></svg>

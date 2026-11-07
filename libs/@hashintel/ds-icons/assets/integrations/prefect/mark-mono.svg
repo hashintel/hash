@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><defs><filter id="prefect-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#prefect-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" fill="#111111" viewBox="-0.28789 -0.02353 111.17576 150.98708" color="black" x="0.0" y="0.0" width="64" height="64">
+<g>
+    <polygon points="99.15 25.87 110.23 32.25 110.6 32.46 110.6 95.17 110.23 95.38 66.47 120.57 66.47 106.15 66.83 105.94 72.57 102.64 79.96 98.38 98.07 87.96 98.07 40.51 56.84 64.23 56.84 150.78 44.32 143.07 44.32 57.02 98.43 25.87 98.79 25.67 99.15 25.87" />
+    <polygon points="77 13.12 89.17 20.12 34.68 51.48 34.68 137.14 22.5 129.64 22.16 129.43 22.16 44.27 76.27 13.12 76.64 12.91 77 13.12" />
+    <polygon points="54.84 .37 67.01 7.37 12.53 38.73 12.53 123.49 0 115.78 0 31.52 54.12 .37 54.48 .16 54.84 .37" />
+  </g>
+</svg></g></svg>

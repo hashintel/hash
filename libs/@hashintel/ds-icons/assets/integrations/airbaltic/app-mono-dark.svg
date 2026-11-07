@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="airbaltic-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="airbaltic-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="airbaltic-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#airbaltic-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#airbaltic-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#airbaltic-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="airbaltic-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.248584052617 -0.836252654901 -0.0844203602962 0 1.16925706782" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#airbaltic-app-mono-dark-mono)"><defs><clipPath id="airbaltic-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#airbaltic-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 24.62176 64 14.75648" fill="#152649" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M46.313 24.679v3.566h-1.558v1.972h1.558v5.607c0 1.904.519 3.324 3.392 3.324.52 0 .865-.035 1.211-.07V37.14c-.207.035-.45.069-.76.069-1.178 0-1.282-.726-1.282-1.522v-5.47h1.939v-1.972h-1.939v-3.566Zm5.503 0v2.596h2.562V24.68Zm-41.848.034v2.562h2.561v-2.562zm10.938 0v14.365h4.95c3.703 0 5.33-1.765 5.33-3.946 0-2.665-2.076-3.253-3.184-3.53.97-.346 2.838-.97 2.838-3.393 0-3.496-4.119-3.496-5.33-3.496zm20.665 0v14.365h2.561V24.713Zm-17.965 2.112h2.146c.554 0 2.423 0 2.423 1.8 0 .485-.208 1.938-2.665 1.938h-1.904zM4.914 28.002c-2.25 0-3.565.762-4.257 1.142v2.25c.623-.415 2.18-1.454 3.877-1.454 1.003 0 1.834.277 1.834 1.177v.45c0 .312-.034.347-.484.485L2.768 33.09C.38 33.921 0 35.236 0 36.344c0 1.73 1.35 2.977 3.289 2.977 1.626 0 2.63-.83 3.253-1.385l.277 1.142 2.112-.034V31.74c0-2.042-.658-3.738-4.016-3.738zm31.569 0c-2.25 0-3.566.762-4.258 1.142v2.25c.623-.415 2.18-1.454 3.877-1.454 1.004 0 1.834.277 1.834 1.177v.45c0 .312-.035.347-.485.485l-3.08 1.038c-2.353.831-2.769 2.146-2.769 3.254 0 1.73 1.385 2.977 3.323 2.977 1.592 0 2.63-.83 3.254-1.385l.276 1.142 2.043-.034V31.74c0-2.042-.658-3.738-4.015-3.738zm24.09 0c-3.634 0-5.33 2.665-5.33 5.642 0 2.873 1.558 5.642 5.227 5.642 1.834 0 3.012-.589 3.53-.866v-2.284c-.692.485-1.626 1.143-3.115 1.143-2.838 0-3.046-2.839-3.046-3.6 0-1.766.9-3.6 3.115-3.6 1.454 0 2.285.658 2.804 1.108v-2.389c-.45-.242-1.419-.796-3.184-.796zm-40.982.07c-1.558 0-2.7 1.037-3.496 2.214V28.28h-2.492v10.8h2.526v-5.296c0-2.146 2.112-3.254 3.289-3.254.173 0 .554 0 .762.034V28.14a2.265 2.265 0 0 0-.59-.069zm-9.623.207v10.8h2.561v-10.8Zm41.848 0v10.8h2.562v-10.8Zm-28.21 4.361h1.87c2.353 0 2.907 1.177 2.907 2.181 0 1.558-1.281 2.146-3.081 2.146h-1.696Zm-17.272.9v2.666c-1.039 1.073-1.939 1.211-2.354 1.211-.45 0-1.385-.242-1.385-1.315 0-.762.38-1.281 1.454-1.662l1.627-.588c.45-.173.52-.208.658-.312zm31.602 0v2.666c-1.038 1.073-1.938 1.211-2.353 1.211-.45 0-1.385-.242-1.385-1.315 0-.762.38-1.281 1.454-1.662l1.626-.588c.45-.173.52-.208.658-.312z" /></svg></g></g></svg>

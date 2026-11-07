@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shiseido-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="shiseido-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="shiseido-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shiseido-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shiseido-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#shiseido-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="shiseido-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26159954371 -0.880037599536 -0.0888404847406 0 1.23047762799" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#shiseido-app-mono-light-mono)"><defs><clipPath id="shiseido-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#shiseido-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="shiseido-app-mono-light-svg28892" viewBox="3.90051 3.56441 392.19898 66.32819" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="shiseido-app-mono-light-defs28886" />
+  <g transform="translate(-388.481438095239,-473.889699932317)" id="shiseido-app-mono-light-layer1">
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,504.276741103744,511.394240435721)" id="shiseido-app-mono-light-g28501" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28503" d="m 0,0 h -12.976 v 13.112 h -7.278 v -29.544 h 7.278 V -2.056 H 0 V -16.432 H 7.279 V 13.112 H 0 Z" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <path id="shiseido-app-mono-light-path28505" d="m 530.03403482866,538.411119423158 h 11.967786354121 V 489.836276718644 H 530.03403482866 Z" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="1.6441526413" />
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,553.180414316683,536.939438482702)" id="shiseido-app-mono-light-g28515" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28517" d="m 0,0 c -1.266,0 -2.844,0.527 -3.952,1.476 l -1.107,-1.897 c 1.425,-1.106 3.679,-1.896 6.33,-1.896 7.106,0 12.674,4.522 16.154,16.53 3.008,10.426 5.05,13.014 9.164,13.014 1.208,0 2.533,-0.317 3.483,-0.948 l 0.791,2.053 c -1.286,0.71 -3.383,1.107 -5.441,1.107 -6.963,0 -12.545,-3.958 -15.871,-14.913 C 5.92,2.56 4.158,0 0,0" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,772.255519792004,514.255065859017)" id="shiseido-app-mono-light-g28519" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28521" d="m 0,0 c 0,-7.899 -3.164,-13.427 -9.493,-13.427 -6.331,0 -9.655,5.528 -9.655,13.427 0,7.9 3.324,13.587 9.655,13.587 C -3.164,13.587 0,7.9 0,0 m 7.436,0 c 0,11.532 -9.652,15.325 -16.929,15.325 -7.282,0 -17.092,-3.793 -17.092,-15.325 0,-11.532 9.81,-15.166 17.092,-15.166 7.277,0 16.929,3.634 16.929,15.166" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,684.835929127268,492.953425523258)" id="shiseido-app-mono-light-g28523" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28525" d="m 0,0 h 1.899 c 7.438,0 12.977,-3.161 12.977,-12.956 0,-9.634 -5.539,-12.795 -12.977,-12.795 H 0 Z M -7.278,-27.648 H 2.848 c 9.654,0 19.463,3.318 19.463,14.692 0,11.532 -9.809,14.852 -19.463,14.852 H -7.278 Z" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,618.750861849133,535.032221533839)" id="shiseido-app-mono-light-g28527" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28529" d="m 0,0 v 12.321 h 11.078 v 2.056 H 0 v 11.057 h 11.869 v 2.055 H -7.278 V -2.055 H 12.345 V 0 Z" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <path id="shiseido-app-mono-light-path28531" d="m 647.112493200773,538.411119423158 h 11.966142201579 v -48.574842704514 h -11.966142201579 z" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="1.6441526413" />
+    <g transform="matrix(1.64415254212407,0,0,-1.64415254212407,434.550369190568,508.803056029333)" id="shiseido-app-mono-light-g28533" fill="#4D4D4D">
+      <path id="shiseido-app-mono-light-path28535" d="m 0,0 c -5.063,-13.268 -8.23,-18.324 -14.875,-18.324 -3.896,0 -7.245,2.158 -8.931,4.293 l -1.781,-1.856 c 2.042,-2.543 6.552,-5.123 12.275,-5.123 10.44400000000001,0 16.319,5.531 21.541,19.908 4.588,12.638 7.911,17.534 14.874,17.534 2.374,0 4.748,-0.788 6.33,-2.212 l 1.267,2.055 c -2.216,1.738 -5.856,2.527 -8.863,2.527 C 12.5,18.802 5.222,13.905 0,0" fill="#C80421" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+  </g>
+</svg></g></g></svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="berluti-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="berluti-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="berluti-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#berluti-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#berluti-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#berluti-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="berluti-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#berluti-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.34431 0.34407 171.46405 37.5285" id="berluti-app-dark-svg1448" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="berluti-app-dark-defs1442" />
+
+  <g id="berluti-app-dark-layer1" transform="translate(-61.834379,-168.53453)">
+    <path id="berluti-app-dark-path1422" d="M 112.77995,200.43265 H 98.782537 v -10.10009 h 11.472393 v -5.48919 H 98.782537 v -9.93541 h 13.887633 v -5.87343 H 94.281406 l -2.30545,2.25057 v 21.35291 l -0.384249,13.61317 h 21.188243 z m 41.05908,-29.14755 -2.30546,-2.25057 h -4.94026 l 0.43913,13.55828 v 10.0452 l -0.43913,13.61317 h 21.24313 v -5.81853 h -13.99741 z m 31.89214,-2.25057 v 28.54374 c -0.16467,1.81143 -1.48208,2.90927 -3.56796,2.90927 -2.19568,0 -3.62286,-1.26251 -3.62286,-3.29351 v -28.1595 h -7.24572 l 0.43913,13.55828 v 14.27187 c 0,5.87343 3.89732,9.3865 10.42945,9.3865 6.53212,0 10.37455,-3.51307 10.37455,-9.3865 V 171.2851 l -2.25057,-2.25057 z m 42.81562,0 -2.25057,2.25057 v 34.96608 h 6.7517 v -23.65837 l 0.43913,-13.55828 z m -29.58669,5.87343 h 7.02615 v 29.09266 l 2.25057,2.25056 h 4.94026 l -0.43914,-13.55828 v -16.13819 a 1.6467543,1.6467543 0 0 1 1.64676,-1.64675 h 5.3794 v -5.87343 h -20.804 z m -64.00385,16.24797 c 3.89731,-1.92121 6.03809,-5.70875 6.03809,-10.64901 0,-7.41039 -4.06199,-11.47239 -11.41749,-11.47239 h -7.84953 l -2.30546,2.25057 v 21.35291 l -0.43913,13.61317 h 7.19083 v -14.38165 h 1.04294 l 8.0691,14.38165 h 6.53212 v -2.25056 l -7.02615,-12.7898 z m -6.64191,-4.94026 h -2.14078 v -11.30771 h 2.14078 c 3.84242,0 5.76364,1.86632 5.76364,5.65385 0,3.78754 -1.92122,5.65386 -5.76364,5.65386 z m -48.743934,0.98805 -0.6587,-0.27446 0.54891,-0.27446 c 2.74459,-1.53697 4.062,-3.95221 4.062,-7.52017 0,-6.53213 -3.84243,-10.1001 -10.86858,-10.1001 h -10.31966 l 0.43913,13.55828 v 21.35291 l 2.25057,2.25057 h 9.16693 c 7.02615,0 10.86858,-3.67775 10.86858,-10.31966 0,-5.59897 -3.12883,-7.62996 -5.48918,-8.67291 z m -11.03326,-12.29576 h 3.84243 c 1.97611,0 4.33645,1.3174 4.33645,4.94026 0,3.62286 -2.30545,4.99515 -4.33645,4.99515 h -3.84243 z m 5.21473,25.52469 h -5.26962 v -8.28866 a 1.6467543,1.6467543 0 0 1 1.64676,-1.64676 h 3.62286 c 1.9761,0 4.33645,1.3174 4.33645,4.94026 0,3.62286 -2.30546,4.99516 -4.33645,4.99516 z" stroke-width="0.54891813" />
+  </g>
+</svg></g></svg>

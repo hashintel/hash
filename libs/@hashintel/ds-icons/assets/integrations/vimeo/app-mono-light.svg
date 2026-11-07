@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vimeo-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="vimeo-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="vimeo-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vimeo-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vimeo-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#vimeo-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="vimeo-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.564584661143 -1.89929891651 -0.191735712768 0 2.65561929042" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#vimeo-app-mono-light-mono)"><defs><clipPath id="vimeo-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#vimeo-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 223" preserveAspectRatio="xMidYMid" fill="#1AB7EA" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g>
+        <path d="M255.876213,51.662485 C254.737006,76.6303263 237.331453,110.819347 203.667236,154.211627 C168.861251,199.53928 139.413381,222.200547 115.323625,222.200547 C100.406409,222.200547 87.772727,208.402057 77.4609804,180.794839 C70.5694159,155.489076 63.6855314,130.185872 56.7965269,104.880109 C49.1343974,77.2882505 40.9193043,63.4744013 32.1358876,63.4744013 C30.2209952,63.4744013 23.5188719,67.5115474 12.0448778,75.5551193 L0,60.0081389 C12.6336816,48.884867 25.0984021,37.7641552 37.3608813,26.6280832 C54.2109102,12.038549 66.8599519,4.36617944 75.2900864,3.59049443 C95.2146951,1.67304204 107.477174,15.3179302 112.080084,44.5277189 C117.054196,76.0415225 120.494858,95.6435691 122.430231,103.315939 C128.172348,129.461388 134.490469,142.517472 141.394833,142.517472 C146.752948,142.517472 154.80164,134.038697 165.533229,117.081148 C176.254579,100.118478 181.996696,87.2134346 182.772381,78.3480974 C184.298151,63.7099228 178.553473,56.3729154 165.533229,56.3729154 C159.40455,56.3729154 153.086429,57.7860445 146.586547,60.5790226 C159.166468,19.2885158 183.205023,-0.764093703 218.686853,0.380233689 C244.991023,1.15335868 257.391743,18.2465891 255.876213,51.662485" fill="#32B8E8" />
+    </g>
+</svg></g></g></svg>

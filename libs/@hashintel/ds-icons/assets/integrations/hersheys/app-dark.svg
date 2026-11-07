@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hersheys-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hersheys-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hersheys-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hersheys-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hersheys-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hersheys-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hersheys-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hersheys-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="362.35882 21.80388 79.54218 100.65845" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="hersheys-app-dark-brand-symbol-bounds"><rect x="362.35882" y="0.0" width="79.54218" height="127.73599999999999" /></clipPath></defs><g clip-path="url(#hersheys-app-dark-brand-symbol-bounds)"><defs>
+    <clipPath clipPathUnits="userSpaceOnUse" id="hersheys-app-dark-clipPath500">
+      <path d="M 0,0 H 792 V 612 H 0 Z" />
+    </clipPath>
+  </defs>
+  <g transform="translate(0,-892.6921)">
+    <g transform="matrix(3.7998516,0,0,3.7998516,-514.85984,-2247.0295)" stroke-width="0.26316816">
+      <g transform="matrix(1.3333333,0,0,-1.3333333,86.580491,1594.1344)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+        <g clip-path="url(#hersheys-app-dark-clipPath500)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+          <g transform="translate(109.0044,575.6836)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+            </g>
+          <g transform="translate(66.6618,556.0246)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+            </g>
+          <g transform="translate(68.3371,571.6107)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+            </g>
+        </g>
+      </g>
+      <g transform="matrix(1.3333333,0,0,-1.3333333,199.96662,826.55575)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+        </g>
+      <g transform="matrix(1.3333333,0,0,-1.3333333,143.18036,826.55575)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+        </g>
+      <g transform="matrix(1.3333333,0,0,-1.3333333,156.54636,853.84335)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+        </g>
+      <g transform="matrix(1.3333333,0,0,-1.3333333,213.32995,853.84335)" fill="#95737B" fill-opacity="1" stroke-width="0.26316816">
+        </g>
+      <path d="m 237.68835,839.92229 c 0,-1.84134 1.30934,-3.35067 3.42534,-4.1 2.49066,-0.87067 8.604,-1.23467 10.632,-3.78134 v 4.32134 c -1.87334,2.336 -8.18667,2.36933 -10.632,3.22933 -1.88267,0.66133 -2.6,1.78533 -2.996,2.348 -0.176,0.24133 -0.20934,0.28667 -0.30934,0.28667 -0.088,0 -0.12,-0.0773 -0.12,-0.15467 z" fill="#A8A9AD" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35089087" />
+      <path d="m 233.06729,858.47175 c -2.41067,0 -4.04,-3.28533 -1.24534,-6.61333 0.93867,-1.116 2.03734,-2.12 3.01334,-3.17333 1.86533,-2.01334 2.44133,-3.59334 2.792,-5.08934 0.02,-0.0893 0.076,-0.19466 0.20266,-0.19466 0.12534,0 0.18134,0.10533 0.20134,0.19466 0.35066,1.496 0.92666,3.076 2.79066,5.08934 0.97734,1.05333 2.07734,2.05733 3.01334,3.17333 2.796,3.328 1.16533,6.61333 -1.244,6.61333 z" fill="#95737B" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35089087" />
+    </g>
+    </g>
+</g></svg></g></svg>

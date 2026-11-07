@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="carhartt-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="carhartt-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="carhartt-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#carhartt-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#carhartt-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#carhartt-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="carhartt-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="3.03571"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#carhartt-app-mono-dark-mono)"><defs><clipPath id="carhartt-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#carhartt-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="10.07538 0 27.2918 31.97218" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="carhartt-app-mono-dark-brand-symbol-bounds"><rect x="0.0" y="0.0" width="37.367184" height="33.594533" /></clipPath></defs><g clip-path="url(#carhartt-app-mono-dark-brand-symbol-bounds)"><defs>
+    <clipPath id="carhartt-app-mono-dark-clip127">
+      <path d="m 66,680 h 27.363281 v 33 H 66 Z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip128">
+      <path d="M 55.996094,715 H 61 v 4.65625 h -5.003906 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip129">
+      <path d="m 71,714 h 2 v 5.65625 h -2 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip130">
+      <path d="m 72,715 h 4 v 4.65625 h -4 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip131">
+      <path d="m 86,714 h 4 v 5.65625 h -4 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip132">
+      <path d="m 90,714 h 3.363281 v 5.65625 H 90 Z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip133">
+      <path d="m 60,715 h 7 v 4.65625 h -7 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip134">
+      <path d="m 76,715 h 6 v 4.65625 h -6 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip135">
+      <path d="m 66,715 h 2 v 4.65625 h -2 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip136">
+      <path d="m 81,715 h 2 v 4.65625 h -2 z m 0,0" />
+    </clipPath>
+    <clipPath id="carhartt-app-mono-dark-clip137">
+      <path d="m 92,718 h 1.363281 v 1.65625 H 92 Z m 0,0" />
+    </clipPath>
+  </defs>
+  <g transform="translate(-55.996094,-680.13327)">
+    <g clip-path="url(#carhartt-app-mono-dark-clip127)" clip-rule="nonzero">
+      <path d="m 86.308594,694.60156 c -2.941406,-0.89062 -4.5625,-4.1289 -3.621094,-7.23437 0.324219,-1.07422 0.914062,-1.99219 1.671875,-2.69922 0,0 1.960937,-1.92578 5.054687,-0.85547 -0.03516,0 -0.07031,-0.004 -0.101562,-0.004 -1.871094,0 -3.390625,1.67578 -3.390625,3.73828 0,2.06641 1.519531,3.73829 3.390625,3.73829 1.476562,0 2.734375,-1.04297 3.195312,-2.5 0,0 0.109376,-0.3125 0.171876,-0.82422 0.01172,-0.0859 0.01953,-0.19141 0.01953,-0.19141 0.117187,-1.30078 -0.109375,-3.60937 -2.65625,-5.44531 -3.453125,-2.4336 -8.308594,-2.1836 -8.308594,-2.1836 -8.628906,0 -15.625,7.14454 -15.625,15.96485 0,8.8125 6.996094,15.96094 15.625,15.96094 h 11.59375 v -21.47657 c -0.9375,3.10547 -4.082031,4.90235 -7.019531,4.01172" fill="#F5A600" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip128)" clip-rule="nonzero">
+      <path d="m 57.878906,716.53125 h 2.59375 v -0.85938 c 0,0 -2.128906,0 -2.410156,0 -1.273438,0.004 -2.066406,0.81641 -2.066406,1.95704 0.0039,1.14062 0.851562,1.94921 2.121094,1.94531 h 2.355468 v -0.85547 h -2.625 c -0.378906,0 -0.875,-0.47656 -0.875,-1.08984 0,-0.61719 0.496094,-1.09766 0.90625,-1.09766" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip129)" clip-rule="nonzero">
+      <path d="m 72.308594,719.57422 h -0.960938 v -4.875 h 0.960938 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip130)" clip-rule="nonzero">
+      <path d="m 72.757812,716.59375 c 0.15625,-0.0469 0.613282,-0.30078 1.304688,-0.16797 0.6875,0.13672 1.152344,0.92188 0.257812,2.92188 -0.148437,0.27343 0.261719,0.3125 0.261719,0.3125 l 0.660157,-0.082 c 0,0 1.101562,-2.32031 0.238281,-3.30468 -0.867188,-0.98438 -2.644531,-0.58985 -2.761719,-0.51563 -0.242188,0.15625 -0.113281,0.88281 0.03906,0.83594" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip131)" clip-rule="nonzero">
+      <path d="m 89.585938,715.67578 h -1.347657 v -0.73437 h -0.976562 v 0.73437 h -0.839844 v 0.89453 h 0.839844 v 3.00391 h 0.976562 v -3.00391 h 1.347657 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip132)" clip-rule="nonzero">
+      <path d="m 93.363281,715.67578 h -1.347656 v -0.73437 h -0.972656 v 0.73437 h -0.84375 v 0.89453 h 0.84375 v 3.00391 h 0.972656 v -3.00391 h 1.347656 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip133)" clip-rule="nonzero">
+      <path d="m 66.101562,716.92969 c 0,-0.57032 -0.492187,-1.25782 -1.445312,-1.25782 h -3.136719 v 0.86329 h 3.128907 c 0.304687,0 0.480468,0.16406 0.480468,0.38281 v 1.79687 h -2.777344 c -0.292968,0 -0.480468,-0.17968 -0.480468,-0.39453 0,-0.22265 0.175781,-0.38672 0.480468,-0.38672 h 2.433594 v -0.82422 c 0,0 -1.78125,-0.004 -2.4375,-0.004 -0.957031,0 -1.453125,0.6875 -1.453125,1.26172 0.0039,0.72265 0.667969,1.20703 1.46875,1.20703 h 3.738281 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip134)" clip-rule="nonzero">
+      <path d="m 81.359375,716.92969 c 0,-0.57032 -0.492187,-1.25782 -1.449219,-1.25782 h -3.132812 v 0.86329 h 3.128906 c 0.304688,0 0.480469,0.16406 0.480469,0.38281 v 1.79687 h -2.777344 c -0.292969,0 -0.480469,-0.17968 -0.480469,-0.39453 0,-0.22265 0.175782,-0.38672 0.480469,-0.38672 h 2.433594 v -0.82422 c 0,0 -1.78125,-0.004 -2.4375,-0.004 -0.957031,0 -1.453125,0.6875 -1.453125,1.26172 0.0039,0.72265 0.667968,1.20703 1.46875,1.20703 h 3.738281 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g clip-path="url(#carhartt-app-mono-dark-clip135)" clip-rule="nonzero">
+      <path d="m 67.679688,719.57422 h -0.964844 v -3.89844 h 0.964844 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <path d="m 68.125,716.60547 c 0.15625,-0.0469 0.390625,-0.30078 1.078125,-0.16797 0.441406,0.0859 0.710937,0.39844 0.679687,1.16016 -0.0078,0.21093 0.921876,0.13671 0.921876,-0.0234 0.0039,-0.6211 0.08203,-1.07031 -0.453126,-1.5625 -0.660156,-0.60547 -2.152343,-0.31641 -2.269531,-0.24219 -0.242187,0.15625 -0.113281,0.88281 0.04297,0.83594" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <g clip-path="url(#carhartt-app-mono-dark-clip136)" clip-rule="nonzero">
+      <path d="m 82.9375,719.57422 h -0.964844 v -3.89844 H 82.9375 Z m 0,0" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <path d="m 83.382812,716.60547 c 0.152344,-0.0469 0.390626,-0.30078 1.078126,-0.16797 0.441406,0.0859 0.707031,0.39844 0.679687,1.16016 -0.0078,0.21093 0.921875,0.13671 0.921875,-0.0234 0.0039,-0.6211 0.08203,-1.07031 -0.453125,-1.5625 -0.660156,-0.60547 -2.152344,-0.31641 -2.265625,-0.24219 -0.246094,0.15625 -0.117188,0.88281 0.03906,0.83594" fill="#000000" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    <g clip-path="url(#carhartt-app-mono-dark-clip137)" clip-rule="nonzero">
+      <path d="m 92.480469,719.16016 c 0,0.23828 0.191406,0.42968 0.429687,0.42968 0.238282,0 0.433594,-0.1914 0.433594,-0.42968 0,-0.23829 -0.195312,-0.4336 -0.433594,-0.4336 -0.238281,0 -0.429687,0.19531 -0.429687,0.4336 m 0.777343,0 c 0,0.19531 -0.15625,0.35156 -0.347656,0.35156 -0.191406,0 -0.34375,-0.15625 -0.34375,-0.35156 0,-0.19532 0.152344,-0.35157 0.34375,-0.35157 0.191406,0 0.347656,0.15625 0.347656,0.35157 m -0.511718,0.25 h 0.08203 v -0.21875 h 0.05859 l 0.144531,0.21875 H 93.125 l -0.144531,-0.21875 c 0.07422,-0.008 0.132812,-0.0469 0.132812,-0.14063 0,-0.0977 -0.05859,-0.14453 -0.175781,-0.14453 h -0.191406 z m 0.08203,-0.42969 h 0.113281 c 0.05469,0 0.08984,0.0195 0.08984,0.0664 0,0.0547 -0.03906,0.0742 -0.113281,0.0742 h -0.08984 z m 0,0" fill="#000000" fill-opacity="1" fill-rule="evenodd" stroke="none" />
+    </g>
+  </g>
+</g></svg></g></g></svg>

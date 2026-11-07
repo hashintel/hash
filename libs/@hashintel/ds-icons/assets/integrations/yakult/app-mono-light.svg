@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="yakult-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="yakult-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="yakult-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yakult-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yakult-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#yakult-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="yakult-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.287651564513 -0.967678264062 -0.097687878447 0 1.35301770702" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#yakult-app-mono-light-mono)"><defs><clipPath id="yakult-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#yakult-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="11.35483870967742" y="11.35483870967742" viewBox="-0.11815 -0.46199 267.20728 43.10698" xml:space="preserve" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516">
+<g id="yakult-app-mono-light-レイヤ_xFF0D__1">
+</g>
+<g id="yakult-app-mono-light-レイヤ_xFF0D__2">
+	<path fill="#E21530" d="M128.378,38.917l-10.224-11.745v11.745h-15.128V0h15.128v22.607l9.27-11.783h18.225l-11.501,14.621   l14.608,13.472H128.378z M213.614,0h-15.128v38.917h15.128V0z M250.448,27.264v2c0,1.855-1.685,3.356-3.761,3.356   c-2.078,0-3.763-1.501-3.763-3.356v-8.918h9.184v-9.534h-9.184V0h-14.731v10.812h-9.545v9.534h9.545v6.918   c0,7.692,5.805,14.919,17.698,14.919c11.893,0,21.08-7.228,21.08-14.919H250.448z M178.557,10.812v14.561   c0,2.646-3.605,5.893-8.052,5.893s-8.053-3.914-8.053-6.56V10.812H148.21v18.395c0,7.124,7.503,12.899,16.758,12.899   c5.599,0,10.545-2.122,13.588-5.369v2.231h14.731V10.812H178.557z M96.978,21.481v17.437H81.86v-1.132   c-3.364,2.494-8.073,4.237-13.32,4.237c-7.916,0-17.695-3.104-17.695-10.711c0-5.971,6.288-10.813,17.178-10.813   c6.65,0,10.996,0.426,13.832,1.285c-0.06-2.431-1.362-3.276-5.586-3.761c-4.038-0.465-5.642,0.625-6.495,1.73l-17.717-0.162   c0.06-4.412,3.877-10.001,22.458-10.001C93.248,9.588,96.978,17.054,96.978,21.481z M81.86,30.51v-0.114   c-0.1-1.294-3.505-2.332-7.698-2.332c-4.258,0-7.708,1.07-7.708,2.388c0,1.32,3.45,2.39,7.708,2.39   C78.356,32.843,81.76,31.804,81.86,30.51z M62.371,0H39.729l-8.68,11.97L22.64,0H0l22.701,26.516v12.401h16.372V26.51L62.371,0z" />
+</g>
+</svg></g></g></svg>

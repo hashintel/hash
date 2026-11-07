@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nissay-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="nissay-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nissay-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nissay-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nissay-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nissay-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="nissay-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nissay-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.83476 -0.65798 435.42207 435.54983" id="nissay-app-light-svg2" xml:space="preserve" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<defs><clipPath id="nissay-app-light-symbol-crop"><rect x="-0.66074" y="-0.76643" width="437.16947" height="446.5476659" /></clipPath></defs><g clip-path="url(#nissay-app-light-symbol-crop)"><defs id="nissay-app-light-defs4">
+	</defs>
+	<g id="nissay-app-light-g6">
+		<g id="nissay-app-light-g8">
+			<polygon points="218.756,0 109.11,109.152 263.781,172.291 327.414,109.152 218.756,0 " id="nissay-app-light-polygon10" fill="#FF0000" fill-rule="evenodd" />
+		</g>
+		<g id="nissay-app-light-g12">
+			<polygon points="109.11,109.152 109.11,324.52 1.429,217.323 109.11,109.152 " id="nissay-app-light-polygon14" fill="#FF0000" fill-rule="evenodd" />
+		</g>
+		<g id="nissay-app-light-g16">
+			<polygon points="217.773,434.155 327.414,325.006 173.233,261.865 109.601,325.006 217.773,434.155 " id="nissay-app-light-polygon18" fill="#FF0000" fill-rule="evenodd" />
+		</g>
+		<g id="nissay-app-light-g20">
+			<polygon points="327.414,325.006 327.414,109.642 435.586,216.834 327.414,325.006 " id="nissay-app-light-polygon22" fill="#FF0000" fill-rule="evenodd" />
+		</g>
+		<polygon points="15.663,560.893 15.663,518.305 64.612,563.827 64.612,485.022 47.968,485.022 47.968,525.163 0,480.127 0,560.893 15.663,560.893 " id="nissay-app-light-polygon24" fill="#424242" fill-rule="evenodd" />
+		<polygon points="100.341,560.893 116.004,560.893 116.004,485.022 100.341,485.022 100.341,560.893 " id="nissay-app-light-polygon26" fill="#424242" fill-rule="evenodd" />
+		<path d="M 188.935,502.153 L 188.935,486.491 C 188.935,486.491 168.867,475.233 155.162,488.938 C 155.162,488.938 145.371,495.788 149.777,511.456 C 149.777,511.456 151.245,519.776 167.399,527.61 C 167.399,527.61 183.062,532.989 176.697,543.27 C 176.697,543.27 167.887,557.461 150.268,540.331 L 150.268,556.977 C 150.268,556.977 167.399,568.721 182.573,558.446 C 182.573,558.446 195.3,551.591 194.809,536.415 C 194.809,536.415 195.299,521.245 174.74,513.903 C 174.74,513.903 158.098,507.54 166.421,498.243 C 166.421,498.243 174.251,489.43 188.935,502.153 L 188.935,502.153 z " id="nissay-app-light-path28" fill="#424242" fill-rule="evenodd" />
+		<path d="M 260.398,502.153 L 260.398,486.491 C 260.398,486.491 240.331,475.233 226.625,488.938 C 226.625,488.938 216.834,495.788 221.24,511.456 C 221.24,511.456 223.2,519.776 239.349,527.61 C 239.349,527.61 254.522,532.989 248.162,543.27 C 248.162,543.27 239.349,557.461 221.73,540.331 L 221.73,556.977 C 221.73,556.977 238.861,568.721 254.033,558.446 C 254.033,558.446 266.762,551.591 266.269,536.415 C 266.269,536.415 266.761,521.245 246.203,513.903 C 246.203,513.903 229.56,507.54 237.884,498.243 C 237.884,498.243 246.203,489.43 260.398,502.153 L 260.398,502.153 z " id="nissay-app-light-path30" fill="#424242" fill-rule="evenodd" />
+		<polygon points="282.424,560.893 317.174,481.104 351.928,560.893 333.819,560.893 317.666,517.813 300.535,560.893 282.424,560.893 " id="nissay-app-light-polygon32" fill="#424242" fill-rule="evenodd" />
+		<polygon points="355.355,485.022 373.465,485.022 388.637,509.495 402.344,485.022 420.455,485.022 396.471,525.163 396.471,560.893 379.828,560.893 379.828,525.163 355.355,485.022 " id="nissay-app-light-polygon34" fill="#424242" fill-rule="evenodd" />
+	</g>
+</g></svg></g></svg>

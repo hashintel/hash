@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mitti-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="mitti-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mitti-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitti-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitti-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mitti-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mitti-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234532362896 -0.788981871794 -0.0796483377287 0 1.10316257242" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mitti-app-mono-light-mono)"><defs><clipPath id="mitti-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mitti-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="8.65974 -0.1388 84.36109 76.60091" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs>
+<linearGradient id="mitti-app-mono-light-paint0_linear_3395_62777" x1="4.57764e-05" y1="69.1504" x2="193.019" y2="69.1504" gradientUnits="userSpaceOnUse">
+<stop stop-color="#4A42C8" />
+<stop offset="0.206731" stop-color="#425DC8" />
+<stop offset="0.475962" stop-color="#5ECEFA" />
+<stop offset="0.620192" stop-color="#86CCDD" />
+<stop offset="0.769231" stop-color="#FFE8B0" />
+<stop offset="1" stop-color="#FFC800" />
+</linearGradient>
+</defs>
+<path d="M89.7812 0.00289917H76.595C75.7275 0.00289917 74.9295 0.472871 74.5093 1.23249L61.9024 24.0055H61.9421L57.755 31.5691L55.5698 35.5163L50.8204 13.1366L49.9117 8.85711C49.8478 8.55468 49.7711 8.25935 49.6831 7.96828L48.4038 1.93958C48.1667 0.810796 47.1714 0.00289917 46.017 0.00289917H33.3605C31.1725 0.00289917 29.2997 1.57326 28.9177 3.72718L27.0251 14.3988L24.36 28.6243C24.2308 29.5274 22.6249 38.0664 19.541 54.2385C19.3692 55.1373 20.0635 55.9693 20.9779 55.9594L29.0072 55.9139C31.4635 55.8997 33.5919 54.203 34.1499 51.8105L40.5747 24.3264L43.5224 53.8154C43.6445 55.0336 44.6682 55.9622 45.8935 55.9622H53.4045C58.6807 55.9622 60.2397 51.041 60.7395 50.0783L74.0634 24.4812L72.4377 31.4569C71.8967 34.2256 71.042 38.5491 69.8706 44.4159C69.713 45.1997 69.554 46.0104 69.385 46.8496C69.1734 47.9145 68.9505 49.0248 68.7205 50.1791C68.5203 51.1773 68.1015 53.1679 67.8885 54.2328C67.7096 55.1273 68.3911 55.9608 69.3012 55.9608H79.0059C81.5773 55.9608 83.7809 54.1178 84.2367 51.5876L92.8736 3.69594C93.2173 1.76778 91.7378 0.00289917 89.7812 0.00289917Z" fill="#1C1714" />
+<path d="M191.484 61.9285L191.736 61.9257C192.596 61.9257 193.019 62.0989 193.019 62.867C193.019 65.3731 189.339 68.5365 178.785 69.1414L1.71218 76.3741C0.67853 76.4252 -0.143565 75.6869 0.0211376 74.8563C0.540804 72.2437 2.42921 67.0613 9.3013 63.9404C12.2688 62.593 15.631 61.9242 19.0301 61.9242L191.484 61.9271V61.9285ZM69.0374 61.9881C69.0445 61.9697 69.0431 61.9498 69.0459 61.9299C69.0417 61.9484 69.0431 61.9697 69.0374 61.9881Z" fill="url(#mitti-app-mono-light-paint0_linear_3395_62777)" transform="translate(8.8 0) scale(.389 1)" />
+</svg></g></g></svg>

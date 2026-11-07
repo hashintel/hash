@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ucb-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="ucb-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ucb-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ucb-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ucb-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ucb-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="ucb-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.296112570078 -0.996141628032 -0.100561277326 0 1.39281547544" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ucb-app-mono-dark-mono)"><defs><clipPath id="ucb-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ucb-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 32.9 32.9" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556"><path d="M19,0c7.1,1.1,12.8,6.8,13.9,13.9V0H19" fill="#0054A4" /><path d="M13.9,0H0v13.9C1.1,6.8,6.8,1.1,13.9,0" fill="#0054A4" /><path d="M0,19v13.9h13.9C6.8,31.8,1.1,26.2,0,19" fill="#0054A4" /><path d="M19,32.9h13.9V19C31.8,26.2,26.2,31.8,19,32.9" fill="#0054A4" /><polyline points="24.2,15.6 24.2,13.2 19,13.2 19,19.7 24.2,19.7 24.2,17.3 21.4,17.3 21.4,15.6 24.2,15.6 " fill="#0054A4" /><path d="M29.1,17.3h-1.8v-1.8h1.8V17.3z M31.3,13.2h-4V9.6h-2.4v10.1h6.4V13.2z" fill="#0054A4" /><polyline points="18.2,13.2 16.6,13.2 16.6,0 16.4,0 16.4,13.2 15.9,13.2 15.9,17.3 14.2,17.3 14.2,13.2 12,13.2   12,19.7 16.4,19.7 16.4,32.9 16.6,32.9 16.6,19.7 18.2,19.7 18.2,13.2 " fill="#0054A4" /></svg></g></g></svg>

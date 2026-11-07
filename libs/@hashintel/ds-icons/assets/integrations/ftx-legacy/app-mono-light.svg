@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ftx-legacy-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="ftx-legacy-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ftx-legacy-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ftx-legacy-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ftx-legacy-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ftx-legacy-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="ftx-legacy-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.228262764281 -0.767890540988 -0.0775191513693 0 1.07367245664" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="2.02381"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ftx-legacy-app-mono-light-mono)"><defs><clipPath id="ftx-legacy-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ftx-legacy-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.08219 -0.09857 51.08081 46.49922" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="ftx-legacy-app-mono-light-mark-crop"><rect x="0.0" y="0.0" width="50.9164178" height="46.302083" /></clipPath></defs><g clip-path="url(#ftx-legacy-app-mono-light-mark-crop)"><g transform="translate(188.64431,-115.48607) matrix(0.4160462,0,0,-0.41186696,-342.59264,291.23382) scale(0.1)">
+ <path d="m 5495.42,3841.6 v -154 h 309.06 v -153 h -309.06 v -240.1 h -198.05 v 700.2 h 549.12 v -153.1 h -351.07" fill="#131112" fill-rule="nonzero" stroke="none" />
+ <path d="m 6133.52,3837.6 h -215.05 v 157.1 h 627.13 v -157.1 h -214.04 v -543.1 h -198.04 v 543.1" fill="#131112" fill-rule="nonzero" stroke="none" />
+ <path d="m 7071.68,3294.5 -145.03,217.1 -143.03,-217.1 h -226.05 l 255.06,354.1 -244.05,346.1 h 223.04 l 140.04,-202.1 138.02,202.1 h 214.05 l -244.06,-338.1 260.06,-362.1 h -228.05" fill="#131112" fill-rule="nonzero" stroke="none" />
+ <path d="m 4067.87,3142.9 h 298.8 v 298.7 h -298.8 v -298.7" fill="#84D6D7" fill-rule="nonzero" stroke="none" />
+ <path d="m 4631.77,3854.5 h -563.9 v -298.8 h 563.9 v 0 h 102.55 v 298.7 h -102.55 v 0.1" fill="#33BBC7" fill-rule="nonzero" stroke="none" />
+ <path d="m 4067.87,4267.1 v -298.7 h 925.6 v 298.7 h -925.6" fill="#11A9BC" fill-rule="nonzero" stroke="none" />
+ <path d="m 3700.27,3555.7 h 298.7 v 298.8 h -298.7 v -298.8" fill="#33BBC7" fill-rule="nonzero" stroke="none" />
+</g>
+</g></svg></g></g></svg>

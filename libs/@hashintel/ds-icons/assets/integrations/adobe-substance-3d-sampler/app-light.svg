@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-substance-3d-sampler-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-substance-3d-sampler-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-substance-3d-sampler-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-sampler-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-sampler-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-substance-3d-sampler-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-substance-3d-sampler-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-substance-3d-sampler-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-substance-3d-sampler-app-light-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#1E3101" />
+<path id="adobe-substance-3d-sampler-app-light-Vector_2" d="M114.979 68.4943L114.814 97.3908C108.54 92.6024 95.9901 87.3184 80.634 87.3184C71.552 87.3184 67.9192 90.2907 67.9192 94.4188C67.9192 98.5466 70.7262 100.198 82.7804 103.666C114.484 112.913 122.575 123.811 122.575 140.488C122.575 162.45 104.412 175.99 76.0106 175.99C59.0024 175.99 46.1228 171.862 36.2154 166.082L36.3807 136.03C46.6186 143.956 61.6446 149.735 75.8453 149.735C84.9269 149.735 89.055 147.258 89.055 142.47C89.055 137.681 84.7616 135.369 73.0379 132.232C50.5809 125.957 34.7296 118.197 34.7296 96.5652C34.7296 75.5947 51.7368 61.0637 80.634 61.0637C94.0084 61.0637 107.219 63.5406 114.979 68.4943Z" fill="#99E83F" />
+<path id="adobe-substance-3d-sampler-app-light-Vector_3" d="M205.27 167.899C194.537 172.852 182.318 175.494 166.962 175.494C145.661 175.494 128.983 166.578 128.983 146.763C128.983 126.783 146.156 119.517 165.971 119.517C170.594 119.517 174.392 119.848 177.53 120.343V119.352C177.53 113.573 172.906 109.445 161.347 109.445C153.587 109.445 144.835 111.427 136.578 114.729L136.414 91.6116C145 88.309 154.743 86.1626 165.971 86.1626C191.07 86.1626 205.27 97.5561 205.27 122.82L205.27 167.899ZM177.53 139.167C175.548 138.507 172.906 138.011 169.108 138.011C161.678 138.011 156.394 140.158 156.394 146.102C156.394 152.046 161.512 154.854 168.778 154.854C172.411 154.854 175.218 154.358 177.53 153.368V139.167Z" fill="#99E83F" />
+<defs>
+<clipPath id="adobe-substance-3d-sampler-app-light-clip0_2136_9380">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

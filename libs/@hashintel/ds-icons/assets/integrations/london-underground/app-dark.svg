@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="london-underground-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="london-underground-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="london-underground-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#london-underground-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#london-underground-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#london-underground-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="london-underground-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#london-underground-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.09687 -0.09668 116.5638 94.74617" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+ <defs>
+  <clipPath id="london-underground-app-dark-clip-4">
+   <path d="m152 545.56h35v34.387h-35z" />
+  </clipPath>
+  <clipPath id="london-underground-app-dark-clip-5">
+   <path d="m148.2 559h42.801v8h-42.801z" />
+  </clipPath>
+ </defs>
+ <g transform="translate(-52.983 -65.307)">
+  <g transform="matrix(2.7497 0 0 2.7497 -354.52 -1434.8)" clip-path="url(#london-underground-app-dark-clip-4)">
+   <path d="m180.49 562.75c0 6.125-4.9727 11.094-11.098 11.094-6.1289 0-11.094-4.9688-11.094-11.094 0-6.1289 4.9648-11.094 11.094-11.094 6.125 0 11.098 4.9648 11.098 11.094m-11.098-17.195c-9.4961 0-17.195 7.6992-17.195 17.195 0 9.4961 7.6992 17.195 17.195 17.195 9.4961 0 17.191-7.6992 17.191-17.195 0-9.4961-7.6953-17.195-17.191-17.195" fill="#ee2622" />
+  </g>
+  <g transform="matrix(2.7497 0 0 2.7497 -354.52 -1434.8)" clip-path="url(#london-underground-app-dark-clip-5)">
+   <path d="m148.2 559.28h42.32v6.9531h-42.32z" fill="#263d96" />
+  </g>
+  <g fill="#fff" stroke-width="2.7497">
+   <path d="m66.581 116.1c-0.79483 0.98816-1.9978 1.6112-3.4586 1.6112-1.4715 0-2.653-0.6015-3.4801-1.6219-0.63369-0.78408-0.92371-1.6971-0.92371-3.029v-5.3812h1.9119v5.4027c0 1.6756 0.97743 2.7819 2.4812 2.7819 1.5467 0 2.4919-1.1063 2.4919-2.7819v-5.4027h1.9226v5.3276c0 1.3534-0.24693 2.2449-0.94521 3.0934" />
+   <path d="m76.173 117.52-5.2523-6.7883v6.7883h-1.9226v-9.8388h1.9226l5.2523 6.8206v-6.8206h1.9227v9.8388z" />
+   <path d="m82.36 117.52h-2.7497v-9.8388h3.3727c3.4049 0 5.2416 2.2341 5.2416 4.7905 0 2.6423-1.9334 5.0483-5.8646 5.0483m0.27927-8.1739h-1.1063v6.4446h0.94521c2.2878 0 3.7916-1.2782 3.7916-3.2438 0-1.9764-1.3749-3.2008-3.6305-3.2008" />
+   <path d="m89.417 117.52v-9.8388h6.1116v1.7078h-4.189v2.0516h3.4479v1.7293h-3.4479v2.5994h4.5542v1.7508z" />
+   <path d="m102.47 117.52-2.7175-3.9205h-0.89153v3.9205h-1.9119v-9.8388h3.1901c2.0193 0 3.3405 1.0526 3.3405 2.8678 0 1.2137-0.67655 2.1697-1.8582 2.5993l3.1041 4.3716zm-2.5134-8.1739h-1.0956v2.5778h0.92372c1.1171 0 1.7831-0.49409 1.7831-1.3534 0-0.7626-0.61265-1.2245-1.6112-1.2245" />
+   <path d="m109.97 117.71c-3.0826 0-5.349-2.159-5.349-5.1235 0-2.8894 2.2664-5.102 5.3276-5.102 1.1493 0 2.3093 0.30071 3.4264 0.87001v1.9978c-0.93447-0.6552-2.116-1.1171-3.2975-1.1171-2.1375 0-3.5123 1.536-3.5123 3.3942 0 1.8904 1.4071 3.3727 3.4586 3.3727 0.51599 0 0.99893-0.0538 1.5145-0.22549v-2.116h-1.6111v-1.6756h3.5338v4.6938c-1.1707 0.69814-2.2126 1.0311-3.4908 1.0311" />
+   <path d="m120.46 117.52-2.7175-3.9205h-0.88077v3.9205h-1.9226v-9.8388h3.19c2.0193 0 3.3512 1.0526 3.3512 2.8678 0 1.2137-0.67655 2.1697-1.8582 2.5993l3.0934 4.3716zm-2.5134-8.1739h-1.0849v2.5778h0.91304c1.117 0 1.783-0.49409 1.783-1.3534 0-0.7626-0.60173-1.2245-1.6111-1.2245" />
+   <path d="m127.78 117.71c-2.8356 0-5.1665-2.1375-5.1665-5.1235 0-2.9645 2.3523-5.102 5.1665-5.102 2.8141 0 5.1665 2.1375 5.1665 5.1127s-2.3524 5.1127-5.1665 5.1127m0-8.335c-1.8474 0-3.2223 1.3963-3.2223 3.2223s1.3749 3.2223 3.2223 3.2223 3.2223-1.3964 3.2223-3.2223-1.3749-3.2223-3.2223-3.2223" />
+   <path d="m141.97 116.1c-0.80563 0.98816-1.9979 1.6112-3.4586 1.6112-1.4715 0-2.6531-0.6015-3.4801-1.6219-0.63369-0.78408-0.9344-1.6971-0.9344-3.029v-5.3812h1.9226v5.4027c0 1.6756 0.9775 2.7819 2.4812 2.7819 1.5467 0 2.492-1.1063 2.492-2.7819v-5.4027h1.9119v5.3276c0 1.3534-0.24709 2.2449-0.93448 3.0934" />
+   <path d="m151.56 117.52-5.2524-6.7883v6.7883h-1.9226v-9.8388h1.9226l5.2524 6.8206v-6.8206h1.9226v9.8388z" />
+   <path d="m157.75 117.52h-2.7496v-9.8388h3.3619c3.4157 0 5.2417 2.2341 5.2417 4.7905 0 2.6423-1.9334 5.0483-5.8539 5.0483m0.27904-8.1739h-1.1063v6.4446h0.94515c2.2879 0 3.7916-1.2782 3.7916-3.2438 0-1.9764-1.3749-3.2008-3.6305-3.2008" />
+  </g>
+ </g>
+</svg></g></svg>

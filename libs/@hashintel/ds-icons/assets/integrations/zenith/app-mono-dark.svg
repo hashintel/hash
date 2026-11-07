@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zenith-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="zenith-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zenith-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zenith-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zenith-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zenith-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="zenith-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#zenith-app-mono-dark-mono)"><defs><clipPath id="zenith-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zenith-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="38.75143 0 12.49714 10" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="zenith-app-mono-dark-identity-part"><rect x="0" y="0" width="90" height="10" /></clipPath></defs><g clip-path="url(#zenith-app-mono-dark-identity-part)"><g id="zenith-app-mono-dark-Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <g transform="translate(-1.000000, -3.000000)" fill="#000000">
+      <path d="M35.3456113,17.6121725 L48.0096931,29.8676122 L48.0096931,17.9075581 L50.8648318,17.9014361 L50.8648318,36.4602199 L38.2007499,24.2170242 L38.2007499,36.1701911 L35.3456113,36.1640691 L35.3456113,17.6121725 Z M32.1985307,17.9053389 L32.1985307,20.4895799 L22.7477234,20.4895799 L22.7331837,25.7070377 L30.7705788,25.7070377 L30.7705788,28.2912787 L22.7331837,28.2912787 L22.7331837,33.5829656 L32.1985307,33.5829656 L32.1985307,36.1679718 L19.8788103,36.1679718 L19.8788103,17.9053389 L32.1985307,17.9053389 Z M56.867051,17.9042675 L56.867051,36.1669005 L54.0119124,36.1669005 L54.0119124,17.9042675 L56.867051,17.9042675 Z M72.3345407,17.9042675 L72.3345407,20.4885085 L67.6144938,20.4885085 L67.6144938,36.1669005 L64.734102,36.1669005 L64.734102,20.4885085 L60.014055,20.4885085 L60.014055,17.9042675 L72.3345407,17.9042675 Z M78.3366834,17.9046502 L78.3366834,25.7071143 L88.1456266,25.7071143 L88.1456266,17.9046502 L91,17.9046502 L91,36.1665179 L88.1456266,36.1665179 L88.1456266,28.2913553 L78.3366834,28.2913553 L78.3366834,36.1665179 L75.4815448,36.1665179 L75.4815448,17.9046502 L78.3366834,17.9046502 Z M16.8398592,17.9032727 L6.23199755,33.5839604 L16.7304288,33.5839604 L16.7304288,36.1651404 L1,36.1651404 L11.6078616,20.4844527 L2.49605898,20.4844527 L2.49605898,17.9032727 L16.8398592,17.9032727 Z M46.0006122,3 L47.459174,7.49047267 L52.1807515,7.49047267 L48.3606357,10.2652603 L49.8199628,14.755733 L46.0006122,11.9801801 L42.1804964,14.755733 L43.6398235,10.2652603 L39.8204729,7.49047267 L44.5412851,7.49047267 L46.0006122,3 Z" id="zenith-app-mono-dark-Combined-Shape" />
+    </g>
+  </g>
+</g></svg></g></g></svg>

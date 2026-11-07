@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="yves-saint-laurent-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="yves-saint-laurent-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="yves-saint-laurent-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yves-saint-laurent-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yves-saint-laurent-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#yves-saint-laurent-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="yves-saint-laurent-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#yves-saint-laurent-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="yves-saint-laurent-app-light-Layer_1" viewBox="0 0 183.81 18" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M9.35,8C5,6.86,4.24,6.69,4.24,5.38s1.4-1.95,2.59-1.95c1.8,0,3.27.53,3.4,2.59h3.66c0-4-3.3-5.53-6.89-5.53C3.89.49.58,2.18.58,5.69c0,3.23,2.58,4.21,5.13,4.89s5.1,1,5.1,2.84-2,2.14-3.34,2.14c-2,0-3.81-.89-3.81-3.18H0c-.06,4.22,3.52,6.11,7.31,6.11,4.67,0,7.14-2.36,7.14-5.52C14.45,9.08,10.61,8.29,9.35,8Z" transform="translate(0 -0.49)" /><path d="M32.47.89h3.77v17.2H32.47Z" transform="translate(0 -0.49)" /><path d="M50.05,12.42h0L42.83.89H39.08V18.07h3.53V6.57h.06l7.15,11.5h3.77v-14h5v14h3.78v-14h5.16V.89H50.05Z" transform="translate(0 -0.49)" /><path d="M20.91.89,14.38,18.07h3.84l1.34-3.83H26l1.3,3.83H31.2L24.79.89Zm-.36,10.54,2.23-6.31h.06L25,11.43Z" transform="translate(0 -0.49)" /><path d="M144,10.69h8.33V7.75H144V4.06H153V.89H140.19V18.07h13V14.9H144Z" transform="translate(0 -0.49)" /><path d="M166.38.89V12.42h0L159.16.89h-3.74V18.07H159V6.57H159l7.14,11.5h3.78v-14h5v14h3.77v-14h5.15V.89Z" transform="translate(0 -0.49)" /><path d="M134.74,10V9.94a4.23,4.23,0,0,0,2.72-4.31,4.72,4.72,0,0,0-5-4.74h-9.26V18.07h3.77V11.36h3.78c1.9,0,2.59.79,2.87,2.59a18.14,18.14,0,0,0,.6,4.12H138c-.68-1-.65-3-.72-4.06C137.13,12.28,136.6,10.48,134.74,10Zm-3.65-1.33H127V3.83h4.13c1.69,0,2.6.72,2.6,2.38S132.76,8.66,131.09,8.66Z" transform="translate(0 -0.49)" /><path d="M116.62,11.57c0,2.55-.86,3.73-3.55,3.73-3.06,0-3.53-1.85-3.53-3.73V.89h-3.78V11.57c0,4.67,2.69,6.9,7.32,6.9s7.33-2.26,7.33-6.9V.89h-3.77V11.57Z" transform="translate(0 -0.49)" /><path d="M94.87.89,88.34,18.07h3.83l1.34-3.83h6.43l1.29,3.83h3.92L98.74.89ZM94.5,11.43l2.24-6.31h.06L99,11.43Z" transform="translate(0 -0.49)" /><path d="M79,.89H75.18V18.07H87.33V14.9H79Z" transform="translate(0 -0.49)" /></svg></g></svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aig-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="aig-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="aig-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aig-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aig-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#aig-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="aig-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.271467586431 -0.913234326506 -0.0921917203212 0 1.27689363326" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#aig-app-mono-dark-mono)"><defs><clipPath id="aig-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#aig-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1.10231 0.73223 939.66916 476.29577" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<g id="aig-app-mono-dark-transparent" fill="#111111">
+</g>
+<g id="aig-app-mono-dark-navyblue" fill="#111111">
+<path fill="#233776" opacity="1.00" d=" M 2.39 2.04 C 188.93 1.80 375.47 2.00 562.00 1.94 C 667.67 1.94 773.33 1.93 879.00 1.94 C 879.00 159.96 879.00 317.98 879.00 476.00 C 586.80 475.98 294.61 476.04 2.42 475.97 C 2.43 317.99 2.47 160.01 2.39 2.04 M 39.00 38.50 C 39.00 172.08 39.00 305.66 39.00 439.24 C 306.75 439.25 574.49 439.25 842.24 439.24 C 842.25 305.66 842.25 172.08 842.24 38.51 C 574.50 38.49 306.75 38.50 39.00 38.50 Z" />
+<path fill="#233776" opacity="1.00" d=" M 617.04 102.00 C 641.93 98.55 667.87 101.10 691.15 110.82 C 713.47 120.09 731.67 136.78 747.65 154.53 C 738.13 163.89 728.35 172.98 718.80 182.31 C 707.61 167.42 693.54 154.23 676.41 146.51 C 658.53 138.24 638.04 136.81 618.81 140.40 C 584.45 146.58 555.05 173.34 544.48 206.43 C 539.14 223.66 538.36 242.21 541.55 259.92 C 544.86 277.55 553.45 294.13 566.01 306.94 C 579.54 320.87 596.49 332.01 615.51 336.63 C 632.47 340.71 650.82 339.81 666.96 332.96 C 680.23 327.34 691.92 318.20 700.97 307.01 C 709.13 296.82 714.21 284.27 715.57 271.29 C 693.46 271.16 671.34 271.34 649.23 271.20 C 649.27 258.55 649.23 245.90 649.25 233.25 C 686.00 233.23 722.74 233.26 759.49 233.24 C 759.62 252.21 758.79 271.41 753.91 289.84 C 749.24 308.36 738.92 325.11 725.85 338.90 C 713.93 351.48 699.44 361.75 683.31 368.18 C 663.60 376.15 641.90 378.29 620.84 376.43 C 599.27 374.54 578.22 367.06 560.38 354.78 C 532.44 335.51 510.65 306.44 502.89 273.14 C 497.33 249.22 497.74 223.88 504.23 200.19 C 513.07 168.17 534.97 140.64 562.42 122.37 C 578.74 111.50 597.63 104.63 617.04 102.00 Z" />
+<path fill="#233776" opacity="1.00" d=" M 97.83 372.00 C 139.13 283.23 180.40 194.45 221.79 105.73 C 226.97 105.77 232.15 105.76 237.33 105.73 C 277.25 194.46 317.05 283.24 356.91 372.00 C 342.08 371.91 327.24 372.19 312.41 371.86 C 303.39 350.32 293.92 328.97 284.73 307.50 C 246.84 307.50 208.96 307.51 171.08 307.50 C 161.22 328.94 151.30 350.35 141.59 371.85 C 127.01 372.19 112.42 371.91 97.83 372.00 M 228.78 179.88 C 215.26 209.81 201.41 239.58 187.94 269.52 C 211.99 269.47 236.03 269.52 260.08 269.50 C 262.81 269.45 265.56 269.69 268.27 269.28 C 255.21 239.96 242.60 210.42 229.62 181.06 C 229.41 180.77 228.99 180.18 228.78 179.88 Z" />
+<path fill="#233776" opacity="1.00" d=" M 398.48 371.97 C 398.54 283.23 398.45 194.48 398.53 105.74 C 411.94 105.77 425.35 105.73 438.76 105.76 C 438.75 194.51 438.75 283.25 438.76 371.99 C 425.33 371.99 411.91 372.03 398.48 371.97 Z" />
+<path fill="#233776" opacity="1.00" d=" M 915.48 438.65 C 922.05 436.76 929.55 438.72 934.30 443.66 C 941.31 450.77 941.03 463.82 933.45 470.43 C 927.43 476.23 917.41 476.87 910.44 472.42 C 904.90 469.02 901.53 462.46 901.96 455.97 C 901.85 447.99 907.84 440.64 915.48 438.65 M 916.39 441.59 C 907.48 443.92 902.99 454.95 906.80 463.11 C 909.54 470.06 917.85 474.07 924.99 471.76 C 933.97 469.25 938.38 457.89 934.28 449.72 C 931.40 443.05 923.29 439.38 916.39 441.59 Z" />
+<path fill="#233776" opacity="1.00" d=" M 913.24 445.76 C 917.67 446.06 922.35 444.99 926.61 446.53 C 931.69 449.04 929.96 458.00 924.07 458.15 C 926.12 461.25 928.16 464.37 930.14 467.54 C 929.11 467.51 927.07 467.46 926.05 467.44 C 924.27 464.63 922.55 461.79 920.71 459.03 C 919.99 457.70 918.18 458.45 917.02 458.18 C 916.99 461.29 916.98 464.39 917.00 467.51 C 915.73 467.49 914.48 467.48 913.24 467.49 C 913.25 460.24 913.24 453.00 913.24 445.76 M 917.00 448.76 C 916.99 450.92 916.99 453.07 917.00 455.24 C 919.32 455.18 921.71 455.52 923.99 454.89 C 926.57 454.16 926.62 449.79 923.98 449.09 C 921.71 448.45 919.32 448.83 917.00 448.76 Z" />
+</g>
+</svg></g></g></svg>

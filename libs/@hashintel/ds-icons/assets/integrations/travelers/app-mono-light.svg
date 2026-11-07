@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="travelers-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="travelers-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="travelers-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#travelers-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#travelers-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#travelers-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="travelers-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.28788"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#travelers-app-mono-light-mono)"><defs><clipPath id="travelers-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#travelers-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="travelers-app-mono-light-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="189.93179 4.66092 55.16402 48.5174" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="travelers-app-mono-light-symbol-crop"><rect x="187.5" y="0.0" width="62.5" height="58.0" /></clipPath></defs><g clip-path="url(#travelers-app-mono-light-symbol-crop)"><g fill="#111111">
+	<path fill-rule="evenodd" clip-rule="evenodd" fill="#E31B23" d="M190.294,22.89c-0.023,0.017-0.056,0.028-0.093,0.028   c-0.089,0-0.164-0.078-0.164-0.168c0-0.028,0.005-0.052,0.014-0.073l0.01-0.012c4.63-10.563,15.186-17.94,27.458-17.94   c12.276,0,22.832,7.382,27.463,17.955l0.004,0.009c0.01,0.021,0.015,0.044,0.015,0.07c0,0.091-0.075,0.166-0.169,0.166   c-0.027,0-0.056-0.009-0.079-0.021l-0.019-0.009c-2.133-1.253-5.098-2.028-8.386-2.028c-3.793,0-7.165,1.036-9.307,2.643   l-0.01,0.007c-0.028,0.021-0.065,0.037-0.103,0.037c-0.038,0-0.075-0.016-0.104-0.035l-0.009-0.009   c-2.143-1.606-5.515-2.643-9.313-2.643c-3.793,0-7.164,1.036-9.307,2.643l-0.009,0.007c-0.028,0.021-0.066,0.037-0.104,0.037   s-0.065-0.014-0.094-0.03l-0.019-0.012c-2.137-1.606-5.514-2.645-9.312-2.645c-3.27,0-6.22,0.767-8.349,2.009L190.294,22.89z" />
+	<path fill-rule="evenodd" clip-rule="evenodd" fill="#E31B23" d="M219.066,23.119v-0.028c0-0.073-0.056-0.133-0.131-0.14h-0.005   c-0.477-0.059-0.973-0.089-1.473-0.089c-0.431,0-0.847,0.021-1.249,0.061l-0.014,0.002c-0.07,0.007-0.122,0.068-0.122,0.143   l-0.005,0.007l0.005,24.483c0,1.394-1.137,2.528-2.53,2.528c-1.099,0-2.034-0.706-2.381-1.684l-0.004-0.005   c-0.201-0.594-0.758-1.024-1.422-1.024c-0.828,0-1.497,0.671-1.497,1.494c0,0.141,0.019,0.278,0.057,0.407l0.004,0.012   c0.726,2.2,2.802,3.795,5.243,3.795c3.045,0,5.523-2.477,5.523-5.523V23.119z" />
+	<polygon points="73.542,26.178 78.813,26.178 82.459,45.762 90.166,26.178 95.259,26.178 84.125,53.123 78.961,53.123  " />
+	<polygon points="99.842,26.178 115.641,26.178 115.145,30.646 104.442,30.646 103.74,37.019 112.423,37.019 111.92,41.543    103.247,41.543 102.473,48.493 113.527,48.493 113.042,52.976 96.889,52.976  " />
+	<polygon points="141.416,26.178 157.215,26.178 156.724,30.646 146.019,30.646 145.313,37.019 153.992,37.019 153.496,41.543    144.821,41.543 144.049,48.493 155.101,48.493 154.619,52.976 138.47,52.976  " />
+	</g>
+</g></svg></g></g></svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bolt-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="bolt-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bolt-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bolt-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bolt-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bolt-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bolt-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bolt-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.48 52.7334 31.093333" fill="#34D186" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M42.2723 0.564453L36.8174 1.72084V23.7622H42.2723V0.564453Z" fill="#34D186" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.7372 18.3074C25.2304 18.3074 24.0039 17.0809 24.0039 15.5741C24.0039 14.0673 25.2304 12.8408 26.7372 12.8408C28.244 12.8408 29.4705 14.0673 29.4705 15.5741C29.4705 17.0809 28.244 18.3074 26.7372 18.3074ZM26.7372 7.15234C22.0883 7.15234 18.3154 10.9252 18.3154 15.5741C18.3154 20.223 22.0883 23.9959 26.7372 23.9959C31.3861 23.9959 35.1589 20.223 35.1589 15.5741C35.1589 10.9252 31.3861 7.15234 26.7372 7.15234Z" fill="#34D186" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M26.7372 25.9697C28.244 25.9697 29.4705 27.1962 29.4705 28.703C29.4705 30.2098 28.244 31.4363 26.7372 31.4363C25.2304 31.4363 24.0039 30.2098 24.0039 28.703C24.0039 27.1845 25.2304 25.9697 26.7372 25.9697Z" fill="#34D186" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M9.56646 18.3074H5.46655V14.8966H9.56646C10.5126 14.92 11.2485 15.7026 11.2251 16.6487C11.2018 17.5481 10.4659 18.284 9.56646 18.3074ZM5.46655 6.031H8.50352C9.44965 6.05436 10.1855 6.83697 10.1622 7.7831C10.1388 8.69419 9.40293 9.41839 8.50352 9.44176H5.46655V6.031ZM14.5891 11.4976C16.6683 8.13352 15.6287 3.71823 12.253 1.63907C11.12 0.938234 9.82343 0.576134 8.49184 0.564453H0V23.7622H9.55478C13.5145 23.7622 16.715 20.5501 16.715 16.5903C16.715 14.6864 15.9558 12.8525 14.5891 11.4976Z" fill="#34D186" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M52.5983 12.9227V7.46785H49.865V3.29785L44.4102 4.45424V18.5762C44.4102 21.9051 46.4776 23.8208 49.5263 23.9843C49.5613 23.9843 49.5964 23.996 49.6197 23.996H49.6781C49.7482 23.996 49.8066 24.0077 49.8767 24.0077H49.9468C50.8812 24.0077 51.7923 23.774 52.61 23.3302V19.3004C52.2128 19.4055 51.804 19.4639 51.3952 19.4639C50.3089 19.4639 49.8884 18.5061 49.8884 17.2095V12.9227H52.5983Z" fill="#34D186" />
+</svg></g></svg>

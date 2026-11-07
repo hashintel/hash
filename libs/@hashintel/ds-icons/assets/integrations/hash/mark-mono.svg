@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="hash-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290647366305 -0.977756332931 -0.0987052673904 0 1.36710896663" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.0945"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hash-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21.6653 22" fill="none" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    <linearGradient id="hash-mark-mono-hash-logo-blue-gradient" x1="0" y1="22" x2="22" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0046FF" />
+      <stop offset="1" stop-color="#00BBFF" />
+    </linearGradient>
+  </defs>
+  <g>
+    <path opacity="0.886277" d="M12.1469 22H18.1792V0H12.1469V22Z" fill="url(#hash-mark-mono-hash-logo-blue-gradient)" />
+    <path opacity="0.898345" d="M3.48596 22H9.51789V0H3.48596V22Z" fill="url(#hash-mark-mono-hash-logo-blue-gradient)" />
+    <path opacity="0.881278" d="M0 9.42936H21.6653V3.30377H0V9.42936Z" fill="url(#hash-mark-mono-hash-logo-blue-gradient)" />
+    <path opacity="0.855632" d="M0 18.3815H21.6653V12.2563H0V18.3815Z" fill="url(#hash-mark-mono-hash-logo-blue-gradient)" />
+  </g>
+</svg></g></svg>

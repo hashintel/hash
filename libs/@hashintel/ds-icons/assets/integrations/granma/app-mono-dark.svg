@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="granma-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="granma-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="granma-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#granma-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#granma-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#granma-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="granma-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289091903848 -0.972523657725 -0.0981770247312 0 1.3597925863" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#granma-app-mono-dark-mono)"><defs><clipPath id="granma-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#granma-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.15497 -0.06583 93.1008 96.2208" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,96.000000) scale(0.100000,-0.100000)" fill="#d61c1b" stroke="none">
+<path d="M470 945 c-14 -7 -50 -20 -80 -30 -148 -47 -298 -199 -350 -356 -12 -35 -26 -68 -31 -73 -15 -16 -11 -220 5 -253 7 -15 22 -46 32 -68 17 -35 72 -96 133 -147 14 -12 38 -18 75 -18 45 0 64 6 99 30 25 17 49 30 53 30 20 1 74 59 102 110 16 30 51 90 76 133 25 43 46 84 46 92 0 8 -21 30 -47 50 l-47 36 -120 -3 c-82 -2 -121 -7 -121 -14 0 -7 25 -33 56 -58 44 -36 64 -46 93 -46 20 0 36 -5 36 -10 0 -6 -35 -53 -77 -105 -51 -62 -85 -95 -98 -95 -25 0 -67 38 -103 93 -24 38 -27 51 -27 132 0 83 3 96 34 160 47 95 143 192 235 234 70 33 214 64 270 59 42 -4 44 -27 7 -88 -17 -28 -31 -57 -31 -64 0 -8 19 -29 41 -47 l42 -33 21 26 c75 89 131 160 134 168 3 7 -47 52 -166 151 -19 16 -38 19 -145 18 -78 -1 -131 -5 -147 -14z" />
+</g>
+</svg></g></g></svg>

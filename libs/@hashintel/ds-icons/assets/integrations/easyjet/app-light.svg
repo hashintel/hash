@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="easyjet-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="easyjet-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="easyjet-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#easyjet-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#easyjet-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#easyjet-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="easyjet-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#easyjet-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#ff6601" d="M0 0H24V24H0Z" /><path fill="#ffffff" d="M12.451 3.733C16.884 3.733 19.868 6.611 19.868 10.193 19.868 11.866 19.366 12.454 18.214 12.454H11.535C10.885 12.454 10.619 12.511 10.619 12.864 10.619 14.186 12.214 15.8 14.313 15.8 16.204 15.8 17.356 14.509 18.125 14.509 18.804 14.509 19.366 15.125 19.366 16.035 19.366 16.769 18.746 17.708 17.504 18.53 15.997 19.528 14.254 20.062 12.303 20.062 7.427 20.062 4 16.504 4 11.984A8.13 8.13 0 0 1 5.537 7.257C7.132 5.025 9.702 3.733 12.451 3.733M12.451 6.611C11.446 6.611 10.531 7.521 10.531 8.695 10.531 9.458 10.796 9.517 11.624 9.517H12.387C13.937 9.516 14.165 9.471 14.165 8.49 14.165 7.345 13.426 6.611 12.451 6.611" /></svg></g></svg>

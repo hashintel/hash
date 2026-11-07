@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lowes-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lowes-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lowes-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lowes-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lowes-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lowes-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lowes-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lowes-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.95048 0.89983 89.33905 41.17035" fill="#5CAFFF" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="m155.876 378.285-23.048 9.873h-14.376v4.027h-7.201v27.07h89.24v-27.07h-7.198v-4.027h-14.37z" transform="translate(-110.251 -377.285)" fill="#5CAFFF" fill-opacity="1" fill-rule="nonzero" stroke="none" /><path d="M177.157 395.357v4.377l2.83.005.59-4.38zm15.308 3.793c.183 0 .348-.014.348-.237 0-.175-.163-.207-.313-.207h-.295v.443zm-.26.802h-.216v-1.43h.545c.336 0 .504.125.504.407 0 .257-.159.368-.369.394l.406.629h-.242l-.378-.62h-.25zm.263.32c.561 0 1.004-.439 1.004-1.038 0-.587-.443-1.03-1.004-1.03-.569 0-1.011.443-1.011 1.03 0 .599.442 1.038 1.011 1.038m-1.261-1.038c0-.712.577-1.237 1.261-1.237.676 0 1.255.525 1.255 1.237 0 .718-.579 1.245-1.255 1.245-.684 0-1.261-.527-1.261-1.245m-65.721 11.036v-14.913h-4.079v18.465h10.39v-3.551zm41.061 3.552h9.709v-3.556h-5.61v-2.317h5.61v-3.424h-5.61v-2.33h5.61v-3.571h-9.71zm-25.426-11.627h-3.588v8.057h3.588zm4.086 9.687a1.94 1.94 0 0 1-1.941 1.94h-7.879c-1.071 0-1.94-.87-1.94-1.94v-11.317a1.94 1.94 0 0 1 1.94-1.941h7.879a1.94 1.94 0 0 1 1.941 1.941zm14.922-13.258v11.647h-2.463v-11.647h-3.587v11.647h-2.463v-11.647h-4.086v13.257c0 1.072.869 1.942 1.941 1.942h4.83c.814 0 1.572-.562 1.572-1.376 0 .814.757 1.376 1.571 1.376h4.831c1.071 0 1.94-.87 1.94-1.942v-13.257zm30.45 9.456h.001l-.025-.052-.048-.097-.025-.05c-.647-1.296-2.094-2.378-4.424-3.31l-.083-.032c-.46-.181-1.865-.73-2.02-1.623-.043-.25.058-.642.337-.88.293-.3.743-.453 1.337-.453.95 0 2.03.388 2.59.62 1.179.488 2.213.925 2.223.93l.102.043v-3.317l-.034-.021c-.022-.015-2.25-1.42-4.502-1.743a9 9 0 0 0-.761-.032c-2.073 0-3.643.752-4.665 2.237-.86 1.22-.954 3.151-.224 4.593.939 1.628 2.444 2.308 3.9 2.967.6.27 1.221.553 1.802.898l.006.004c.658.395.993.998.854 1.535-.144.556-.78.93-1.584.93q-.165.001-.33-.022l-.038-.005c-1.547-.215-4.682-1.382-4.713-1.395l-.1-.037v3.637l.051.018c.03.01 3.064 1.015 5.758 1.015 1.47 0 2.58-.296 3.298-.879.018-.012 1.664-1.336 1.737-3.587.02-.623-.122-1.26-.42-1.893" transform="translate(-110.251 -377.285)" fill="#fff" fill-opacity="1" fill-rule="nonzero" stroke="none" /></svg></g></svg>

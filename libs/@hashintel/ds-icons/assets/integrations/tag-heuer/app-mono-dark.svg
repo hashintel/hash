@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tag-heuer-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="tag-heuer-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tag-heuer-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tag-heuer-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tag-heuer-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tag-heuer-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="tag-heuer-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#tag-heuer-app-mono-dark-mono)"><defs><clipPath id="tag-heuer-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tag-heuer-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" viewBox="0 0 160.8594 139.14868" id="tag-heuer-app-mono-dark-svg39699" ns1:docname="Tag Heuer logo.svg" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <g id="tag-heuer-app-mono-dark-surface42898" transform="translate(-436.73889,-307.10097)">
+    <path d="m 436.73889,400.09977 v -92.9828 l 160.8594,-0.016 v 93.01796 l -80.42084,46.13072 z m 0,0" id="tag-heuer-app-mono-dark-path39462" fill="#000000" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 440.96141,311.19869 h -0.1588 v 86.52592 l 76.30392,43.86116 0.032,0.032 h 0.1056 l 76.18084,-43.86112 0.0696,-0.032 v -86.49072 z m 0,0" id="tag-heuer-app-mono-dark-path39464" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+    <path d="m 445.04317,315.28041 v 46.83452 h 144.23328 v -46.85208 z m 0,0" id="tag-heuer-app-mono-dark-path39466" fill="#008c5c" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 445.04317,366.21425 v 29.1 l 72.13428,41.4508 72.099,-41.4156 v -29.1352 z m 0,0" id="tag-heuer-app-mono-dark-path39468" fill="#eb192e" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 480.23057,356.60809 v -28.27308 h 14.97228 v -7.53012 h -40.57112 v 7.53012 h 14.97228 v 28.27308 z m 0,0" id="tag-heuer-app-mono-dark-path39470" fill="#ffffff" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 577.92849,355.93953 c -8.14584,1.5834 -18.63172,2.04088 -26.19704,-0.95008 -6.47448,-2.44552 -10.45064,-8.25148 -11.27752,-13.93424 -0.86212,-6.96712 2.1816,-13.08972 8.69124,-17.189 7.56532,-4.66236 19.59944,-4.504 27.85088,-1.2668 v 7.79404 c -6.24576,-2.48068 -15.6408,-4.60956 -21.64028,-0.6862 -4.31044,2.83264 -5.62996,7.33664 -4.5568,11.85824 0.86212,3.53632 4.41604,6.75596 8.35704,7.91716 2.7974,0.77408 6.24576,1.0204 9.35988,0.68612 v -5.78828 l -4.11696,0.016 v -6.96704 h 13.52956 z m 0,0" id="tag-heuer-app-mono-dark-path39472" fill="#ffffff" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 514.81985,329.68973 -6.45688,12.59708 h 12.47396 z m -9.37744,19.88088 -3.57156,7.03748 h -10.83772 l 17.59372,-35.8032 h 12.13964 l 17.92804,35.8032 h -10.87292 l -3.74744,-7.03748 z m 0,0" id="tag-heuer-app-mono-dark-path39474" fill="#ffffff" fill-opacity="1" fill-rule="evenodd" stroke="none" stroke-width="0.99999994" />
+    <path d="m 528.94761,422.81325 v -51.0218 l -0.2644,-0.2644 h -5.20772 l -0.2644,0.2644 v 47.90768 l -6.0346,3.29004 -6.05228,-3.29004 v -47.90768 l -0.2644,-0.2644 h -5.20772 l -0.1768,0.07 -0.0876,0.1936 v 51.02176 l 0.1404,0.2284 11.50632,6.6152 h 0.2812 l 11.48868,-6.6152 z m 0,0" id="tag-heuer-app-mono-dark-path39476" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+    <path d="m 496.96225,418.13333 h 0.2464 l 0.1404,-0.2284 v -5.52444 l -0.1404,-0.2464 -11.03124,-6.01696 v -13.35372 l 9.90524,2.53352 0.1936,-0.2644 v -5.45408 l -0.2464,-0.2644 -9.85252,-2.18164 v -10.60904 h 10.90812 l 0.2644,-0.2644 v -4.46852 l -0.2644,-0.2644 h -16.18624 l -0.2644,0.2644 v 36.77088 l 0.1224,0.2464 z m 0,0" id="tag-heuer-app-mono-dark-path39478" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+    <path d="m 554.82793,407.92893 v -4.979 l -0.1404,-0.2284 -0.2464,-0.016 -10.83776,5.91148 v -14.69072 l 10.09876,-2.56872 0.1936,-0.2644 v -4.87348 l -0.1056,-0.2116 -0.1588,-0.0708 -10.0284,2.19924 v -11.61188 h 10.94324 l 0.2644,-0.2644 v -4.46884 l -0.2644,-0.2644 h -16.1686 l -0.2644,0.2644 v 45.44464 l 0.1232,0.2464 h 0.2812 l 16.1686,-9.32472 z m 0,0" id="tag-heuer-app-mono-dark-path39480" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+    <path d="m 466.98253,400.90905 4.46876,2.58632 h 0.2812 l 0.1228,-0.2284 v -31.47512 l -0.2644,-0.2812 h -4.4688 l -0.2644,0.2812 v 11.084 l -10.76728,-2.35756 v -8.72644 l -0.2644,-0.2812 h -4.43364 l -0.1756,0.0876 -0.0876,0.1936 v 19.89848 l 0.1404,0.2284 4.41596,2.51596 h 0.2644 l 0.1404,-0.2284 v -9.1312 l 10.76736,2.74472 v 12.86096 z m 0,0" id="tag-heuer-app-mono-dark-path39482" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+    <path d="m 568.21677,376.52417 h 9.39508 c 0.40468,0 0.73892,0.352 0.73892,0.77412 v 2.37512 c 0,0.54548 -0.0876,0.82692 -0.80932,1.00288 l -9.32468,2.04088 z m -4.9262,26.53132 h 0.2812 l 4.60956,-2.60388 0.032,-0.0528 v -12.75552 l 2.70948,-0.70372 7.93476,7.10788 0.352,0.0708 4.04648,-2.35756 0.1232,-0.1756 -0.016,-0.1584 -6.94948,-5.89392 4.90864,-1.24916 c 1.63624,-0.40468 1.90012,-1.17876 1.88244,-2.83256 l -0.016,-8.09312 c -0.1936,-1.1612 -1.05568,-1.84736 -2.28716,-1.84736 h -17.4706 l -0.2644,0.334 v 30.98256 l 0.1236,0.2284" id="tag-heuer-app-mono-dark-path39484" fill="#ffffff" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.99999994" />
+  </g>
+</svg></g></g></svg>

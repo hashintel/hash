@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="obi-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="obi-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="obi-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#obi-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#obi-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#obi-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="obi-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.41714308578 -1.40329602516 -0.141663832518 0 1.96210294346" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#obi-app-mono-dark-mono)"><defs><clipPath id="obi-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#obi-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 147 34" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g><path d="m147 28.646-8.869-3.928V9.317l8.419-3.755V.661h-36.828v4.901l8.453 3.755v15.4l-8.869 3.93v4.693H147v-4.694z" fill="#F56600" /><path d="M104.837 24.51v-.905c0-1.808-.901-3.58-2.01-4.762-1.108-1.183-2.633-2.052-4.4-2.469 1.629-.417 3.049-1.32 4.054-2.503 1.004-1.182 1.628-2.607 1.628-4.832v-.8c0-2.572-.866-4.206-2.286-5.493C100.402 1.46 98.705.661 95.24.661H52.973v5.562l6.963 3.094v15.4l-7.414 3.303v5.32H95.83c3.153 0 5.093-.87 6.582-2.226 1.49-1.39 2.426-3.163 2.426-5.736v-.869zM76.809 7.161h5.959c2.078 0 2.598.278 3.048.764.45.452.763 1.078.763 2.225v.557c0 1.077-.278 1.738-.763 2.19-.45.452-.831.765-3.048.765h-5.96v-6.5zM86.925 23.71c0 1.077-.277 1.738-.762 2.19-.485.452-.832.765-3.049.765h-6.34v-6.501h6.34c2.079 0 2.599.278 3.049.764.45.487.762 1.078.762 2.225v.557z" fill="#F56600" /><path d="M44.554 3.928C42.129 1.53 39.392 0 25.118 0h-1.802C9.112 0 6.34 1.495 3.915 3.928 1.49 6.328 0 9.004 0 16.305v1.39c0 7.266 1.49 9.943 3.915 12.377C6.34 32.47 9.077 34 23.35 34h1.802c14.239 0 17.01-1.495 19.436-3.928 2.425-2.4 3.914-5.076 3.914-12.377v-1.39c0-7.266-1.49-9.943-3.914-12.377h-.035zm-15.972 6.71v12.654c0 1.356-.415 2.225-1.108 2.92-.693.696-1.733 1.113-2.98 1.113h-.589c-1.247 0-2.286-.417-2.98-1.112-.692-.696-1.108-1.565-1.108-2.92V10.637c0-1.356.416-2.225 1.109-2.92.693-.696 1.732-1.113 2.98-1.113h.588c1.247 0 2.287.417 2.98 1.113.693.695 1.108 1.564 1.108 2.92z" fill="#F56600" /></g></svg></g></g></svg>

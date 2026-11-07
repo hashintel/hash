@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="elliott-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="elliott-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="elliott-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#elliott-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#elliott-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#elliott-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="elliott-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#elliott-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.26629 -0.21661 200.93256 28.96324" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M181.66,1.73h3.81v21.4c0,3.66.17,3.47-3.64,3.9v1h11.4V27c-3.82-.43-3.65-.24-3.65-3.9V1.73h3.82c3.69,0,4.54,2.17,5.94,4.77h1.06l-1.15-6H175.81l-1.15,6h1.06c1.4-2.6,2.25-4.77,5.94-4.77" fill="#192A43" /><path d="M121.84,1.38c5.17,0,10.64,3.82,10.64,13.24,0,5.28-2.2,12.53-10.09,12.53-5.47,0-10.72-4.89-10.72-14.42,0-5.36,3-11.35,10.17-11.35m-.59,27.15c9.36,0,16.06-6.78,16.06-15.09C137.31,7.37,132,0,122.77,0,114,0,106.83,6.26,106.83,14.78c0,7.64,6.32,13.75,14.42,13.75" fill="#192A43" /><path d="M98.44,27c-3.82-.43-3.65-.24-3.65-3.9V5.4c0-3.67-.17-3.47,3.65-3.9v-1H87v1c3.82.43,3.65.23,3.65,3.9V23.13c0,3.66.17,3.47-3.65,3.9v1H98.44Z" fill="#192A43" /><path d="M151.09,1.73h3.82v21.4c0,3.66.17,3.47-3.65,3.9v1h11.4V27c-3.81-.43-3.64-.24-3.64-3.9V1.73h3.81c3.69,0,4.54,2.17,5.94,4.77h1.06l-1.15-6H145.24l-1.14,6h1.06c1.4-2.6,2.24-4.77,5.93-4.77" fill="#192A43" /><path d="M80.12,21H79.06c-2,4.22-1.69,5.83-7.84,5.83-3.77,0-5.42-.27-5.42-3V5.4c0-3.67-.17-3.47,3.64-3.9v-1H58v1c3.81.43,3.64.23,3.64,3.9V23.13c0,3.66.17,3.47-3.64,3.9v1H78.85Z" fill="#192A43" /><path d="M22.13,21H21c-2,4.22-1.66,5.83-7.8,5.83-3.82,0-5.47-.27-5.47-3.62V14.26h3.56c2.84,0,3.81,1.38,3.9,3.71h1.1V9.58h-1.1C15.13,12,14,13,11.32,13H7.76V1.73h5.76c3.06,0,3.9,2.17,4.33,5.09H19V.47H0v1c3.82.43,3.65.23,3.65,3.9V23.13c0,3.66.17,3.47-3.65,3.9v1H20.86Z" fill="#192A43" /><path d="M51.13,21H50.07c-2,4.22-1.7,5.83-7.85,5.83-3.77,0-5.42-.27-5.42-3V5.4c0-3.67-.17-3.47,3.64-3.9v-1H29v1c3.82.43,3.64.23,3.64,3.9V23.13c0,3.66.18,3.47-3.64,3.9v1H49.85Z" fill="#192A43" /></svg></g></svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="siemens-healthineers-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="siemens-healthineers-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="siemens-healthineers-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#siemens-healthineers-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#siemens-healthineers-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#siemens-healthineers-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="siemens-healthineers-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#siemens-healthineers-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="473.46862 27.06851 97.60954 95.75308" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <g>
+      <path d="M551.905,82.821a11.18,11.18,0,1,0-3.278-7.909,11.146,11.146,0,0,0,3.278,7.909" fill="#EC6602" />
+      <path d="M533.143,101.583a8.61,8.61,0,1,0-2.519-6.083,8.572,8.572,0,0,0,2.519,6.083" fill="#EC6602" />
+      <path d="M533.165,60.43a8.609,8.609,0,1,0-2.519-6.083,8.574,8.574,0,0,0,2.519,6.083" fill="#EC6602" />
+      <path d="M513.959,120.767a6.62,6.62,0,1,0-1.938-4.68,6.6,6.6,0,0,0,1.938,4.68" fill="#EC6602" />
+      <path d="M513.982,79.614a6.617,6.617,0,1,0-1.939-4.68,6.6,6.6,0,0,0,1.939,4.68" fill="#EC6602" />
+      <path d="M514.005,38.462a6.62,6.62,0,1,0-1.938-4.68,6.6,6.6,0,0,0,1.938,4.68" fill="#EC6602" />
+      <path d="M494.474,99.122a5.09,5.09,0,1,0-1.491-3.6,5.071,5.071,0,0,0,1.491,3.6" fill="#EC6602" />
+      <path d="M494.5,57.97a5.09,5.09,0,1,0-1.491-3.6,5.074,5.074,0,0,0,1.491,3.6" fill="#EC6602" />
+      <path d="M474.74,77.727a3.915,3.915,0,1,0-1.148-2.77,3.9,3.9,0,0,0,1.148,2.77" fill="#EC6602" />
+    </g>
+    </svg></g></svg>

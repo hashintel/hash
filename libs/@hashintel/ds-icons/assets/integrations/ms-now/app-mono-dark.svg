@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ms-now-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="ms-now-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ms-now-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ms-now-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ms-now-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ms-now-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="ms-now-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ms-now-app-mono-dark-mono)"><defs><clipPath id="ms-now-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ms-now-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.40995 392.47809 410.82027 301.26164" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M182.68,392.87c-30.73,0-36.85,11.93-41.12,26.66h0s-4.76,16.41-4.76,16.41c-1.21,4.17-5.03,7.03-9.37,7.03H6.5c-3.59,0-6.5,2.91-6.5,6.5v237.51c0,3.59,2.91,6.5,6.5,6.5h72.74c30.73,0,36.38-11.93,40.66-26.66h0s4.76-16.41,4.76-16.41c1.21-4.17,5.03-7.03,9.37-7.03h275.97l-36.48-125.26,36.48-125.26h-227.32Z" fill="#111111" /><path fill="#FF3723" d="M176.15,442.97c-30.73,0-36.38,11.93-40.66,26.66l-14.54,50.1c5.66-19.5,20.84-26.66,40.66-26.66h157.68c4.34,0,8.16-2.87,9.37-7.03l12.5-43.07h-165.01Z" /><path fill="#FF3723" d="M106.41,569.84l-14.54,50.1c5.66-19.5,20.84-26.66,40.66-26.66h157.68c4.34,0,8.16-2.87,9.37-7.03l12.5-43.07h-165.01c-30.73,0-36.38,11.93-40.66,26.66Z" /></svg></g></g></svg>

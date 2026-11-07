@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gilat-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="gilat-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="gilat-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gilat-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#gilat-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#gilat-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="gilat-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#gilat-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.23246 -0.25796 52.33577 62.71429" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M41.4981 31.1245C41.4981 36.8545 36.853 41.4996 31.123 41.4996V51.874C42.583 51.874 51.8732 42.5845 51.8732 31.1245H41.4981Z" fill="#00849D" />
+  <path d="M31.1231 20.7499C25.3931 20.7499 20.748 25.395 20.748 31.125H31.1231H41.4982C41.4982 25.395 36.8531 20.7499 31.1231 20.7499Z" fill="#00E6DA" />
+  <path d="M10.3744 31.1246C10.3744 19.6646 19.6646 10.3751 31.1239 10.3751V1.90735e-05C13.9346 1.90735e-05 0 13.9353 0 31.1246C0 48.314 13.9346 62.2493 31.1239 62.2493V51.8742C19.6646 51.8742 10.3744 42.5846 10.3744 31.1246Z" fill="#1B115D" />
+  </svg></g></svg>

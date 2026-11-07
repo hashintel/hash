@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mizuho-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="mizuho-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mizuho-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mizuho-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mizuho-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mizuho-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="mizuho-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mizuho-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.64685 -2.93395 1203.29368 360.75274" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+	<g id="mizuho-app-dark-Layer 1">
+		<g id="mizuho-app-dark-&lt;Group&gt;">
+			<path d="m178.9-0.8q-15 38-31.6 76.4l-14.7 33.9-15-33.9q-16.9-38.4-32.2-76.4h-83v6.7c9.3 0 16.8 7.6 16.8 17.1q-1.9 26.2-4.6 52.6l-5.4 53.4c-2.6 25.6-5.7 51.1-9.2 76.4h26.5c1.6-25.3 3.7-50.8 6.3-76.4l8.1-80.5q17.6 36.7 34 73.8l3 6.7q17 38.4 32.3 76.4h8c10-25.3 20.5-50.8 31.6-76.4l4.8-10.9q16-37.1 33.3-73.8l8.6 84.7q3.9 38.4 6.2 76.4h61c-3.5-25.3-6.6-50.8-9.2-76.4l-5.4-53.4c-2.6-25.6-4.7-51-6.2-76.4z" fill="#7578A1" />
+			<path d="m452.2 184.9q9.9-19 21.4-38.2l74-123.2v-5.2h-162.8v37.9h6.5c0-9.1 6.9-16.6 15.7-17.1q7.6-0.3 15.2-0.3h52.5q-9.7 18.6-21 37.4l-74.4 124v5.2h175.7v-22q-18.6 1.5-37.4 1.5z" fill="#7578A1" />
+			<path d="m753.2 205.4q0.8-0.1 1.6-0.1c-1-12.7-1.6-25.3-1.6-38.1v-46.4h72.8v46.4q0 19.2-1.5 38.2h56q-1.5-19-1.5-38.2v-110.7q0-19.2 1.5-38.2h-71.3v5.9h1.5c8 0 14.4 6.3 14.9 14.3q0.4 9 0.4 18v43.8h-72.8v-43.8q0-19.2 1.5-38.2h-71.3v5.9h1.5c7.9 0 14.3 6.3 14.9 14.2 0.2 6 0.4 12 0.4 18.1v129.6q-11.1 1.3-22.6 1.4c-8.2 0-16.3-0.7-24.2-2-22.4-4.3-26-25.3-26-38.4v-91.6q0-18.7 1.5-37.2h-71.3v5.9h1.4c7.9 0 14.4 6.3 15 14.2q0.3 9 0.3 18.1v81.7c0 18.4 5.8 59 55.7 66.3 15.5 2.3 31.4 3.5 47.6 3.5 25.4 0 50.7-0.9 75.6-2.6z" fill="#7578A1" />
+			<path id="mizuho-app-dark-&lt;Compound Path&gt;" fill-rule="evenodd" d="m1120.2 111.9q0 0 0 0 0 0 0 0zm-109.3 96c-54.3 0-109.3-32.3-109.3-96 0-63.8 55-96.2 109.3-96.2 54.3 0 109.3 32.4 109.3 96.1 0 63.8-55 96.1-109.3 96.1zm56-96c0-34.8-14.5-75.7-56-75.7-41.5 0-56 40.9-56 75.7 0 34.6 14.5 75.5 56 75.5 41.5 0 56-40.9 56-75.5z" fill="#7578A1" />
+			<path d="m354 56.5q0-19.2 1.5-38.2h-73.3v6.7h1.7c9.3 0 16.8 7.6 16.8 17.1q0.2 7.2 0.2 14.4v110.7q0 19.2-1.4 38.2h56q-1.5-19-1.5-38.2z" fill="#7578A1" />
+			<path d="m101.9 308.1c147.5-33 300.9-50.5 458.3-50.5 222.3 0 436.7 33.3 638.7 95.2 0.8 0.3 1.2 1.1 1.1 1.9-0.2 0.8-1 1.4-1.9 1.2-207.6-34.2-420.3-53.8-636.9-57.6-154.6-2.7-307.5 2.7-458.3 15.8-1.5 0.2-2.9-0.8-3.2-2.3-0.4-1.6 0.6-3.3 2.2-3.7z" fill="#D0505C" />
+		</g>
+	</g>
+</svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ikea-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="ikea-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ikea-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ikea-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ikea-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ikea-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="ikea-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ikea-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98.36 40" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#0058A3" d="M98.36 40H0V0h98.36v40Z" /><path fill="#FFDB00" d="M1.92 20c0 9.66 19.81 17.67 47.26 17.67S96.44 29.66 96.44 20 76.63 2.33 49.18 2.33 1.92 10.34 1.92 20Z" /><path fill="#0058AB" d="M46.39 25.67c.29.43.63.83 1.04 1.25H36.79c0-.42-.4-1.28-.86-1.96l-2.9-4.38v5.09c0 .42 0 .83.21 1.25h-8.87c.21-.42.21-.83.21-1.25v-12.1c0-.42 0-.83-.21-1.25h8.87c-.21.42-.21.83-.21 1.25v5.28s2.84-3.68 3.48-4.55c.49-.66 1.11-1.57 1.11-1.98h9.24c-.64.42-1.34 1.19-1.92 1.89l-3.39 4.13 4.82 7.33Zm2.79-12.1v12.1c0 .42 0 .83-.21 1.25h17.11v-4.05c-.42.21-.83.21-1.25.21h-7.2v-1.92h6.92v-3.07h-6.92v-1.92h7.2c.42 0 .83 0 1.25.2v-4.05H48.97c.21.42.21.83.21 1.25Zm40.63 12.09c.16.42.32.84.69 1.26h-9.28c.05-.42-.12-.83-.28-1.25l-.33-.84-.08-.22h-5.34l-.08.22-.3.84c-.15.42-.3.83-.24 1.25h-7.32c.36-.42.51-.83.66-1.25l4.39-12.1c.15-.42.3-.83.25-1.25h12.36c-.11.42.11.83.27 1.25l4.63 12.09Zm-10.47-4.12-1.29-3.38a9.4 9.4 0 0 1-.29-.96s-.1.54-.25.96l-1.23 3.38h3.05Zm-59.15-9.22h-9.64c.21.42.21.83.21 1.25v12.1c0 .42 0 .83-.21 1.25h9.64c-.21-.42-.21-.83-.21-1.25v-12.1c0-.42 0-.83.21-1.25Zm66.64 1.15c0-1.12.81-1.92 1.92-1.92s1.92.81 1.92 1.92-.81 1.92-1.92 1.92-1.92-.81-1.92-1.92Zm.39 0c0 .85.64 1.54 1.54 1.54.85 0 1.54-.64 1.54-1.54 0-.85-.64-1.54-1.54-1.54s-1.54.64-1.54 1.54Zm1.15 1.15h-.34v-2.3h.86c.4 0 .72.35.72.75 0 .28-.17.56-.41.67l.5.89h-.38l-.46-.81h-.5v.81Zm0-1.15h.47c.24 0 .43-.17.43-.41s-.19-.41-.43-.41h-.47v.81Z" /></svg></g></svg>

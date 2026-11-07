@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hadrian-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hadrian-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hadrian-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hadrian-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hadrian-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hadrian-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hadrian-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hadrian-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05092 -0.02989 24.13509 28.27701" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="hadrian-app-dark-hadrian-glyph"><rect x="-0.07707" y="-0.33232" width="25.553159939999997" height="28.85563" /></clipPath></defs><g clip-path="url(#hadrian-app-dark-hadrian-glyph)"><path d="M18.2633 4.20833e-07H24.0369V28.2001H18.2633V16.2209H5.77359V28.2001H3.78244e-05V4.20833e-07H5.77359V11.2329H18.2633V4.20833e-07ZM37.3624 4.20833e-07H43.9608L54.526 28.2001H48.6739L46.4352 22.1516H34.8095L32.5708 28.2001H26.8365L37.3624 4.20833e-07ZM40.5831 6.40197L36.6162 17.2421H44.5892L40.5831 6.40197ZM57.3029 28.2001V4.20833e-07H67.0041C69.9628 4.20833e-07 72.5027 0.576047 74.6236 1.72814C76.7707 2.88023 78.4203 4.51673 79.5723 6.63762C80.7244 8.73234 81.3005 11.2198 81.3005 14.1C81.3005 16.9541 80.7244 19.4416 79.5723 21.5625C78.4203 23.6834 76.7707 25.3198 74.6236 26.4719C72.5027 27.624 69.9628 28.2001 67.0041 28.2001H57.3029ZM62.9587 23.2513H67.0041C68.8369 23.2513 70.3818 22.8717 71.6386 22.1123C72.9216 21.353 73.9035 20.2925 74.5843 18.931C75.2651 17.5432 75.6055 15.9329 75.6055 14.1C75.6055 12.241 75.2651 10.6307 74.5843 9.26911C73.9035 7.88136 72.9216 6.82091 71.6386 6.08776C70.3556 5.32843 68.7977 4.94876 66.9648 4.94876H62.9587V23.2513ZM90.654 17.7134V28.2001H84.8804V4.20833e-07H96.4275C99.6743 4.20833e-07 102.24 0.759334 104.126 2.278C106.011 3.77049 106.953 5.96993 106.953 8.87635C106.953 11.0234 106.404 12.8039 105.304 14.2179C104.204 15.6056 102.659 16.5875 100.669 17.1636L107.7 28.2001H101.101L94.5816 17.7134H90.654ZM90.654 12.8825H96.1133C97.8153 12.8825 99.0852 12.5421 99.9231 11.8613C100.787 11.1544 101.219 10.1725 101.219 8.91563C101.219 7.63261 100.787 6.65072 99.9231 5.96993C99.0852 5.26297 97.8153 4.90948 96.1133 4.90948H90.654V12.8825ZM116.582 4.20833e-07V28.2001H110.809V4.20833e-07H116.582ZM129.876 4.20833e-07H136.474L147.039 28.2001H141.187L138.948 22.1516H127.323L125.084 28.2001H119.35L129.876 4.20833e-07ZM133.096 6.40197L129.129 17.2421H137.102L133.096 6.40197ZM173.578 4.20833e-07V28.2001H168.551L155.354 8.75852V28.2001H149.816V4.20833e-07H155.668L168.04 18.4989V4.20833e-07H173.578Z" fill="#F5F7FA" /></g></svg></g></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="biontech-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="biontech-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="biontech-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#biontech-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#biontech-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#biontech-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="biontech-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.428016516528 -1.43987494177 -0.145356502791 0 2.01324796109" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#biontech-app-mono-light-mono)"><defs><clipPath id="biontech-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#biontech-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.04343 19.78063" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M21.6852 1.42589C21.1968 0.963049 20.618 0.609649 19.9862 0.388316C19.1931 0.116237 18.3596 -0.014602 17.5224 0.00129211H0V2.97154H17.5224C18.203 2.93608 18.8691 3.17637 19.3743 3.64043C19.8309 4.08555 20.0615 4.76483 20.0615 5.65443C20.0615 6.54466 19.8309 7.23433 19.3792 7.69778C18.8817 8.18203 18.2102 8.43698 17.5224 8.40336H2.95704V8.38501H0V19.7494H17.5224C18.3698 19.7683 19.2135 19.6381 20.0176 19.3648C20.6493 19.1429 21.2287 18.7895 21.7189 18.3278C22.1555 17.9029 22.4904 17.3826 22.6964 16.8054C22.9132 16.1922 23.021 15.5453 23.0155 14.8941V13.1901C23.0155 11.1945 20.7023 9.93862 19.8098 9.93862C19.7736 9.93679 19.7453 9.90682 19.7453 9.87014C19.7453 9.83407 19.7742 9.80411 19.8098 9.80411C20.7023 9.80411 23.0155 8.54827 23.0155 6.54955V4.85654C23.0192 4.21089 22.9059 3.57013 22.6813 2.96605C22.4663 2.38397 22.126 1.85754 21.6852 1.42589ZM20.0615 14.0883C20.0615 14.9785 19.8309 15.6682 19.3743 16.1023C18.8685 16.5658 18.203 16.8066 17.5224 16.7712H4.11878V16.7871H2.95704V11.3553H4.11878V11.3712H17.8645C19.325 11.5161 20.0615 12.4295 20.0615 14.0883" fill="#3C9673" />
+</svg></g></g></svg>

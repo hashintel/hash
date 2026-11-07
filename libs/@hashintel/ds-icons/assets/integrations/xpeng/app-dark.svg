@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="xpeng-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="xpeng-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="xpeng-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#xpeng-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#xpeng-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#xpeng-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="xpeng-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#xpeng-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1.97336 8.44761 28.05328 15.10476" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g id="xpeng-app-dark-logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M4.31663581,8.5 C4.49167252,8.5 4.66438069,8.53567832 4.82536154,8.60470044 L4.94375145,8.66268253 L15.6261339,14.5735384 C15.7035311,14.6164845 15.7576959,14.6919155 15.7762659,14.7787768 L15.7833262,14.8457369 L15.7833262,17.1543491 C15.7833262,17.2455408 15.7446409,17.3308411 15.6796325,17.3886229 L15.6261339,17.4264616 L4.94375145,23.3373175 C4.78922169,23.4228656 4.6206149,23.4756535 4.44732988,23.4933468 L4.31663581,23.5 L2.32878507,23.5 C2.06888624,23.5 1.92045063,23.2067857 2.04444574,22.9879125 L2.08121331,22.9349557 L7.25987871,16.7382225 C7.35421342,16.6250932 7.48185354,16.5496617 7.62131325,16.5220844 L7.70623554,16.5113617 L13.4484285,16.1997614 L13.4484285,15.8002386 L7.70623554,15.4885523 C7.56290743,15.480953 7.42710174,15.4227514 7.3203043,15.3252986 L7.25987871,15.2622076 L2.08121331,9.06504433 C1.91069525,8.86111378 2.02602187,8.55221251 2.26622566,8.50589593 L2.32878507,8.5 L4.31663581,8.5 Z M29.6714405,8.5 C29.9525841,8.5 30.1034094,8.84411957 29.9190122,9.06504433 L24.7404295,15.2622076 C24.6272279,15.3974466 24.4660664,15.4794331 24.2940727,15.4885523 L18.5518797,15.8002386 L18.5518797,16.1997614 L24.2940727,16.5113617 C24.4660664,16.520997 24.6272279,16.6024673 24.7404295,16.7382225 L29.9190122,22.9349557 C30.1034094,23.1558804 29.9525841,23.5 29.6714405,23.5 L27.6836724,23.5 C27.4648766,23.5 27.249719,23.4442526 27.0565568,23.3373175 L16.3741744,17.4264616 C16.2773452,17.3731231 16.216982,17.2683387 16.216982,17.1543491 L16.216982,14.8457369 C16.216982,14.7316613 16.2773452,14.627221 16.3741744,14.5735384 L27.0565568,8.66268253 C27.249719,8.55574737 27.4648766,8.5 27.6836724,8.5 L29.6714405,8.5 Z" id="xpeng-app-dark-形状结合" fill="#F5F7FA" />
+    </g>
+</svg></g></svg>

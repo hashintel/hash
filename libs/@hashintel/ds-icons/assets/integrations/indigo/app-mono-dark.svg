@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="indigo-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="indigo-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="indigo-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#indigo-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#indigo-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#indigo-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="indigo-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240942383247 -0.810545590301 -0.0818252119962 0 1.13331318554" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#indigo-app-mono-dark-mono)"><defs><clipPath id="indigo-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#indigo-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.01371 0 23.97257 24" fill="#001b94" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M19.57 8.327c0 .54-.437.98-.976.98a.979.979 0 0 1 0-1.96c.539 0 .977.439.977.98zm-2.93-2.94c0 .542-.438.98-.977.98a.978.978 0 0 1-.977-.98c0-.54.438-.979.977-.979.54 0 .977.439.977.98zm2.93 0c0 .542-.437.98-.976.98a.979.979 0 0 1 0-1.959c.539 0 .977.439.977.98zm-5.86 0c0 .542-.438.98-.977.98a.979.979 0 0 1 0-1.959c.539 0 .976.439.976.98zm7.528-3.14a.982.982 0 0 1 0 1.385.976.976 0 0 1-1.382 0 .982.982 0 0 1 0-1.386.975.975 0 0 1 1.382 0zM23.68.286a.982.982 0 0 1 0 1.386.976.976 0 0 1-1.382 0 .982.982 0 0 1 0-1.386.975.975 0 0 1 1.382 0zm-13.39 5.1c0 .542-.437.98-.976.98a.978.978 0 0 1-.977-.98c0-.54.437-.979.977-.979.539 0 .977.439.977.98zm-2.93 0c0 .542-.437.98-.977.98a.979.979 0 0 1 0-1.959c.54 0 .977.439.977.98zm11.234 4.899c.539 0 .977.439.977.98 0 .54-.438.979-.977.979a.979.979 0 0 1 0-1.96zM7.848 20.08c0 .541-.437.98-.977.98a.979.979 0 0 1-.976-.98c0-.54.437-.979.976-.979.54 0 .977.439.977.98zm-2.93-2.938c0 .54-.437.98-.977.98a.978.978 0 0 1 0-1.96c.54 0 .977.44.977.98zm2.93 0c0 .54-.437.98-.977.98a.978.978 0 0 1-.976-.98c0-.54.437-.98.976-.98.54 0 .977.44.977.98zm-5.86 0a.978.978 0 1 1-1.954 0c0-.54.437-.98.976-.98.54 0 .977.44.977.98zm4.883 4.898a.979.979 0 0 1 0 1.959.978.978 0 0 1-.976-.98c0-.54.437-.98.976-.98zm11.723-8.817c.539 0 .977.44.977.98 0 .541-.438.98-.977.98a.979.979 0 0 1 0-1.96zm0 3.43a.979.979 0 0 1 0 1.96.979.979 0 0 1 0-1.96zm-6.35-3.92a.978.978 0 1 1-1.954 0c0-.54.438-.979.977-.979.54 0 .977.439.977.98zm1.668-3.141a.982.982 0 0 1 0 1.385.975.975 0 0 1-1.382 0 .982.982 0 0 1 0-1.385.975.975 0 0 1 1.382 0zm2.442-1.96a.982.982 0 0 1 0 1.386.975.975 0 0 1-1.382 0 .982.982 0 0 1 0-1.385.975.975 0 0 1 1.382 0zm-6.35 6.368a.982.982 0 0 1 0 1.386.976.976 0 0 1-1.381 0 .982.982 0 0 1 0-1.386.975.975 0 0 1 1.381 0z" /></svg></g></g></svg>

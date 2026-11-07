@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ionos-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="ionos-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ionos-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ionos-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ionos-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ionos-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="ionos-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ionos-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="ionos-app-dark-einsundeins-square" x="11.35483870967742" y="11.35483870967742" viewBox="63.37047 158.21907 268.43048 79.10474" xml:space="preserve" fill="#F5F7FA" width="41.29032258064516" height="41.29032258064516">
+<path d="M311,236.8c-1.2,0-2.7-0.2-3.9-0.5c-5.7-1.2-10.6-4.7-13.5-9.6v-0.2c-1.5-2.9-0.5-6.4,2.2-7.9  c1-0.5,2-0.7,2.9-0.7c2.2,0,4.2,1.2,5.2,2.9l0.2,0.2l0.7,0.7l0.7,0.7c1,1,2.5,1.5,3.9,2c2.2,0.5,4.7,0,6.6-1.5  c2-1.5,3.2-3.7,3.4-5.9c0.2-2.5-0.7-4.9-2.2-6.4c0,0-17.9-18.4-18.7-19.4c-0.5-0.5-1.2-1.2-2.2-2.5c-2.5-3.7-3.2-7.9-2.9-11.8  c0.2-2.9,1-5.7,2.5-8.4c0,0,0.7-1.5,1-1.7c1-1.5,2.7-3.2,4.2-4.2c1.2-1,2.9-1.7,3.4-2c3.4-1.7,7.9-2.5,12.3-1.5  c5.4,1.2,10.3,4.7,13,9.3c0.7,1.2,1,2.9,0.7,4.4c-0.5,1.5-1.5,2.9-2.7,3.7c-1,0.5-2,0.7-2.9,0.7c-2.2,0-4.2-1.2-5.2-2.9  c-1.2-2-2.9-3.2-5.2-3.7s-4.4,0-6.4,1.5c-1.7,1.2-2.7,3.2-2.9,5.7c-0.2,2.2,0.5,4.4,2.2,5.9l18.2,18.7c3.9,4.2,6.1,9.8,5.7,15.5  c-0.5,5.9-3.4,11.1-7.9,14.5C319.6,235.3,315.2,236.8,311,236.8" fill="#547EB0" />
+<path d="M253.2,236.8c-10.8,0-19.7-8.8-19.7-19.7v-38.6c0-10.8,8.8-19.7,19.7-19.7c10.8,0,19.7,8.8,19.7,19.7v38.8  C272.9,228,264,236.8,253.2,236.8 M253.2,170.7c-4.2,0-7.9,3.4-7.9,7.9v38.8c0,4.4,3.4,7.9,7.9,7.9c4.2,0,7.9-3.4,7.9-7.9v-38.8  C261.1,174.4,257.4,170.7,253.2,170.7" fill="#547EB0" />
+<path d="M177.1,199v31.9c0,3.4-2.7,5.9-5.9,5.9s-5.9-2.7-5.9-5.9v-56.5L177.1,199z M209.2,221.3v-56.5  c0-3.4-2.7-5.9-5.9-5.9c-3.4,0-5.9,2.7-5.9,5.9V197L209.2,221.3z M176.6,162.4C176.6,162.4,176.6,162.1,176.6,162.4  c-1-2-3.2-3.4-5.4-3.4c-0.5,0-0.7,0-1.2,0.2c-2.7,0.5-4.7,2.9-4.7,5.7v1.5l32.4,67.3c1,2,3.2,3.2,5.2,3.2c0.5,0,1,0,1.5-0.2  c2.7-0.5,4.7-2.9,4.7-5.7v-1.2C209,229.7,177.5,164.1,176.6,162.4" fill="#547EB0" />
+<path d="M121,236.8c-5.2,0-10.1-2-13.8-5.7c-3.7-3.7-5.7-8.6-5.7-13.8v-38.8c0-5.2,2-10.1,5.7-13.8s8.6-5.7,13.8-5.7  s10.1,2,13.8,5.7s5.7,8.6,5.7,13.8v38.8c0,5.2-2,10.1-5.7,13.8S126.2,236.8,121,236.8 M121,170.7c-2,0-3.9,0.7-5.4,2.2  s-2.2,3.4-2.2,5.4v38.8c0,2.2,0.7,4.2,2.2,5.4c1.5,1.5,3.4,2.2,5.4,2.2s3.9-0.7,5.4-2.2s2.2-3.4,2.2-5.4v-38.6c0-2-0.7-3.9-2.2-5.4  C125,171.7,123,170.7,121,170.7" fill="#547EB0" />
+<path d="M70.2,236.8c-3.7,0-6.4-2.9-6.4-6.4v-65.1v-0.2c0-3.4,2.9-6.4,6.4-6.4c2.9,0,5.4,2,6.1,4.7c0,0,0,0.2,0,0.5v0.2  c0,0.2,0,0.7,0,1c0,0,0,64.1,0,64.9C76.8,233.9,73.8,236.8,70.2,236.8" fill="#547EB0" />
+</svg></g></svg>

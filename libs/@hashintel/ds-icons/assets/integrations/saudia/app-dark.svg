@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="saudia-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="saudia-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="saudia-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#saudia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#saudia-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#saudia-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="saudia-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#saudia-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3.20229 24 17.59543" fill="#0E8E4B" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M13.0293 14.2735c-.021.0119-.0417.0243-.0626.0366.716.4112 1.418.8497 2.1325 1.262.4268.2463.8565.4876 1.2878.7262l-.6383.7073-.7111-.4511c-.8226-.522-1.6477-1.0374-2.4819-1.5385l-.215 5.758 3.4058-3.7638c.0283.0184.8554.5513 1.371.6675 1.4673.3306 1.8903.056 2.8921-.1527-1.0877-.0805-1.9005-.1906-3.2396-.9833-.224-.1321-.3586-.2318-.377-.2458l4.0447-4.4695c-1.1607.04-2.356.126-3.4449.5554-1.3912.4764-2.691 1.175-3.9635 1.8917zm.0914-4.9838s.4034-1.4258.0125-2.8742c.3268.2677.7162.6568 1.0188 1.1701.4244.7202.5412 1.2738.5412 1.2738s.1769-.8474-.0994-1.6102c-.0908-.2503-.3152-.9109-.7688-1.3414a5.345 5.345 0 0 1 1.2083.7733c.7284.6178 1.1608 1.1717 1.1608 1.1717s-.1365-.9486-.6694-1.627c-.6117-.7791-1.4417-1.0875-2.0342-1.2166.3697-.0488.8023-.0527 1.2688.056.9466.2205 1.5772.7088 1.5772.7088s-.565-.8898-1.4944-1.2995c-.6906-.3044-1.3667-.3082-1.8968-.2282.0426-.085.097-.1617.1663-.2255.163-.1499.3462-.2365.3462-.2365s-.3924-.0986-.7331.0296c-.176.0663-.3144.1634-.419.2555a2.8411 2.8411 0 0 0-.0562-.2998c-.0403-.1637-.233-.5139-.2495-.5437-.0165.0298-.2094.38-.2496.5437a2.875 2.875 0 0 0-.0562.2998c-.1045-.0921-.243-.1892-.4189-.2555-.3409-.1282-.7333-.0296-.7333-.0296s.1834.0866.3462.2365c.0696.0638.124.1405.1665.2255-.53-.08-1.2064-.0762-1.897.2282-.9292.4097-1.4942 1.2995-1.4942 1.2995s.6306-.4883 1.5772-.7088c.4663-.1087.8991-.1048 1.2687-.056-.5925.129-1.4224.4375-2.0343 1.2167-.5327.6783-.6692 1.6269-.6692 1.6269s.4324-.5539 1.1607-1.1717a5.3497 5.3497 0 0 1 1.2084-.7733c-.4536.4305-.6782 1.0911-.769 1.3414-.2762.7628-.0992 1.6102-.0992 1.6102s.1166-.5536.5412-1.2738c.3025-.5133.692-.9024 1.0187-1.17-.3908 1.4483.0126 2.8741.0126 2.8741s.2445-1.0973.6125-2.0282c.1566-.396.3361-.695.5082-.9192.1721.2241.3517.5231.5082.9192.368.9309.6125 2.0282.6125 2.0282zm10.767-1.5273-11.1448 2.234-.1358 3.6418c1.4734-.7147 2.9731-1.4255 4.5816-1.7775 1.074-.235 2.1665-.2263 3.249-.0343l3.5376-3.9093c.0608-.0668.0008-.1725-.0876-.1547zM6.811 11.8607c1.6085.352 3.1084 1.0628 4.5818 1.7775l-.136-3.6418L.1123 7.7624c-.0886-.0178-.1484.088-.0876.1547l3.5376 3.9093c1.0825-.192 2.175-.2007 3.2488.0343zm2.1513 4.6938-.7112.451-.6382-.7072c.4313-.2386.861-.48 1.2877-.7262.7147-.4123 1.4164-.8508 2.1326-1.262-.021-.0123-.0416-.0247-.0626-.0366-1.2725-.7168-2.5724-1.4153-3.9635-1.8917-1.089-.4295-2.2842-.5153-3.4449-.5554l4.0447 4.4695c-.0185.014-.1532.1137-.377.2458-1.339.7927-2.1519.9028-3.2396.9833 1.0018.2087 1.4248.4833 2.892.1527.5156-.1162 1.3428-.6491 1.371-.6675l3.4059 3.7639-.215-5.758c-.8342.501-1.6592 1.0165-2.4819 1.5384z" /></svg></g></svg>

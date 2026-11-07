@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chewy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="chewy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="chewy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chewy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chewy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#chewy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="chewy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.296520061171 -0.997512454138 -0.100699663295 0 1.3947321786" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#chewy-app-mono-dark-mono)"><defs><clipPath id="chewy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#chewy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="47.84 35.98513 424.32 128.02974" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<path fill="#1C49C2" d="M265.114 98.397c-2.612 5.508-3.696 11.104-12.868 14.836-8.952 3.64-17.132-1.68-19.844-6.7 0 0 29.64-13.696 38.376-18.968 2.636-1.592 4.66-3.424 6-5.488a670.202 670.202 0 0 0 3.8 9.424c-5.788-2.228-12.244.108-15.464 6.896m-31.96-26.348c12.24-5.792 19.06 6.104 19.06 6.104l-26.876 12.712s-4.424-13.028 7.816-18.816m229.224-10.216c-7.7-2.592-14.928 1.724-17.256 8.96l-12.968 40.308-.324-.016c-4.12-17.408-9.748-41.24-9.748-41.24-1.752-7.4-8.616-12.296-16.496-10.344a13.796 13.796 0 0 0-7.408 4.592c-.8-5.752-5.132-10.44-11.528-11.264-7.892-1.016-14.096 4.564-15.056 12.016l-5.328 41.512-.32.032-11.032-30.572c-4.488-12.436-8.16-18.88-19.312-17.616-11.16 1.268-13.348 8.376-15.048 21.512l-4.176 32.3-.32.036-14.14-39.304c-2.54-7.052-9.796-11.104-17.276-8.348a13.444 13.444 0 0 0-7.12 5.904c-5.584-14.6-27.228-28.64-53.804-14.096-13.848 7.58-20.292 18.028-22.388 28.528-3.88-9.024-11.828-15.36-22.42-16.32-14.28-1.296-22.304 7.116-22.304 7.116l-.288-.024 2.08-23.86c.664-7.66-4.356-14.432-12.54-15.172-8.188-.744-14.344 5.12-15 12.68l-4.952 56.836c-2.46-2.648-6.188-4.212-10.54-3.104-8.772 2.144-11.016 12.764-20.336 14.72-10.576 2.22-17.268-6.192-19.308-16.308-1.672-8.308-.24-20.548 11.512-22.348 10.32-1.584 12.736 9.384 24.22 7.072 6.8-1.372 10.08-6.828 8.492-13.8-2.504-10.568-18.948-18.328-37-14.544-23.22 4.872-38.92 25.988-33.812 52.476 5.28 27.376 30.648 36.248 50.716 31.772 12.428-2.772 19.912-8.532 24.184-14.448l-.272 3.092c-.664 7.66 4.356 14.432 12.54 15.172 8.188.744 14.344-5.12 15-12.68l2.828-32.452c.768-9.076 6.788-12.408 12.032-11.932 5.24.472 10.5 5.5 9.8 13.912l-2.824 32.452c-.668 7.664 4.356 14.432 12.54 15.176 8.184.74 14.34-5.12 15-12.68l2.496-28.68a50.679 50.679 0 0 0 1.844 4.68c12.228 26.872 37.268 28.588 56.788 19.352 11.348-5.368 18.028-11.88 21.988-17.864 1.772-2.68 2.92-5.176 3.576-7.472a515.079 515.079 0 0 0 4.38 9.78c9.412 20.36 12.692 25.38 27.7 24.072 14.92-2.088 16.372-8.32 20.364-43.108l.16-.016.16-.02c11.388 33.044 14.148 38.8 29.152 37.492 14.92-2.088 17.04-7.72 21.84-29.692a689.88 689.88 0 0 0 5.224-27.056l3.32 10.944c8.024 26.32 16.348 43.776 11.332 46.32-4.46 2.256-7.04-5.672-15.628-5.132-5.908.372-11.132 6.68-9.228 14.468 2.628 10.756 19.148 22.18 38.128 16.456 19.12-5.768 24.704-21.532 46.74-82.512 2.532-7.272-.932-15.12-8.632-17.716" />
+</svg></g></g></svg>

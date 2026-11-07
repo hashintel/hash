@@ -1,0 +1,324 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="aviva-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.345771753523 -1.16319829783 -0.117425778948 0 1.6263958303" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#aviva-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" id="aviva-mark-mono-svg2" viewBox="296.59143 34.75477 373.71714 372.64477" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs><clipPath id="aviva-mark-mono-identity-part"><rect x="250" y="0" width="460" height="430" /></clipPath></defs><g clip-path="url(#aviva-mark-mono-identity-part)"><defs id="aviva-mark-mono-defs4">
+    <clipPath id="aviva-mark-mono-clipPath2642">
+      <path d="M 317.48,107.008 L 568.926,107.008 L 568.926,27.322 L 317.48,27.322 L 317.48,107.008" id="aviva-mark-mono-path2644" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2514">
+      <path d="M 117.116,268.49 L 126.996,228.864 L 263.799,262.972 L 253.919,302.599 L 117.116,268.49" id="aviva-mark-mono-path2516" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2506">
+      <path d="M 170.034,256.903 L 219.267,269.034 C 219.267,269.034 221.315,269.553 223.488,269.959 C 226.012,270.429 227.754,270.616 229.432,270.704 C 231.337,270.803 232.741,270.813 234.908,270.378 C 236.519,270.054 238.375,268.967 238.375,268.967 C 238.375,268.967 240.646,268.746 241.158,268.587 C 241.726,268.411 243.945,267.937 244.129,267.135 C 244.286,266.451 243.768,265.718 242.608,264.747 C 240.975,263.381 239.514,262.369 237.891,261.456 C 235.525,260.126 233.347,259.401 231.783,258.952 C 231.127,258.764 230.27,258.501 230.27,258.501 L 212.158,253.925 L 212.509,252.216 L 212.458,252.07 L 212.062,251.575 L 211.966,251.477 C 211.966,251.477 209.544,250.482 207.526,249.97 C 206.003,249.583 204.384,249.338 204.384,249.338 C 204.384,249.338 203.169,248.86 202.032,248.729 C 200.721,248.577 200.255,248.659 200.255,248.659 L 200.177,248.75 L 200.519,249.37 L 200.366,249.967 L 199.526,249.753 L 199.591,249.53 L 198.384,249.666 L 197.163,249.542 L 186.394,247.027 L 184.124,246.83 L 183.054,246.618 C 183.054,246.618 178.866,245.694 177.163,245.361 C 175.46,245.029 172.541,244.609 170.762,244.42 C 167.437,244.066 161.32,243.743 154.748,243.855 C 150.282,243.931 142.351,245.041 141.625,245.392 C 141.5,245.453 141.218,246.065 141.218,246.065 L 140.352,246.807 L 140.023,247.61 L 139.815,247.632 L 135.738,247.813 C 135.738,247.813 137.047,248.397 137.537,248.575 C 138.026,248.752 138.867,248.998 139.045,249.024 C 139.222,249.05 142.173,249.325 142.173,249.325 L 130.481,270.966 L 134.001,271.834 C 134.001,271.834 134.574,271.976 134.951,272.009 C 135.292,272.04 135.434,271.966 135.563,271.92 C 135.836,271.822 151.133,260.602 151.133,260.602 C 151.133,260.602 153.385,258.805 155.08,258.131 C 155.52,257.957 156.84,257.385 158.662,257.234 C 160.316,257.097 162.363,257.124 164.198,257.087 C 167.005,257.03 169.354,256.955 169.354,256.955 L 169.638,256.851 L 170.034,256.903" id="aviva-mark-mono-path2508" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2498">
+      <path d="M 117.116,268.49 L 126.996,228.864 L 263.799,262.972 L 253.919,302.599" id="aviva-mark-mono-path2500" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2488">
+      <path d="M 0.03,419.528 L 595.276,419.528 L 595.276,0.03 L 0.03,0.03 L 0.03,419.528 z" id="aviva-mark-mono-path2490" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2476">
+      <path d="M 61.758,30.328 L 97.692,30.229 C 97.692,30.229 99.189,30.235 100.753,30.141 C 102.57,30.032 103.8,29.862 104.969,29.634 C 106.296,29.376 107.263,29.142 108.678,28.472 C 109.731,27.973 110.821,26.907 110.821,26.907 C 110.821,26.907 112.344,26.365 112.669,26.168 C 113.03,25.95 114.475,25.243 114.463,24.66 C 114.454,24.163 113.972,23.748 113.008,23.279 C 111.65,22.62 110.473,22.174 109.2,21.825 C 107.345,21.316 105.723,21.19 104.57,21.15 C 104.087,21.133 103.453,21.1 103.453,21.1 L 90.213,21.058 L 90.162,19.823 L 90.102,19.731 L 89.744,19.458 L 89.662,19.408 C 89.662,19.408 87.825,19.138 86.35,19.132 C 85.236,19.127 84.081,19.237 84.081,19.237 C 84.081,19.237 83.163,19.116 82.359,19.221 C 81.431,19.342 81.125,19.477 81.125,19.477 L 81.087,19.553 L 81.429,19.921 L 81.426,20.358 L 80.812,20.355 L 80.818,20.19 L 80.011,20.491 L 79.15,20.615 L 71.314,20.732 L 69.719,20.985 L 68.947,21.023 C 68.947,21.023 65.909,21.106 64.681,21.169 C 63.453,21.233 61.373,21.444 60.117,21.619 C 57.77,21.946 53.509,22.772 49.009,23.976 C 45.951,24.794 40.687,26.918 40.248,27.283 C 40.172,27.347 40.084,27.816 40.084,27.816 L 39.615,28.475 L 39.527,29.083 L 39.388,29.134 L 36.615,29.957 C 36.615,29.957 37.615,30.135 37.982,30.173 C 38.35,30.211 38.97,30.236 39.096,30.223 C 39.223,30.211 41.299,29.894 41.299,29.894 L 36.97,46.78 L 39.539,46.773 C 39.539,46.773 39.957,46.773 40.223,46.731 C 40.462,46.694 40.547,46.618 40.628,46.564 C 40.799,46.45 49.394,36.112 49.394,36.112 C 49.394,36.112 50.634,34.49 51.685,33.737 C 51.957,33.541 52.767,32.922 53.994,32.505 C 55.108,32.127 56.52,31.795 57.775,31.455 C 59.696,30.935 61.299,30.481 61.299,30.481 L 61.476,30.36 L 61.758,30.328" id="aviva-mark-mono-path2478" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2468">
+      <path d="M 127.276,47.369 L 27.354,47.369 L 27.354,18.426 L 127.276,18.426 L 127.276,47.369 z" id="aviva-mark-mono-path2470" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2458">
+      <path d="M 0.03,419.528 L 595.276,419.528 L 595.276,0.03 L 0.03,0.03 L 0.03,419.528 z" id="aviva-mark-mono-path2460" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath2440">
+      <path d="M 0.03,419.528 L 595.276,419.528 L 595.276,0.03 L 0.03,0.03 L 0.03,419.528 z" id="aviva-mark-mono-path2442" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3487">
+      <path d="M 471.968,44.595 L 574.293,44.595 L 574.293,62.362 L 471.968,62.362 L 471.968,44.595 z" id="aviva-mark-mono-path3489" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3389">
+      <path d="M 181.417,13.621 L 246.06,13.621 L 246.06,30.308 L 181.417,30.308 L 181.417,13.621 z" id="aviva-mark-mono-path3391" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3347">
+      <path d="M 398.741,42.377 L 432.725,42.377 L 432.725,66.143 L 398.741,66.143 L 398.741,42.377 z" id="aviva-mark-mono-path3349" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3287">
+      <path d="M 442.205,12.323 L 525.995,12.323 L 525.995,38.67 L 442.205,38.67 L 442.205,12.323 z" id="aviva-mark-mono-path3289" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3231">
+      <path d="M 302.791,15.623 L 375.591,15.623 L 375.591,31.725 L 302.791,31.725 L 302.791,15.623 z" id="aviva-mark-mono-path3233" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3197">
+      <path d="M 312.52,46.551 L 356.049,46.551 L 356.049,64.323 L 312.52,64.323 L 312.52,46.551 z" id="aviva-mark-mono-path3199" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3149">
+      <path d="M 201.26,49.639 L 280.113,49.639 L 280.113,63.615 L 201.26,63.615 L 201.26,49.639 z" id="aviva-mark-mono-path3151" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3137">
+      <path d="M 106.095,50.283 L 169.913,50.283 L 169.913,61.489 L 106.095,61.489 L 106.095,50.283 z" id="aviva-mark-mono-path3139" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3101">
+      <path d="M 64.168,12.938 L 124.725,12.938 L 124.725,29.251 L 64.168,29.251 L 64.168,12.938 z" id="aviva-mark-mono-path3103" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3093">
+      <path d="M 21.968,49.299 L 75.578,49.299 L 75.578,62.362 L 21.968,62.362 L 21.968,49.299 z" id="aviva-mark-mono-path3095" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3085">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path3087" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath3077">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path3079" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4152">
+      <path d="M 0,251.856 L 0,0 L 352.037,0 L 352.037,251.856" id="aviva-mark-mono-path4154" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4273">
+      <path d="M 0.06,1191 L 842.1,1191 L 842.1,0 L 0.06,0 L 0.06,1191 z" id="aviva-mark-mono-path4275" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4265">
+      <path d="M 0,1192 L 844,1192 L 844,-1 L 0,-1 L 0,1192 z" id="aviva-mark-mono-path4267" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4257">
+      <path d="M 24.83,527.77 L 127.09,527.77 L 127.09,320.14 L 24.83,320.14 L 24.83,527.77 z" id="aviva-mark-mono-path4259" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4848">
+      <path d="M 0.06,623.1 L 566.1,623.1 L 566.1,0.06 L 0.06,0.06 L 0.06,623.1 z" id="aviva-mark-mono-path4850" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4840">
+      <path d="M -1,624 L 568,624 L 568,-2 L -1,-2 L -1,624 z" id="aviva-mark-mono-path4842" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5783">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5785" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5771">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5773" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5759">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5761" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5747">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5749" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5735">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5737" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5723">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5725" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5713">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5715" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5703">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5705" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5691">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5693" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5679">
+      <path d="M 36.016,141.622 L 190.865,141.622 L 190.865,199.843 L 36.016,199.843 L 36.016,141.622 z" id="aviva-mark-mono-path5681" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5671">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5673" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5639">
+      <path d="M 346.948,125.014 L 373.405,125.014 L 373.405,153.36 L 346.948,153.36 L 346.948,125.014 z" id="aviva-mark-mono-path5641" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5623">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5625" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5591">
+      <path d="M 242.627,135.785 L 282.041,135.785 L 282.041,158.462 L 242.627,158.462 L 242.627,135.785 z" id="aviva-mark-mono-path5593" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5583">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5585" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5575">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5577" />
+    </clipPath>
+    <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="aviva-mark-mono-radialGradient5561" gradientUnits="userSpaceOnUse" gradientTransform="matrix(4.6415558,0,0,-4.5469971,58.946869,195.88564)" spreadMethod="pad">
+      <stop id="aviva-mark-mono-stop5563" offset="0" stop-color="#F6F8E7" stop-opacity="1" />
+      <stop id="aviva-mark-mono-stop5565" offset="0.70223999" stop-color="#68933A" stop-opacity="1" />
+      <stop id="aviva-mark-mono-stop5567" offset="1" stop-color="#003F20" stop-opacity="1" />
+    </radialGradient>
+    <clipPath id="aviva-mark-mono-clipPath5521">
+      <path d="M 28.346,184.352 L 75.433,184.352 L 75.433,207.028 L 28.346,207.028 L 28.346,184.352 z" id="aviva-mark-mono-path5523" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5513">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5515" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5449">
+      <path d="M 451.27,266.132 L 495.766,266.132 L 495.766,286.457 L 451.27,286.457 L 451.27,266.132 z" id="aviva-mark-mono-path5451" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5377">
+      <path d="M 451.27,286.973 L 489.426,286.973 L 489.426,309.65 L 451.27,309.65 L 451.27,286.973 z" id="aviva-mark-mono-path5379" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5369">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5371" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5317">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5319" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5257">
+      <path d="M 242.627,280.59 L 294.123,280.59 L 294.123,309.65 L 242.627,309.65 L 242.627,280.59 z" id="aviva-mark-mono-path5259" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5249">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5251" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5225">
+      <path d="M 28.346,286.973 L 62.782,286.973 L 62.782,309.65 L 28.346,309.65 L 28.346,286.973 z" id="aviva-mark-mono-path5227" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5209">
+      <path d="M 30.691,289.407 L 60.438,289.407 L 60.438,307.216 L 30.691,307.216 L 30.691,289.407 z" id="aviva-mark-mono-path5211" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5193">
+      <path d="M 28.346,286.973 L 62.782,286.973 L 62.782,309.65 L 28.346,309.65 L 28.346,286.973 z" id="aviva-mark-mono-path5195" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5177">
+      <path d="M 30.691,289.407 L 60.438,289.407 L 60.438,307.216 L 30.691,307.216 L 30.691,289.407 z" id="aviva-mark-mono-path5179" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5165">
+      <path d="M 28.346,286.973 L 62.782,286.973 L 62.782,309.65 L 28.346,309.65 L 28.346,286.973 z" id="aviva-mark-mono-path5167" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5153">
+      <path d="M 30.691,289.407 L 60.438,289.407 L 60.438,307.216 L 30.691,307.216 L 30.691,289.407 z" id="aviva-mark-mono-path5155" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5145">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5147" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5133">
+      <path d="M 451.27,379.487 L 480.561,379.487 L 480.561,402.164 L 451.27,402.164 L 451.27,379.487 z" id="aviva-mark-mono-path5135" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5121">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5123" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5081">
+      <path d="M 346.948,381.318 L 383.87,381.318 L 383.87,400.333 L 346.948,400.333 L 346.948,381.318 z" id="aviva-mark-mono-path5083" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5073">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path5075" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5019">
+      <path d="M 132.667,379.487 L 183.691,379.487 L 183.691,402.164 L 132.667,402.164 L 132.667,379.487 z" id="aviva-mark-mono-path5021" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath5003">
+      <path d="M 133.178,382.707 L 183.179,382.707 L 183.179,398.945 L 133.178,398.945 L 133.178,382.707 z" id="aviva-mark-mono-path5005" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4991">
+      <path d="M 132.667,379.487 L 183.691,379.487 L 183.691,402.164 L 132.667,402.164 L 132.667,379.487 z" id="aviva-mark-mono-path4993" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4975">
+      <path d="M 133.178,382.707 L 183.179,382.707 L 183.179,398.945 L 133.178,398.945 L 133.178,382.707 z" id="aviva-mark-mono-path4977" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4967">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path4969" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4903">
+      <path d="M 28.346,379.487 L 65.197,379.487 L 65.197,402.164 L 28.346,402.164 L 28.346,379.487 z" id="aviva-mark-mono-path4905" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4891">
+      <path d="M 28.533,380.917 L 65.011,380.917 L 65.011,400.735 L 28.533,400.735 L 28.533,380.917 z" id="aviva-mark-mono-path4893" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath4883">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path4885" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6374">
+      <path d="M 0,1191.12 L 841.92,1191.12 L 841.92,0 L 0,0 L 0,1191.12 z" id="aviva-mark-mono-path6376" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6366">
+      <path d="M -0.003,1191.296 L 841.697,1191.296 L 841.697,-0.004 L -0.003,-0.004 L -0.003,1191.296 z" id="aviva-mark-mono-path6368" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6352">
+      <path d="M 421.17,1173.721 L 604.282,1173.721 L 604.282,600.13 L 421.17,600.13 L 421.17,1173.721 z" id="aviva-mark-mono-path6354" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6342">
+      <path d="M 0,1191.12 L 841.92,1191.12 L 841.92,0 L 0,0 L 0,1191.12 z" id="aviva-mark-mono-path6344" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6334">
+      <path d="M -0.003,1191.296 L 841.697,1191.296 L 841.697,-0.004 L -0.003,-0.004 L -0.003,1191.296 z" id="aviva-mark-mono-path6336" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6278">
+      <path d="M 0,1191.12 L 841.92,1191.12 L 841.92,0 L 0,0 L 0,1191.12 z" id="aviva-mark-mono-path6280" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6270">
+      <path d="M -0.003,1191.296 L 841.697,1191.296 L 841.697,-0.004 L -0.003,-0.004 L -0.003,1191.296 z" id="aviva-mark-mono-path6272" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6262">
+      <path d="M 54.385,555.167 L 121.103,555.167 L 121.103,411.774 L 54.385,411.774 L 54.385,555.167 z" id="aviva-mark-mono-path6264" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6956">
+      <path d="M 0.06,1190.52 L 595.38,1190.52 L 595.38,0 L 0.06,0 L 0.06,1190.52 z" id="aviva-mark-mono-path6958" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6948">
+      <path d="M 595.276,0 L 0,0 L 0,595.276 L 595.276,595.276 L 595.276,0 z" id="aviva-mark-mono-path6950" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath6940">
+      <path d="M 605.279,0 L -5,0 L -5,604.275 L 605.279,604.275 L 605.279,0 z" id="aviva-mark-mono-path6942" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7164">
+      <path d="M 0,1 L 0,0 L 1,0 L 1,1" id="aviva-mark-mono-path7166" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7156">
+      <path d="M -0.89647,-11.4754 L 8.41028,-11.4754 L 8.41028,1.53467 L -0.89647,1.53467 L -0.89647,-11.4754 z" id="aviva-mark-mono-path7158" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7146">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path7148" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7136">
+      <path d="M 52.52,734.979 L 134.4,734.979 L 134.4,812.49 L 52.52,812.49 L 52.52,734.979 z" id="aviva-mark-mono-path7138" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7128">
+      <path d="M 32768,32768 L -32768,32768 L -32768,-32768 L 32768,-32768 L 32768,32768 z" id="aviva-mark-mono-path7130" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7118">
+      <path d="M -32712.1,-32572.9 L -7799.12,-32572.9 L -7799.12,12604.1 L -32712.1,12604.1 L -32712.1,-32572.9 z" id="aviva-mark-mono-path7120" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7108">
+      <path d="M 56.693,195.591 L 561.26,195.591 L 561.26,517.964 L 56.693,517.964 L 56.693,195.591 z" id="aviva-mark-mono-path7110" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7072">
+      <path d="M 0,1 L 0,-0.0057 L 1.0085,-0.0057 L 1.0085,1" id="aviva-mark-mono-path7074" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7064">
+      <path d="M -3.50126,-40.6931 L 1.2728,-40.6931 L 1.2728,2.77102 L -3.50126,2.77102 L -3.50126,-40.6931 z" id="aviva-mark-mono-path7066" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7054">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path7056" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7044">
+      <path d="M 436.535,788.216 L 561.26,788.216 L 561.26,807.874 L 436.535,807.874 L 436.535,788.216 z" id="aviva-mark-mono-path7046" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7032">
+      <path d="M 0,0.89 L 595,0.89 L 595,841.89 L 0,841.89 L 0,0.89 z" id="aviva-mark-mono-path7034" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7965">
+      <path d="M 401.237,68.723 L 287.866,68.723 L 287.866,17.371 L 401.237,17.371 L 401.237,68.723 z" id="aviva-mark-mono-path7967" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7955">
+      <path d="M 0,595.32 L 420.96,595.32 L 420.96,0 L 0,0 L 0,595.32 z" id="aviva-mark-mono-path7957" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath7947">
+      <path d="M -0.472,595.138 L 420.472,595.138 L 420.472,-0.138 L -0.472,-0.138 L -0.472,595.138 z" id="aviva-mark-mono-path7949" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath8193">
+      <path d="M 0,0 L 0,-1 L 1,-1 L 1,0 L 0,0 z" id="aviva-mark-mono-path8195" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath8185">
+      <path d="M -572.576,-24.695 L -572.576,4.255 L -459.176,4.255 L -459.176,-24.695 L -572.576,-24.695 z" id="aviva-mark-mono-path8187" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath8171">
+      <path d="M 0,0 L 595.276,0 L 595.276,841.89 L 0,841.89 L 0,0 z" id="aviva-mark-mono-path8173" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath8534">
+      <path d="M 20.002,888.998 L 642.997,888.998 L 642.997,18.998 L 20.002,18.998 L 20.002,888.998 z" id="aviva-mark-mono-path8536" />
+    </clipPath>
+    <clipPath id="aviva-mark-mono-clipPath8526">
+      <path d="M 34.28,883.5 L 638.06,883.5 L 638.06,24.61 L 34.28,24.61 L 34.28,883.5 z" id="aviva-mark-mono-path8528" />
+    </clipPath>
+  </defs>
+  <g transform="translate(-4091.9315,273.18985)" id="aviva-mark-mono-layer1">
+    <g transform="translate(35.433036,35.366669)" id="aviva-mark-mono-g8694">
+      <path d="M 4653.1208,34.676459 L 4623.1949,-273.14755 L 4592.8461,39.783948 C 4612.5147,37.626748 4632.6062,35.913677 4653.1208,34.676459" id="aviva-mark-mono-path8540" fill="#FCCA12" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4726.1907,32.413514 L 4726.2964,-273.14755 L 4623.1949,-273.18985 L 4623.1949,-273.14755 L 4653.1208,34.676459 C 4677.0192,33.217177 4701.4463,32.455812 4726.1907,32.413514" id="aviva-mark-mono-path8544" fill="#59C247" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4592.8461,39.783948 L 4623.1949,-273.14755 L 4623.1949,-273.18985 L 4353.7564,-273.14755 L 4353.8621,98.44076 C 4417.2035,70.703818 4499.5789,50.072947 4592.8461,39.783948" id="aviva-mark-mono-path8548" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4500.4249,179.156 C 4504.1259,179.82219 4517.4498,183.71361 4517.4498,193.15665 L 4517.4498,344.54135 L 4562.4972,344.54135 L 4562.4972,173.763 L 4500.4249,173.763 L 4500.4249,179.156" id="aviva-mark-mono-path8552" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4146.6017,173.763 L 4146.6017,179.156 C 4151.9947,180.28747 4163.8382,183.5973 4159.0796,194.24583 L 4091.9315,344.54135 L 4127.3561,344.54135 L 4148.3994,297.69627 L 4222.7382,297.69627 L 4241.1378,344.54135 L 4287.7714,344.54135 L 4221.152,173.763 L 4146.6017,173.763 z M 4157.9164,276.4838 L 4188.0538,209.28278 L 4214.4901,276.4838 L 4157.9164,276.4838" id="aviva-mark-mono-path8556" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4836.5886,173.763 L 4836.5886,179.156 C 4841.9816,180.28747 4853.825,183.5973 4849.0665,194.24583 L 4781.9183,344.54135 L 4817.3429,344.54135 L 4838.3862,297.69627 L 4912.725,297.69627 L 4931.1247,344.54135 L 4977.7583,344.54135 L 4911.1389,173.763 L 4836.5886,173.763 z M 4847.9033,276.4838 L 4878.0406,209.28278 L 4904.3712,276.4838 L 4847.9033,276.4838" id="aviva-mark-mono-path8560" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4716.8851,344.54135 L 4788.0515,173.763 L 4754.3189,173.763 L 4702.1865,298.99693 L 4652.4863,173.763 L 4589.2507,173.763 L 4589.2507,179.156 C 4596.5472,180.56241 4604.7953,183.71361 4608.4964,193.15665 L 4668.5596,344.54135 L 4716.8851,344.54135" id="aviva-mark-mono-path8564" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+      <path d="M 4404.937,344.54135 L 4476.1035,173.763 L 4442.3708,173.763 L 4390.2385,298.99693 L 4340.5382,173.763 L 4277.3027,173.763 L 4277.3027,179.156 C 4284.5991,180.56241 4292.8472,183.71361 4296.5483,193.15665 L 4356.6115,344.54135 L 4404.937,344.54135" id="aviva-mark-mono-path8568" fill="#176FC1" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+  </g>
+</g></svg></g></svg>

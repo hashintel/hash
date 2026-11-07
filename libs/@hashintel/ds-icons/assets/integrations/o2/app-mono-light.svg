@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="o2-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="o2-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="o2-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#o2-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#o2-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#o2-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="o2-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302236122493 -1.01674165008 -0.102640865682 0 1.42161863826" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#o2-app-mono-light-mono)"><defs><clipPath id="o2-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#o2-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.83 22.92" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill-rule="evenodd" d="M0 9.642c0-2.811.862-5.121 2.586-6.93C4.311.904 6.58 0 9.392 0c2.779 0 5.03.904 6.755 2.712 1.724 1.808 2.586 4.118 2.586 6.93 0 2.679-.879 4.956-2.636 6.83-1.758 1.876-3.993 2.813-6.705 2.813-2.746 0-4.997-.937-6.755-2.812C.879 14.598 0 12.321 0 9.643Zm3.616 0c0 1.842.494 3.45 1.482 4.822.987 1.373 2.419 2.059 4.294 2.059 1.841 0 3.256-.686 4.244-2.06.987-1.372 1.481-2.98 1.481-4.82 0-1.842-.519-3.45-1.557-4.822-1.038-1.372-2.427-2.06-4.168-2.06s-3.14.687-4.194 2.06c-1.055 1.373-1.582 2.98-1.582 4.821zm20.19 13.26h-5.424v-1.407l.628-.552c.418-.369.744-.678.979-.93.234-.25.519-.577.854-.979a7.17 7.17 0 0 0 .778-1.105c.184-.335.276-.653.276-.954a.955.955 0 0 0-.401-.804 1.47 1.47 0 0 0-.904-.3c-.603 0-1.24.217-1.909.652l-.1-1.356a5.314 5.314 0 0 1 2.41-.552c1.708 0 2.562.786 2.562 2.36 0 .536-.201 1.122-.603 1.758-.402.636-.737 1.096-1.004 1.381a83.37 83.37 0 0 1-1.457 1.482h3.315z" fill="#0050FF" fill-opacity="1" /></svg></g></g></svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="flutter-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.1435"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#flutter-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 317" fill="#02569B" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    <linearGradient x1="4%" y1="27%" x2="75.9%" y2="52.9%" id="flutter-mark-mono-a">
+      <stop offset="0%" />
+      <stop stop-opacity="0" offset="100%" />
+    </linearGradient>
+  </defs>
+  <path fill="#47C5FB" d="M158 0 0 158l49 48L255 0zM157 145l-85 85 49 50 49-49 85-86z" />
+  <path fill="#00569E" d="m121 280 37 37h97l-85-86z" />
+  <path fill="#00B5F8" d="m72 230 48-48 50 49-49 49z" />
+  <path fill-opacity=".8" fill="url(#flutter-mark-mono-a)" d="m121 280 41-14 4-31z" />
+</svg></g></svg>

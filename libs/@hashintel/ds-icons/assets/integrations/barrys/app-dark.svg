@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="barrys-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="barrys-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="barrys-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#barrys-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#barrys-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#barrys-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="barrys-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#barrys-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="20.1006 0 58.8994 12.16348" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M20.1006 11.7141V0.440191H26.4106L27.9208 1.97928V5.07645L26.7937 6.07717L27.9208 7.07789V10.1909L26.4106 11.7141H20.1006ZM22.2852 5.04161H25.7362V2.56831H22.2852V5.04161ZM22.2852 9.5892H25.7362V7.11589H22.2852V9.5892ZM30.0484 6.26718V3.42019L33.9142 0L35.4972 1.43141L33.2303 3.46769L30.0484 6.26718ZM33.2335 8.08495L30.0484 10.8844V8.05328L33.9142 4.63309L35.4972 6.0645L33.2335 8.08495ZM35.3959 10.3334L34.4936 11.0016L34.826 12.1005L33.9237 11.4323L32.9897 12.0973L33.3538 10.9984L32.4356 10.3302H33.5754L33.9237 9.24718L34.272 10.3302H35.3959V10.3334ZM35.6492 1.57392L37.7578 3.46769L37.7736 6.31468L34.0472 3.00533L35.6492 1.57392ZM37.7547 8.10078V10.9319L34.0472 7.65426L35.646 6.22284L37.7547 8.10078ZM46.1543 7.2679L47.6961 11.7141H45.4862L44.0995 7.39774H42.127V11.711H39.9424V0.437024H46.1068L47.6487 1.97611V5.73832L46.1543 7.2679ZM45.4609 2.56831H42.127V5.32979H45.4609V2.56831ZM56.0039 7.2679L57.53 11.7141H55.3359L53.9365 7.40091H51.964V11.7141H49.7794V0.440191H55.9406L57.4825 1.97928V5.74148L56.0039 7.2679ZM55.2947 2.56831H51.9577V5.32979H55.2947V2.56831ZM62.0828 7.28373L58.6445 0.440191H60.9557L63.1561 4.80726L65.3724 0.440191H67.7153L64.2674 7.25207V11.7141H62.0828V7.28373ZM69.3806 2.9705H67.8736L69.1273 0.440191H70.8402L69.3806 2.9705ZM72.8095 11.7141L71.2834 10.1877V8.14828H73.525V9.58603H76.8051V7.53392L72.5562 6.5807L71.2834 5.21262V1.98244L72.8095 0.440191H77.4478L78.9897 1.98244V3.94905H76.8051V2.56831H73.468V4.63626L77.7328 5.60531L78.9897 6.94172V10.1846L77.4478 11.711H72.8095V11.7141Z" fill="#F5F7FA" />
+</svg></g></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="daily-mail-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="daily-mail-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="daily-mail-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#daily-mail-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#daily-mail-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#daily-mail-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="daily-mail-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#daily-mail-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29.61857 22" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M18.3817 13.4933V17.522C18.3817 17.9071 18.4112 18.0058 18.6676 18.1243L19.0619 18.3119V13.4883H18.3817V13.4933ZM18.3817 3.64856V9.37567H19.0619V3.45108C18.9485 3.41158 18.8549 3.39183 18.7908 3.39183C18.5591 3.39183 18.4458 3.51032 18.3767 3.64856H18.3817ZM9.37117 18.3416V3.45601C9.25287 3.41652 9.15922 3.39183 9.10007 3.39183C8.8684 3.39183 8.7501 3.51032 8.68602 3.64856V17.522C8.68602 17.9071 8.72052 17.991 8.97191 18.1243L9.37117 18.3416ZM9.70142 13.4933V18.5193L10.7464 19.0871C11.0422 19.2599 10.9731 19.4475 10.7858 19.5857C9.74578 20.3609 8.76488 21.1261 7.71497 21.9901C5.9109 21.2002 3.55969 20.2226 1.75562 19.5413C1.45494 19.4228 1.42537 19.2302 1.6669 19.0574L2.86961 18.2033V5.25314C2.86961 4.86804 2.83511 4.78411 2.58372 4.65081L0.202937 3.36221C-0.097741 3.19928 -0.0238008 3.0018 0.163507 2.86355C1.20356 2.08842 2.79074 0.868941 3.84558 0C5.60529 0.893627 7.30093 1.68357 8.92755 2.35503C10.2239 1.6737 11.5794 0.908438 12.9596 0C14.6109 0.982495 16.4692 1.96499 18.0021 2.69075C19.4316 1.886 20.9744 0.977558 22.4433 0C24.2868 1.05655 26.638 2.2316 28.3484 2.99686C28.6442 3.13016 28.6491 3.27828 28.4322 3.4807L28.0822 3.79174V15.7841C28.0822 17.6158 28.4076 18.3267 29.3885 18.697C29.6448 18.7958 29.6399 19.0031 29.4575 19.1315C28.4076 19.8918 26.8302 21.057 25.5782 22C22.8278 21.4026 22.2658 20.0301 22.2658 16.8555V5.57406C22.2658 5.18896 22.2215 5.11984 21.98 4.96679C21.423 4.61625 20.1808 3.91517 19.3971 3.57944V9.37074H21.906L19.3971 13.4439V18.465L20.7181 19.0871C21.0286 19.2352 20.9498 19.4524 20.7575 19.5857C19.7175 20.3016 18.5788 21.1212 17.4156 21.9901C15.5573 21.1064 13.6004 20.272 11.7421 19.5413C11.4414 19.4228 11.4414 19.2599 11.6583 19.0574L12.5751 18.2033V13.4883H9.71128L9.70142 13.4933ZM9.70142 3.58438V12.6046L11.7372 9.37567H12.5653V5.57899C12.5653 5.1939 12.5209 5.12478 12.2794 4.97172C11.7224 4.62118 10.4802 3.92011 9.70142 3.58438Z" fill="#F5F7FA" />
+</svg></g></svg>

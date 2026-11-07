@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="daikin-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="daikin-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="daikin-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#daikin-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#daikin-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#daikin-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="daikin-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#daikin-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="daikin-app-light-svg53084" viewBox="0.49773 0.52858 68.65951 63.28264" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="daikin-app-light-defs53086" />
+  <g transform="translate(-393.36411,-761.77017)" id="daikin-app-light-layer1">
+    <g transform="matrix(1.812145,0,0,-1.812145,462.23619,762.77017)" id="daikin-app-light-g53028">
+      <path id="daikin-app-light-path53030" d="m 0,0 -37.453,0 0,-34.554 L 0,0" fill="#44C8F5" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,428.29471,762.77017)" id="daikin-app-light-g53032">
+      <path id="daikin-app-light-path53034" d="m 0,0 -18.724,0 0,-17.285 L 0,0" fill="#231F20" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+    </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,557.00956,776.36126)" id="daikin-app-light-g53036">
+      </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,521.25957,796.89105)" id="daikin-app-light-g53040">
+      </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,628.49506,776.36126)" id="daikin-app-light-g53044">
+      </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,621.50018,776.36126)" id="daikin-app-light-g53048">
+      </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,486.6186,792.45854)" id="daikin-app-light-g53052">
+      </g>
+    <g transform="matrix(1.812145,0,0,-1.812145,681.52929,776.35582)" id="daikin-app-light-g53056">
+      </g>
+  </g>
+</svg></g></svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tudor-investment-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="tudor-investment-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tudor-investment-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tudor-investment-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tudor-investment-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tudor-investment-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="tudor-investment-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tudor-investment-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05635 -0.05635 50.11272 50.11272" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g clip-path="url(#tudor-investment-app-light-clip0_387_11)">
+<path d="M25.0014 50.0028C38.8093 50.0028 50.0028 38.8093 50.0028 25.0014C50.0028 11.1935 38.8093 0 25.0014 0C11.1935 0 0 11.1935 0 25.0014C0 38.8093 11.1935 50.0028 25.0014 50.0028Z" fill="#2E4970" />
+<path d="M39.2152 21.4556H40.4899V9.51013H9.51025V21.4556H10.785C10.785 21.4556 12.4771 13.2758 19.9834 11.1383V38.8617C12.4771 36.7242 10.785 28.5444 10.785 28.5444H9.51025V40.4898H40.4899V28.5444H39.2152C39.2152 28.5444 37.5231 36.7242 30.0168 38.8617V11.1383C37.5231 13.2758 39.2152 21.4556 39.2152 21.4556Z" fill="white" />
+</g>
+<defs>
+<clipPath id="tudor-investment-app-light-clip0_387_11">
+<rect width="50" height="50" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

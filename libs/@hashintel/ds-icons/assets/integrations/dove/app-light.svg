@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dove-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="dove-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="dove-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dove-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dove-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#dove-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="dove-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#dove-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="dove-app-light-Layer_1" x="14.222222222222221" y="14.222222222222221" viewBox="62.1913 114.60119 96.76971 46.46635" xml:space="preserve" fill="#111111" width="35.55555555555556" height="35.55555555555556">
+<path d="M111.8,117.9c-14.6,8.9-24.5,13-35,12.7l-0.7-0.1c-0.1,0-0.5-0.1-0.6,0.1C75.3,131,77,132,77,132  c0.7,0.5,8.5,5.2,18.4,6.7c5.3,0.8,9,0.7,11.5,0.2c2.3-0.5,2.4-0.2,2.6,0c0.2,0.3,0.2,0.9-1.6,1.6c-2.6,1-5,1.5-7.8,1.9  c-11.1,1.6-27.4-0.1-34-1.6c-1.6-0.4-2.8-0.6-3.3-0.7h-0.4c-0.1,0-0.2,0.1-0.1,0.3c0.1,0.2,0.7,0.6,0.8,0.7  c65.8,43.5,80.9,3.2,85.3-4.7s6.4-9.7,9.5-10.6c0.5-0.2,1-0.2,1-0.6c0-0.2-0.5-0.4-0.5-0.4l-2-1.4c-7-5.5-13.5-1.8-19.4,4.5  s-7.4,5.6-6,3.4c6.1-9-0.5-13.9-0.5-13.9c-1.9-1.7-4.7-2.7-8.1-2.7C119.2,114.7,115.5,115.7,111.8,117.9" fill="#B79A34" />
+</svg></g></svg>

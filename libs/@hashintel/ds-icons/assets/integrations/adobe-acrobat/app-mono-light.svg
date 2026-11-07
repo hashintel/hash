@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-acrobat-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-acrobat-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-acrobat-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-acrobat-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-acrobat-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-acrobat-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="adobe-acrobat-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#adobe-acrobat-app-mono-light-mono)"><defs><clipPath id="adobe-acrobat-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-acrobat-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 256 256" xml:space="preserve" enable-background="new 0 0 256 256" color="black" width="35.55555555555556" height="35.55555555555556">
+<g>
+	<path d="M45.5,3.2h165.1c24.7,0,45.5,19.9,45.5,45.5v158.7c0,24.7-19.9,45.5-45.5,45.5H45.5   C20.7,252.8,0,232.9,0,207.4V48.6C0,23.1,19.9,3.2,45.5,3.2z" fill="#000000" />
+	<path d="M204.2,147.5c-12-12.8-44.7-7.2-52.6-6.4c-11.2-11.2-19.1-23.9-22.3-28.7c4-12,7.2-25.5,7.2-38.3   c0-12-4.8-23.9-17.5-23.9c-4.8,0-8.8,2.4-11.2,6.4c-5.6,9.6-3.2,28.7,5.6,48.6c-4.8,14.4-12.8,35.9-22.3,52.6   c-12.8,4.8-40.7,17.5-43.1,31.9c-0.8,4,0.8,8.8,4,11.2c3.2,3.2,7.2,4,11.2,4c16.7,0,33.5-23.1,45.5-43.9c9.6-3.2,24.7-8,39.9-10.4   c17.5,16,33.5,18.3,41.5,18.3c11.2,0,15.2-4.8,16.7-8.8C208.9,156.3,207.4,150.7,204.2,147.5z M193,155.5c-0.8,3.2-4.8,6.4-12,4.8   c-8.8-2.4-16.7-6.4-23.1-12c5.6-0.8,19.1-2.4,28.7-0.8C189.8,148.3,193.8,150.7,193,155.5z M115.6,59.8c0.8-1.6,2.4-2.4,4-2.4   c4,0,4.8,4.8,4.8,8.8c-0.8,9.6-2.4,19.9-5.6,28.7C112.4,77.4,113.2,64.6,115.6,59.8z M114.8,149.9c4-7.2,8.8-20.7,10.4-25.5   c4,7.2,11.2,15.2,14.4,19.1C140.4,142.8,126,145.9,114.8,149.9z M87.7,168.3C76.6,185.8,66.2,197,59.8,197c-0.8,0-2.4,0-3.2-0.8   c-0.8-1.6-1.6-3.2-0.8-4.8C56.6,185,69.4,176.2,87.7,168.3z" fill="#FFFFFF" />
+</g>
+</svg></g></g></svg>

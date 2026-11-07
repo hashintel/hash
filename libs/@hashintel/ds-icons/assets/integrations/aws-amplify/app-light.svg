@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aws-amplify-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="aws-amplify-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="aws-amplify-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aws-amplify-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aws-amplify-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#aws-amplify-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="aws-amplify-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#aws-amplify-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1.063333 23.12 18.443333" fill="#6B4BB4" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M14.3128 20.0394C14.3651 20.1298 14.4618 20.1855 14.5664 20.1855H16.8444C17.0698 20.1855 17.2107 19.942 17.098 19.7472L8.82308 5.44278C8.71037 5.24795 8.4286 5.24795 8.31589 5.44278L7.09981 7.54494C7.09518 7.55294 7.09518 7.56281 7.09981 7.57081L7.10128 7.57334C7.1106 7.58946 7.09894 7.60961 7.08029 7.60961C7.07163 7.60961 7.06363 7.61422 7.0593 7.62171L0.0396396 19.7616C-0.0730193 19.9565 0.0678714 20.2 0.293265 20.2H10.9633C11.1887 20.2 11.3296 19.9564 11.2169 19.7616L10.1254 17.8749C10.0731 17.7845 9.97646 17.7288 9.87184 17.7288H4.4145C4.3018 17.7288 4.23135 17.607 4.28771 17.5096L8.4417 10.3288C8.49805 10.2314 8.63894 10.2314 8.6953 10.3288L14.3128 20.0394Z" /><path d="M10.1282 2.30989C10.0759 2.40032 10.0759 2.51172 10.1282 2.60214L20.2155 20.0394C20.2678 20.1298 20.3645 20.1855 20.4691 20.1855H22.7412C22.9666 20.1855 23.1075 19.942 22.9948 19.7472L11.7715 0.346077C11.6588 0.151242 11.377 0.151243 11.2643 0.346077L10.1282 2.30989Z" /></svg></g></svg>

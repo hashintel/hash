@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="google-mail-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="google-mail-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="google-mail-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-mail-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#google-mail-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#google-mail-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="google-mail-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#google-mail-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 32 24" x="16.0" y="16.0" width="32.0" height="32.0">
+    <mask id="google-mail-app-dark-mask0_8474_23719" x="0" y="0" width="32" height="24" maskUnits="userSpaceOnUse" mask-type="luminance">
+      <path d="M31.8407 0H0V24H31.8407V0Z" fill="white" />
+    </mask>
+    <g mask="url(#google-mail-app-dark-mask0_8474_23719)">
+      <path d="M2.17096 24.0001H7.23654V11.6364L0 6.18188V21.8182C0 23.0255 0.973316 24.0001 2.17096 24.0001Z" fill="#4285F4" />
+      <path d="M24.6041 24.0001H29.6697C30.8711 24.0001 31.8407 23.0219 31.8407 21.8182V6.18188L24.6041 11.6364" fill="#34A853" />
+      <path d="M24.6041 2.1819V11.6364L31.8407 6.18191V3.27282C31.8407 0.574632 28.7761 -0.96355 26.6304 0.654631" fill="#FBBC04" />
+      <path d="M7.23657 11.6364V2.18188L15.9204 8.72733L24.6042 2.18188V11.6364L15.9204 18.1819" fill="#EA4335" />
+      <path d="M0 3.27282V6.18191L7.23654 11.6364V2.1819L5.21032 0.654631C3.06106 -0.96355 0 0.574632 0 3.27282Z" fill="#C5221F" />
+    </g>
+  </svg></g></svg>

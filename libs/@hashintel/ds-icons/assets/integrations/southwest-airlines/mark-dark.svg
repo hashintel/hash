@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.47657 24 23.04686" fill="#F5F7FA" x="0.0" y="0.0" width="64" height="64"><defs><linearGradient id="southwest-airlines-mark-dark-a" gradientUnits="userSpaceOnUse" x1="190.944" y1="10.52" x2="206.401" y2="10.52" gradientTransform="matrix(1.0253 0 0 -1.0253 -195.094 25.329)"><stop offset="0" stop-color="#3656cc" /><stop offset=".35" stop-color="#304cb2" /><stop offset=".72" stop-color="#283b80" /></linearGradient><linearGradient id="southwest-airlines-mark-dark-b" gradientUnits="userSpaceOnUse" x1="193.141" y1="22.73" x2="210.602" y2="10.504" gradientTransform="matrix(1.0253 0 0 -1.0253 -195.094 25.329)"><stop offset=".3" stop-color="#e61c23" /><stop offset=".8" stop-color="#c3161c" /></linearGradient><linearGradient id="southwest-airlines-mark-dark-c" gradientUnits="userSpaceOnUse" x1="203.964" y1="24.31" x2="213.947" y2="17.319" gradientTransform="matrix(1.0253 0 0 -1.0253 -195.094 25.329)"><stop offset="0" stop-color="#fdbc11" /><stop offset=".25" stop-color="#fcb415" /><stop offset=".8" stop-color="#f89e1c" /></linearGradient></defs><path d="M17.095.5c-2.08 0-3.756.725-5.095 1.487C10.66 1.225 8.988.5 6.906.5 2.746.5 0 3.217 0 7.86c0 5.664 5.408 11.197 12 15.64 6.593-4.444 12-9.975 12-15.64C24 3.218 21.255.5 17.095.5Z" fill="#cccccc" /><path d="M.679 7.96c0 5.79 6.106 11.177 11.321 14.743a47.887 47.887 0 0 0 4.527-3.502A854.24 854.24 0 0 0 .807 6.383 9.54 9.54 0 0 0 .68 7.96Z" fill="url(#southwest-airlines-mark-dark-a)" /><path d="M22.859 10.646c-5.007-4.13-8.038-6.231-11.29-8.182-.875-.53-2.634-1.302-4.605-1.302-1.889 0-3.475.587-4.568 1.732-.711.744-1.194 1.678-1.47 2.81A380.638 380.638 0 0 1 17.65 18.167c2.369-2.255 4.353-4.819 5.208-7.52z" fill="url(#southwest-airlines-mark-dark-b)" /><path d="M21.594 2.897c-1.077-1.121-2.655-1.725-4.47-1.725-1.949 0-3.433.63-4.468 1.191 1.942 1.081 6.161 3.526 10.532 6.746.068-.435.106-.872.106-1.31-.001-2.04-.597-3.748-1.7-4.902z" fill="url(#southwest-airlines-mark-dark-c)" /></svg></svg>

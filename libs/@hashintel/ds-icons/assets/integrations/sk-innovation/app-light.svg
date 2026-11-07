@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sk-innovation-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="sk-innovation-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sk-innovation-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sk-innovation-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sk-innovation-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#sk-innovation-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="sk-innovation-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#sk-innovation-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="58.26193 -0.13455 104.76575 84.2097" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#E1002A" d="M90.824,14.26c-4.334,0.818-10.76,4.752-10.739,11.709c0.017,6.317,5.182,10.146,5.198,18.424     c0.025,6.228-3.407,10.421-7.119,12.746c1.5-0.133,3.143-0.219,4.951-0.223c3.792-0.01,6.078,0.352,6.22,0.375l19.443-23.859     C103.378,25.348,97.072,19.075,90.824,14.26z" />
+			<path fill="#E1002A" d="M107.156,78.69c2.451-3.81,2.758-9.882,2.966-16.067c0.229-5.769,1.433-10.11,9.151-10.137     c1.71-0.006,3.339,0.229,6.289,0.221c11.306-0.05,18.688-3.943,23.28-6.498c-9.382-5.982-23.076-12.09-40.065-12.777     c-1.107,3.123-9.717,27.063-10.368,28.995c0.098,0.116,1.606,1.806,3.489,5.102C104.676,72.056,106.167,75.891,107.156,78.69z" />
+		<path fill="#EE7602" d="M66.089,59.136c-0.983,0.006-1.472-0.647-1.605-1.78c-0.125-1.125-4.988-45.612-5.712-52.345    c-0.105-0.983-0.349-2.788-0.352-3.431C58.418,0.543,59.093,0.002,59.889,0c2.304-0.009,14.86,2.932,28.185,12.271    c-3.839,1.083-10.784,5.076-10.752,13.344c0.025,7.318,5.265,11.346,5.292,18.688C82.654,56.243,68.931,59.131,66.089,59.136z" />
+		<path fill="#EE7602" d="M108.273,81.865c0.209,0.554,0.406,1.02,0.604,1.346c0.306,0.52,0.705,0.756,1.195,0.754    c0.31-0.004,0.69-0.107,1.11-0.297c1.027-0.472,41.626-19.372,47.749-22.197c0.888-0.426,2.57-1.178,3.125-1.503    c0.575-0.327,0.838-0.806,0.838-1.292c-0.002-0.272-0.082-0.547-0.236-0.797c-0.765-1.238-4.693-5.407-11.26-9.963    c-5.215,2.871-13.357,7.311-25.469,7.36c-2.968,0.003-3.64-0.196-5.667-0.188c-5.913,0.021-7.389,2.55-7.605,7.733    c-0.036,0.979-0.053,2.297-0.11,3.742C112.36,71.197,111.813,77.588,108.273,81.865z" />
+	</svg></g></svg>

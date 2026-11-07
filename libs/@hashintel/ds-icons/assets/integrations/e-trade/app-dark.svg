@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="e-trade-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="e-trade-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="e-trade-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#e-trade-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#e-trade-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#e-trade-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="e-trade-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#e-trade-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="25.95157 -0.03688 30.55143 29.5545" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="e-trade-app-dark-symbol-crop"><rect x="24.955000000000002" y="0.0" width="37.974999999999994" height="37.8" /></clipPath></defs><g clip-path="url(#e-trade-app-dark-symbol-crop)"><g clip-path="url(#e-trade-app-dark-clip0_8257_36350)" fill="none">
+<path d="M56.4401 17.87H46.6401L51.5401 26.36L46.1301 29.48L41.9501 22.25L46.2901 14.74L41.9501 7.23L46.1301 0L51.5401 3.13L46.6401 11.62H56.4401V17.87Z" fill="#0F8EC7" />
+<path d="M44.8401 14.74L36.3301 0L30.9101 3.13L35.8101 11.62H26.0101V17.87H35.8101L30.9101 26.36L36.3301 29.48L44.8401 14.74Z" fill="#8C66D9" />
+</g>
+<defs>
+<clipPath id="e-trade-app-dark-clip0_8257_36350">
+<rect width="217" height="54" fill="#000000" />
+</clipPath>
+</defs>
+</g></svg></g></svg>

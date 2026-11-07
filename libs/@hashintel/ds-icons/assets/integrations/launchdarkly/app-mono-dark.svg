@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="launchdarkly-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="launchdarkly-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="launchdarkly-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#launchdarkly-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#launchdarkly-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#launchdarkly-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="launchdarkly-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#launchdarkly-app-mono-dark-mono)"><defs><clipPath id="launchdarkly-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#launchdarkly-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-0.04225 -0.04225 39.08453 39.08453" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#111111" d="M19.843 39c-.3 0-.6-.172-.772-.474-.128-.302-.128-.603.086-.862l9.129-12.626-15.986 6.55c-.129.043-.214.086-.343.086-.386 0-.728-.258-.814-.603-.129-.345.043-.733.343-.948l14.057-8.318L.814 20.383C.3 20.34 0 19.953 0 19.522c0-.388.257-.82.814-.862l24.729-1.422L11.486 8.92c-.3-.215-.472-.603-.343-.948.128-.344.428-.603.814-.603.129 0 .214.043.343.086l15.986 6.55-9.129-12.67c-.171-.258-.214-.602-.086-.861C19.2.172 19.5 0 19.843 0c.214 0 .428.086.6.259l18.171 18.228c.257.259.386.647.386.992 0 .344-.129.689-.386.99L20.443 38.742a.84.84 0 0 1-.6.259" /></svg></g></g></svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21.6653 22" fill="none" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    <linearGradient id="hash-mark-dark-hash-logo-blue-gradient" x1="0" y1="22" x2="22" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0046FF" />
+      <stop offset="1" stop-color="#00BBFF" />
+    </linearGradient>
+  </defs>
+  <g>
+    <path opacity="0.886277" d="M12.1469 22H18.1792V0H12.1469V22Z" fill="url(#hash-mark-dark-hash-logo-blue-gradient)" />
+    <path opacity="0.898345" d="M3.48596 22H9.51789V0H3.48596V22Z" fill="url(#hash-mark-dark-hash-logo-blue-gradient)" />
+    <path opacity="0.881278" d="M0 9.42936H21.6653V3.30377H0V9.42936Z" fill="url(#hash-mark-dark-hash-logo-blue-gradient)" />
+    <path opacity="0.855632" d="M0 18.3815H21.6653V12.2563H0V18.3815Z" fill="url(#hash-mark-dark-hash-logo-blue-gradient)" />
+  </g>
+</svg></svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="scoot-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="scoot-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="scoot-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#scoot-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#scoot-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#scoot-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="scoot-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#scoot-app-mono-light-mono)"><defs><clipPath id="scoot-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#scoot-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3.69371 64 56.61257" fill="#000000" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#ffe900" d="M28.246 60.246c15.553 0 28.246-12.603 28.246-28.246 0-15.553-12.603-28.246-28.246-28.246C12.693 3.754 0 16.357 0 32c0 15.643 12.603 28.246 28.246 28.246" /><path fill="#000000" d="m59.53 22.257-3.128 2.146.536 2.234-2.632.702c-1.05-.912-2.463-1.507-4.25-1.507-4.29 0-6.346 3.397-6.346 6.257s2.056 6.257 6.346 6.257 6.346-3.396 6.346-6.257c0-.61-.085-1.219-.255-1.808l1.596-.426 2.146 8.76L64 37.631l-.09-2.413-1.162.269-1.608-6.437 2.86-.714-.714-3.22-2.862.716zm-45.764 3.575c-2.414 0-4.558 1.52-4.558 4.023 0 1.609 1.25 2.592 2.77 3.04 2.235.893 3.129.982 3.129 1.787 0 .536-.626.894-1.252.894-.179 0-1.162-.001-1.34-1.074H9.027c.357 3.129 3.04 3.933 4.827 3.933 2.592 0 4.827-1.519 4.827-4.111 0-2.503-2.145-3.128-4.111-3.664-.894-.269-1.788-.627-1.788-1.163 0-.358.268-.805.983-.805.983-.09 1.072.537 1.072.805h3.486c-.268-3.129-2.95-3.665-4.558-3.665zm10.993 0c-3.486 0-6.166 2.771-6.166 6.257a6.219 6.219 0 0 0 6.257 6.257c3.218 0 5.54-2.145 6.166-4.827h-3.575c-.358.715-1.072 1.61-2.502 1.61-1.698 0-2.77-1.252-2.77-2.95 0-.805.266-1.61.803-2.146.536-.537 1.252-.893 2.056-.803 1.252-.179 1.966.714 2.413 1.519h3.575c-.625-2.86-3.128-4.917-6.257-4.917zm12.514 0c-4.29 0-6.346 3.397-6.346 6.257s2.056 6.257 6.346 6.257 6.348-3.396 6.348-6.257c0-2.86-2.057-6.257-6.348-6.257zm0 3.307c1.52 0 2.862 1.252 2.862 2.95 0 1.699-1.253 2.95-2.862 2.95-1.52 0-2.86-1.251-2.86-2.95 0-1.698 1.251-2.95 2.86-2.95zm12.694 0c1.61 0 2.86 1.252 2.86 2.95 0 1.699-1.25 2.95-2.86 2.95-1.52 0-2.861-1.251-2.861-2.95 0-1.698 1.252-2.95 2.861-2.95z" /></svg></g></g></svg>

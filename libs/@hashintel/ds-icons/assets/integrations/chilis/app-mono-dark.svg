@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chilis-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="chilis-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="chilis-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chilis-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chilis-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#chilis-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="chilis-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.325101404917 -1.09366192284 -0.110406027446 0 1.52916935521" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#chilis-app-mono-dark-mono)"><defs><clipPath id="chilis-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#chilis-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.113 -0.103 76.401 50.206" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <path d="M69.1484 10.8897C69.2826 9.64569 68.7793 8.77152 68.2761 7.96459C67.1018 6.28348 66.4643 5.30844 66.6321 3.69458C66.867 1.34103 68.9135 -0.239206 71.3963 0.0297705C74.181 0.332369 76.5967 2.75316 76.127 7.29214C75.3889 14.2183 68.7122 19.3961 66.3972 19.1271C65.4578 19.0263 64.8875 18.2193 64.9546 17.3451C65.0217 16.6727 65.2901 16.3365 65.8604 15.7985C67.7057 13.9829 68.9807 12.5708 69.1484 10.8897V10.8897Z" fill="#5E9732" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M65.8602 24.0696C63.2432 21.5816 62.3709 22.0523 60.6598 16.8409C59.8211 14.2856 58.2777 11.2596 55.6608 10.3518C51.1314 8.8052 46.3672 12.2347 43.247 15.2606C39.9254 18.4884 38.5163 22.1868 29.9273 27.9698C27.5116 29.5837 24.6263 30.6596 21.808 31.1975C18.2516 31.87 15.2656 30.7941 11.7763 30.5251C5.16682 29.9535 0 32.4752 0 36.4426C0 40.41 10.0988 47.2016 18.5871 48.7483C29.4576 50.732 38.1808 50.1604 43.9851 48.412C54.4529 45.2179 60.1901 41.2169 65.055 36.3081C68.2759 33.0804 70.0876 28.1043 65.8602 24.0696V24.0696Z" fill="#EE3124" fill-rule="evenodd" clip-rule="evenodd" />
+  <path d="M32.6783 34.9632C30.4639 35.871 26.7733 35.9718 26.4714 34.6606C26.2701 33.7191 28.1489 34.1899 30.2291 32.9795C32.9467 31.4328 33.7854 30.6259 34.5236 31.332C35.463 32.2398 35.463 33.82 32.6783 34.9632V34.9632ZM48.38 24.5067C40.9653 30.2224 37.7109 32.7105 36.7044 30.1552C36.1676 28.7431 38.5161 27.8353 40.5627 25.8516C43.1461 23.3299 46.1992 19.3961 49.0511 17.0762C52.3726 14.3864 54.4527 15.1597 55.1909 16.7736C56.298 19.1608 52.5068 21.3126 48.38 24.5067V24.5067Z" fill="white" fill-rule="evenodd" clip-rule="evenodd" />
+  </svg></g></g></svg>

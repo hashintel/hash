@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="upstash-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="upstash-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="upstash-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#upstash-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#upstash-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#upstash-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="upstash-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.536419280341 -1.80454877375 -0.182170611668 0 2.52313866576" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#upstash-app-mono-dark-mono)"><defs><clipPath id="upstash-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#upstash-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.30879 -0.3698 256.61759 341.74014" preserveAspectRatio="xMidYMid" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g>
+        <path d="M0,298.416784 C56.5542815,354.970323 148.246768,354.970323 204.801032,298.416784 C261.354571,241.86252 261.354571,150.170106 204.801032,93.6158424 L179.200462,119.215688 C221.61634,161.631567 221.61634,230.401059 179.200462,272.816213 C136.785307,315.232092 68.0157428,315.232092 25.5998642,272.816213 L0,298.416784 Z" fill="#00C98D" />
+        <path d="M51.200362,247.216367 C79.4772765,275.493137 125.323122,275.493137 153.600615,247.216367 C181.877385,218.939598 181.877385,173.093028 153.600615,144.816259 L128.000769,170.416105 C142.139154,184.55449 142.139154,207.477412 128.000769,221.616521 C113.86166,235.754906 90.9387378,235.754906 76.800353,221.616521 L51.200362,247.216367 Z" fill="#00C98D" />
+        <path d="M256,42.415426 C199.445737,-14.1384753 107.753322,-14.1384753 51.1994207,42.415426 C-5.35485714,98.9696894 -5.35485714,190.662104 51.1994207,247.216367 L76.7989048,221.616521 C34.3841124,179.200643 34.3841124,110.431151 76.7989048,68.0159962 C119.214783,25.6001177 187.984275,25.6001177 230.39943,68.0159962 L256,42.415426 Z" fill="#00C98D" />
+        <path d="M204.800308,93.6158424 C176.523538,65.3390727 130.676245,65.3390727 102.399475,93.6158424 C74.1219813,121.893336 74.1219813,167.739181 102.399475,196.015951 L127.999321,170.416105 C113.860936,156.27772 113.860936,133.354797 127.999321,119.215688 C142.137706,105.077304 165.060629,105.077304 179.199738,119.215688 L204.800308,93.6158424 Z" fill="#00C98D" />
+        <path d="M256,42.415426 C199.445737,-14.1384753 107.753322,-14.1384753 51.1994207,42.415426 C-5.35485714,98.9696894 -5.35485714,190.662104 51.1994207,247.216367 L76.7989048,221.616521 C34.3841124,179.200643 34.3841124,110.431151 76.7989048,68.0159962 C119.214783,25.6001177 187.984275,25.6001177 230.39943,68.0159962 L256,42.415426 Z" fill-opacity="0.4" fill="#FFFFFF" />
+        <path d="M204.800308,93.6158424 C176.523538,65.3390727 130.676245,65.3390727 102.399475,93.6158424 C74.1219813,121.893336 74.1219813,167.739181 102.399475,196.015951 L127.999321,170.416105 C113.860936,156.27772 113.860936,133.354797 127.999321,119.215688 C142.137706,105.077304 165.060629,105.077304 179.199738,119.215688 L204.800308,93.6158424 Z" fill-opacity="0.4" fill="#FFFFFF" />
+    </g>
+</svg></g></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="w-hotels-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="w-hotels-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="w-hotels-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#w-hotels-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#w-hotels-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#w-hotels-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="w-hotels-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#w-hotels-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33.36102 23.87478" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="w-hotels-app-dark-brand-symbol-bounds"><rect x="0.0" y="0.0" width="36.54" height="24.0" /></clipPath></defs><g clip-path="url(#w-hotels-app-dark-brand-symbol-bounds)"><path d="M0 0.84422L10.0985 23.8492L16.6292 9.16581H16.6897L23.2205 23.8492L33.319 0.84422H29.1163L23.281 14.2311H23.2205L16.72 0L10.2194 14.2311H10.159L4.3236 0.84422H0Z" fill="#F5F7FA" /><path d="M52.6602 0.844727V23.5783H56.7419V13.5683H66.0845V23.5783H70.1662V0.844727H66.0845V9.79948H56.7419V0.844727H52.6602Z" fill="#F5F7FA" /><path d="M87.3463 23.9997C94.0585 23.9997 99.1682 18.7836 99.1682 12.2108C99.1682 5.63794 94.0585 0.421875 87.3463 0.421875C80.6342 0.421875 75.5547 5.63794 75.5547 12.2108C75.5547 18.7836 80.6342 23.9997 87.3463 23.9997ZM87.3463 20.1103C82.9925 20.1103 79.7574 16.7032 79.7574 12.2108C79.7574 7.71834 82.9925 4.31131 87.3463 4.31131C91.7002 4.31131 94.9656 7.71834 94.9656 12.2108C94.9656 16.7032 91.7002 20.1103 87.3463 20.1103Z" fill="#F5F7FA" /><path d="M107.252 4.61259V23.5774H111.334V4.61259H116.625V0.84375H101.961V4.61259H107.252Z" fill="#F5F7FA" /><path d="M122.36 0.84375V23.5774H134.938V19.8085H126.442V13.4769H134.786V9.70805H126.442V4.61259H134.938V0.84375H122.36Z" fill="#F5F7FA" /><path d="M142.359 0.84375V23.5774H153.758V19.8085H146.441V0.84375H142.359Z" fill="#F5F7FA" /><path d="M162.754 17.4269L158.672 18.06C159.216 21.4369 162.209 23.9997 166.291 23.9997C170.826 23.9997 174.001 20.864 174.001 16.9445C174.001 14.05 172.247 11.3063 168.831 10.1907L165.596 9.13542C164.084 8.65301 163.6 7.71834 163.6 6.78367C163.6 5.36659 164.719 4.31131 166.321 4.31131C167.561 4.31131 168.498 4.94448 168.922 5.849L172.701 4.19071C171.673 1.92941 169.345 0.421875 166.321 0.421875C162.24 0.421875 159.398 3.19574 159.398 6.78367C159.398 9.49723 160.939 11.9394 164.175 12.9947L167.41 14.05C169.163 14.6228 169.798 15.7686 169.798 16.9445C169.798 18.7233 168.347 20.1103 166.291 20.1103C164.417 20.1103 163.086 18.9646 162.754 17.4269Z" fill="#F5F7FA" /></g></svg></g></svg>

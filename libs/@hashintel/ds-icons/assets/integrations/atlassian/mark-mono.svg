@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="atlassian-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.02"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#atlassian-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid" viewBox="0 0 256 256" fill="#0052CC" color="black" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    <linearGradient x1="99.7%" y1="15.8%" x2="39.8%" y2="97.4%" id="atlassian-mark-mono-a">
+      <stop stop-color="#0052CC" offset="0%" />
+      <stop stop-color="#2684FF" offset="92.3%" />
+    </linearGradient>
+  </defs>
+  <path d="M76 118c-4-4-10-4-13 1L1 245a7 7 0 0 0 6 10h88c3 0 5-1 6-4 19-39 8-98-25-133Z" fill="url(#atlassian-mark-mono-a)" />
+  <path d="M122 4c-35 56-33 117-10 163l42 84c1 3 4 4 7 4h87a7 7 0 0 0 7-10L134 4c-2-5-9-5-12 0Z" fill="#2681FF" />
+</svg></g></svg>

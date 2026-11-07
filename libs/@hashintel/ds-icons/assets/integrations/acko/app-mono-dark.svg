@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="acko-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="acko-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="acko-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#acko-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#acko-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#acko-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="acko-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.263489928058 -0.886396973411 -0.0894824685127 0 1.23936936998" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#acko-app-mono-dark-mono)"><defs><clipPath id="acko-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#acko-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.00178 -0.83464 661.92675 513.05481" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="acko-app-mono-dark-acko-left"><rect x="-1.44823" y="-2.58265" width="676.7668672" height="517.16531" /></clipPath></defs><g clip-path="url(#acko-app-mono-dark-acko-left)"><g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#3D2588" stroke="none">
+<path d="M12508 4295 c-373 -51 -713 -215 -976 -469 -277 -268 -436 -568 -509 -961 -21 -113 -28 -388 -14 -515 69 -599 410 -1097 929 -1355 259 -129 505 -185 810 -185 569 0 1006 192 1349 593 49 56 98 116 110 133 21 30 21 32 5 46 -9 8 -167 122 -350 252 l-333 237 -90 -95 c-154 -162 -287 -246 -456 -288 -120 -29 -306 -29 -414 0 -242 65 -443 250 -533 490 -55 148 -61 184 -60 387 0 164 3 201 22 270 13 44 42 121 67 170 105 215 286 368 504 427 111 30 296 30 410 -1 166 -44 300 -128 443 -280 l83 -88 345 268 c189 147 346 272 348 278 6 17 -105 146 -220 257 -251 242 -548 379 -926 429 -138 18 -410 18 -544 0z" />
+<path d="M19100 4304 c-14 -2 -59 -9 -100 -15 -41 -6 -120 -22 -175 -36 -434 -108 -817 -376 -1056 -738 -370 -560 -381 -1311 -26 -1880 116 -186 279 -359 462 -490 120 -86 334 -194 475 -240 235 -75 413 -100 674 -92 196 5 300 20 471 68 411 113 779 379 1008 729 67 103 159 295 196 411 64 204 75 282 76 534 0 268 -12 353 -80 560 -141 433 -442 783 -853 993 -271 139 -552 203 -877 200 -93 0 -181 -2 -195 -4z m409 -865 c156 -39 328 -145 428 -266 94 -112 166 -261 199 -409 12 -55 17 -121 17 -219 -1 -117 -5 -156 -27 -239 -66 -254 -224 -455 -441 -562 -134 -66 -223 -86 -380 -86 -101 0 -148 4 -209 21 -300 80 -516 295 -613 608 -25 83 -27 100 -27 278 0 179 1 195 28 280 52 172 159 338 280 436 112 91 270 158 417 179 87 12 235 3 328 -21z" />
+<path d="M8887 4263 c-12 -21 -1427 -3375 -1427 -3383 0 -6 181 -10 489 -10 l489 0 122 305 122 305 645 0 644 0 23 -53 c13 -28 69 -166 126 -304 l103 -253 498 0 c393 0 499 3 498 13 0 6 -321 770 -713 1697 l-713 1685 -451 3 c-248 1 -453 -1 -455 -5z m637 -1596 c97 -247 176 -451 176 -453 0 -2 -167 -4 -371 -4 -293 0 -370 3 -366 13 2 6 83 210 179 452 96 242 178 449 182 460 l8 20 8 -20 c4 -11 87 -222 184 -468z" />
+<path d="M14520 2570 l0 -1700 468 2 467 3 3 438 2 439 167 185 c134 148 169 182 177 170 6 -8 197 -289 425 -626 l414 -611 560 0 c465 0 558 2 554 13 -3 8 -291 430 -640 938 -348 508 -642 936 -651 950 l-17 27 622 718 c342 396 629 727 637 737 14 16 -12 17 -541 17 l-555 0 -576 -691 -576 -691 -2 689 -3 688 -467 3 -468 2 0 -1700z" />
+<path d="M6535 3295 c-33 -19 -346 -166 -695 -328 -349 -162 -752 -350 -895 -417 -867 -408 -1107 -513 -1590 -695 -922 -348 -1747 -540 -2410 -561 -178 -6 -405 6 -452 23 -38 14 10 -27 185 -160 241 -182 383 -282 607 -429 603 -396 1088 -628 1473 -705 220 -43 554 -6 944 107 533 154 1353 530 2068 948 366 214 689 421 742 476 46 47 74 105 88 175 12 63 14 1601 3 1600 -5 0 -35 -16 -68 -34z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#794CEA" stroke="none">
+<path d="M2880 5114 c-14 -2 -59 -9 -100 -15 -41 -6 -128 -26 -192 -45 -486 -139 -1158 -523 -1910 -1091 -175 -133 -223 -174 -185 -160 47 17 274 29 452 23 663 -21 1491 -214 2408 -560 434 -164 795 -319 1324 -570 100 -47 188 -86 195 -86 17 0 1601 735 1650 766 66 42 74 111 20 170 -32 35 -140 109 -367 251 -753 470 -1527 859 -2188 1099 -259 94 -525 164 -754 198 -104 16 -311 28 -353 20z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#B99AF2" stroke="none">
+<path d="M555 3739 c-38 -5 -84 -14 -101 -19 -132 -44 -325 -388 -399 -713 -43 -189 -58 -494 -35 -687 34 -269 124 -533 245 -722 112 -172 155 -201 329 -217 340 -33 907 21 1379 131 81 18 89 22 84 42 -67 299 -101 538 -117 818 -18 317 13 691 85 1045 19 92 31 170 27 174 -20 18 -504 105 -752 134 -159 19 -641 28 -745 14z" />
+</g>
+</g></svg></g></g></svg>

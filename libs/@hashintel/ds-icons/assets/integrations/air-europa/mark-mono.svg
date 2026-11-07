@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><defs><filter id="air-europa-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.339713656222 -1.14281847098 -0.11536841947 0 1.59790054667" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#air-europa-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3.27086 24 17.45829" fill="#006fde" color="black" x="0.0" y="0.0" width="64" height="64"><path d="M3.632 20.635C.046 20.093-.698 14.95.587 10.62c1.354-4.33 5.21-8.593 10.826-6.834a6.09 6.09 0 0 1 2.165 1.557c1.624-1.489 2.707-1.895 5.684-2.03 3.044-.203 4.803 1.353 4.736 3.721-.068 2.368-1.286 2.706-2.977 4.06a41.205 41.205 0 0 1-5.751 3.518v-1.827c1.759-1.353 4.533-2.842 5.074-4.871.203-1.15 0-2.707-1.759-2.774-1.15 0-2.165.609-2.842 1.488a12.45 12.45 0 0 0-2.3 7.984c.203 1.556 1.015 3.518 2.639 3.45 2.706-.608 3.924-1.353 6.089-2.773l.88 1.353c-2.369 2.03-4.669 4.127-7.917 4.06-2.435 0-4.262-.677-5.074-2.64-1.827 1.422-3.586 2.978-6.428 2.572zM8.233 5.344a8.12 8.12 0 0 0-3.789 5.954c-.338 2.03-.406 4.668 1.083 6.09 1.15.676 2.909-.61 4.194-1.49-.473-3.18.677-5.75 1.354-8.592 0-2.098-1.083-2.707-2.842-1.962z" /></svg></g></svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bluefocus-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="bluefocus-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bluefocus-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bluefocus-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bluefocus-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bluefocus-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="bluefocus-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326205467385 -1.09737605961 -0.110780972461 0 1.53436249946" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#bluefocus-app-mono-light-mono)"><defs><clipPath id="bluefocus-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bluefocus-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.44296 1.40868 393.88592 77.37113" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(0.000000,78.000000) scale(0.100000,-0.100000)" fill="#006ab4" stroke="none">
+<path d="M1780 661 l0 -100 34 6 c31 5 34 3 41 -26 8 -36 22 -48 38 -32 8 8 6 20 -5 45 -18 36 -15 46 13 46 29 0 30 16 3 46 -71 79 -107 114 -115 114 -5 0 -9 -45 -9 -99z" />
+<path d="M2036 591 c-4 -5 3 -12 14 -16 24 -8 24 -16 5 -103 -16 -69 -31 -137 -60 -277 -30 -142 -35 -155 -61 -167 -13 -6 -24 -15 -24 -20 0 -4 47 -8 105 -8 58 0 105 2 105 5 0 2 -14 12 -31 20 -29 15 -30 18 -24 63 4 26 13 70 21 97 7 28 14 63 16 79 7 65 80 55 103 -14 14 -41 39 -46 43 -10 2 14 12 62 23 107 11 46 17 87 14 93 -11 18 -25 10 -39 -23 -16 -39 -70 -87 -97 -87 -30 0 -25 67 17 228 2 8 29 12 87 12 102 0 114 -10 119 -90 6 -102 51 -48 60 72 l3 43 -197 3 c-116 1 -199 -1 -202 -7z" />
+<path d="M122 564 c-9 -18 -19 -59 -48 -194 -7 -36 -20 -95 -29 -132 -8 -37 -15 -80 -15 -96 0 -15 -7 -37 -15 -48 -8 -10 -15 -36 -15 -57 l0 -38 173 4 c229 5 306 27 342 98 20 37 22 98 5 130 -7 13 -27 36 -44 51 l-31 26 36 16 c48 20 89 70 89 108 0 43 -25 91 -63 119 -30 22 -41 24 -204 27 -159 4 -172 3 -181 -14z m258 -104 c23 -23 26 -58 7 -85 -11 -14 -28 -18 -78 -19 l-64 -1 2 42 c3 67 16 83 68 83 32 0 51 -6 65 -20z m-38 -221 c40 -21 27 -104 -18 -115 -34 -9 -121 -10 -129 -2 -9 8 13 108 27 125 11 13 89 8 120 -8z" />
+<path d="M711 562 c-5 -9 -12 -35 -16 -57 -3 -22 -12 -67 -20 -100 -7 -33 -20 -91 -28 -130 -8 -38 -23 -104 -32 -146 -10 -42 -15 -88 -11 -103 6 -25 10 -26 70 -26 79 0 70 -16 121 215 7 33 21 98 30 145 9 47 23 110 32 141 9 31 12 62 9 68 -4 6 -37 11 -76 11 -56 0 -71 -3 -79 -18z" />
+<path d="M2443 404 c-61 -52 -97 -118 -107 -191 -11 -82 1 -129 45 -174 35 -37 41 -39 96 -38 49 0 65 5 102 32 51 38 106 112 121 165 13 48 13 133 -1 169 -16 44 -59 83 -91 83 -35 0 -35 -6 -3 -32 21 -16 25 -28 25 -68 0 -96 -39 -237 -78 -285 -30 -37 -53 -46 -91 -39 -46 10 -57 48 -42 148 22 140 64 236 112 251 11 4 17 11 14 16 -13 21 -53 6 -102 -37z" />
+<path d="M2899 425 c-48 -32 -102 -99 -122 -155 -19 -52 -22 -161 -6 -193 6 -12 25 -34 41 -49 25 -24 38 -28 89 -28 44 0 60 3 57 13 -3 6 -21 13 -40 15 -57 5 -72 30 -70 119 2 123 57 250 118 273 13 5 24 14 24 20 0 18 -54 9 -91 -15z" />
+<path d="M3010 443 c0 -4 9 -17 21 -29 13 -14 22 -41 26 -78 8 -73 27 -73 42 1 15 76 14 100 -5 107 -21 8 -84 8 -84 -1z" />
+<path d="M3186 441 c-4 -6 3 -15 14 -21 22 -12 22 -7 -5 -125 -42 -184 -45 -238 -16 -272 16 -19 29 -23 75 -23 43 0 56 3 56 15 0 9 -9 15 -23 15 -13 0 -28 5 -35 12 -16 16 -15 79 2 147 28 110 48 217 45 236 -3 16 -14 21 -56 23 -28 2 -54 -2 -57 -7z" />
+<path d="M3395 440 c-3 -6 6 -15 20 -20 23 -9 26 -14 21 -36 -4 -15 -9 -40 -12 -58 -22 -135 -56 -238 -88 -268 -20 -18 -20 -18 3 -18 14 0 25 -7 28 -20 5 -17 14 -20 59 -20 30 0 54 3 54 7 0 3 -8 15 -17 25 -15 17 -16 24 -1 86 9 37 24 103 33 147 9 44 21 99 26 123 5 24 7 47 4 53 -8 12 -122 12 -130 -1z" />
+<path d="M3679 425 c-51 -33 -79 -72 -79 -110 0 -39 22 -59 110 -104 85 -43 100 -58 100 -95 0 -41 -44 -83 -91 -86 -92 -7 -96 -4 -108 95 -9 73 -32 67 -50 -13 l-15 -63 30 -24 c25 -21 40 -24 110 -25 61 0 85 4 94 15 7 8 18 15 24 15 19 1 63 43 80 77 32 63 12 111 -61 148 -21 11 -59 33 -85 50 -37 23 -48 35 -48 56 0 28 24 55 55 61 11 2 20 8 20 13 0 20 -51 14 -86 -10z" />
+<path d="M3810 444 c0 -3 11 -15 25 -26 18 -14 26 -33 31 -69 8 -56 31 -67 41 -19 3 17 10 33 14 36 5 3 9 20 9 38 0 26 -5 35 -22 40 -30 8 -98 8 -98 0z" />
+<path d="M1588 422 c-48 -12 -111 -74 -131 -128 -35 -100 -11 -214 55 -253 18 -11 38 -25 45 -30 14 -13 180 -15 185 -3 2 5 16 15 33 23 33 16 77 75 73 98 -2 12 -19 17 -62 19 -56 3 -61 1 -84 -27 -18 -24 -31 -31 -57 -31 -37 0 -55 20 -55 63 0 24 2 25 110 32 60 3 114 4 119 0 6 -3 20 -1 31 5 16 8 20 20 19 58 0 68 -19 111 -61 145 -34 27 -46 31 -115 33 -43 2 -90 0 -105 -4z m128 -87 c14 -14 24 -33 22 -43 -3 -14 -14 -17 -62 -17 -39 0 -61 4 -63 12 -5 14 49 73 67 73 6 0 22 -11 36 -25z" />
+<path d="M949 393 c-6 -16 -15 -54 -20 -85 -5 -32 -14 -69 -19 -84 -6 -14 -10 -56 -10 -93 0 -65 1 -69 36 -99 32 -28 43 -32 94 -32 34 0 60 5 62 11 2 6 18 17 36 24 30 13 32 13 38 -11 6 -22 11 -24 66 -24 66 0 87 14 88 58 0 13 6 51 14 85 32 142 46 214 49 242 l2 30 -75 3 -75 3 -18 -83 c-35 -160 -54 -212 -87 -231 -29 -18 -30 -18 -54 6 -27 27 -28 18 19 214 23 97 26 93 -60 93 -73 0 -76 -1 -86 -27z" />
+<path d="M3037 133 c-4 -3 -7 -13 -7 -20 0 -8 -14 -27 -32 -43 -17 -16 -29 -33 -25 -37 11 -10 86 68 87 90 0 17 -11 23 -23 10z" />
+</g>
+</svg></g></g></svg>

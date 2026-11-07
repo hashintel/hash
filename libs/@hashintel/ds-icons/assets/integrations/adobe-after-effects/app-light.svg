@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-after-effects-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-after-effects-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-after-effects-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-after-effects-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-after-effects-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-after-effects-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-after-effects-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-after-effects-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-after-effects-app-light-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#00005B" />
+<path id="adobe-after-effects-app-light-Vector_2" d="M61.3389 63.7059H96.6754L136.305 174.339H103.941L98.4913 157.496H57.0455L51.5963 174.339H20.5531L61.3389 63.7059ZM89.9051 131.241L77.8513 94.0885L65.797 131.241H89.9051Z" fill="#9999FF" />
+<path id="adobe-after-effects-app-light-Vector_3" d="M219.447 128.765C219.447 132.728 219.117 137.021 218.622 140.323H164.626C167.928 148.579 175.855 152.542 188.239 152.542C197.155 152.542 204.916 150.891 212.677 147.258L213.008 170.211C204.586 174.504 195.505 175.99 183.78 175.99C154.884 175.99 135.565 159.973 135.565 130.911C135.565 104.326 154.058 86.6581 178.496 86.6581C203.595 86.6581 219.447 102.84 219.447 128.765ZM163.636 121.499H192.532C191.872 113.738 187.083 108.289 178.662 108.289C170.571 108.289 165.451 112.582 163.636 121.499Z" fill="#9999FF" />
+<defs>
+<clipPath id="adobe-after-effects-app-light-clip0_2136_6790">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><svg xmlns="http://www.w3.org/2000/svg" viewBox="2.94981 11.92229 58.13362 39.97257" fill="#F5F7FA" x="0.0" y="0.0" width="64" height="64">
+  <defs>
+    </defs>
+  <rect x="3" y="12.16" width="58" height="39.68" fill="#FFFFFF" />
+  <polygon points="3 45 3 51.84 26.35 51.84 24.82 45 3 45" fill="#FF6600" />
+  <path d="M61,51.84v-6.84h-22.04c-.61,3.2-1.12,5.78-1.32,6.84h23.37Z" fill="#FF6600" />
+  <path d="M14.72,28.41l-1.66-7.22h14.2l4.6,20.81h.2l2.9-13.36c1.46-6.03,2.01-7.45,10.24-7.45h5.92s-1.19,5.56-2.68,11.59c-.57,2.3-5.51,2.03-5.26-.12.03-.22.26-1.84.45-2.99.27-1.66-1.6-1.86-1.94-.22-.24,1.17-1.33,7.08-2.34,12.56h21.68V12H3v30h21.18l-2.95-13.58h-6.51Z" fill="#2D81C0" />
+</svg></svg>

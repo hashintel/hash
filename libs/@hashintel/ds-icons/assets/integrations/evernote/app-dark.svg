@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="evernote-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="evernote-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="evernote-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#evernote-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#evernote-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#evernote-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="evernote-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#evernote-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="24.64 18.293333 62.72 75.413333" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M46.0634 21.8896C48.3775 19.4733 51.7085 18.3105 55.0236 18.7618C57.2614 19.0665 59.3405 20.0882 60.9494 21.6731L62.6004 23.2991H64.8003C77.0468 23.2991 86.9745 33.2272 86.9745 45.4737V69.3515H86.9624C86.9601 78.6432 84.6921 84.7293 79.8856 88.6766C73.7075 94.4685 61.7372 95.0087 54.7869 89.4486C52.0532 87.2616 50.2413 84.8151 48.3107 80.5678L59.2565 76.3923C59.6316 77.2117 60.3393 78.5702 61.477 79.7955C63.807 82.3048 68.6986 82.3173 70.6184 80.5678C75.2516 76.3456 71.2887 69.3533 63.1331 69.3533L46.5928 69.3515C35.8479 69.3514 26.9336 61.5142 25.2542 51.2444C25.2556 51.2465 25.2572 51.2488 25.2586 51.251C24.332 45.0731 26.2241 43.1195 29.9264 43.1194H39.9542C48.1656 43.1194 50.3952 39.6782 50.3952 33.4927V30.3208H48.9089C48.9089 30.3208 48.711 31.952 48.1096 33.4927C46.8353 36.7574 45.6074 39.1192 40.8126 39.1192C38.6614 39.1192 36.5102 39.1142 34.3589 39.1129C32.7599 39.1119 31.161 39.1129 29.5621 39.1196L32.7032 35.8398L46.0634 21.8896ZM70.8215 50.4521C67.902 50.4522 65.5354 52.3808 65.5353 54.7596H76.108C76.1079 52.3807 73.741 50.4521 70.8215 50.4521Z" fill="#17C653" />
+</svg></g></svg>

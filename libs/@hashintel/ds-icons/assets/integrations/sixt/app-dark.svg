@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sixt-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="sixt-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sixt-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sixt-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#sixt-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#sixt-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="sixt-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#sixt-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000.03 410" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs />
+  <path d="M1000,64.3486862v84.5219345h-95.2709351v252.7862091h-99.5255127V148.8706207h-74.5170898 l-65.0908813,92.5158997l127.5218506,160.2667694H669.3632202l-69.3630371-94.046936l-72.9190063,94.046936l-213.0421143,0.00354 V190.5054321h97.5005188v203.3267822l125.5004578-152.445694l-51.6677246-63.997345 c7.6235046-2.5435333,16.0619202-5.8243561,23.2832642-8.8723755 c23.7313232-10.0188751,44.5698853-25.2941437,63.2211914-40.5835037l28.1234131,40.1813431l75.8929443-103.7659531H1000z M134.3661499,410c97.6028442-0.440979,161.247345-30.2647705,161.247345-110.5075073 c0-143.5592499-199.9646301-82.3382568-199.9646301-138.7579498c0-19.3815918,21.1101761-27.1850281,52.5779114-27.1850281 c38.5479431,0,88.2718964,12.9645538,126.8304138,25.4528809v-81.449234 C243.035614,68.3632965,197.4109497,57.910511,147.9374847,57.910511c-111.4317169,0-147.8100891,52.4192009-147.937088,109.1599121 c-0.3210258,144.0284271,196.6414948,82.6945648,196.6414948,138.6450653c0,18.8383179-20.8843994,27.3014221-62.6779022,27.3331909 c-41.137352,0-85.1145477-9.9836121-130.2947083-24.8884583v81.4316101C28.4518681,399.6565552,67.6136551,410,134.3661499,410" fill="#F5F7FA" />
+  <path d="M392.2088318,78.2566071c-22.76474,2.9633179-53.3857727,2.9492111-78.1648254,2.7375565 v81.8302383h46.2702332c63.235321,0,216.3617249-13.6207428,262.1486511-162.8244019h-97.69104 C495.9676514,56.7865753,446.7869873,71.2751541,392.2088318,78.2566071" fill="#FF5F00" fill-opacity="1" />
+</svg></g></svg>

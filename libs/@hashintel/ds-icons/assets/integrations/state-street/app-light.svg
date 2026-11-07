@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="state-street-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="state-street-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="state-street-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#state-street-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#state-street-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#state-street-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="state-street-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#state-street-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="state-street-app-light-Logo" x="14.222222222222221" y="14.222222222222221" viewBox="0.50589 1.57423 155.17061 154.75155" xml:space="preserve" fill="#111111" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="state-street-app-light-symbol-crop"><rect x="0.0" y="0.0" width="167.04" height="157.9" /></clipPath></defs><g clip-path="url(#state-street-app-light-symbol-crop)"><g id="state-street-app-light-Logo_00000165924221331983462930000011579409753514673035_" fill="#111111">
+	<path id="state-street-app-light-SM" d="M565.8,149.5c0-0.3-0.2-0.5-0.4-0.7c-0.2-0.2-0.5-0.2-0.9-0.2c-0.3,0-0.5,0-0.7,0.1   c-0.2,0.1-0.3,0.2-0.4,0.3c-0.1,0.1-0.1,0.3-0.1,0.5c0,0.1,0,0.3,0.1,0.4c0.1,0.1,0.2,0.2,0.3,0.3c0.1,0.1,0.2,0.1,0.4,0.2   c0.1,0,0.3,0.1,0.4,0.1l0.6,0.2c0.3,0.1,0.5,0.1,0.7,0.2c0.2,0.1,0.4,0.2,0.6,0.4c0.2,0.2,0.3,0.3,0.4,0.6c0.1,0.2,0.2,0.5,0.2,0.8   c0,0.4-0.1,0.7-0.3,1c-0.2,0.3-0.5,0.5-0.9,0.7c-0.4,0.2-0.8,0.3-1.4,0.3c-0.5,0-1-0.1-1.4-0.2c-0.4-0.2-0.7-0.4-0.9-0.7   c-0.2-0.3-0.3-0.7-0.4-1.1h1.2c0,0.2,0.1,0.4,0.2,0.6c0.1,0.2,0.3,0.3,0.5,0.3c0.2,0.1,0.4,0.1,0.7,0.1c0.3,0,0.5,0,0.7-0.1   c0.2-0.1,0.4-0.2,0.5-0.3c0.1-0.1,0.2-0.3,0.2-0.5c0-0.2-0.1-0.3-0.2-0.4c-0.1-0.1-0.2-0.2-0.4-0.3c-0.2-0.1-0.4-0.1-0.6-0.2   l-0.8-0.2c-0.6-0.1-1-0.4-1.3-0.7c-0.3-0.3-0.5-0.7-0.5-1.2c0-0.4,0.1-0.7,0.3-1s0.5-0.5,0.9-0.7s0.8-0.2,1.3-0.2   c0.5,0,0.9,0.1,1.3,0.2c0.4,0.2,0.6,0.4,0.9,0.7c0.2,0.3,0.3,0.6,0.3,1H565.8z M573.8,147.6l-2.1,5l-2.1-5h-1.4v6.8h1.2v-4.6l2,4.6   h0.6l2-4.6v4.6h1.2v-6.8H573.8z" fill="#001AFF" />
+	<path id="state-street-app-light-Wordmark" d="M188.1,65V49.3c9.2,6.4,20.4,9.3,27.7,9.3c8.4,0,14.6-1.8,14.6-7.3c0-3.3-2.6-5.1-7.7-6.5   l-14.3-3.7c-10.4-2.7-20.1-6.4-20.1-19c0-15.4,15.4-20.7,30-20.7c7,0,14.3,1.1,21.5,3.8V19c-8.6-3.3-16.8-4.3-23.9-4.3   c-8.5,0-13.2,1.9-13.2,6c0,2.8,2.3,4.5,8.2,6.1l15,3.9c11.8,3.1,18.8,8.6,18.8,19.4c0,13.9-12.9,22-28.6,22   C204.6,72,196,69.9,188.1,65z M270.6,69.8h14.6V16.4h22.6V2.9H248v13.5h22.6V69.8z M391.3,69.8h14.6V16.4h22.6V2.9h-59.8v13.5h22.6   V69.8z M300.5,69.8h15.9l6.3-15.9h30.9l6.5,15.9h15.8L347.5,2.9h-18.6L300.5,69.8z M328,41l8.6-22.6h3.1l8.6,22.6H328z M438.7,69.8   h51.1V56.3h-36.9v-14h30.8V28.8h-30.8V16.4h35.6V2.9h-49.8V69.8z M216.2,156.6c15.7,0,28.6-8.1,28.6-22c0-10.8-6.9-16.2-18.8-19.4   l-15-3.9c-6-1.6-8.2-3.2-8.2-6.1c0-4.1,4.7-6,13.2-6c7,0,15.3,1,23.9,4.3V89.7c-7.2-2.7-14.5-3.8-21.5-3.8c-14.7,0-30,5.4-30,20.7   c0,12.6,9.7,16.2,20.1,19l14.3,3.7c5.1,1.4,7.7,3.1,7.7,6.5c0,5.6-6.2,7.3-14.6,7.3c-7.2,0-18.5-2.9-27.7-9.3v15.8   C196,154.5,204.6,156.5,216.2,156.6z M270.6,154.4h14.6v-53.4h22.6V87.4H248v13.5h22.6V154.4z M529.9,154.4h14.6v-53.4H567V87.4   h-59.8v13.5h22.6V154.4z M386,154.4h51.1v-13.5h-36.9v-14H431v-13.5h-30.8v-12.4h35.6V87.4H386V154.4z M447.9,154.4H499v-13.5   h-36.9v-14h30.8v-13.5h-30.8v-12.4h35.6V87.4h-49.8V154.4z M318,154.4h14.4v-23.9h11.1l17.9,23.9h17.3l-19-25.6   c9.7-2.7,14.8-9.6,14.8-19.7c0-13.9-9.3-21.6-26.2-21.6H318V154.4z M332.4,117.1v-16.1H350c6,0,9.7,3.1,9.7,8.1c0,5-3.6,8-9.7,8   H332.4z" fill="#001AFF" />
+	<path id="state-street-app-light-Symbol" d="M74.5,19.4c24.3-8.4,49.9-17.6,81-17.6l0,21.5c-27.2,0-49.7,8-74,16.4   C57.5,48.1,31.8,57.3,0.7,57.3V35.8C27.9,35.8,50.4,27.8,74.5,19.4z M0.7,68.1h154.8v21.7h-11.3H0.7V68.1z M0.7,134.6   c27.2,0,49.7-8,73.8-16.4c24.3-8.4,49.9-17.6,81-17.6v21.5c-27.2,0-49.7,8-74,16.4c-24.1,8.4-49.7,17.6-80.8,17.6V134.6z" fill="#001AFF" />
+</g>
+</g></svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="commonwealth-bank-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="commonwealth-bank-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="commonwealth-bank-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#commonwealth-bank-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#commonwealth-bank-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#commonwealth-bank-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="commonwealth-bank-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#commonwealth-bank-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="commonwealth-bank-app-dark-artwork" viewBox="0 0 64 64" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><linearGradient id="commonwealth-bank-app-dark-linear-gradient" x1="13.22" y1="-130.02" x2="50.78" y2="-161.53" gradientTransform="matrix(1, 0, 0, -1, 0, -113.78)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff0" /><stop offset="0.27" stop-color="#fef10c" /><stop offset="0.45" stop-color="#fde516" /><stop offset="0.64" stop-color="#fde113" /><stop offset="0.82" stop-color="#fed508" /><stop offset="0.92" stop-color="#fc0" /></linearGradient><linearGradient id="commonwealth-bank-app-dark-linear-gradient-2" x1="38.93" y1="-154.54" x2="50.6" y2="-161.84" gradientTransform="matrix(1, 0, 0, -1, 0, -113.78)" gradientUnits="userSpaceOnUse"><stop offset="0.1" stop-color="#FFAE5C" /><stop offset="0.26" stop-color="#d88a00" /><stop offset="0.37" stop-color="#e79d00" /><stop offset="0.52" stop-color="#f2b400" /><stop offset="0.7" stop-color="#fad202" /><stop offset="0.9" stop-color="#fedf03" /></linearGradient></defs><polyline points="32 0 64 32 32 64 0 32 32 0" fill="url(#commonwealth-bank-app-dark-linear-gradient)" /><polygon points="44.15 35.24 32 64 32 64 64 32 55.69 23.68 44.15 35.24" fill="url(#commonwealth-bank-app-dark-linear-gradient-2)" /></svg></g></svg>

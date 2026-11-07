@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mitsubishi-electric-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="mitsubishi-electric-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mitsubishi-electric-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitsubishi-electric-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mitsubishi-electric-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mitsubishi-electric-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="mitsubishi-electric-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mitsubishi-electric-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="6.65754 6.88045 261.58137 226.48612" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="mitsubishi-electric-app-light-symbol-crop"><rect x="6.09111" y="6.2852" width="269.72713065" height="229.4296" /></clipPath></defs><g clip-path="url(#mitsubishi-electric-app-light-symbol-crop)"><g fill="#FF0000">
+    <path d="M94.19 233.04H7.09l43.43-75.31h87.1" />
+    <path d="M181.05 233.04h86.87l-43.43-75.31h-86.87" />
+    <path d="M181.05 82.4 137.62 7.09l-43.43 75.3 43.43 75.34" />
+  </g>
+  <path d="M307 200.96h34.93v-12.6h-34.94v-15.55h39.3v-12.64h-54v72.87h54.92V220.4h-40.22" />
+  <path d="m306.07 93.86 15.4 54.17h14.25l15.4-54.17v54.17h13.79V75.18h-21.15l-15.16 51.13-15.17-51.13h-21.15v72.85h13.8" />
+  <path d="M626.66 148.03h14.71V75.18h-14.7v72.85z" />
+  <path d="M638.61 233.04h14.71v-72.87h-14.7v72.87z" />
+  <path d="M771.9 148.03h14.71V75.18h-14.7v72.85z" />
+  <path d="M370.65 148.03h14.7V75.18h-14.7v72.85z" />
+  <path d="M751.45 103.59h-29.18V75.18h-14.48v72.85h14.48V116.2h29.18v31.83h14.25V75.18h-14.25" />
+  <path d="M407.2 148.03h14.93V87.77h17.7V75.18h-50.56v12.6h17.92" />
+  <path d="M540.94 233.04h14.94v-60.23h17.93v-12.64h-50.56v12.64h17.7" />
+  <path d="M531.06 150.05c18.62 0 28.96-8.5 28.96-24.8V75.19h-14.7v51.43c0 6.28-5.3 11.5-14.26 11.5-11.26 0-14.48-6.19-14.48-11.5V75.18h-14.25v50.08c0 17.53 10.8 24.8 28.73 24.8" />
+  <path d="M420.06 200.96h34.7v-12.6h-34.7v-15.55h39.07v-12.64h-53.78v72.87h54.93V220.4h-40.22" />
+  <path d="M598.17 86.74c3.9 0 8.5 3.72 8.5 8.62a9.1 9.1 0 0 1-9.42 9.19h-17.47V86.74h18.39zM597.02 137h-17.24v-21.12h17c6.21 0 11.27 3.52 11.27 10.6 0 5.97-4.6 10.52-11.03 10.52m-16.78 11.03h21.15c13.78 0 21.83-8.2 21.83-19.7 0-9.25-6.67-17.2-14.02-19.05 6.43-1.6 11.49-8.15 11.49-16.2 0-10.73-7.81-17.9-22.52-17.9H565.3v72.85" />
+  <path d="M592.2 192.52V172.7h17.69c5.97 0 9.88 4.2 9.88 9.95 0 4.07-3.45 9.88-9.42 9.88h-18.16zm29.18 5.54c6.2-1.88 12.87-7.5 12.87-17.6 0-12.96-8.74-20.39-23.67-20.39h-33.33v72.85h14.94v-28.7h12.41c7.59 0 11.72 3.93 12.87 9.12 1.38 5.73 1.15 14.25 2.53 19.58h14.94c-1.38-5.58-2.3-13.16-2.76-19.14-.46-9.86-5.75-13.81-10.8-15.72" />
+  <path d="M366.74 160.17h-14.7v72.87h48.95V220.4h-34.25" />
+  <path d="M464.65 117.24c11.72 2.04 18.38 4.25 18.38 11.3 0 4.76-4.6 9.31-14.48 9.31s-14.94-5.56-14.94-12.2H439.6c0 12.68 8.28 24.24 29.65 24.24 20.22 0 29.19-10.77 29.19-23.07 0-11.5-7.59-18.78-20.92-21.44-13.1-2.53-21.83-3.06-21.83-11.26 0-5.63 5.06-8.99 13.1-8.99 8.27 0 13.1 4.16 13.1 11.15h14.25c0-11.5-8.73-23.33-28.04-23.33-13.33 0-27.12 7.7-27.12 22.1 0 12.1 8.74 19.59 23.68 22.19" />
+  <path d="M669.87 117.24c11.95 2.04 18.61 4.25 18.61 11.3 0 4.76-4.82 9.31-14.47 9.31-9.89 0-14.94-5.56-14.94-12.2h-14.02c0 12.68 8.04 24.24 29.65 24.24 20.22 0 29.18-10.77 29.18-23.07 0-11.5-7.58-18.78-21.14-21.44-12.87-2.53-21.83-3.06-21.83-11.26 0-5.63 5.28-8.99 13.1-8.99 8.5 0 13.32 4.16 13.32 11.15h14.25c0-11.5-8.73-23.33-28.03-23.33-13.33 0-27.35 7.7-27.35 22.1 0 12.1 8.96 19.59 23.67 22.19" />
+  <path d="M493.37 221.78c-11.72 0-18.61-11.63-18.61-25.49 0-13.86 6.66-25.48 18.61-25.48 9.2 0 13.8 5.58 15.63 12.45h15.4c-2.53-14.27-13.56-24.84-31.26-24.84-22.29 0-33.78 17.05-33.78 38.06 0 21.07 11.95 38.12 33.78 38.12 17.47 0 29.19-10.15 31.26-25.74H509c-1.84 7.33-6.67 12.92-15.63 12.92" />
+  <path d="M691.01 221.78c-11.95 0-18.84-11.63-18.84-25.49 0-13.86 6.66-25.48 18.84-25.48 8.96 0 13.56 5.58 15.63 12.45h15.17c-2.53-14.27-13.56-24.84-31.26-24.84-22.29 0-33.55 17.05-33.55 38.06 0 21.07 11.72 38.12 33.55 38.12 17.47 0 29.19-10.15 31.49-25.74h-15.4c-2.07 7.33-6.9 12.92-15.63 12.92" />
+</g></svg></g></svg>

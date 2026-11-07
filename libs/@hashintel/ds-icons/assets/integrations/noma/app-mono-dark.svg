@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="noma-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="noma-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="noma-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#noma-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#noma-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#noma-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="noma-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#noma-app-mono-dark-mono)"><defs><clipPath id="noma-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#noma-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="noma-app-mono-dark-noma-logo" viewBox="0 0 344 74.31148" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+		<path d="M278.066 37.001c0-16.174 12.39-28.967 28.12-28.967 16.592 0 29.626 12.793 29.626 28.967 0 16.28-13.037 29.07-29.626 29.07-15.946 0-28.12-12.79-28.12-29.07Zm-8.296 0c0 20.721 15.944 37.002 36.416 37.002 10.881 0 21.762-4.968 28.334-12.264.647-.738 1.292-.53 1.292.424v7.928c0 1.269 1.077 2.325 2.37 2.325h3.446c1.293 0 2.369-1.056 2.369-2.325V4.017c0-1.268-1.076-2.325-2.369-2.325h-3.446c-1.293 0-2.37 1.057-2.37 2.325v8.14c0 .95-.647 1.269-1.292.424C328.377 5.286 317.067.106 306.186.106 285.822.106 269.77 16.386 269.77 37ZM152.661 70.09c0 1.268 1.077 2.325 2.37 2.325h3.446c1.293 0 2.369-1.057 2.369-2.325V31.925c0-15.012 10.236-23.997 21.547-23.997 12.389 0 21.438 8.985 21.438 23.997v38.164c0 1.268 1.077 2.325 2.369 2.325h3.447c1.292 0 2.369-1.057 2.369-2.325V31.925c0-13.108 9.696-23.997 21.546-23.997s21.439 8.985 21.439 23.997v38.164c0 1.268 1.076 2.325 2.369 2.325h3.446c1.293 0 2.37-1.057 2.37-2.325V32.03C263.199 12.369 249.838 0 233.57 0c-9.804 0-20.577 5.815-24.995 14.694-.432.739-.861.739-1.293 0C203.081 6.13 193.492 0 182.395 0c-7.864 0-15.514 3.488-20.253 9.197-.648.739-1.293.53-1.293-.424V4.017c0-1.374-.969-2.325-2.369-2.325h-3.447c-1.4 0-2.369.95-2.369 2.325V70.09h-.003ZM71.213 37c0 20.721 16.483 37.002 37.492 37.002 21.009 0 37.385-16.28 37.385-37.002C146.09 16.281 129.714 0 108.705 0 87.696 0 71.213 16.28 71.213 37.001ZM0 70.09c0 1.268 1.077 2.325 2.37 2.325h3.448c1.293 0 2.37-1.057 2.37-2.325V33.087c0-14.482 9.696-24.844 23.594-25.159 14.438-.317 24.672 8.985 24.672 23.68v38.478c0 1.269 1.076 2.325 2.369 2.325h3.446c1.293 0 2.37-1.056 2.37-2.325V32.24C64.64 12.37 52.252 0 32.427 0 22.626 0 14.651 4.017 9.373 10.044c-.648.739-1.293.53-1.293-.424V4.017c0-1.268-.969-2.325-2.262-2.325H2.37C1.077 1.692 0 2.75 0 4.017V70.09Zm108.705-4.017c-16.375 0-29.197-12.896-29.197-29.07 0-16.175 12.822-29.074 29.197-29.074 16.376 0 29.089 12.896 29.089 29.07 0 16.175-12.713 29.074-29.089 29.074Z" fill="#111111" />
+</svg></g></g></svg>

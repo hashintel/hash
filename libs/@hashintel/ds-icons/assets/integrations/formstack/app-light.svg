@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="formstack-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="formstack-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="formstack-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#formstack-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#formstack-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#formstack-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="formstack-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#formstack-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="formstack-app-light-Design" viewBox="11.259108 11.284977 34.145891 28.476558" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs>
+    <g />
+  </defs>
+  <g>
+    </g>
+  <g>
+    <g>
+      <path d="M35.98,11.34c.47,0,.85.38.85.85v26.65c0,.47-.38.85-.85.85H12.19c-.47,0-.85-.38-.85-.85V12.19c0-.47.38-.85.85-.85h23.79ZM40.22,14.17c.47,0,.85.38.85.85v20.98c0,.47-.38.85-.85.85h-1.98V14.17h1.98ZM44.47,17.01c.47,0,.85.38.85.85v15.31c0,.47-.38.85-.85.85h-1.98v-17.01h1.98Z" fill="#21b573" />
+      <path d="M21.48,31.85s.05.1.05.16v2.88c0,.16-.13.28-.28.28h-3.97c-.15,0-.27-.12-.27-.27v-.13c0-.09.05-.18.12-.23l3.96-2.77c.13-.09.3-.06.39.07ZM28.02,25.23c.16,0,.28.13.28.28,0,.09-.05.18-.12.23l-10.73,7.38c-.13.09-.31.06-.39-.07-.03-.05-.05-.1-.05-.16v-4.39c0-.09.04-.17.11-.22l3.81-2.99s.11-.06.17-.06h6.92ZM30.36,15.87c.16,0,.28.13.28.28,0,.09-.04.17-.11.22l-13.07,10.47c-.12.1-.3.08-.4-.04-.04-.05-.06-.11-.06-.18v-10.47c0-.16.13-.28.28-.28h13.07Z" fill="#fff" />
+    </g>
+  </g>
+</svg></g></svg>

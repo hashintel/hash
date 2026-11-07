@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="amazon-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="amazon-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="amazon-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amazon-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amazon-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#amazon-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="amazon-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#amazon-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="14.83596 39.41500 58.77356 16.08470" x="8.296296296296298" y="8.296296296296298" width="47.407407407407405" height="47.407407407407405"><path d="M65.9532 45.0426C65.6611 45.1118 65.2455 45.2869 64.7179 45.563C62.1853 46.8846 59.0555 47.9527 55.4152 48.7374C51.7888 49.5359 47.9495 49.9411 44.0045 49.9411C39.1184 49.9411 34.3318 49.2709 29.7778 47.9489C25.2245 46.6272 21.1335 44.533 17.618 41.7243C17.1043 41.3237 16.6814 41.0642 16.3611 40.9535C16.0505 40.841 15.7921 40.8628 15.5932 41.0185C15.324 41.2303 15.2656 41.5856 15.4203 42.0755C15.5594 42.5045 15.8905 43.0442 16.4042 43.6795C18.4687 46.2155 20.9627 48.354 23.8167 50.0359C26.6706 51.7173 29.7684 52.975 33.0237 53.7742C36.293 54.5872 39.6784 54.9997 43.086 54.9997C47.4494 54.9997 51.6639 54.3568 55.6117 53.0891C59.5601 51.835 62.9041 50.0459 65.5508 47.7714C66.4826 46.9552 66.9549 46.2944 66.9549 45.8069C66.9549 45.6235 66.8763 45.4381 66.7201 45.2551C66.508 45.044 66.2495 44.9724 65.9525 45.043L65.9532 45.0426Z" fill="#FF6200" />
+          <path d="M71.0105 40.2894C70.1229 40.041 69.2155 39.915 68.3137 39.915C66.5525 39.915 64.8577 40.3347 63.2763 41.1626C62.6934 41.4803 62.25 41.7813 61.9582 42.0581C61.6615 42.339 61.5829 42.6393 61.7248 42.9493C61.8243 43.1759 62.0187 43.305 62.3015 43.333C62.5804 43.3745 62.9824 43.3465 63.4972 43.2496C64.3273 43.0707 65.2041 42.9451 66.1028 42.8763C67.0018 42.8213 67.7941 42.8351 68.4573 42.9178C69.1171 43.0137 69.5345 43.1787 69.6976 43.4084C69.9435 43.7755 69.8516 44.5664 69.4242 45.7597C69.0093 46.9568 68.434 48.1359 67.7145 49.2645C67.4366 49.7209 67.2672 50.0859 67.2116 50.3495C67.1549 50.6176 67.2269 50.8467 67.4251 51.0297C67.5531 51.157 67.6978 51.2217 67.8546 51.2217C68.2608 51.2217 68.8545 50.864 69.619 50.1589C70.992 48.9722 71.9697 47.545 72.5244 45.9168C72.8294 45.075 73.0193 44.1796 73.0889 43.2551C73.1584 42.3283 73.052 41.6539 72.7731 41.2512C72.5077 40.862 71.9144 40.5385 71.0105 40.2894Z" fill="#FF6200" />
+        </svg></g></svg>

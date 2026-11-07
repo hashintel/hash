@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tcl-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="tcl-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tcl-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tcl-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tcl-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tcl-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="tcl-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tcl-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.09023 0.90811 68.18047 22.18377" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+    <g id="tcl-app-dark-nav" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="tcl-app-dark-画板" transform="translate(-82.000000, -33.000000)">
+            <g id="tcl-app-dark-LOGO" transform="translate(82.000000, 33.000000)">
+                <rect id="tcl-app-dark-矩形" x="0" y="0" width="68" height="24" />
+                <g id="tcl-app-dark-编组-8" transform="translate(0.000000, 1.000000)" fill="#E64C3D">
+                    <polygon id="tcl-app-dark-Fill-1" points="0 1.09842528 0 6.87570165 7.71294103 6.87570165 7.71294103 21.1898512 14.6142493 21.1898512 14.6142493 6.87570165 22.3150401 6.87570165 22.3150401 1.09842528" />
+                    <path d="M35.8311552,17.0498265 C34.2285451,17.0498265 33.0268912,16.576465 32.0026302,15.5894559 C31.0111746,14.6326614 30.2858082,13.148371 30.2858082,11.1516919 L30.2858082,10.8445105 C30.2858082,8.85160822 31.0111746,7.35724626 32.0026302,6.3991928 C33.0268912,5.41092478 34.2382652,4.95141163 35.8348003,4.95141163 C39.5928543,4.95141163 40.3959819,7.26534363 40.6389857,8.7848844 L46.7566067,8.7848844 C46.6108044,5.73573134 45.2025973,3.58294368 43.2196862,2.14397508 C41.2501403,0.726408469 38.9464641,0 35.9016263,0 C32.1569376,0 29.4814656,0.863632946 27.3017214,2.78477562 C25.0964618,4.74242756 23.9203233,7.83438458 23.9203233,10.918788 L23.9203233,11.0786734 C23.9203233,14.4488561 24.9445844,16.9881384 27.2020898,19.1094526 C29.317438,21.0960602 32.3975114,22.005015 35.8202201,22 C38.8614128,22 41.4676287,21.2572045 43.2695019,19.8484505 C45.2572731,18.2961773 46.6193095,16.1093982 46.780907,13.2302021 L40.6766513,13.2302021 C40.5065486,14.4438204 39.7751071,17.0498265 35.8311552,17.0498265" id="tcl-app-dark-Fill-2" />
+                    <polygon id="tcl-app-dark-Fill-5" points="57.1170742 15.683247 57.1170742 1.10346105 50.4709199 1.10346105 50.4709199 21.1885923 68 21.1885923 68 15.683247" />
+                </g>
+            </g>
+        </g>
+    </g>
+</svg></g></svg>

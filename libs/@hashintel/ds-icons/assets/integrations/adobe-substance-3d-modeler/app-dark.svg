@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-substance-3d-modeler-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-substance-3d-modeler-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-substance-3d-modeler-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-modeler-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-modeler-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-substance-3d-modeler-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-substance-3d-modeler-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-substance-3d-modeler-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-substance-3d-modeler-app-dark-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#1E3101" />
+<path id="adobe-substance-3d-modeler-app-dark-Vector_2" d="M59.9925 63.7059L74.689 116.545L90.5404 63.7059H125.052L131.987 174.339H102.429L100.943 132.232C100.613 121.664 100.283 111.096 99.9524 100.363L83.2752 165.752H63.4605L48.7645 103.666C48.2687 113.243 47.9387 122.82 47.6087 132.232L45.627 174.339H17.8861L25.1517 63.7059H59.9925Z" fill="#99E83F" />
+<path id="adobe-substance-3d-modeler-app-dark-Vector_3" d="M139.057 131.737C139.057 101.684 161.513 86.6582 184.796 86.6582C187.933 86.6582 191.235 86.9884 193.217 87.3185V60.2384H222.114V168.724C215.179 172.192 201.473 175.825 186.612 175.825C161.183 175.825 139.057 161.459 139.057 131.737ZM193.217 151.717V111.262C191.235 110.601 188.758 110.106 185.456 110.106C176.375 110.106 167.953 115.39 167.953 131.241C167.953 145.772 175.549 152.377 185.621 152.377C187.933 152.377 191.071 152.212 193.217 151.717Z" fill="#99E83F" />
+<defs>
+<clipPath id="adobe-substance-3d-modeler-app-dark-clip0_2136_8393">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

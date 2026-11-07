@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="inevitable-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="inevitable-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="inevitable-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#inevitable-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#inevitable-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#inevitable-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="inevitable-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#inevitable-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.69855 51.78457 44.35038" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M36.8818 32.3128H14.8428C11.2267 35.7123 9.62071 40.3994 10.0299 44.9389C14.4489 45.3359 19.0061 43.8499 22.3869 40.4859C23.0722 39.804 23.6758 39.0763 24.2026 38.3129C24.9953 37.1627 26.7343 37.1627 27.5271 38.3129C28.0539 39.0763 28.6625 39.8091 29.3428 40.4859C32.7236 43.8499 37.2807 45.3359 41.6998 44.9389C42.1089 40.3994 40.5081 35.7174 36.8869 32.3179H36.8715L36.8818 32.3128Z" fill="#FAE67A" /><path d="M27.4043 11.1827L38.3343 30.2059L38.3446 30.2161C43.1012 31.6563 47.9857 30.7148 51.7398 28.1092C49.8934 24.0989 46.3336 20.8979 41.7202 19.6459C40.7894 19.3915 39.8534 19.2337 38.9225 19.1574C37.5262 19.0403 36.6618 17.539 37.2705 16.2871C37.6745 15.4525 38.0121 14.567 38.2678 13.6357C39.526 9.04528 38.5594 4.37346 36.0225 0.75C31.8592 2.64825 28.5654 6.35822 27.3992 11.1675V11.1827H27.4043Z" fill="#FAE67A" /><path d="M24.3355 11.1827L13.4055 30.2059L13.3953 30.2161C8.63864 31.6563 3.75415 30.7148 0 28.1092C1.84639 24.0989 5.40618 20.8979 10.0196 19.6459C10.9505 19.3915 11.8864 19.2337 12.8173 19.1574C14.2136 19.0403 15.078 17.539 14.4693 16.2871C14.0653 15.4525 13.7277 14.567 13.472 13.6357C12.2087 9.04528 13.1753 4.37346 15.7122 0.75C19.8755 2.64825 23.1694 6.35822 24.3355 11.1675V11.1827Z" fill="#FAE67A" /><path d="M46.3132 15.5645C44.9476 15.5645 43.8428 14.4601 43.8428 13.1064C43.8428 11.7527 44.9527 10.6484 46.3132 10.6484C47.6737 10.6484 48.7836 11.7527 48.7836 13.1064C48.7836 14.4601 47.6737 15.5645 46.3132 15.5645ZM46.3132 11.142C45.2238 11.142 44.3389 12.0224 44.3389 13.1064C44.3389 14.1904 45.2238 15.0708 46.3132 15.0708C47.4026 15.0708 48.2874 14.1904 48.2874 13.1064C48.2874 12.0224 47.4026 11.142 46.3132 11.142Z" fill="#FAE67A" /><path d="M45.5511 14.1955V12.0122H46.4155C46.5791 12.0122 46.7224 12.0428 46.84 12.0988C46.9576 12.1547 47.0497 12.2413 47.1111 12.3481C47.1724 12.455 47.2031 12.5822 47.2031 12.7247C47.2031 12.8672 47.1724 12.9945 47.1111 13.0962C47.0497 13.198 46.9576 13.2794 46.84 13.3354C46.7224 13.3914 46.5791 13.4168 46.4104 13.4168H45.8324V13.0453H46.3388C46.4257 13.0453 46.5024 13.0352 46.5587 13.0097C46.6149 12.9843 46.661 12.9486 46.6917 12.9028C46.7224 12.857 46.7326 12.796 46.7326 12.7247C46.7326 12.6535 46.7172 12.5924 46.6917 12.5415C46.661 12.4906 46.6201 12.455 46.5587 12.4296C46.4973 12.4041 46.4257 12.3888 46.3388 12.3888H46.0268V14.1955H45.5511ZM46.7377 13.2031L47.285 14.1955H46.7735L46.2416 13.2031H46.7428H46.7377Z" fill="#FAE67A" /></svg></g></svg>

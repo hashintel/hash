@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-stock-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-stock-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-stock-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-stock-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-stock-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-stock-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-stock-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-stock-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-stock-app-dark-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#000B1D" />
+<path id="adobe-stock-app-dark-Vector_2" d="M126.439 68.4944L126.274 97.3909C119.999 92.6025 107.45 87.3185 92.0934 87.3185C83.0118 87.3185 79.379 90.2907 79.379 94.4188C79.379 98.5467 82.1865 100.198 94.2403 103.666C125.944 112.913 134.035 123.811 134.035 140.488C134.035 162.45 115.871 175.99 87.47 175.99C70.4623 175.99 57.5826 171.862 47.6753 166.082L47.8406 136.03C58.0779 143.956 73.1045 149.735 87.3047 149.735C96.3867 149.735 100.515 147.258 100.515 142.47C100.515 137.681 96.222 135.369 84.4982 132.232C62.0413 125.957 46.1889 118.197 46.1889 96.5653C46.1889 75.5947 63.1971 61.0637 92.0934 61.0637C105.469 61.0637 118.678 63.5407 126.439 68.4944Z" fill="white" />
+<path id="adobe-stock-app-dark-Vector_3" d="M177.794 88.4743H193.646V111.427H177.794V140.818C177.794 148.745 181.097 151.717 186.711 151.717C188.527 151.717 191.169 151.386 193.646 150.561L193.811 173.348C190.178 174.669 186.215 175.494 178.785 175.494C159.961 175.494 148.897 166.578 148.897 145.442V111.427H136.513V88.4743H148.897V66.843H177.794L177.794 88.4743Z" fill="white" />
+<defs>
+<clipPath id="adobe-stock-app-dark-clip0_2136_9310">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

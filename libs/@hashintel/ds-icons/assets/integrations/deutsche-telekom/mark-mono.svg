@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="deutsche-telekom-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.273007173029 -0.91841359431 -0.0927145714614 0 1.2841353388" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#deutsche-telekom-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.49493 0.49502 75.72459 90.34361" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+ <g transform="matrix(.2857 0 0 .2857 71.408 28.262)" fill="#E20074">
+  <path d="m-33.599 218.73v-22.192h-15.256c-26.315 0-38.393-15.643-38.393-38.665v-232.6h4.5246c49.283 0 80.582 32.707 80.582 80.797v4.3092h18.745v-107.3h-264.58v107.3h18.745v-4.3092c0-48.09 31.298-80.797 80.582-80.797h4.5246v232.6c0 23.022-12.078 38.665-38.393 38.665h-15.256v22.192z" />
+  <path d="m16.603 111.43h-62.914v-63.129h62.914z" />
+  <path d="m-185.07 111.43h-62.914v-63.129h62.914z" />
+ </g>
+</svg></g></svg>

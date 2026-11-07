@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-lightroom-classic-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-lightroom-classic-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-lightroom-classic-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-lightroom-classic-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-lightroom-classic-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-lightroom-classic-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-lightroom-classic-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-lightroom-classic-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-lightroom-classic-app-light-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#001E36" />
+<path id="adobe-lightroom-classic-app-light-Vector_2" d="M17.3748 63.7059H46.6015V147.754H89.6995V174.339H17.3748V63.7059Z" fill="#31A8FF" />
+<path id="adobe-lightroom-classic-app-light-Vector_3" d="M135.11 86.6581C138.412 86.6581 141.219 86.8231 143.366 87.1534V110.436C142.045 110.271 140.724 110.271 139.072 110.271C131.807 110.436 126.523 111.096 123.386 111.922V174.339H96.6361V92.9326C107.699 88.3092 123.551 86.6581 135.11 86.6581Z" fill="#31A8FF" />
+<path id="adobe-lightroom-classic-app-light-Vector_4" d="M225.102 65.8526L224.936 93.4282C218.827 89.9604 214.204 88.3092 204.792 88.3092C188.939 88.3092 178.041 97.8863 178.041 117.701C178.041 139.663 188.444 150.066 204.626 150.066C211.066 150.066 218.992 148.91 225.432 144.616L225.762 171.532C221.469 174.339 214.038 176.155 200.828 176.155C163.18 176.485 146.833 149.57 146.833 118.197C146.833 87.1534 166.648 61.5592 201.654 61.3942C212.552 61.2289 220.148 62.8803 225.102 65.8526Z" fill="#31A8FF" />
+<defs>
+<clipPath id="adobe-lightroom-classic-app-light-clip0_2136_7966">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

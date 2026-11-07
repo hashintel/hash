@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chargebee-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="chargebee-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="chargebee-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chargebee-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chargebee-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#chargebee-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="chargebee-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#chargebee-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.71701 -0.03814 39.64294 40.07626" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M13.897 19.9923L40.3176 13.7024V0H26.6152L13.897 19.9923Z" fill="#FF3300" />
+<path d="M0.793945 19.7618C0.793945 21.4074 0.993868 22.9914 1.37834 24.5139L13.8966 19.9925L1.27068 15.4404C0.963111 16.8245 0.793945 18.2701 0.793945 19.7464L0.793945 19.7618Z" fill="#FF3300" />
+<path d="M5.4541 7.01271L13.897 19.9923L17.7878 0.18457C12.8666 0.876612 8.52984 3.38334 5.46948 7.01271H5.4541Z" fill="#FF3300" />
+<path d="M13.897 19.9922L40.3176 26.2975V39.9999H26.6152L13.897 19.9922Z" fill="#FF3300" />
+<path d="M5.4541 32.9718L13.897 19.9922L17.7878 39.8C12.8666 39.1079 8.52984 36.6012 5.46948 32.9718H5.4541Z" fill="#FF3300" />
+</svg></g></svg>

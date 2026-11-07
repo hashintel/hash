@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chanel-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="chanel-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="chanel-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chanel-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#chanel-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#chanel-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="chanel-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.231040669602 -0.777235592187 -0.078462541605 0 1.08673880339" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#chanel-app-mono-dark-mono)"><defs><clipPath id="chanel-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#chanel-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="7 -1 190 141" id="chanel-app-mono-dark-svg2" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+  <defs id="chanel-app-mono-dark-defs37">
+    </defs>
+  <g id="chanel-app-mono-dark-g2452" transform="matrix(2.4763374,0,0,2.4763374,-150.24767,-82.943284)">
+    <g id="chanel-app-mono-dark-g28" transform="matrix(1.8302345,0,0,1.8302345,63.773317,33.494341)" fill="#161413" fill-rule="evenodd" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="none">
+      <path id="chanel-app-mono-dark-path30" d="M 20.7305,28.447 C 18.586,29.687 16.0205,30.424 13.2871,30.424 C 7.6944,30.424 2.7959,27.375 0.1465,22.854 C 0.1465,22.833 0.126,22.833 0.126,22.812 C 0.126,22.791 0.1045,22.791 0.1045,22.77 C 0.1045,22.77 2.2491,21.656 2.2491,21.656 C 2.2491,21.656 4.3936,20.562 4.3936,20.562 C 4.4151,20.584 4.4366,20.604 4.4571,20.647 C 6.2862,23.611 9.5664,25.588 13.2871,25.588 C 14.4864,25.588 15.6426,25.378 16.6729,25.041 C 14.3809,22.413 12.9932,18.965 12.9932,15.201 C 12.9932,11.459 14.3604,8.011 16.6309,5.361 C 15.6006,5.004 14.4649,4.815 13.2871,4.815 C 9.6084,4.815 6.2022,6.791 4.3311,9.966 C 4.3096,9.987 4.3096,10.009 4.3096,10.029 C 4.3096,10.029 0,7.801 0,7.801 C 0.0205,7.759 0.042,7.717 0.0625,7.695 C 2.6914,3.091 7.6524,0 13.2871,0 C 16.0205,0 18.586,0.736 20.7305,1.998 C 22.875,0.736 25.4405,0 28.1729,0 C 33.8077,0 38.7697,3.091 41.3977,7.695 C 41.4187,7.717 41.4397,7.759 41.4607,7.801 C 41.4607,7.801 37.1507,10.029 37.1507,10.029 C 37.1507,10.009 37.1507,9.987 37.1297,9.966 C 35.2587,6.791 31.8527,4.815 28.1729,4.815 C 26.9961,4.815 25.8604,5.004 24.8301,5.361 C 27.1006,8.011 28.4678,11.459 28.4678,15.201 C 28.4678,18.965 27.0801,22.413 24.7881,25.041 C 25.8184,25.378 26.9746,25.588 28.1729,25.588 C 31.8947,25.588 35.1747,23.611 37.0037,20.647 C 37.0247,20.604 37.0457,20.584 37.0667,20.562 C 37.0667,20.562 39.2107,21.656 39.2107,21.656 C 39.2107,21.656 41.3557,22.77 41.3557,22.77 C 41.3557,22.791 41.3347,22.791 41.3347,22.812 C 41.3347,22.833 41.3137,22.833 41.3137,22.854 C 38.6647,27.375 33.7657,30.424 28.1729,30.424 C 25.4405,30.424 22.875,29.687 20.7305,28.447 z M 20.7305,22.413 C 18.9639,20.542 17.8291,17.998 17.8291,15.201 C 17.8291,12.447 18.9014,9.945 20.7305,8.074 C 22.5596,9.945 23.6319,12.447 23.6319,15.201 C 23.6319,17.998 22.4961,20.542 20.7305,22.413 z" />
+    </g>
+  </g>
+</svg></g></g></svg>

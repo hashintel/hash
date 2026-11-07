@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="avengers-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="avengers-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="avengers-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#avengers-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#avengers-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#avengers-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="avengers-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#avengers-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="avengers-app-dark-Capa_1" x="14.222222222222221" y="14.222222222222221" viewBox="-0.18459 -0.18553 191.1332 223.14006" xml:space="preserve" fill="#F5F7FA" width="35.55555555555556" height="35.55555555555556"><defs id="avengers-app-dark-defs9" /><path d="m 91.256,43.595 c -42.332,2.172 -75.995,37.577 -75.995,80.931 0,14.627 3.832,28.349 10.535,40.195 l -8.118,15.765 C 6.548,164.704 0,145.388 0,124.526 0,71.248 42.704,28.053 95.382,28.053 c 0.753,0 1.504,0.009 2.252,0.026 L 111.412,0 h 29.434 v 39.696 c 29.733,16.337 49.918,48.2 49.918,84.829 0,53.279 -42.704,96.473 -95.382,96.473 -16.079,0 -31.229,-4.024 -44.519,-11.132 l 6.712,-13.875 c 11.262,6.107 24.134,9.571 37.807,9.571 44.249,0 80.121,-36.282 80.121,-81.037 0,-27.971 -14.013,-52.633 -35.325,-67.197 v 76.695 L 113.281,108.581 V 50.453 l -33.218,78.891 h 33.218 V 116.68 l 31.141,29.274 -32.179,24.705 V 157.58 H 68.437 L 39.582,222.769 3.874,222.07 91.256,43.595 z" id="avengers-app-dark-path3" />
+<polygon points="413.444,374.604 441.359,350.69 441.359,374.604 " id="avengers-app-dark-polygon5" transform="translate(-301.234,-194.967)" />
+</svg></g></svg>

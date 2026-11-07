@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bmi-legacy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="bmi-legacy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bmi-legacy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bmi-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bmi-legacy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bmi-legacy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bmi-legacy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bmi-legacy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.29143 -0.94793 802.58286 398.19886" id="bmi-legacy-app-dark-Layer_1" xml:space="preserve" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs id="bmi-legacy-app-dark-defs12" />
+<rect width="59.164001" height="289.79401" x="734.39398" y="100.181" id="bmi-legacy-app-dark-rect3" fill="#2282BF" />
+<path d="M 764.014,72.963 C 783.76,72.963 800,56.648 800,36.443 C 800,16.238 783.76,0 764.014,0 C 744.23,0 728.333,16.239 728.333,36.443 C 728.333,56.647 744.23,72.963 764.014,72.963" id="bmi-legacy-app-dark-path5" fill="#2282BF" />
+<path d="M 458.02,389.975 L 458.02,218.813 C 458.02,168.265 435.872,149.357 402.44,149.357 C 363.023,149.357 346.708,177.795 346.708,236.348 L 346.708,389.975 L 287.697,389.975 L 287.697,221.786 C 287.697,147.222 326.427,93.548 405.109,93.548 C 442.353,93.548 470.753,110.093 487.221,130.22 C 504.49,110.093 532.928,93.548 569.981,93.548 C 648.624,93.548 687.507,147.222 687.507,221.786 L 687.507,389.974 L 628.953,389.974 L 628.953,236.348 C 628.953,177.795 612.141,149.357 572.878,149.357 C 539.484,149.357 517.069,168.265 517.069,218.813 L 517.069,389.975" id="bmi-legacy-app-dark-path7" fill="#2282BF" />
+<path d="M 126.561,93.548 C 92.367,93.548 66.521,113.752 58.401,120.919 L 58.401,5.032 L 0,5.032 L 0,208.978 C 0,243.896 0.915,289.717 13.418,320.367 C 33.813,371.296 71.438,396.304 122.024,396.304 C 206.042,396.304 248.737,344.765 248.737,246.49 C 248.737,140.056 193.92,93.548 126.561,93.548 M 125.303,344.001 C 88.86,344.001 60.498,312.437 60.498,243.362 C 60.498,181.606 90.804,148.975 127.4,148.975 C 163.004,148.975 190.795,179.166 190.795,247.784 C 190.794,314.953 163.881,344.001 125.303,344.001 z " id="bmi-legacy-app-dark-path9" fill="#2282BF" />
+</svg></g></svg>

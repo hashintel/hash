@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="duckdb-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.236737991266 -0.796401746725 -0.0803973799127 0 1.1135371179" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#duckdb-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" id="duckdb-mark-mono-Ebene_1" viewBox="0 0 144.519071 144.194458" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+
+  <defs>
+    <g />
+  </defs>
+  <path d="M72.0960541,144.193376C32.2794724,144.193376,0,111.9140333,0,72.0972303,0,32.2804922,32.1155853.001076,72.0960541.001076,112.0768433.001076,144.1923065,32.2804922,144.1923065,72.0972303c0,39.816803-32.2793884,72.0961609-72.0962448,72.0961609l-.0000076-.0000153Z" fill="#1a1a1a" />
+  <g>
+    <path d="M54.8087921,42.2755979c-16.3855743,0-29.821558,13.4360809-29.821558,29.8216324,0,16.5494843,13.4359837,29.8216324,29.821558,29.8216324,16.3855515,0,29.8216095-13.4360886,29.8216095-29.8216324s-13.436058-29.8216324-29.8216095-29.8216324Z" fill="#fff100" />
+    <path d="M108.4724274,61.3645834h-14.173172v21.4652977h14.173172c5.9274597,0,10.7326508-4.8051605,10.7326508-10.7326508v-.0000229c0-5.9274597-4.8051834-10.7326279-10.7326508-10.7326241Z" fill="#fff100" />
+  </g>
+  <g>
+    </g>
+</svg></g></svg>

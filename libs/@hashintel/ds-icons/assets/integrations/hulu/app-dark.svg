@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hulu-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hulu-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hulu-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hulu-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hulu-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hulu-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hulu-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hulu-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 71.15" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<g fill="#1CE783">
+ <path d="M102.07,22.2c0,0,0,27.75,0,28.71c0,2.54-2.05,4.6-4.6,4.6H87.5c-2.54,0-4.6-2.06-4.6-4.6 c0-0.96,0-28.71,0-28.71H65.74v30.14c0,12.32,7.88,18.81,19.53,18.81H99.7c11.65,0,19.53-6.49,19.53-18.81V22.2H102.07z" />
+ <path d="M198.85,22.2c0,0,0,27.75,0,28.71c0,2.54-2.05,4.6-4.6,4.6h-9.98c-2.54,0-4.6-2.06-4.6-4.6 c0-0.96,0-28.71,0-28.71h-17.16v30.14c0,12.32,7.88,18.81,19.53,18.81h14.42c11.65,0,19.53-6.49,19.53-18.81V22.2H198.85z" />
+ <path d="M33.95,22.2c0,0-8.94,0-11,0c-3.86,0-5.8,1.04-5.8,1.04V0H0v71.15h17.15V42.44c0-2.54,2.06-4.6,4.6-4.6h9.98 c2.54,0,4.59,2.06,4.59,4.6v28.71l17.16,0V40.21C53.48,27.21,44.81,22.2,33.95,22.2z" />
+ <rect x="132.3" width="17.16" height="71.15" />
+</g>
+</svg></g></svg>

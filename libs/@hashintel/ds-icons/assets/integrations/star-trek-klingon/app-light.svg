@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Klingon artwork and Star Trek trademarks remain with their respective owners. Bounds, theme colors, and app tiles are adaptations.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="star-trek-klingon-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="star-trek-klingon-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="star-trek-klingon-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#star-trek-klingon-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#star-trek-klingon-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#star-trek-klingon-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="star-trek-klingon-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#star-trek-klingon-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="star-trek-klingon-app-light-svg2" viewBox="9.74706 1.95456 100.80195 125.65207" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="star-trek-klingon-app-light-defs4" />
+  <g transform="translate(-321.37107,-359.7535)" id="star-trek-klingon-app-light-layer1">
+    <path d="m 425.00002,482.54074 a 76.428574,70.535713 0 1 1 -152.85715,0 76.428574,70.535713 0 1 1 152.85715,0 z" transform="matrix(0.45605608,0,0,0.49415699,217.71212,212.99401)" id="star-trek-klingon-app-light-path3776" fill="#ff0000" fill-rule="evenodd" stroke="#000000" stroke-width="3.76594257" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+    <path d="m 376.03893,361.93048 c -7.79029,66.46527 -12.58312,75.34471 -16.08976,81.6555 l 16.31322,24.70031 15.95568,-25.32603 C 380.8087,416.60644 378.49766,378.75328 376.03893,361.93048 z" id="star-trek-klingon-app-light-path2996" fill="#ffffff" fill-opacity="1" stroke="#000000" stroke-width="0.35395652" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+    <path d="m 358.77947,445.05003 c -2.05294,2.96307 -9.49658,5.79872 -11.9162,7.36311 -11.48502,7.42557 -16.53045,17.51704 -15.06892,32.84051 20.24729,-15.77698 26.66997,-16.46598 43.11825,-15.03786 z" id="star-trek-klingon-app-light-path2998" fill="#ffffff" fill-opacity="1" stroke="#000000" stroke-width="0.35395652" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+    <path d="m 393.76701,445.09155 -16.88974,25.35538 c 12.64741,7.78163 28.7514,4.43348 41.28166,-0.42698 4.80361,-1.8633 8.3113,-3.78326 13.03527,-6.77639 -12.93755,-1.30087 -29.02283,-7.05607 -37.42719,-18.15201 z" id="star-trek-klingon-app-light-path3000" fill="#ffffff" fill-opacity="1" stroke="#000000" stroke-width="0.35395652" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" stroke-opacity="1" stroke-dasharray="none" />
+    <path d="m 376.03742,370.80697 c -3.7734,25.83941 -6.43744,57.98798 -14.4296,72.38715 l 14.66391,21.99587 14.15826,-22.62794 c -9.97922,-26.1508 -10.92859,-48.2763 -14.39257,-71.75508 z" id="star-trek-klingon-app-light-path3770" fill="#000000" fill-opacity="1" stroke="none" />
+    <path d="m 333.10168,482.12933 c -1.06788,-14.21455 6.66854,-23.75905 14.81163,-28.37762 4.09689,-2.32366 9.36478,-5.47254 10.40777,-6.06993 l 13.90543,20.98456 c -17.13651,-2.74901 -27.93838,4.74337 -39.12483,13.46299 z" id="star-trek-klingon-app-light-path3772" fill="#000000" fill-opacity="1" stroke="none" />
+    <path d="m 393.77994,447.55537 c 0,0 -9.16282,14.37364 -14.34788,22.50152 13.24809,7.95928 36.30743,0.81858 47.34168,-5.94142 -17.9179,-3.51394 -27.10491,-9.91263 -32.9938,-16.5601 z" id="star-trek-klingon-app-light-path3774" fill="#000000" fill-opacity="1" stroke="none" />
+  </g>
+</svg></g></svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hochtief-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="hochtief-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hochtief-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hochtief-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hochtief-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hochtief-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hochtief-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hochtief-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="203.91419 237.92677 204.61484 204.43821" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g>
+        <rect x="204.1380902" y="238.1102655" width="204.0959117" height="204.0943341" fill="#1E569F" />
+        <g>
+            <polygon points="336.8005371 377.5119321 275.5715332 377.5119321 275.5715332 367.3080136 216.383606 367.3080136 216.383606 408.1268613 395.9885254 408.1268613 395.9885254 367.3080136 336.8005371 367.3080136 336.8005371 377.5119321" fill="#FFFFFF" />
+            <polygon points="306.1865234 319.4036557 336.8005371 356.1394956 395.9885254 356.1394956 306.1865234 252.0538632 216.383606 356.1394956 275.5715332 356.1394956 306.1865234 319.4036557" fill="#FFFFFF" />
+        </g>
+        </g>
+</svg></g></svg>

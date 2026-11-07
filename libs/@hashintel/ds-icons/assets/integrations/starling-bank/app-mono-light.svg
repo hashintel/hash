@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="starling-bank-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="starling-bank-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="starling-bank-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#starling-bank-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#starling-bank-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#starling-bank-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="starling-bank-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.247612392266 -0.832983927324 -0.0840903796879 0 1.16468669928" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#starling-bank-app-mono-light-mono)"><defs><clipPath id="starling-bank-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#starling-bank-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<rect width="500" height="500" rx="110" fill="#321E37" />
+<path d="M201.958 161.277C201.958 141.275 221.187 126.673 243.356 126.673C263.719 126.673 284.852 141.275 284.852 169.267H344.318C344.318 105.877 294.835 73.0691 242.184 73.0691C189.534 73.0691 140.882 111.682 140.882 161.305C140.882 295.092 316.721 231.929 316.721 315.521C316.721 347.991 291.851 375.04 250.201 375.04C198.236 375.04 177.433 334.358 184.309 285.868H122.282C111.737 375.04 169.77 426.459 250.124 426.459C324.7 426.459 379.993 379.622 379.993 313.15V313.122C379.993 182.526 201.958 235.714 201.972 161.277H201.958Z" fill="#50FFEB" />
+</svg></g></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shell-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="shell-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="shell-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shell-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#shell-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#shell-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="shell-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#shell-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 4.55314 128 118.89371" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="none" d="M-12.1.3h141.7V142H-12.1z" /><path d="M56.766 118.605H25.01L22.186 95.14 2.78 81.202c-.882-4.058-1.235-8.292-1.235-12.527C1.544 34.095 29.596 6.22 64 6.22c34.58 0 62.456 28.052 62.456 62.456 0 4.235-.353 8.469-1.235 12.527l-19.23 13.938-3 23.465H71.234l-1.765 1.411c-1.588 1.235-3.528 1.765-5.469 1.765-1.94 0-3.881-.706-5.47-1.765l-1.764-1.411z" fill="none" stroke="#fff" stroke-width="3.087525" stroke-miterlimit="40" /><path d="M56.766 118.605H25.01L22.186 95.14 2.78 81.202c-.882-4.058-1.235-8.292-1.235-12.527C1.544 34.095 29.596 6.22 64 6.22c34.58 0 62.456 28.052 62.456 62.456 0 4.235-.353 8.469-1.235 12.527l-19.23 13.938-3 23.465H71.234l-1.765 1.411c-1.588 1.235-3.528 1.765-5.469 1.765-1.94 0-3.881-.706-5.47-1.765l-1.764-1.411z" fill="#fbce07" /><path d="M56.766 118.605H25.01L22.186 95.14 2.78 81.202c-.882-4.058-1.235-8.292-1.235-12.527C1.544 34.095 29.596 6.22 64 6.22s62.456 28.052 62.456 62.456c0 4.235-.353 8.469-1.235 12.527l-19.23 13.938-3 23.465H71.234l-1.765 1.411c-1.588 1.235-3.528 1.765-5.469 1.765-1.94 0-3.881-.706-5.47-1.765l-1.764-1.411zm1.059-10.939H34.713l-2.294-18.701-19.054-13.762c-.53-2.117-.883-4.41-.883-6.704 0-3.705.706-7.41 2.294-10.762l33.698 34.05-32.64-40.402c1.236-5.293 4.058-9.88 8.116-13.585l29.288 50.635-25.935-55.222c3.352-4.41 8.115-7.763 13.408-9.35L58.707 86.67 45.651 21.216c4.058-2.294 8.469-3.353 13.056-3.353.882 0 1.94 0 2.823.177l2.646 67.925 2.647-67.925c.882-.177 1.94-.177 2.823-.177 4.587 0 8.998 1.235 13.056 3.353L69.646 86.67l17.996-62.985c5.293 1.587 10.056 4.94 13.408 9.35l-26.111 55.4L104.226 37.8c4.058 3.529 6.88 8.292 8.116 13.585l-32.64 40.403L113.4 57.737c1.588 3.352 2.294 7.057 2.294 10.762 0 2.293-.353 4.41-.882 6.704L95.757 88.965l-2.293 18.701H70.528l-3.529 2.47c-.882.706-1.94.883-2.999.883-1.059 0-2.117-.353-3-.883l-3.175-2.47z" fill="#dd1d21" fill-rule="evenodd" /></svg></g></svg>

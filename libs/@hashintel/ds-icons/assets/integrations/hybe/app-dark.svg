@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hybe-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hybe-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hybe-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hybe-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hybe-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hybe-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hybe-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hybe-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1006.37128 577.58172 710.20454 344.01036" fill-rule="evenodd" clip-rule="evenodd" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g><path fill="#F5F7FA" d="M 1007.5,578.5 C 1031.83,578.5 1056.17,578.5 1080.5,578.5C 1080.5,692.5 1080.5,806.5 1080.5,920.5C 1056.17,920.5 1031.83,920.5 1007.5,920.5C 1007.5,806.5 1007.5,692.5 1007.5,578.5 Z" opacity="1" /></g>
+<g><path fill="#F5F7FA" d="M 1642.5,578.5 C 1666.83,578.5 1691.17,578.5 1715.5,578.5C 1715.5,692.5 1715.5,806.5 1715.5,920.5C 1691.17,920.5 1666.83,920.5 1642.5,920.5C 1642.5,806.5 1642.5,692.5 1642.5,578.5 Z" opacity="1" /></g>
+<g><path fill="#F5F7FA" d="M 1142.5,741.5 C 1288.5,741.5 1434.5,741.5 1580.5,741.5C 1580.5,746.833 1580.5,752.167 1580.5,757.5C 1434.5,757.5 1288.5,757.5 1142.5,757.5C 1142.5,752.167 1142.5,746.833 1142.5,741.5 Z" opacity="1" /></g>
+<g><path fill="#F5F7FA" d="M 1143.5,742.5 C 1288.83,742.5 1434.17,742.5 1579.5,742.5C 1579.5,747.167 1579.5,751.833 1579.5,756.5C 1434.17,756.5 1288.83,756.5 1143.5,756.5C 1143.5,751.833 1143.5,747.167 1143.5,742.5 Z" opacity="1" /></g>
+</svg></g></svg>

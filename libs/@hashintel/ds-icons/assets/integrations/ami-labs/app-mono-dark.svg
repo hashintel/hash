@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ami-labs-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="ami-labs-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ami-labs-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ami-labs-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#ami-labs-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#ami-labs-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="ami-labs-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ami-labs-app-mono-dark-mono)"><defs><clipPath id="ami-labs-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#ami-labs-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="729.10188 371.28898 460.45421 336.07961" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(797.962 637.814) rotate(0) scale(1.0 1.0) translate(162.038 -97.814)"><g transform="translate(0 0) rotate(0) scale(1.0 1.0) translate(0 0)"><g transform="translate(-162.038 97.814) rotate(0) scale(1.0 1.0) translate(0 0)" fill="#000000"><rect x="-63.9715" y="-64.3295" width="127.943" height="128.659" rx="0" /></g></g></g><g transform="translate(1125.013 637.814) rotate(0) scale(1.0 1.0) translate(162.038 -97.814)"><g transform="translate(0 0) rotate(0) scale(1.0 1.0) translate(0 0)"><g transform="translate(-162.038 97.814) rotate(0) scale(1.0 1.0) translate(0 0)" fill="#000000"><rect x="-63.9715" y="-64.3295" width="127.943" height="128.659" rx="0" /></g></g></g><g transform="translate(1125.013 439.534) rotate(0) scale(1.0 1.0) translate(162.038 -97.814)"><g transform="translate(0 0) rotate(0) scale(1.0 1.0) translate(0 0)"><g transform="translate(-162.038 97.814) rotate(0) scale(1.0 1.0) translate(0 0)" fill="#000000"><rect x="-63.9715" y="-64.3295" width="127.943" height="128.659" rx="0" /></g></g></g><g transform="translate(960 541) rotate(0) scale(1.0 1.0) translate(-960 -540)"><g transform="translate(987.368 706.254) rotate(45) scale(2.7994299999999996 0.84749) translate(97.694 -162.334)"><g transform="translate(0 0) rotate(0) scale(1.0 1.0) translate(0 0)"><g transform="translate(-162.894 97.454) rotate(0) scale(1.01878 1.0) translate(0 0)" fill="#000000"><rect x="-63.9715" y="-64.3295" width="127.943" height="128.659" rx="0" /></g></g></g></g></svg></g></g></svg>

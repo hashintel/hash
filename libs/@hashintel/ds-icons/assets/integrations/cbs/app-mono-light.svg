@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cbs-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="cbs-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cbs-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cbs-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cbs-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#cbs-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="cbs-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#cbs-app-mono-light-mono)"><defs><clipPath id="cbs-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#cbs-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="-202.36 276.93 288.47143 288.031" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="cbs-app-mono-light-brand-symbol-bounds"><rect x="-202.36" y="276.93" width="300.0" height="288.031" /></clipPath></defs><g clip-path="url(#cbs-app-mono-light-brand-symbol-bounds)"><g>
+	<path d="M85.87,420.646c0.109,79.593-64.323,144.203-143.917,144.315c-0.066,0-0.133,0-0.199,0   c-79.529-0.156-143.96-64.587-144.114-144.116c0.264-79.451,64.664-143.761,144.114-143.915   c79.593,0,144.116,64.522,144.116,144.115l0,0V420.646z M77.182,420.646c-11.287-24.88-29.49-45.99-52.441-60.81   c-24.427-16.714-53.389-25.544-82.986-25.3c-29.719-0.219-58.799,8.604-83.387,25.3c-22.774,14.912-40.826,36.004-52.042,60.81   c11.257,24.872,29.293,46.071,52.042,61.167c24.67,16.477,53.722,25.167,83.387,24.942c29.546,0.256,58.478-8.439,82.986-24.942   C47.666,466.807,65.854,445.595,77.182,420.646z M18.417,420.646c0.018,42.227-34.2,76.476-76.428,76.494   c-20.301,0.01-39.769-8.053-54.119-22.411c-29.847-29.849-29.847-78.241,0-108.087c29.849-29.848,78.241-29.848,108.087,0   C10.625,380.738,18.763,400.304,18.417,420.646z" />
+	<path d="M111.531,420.646c0-74.421,61.367-135.79,141.394-135.79c42.588-0.206,82.969,18.938,109.768,52.042l-37.031,37.23   c0,0-26.02-37.19-72.537-37.19c-46.23,0-83.706,37.478-83.706,83.708s37.476,83.706,83.706,83.706   c48.359,0,74.42-37.188,74.42-37.188l37.189,37.188c-27.329,33.45-68.419,52.61-111.609,52.042   C172.899,556.474,111.531,495.064,111.531,420.646L111.531,420.646z" />
+	<path d="M385.39,290.42h109.768c52.042,0,83.706,31.625,83.706,68.855c0.311,23.499-13.674,44.834-35.348,53.924   c0,0,48.359,13.049,48.359,63.25c0,40.951-33.468,74.419-89.272,74.419H385.39V290.42z M491.433,390.901   c18.615,0,29.744-11.169,29.744-26.061c0-14.893-11.129-26.062-29.744-26.062h-50.238v52.041L491.433,390.901z M498.881,502.511   c22.296,0,35.348-13.012,35.348-31.627s-13.052-31.623-35.348-31.623h-57.687v63.25H498.881z" />
+	<path d="M598.601,515.521l37.189-37.192c15.596,17.594,37.901,27.772,61.408,28.023c29.744,0,42.796-13.009,42.796-29.782   c0-44.638-130.265-24.02-130.265-115.333c0-40.914,35.348-76.062,94.914-76.062c57.646,0,87.431,35.349,87.431,35.349   l-37.229,37.19c-12.415-13.709-29.872-21.773-48.359-22.339c-28.022,0-39.069,11.169-39.069,26.061   c0,44.635,130.224,24.019,130.224,115.333c0,42.794-37.188,80.064-98.6,80.064C632.066,556.474,598.601,515.521,598.601,515.521z" />
+</g>
+<path fill="none" d="M0,268.309H595.28v305.272H0V268.309z" />
+</g></svg></g></g></svg>

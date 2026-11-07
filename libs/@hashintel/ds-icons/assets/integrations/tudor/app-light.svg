@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tudor-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="tudor-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tudor-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tudor-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tudor-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tudor-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="tudor-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tudor-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="tudor-app-light-svg8" x="14.222222222222221" y="14.222222222222221" viewBox="71.43473 0.36357 38.90061 53.93842" xml:space="preserve" fill="#111111" width="35.55555555555556" height="35.55555555555556">
+<path id="tudor-app-light-path6170" fill="#FF0000" d="M105.22,18.99V9.71c-3.69,1.08-7.65,0.95-11.25-0.39V19  L105.22,18.99z M87.92,18.99V9.31c-3.61,1.35-7.55,1.48-11.24,0.39V19L87.92,18.99z M110.18,24.59  c-0.35,12.69-7.78,24.1-19.23,29.56C79.49,48.7,72.06,37.29,71.71,24.59V0.5c4.37,5.51,12.4,6.44,17.92,2.07  c0.46-0.37,0.91-0.77,1.31-1.2c4.86,5.11,12.93,5.3,18.04,0.44c0.43-0.41,0.82-0.85,1.19-1.31L110.18,24.59z M105.08,24.59H76.82  c0.31,9.82,5.64,18.78,14.12,23.73C99.44,43.37,104.77,34.42,105.08,24.59" />
+</svg></g></svg>

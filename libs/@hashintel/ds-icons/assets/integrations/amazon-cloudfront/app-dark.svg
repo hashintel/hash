@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="amazon-cloudfront-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="amazon-cloudfront-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="amazon-cloudfront-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amazon-cloudfront-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#amazon-cloudfront-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#amazon-cloudfront-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="amazon-cloudfront-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#amazon-cloudfront-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 308" preserveAspectRatio="xMidYMid" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+	<g>
+		<g transform="translate(165.000000, 48.000000)">
+			<path d="M1.01,79.465 L60.2123978,73.1509144 L90.888,79.52 L90.999,79.588 L34.441,82.962 L0.957,79.52 L1.01,79.465 L1.01,79.465 Z" fill="#7B2E23" />
+			<path d="M0.958,79.521 L60.162,74.896 L60.569,74.303 L60.571,1.259 L60.164,0.424 L0.958,15.821 L0.958,79.521" fill="#A74735" />
+			<path d="M91,79.59 L60.162,74.896 L60.164,0.424 L90.999,15.852 L91,79.59" fill="#E05243" />
+		</g>
+		<g transform="translate(165.000000, 176.000000)">
+			<path d="M0.958,4.115 L1.823,4.721 L60.172,8.68 L89.944,4.721 L90.999,4.142 L34.442,0.667 L0.958,4.115" fill="#F2B0A9" />
+			<path d="M0.958,4.115 L60.172,8.52 L60.355,8.766 L60.31,82.708 L60.164,83.094 L0.958,67.819 L0.958,4.115" fill="#A74735" />
+			<path d="M90.999,4.142 L60.172,8.52 L60.164,83.094 L90.999,67.785 L90.999,4.142" fill="#E05243" />
+		</g>
+		<g transform="translate(0.000000, 48.000000)">
+			<path d="M89.119,79.408 L30.5886718,74.3941406 L0.195,79.439 L0.002,79.59 L56.559,82.964 L89.433,79.588 L89.119,79.408 Z" fill="#7B2E23" />
+			<path d="M0.002,79.59 L30.559,75.116 L31.458,74.479 L31.458,1.279 L30.559,0.424 L0.002,15.855 L0.002,79.59" fill="#A74735" />
+			<path d="M89.433,79.588 L30.559,75.116 L30.559,0.424 L89.436,15.821 L89.433,79.588" fill="#E05243" />
+		</g>
+		<g transform="translate(0.000000, 176.000000)">
+			<path d="M89.433,4.142 L88.082,5.127 L30.559,9.44 L0.976,5.127 L0,4.142 L56.559,0.667 L89.433,4.142" fill="#F2B0A9" />
+			<path d="M0,4.142 L30.558,8.482 L31.335,9.434 L31.418,81.767 L30.559,83.094 L0.002,67.785 L0,4.142" fill="#A74735" />
+			<path d="M89.433,4.142 L30.558,8.482 L30.559,83.094 L89.433,67.819 L89.433,4.142" fill="#E05243" />
+		</g>
+		<g transform="translate(66.000000, 183.000000)">
+			<path d="M123.104,6.66 L62.001,0.634 L0.289,6.661 L1.159,7.396 L61.7,17.013 L122.233,7.396 L123.104,6.66" fill="#F2B0A9" />
+			<path d="M0.289,6.661 L61.7,15.659 L62.323,16.492 L62.402,123.451 L61.7,124.637 L0.289,93.931 L0.289,6.661" fill="#A74735" />
+			<path d="M123.104,6.66 L61.7,15.659 L61.7,124.637 L123.105,93.931 L123.104,6.66" fill="#E05243" />
+		</g>
+		<g transform="translate(66.000000, 0.000000)">
+			<path d="M62.001,123.933 L0.289,117.975 L0.448,117.884 L61.6970009,108.382031 L122.919,117.906 L123.105,117.975 L62.001,123.933 L62.001,123.933 Z" fill="#7B2E23" />
+			<path d="M0.289,117.975 L61.7,109.026 L61.994,108.758 L61.858,0.165 L61.7,0 L0.289,30.709 L0.289,117.975" fill="#A74735" />
+			<path d="M123.105,117.975 L61.7,109.026 L61.7,0 L123.105,30.709 L123.105,117.975" fill="#E05243" />
+		</g>
+	</g>
+</svg></g></svg>

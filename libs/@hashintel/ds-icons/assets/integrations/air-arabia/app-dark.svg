@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="air-arabia-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="air-arabia-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="air-arabia-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-arabia-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#air-arabia-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#air-arabia-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="air-arabia-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#air-arabia-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#ff0041" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M0.034 0C2.489 0.973 4.884 2.135 7.045 3.658 7.789 4.196 8.525 4.765 9.095 5.486 9.411 5.869 9.51 6.37 9.549 6.852 9.607 7.728 9.585 8.607 9.679 9.481 9.757 10.05 9.897 10.721 10.437 11.025 11.001 11.34 11.624 11.011 12.219 11.023 13.355 10.953 14.606 11.328 15.277 12.303 14.607 12.405 13.909 12.476 13.304 12.807A0.67 0.67 0 0 0 12.953 13.236C13.217 13.558 13.611 13.72 14.008 13.815 15.064 14.071 16.156 14.146 17.211 14.405 17.664 14.526 18.139 14.665 18.485 14.996 19.548 15.986 20.279 17.265 20.969 18.526 21.959 20.342 22.782 22.264 23.99 23.954V24H23.809C21.918 23.64 20.117 22.731 18.807 21.303 17.303 19.715 16.316 17.64 14.473 16.386 12.653 15.122 10.34 14.936 8.188 15.056 7.12 15.076 6.055 15.415 4.988 15.178 4.203 15.015 3.378 14.693 2.898 14.015 4.162 13.73 5.503 13.395 6.491 12.505 7.021 12.045 7.258 11.318 7.159 10.629 7.011 9.413 6.259 8.391 5.505 7.469 4.121 5.813 2.48 4.377 1.23 2.608 0.688 1.848 0.254 1.007 0.01 0.103Z" /></svg></g></svg>

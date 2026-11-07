@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brenntag-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="brenntag-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="brenntag-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brenntag-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#brenntag-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#brenntag-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="brenntag-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.299043510878 -1.00600150038 -0.10155663916 0 1.40660165041" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#brenntag-app-mono-light-mono)"><defs><clipPath id="brenntag-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#brenntag-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="6.95314 0 38.10514 48" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M41.461 24.02C39.925 25.938 37.663 27.775 34.912 28.862C36.568 30.902 37.404 33.174 36.801 35.536C36.226 37.791 34.07 39.992 31.001 39.992H15V27.994H29C36.72 27.994 43 21.715 43 13.997C43 6.279 36.72 0 29 0H7V17.996H15V7.998H29C32.31 7.998 35 10.687 35 13.997C35 17.307 32.31 19.996 29 19.996H7V47.99V48H31C38.72 48 45 41.721 45 34.003C45 30.579 44.037 26.735 41.461 24.02Z" fill="url(#brenntag-app-mono-light-paint0_linear_302_1244)" />
+<defs>
+<linearGradient id="brenntag-app-mono-light-paint0_linear_302_1244" x1="2.4477" y1="43.4477" x2="40.3431" y2="5.5523" gradientUnits="userSpaceOnUse">
+<stop stop-color="#C815E0" />
+<stop offset="0.8" stop-color="#0C72ED" />
+</linearGradient>
+</defs>
+</svg></g></g></svg>

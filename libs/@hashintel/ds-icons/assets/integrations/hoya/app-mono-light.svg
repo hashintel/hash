@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hoya-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="hoya-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hoya-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hoya-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hoya-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hoya-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="hoya-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.323700671369 -1.08894976558 -0.109930331481 0 1.52258076843" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#hoya-app-mono-light-mono)"><defs><clipPath id="hoya-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hoya-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05549 -0.16748 125.66744 28.55397" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs>
+    </defs>
+  <path id="hoya-app-mono-light-logo.svg" d="M1745.75,67.369c-5.99,0-9.34-3.936-9.61-8.914h9.11a73.6,73.6,0,0,0-9.04-2.076c0.58-4.593,3.94-8.114,9.54-8.114,6.69,0,9.49,4.277,9.49,9.552s-2.95,9.552-9.49,9.552m0-23.6c-8.43,0-14.33,5.081-15.46,11.75-1.89-.22-3.93-0.408-6.09-0.538V44.2h-5.96V54.786l-0.61,0a109.452,109.452,0,0,0-12.83.755V44.2h-5.96V56.415a72.7,72.7,0,0,0-8.84,2.041h8.84V71.5h5.96V58.455h13.44V71.5h5.96V58.455h5.91C1730.4,65.985,1736.5,72,1745.75,72c10.35,0,15.67-6.32,15.67-14.115s-5.53-14.114-15.67-14.114m44.55,0.57h-6.97l-8.2,11.529-8.25-11.529h-6.75l12,15.941V71.429h5.89V60.488Zm5.7,15.183,3.63-8.548,3.79,8.548H1796Zm12.7,11.9h6.75L1802.3,44.341h-5.39l-12.43,27.088h6.47l3.18-7.485h11.25Z" transform="translate(-1690 -43.781)" fill="#0068B6" fill-rule="evenodd" />
+</svg></g></g></svg>

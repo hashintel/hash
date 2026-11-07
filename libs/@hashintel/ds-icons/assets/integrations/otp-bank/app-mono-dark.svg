@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="otp-bank-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="otp-bank-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="otp-bank-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#otp-bank-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#otp-bank-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#otp-bank-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="otp-bank-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.30829606613 -1.03712768813 -0.104698852185 0 1.45012260644" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#otp-bank-app-mono-dark-mono)"><defs><clipPath id="otp-bank-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#otp-bank-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="198.71878 34.04096 558.57197 559.42008" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs /><path d="m 355.42962,313.88201 c 0,-68.1989 55.27664,-123.48855 123.47554,-123.48855 68.19991,0 123.46454,55.28965 123.46454,123.48855 0,68.1864 -55.26463,123.47605 -123.46454,123.47605 -68.1989,0 -123.47554,-55.28965 -123.47554,-123.47605" fill="#6EC72D" fill-opacity="1" fill-rule="nonzero" stroke="none" /><path d="m 564.52956,157.46985 c 0,-39.07802 31.68572,-70.76324 70.76375,-70.76324 39.09003,0 70.78776,31.68522 70.78776,70.76324 0,39.09053 -31.69773,70.77576 -70.78776,70.77576 -39.07803,0 -70.76375,-31.68523 -70.76375,-70.77576 M 199.86807,313.88201 c 0,-153.63517 124.45124,-278.18698 278.02437,-278.374614 l 0,100.597134 c -98.0333,0.17513 -177.43924,79.69465 -177.43924,177.77748 0,98.18291 79.59407,177.76498 177.76447,177.76498 97.59498,0 177.77748,-78.83153 177.77748,-178.44046 l 100.58413,0.06 c 0,154.34818 -124.61436,278.96254 -278.36161,278.96254 -153.73524,0 -278.3496,-124.61436 -278.3496,-278.3496" fill="#00674C" fill-opacity="1" fill-rule="nonzero" stroke="none" /></svg></g></g></svg>

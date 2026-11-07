@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="1-and-1-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="1-and-1-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="1-and-1-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#1-and-1-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#1-and-1-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#1-and-1-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="1-and-1-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#1-and-1-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="1-and-1-app-light-einsundeins-square" viewBox="129.44829 129.44829 141.10344 141.10344" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><path d="M129.72,129.72H270.28V270.28H129.72Z" fill="#ffffff" /><path d="M187.74,214.06c-.1-3.4,2.14-7,7.73-10.71l12,15.9a13,13,0,0,1-8.81,3.31C192.24,222.56,187.9,219.25,187.74,214.06Z" fill="#003d8f" /><path d="M203.48,181.1c0-2.81-2-4.62-5.12-4.62s-5.2,2-5.2,4.72.79,4.06,4.42,8.72c4.3-3.11,5.9-6,5.9-8.82Z" fill="#003d8f" /><path d="M133,133V267H267V133Zm35.5,98.24H155.89v-53H145.8V168.16h22.7Zm48.07,0-2.81-3.79c-4.6,3.69-8.63,5.06-15.15,5-12.75-.07-21.53-6.55-22.36-18.08h0c-.49-6.9,4.11-14,13-19.1-5.69-7.29-6.86-9.81-6.86-14.38,0-7.77,6.65-13.49,16.07-13.49,8.73,0,14.91,5.82,14.91,13.78,0,5.83-2.39,10.16-9.75,16.28l10.9,14.79c.91-.82,1.69-5.85,1.53-9.93,0-.48-.12-1.9-.22-3.46h10.12c0,1.36.14,3.33.14,3.81,0,8-1.25,13-5.08,17.86L229,231.23Zm32.6,0h-12.6v-53H226.48V168.16h22.69Z" fill="#003d8f" /></svg></g></svg>

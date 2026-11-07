@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="thales-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="thales-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="thales-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#thales-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#thales-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#thales-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="thales-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.266104545173 -0.895192712644 -0.0903704052753 0 1.25166766309" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#thales-app-mono-dark-mono)"><defs><clipPath id="thales-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#thales-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 484 57.4" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="m484 42.1c0 7.8-2.3 10.1-8.5 12-6.7 2-18.6 3.3-25.7 3.3-8.4 0-18.9-0.5-27.8-2.6v-9h49.3v-12.3h-34.9c-10.5 0-14.4-2.9-14.4-13.1v-5.4c0-8.1 2.4-10.5 8.9-12.2 6.6-1.7 17.4-2.8 24.5-2.8 8.6 0 18.9 0.7 27.8 2.7v9h-48.5v10.3h34.9c10.5 0 14.4 2.8 14.4 13.1z" fill="#2C2F73" />
+ <path d="m400 54.7c-10.2 2-20.5 2.6-30.5 2.6s-20.4-0.6-30.7-2.6v-52c10.2-2 20.6-2.7 30.5-2.7 10 0 20.1 0.6 30.3 2.7v9.3h-46.2v10.4h30.1v10.8h-30.1v12.3h46.4v9.2z" fill="#2C2F73" />
+ <path d="m321 54.7c-9.2 2-18.4 2.6-27.3 2.6s-18.3-0.5-27.5-2.6v-53.4h14.7v43.5h40.1z" fill="#2C2F73" />
+ <path d="m249 55.1c-4.9 1.4-11.4 1.9-16.2 2l-22.7-45.8h-1.3l-22.6 45.8c-4.8-0.1-10.5-0.6-15.4-2l28.7-53.7h20.5z" fill="#2C2F73" />
+ <path d="m219 41.4c0 5.3-4.3 9.5-9.6 9.5s-9.5-4.3-9.5-9.5c0-5.3 4.3-9.5 9.5-9.5 5.3 0 9.6 4.2 9.6 9.5" fill="#5EBFD4" />
+ <path d="m153 55.1c-4.7 1.4-9.7 1.8-14.7 1.9v-23.3h-36.5v23.3c-5-0.1-10-0.6-14.7-1.9v-52.8c4.7-1.4 9.7-1.8 14.7-1.9v22.5h36.5v-22.5c5 0.1 10 0.6 14.7 1.9z" fill="#2C2F73" />
+ <path d="m66.2 12.1h-25.8v44h-14.6v-44h-25.8v-9.4c11.1-2 22.3-2.7 33.1-2.7s22 0.6 33.1 2.7z" fill="#2C2F73" />
+</svg></g></g></svg>

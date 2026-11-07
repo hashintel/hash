@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="tidal-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#tidal-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1001.000000 667.000000" preserveAspectRatio="xMidYMid meet" fill="#000000" color="black" x="0.0" y="0.0" width="64" height="64">
+
+<g transform="translate(0.000000,667.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
+<path d="M840 5835 l-835 -835 830 -830 c456 -456 834 -830 840 -830 5 0 383 374 840 830 l830 830 830 -830 830 -830 -835 -835 -835 -835 835 -835 835 -835 835 835 835 835 -833 833 -832 832 833 833 832 832 833 -832 832 -833 835 835 835 835 -835 835 -835 835 -835 -835 -835 -835 -833 833 -832 832 -833 -832 -832 -833 -833 833 -832 832 -835 -835z" />
+</g>
+</svg></g></svg>

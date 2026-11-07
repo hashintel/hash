@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lamini-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lamini-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lamini-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lamini-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lamini-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lamini-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lamini-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lamini-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1965 365" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(0.000000,365.000000) scale(0.100000,-0.100000)" fill="#F5F7FA" stroke="none"><path d="M12350 1825 l0 -1825 425 0 425 0 0 1825 0 1825 -425 0 -425 0 0 -1825z" /><path d="M16770 2755 c0 -492 -2 -895 -5 -895 -4 0 -69 50 -940 725 -297 230 -567 439 -600 465 -52 40 -438 339 -682 527 -45 35 -84 63 -87 63 -3 0 -6 -819 -6 -1820 l0 -1820 440 0 440 0 0 916 c0 505 1 919 4 921 2 2 138 -103 302 -234 318 -254 632 -504 909 -724 414 -329 782 -622 928 -738 86 -69 162 -128 167 -129 7 -3 10 614 10 1817 l0 1821 -440 0 -440 0 0 -895z" /><path d="M18800 1825 l0 -1825 425 0 425 0 0 1825 0 1825 -425 0 -425 0 0 -1825z" /><path d="M7800 1821 l0 -1821 508 2 507 3 5 265 c6 304 12 330 101 477 27 45 49 83 49 86 0 2 -24 20 -54 41 -150 103 -272 291 -310 478 -31 148 -11 426 34 481 27 32 41 20 150 -134 52 -74 180 -255 284 -403 l189 -268 36 7 c120 23 224 23 337 0 34 -8 18 -28 344 435 249 354 266 375 288 378 16 3 25 -4 33 -25 38 -100 51 -348 24 -475 -17 -82 -52 -170 -96 -245 -45 -74 -157 -193 -219 -233 -28 -18 -50 -35 -50 -38 0 -2 16 -29 36 -59 19 -29 46 -77 59 -106 50 -108 57 -157 62 -419 l5 -248 504 0 504 0 0 1814 c0 998 -4 1817 -8 1820 -4 2 -383 -308 -841 -690 -458 -382 -836 -694 -841 -694 -6 0 -200 163 -432 363 -232 199 -508 435 -613 525 -104 90 -277 239 -383 330 -107 92 -198 169 -203 170 -5 2 -9 -713 -9 -1817z" /><path d="M5017 3608 c-8 -13 -46 -81 -84 -153 -39 -71 -149 -274 -246 -450 -188 -345 -1606 -2945 -1626 -2982 l-12 -23 450 0 449 0 94 162 c217 373 271 464 280 476 8 9 163 12 713 12 l703 0 20 -33 c11 -17 47 -84 80 -147 33 -63 103 -194 154 -290 l94 -175 452 -3 c314 -1 452 1 452 8 0 6 -13 34 -29 63 -16 29 -79 147 -141 262 -62 116 -146 273 -188 350 -41 77 -89 167 -107 200 -18 33 -113 211 -212 395 -99 184 -296 551 -438 815 -142 264 -304 566 -360 670 -99 184 -282 525 -403 749 -32 61 -64 112 -70 114 -6 2 -17 -7 -25 -20z m186 -1965 c91 -159 169 -296 172 -305 7 -17 -13 -18 -333 -18 -188 0 -343 4 -346 8 -6 9 323 602 334 602 5 0 83 -129 173 -287z" /><path d="M0 1805 l0 -1795 1032 2 1033 3 227 410 c124 225 224 412 221 415 -2 3 -370 5 -816 5 l-812 0 -5 1375 -5 1375 -437 3 -438 2 0 -1795z" /></g></svg></g></svg>

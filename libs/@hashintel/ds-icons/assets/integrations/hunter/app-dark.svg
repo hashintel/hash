@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hunter-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="hunter-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="hunter-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hunter-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#hunter-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#hunter-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="hunter-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#hunter-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 4.843333 116.24 107.715733" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<defs id="hunter-app-dark-defs6" />
+<g id="hunter-app-dark-g10" transform="matrix(1.3333333,0,0,-1.3333333,0,116.24)">
+<g id="hunter-app-dark-g12" transform="scale(0.1)">
+<path d="m 537.324,496.277 c -18.015,-5.183 -37.879,-5.269 -56.453,-4.484 -21.605,0.914 -44.484,3.645 -64.433,12.512 -16.415,7.293 -29.583,20.453 -22.692,39.461 4.859,13.406 15.629,25.382 28.078,32.132 13.996,7.594 29.375,6.36 43.379,-0.503 15.723,-7.707 28.801,-20.243 40.656,-32.891 6.215,-6.633 12.145,-13.52 17.996,-20.473 2.7,-3.199 21.008,-21.484 13.469,-25.754 z m 299.461,-6.535 c -27.707,6.446 -60.445,4.137 -88.222,8.578 -43.754,7 -108.926,58.016 -144.254,109.871 -24.547,36.032 -36.262,72.731 -55.028,117.45 -13.097,31.214 -41.656,129.941 -81.593,83.73 -16.446,-19.031 -34.856,-81.68 -48.305,-80.797 -9.961,-2.316 -11.586,17.098 -14.738,25.395 -5.723,15.066 -8.758,32.496 -16.426,46.703 -6.129,11.355 -14.176,24.957 -26.5,30.476 -21.957,11.29 -48.43,-22.738 -61.567,-63.089 C 294.535,746.422 256.773,704.48 240.328,694.336 165.504,648.164 15.3281,599.52 0.0117188,437.543 c -0.0625001,-0.672 0,-2.715 2.5429712,-0.875 C 20.4648,449.637 223.613,595.953 93.2383,313.129 13.3672,139.855 399,29.5117 418.824,29.0625 c 2.672,-0.0586 2.477,1.1563 2.567,1.957 30.773,276.5545 334.781,247.4415 405.578,313.6755 70.16,65.629 71.59,129.157 9.816,145.047" id="hunter-app-dark-path26" stroke="none" />
+</g>
+</g>
+
+</svg></g></svg>

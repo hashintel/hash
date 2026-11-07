@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="isomorphic-labs-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="isomorphic-labs-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="isomorphic-labs-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#isomorphic-labs-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#isomorphic-labs-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#isomorphic-labs-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="isomorphic-labs-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#isomorphic-labs-app-mono-light-mono)"><defs><clipPath id="isomorphic-labs-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#isomorphic-labs-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="12.87154 12.73783 118.25691 118.52434" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,144.000000) scale(0.100000,-0.100000)" fill="#111111" stroke="none">
+<path d="M142 1297 c-9 -10 -12 -47 -10 -118 l3 -104 90 -5 c50 -3 100 -11 113 -18 l22 -13 0 -435 c0 -281 4 -442 10 -455 10 -17 22 -19 115 -19 57 0 106 4 110 10 3 5 6 215 6 466 0 361 -3 459 -13 466 -7 4 -52 8 -100 8 -87 0 -88 0 -103 30 -9 17 -15 55 -15 93 0 94 -8 101 -122 105 -74 3 -97 1 -106 -11z" />
+<path d="M845 1298 c-3 -7 -4 -220 -3 -473 l3 -460 97 -3 c87 -2 98 -5 111 -25 8 -13 16 -55 19 -101 5 -103 11 -108 138 -104 l95 3 3 109 c2 81 -1 112 -10 118 -7 4 -49 8 -93 8 -57 0 -87 5 -103 16 l-22 15 0 443 c0 330 -3 445 -12 454 -17 17 -217 17 -223 0z" />
+</g>
+</svg></g></g></svg>

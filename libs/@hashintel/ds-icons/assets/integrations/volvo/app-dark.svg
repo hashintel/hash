@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="volvo-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="volvo-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="volvo-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#volvo-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#volvo-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#volvo-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="volvo-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#volvo-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M112.8,134.5h30.3v-10.1h-3.3c0,3.9-2.8,6.7-7.2,6.7H128v-15.1h5v-3.4h-20.2v3.4h5.1l0,15.1h-5.1L112.8,134.5L112.8,134.5 z" /><polygon points="157.7,134.5 169.5,134.5 179.6,116 184.6,116 184.6,112.6 169.5,112.6 169.5,116 173.9,116 166.5,129.5 159.2,116 164.5,116 164.5,112.6 142.5,112.6 142.5,116 147.5,116" /><polygon points="52.4,112.6 30.5,112.6 30.5,116 35.5,116 45.7,134.5 57.5,134.5 67.5,116 72.5,116 72.5,112.6 57.4,112.6 57.4,116 61.8,116 54.5,129.5 47.1,116 52.4,116" /><path d="M75.5,123.6c0,6.4,5.2,11.6,15.6,11.6c10.4,0,15.5-5.1,15.5-11.6c0-6.4-5.4-11.4-15.6-11.4 C80.9,112.1,75.5,117.2,75.5,123.6z M96.4,123.6c-0.1,4-1.7,8.1-5.5,8c-3.7-0.1-5.3-4.2-5.3-8.2c0.1-4.2,2.1-7.9,5.6-7.8 C94.7,115.6,96.5,119.4,96.4,123.6z" /><path d="M187.5,123.6c0,6.4,5.2,11.6,15.6,11.6c10.4,0,15.5-5.1,15.5-11.6c0-6.4-5.4-11.4-15.6-11.4 C192.9,112.1,187.5,117.2,187.5,123.6z M203.2,115.6c3.5,0.1,5.3,3.8,5.2,8c-0.1,4-1.7,8.1-5.5,8c-3.7-0.1-5.3-4.2-5.3-8.2 C197.7,119.2,199.7,115.5,203.2,115.6z" /><path d="M227.9,54l-12.7,12.7c10.9,16.8,17.2,36.8,17.2,58.3c0,59.3-48.1,107.4-107.4,107.4S17.6,184.3,17.6,125 S65.7,17.6,125,17.6c21.6,0,41.6,6.4,58.4,17.3l12.7-12.7C176,8.2,151.4,0,125,0C56,0,0,56,0,125s56,125,125,125s125-56,125-125 C250,98.6,241.8,74.1,227.9,54z" /><path d="M187.9,4.9v3.5c7.6,4.1,14.7,9,21.3,14.4l-17.8,17.8c6.7,5.3,12.8,11.3,18.1,18l17.8-17.8c5.5,6.6,10.3,13.8,14.4,21.2h3.4 V4.9H187.9z" /></svg></g></svg>

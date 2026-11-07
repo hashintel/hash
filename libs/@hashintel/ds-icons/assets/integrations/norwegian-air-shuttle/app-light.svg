@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="norwegian-air-shuttle-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="norwegian-air-shuttle-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="norwegian-air-shuttle-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#norwegian-air-shuttle-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#norwegian-air-shuttle-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#norwegian-air-shuttle-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="norwegian-air-shuttle-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#norwegian-air-shuttle-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g fill="none" fill-rule="evenodd"><path fill="#e5212d" d="M0 0H24V24H0Z" /><path fill="#ffffff" d="M18.48 11.074C18.408 11.038 18.318 10.958 18.254 10.902 17.94 10.628 17.629 10.175 17.714 9.737 17.722 9.652 17.814 9.616 17.868 9.558L18.761 8.784C18.954 8.616 19.157 8.477 19.388 8.367 19.722 8.197 20.096 8.097 20.468 8.064 20.788 8.038 21.165 8.057 21.462 8.182 21.669 8.266 21.736 8.401 21.727 8.62 21.704 8.933 21.5 9.269 21.317 9.517 21.003 9.936 20.616 10.301 20.222 10.643L19.044 11.665C18.954 11.741 18.865 11.822 18.774 11.897 18.849 12.039 18.934 12.18 19.012 12.321L20.59 15.1C20.664 15.214 20.687 15.32 20.626 15.447A0.3 0.3 0 0 1 20.58 15.513C20.493 15.613 20.393 15.703 20.304 15.801 20.148 15.703 19.994 15.595 19.84 15.494Q18.79 14.8 17.741 14.104 17.541 13.974 17.341 13.84C17.421 13.72 17.507 13.598 17.587 13.477 17.704 13.298 17.827 13.123 17.945 12.945A0.4 0.4 0 0 1 17.98 12.895C17.916 12.85 17.848 12.811 17.786 12.763 17.721 12.803 17.653 12.877 17.59 12.925L16.4 13.957A10 10 0 0 1 15.635 14.569C15.001 15.025 14.32 15.413 13.582 15.671 12.699 15.978 11.367 16.171 10.81 15.213 10.517 14.703 10.6 14.024 10.776 13.488 10.985 12.842 11.336 12.259 11.74 11.718 11.81 11.622 11.892 11.529 11.961 11.433 12.021 11.451 12.061 11.499 12.118 11.523 12.09 11.593 12.018 11.669 11.98 11.737 11.702 12.17 11.446 12.701 11.444 13.225 11.444 13.828 11.852 14.191 12.444 14.19 13.01 14.19 13.576 13.939 14.057 13.659 14.563 13.364 15.011 12.994 15.441 12.599L15.453 12.587C15.35 12.524 15.248 12.453 15.147 12.387Q14.693 12.084 14.237 11.785 13.196 11.093 12.152 10.403L11.552 10.005C11.335 9.865 11.122 9.716 10.905 9.576 10.983 9.495 11.081 9.422 11.165 9.345A0.77 0.77 0 0 1 11.898 9.171Q12.098 9.235 12.296 9.304 15.238 10.284 18.178 11.266C18.207 11.274 18.23 11.287 18.26 11.288L18.393 11.172C18.413 11.148 18.467 11.116 18.481 11.093ZM4.87 9.316C4.93 9.249 4.978 9.174 5.044 9.111 5.085 9.071 5.125 9.028 5.168 8.99 5.661 8.553 6.335 8.407 6.978 8.434 7.528 8.457 8.05 8.602 8.505 8.918A2.55 2.55 0 0 1 9.267 9.776C9.561 10.304 9.681 10.934 9.677 11.533V15.823Q9.679 15.877 9.677 15.932C9.644 15.929 9.611 15.931 9.579 15.93H7.692V11.89C7.692 11.335 7.575 10.69 7.027 10.417 6.661 10.232 6.123 10.237 5.747 10.394 5.141 10.65 4.917 11.271 4.917 11.89V15.932H2.929Q2.927 15.878 2.928 15.823V8.6H4.872V9.222Q4.874 9.269 4.869 9.316" /></g></svg></g></svg>

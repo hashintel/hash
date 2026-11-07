@@ -9,18 +9,30 @@
     "directory": "libs/@hashintel/ds-icons"
   },
   "files": [
+    "assets/integrations",
     "CHANGELOG.md",
     "dist",
     "LICENSE",
     "LICENSE-APACHE.md",
     "LICENSE-MIT.md",
-    "README.md"
+    "README.md",
+    "THIRD-PARTY-NOTICES.md",
+    "licenses"
   ],
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./integrations/markets": {
+      "types": "./dist/integration-markets.d.ts",
+      "default": "./dist/integration-markets.js"
+    },
+    "./integrations": {
+      "types": "./dist/integrations.d.ts",
+      "default": "./dist/integrations.js"
+    },
+    "./integrations/svg/*": "./assets/integrations/*",
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
@@ -41,10 +53,12 @@
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "generate:integrations": "uv run --python python3 --script scripts/generate-integration-icons.py && oxfmt --write src/integration-icon-catalog.ts src/integration-icon-geographic-markets.ts src/integration-icon/app-tile.tsx src/integration-icon/geometry.ts \"src/integration-icon/geometry/*.tsx\"",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
-    "test:unit": "vitest run"
+    "preview:integrations": "node scripts/preview-integrations.ts",
+    "test:unit": "vitest run && uv run --python python3 --script scripts/test-generate-integration-icons.py"
   },
   "dependencies": {
     "@hashintel/ds-helpers": "workspace:^"

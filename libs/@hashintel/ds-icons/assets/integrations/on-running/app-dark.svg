@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="on-running-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="on-running-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="on-running-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#on-running-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#on-running-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#on-running-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="on-running-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#on-running-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" y="14.222222222222221" x="14.222222222222221" viewBox="-1.03281 -0.618 404.64399 792" fill="#F5F7FA" width="35.55555555555556" height="35.55555555555556"><path d="m402.97 62.754c-1.236 1.236-2.473 2.782-3.71 4.019-17.002 17.002-34.313 34.314-51.315 51.316-0.618 0.619-0.928 0.928-1.237 1.237-1.236 1.545-1.236 3.091 0.31 5.255 12.983 21.948 21.021 45.442 23.804 70.482 5.564 51.316-7.42 97.377-39.569 137.87-27.513 34.623-63.372 56.262-106.34 65.845-19.785 4.328-39.878 4.637-59.972 2.473-33.077-3.4-62.754-15.456-89.34-35.241-38.333-28.44-62.136-66.155-72.028-113.14-3.709-17.312-4.328-34.932-2.782-52.243 3.709-40.497 19.167-76.356 46.679-106.96 26.276-29.368 58.426-48.534 96.45-57.189 18.857-4.328 37.714-5.874 57.189-4.019 27.822 2.473 53.789 10.511 77.901 24.422 3.092 1.854 4.328 0.618 6.184-1.237 17.02-17.005 34.02-34.007 51.02-51.01 1.236-1.237 2.473-2.782 4.019-4.637 21.02 21.021 41.73 41.733 62.75 62.754m-115.92 157.66c1.546-59.663-45.442-102.94-98.305-104.49-59.663-1.546-104.18 47.916-104.18 101.4 0 54.717 46.061 102.01 101.4 101.09 54.41 0.62 99.85-44.21 101.09-98" fill="#F5F7FA" /><path d="m365.26 633.42c0.309 50.079 0 100.47 0 150.55v6.801h-89.649v-6.183c0-52.553 0.31-105.1 0-157.66 0-27.513-9.583-51.625-29.677-70.792-13.292-12.674-29.367-20.094-47.916-22.566-24.112-3.4-46.061 2.473-65.536 17.002-19.476 14.839-30.914 34.933-34.623 58.735-1.855 11.438-2.164 23.186-2.164 34.933-0.309 46.679 0 93.049 0 139.73v6.491h-89.019v-5.873c0-56.571-0.618-113.45 0.309-170.02 0.618-29.986 10.202-58.427 25.967-84.394 26.276-43.278 63.682-71.101 112.83-82.539 15.148-3.4 31.532-4.945 47.298-4.327 49.152 2.164 91.194 21.639 124.58 58.426 23.803 26.586 38.95 57.499 44.206 93.05 2.16 12.98 3.4 25.96 3.4 38.64" fill="#F5F7FA" /></svg></g></svg>

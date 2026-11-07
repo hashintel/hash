@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="browserstack-legacy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="browserstack-legacy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="browserstack-legacy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#browserstack-legacy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#browserstack-legacy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#browserstack-legacy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="browserstack-legacy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#browserstack-legacy-app-mono-dark-mono)"><defs><clipPath id="browserstack-legacy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#browserstack-legacy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.10243 0.61082 255.72935 255.72935" preserveAspectRatio="xMidYMid" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <defs>
+        <radialGradient cx="50.1407407%" cy="50.0030864%" fx="50.1407407%" fy="50.0030864%" r="50.1188272%" id="browserstack-legacy-app-mono-dark-radialGradient-1">
+            <stop stop-color="#797979" offset="0%" />
+            <stop stop-color="#4C4C4C" offset="100%" />
+        </radialGradient>
+    </defs>
+	<g>
+		<circle fill="#F5BB60" cx="127.949264" cy="128.603432" r="127.396568" />
+		<circle fill="#E86F32" cx="114.960894" cy="115.615062" r="114.684546" />
+		<circle fill="#E53D42" cx="130.160051" cy="100.415906" r="99.485389" />
+		<circle fill="#BFD141" cx="138.174151" cy="108.430006" r="91.4712882" />
+		<circle fill="#6DB64C" cx="131.541792" cy="115.062366" r="84.8389289" />
+		<circle fill="#AFDBE7" cx="118.000725" cy="101.797647" r="71.2978621" />
+		<circle fill="#57BADF" cx="129.607354" cy="89.91467" r="59.6912334" />
+		<circle fill="#02B2D6" cx="137.068758" cy="97.3760742" r="52.5061775" />
+		<circle fill="url(#browserstack-legacy-app-mono-dark-radialGradient-1)" cx="129.331006" cy="104.837478" r="44.768425" />
+		<circle fill="#231F20" cx="129.331006" cy="104.837478" r="44.768425" />
+		<path d="M141.088096,98.9711966 C145.526792,100.962869 151.64783,96.9551361 154.759818,90.0196748 C157.871806,83.0842136 156.796297,75.847342 152.357602,73.8556697 C147.918907,71.8639974 141.797868,75.8717302 138.68588,82.8071914 C135.573892,89.7426526 136.649401,96.9795243 141.088096,98.9711966 L141.088096,98.9711966 Z" fill="#FFFFFF" />
+	</g>
+</svg></g></g></svg>

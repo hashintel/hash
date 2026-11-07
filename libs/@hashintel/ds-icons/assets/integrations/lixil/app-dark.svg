@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lixil-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lixil-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lixil-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lixil-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lixil-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lixil-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lixil-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lixil-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="11.35483870967742" y="11.35483870967742" viewBox="-0.15103 0.30121 343.57235 117.66772" xml:space="preserve" fill="#F5F7FA" width="41.29032258064516" height="41.29032258064516">
+<path fill="#E75400" d="M28.455,82.093c-2.473,0-4.488-2.014-4.488-4.493V14.578H0.319v67.226c0,12.082,9.795,21.884,21.881,21.884h32.272V82.093H28.455z" />
+<path fill="#E75400" d="M317.033,82.093c-2.471,0-4.485-2.014-4.485-4.493V14.578h-23.649v67.226c0,12.082,9.796,21.884,21.883,21.884h32.269V82.093H317.033z" />
+<rect fill="#E75400" x="77.596" y="14.578" width="23.99" height="89.11" />
+<rect fill="#E75400" x="237.343" y="14.578" width="23.99" height="89.11" />
+<path fill="#E75400" d="M186.552,55.738l29.898-41.152l-19.135-13.9l-27.847,38.33l-27.848-38.33l-19.13,13.9l29.895,41.152c1.358,1.867,1.358,4.92,0,6.79l-29.895,41.149l19.13,13.903l27.848-38.33l27.847,38.33l19.135-13.903l-29.898-41.149C185.196,60.658,185.196,57.605,186.552,55.738" />
+</svg></g></svg>

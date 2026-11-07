@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kenya-airways-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="kenya-airways-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="kenya-airways-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kenya-airways-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kenya-airways-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#kenya-airways-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="kenya-airways-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297891630813 -1.00212650215 -0.101165455055 0 1.40118358802" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#kenya-airways-app-mono-light-mono)"><defs><clipPath id="kenya-airways-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kenya-airways-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1.14172 24 21.71656" fill="#ed1c24" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M12.351 1.162c-2.631.027-5.383.984-7.714 2.887C-.336 8.111-1.486 15.005 2.05 19.384c3.17 3.924 9.036 4.533 13.795 1.685 3.581 2.005 6.059.742 7.062-.287C23.995 19.667 24 17.417 24 17.417s-2.3 1.858-4.97.994c3.594-4.112 4.133-9.915 1.008-13.784-1.88-2.332-4.705-3.496-7.687-3.465Zm1.76 1.747c2.279.027 4.33.865 5.676 2.525 2.625 3.24 1.631 8.508-2.11 12.301-2.17-1.5-5.161-4.15-6.31-5.153.194-.082 4.447-.538 6.486-3.365l.029.005c1.194-1.663.537-5.524-.217-4.355-.657 1.014-3.938 3.186-6.833 4.95 0 0 .705-1.86 1.31-3.364.604-1.505-2.118-.87-3.693-.063-.15.077-1.407.86-1.513 1.356.662-.115 1.044-.164.967 0-.077.163-.097.236-.155.366-.483 1.153-1.13 2.715-1.788 4.268-1.513 4.235-.754 6.148-.754 6.148l4.045.168s-1.015-.433-.584-2.764c.43-2.331 1.043-2.634 1.179-2.687.226.919 1.582 4.593 4.638 6.932-4.253 2.379-9.068 2.102-11.52-.933-2.86-3.543-1.42-9.512 3.224-13.329 2.467-2.027 5.34-3.037 7.923-3.006Z" /></svg></g></g></svg>

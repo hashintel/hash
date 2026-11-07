@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="runway-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="runway-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="runway-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#runway-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#runway-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#runway-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="runway-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#runway-app-mono-light-mono)"><defs><clipPath id="runway-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#runway-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g><path d="M196.254281,255.841782 C165.239237,258.678197 139.306208,222.334264 119.42672,203.900297 C109.374885,276.329103 -0.0746586547,269.462877 3.82164233e-05,195.98943 C0.0374440354,165.129864 3.82164233e-05,89.7160984 3.82164233e-05,59.8267961 C3.82164233e-05,49.0801444 2.95210557,38.2586954 8.48250579,29.0792156 C18.9827886,11.2799122 39.2734099,-0.213118001 59.9376397,0.0107718021 C91.0646695,0.048086419 166.023978,-0.0265428149 196.254281,0.0107718021 C269.793281,0.0107718021 276.781367,109.418468 204.101486,119.269653 L238.592714,153.711507 C276.483018,189.347386 248.04533,257.409164 196.254281,255.841782 Z M179.551157,212.742979 C200.925331,234.759863 235.041942,200.653757 213.031361,179.309628 L153.244352,119.605401 L119.800496,119.605401 L119.800496,153.039802 L171.47977,204.646589 L179.551157,212.742979 Z M36.2092412,196.026829 C35.7234788,226.624605 84.0396046,226.738061 83.5538423,196.026829 L83.5538423,59.8267961 C83.9650174,44.5649917 67.8222435,32.4375311 53.2487425,37.1392569 C52.6135956,37.32583 52.0156373,37.5124031 51.4550776,37.7363748 C42.30018,41.1318789 35.9476607,50.4979318 36.2092412,60.2745295 L36.2092412,196.026829 Z M196.254281,83.4472008 C226.969715,83.9323328 226.933997,35.6838608 196.254281,36.1689928 L115.054649,36.1689928 C121.220385,49.1547316 119.650902,69.3794221 119.763098,83.4472008 L196.254281,83.4472008 Z" fill="#000000" /></g></svg></g></g></svg>

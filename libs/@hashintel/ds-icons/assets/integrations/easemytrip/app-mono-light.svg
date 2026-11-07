@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="easemytrip-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="easemytrip-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="easemytrip-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#easemytrip-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#easemytrip-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#easemytrip-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="easemytrip-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.351788956476 -1.18344055349 -0.119469250506 0 1.65469876047" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#easemytrip-app-mono-light-mono)"><defs><clipPath id="easemytrip-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#easemytrip-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="262.88913 -0.90901 802.85534 327.92258" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+	<path fill-rule="evenodd" d="m261.9 329.6c111.4-218.7 415.8-51.6 584.6-197.4-168 170.8-501.4 26.6-584.6 197.4z" fill="#007BB3" />
+	<path fill-rule="evenodd" d="m655.6 0.5l395.1 31.7c19.4 1.3 16.2 4.8 6.6 13.6l-192.7 183.5c-10.9 11.7-13.3 8.3-26.1-5.3l-75.5-83c-10.1-10.1-11.7-12.2 5.6-18.4l187.4-58.8-210.8 36.8c-15.9 3.1-13.8 5.5-25-9.9l-70.4-78.2c-8.5-9.3-8-14.1 5.8-12z" fill="#09B7E1" />
+	<path fill-rule="evenodd" d="m769.4 136.2l20.5 21.3c9.8 10.4 7.1 10.9-4 17.5l-65.2 29.6c-7.7 4.5-12.4 0.8-7.1-7.7l41.2-64.4c3.7-8 8-3.7 14.6 3.7z" fill="#007BB3" />
+
+	<g>
+
+	</g>
+
+</svg></g></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="celltrion-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="celltrion-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="celltrion-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#celltrion-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#celltrion-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#celltrion-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="celltrion-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.536846358143 -1.8059854908 -0.182315649379 0 2.52514749832" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#celltrion-app-mono-dark-mono)"><defs><clipPath id="celltrion-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#celltrion-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.02082 -0.02376 18.55167 18.48693" id="celltrion-app-mono-dark-svg5" xml:space="preserve" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs id="celltrion-app-mono-dark-defs2" /><g id="celltrion-app-mono-dark-layer1" transform="translate(-60.28189,-94.224526)"><g id="celltrion-app-mono-dark-g51" transform="matrix(0.35277778,0,0,0.35277778,-12.337966,-17.260142)"><path fill-rule="nonzero" fill="#51B848" fill-opacity="1" d="m 246.27734,316.01953 c -6.64843,0 -12.03906,5.38672 -12.03906,12.03516 0,6.64843 5.39063,12.03906 12.03906,12.03906 6.64844,0 12.03516,-5.39063 12.03516,-12.03906 0,-6.64844 -5.38672,-12.03516 -12.03516,-12.03516 m 0,18.96875 c -3.82812,0 -6.93359,-3.10156 -6.93359,-6.93359 0,-3.82813 3.10547,-6.9336 6.93359,-6.9336 3.82813,0 6.9336,3.10547 6.9336,6.9336 0,3.83203 -3.10547,6.93359 -6.9336,6.93359" id="celltrion-app-mono-dark-path27" /><path fill-rule="nonzero" fill="#51B848" fill-opacity="1" d="m 205.85156,356.25781 c 0,6.64453 5.39063,12.03516 12.03906,12.03516 6.64454,0 12.03516,-5.39063 12.03516,-12.03516 0,-6.64844 -5.39062,-12.03906 -12.03516,-12.03906 -6.64843,0 -12.03906,5.39062 -12.03906,12.03906" id="celltrion-app-mono-dark-path29" /><path fill-rule="nonzero" fill="#51B848" fill-opacity="1" d="m 217.94922,316.05859 c -6.63281,0 -12.02735,5.39063 -12.02735,12.02344 0,6.63281 5.39454,12.02734 12.02735,12.02734 6.63281,0 12.02734,-5.39453 12.02734,-12.02734 0,-6.63281 -5.39453,-12.02344 -12.02734,-12.02344 m 0,22.19922 c -5.61328,0 -10.17578,-4.5625 -10.17578,-10.17578 0,-5.60937 4.5625,-10.17578 10.17578,-10.17578 5.60937,0 10.17578,4.56641 10.17578,10.17578 0,5.61328 -4.56641,10.17578 -10.17578,10.17578" id="celltrion-app-mono-dark-path31" /></g></g></svg></g></g></svg>

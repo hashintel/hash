@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="westjet-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="westjet-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="westjet-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#westjet-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#westjet-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#westjet-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="westjet-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#westjet-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1.608 24 20.784" fill="#000000" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#00aaa6" d="M15.96 1.627c-.154.174-3.04 3.099-3.446 3.486-.426.407-.699.446-1.047.194-.368-.252-1.453-.987-1.453-.987l-1.375 6.663 8.408-1.899 2.633-4.783s-1.724.754-2.305 1.006c-.562.252-.794.213-.89-.194-.078-.387-.505-3.312-.524-3.486Zm4.554 5.85-3.41 1.666L9.22 18.44l5.83.91s.02-.892.039-1.55c.039-.659.406-.775.639-.91.213-.136 6.876-3.971 6.876-3.971l-.658-.367c-.445-.233-.213-.602-.039-.854C22.083 11.447 24 8.891 24 8.891s-2.344.446-2.887.504c-.426.058-.484-.116-.504-.368-.019-.135-.095-1.55-.095-1.55zm-14.16.173S5.346 8.776 5.133 9.027c-.233.252-.445.406-.813.368a160.08 160.08 0 0 1-2.556-.504s-.157 2.556-.196 2.808c-.019.252-.115.582-.56.97l7.574-1.706z" /><path fill="#003c71" d="M0 12.862s2.809 3.312 2.925 3.467c.659.795.659 1.104-.02 1.937-.542.659-.871 1.085-.871 1.085s3.913-.658 4.436-.755c.503-.078 1.007.058.871.736-.077.465-.542 3.041-.542 3.041l2.324-3.952 4.107-6.992L.872 12.765Z" /><path fill="#ffffff" d="M17.104 9.143 9.22 18.44l-.097-.02 4.107-6.992L.891 12.765l.116-.097 7.574-1.685.078-.02 8.387-1.878Z" /></svg></g></svg>

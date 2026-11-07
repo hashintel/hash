@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lockheed-martin-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lockheed-martin-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lockheed-martin-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lockheed-martin-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lockheed-martin-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lockheed-martin-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="lockheed-martin-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lockheed-martin-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1754 0 379 323" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M1993.81 125.98 2030.44 2.0C2030.88 0.4099999999999999 2028.88 -0.7000000000000002 2027.76 0.51L1911.32 125.98H1756.79C1754.74 125.98 1754.6499999999999 129.1 1756.7 129.13L1899.86 140.01999999999998L1931.1999999999998 140.70999999999998L1961.2399999999998 141.36999999999998L1963.1099999999997 125.97999999999998H1925.8099999999997L1988.6199999999997 68.75999999999998L1977.6999999999996 125.97999999999998L1961.7199999999996 209.70999999999998L1940.6599999999996 320.15999999999997C1940.2799999999995 322.14 1943.1899999999996 322.82 1943.7299999999996 320.86999999999995L1972.3699999999997 204.47999999999996L2131.0499999999997 128.96999999999997C2132.5499999999997 128.22999999999996 2132.0299999999997 125.97999999999998 2130.3599999999997 125.97999999999998H1993.8199999999997L1993.81 125.98ZM1989.44 141.99 2048.4900000000002 143.28 1977.5700000000002 185.4 1989.43 141.99H1989.44Z" fill="#F5F7FA" /><path d="M1903.51 147.78 1893.5 147.44 1834.87 207.29C1833.4899999999998 208.75 1835.56 210.89 1837.06 209.54999999999998L1903.5 147.76999999999998L1903.51 147.78Z" fill="#F5F7FA" /><path d="M1952.78 213.74 1954.56 198.05 1817.76 278.29C1816.03 279.33000000000004 1817.46 281.95000000000005 1819.27 281.06L1952.78 213.73000000000002V213.74Z" fill="#F5F7FA" /></svg></g></svg>

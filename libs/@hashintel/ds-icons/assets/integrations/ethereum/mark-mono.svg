@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="ethereum-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.230693617021 -0.776068085106 -0.0783446808511 0 1.08510638298" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#ethereum-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 417" version="1.1" preserveAspectRatio="xMidYMid" color="black" x="0.0" y="0.0" width="64" height="64">
+	<g>
+		<polygon fill="#343434" points="127.9611 0 125.1661 9.5 125.1661 285.168 127.9611 287.958 255.9231 212.32" />
+		<polygon fill="#8C8C8C" points="127.962 0 0 212.32 127.962 287.959 127.962 154.158" />
+		<polygon fill="#3C3C3B" points="127.9611 312.1866 126.3861 314.1066 126.3861 412.3056 127.9611 416.9066 255.9991 236.5866" />
+		<polygon fill="#8C8C8C" points="127.962 416.9052 127.962 312.1852 0 236.5852" />
+		<polygon fill="#141414" points="127.9611 287.9577 255.9211 212.3207 127.9611 154.1587" />
+		<polygon fill="#393939" points="0.0009 212.3208 127.9609 287.9578 127.9609 154.1588" />
+	</g>
+</svg></g></svg>

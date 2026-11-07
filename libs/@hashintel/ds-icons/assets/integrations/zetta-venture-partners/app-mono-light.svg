@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zetta-venture-partners-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="zetta-venture-partners-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zetta-venture-partners-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zetta-venture-partners-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zetta-venture-partners-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zetta-venture-partners-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="zetta-venture-partners-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#zetta-venture-partners-app-mono-light-mono)"><defs><clipPath id="zetta-venture-partners-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zetta-venture-partners-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.07989 -0.08307 96.15977 29.16614" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#zetta-venture-partners-app-mono-light-logo-svg)"><path fill="#111111" d="M41.692 15.84c0-6.425-4.467-11.443-10.672-11.443-6.3 0-10.954 5.16-10.954 12.3 0 6.947 3.855 12.303 11 12.303 5.078 0 9.215-2.665 10.015-7.757h-4.796c-.705 1.999-2.632 3.189-5.124 3.189-3.526 0-5.689-2.406-6.253-5.975h16.643c.094-1 .14-1.856.14-2.618Zm-4.787-1.537H24.964c.61-2.95 2.82-5.352 6.017-5.352 3.338 0 5.548 2.591 5.924 5.352ZM0 4.768v4.768h12.035L0 21.886v1.952h4.71L18.642 9.536V4.768H0Zm4.71 19.07v4.767h13.932v-4.767H4.71Zm91.29 0h-4.71V9.535h-4.71V4.768H75.408v4.767H86.58v1.748c0 1.19-.453 1.665-1.581 1.903l-5.547 1.095c-3.997.809-7.052 3.284-7.052 7.471 0 4.093 2.914 7.234 7.663 7.234 2.632 0 5.201-1 6.517-3.284h.676c.282 1.713 1.692 2.903 3.29 2.903H96v-4.767Zm-9.42-6.797v2.094c0 3.093-2.286 5.378-5.671 5.378-2.257 0-3.714-1-3.714-2.903 0-1.951 1.645-2.903 3.432-3.236 4.89-.905 5.39-1.095 5.953-1.333Zm-37.285 6.797V9.535h6.475V4.768h-6.475V0h-4.71v25.226c0 1.856 1.504 3.38 3.338 3.38h8.043v-4.768h-6.671Zm14.716 0V9.535h6.476V4.768h-6.475V0h-4.71v25.226c0 1.856 1.504 3.38 3.337 3.38h8.059v-4.768H64.01Z" /></g><defs><clipPath id="zetta-venture-partners-app-mono-light-logo-svg"><path fill="#fff" d="M0 0h96v29H0z" /></clipPath></defs></svg></g></g></svg>

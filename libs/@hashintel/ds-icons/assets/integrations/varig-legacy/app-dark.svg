@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="varig-legacy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="varig-legacy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="varig-legacy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#varig-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#varig-legacy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#varig-legacy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="varig-legacy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#varig-legacy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.47652 -0.56574 497.00406 67.44802" id="varig-legacy-app-dark-svg2843" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <defs id="varig-legacy-app-dark-defs2845" />
+  <path d="M 495.58714,28.99598 L 453.3081,28.99598 L 453.3081,1.9336 L 495.58714,1.9336 L 495.58714,28.99598 z" id="varig-legacy-app-dark-path2681" fill="#42895F" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+  <path d="M 474.4458,4.13391 L 457.07397,15.46265 L 474.4458,26.79321 L 491.8164,15.46265 L 474.4458,4.13391 z" id="varig-legacy-app-dark-path2683" fill="#FE8624" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+  <path d="M 467.14964,15.46265 C 467.14964,19.49403 470.41503,22.76245 474.4458,22.76245 C 478.47777,22.76245 481.74682,19.49403 481.74682,15.46265 C 481.74682,11.43555 478.47777,8.1659 474.4458,8.1659 C 470.41503,8.1659 467.14964,11.43555 467.14964,15.46265 z" id="varig-legacy-app-dark-path2685" fill="#697D9B" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+  <path d="M 99.99511,1.58996 L 50.15929,65.08728 L 49.83581,65.08728 L 0,1.58996 L 27.27477,1.58996 L 49.99816,30.54199 L 72.72277,1.58996 L 99.99511,1.58996 M 111.5332,65.08728 L 134.2572,36.13343 L 156.97997,65.08728 L 184.25536,65.08728 L 134.41893,1.58996 L 134.09483,1.58996 L 84.25781,65.08728 L 111.5332,65.08728 M 198.22326,1.51124 L 198.22326,65.08728 L 221.52892,65.08728 L 221.52892,20.15015 L 247.70995,20.15015 C 251.08031,20.15015 253.81102,22.88086 253.81102,26.25 C 253.81102,27.96326 253.10302,29.51355 251.96655,30.62256 L 235.20873,44.02344 L 235.15318,43.95081 L 251.73949,65.08728 L 279.01488,65.08728 L 262.45116,43.98255 L 262.45116,43.98255 C 270.84593,40.01281 276.47459,32.71729 276.47459,24.3805 C 276.47459,11.79383 263.65233,1.58996 247.83446,1.58996 L 198.22326,1.51124 M 300.86424,1.58996 L 300.86424,65.08728 L 325.05492,65.08728 L 325.05492,1.58996 L 300.86424,1.58996 M 409.80834,43.86414 C 405.34301,47.17469 398.97093,49.48548 391.6455,49.48548 L 392.45361,49.48548 C 378.66209,49.48548 368.35326,40.72999 368.35326,32.90466 C 368.35326,25.07813 378.66209,16.32264 392.45361,16.32264 L 391.6455,16.32264 C 399.5581,16.32264 406.3562,19.01916 410.84227,22.7533 L 423.58031,8.0304 C 415.43456,3.00659 404.73753,5.6843419e-14 392.86742,5.6843419e-14 C 366.73949,5.6843419e-14 346.27807,14.56543 346.27807,33.15858 C 346.27807,51.7511 366.73949,66.31653 392.86742,66.31653 L 391.32201,66.31653 C 409.72656,66.31653 425.22216,58.5852 432.27782,47.19544 L 432.27782,29.03686 L 400.48338,29.03686 L 400.48338,43.85986 L 409.80834,43.86414" id="varig-legacy-app-dark-path2687" fill="#5580A5" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+</svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lyft-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="lyft-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lyft-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lyft-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lyft-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lyft-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="lyft-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#lyft-app-mono-light-mono)"><defs><clipPath id="lyft-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lyft-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="2.962822 7.04 26.098199 17.647645" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M23.596 7.073v8.57c0 2.71 1.93 4.64 4.64 4.64H29v-3.087h-.233c-1.044 0-1.556-.513-1.556-1.557v-.934H29v-3.087h-1.79V7.073zm-.815 7.632h-1.79v5.579h-3.614v-8.667c0-2.579 1.93-4.544 4.64-4.544h.764v3.088h-.233c-1.009 0-1.522.487-1.557 1.456h1.79v3.087zM11.219 16.49v-4.873H7.605v5.57c0 1.965 1.22 3.276 3.062 3.276 1.11 0 2.035-.465 2.307-1.132 0 1.347-.944 2.215-2.36 2.215a4.36 4.36 0 0 1-1.982-.495v3.11c.74.32 1.627.473 2.657.473 3.167 0 5.097-1.978 5.097-5.202v-7.815h-3.614v4.873c0 .513-.316.886-.776.886s-.776-.373-.776-.886zm-3.75 3.47c-.644-.724-.855-1.404-.855-2.772V7.073H3v10.83c0 1.565 1.022 2.556 2.645 2.556.68 0 1.312-.193 1.824-.5z" /></svg></g></g></svg>

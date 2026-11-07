@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dialpad-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="dialpad-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="dialpad-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dialpad-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dialpad-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#dialpad-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="dialpad-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#dialpad-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.54846 0.53679 14.4457 16.06681" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="dialpad-app-light-brand-symbol-bounds"><rect x="0.52371" y="0.45703" width="16.7918922" height="19.251569999999997" /></clipPath></defs><g clip-path="url(#dialpad-app-light-brand-symbol-bounds)"><path d="M14.7974 7.43848C14.9975 7.48324 15.0372 7.80998 14.8501 7.89512C11.2371 9.125 8.39325 12.2693 6.90835 16.4551C6.82708 16.6581 6.47057 16.6091 6.43706 16.3925C5.92911 13.1096 3.66093 10.4884 0.738931 9.78109C0.545298 9.73422 0.508733 9.43003 0.688975 9.34393C4.39869 7.81758 7.18675 4.68653 8.47503 0.686265C8.55549 0.477551 8.94421 0.530264 8.97728 0.751999C9.47675 4.10041 11.8058 6.76949 14.7974 7.43848Z" fill="#7C52FF" /></g></svg></g></svg>

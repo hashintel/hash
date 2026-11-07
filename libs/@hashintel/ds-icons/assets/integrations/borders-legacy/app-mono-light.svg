@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="borders-legacy-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="borders-legacy-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="borders-legacy-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#borders-legacy-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#borders-legacy-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#borders-legacy-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="borders-legacy-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#borders-legacy-app-mono-light-mono)"><defs><clipPath id="borders-legacy-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#borders-legacy-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="borders-legacy-app-mono-light-Layer_1" x="11.35483870967742" y="11.35483870967742" viewBox="-2.7905 8.56339 1734.21101 416.10187" xml:space="preserve" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516">
+<rect id="borders-legacy-app-mono-light-XMLID_3_" y="337.23" width="1728.63" height="84.77" fill="#B10B33" />
+<path id="borders-legacy-app-mono-light-XMLID_17_" d="M809.38,13.76v259.06h76.25c100.4,0,142.55-64.88,142.55-129.77c0-60.62-38.84-129.77-142.55-129.77h-76.25   M886.1,52.12c69.15,0,94.72,44.04,94.72,91.4c0,55.88-33.63,91.4-94.72,91.4h-32.2V52.12L886.1,52.12L886.1,52.12z M1141.37,234.93  h105.14v38.36h-150.13V160.1h-28.42v-38.36h28.42V13.76h149.66v38.36h-104.67v69.62h91.4v38.36h-91.4V234.93 M161.97,134.53  c4.74-2.84,31.26-18,31.26-53.99c0-33.15-22.73-66.3-74.83-66.3H28.42v107.98H0.47v38.36h27.94v113.19h88.09  c69.62,0,93.77-39.31,93.77-75.3C210.28,151.1,167.65,136.42,161.97,134.53 M115.56,160.1c32.68,0,48.31,17.52,48.31,37.41  c0,18-13.73,37.41-48.31,37.41H73.41V160.1L115.56,160.1L115.56,160.1z M109.4,52.12c26.05,0,38.36,17.52,38.36,35.05  c0,18.94-14.21,35.05-38.36,35.05H73.41V52.59h35.99V52.12z M249.11,143.52c0,86.19,60.15,132.61,130.24,132.61  c64.88,0,129.77-41.68,129.77-132.61S444.24,10.92,379.35,10.92C314,10.92,249.11,52.59,249.11,143.52 M296.47,143.52  c0-57.31,29.84-94.25,82.41-94.25c52.1,0,82.41,36.47,82.41,94.25c0,56.36-29.36,94.25-82.41,94.25S296.47,199.88,296.47,143.52z   M564.53,13.76v259.06h44.99V171.94h41.2l60.62,100.88h53.52c0,0-63.46-104.67-69.15-113.66c7.1-3.32,45.94-17.52,45.94-69.15  c0-27.94-20.36-76.25-99.46-76.25L564.53,13.76 M648.83,52.12c31.26,0,46.89,18.94,46.89,40.73c0,21.31-15.16,40.73-46.89,40.73  c0,0-36.47,0-39.31,0c0-2.84,0-78.62,0-81.93C612.36,52.12,648.83,52.12,648.83,52.12z M1309.03,13.76v259.06h44.99V171.94h41.2  l60.62,100.88h53.04c0,0-63.46-104.67-69.15-113.66c7.1-3.32,45.94-17.52,45.94-69.15c0-27.94-20.36-76.25-99.46-76.25  L1309.03,13.76 M1393.8,52.12c31.26,0,46.89,18.94,46.89,40.73c0,21.31-15.16,40.73-46.89,40.73c0,0-36.47,0-39.31,0  c0-2.84,0-78.62,0-81.93C1357.33,52.12,1393.8,52.12,1393.8,52.12z M1530.2,252.93l18.94-33.63c4.26,2.84,26.52,19.89,58.73,19.89  c29.84,0,44.99-13.73,44.99-31.26c0-22.73-21.79-34.1-46.89-47.83c-17.05-9-34.57-18.47-47.36-32.68  c-12.31-13.26-18.47-28.89-18.47-46.89c0-35.05,26.05-70.09,83.83-70.09c35.99,0,59.67,12.79,63.46,14.68V66.8  c-3.79-2.37-30.31-18.94-61.09-18.94c-29.84,0-39.78,15.16-39.78,27.94c0,21.31,21.79,33.15,46.89,46.89  c31.73,17.05,67.25,36.47,67.25,80.51c0,42.62-37.41,72.46-90.93,72.46C1563.35,276.13,1535.88,256.24,1530.2,252.93" />
+</svg></g></g></svg>

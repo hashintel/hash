@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="givenchy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="givenchy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="givenchy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#givenchy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#givenchy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#givenchy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="givenchy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#givenchy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 696.4771 67.9924" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs /><g id="givenchy-app-dark-Layer_2"><g id="givenchy-app-dark-Layer_1-2"><path d="M66.3609,19.5433V7.76s-30.0074-17.459-54.5772,0A35.4532,35.4532,0,0,0,0,34.4285c0,17.3653,13.6441,26.668,13.6441,26.668s22.0874,15.5039,53.7168,0V31.327h-34.18V42.491H54.9566V53.653S14.2652,67.993,14.8848,34.0145c0,0-1.86-18.8125,18.2959-21.2935C33.1807,12.721,46.5147,9,66.3609,19.5433Z" fill="#F5F7FA" /><rect x="106.6734" y="0.0418" width="12.4038" height="67.9453" fill="#F5F7FA" /><polygon points="150.707 0.042 164.971 0.042 185.437 49.312 206.524 0.042 221.409 0.042 191.019 66.437 179.856 66.437 150.707 0.042" fill="#F5F7FA" /><polygon points="251.178 0.042 251.178 67.987 306.375 67.987 306.375 55.514 264.822 55.514 264.822 39.389 293.972 39.389 293.972 28.846 264.822 28.846 264.822 12.721 306.375 12.721 306.375 0.042 251.178 0.042" fill="#F5F7FA" /><polygon points="342.346 66.437 355.372 66.437 355.372 22.645 395.684 66.437 406.846 66.437 406.846 0.042 394.444 0.042 394.444 45.593 353.129 0.042 342.346 0.042 342.346 66.437" fill="#F5F7FA" /><path d="M501.7368,21.4046s-4.3418-8.6826-26.0488-9.3027c0,0-26.668-.2085-25.4277,21.9126s25.7168,20.8808,25.7168,20.8808,22.6582-.6211,25.76-8.0625V60.8563s-5.0078,5.581-25.76,7.1307c0,0-39.3614,1.172-39.3614-31.078,0,0-2.48-37.7637,36.5918-36.8672,0,0,21.7071-.3442,28.5293,5.8579Z" fill="#F5F7FA" /><polygon points="537.088 0.042 550.733 0.042 550.733 28.228 586.082 28.228 586.082 0.042 599.108 0.042 599.108 66.437 586.704 66.437 586.704 40.011 550.112 40.011 550.112 66.437 537.088 66.437 537.088 0.042" fill="#F5F7FA" /><polygon points="651.825 39.391 651.825 66.437 665.467 66.437 665.467 39.391 696.477 0.042 680.352 0.042 658.645 27.608 638.18 0.042 621.434 0.042 651.825 39.391" fill="#F5F7FA" /></g></g></svg></g></svg>

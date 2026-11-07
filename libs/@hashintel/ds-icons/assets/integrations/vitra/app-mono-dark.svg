@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vitra-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="vitra-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="vitra-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vitra-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#vitra-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#vitra-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="vitra-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#vitra-app-mono-dark-mono)"><defs><clipPath id="vitra-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#vitra-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.32842 -0.32212 394.54477 129.21224" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M0,47.729h30.93l18.492,39.658l19.315-39.658H99.25L58.945,124.76H39.877L0,47.729z" />
+				<path d="M131.661,124.76V47.729h-28.864v77.031H131.661z" />
+					<path d="M117.379,37.665c10.405,0,18.837-8.428,18.837-18.833S127.784,0,117.379,0       c-10.4,0-18.833,8.428-18.833,18.833S106.979,37.665,117.379,37.665z" />
+					<path d="M146.804,23.85l27.825-0.207l-0.008,24.086h16.636l0.187,22.218l-16.814,0.203l-0.179,54.61h-28.036      l0.179-54.61h-8.302l-0.004-22.421h8.363L146.804,23.85z" />
+				<path d="M198.304,47.729h28.856l-0.203,11.005c0,0,8.411-14.331,28.539-12.666      c-0.098,12.975,0.008,15.362,0,26.16c-8.931-4.153-28.515-0.284-28.596,12.252c-0.057,8.306-0.057,40.279-0.057,40.279h-28.515      L198.304,47.729z" />
+				<path d="M286.511,46.32c12.268-2.769,25.186,1.202,33.971,9.629c-0.089-2.72-0.073-8.221-0.073-8.221h26.022      l-0.382,77.031h-25.981c0,0-0.252-5.537,0.024-8.509c-11.018,13.705-31.194,15.264-45.979,5.769      c-10.985-7.06-16.393-17.614-18.098-29.887C253.206,71.904,265.621,51.042,286.511,46.32z M302.571,105.704      c10.409,0,18.837-8.436,18.837-18.836c0-10.401-8.428-18.833-18.837-18.833c-10.4,0-18.828,8.432-18.828,18.833      C283.743,97.268,292.17,105.704,302.571,105.704z M302.571,86.868" />
+				<path d="M375.059,128.568c10.401,0,18.829-8.436,18.829-18.836c0-10.401-8.428-18.837-18.829-18.837       c-10.408,0-18.836,8.436-18.836,18.837C356.223,120.132,364.651,128.568,375.059,128.568z" />
+					</svg></g></g></svg>

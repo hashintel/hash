@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="honor-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="honor-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="honor-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#honor-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#honor-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#honor-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="honor-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#honor-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.05937 -0.04751 42.13342 42.09498" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="honor-app-light-symbol-crop"><rect x="-0.2599" y="-0.19677" width="46.79738699999999" height="42.39353" /></clipPath></defs><g clip-path="url(#honor-app-light-symbol-crop)"><path d="M83.3088 10.4994C77.5112 10.4994 72.8096 15.2006 72.8096 20.9994C72.8096 26.7982 77.5098 31.4994 83.3088 31.4994C89.1079 31.4994 93.8067 26.7982 93.8067 20.9994C93.8067 15.2006 89.1065 10.4994 83.3088 10.4994ZM83.3088 27.8552C79.524 27.8552 76.4544 24.785 76.4544 20.9994C76.4544 17.2138 79.5226 14.1436 83.3088 14.1436C87.0951 14.1436 90.1619 17.2124 90.1619 20.9994C90.1619 24.7864 87.0937 27.8552 83.3088 27.8552Z" fill="#000000" />
+<path d="M64.2464 10.7653V19.0616H56.1365V10.7653H52.4902V31.2332H56.1365V22.7072H64.2464V31.2332H67.8913V10.7653H64.2464Z" fill="#000000" />
+<path d="M110.481 10.7653V23.5388L101.632 10.7653H98.7266V31.2332H102.371V18.3966L111.265 31.2332H114.126V10.7653H110.481Z" fill="#000000" />
+<path d="M154.718 23.7714C157.407 22.9146 159.353 20.3974 159.353 17.4252C159.353 13.7544 156.381 10.7766 152.714 10.7668H144.964V31.2334H148.61V22.125L156.204 31.2334H160.939L154.72 23.7714H154.718ZM148.61 20.4408V14.4124H152.668C154.331 14.4124 155.68 15.762 155.68 17.4266C155.68 19.0912 154.331 20.4408 152.666 20.4408H148.609H148.61Z" fill="#000000" />
+<path d="M129.548 10.4994C123.75 10.4994 119.049 15.2006 119.049 20.9994C119.049 26.7982 123.749 31.4994 129.548 31.4994C135.347 31.4994 140.046 26.7982 140.046 20.9994C140.046 15.2006 135.346 10.4994 129.548 10.4994ZM129.548 27.8552C125.763 27.8552 122.694 24.785 122.694 20.9994C122.694 17.2138 125.762 14.1436 129.548 14.1436C133.334 14.1436 136.401 17.2124 136.401 20.9994C136.401 24.7864 133.333 27.8552 129.548 27.8552Z" fill="#000000" />
+<path d="M34.8653 5.2339L27.2565 9.62849C22.3267 6.9097 16.0028 7.64189 11.8218 11.8237C7.64086 16.0055 6.91021 22.3307 9.62706 27.2615L5.23335 34.8718C-2.03818 26.6245 -1.73164 14.0343 6.15016 6.1509C14.0306 -1.73109 26.6182 -2.03909 34.8653 5.2339Z" fill="#000000" />
+<path d="M36.7589 7.12817C44.0305 15.3756 43.7239 27.9657 35.8421 35.8491C27.9617 43.7311 15.3741 44.0391 7.12695 36.7661L14.7358 32.3715C19.6656 35.0903 25.9895 34.3581 30.1705 30.1763C34.3514 25.9945 35.0821 19.6694 32.3652 14.7386L36.7589 7.12817Z" fill="#000000" />
+</g></svg></g></svg>

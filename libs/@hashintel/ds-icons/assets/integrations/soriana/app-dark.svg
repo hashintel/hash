@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="soriana-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="soriana-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="soriana-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#soriana-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#soriana-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#soriana-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="soriana-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#soriana-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.24107 0.24071 17.84991 16.25789" id="soriana-app-dark-svg14460" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="soriana-app-dark-mark-bounds"><rect x="0.15357" y="0.14871" width="17.908492250000002" height="16.44189" /></clipPath></defs><g clip-path="url(#soriana-app-dark-mark-bounds)"><defs id="soriana-app-dark-defs14454">
+    <clipPath id="soriana-app-dark-clipPath14154" clipPathUnits="userSpaceOnUse">
+      <path id="soriana-app-dark-path14152" d="M 0,0 H 612 V 792 H 0 Z" />
+    </clipPath>
+  </defs>
+  <g id="soriana-app-dark-layer1" transform="translate(-68.091778,-218.0622)" fill="#F5F7FA">
+    <g id="soriana-app-dark-g14551" transform="translate(0.264583,-0.26457657)">
+      <path d="m 82.413881,220.38174 c -0.85725,0 -2.046111,0.3623 -2.909358,1.53599 -0.158397,0.21449 -0.28822,0.48754 -0.364772,0.75601 -0.263525,0.9144 -0.07796,1.92122 0.500944,2.69381 0.444147,0.59372 1.010355,1.03928 1.509889,1.43051 0.24518,0.19121 0.763058,0.67628 0.929922,0.88195 0.250119,0.30868 0.440619,0.49106 0.665692,1.17157 0.136172,0.41275 0.156633,0.95462 0.0896,1.26259 1.565275,-1.5688 3.274131,-3.60468 3.274131,-5.81836 0,-2.54388 -1.842911,-3.91407 -3.696053,-3.91407" id="soriana-app-dark-path14126" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 79.146661,228.90905 c -0.649817,-0.89288 -1.402292,-1.4351 -2.022828,-2.0066 -0.269875,-0.248 -0.566208,-0.43321 -0.785989,-0.65299 -1.052336,-1.0541 -1.544108,-2.3555 -1.296105,-3.9557 0.19685,-1.25624 0.815269,-2.08033 1.560689,-2.68675 -0.890411,-0.65899 -1.947686,-1.01565 -3.141486,-1.01565 -2.965097,0 -5.442303,2.40347 -5.367514,5.36751 0.135114,5.35094 6.775097,9.90847 9.510536,10.84263 1.46438,-0.75848 2.240844,-2.17135 2.240844,-3.62091 0,-1.05693 -0.449791,-1.93005 -0.698147,-2.27154" id="soriana-app-dark-path14130" fill="#BCC032" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 90.742541,228.63336 c 0.514703,0.36019 1.529644,0.82232 2.249311,0.82232 0.553508,0 1.0287,-0.20566 1.0287,-0.79692 0,-0.57785 -0.745419,-0.78458 -1.503892,-1.07985 -0.874536,-0.33479 -1.748719,-0.86113 -1.748719,-2.24967 0,-1.85067 1.375833,-2.82786 3.369028,-2.82786 1.310922,0 2.480733,0.65511 3.084689,1.35008 l -1.311275,1.36207 c -0.591609,-0.50129 -1.24707,-0.87383 -1.877131,-0.87383 -0.51435,0 -0.898878,0.20532 -0.898878,0.66781 0,0.63041 0.55245,0.78528 1.490486,1.17087 0.899584,0.37183 1.82492,0.91264 1.82492,2.23591 0,1.79951 -1.464734,2.95768 -3.547533,2.95768 -1.465087,0 -2.699809,-0.60501 -3.188053,-0.99024 z" id="soriana-app-dark-path14134" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 101.09515,228.0159 c 0.0769,-0.41099 0.10231,-0.78317 0.10231,-1.06715 0,-0.61666 -0.19262,-0.98919 -0.64312,-0.98919 -0.602896,0 -1.00224,0.59055 -1.194857,1.65805 -0.07761,0.4117 -0.116064,0.84914 -0.116064,1.18322 0,0.56515 0.15487,1.02799 0.63112,1.02799 0.628651,0 1.001181,-0.5535 1.220611,-1.81292 m -0.18062,-3.59904 c 0.91299,0 2.51918,0.34678 2.51918,2.48073 0,0.28293 -0.012,0.61701 -0.0642,0.96415 -0.39758,2.51989 -1.99214,3.53483 -3.81741,3.53483 -1.59385,0 -2.493433,-0.92498 -2.493433,-2.56999 0,-0.30903 0.01235,-0.68156 0.07655,-1.0414 0.475544,-2.69945 2.301169,-3.36832 3.779313,-3.36832" id="soriana-app-dark-path14138" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 105.94539,231.1918 h -2.14736 l 0.93839,-5.33506 0.0519,-1.24742 h 1.72261 l 0.0385,0.91299 c 0.47589,-0.80963 1.14405,-1.10525 1.6838,-1.10525 0.37324,0 0.77153,0.0896 1.0287,0.25717 l -0.61771,1.78682 c -0.24342,-0.12912 -0.5528,-0.23107 -0.87383,-0.23107 -0.55316,0 -0.98954,0.33302 -1.10525,0.93768 z" id="soriana-app-dark-path14142" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 108.80112,231.1918 1.15711,-6.58248 h 2.14771 l -1.15711,6.58248 z" id="soriana-app-dark-path14146" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 111.53956,221.8033 c 0.60466,0 0.97719,0.41169 0.97719,0.91299 0,0.68121 -0.59125,1.22132 -1.34937,1.22132 -0.61736,0 -0.96449,-0.37289 -0.96449,-0.88724 0,-0.66746 0.56585,-1.24707 1.33667,-1.24707" id="soriana-app-dark-path14158" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 116.72212,226.02351 c -0.14146,-0.0642 -0.34713,-0.10266 -0.57856,-0.10266 -1.17016,0 -1.59385,1.76107 -1.59385,2.81552 0,0.61771 0.14147,1.11831 0.75812,1.11831 0.43745,0 0.74578,-0.28293 0.87454,-0.73272 z m 1.43933,3.77966 -0.0893,1.38853 h -1.81257 v -0.6036 l -0.0646,-0.0134 c -0.44979,0.52705 -1.02764,0.80927 -1.79952,0.80927 -1.37548,0 -1.99284,-1.01494 -1.99284,-2.40418 0,-2.6349 1.46544,-4.56318 4.1529,-4.56318 0.53904,0 1.50318,0.12876 2.46733,0.51435 z" id="soriana-app-dark-path14162" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 119.27146,231.19181 0.92569,-5.2578 0.0773,-1.32468 h 1.77341 l 0.0258,0.70767 c 0.50165,-0.55315 1.17017,-0.89993 2.0313,-0.89993 1.0668,0 1.70956,0.48824 1.72332,1.59349 0,0.20603 -0.0258,0.46355 -0.0646,0.70697 l -0.79728,4.47428 h -2.14665 l 0.66816,-3.84387 c 0.0384,-0.20531 0.10231,-0.50165 0.10231,-0.74612 0,-0.25682 -0.10231,-0.53975 -0.4886,-0.53975 -0.55245,0 -0.87348,0.41204 -0.96414,0.95109 l -0.73237,4.17865 z" id="soriana-app-dark-path14166" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+      <path d="m 130.69039,226.02351 c -0.14111,-0.0642 -0.34749,-0.10266 -0.57856,-0.10266 -1.16945,0 -1.59385,1.76107 -1.59385,2.81552 0,0.61771 0.14076,1.11831 0.75812,1.11831 0.43745,0 0.74578,-0.28293 0.87419,-0.73272 z m 1.43969,3.77966 -0.09,1.38853 h -1.81293 v -0.6036 l -0.0635,-0.0134 c -0.45014,0.52705 -1.0287,0.80927 -1.80022,0.80927 -1.37513,0 -1.99249,-1.01494 -1.99249,-2.40418 0,-2.6349 1.46544,-4.56318 4.1529,-4.56318 0.53869,0 1.50318,0.12876 2.46768,0.51435 z" id="soriana-app-dark-path14170" fill="#E23D43" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" />
+    </g>
+  </g>
+</g></svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dagens-nyheter-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="dagens-nyheter-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="dagens-nyheter-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dagens-nyheter-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#dagens-nyheter-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#dagens-nyheter-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="dagens-nyheter-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.260997541819 -0.878012426666 -0.0886360419537 0 1.22764601044" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#dagens-nyheter-app-mono-light-mono)"><defs><clipPath id="dagens-nyheter-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#dagens-nyheter-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.30994 -0.30994 192.61989 192.61989" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g fill="none" fill-rule="evenodd"><path fill="#DA000D" d="M0 0h192v192H0z" /><path fill="#FFFFFE" d="M27.869 64.079c0-7.606-1.864-8.384-3.989-8.384h-2.062v-1.628h36.494c20.042 0 34.078 15.628 34.078 41.457 0 25.831-14.036 41.46-34.078 41.46H21.818v-1.629h2.062c2.125 0 3.989-.778 3.989-8.384V64.08Zm25.233 70.137h5.21c3.979 0 6.078-2.335 6.078-7.434V64.268c0-5.1-2.1-7.433-6.078-7.433h-5.21z" /><path fill="#FFFFFE" d="m120.417 54.067 28.625 54.237v-44.08c0-5.292-1.67-8.53-5.146-8.53h-1.483v-1.627h16.135v1.628h-1.484c-3.475 0-5.146 3.237-5.146 8.529v72.76h-17.392L100.69 72.978v53.848c0 5.29 1.671 8.529 5.147 8.529h1.483v1.629H91.186v-1.629h1.484c3.475 0 5.146-3.238 5.146-8.529V61.91c0-5.292-1.285-6.214-3.99-6.214H91.33v-1.628zm46.177 83.892c5.534 0 10.018-4.127 10.018-11.528s-4.484-11.528-10.018-11.528c-5.533 0-10.019 4.126-10.019 11.528 0 7.401 4.486 11.527 10.019 11.527" /></g></svg></g></g></svg>

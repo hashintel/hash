@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="opentable-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="opentable-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="opentable-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#opentable-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#opentable-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#opentable-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="opentable-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#opentable-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.1184 0.11839 12.61226 9.22512" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M229.0112 327.0475c0-.635.51117-1.14988 1.14141-1.14988.6305 0 1.14168.51488 1.14168 1.14988 0 .63526-.51118 1.15014-1.14168 1.15014-.63024 0-1.14141-.51461-1.14141-1.15014zm8.0182 1.15014c-.6305 0-1.14141-.51488-1.14141-1.15014 0-.635.51091-1.14988 1.14141-1.14988.63024 0 1.14167.51488 1.14167 1.14988 0 .63526-.51143 1.15014-1.14167 1.15014zm0-5.74992c-2.52148 0-4.56592 2.05952-4.56592 4.59978 0 2.54079 2.04417 4.60005 4.56592 4.60005 2.52201 0 4.56618-2.05926 4.56618-4.60005 0-2.54-2.04417-4.59978-4.56618-4.59978z" transform="translate(-228.87891 -322.31543)" fill="#DA3743" fill-rule="evenodd" stroke-width=".26458332" /></svg></g></svg>

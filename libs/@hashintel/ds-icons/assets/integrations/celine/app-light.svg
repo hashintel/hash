@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="celine-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="celine-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="celine-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#celine-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#celine-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#celine-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="celine-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#celine-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.09143 0.89066 159.13143 32.10934" fill="none" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M145.049 27.8634V18.6289H155.265V13.9113H145.049V6.59122H157.716V1.87202H139.819V32.5794H159.021V27.8634H145.049ZM130.671 33.7596L130.711 1.83221H125.481L125.563 22.0453L102.602 0.978516L102.561 32.5778H107.791L107.708 13.1388L130.671 33.7596ZM93.4045 32.5778L93.4077 1.83221H88.1792L88.1744 32.5778H93.4045ZM63.4607 32.5794H81.642V27.8634H68.6908V1.83221H63.4607V32.5794V32.5794ZM36.4128 32.5794H55.6164V27.8634H41.6429V18.6289H51.8566V13.9113H41.6429V6.59122H54.3093V1.87202H36.4128V32.5794ZM5.84821 17.0442C5.84821 11.1862 9.93437 5.85857 16.8795 5.85857C20.0666 5.85857 23.212 6.99736 25.3782 9.11248L28.1557 5.49225C27.1349 4.27224 23.212 1.14097 16.8795 1.14097C7.07374 1.14097 0.291748 8.54229 0.291748 17.1652C0.291748 25.992 7.44172 33.3121 17.4507 33.3121C21.8632 33.3121 25.5414 31.8898 28.3605 29.2045L25.9494 25.8279C24.7239 27.0496 21.5785 28.6359 17.6971 28.6359C10.7103 28.6359 5.84821 23.4707 5.84821 17.0442V17.0442Z" fill="#000000" />
+</svg></g></svg>

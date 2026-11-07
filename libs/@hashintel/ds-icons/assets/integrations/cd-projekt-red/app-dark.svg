@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cd-projekt-red-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="cd-projekt-red-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cd-projekt-red-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cd-projekt-red-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#cd-projekt-red-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#cd-projekt-red-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="cd-projekt-red-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#cd-projekt-red-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48.71314 74" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g clip-path="url(#cd-projekt-red-app-dark-clip0_4207_303)"><path d="M15.6912 64.1994L10.4336 69.2197C11.5456 69.5853 12.1344 70.091 12.1344 70.091C8.2416 69.9573 5.1888 72.5971 5.1888 72.5971C5.1888 72.5971 5.6256 70.9044 7.3728 70.1796C5.6032 70.1361 4.5248 70.9334 4.5248 70.9334C5.016 69.8075 6.0864 69.5112 7.44 69.3372C8.8576 69.1553 9.8352 68.6398 10.4816 67.8555L14.2528 63.3022L15.688 64.201L15.6912 64.1994ZM33.6544 64.3121L30.9936 58.7071L27.5504 57.2222L33.6528 64.3121H33.6544ZM17.7008 51.0261L33.656 64.3121L24.7792 62.2859L20.7664 70.4148C20.7664 70.4148 21.2608 70.3326 21.7712 70.2859C23.5968 70.12 24.0976 71.4343 24.0976 71.4343C24.0976 71.4343 22.8832 70.8673 20.8368 71.4874C18.5296 72.1848 16.584 74.0016 16.584 74.0016C16.9312 72.61 17.6848 71.597 18.8 70.993C17.3264 70.9543 16.2288 71.4375 16.2288 71.4375C16.2288 71.4375 16.6512 69.9187 18.8784 70.2698L19.8224 70.4019L21.456 64.1672L19.3824 62.4325C14.72 62.4325 10.232 60.8557 6.2992 56.9145V59.2548C3.7344 56.7422 2.1392 53.223 2.1392 49.3253C2.1392 48.3025 2.2512 47.3072 2.4608 46.3472L1.1424 47.6212C1.76 44.2357 3.6624 41.3076 6.2992 39.3475V42.5913L14.3472 34.5494L13.4048 32.2913L9.2432 33.6636C7.8816 34.187 6.5872 34.0679 5.8864 32.2124L13.592 28.5241L16.1024 27.2871L12.4128 27.2517L15.5824 19.4644L9.0016 25.0001L8.648 21.7853L4.4288 28.508L4.0576 26.2821L1.376 32.2028L3.896 30.5712L6.4784 34.1645L4.7952 37.3358C2.9536 35.5432 1.0704 34.7604 0.1472 34.419C0.1472 34.419 2.1248 33.6475 4.8 34.5108C3.1936 32.6489 0 33.0983 0 33.0983L4.72 18.8797L5.2096 23.4716L11.7504 8.57334L11.7136 16.7907L29.888 0L19.2528 21.8738L32.2656 16.2657L24.3728 24.3429L43.1696 22.072L20.8608 32.0143L31.9088 30.0333L18.6368 40.5071L48.624 61.8672L17.7024 51.0261H17.7008ZM9.288 32.0111C9.3088 31.7711 9.2656 31.5424 9.1744 31.3362L7.9344 31.9112L8.6896 32.1077C8.608 32.4717 8.2752 32.731 7.8976 32.6988C7.6 32.6731 7.3616 32.475 7.2624 32.2092L6.7248 32.454C6.9184 32.8873 7.3312 33.2046 7.8336 33.2481C8.5728 33.3125 9.224 32.7584 9.288 32.0095V32.0111ZM15.7408 37.8899L14.3472 34.5527L11.96 41.678L15.7408 37.8899Z" fill="#F5F7FA" /></g><defs><clipPath id="cd-projekt-red-app-dark-clip0_4207_303"><rect width="192" height="74" fill="#FFFFFF" /></clipPath></defs></svg></g></svg>

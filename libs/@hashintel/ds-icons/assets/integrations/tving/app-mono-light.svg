@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tving-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="tving-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tving-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tving-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#tving-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#tving-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="tving-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297626694336 -1.0012352389 -0.101075481331 0 1.39993741456" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#tving-app-mono-light-mono)"><defs><clipPath id="tving-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#tving-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.66932 -0.68601 427.01364 105.81003" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+  <path d="m 278.8942,58.886799 20.73148,41.836801 h 32.2139 V 2.5768077 h -30.8399 V 43.432868 a 2.7334477,2.7334477 0 0 1 -5.18529,1.213787 L 274.9761,2.5768077 H 242.7622 V 100.71874 h 30.93214 V 60.095731 a 2.7334477,2.7334477 0 0 1 5.1853,-1.208932 M 195.05552,2.5768077 h 33.82581 V 100.71874 h -33.82581 z m 146.7808,39.7830733 v 18.090276 c 0,17.595052 6.63699,30.315536 19.72161,37.802173 20.87713,11.94852 50.9402,4.57355 64.11707,-5.170732 V 47.409234 h -30.54858 v 28.723047 l -0.58262,0.228192 a 17.434832,17.434832 0 0 1 -14.99755,-1.14096 16.298728,16.298728 0 0 1 -5.97183,-14.429496 V 40.548911 a 10.919225,10.919225 0 0 1 8.17121,-11.841703 11.327058,11.327058 0 0 1 13.45847,7.617725 L 424.79622,20.453458 A 40.812364,40.812364 0 0 0 387.17854,0.06184161 c -1.99546,0 -3.93752,0.09710294 -5.78733,0.26217793 A 46.725933,46.725933 0 0 0 354.16354,11.155852 40.525911,40.525911 0 0 0 341.8606,42.359881 M 83.930924,2.5768077 H 0 V 31.309567 H 25.246764 V 100.73817 H 58.635608 V 31.309567 h 25.27104 z m 69.297506,0 -21.14902,65.7144113 a 2.7334477,2.7334477 0 0 1 -5.34066,-0.835086 V 2.5719525 H 94.665653 V 100.71874 H 155.31129 L 188.50593,2.5768077 Z" fill="#FF143C" />
+</svg></g></g></svg>

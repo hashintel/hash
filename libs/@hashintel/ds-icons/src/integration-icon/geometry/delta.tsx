@@ -1,0 +1,80 @@
+export const markLight = ({ id: _id }: { id: string }) => (
+  <g fill="#111111">
+    <path
+      fill="#98002e"
+      d="M23.116 19.658 12 14.223V2.27zM24 21.73l-12-5.142v5.142z"
+    />
+    <path fill="#e31837" d="M.884 19.658 12 2.27v11.954zM0 21.73h12v-5.143z" />
+  </g>
+);
+export const markDark = ({ id: _id }: { id: string }) => (
+  <g fill="#F5F7FA">
+    <path
+      fill="#FF5C8D"
+      d="M23.116 19.658 12 14.223V2.27zM24 21.73l-12-5.142v5.142z"
+    />
+    <path fill="#e31837" d="M.884 19.658 12 2.27v11.954zM0 21.73h12v-5.143z" />
+  </g>
+);
+export const logoLight = ({ id: _id }: { id: string }) => (
+  <svg viewBox="0 27.008 64 9.984" fill="#111111">
+    <path
+      fill="#98002e"
+      d="M11.885 35.878 6.17 33.126v-6.054Zm.454 1.05H6.17v-2.605Z"
+    />
+    <path
+      fill="#e31837"
+      d="m.454 35.878 5.716-8.806v6.054ZM0 36.928l6.17-2.605v2.605Z"
+    />
+    <path
+      fill="#003d79"
+      d="M17.158 35.878v-7.852h2.772c2.854 0 4.55 1.472 4.55 3.923s-1.696 3.93-4.55 3.93Zm46.842 0h-1.837l-.768-1.964h-3.193l-.768 1.964h-1.716l3.284-7.884h1.772Zm-33.555-3.404v2.041h3.891v1.363h-5.651v-7.852h5.53v1.363h-3.77v1.721h3.334v1.364Zm23.36-4.448v1.363h-2.643v6.49h-1.767v-6.49h-2.637v-1.363Zm-9.472 6.49v1.362h-5.146v-7.852h1.76v6.49Zm-25.421-5.127v5.12h1.018c1.85 0 2.777-.915 2.777-2.56s-.928-2.56-2.777-2.56Zm41.984 3.206-1.094-2.79-1.101 2.79Z"
+    />
+  </svg>
+);
+export const logoDark = ({ id: _id }: { id: string }) => (
+  <svg viewBox="0 27.008 64 9.984" fill="#F5F7FA">
+    <path
+      fill="#FF5C8D"
+      d="M11.885 35.878 6.17 33.126v-6.054Zm.454 1.05H6.17v-2.605Z"
+    />
+    <path
+      fill="#e31837"
+      d="m.454 35.878 5.716-8.806v6.054ZM0 36.928l6.17-2.605v2.605Z"
+    />
+    <path
+      fill="#5CAEFF"
+      d="M17.158 35.878v-7.852h2.772c2.854 0 4.55 1.472 4.55 3.923s-1.696 3.93-4.55 3.93Zm46.842 0h-1.837l-.768-1.964h-3.193l-.768 1.964h-1.716l3.284-7.884h1.772Zm-33.555-3.404v2.041h3.891v1.363h-5.651v-7.852h5.53v1.363h-3.77v1.721h3.334v1.364Zm23.36-4.448v1.363h-2.643v6.49h-1.767v-6.49h-2.637v-1.363Zm-9.472 6.49v1.362h-5.146v-7.852h1.76v6.49Zm-25.421-5.127v5.12h1.018c1.85 0 2.777-.915 2.777-2.56s-.928-2.56-2.777-2.56Zm41.984 3.206-1.094-2.79-1.101 2.79Z"
+    />
+  </svg>
+);
+const WordmarkLightSource = logoLight;
+export const wordmarkLight = ({ id }: { id: string }) => (
+  <svg viewBox="17.104 27.89962 46.896 8.09398" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="17.104" y="27.89962" width="46.896" height="8.09398" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="0" y="27.008" width="64" height="9.984">
+        <WordmarkLightSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);
+const WordmarkDarkSource = logoDark;
+export const wordmarkDark = ({ id }: { id: string }) => (
+  <svg viewBox="17.104 27.89962 46.896 8.09398" overflow="hidden">
+    <defs>
+      <clipPath id={`${id}-wordmark-crop`} clipPathUnits="userSpaceOnUse">
+        <rect x="17.104" y="27.89962" width="46.896" height="8.09398" />
+      </clipPath>
+    </defs>
+    <g clipPath={`url(#${id}-wordmark-crop)`}>
+      <svg x="0" y="27.008" width="64" height="9.984">
+        <WordmarkDarkSource id={id} />
+      </svg>
+    </g>
+  </svg>
+);

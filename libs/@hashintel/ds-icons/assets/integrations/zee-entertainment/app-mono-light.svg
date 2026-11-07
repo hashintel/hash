@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zee-entertainment-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="zee-entertainment-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="zee-entertainment-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zee-entertainment-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#zee-entertainment-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#zee-entertainment-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="zee-entertainment-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252871407941 -0.850675592473 -0.0858763671372 0 1.18942336755" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#zee-entertainment-app-mono-light-mono)"><defs><clipPath id="zee-entertainment-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#zee-entertainment-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.69938 -1.75648 1555.39875 1559.51296" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs><linearGradient id="zee-entertainment-app-mono-light-P" gradientUnits="userSpaceOnUse" /><linearGradient id="zee-entertainment-app-mono-light-g1" x2="1" href="#zee-entertainment-app-mono-light-P" gradientTransform="matrix(1658.465,0,0,1661.728,-58.807,1625.555)"><stop stop-color="#6E4BA5" /><stop offset=".16" stop-color="#4A2B92" /><stop offset="1" stop-color="#2A2266" /></linearGradient></defs><path fill-rule="evenodd" d="m1528.8 973.8c-86.6 334.7-389.6 581.7-751.7 581.7-428.7 0-777.1-348.4-777.1-777 0-429.7 348.4-778.1 777.1-778.1 361 0 664 246 751.7 579.6h-266.1v393.8zm-761.2-393.8h-319.9v76h209l-216.4 251.3v66.5h327.3v-76h-215.4l215.4-251.3zm389.6 0h-298.8v392.8h298.8v-77.1h-213.3v-82.4h213.3v-77h-213.3v-80.3h213.3zm386.4 77.1q6.3 39.1 8.4 79.2l-204.8 1v-80.2zm-196.4 157.3l204.9-1q-1.1 42.2-7.4 83.4h-197.5z" fill="url(#zee-entertainment-app-mono-light-g1)" /></svg></g></g></svg>

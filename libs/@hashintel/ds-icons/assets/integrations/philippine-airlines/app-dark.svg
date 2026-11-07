@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="philippine-airlines-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="philippine-airlines-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="philippine-airlines-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#philippine-airlines-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#philippine-airlines-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#philippine-airlines-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="philippine-airlines-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#philippine-airlines-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5.088 24 13.84114" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#3073FF" d="M0 18.897h13.373l2.582-13.794Z" /><path fill="#ffcc05" d="M14.402 13.401s-.281-1.792-.274-2.262c.007-.399.114-3.365.16-4.596l-.398.344c-.028 1.159-.095 3.889-.118 4.234-.016.226-.416 2.218-.416 2.218s-.751-1.663-.839-2.144c-.07-.38-.27-1.965-.374-2.799l-.346.3c.127.835.348 2.291.377 2.555.037.345-.074 2.293-.074 2.293s-1.065-1.655-1.183-1.95c-.1-.249-.387-1.141-.552-1.66l-.275.238c.155.473.433 1.325.501 1.55.073.239.41 2.26.41 2.26s-1.3-1.28-1.568-1.654a33.521 33.521 0 0 1-.664-1.013l-.276.238c.194.286.517.766.637.977.133.234.86 2.14.86 2.14s-1.76-1.194-1.877-1.289c-.139-.112-.544-.541-.795-.812l-.282.244c.261.272.693.722.81.848.146.159 1.323 1.878 1.323 1.878s-1.863-.704-2.104-.864l-1.235-.82-.286.248c.369.244 1.105.731 1.328.885.302.209 1.675 1.591 1.675 1.591L6.3 16.203a229.755 229.755 0 0 1-2.276-.786l-.326.282c.602.208 2.08.72 2.478.87.253.094 1.995 1.14 1.995 1.14s-1.936.037-2.26.029c-.284-.007-3.23-.428-3.955-.532l-.415.359c.89.104 3.794.445 4.323.525.756.19 2.181.807 2.181.807l6.354-5.486z" /><path fill="#ee2a29" d="M8.045 18.897h13.373L24 5.103Z" /></svg></g></svg>

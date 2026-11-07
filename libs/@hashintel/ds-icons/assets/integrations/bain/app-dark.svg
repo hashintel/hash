@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bain-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="bain-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bain-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bain-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bain-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bain-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="bain-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bain-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="248.335833 0 30.431667 30.741667" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+    <g />
+    <g />
+    <defs />
+    <g id="bain-app-dark-Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="bain-app-dark-red-bain-logo-orig" fill="#FF5363" fill-rule="nonzero">
+            <path d="M269.1,16.1 L266.3,3.7 L258.6,13.7 L269.1,16.1 Z M279,15.3 C279,23.7499567 272.149957,30.6 263.7,30.6 C255.250043,30.6 248.4,23.7499567 248.4,15.3 C248.4,6.85004333 255.250043,1.55223186e-15 263.7,0 C264.503367,0.0169497711 265.304908,0.0837448435 266.1,0.2 L264.8,1.9 L263.7,1.9 C260.317638,1.85731668 257.057154,3.16151534 254.6373,5.52509318 C252.217447,7.88867103 250.836902,11.1175705 250.8,14.5 C250.8,21.624473 256.575527,27.3999992 263.7,27.3999992 C270.824473,27.3999992 276.6,21.624473 276.6,14.5 C276.564236,9.27471337 273.29951,4.61650748 268.4,2.8 L267.9,0.7 C274.460092,2.51992229 279.000616,8.49214248 279,15.3 Z" />
+        </g>
+    </g>
+</svg></g></svg>

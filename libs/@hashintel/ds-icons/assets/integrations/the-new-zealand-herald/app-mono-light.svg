@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="the-new-zealand-herald-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="the-new-zealand-herald-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="the-new-zealand-herald-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-new-zealand-herald-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-new-zealand-herald-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#the-new-zealand-herald-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="the-new-zealand-herald-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#the-new-zealand-herald-app-mono-light-mono)"><defs><clipPath id="the-new-zealand-herald-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#the-new-zealand-herald-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.12751 -0.15497 75.25503 96.2208" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,96.000000) scale(0.100000,-0.100000)" fill="#231f20" stroke="none">
+<path d="M52 930 c-18 -16 -37 -30 -43 -30 -5 0 -9 -7 -9 -16 0 -12 7 -14 29 -9 16 3 58 1 95 -6 36 -6 77 -8 90 -5 35 9 86 55 86 78 0 18 -1 18 -16 4 -20 -20 -78 -21 -94 -1 -8 9 -30 15 -59 15 -38 0 -53 -6 -79 -30z" />
+<path d="M470 951 c0 -5 -18 -19 -41 -30 -47 -25 -89 -70 -106 -115 -7 -20 -12 -111 -13 -256 -1 -145 -5 -237 -13 -260 -10 -28 -23 -41 -67 -63 -66 -33 -140 -92 -140 -112 0 -17 26 -20 35 -6 3 5 31 15 62 22 45 9 73 9 125 -1 37 -6 70 -16 74 -21 12 -20 42 -6 89 41 42 43 46 50 28 50 -12 0 -24 4 -28 10 -3 5 -12 7 -21 3 -17 -6 -124 25 -124 36 0 4 14 20 31 37 17 16 36 38 42 49 8 13 14 110 17 283 l5 264 36 12 c43 15 64 8 103 -33 17 -17 35 -31 41 -31 6 0 31 20 55 45 l44 45 -31 0 c-16 0 -42 9 -56 20 -19 15 -40 20 -86 20 -34 0 -61 -4 -61 -9z" />
+<path d="M232 824 c-40 -34 -58 -71 -64 -134 -3 -21 -9 -26 -38 -28 -40 -4 -73 -31 -91 -74 -18 -43 0 -57 45 -33 33 18 35 18 61 1 33 -22 29 -48 -10 -56 -17 -4 -40 -12 -51 -18 -25 -13 -59 -91 -46 -104 5 -5 23 -1 42 8 40 21 83 9 88 -22 2 -12 -6 -48 -17 -80 -11 -32 -18 -60 -17 -61 8 -8 74 48 103 85 l33 44 0 213 c0 166 3 220 15 248 8 20 15 39 15 42 0 15 -31 1 -68 -31z" />
+<path d="M574 678 c-45 -34 -57 -58 -30 -58 8 0 28 -13 45 -29 l31 -29 0 -204 c0 -222 -7 -264 -53 -319 -28 -34 -28 -34 -6 -37 12 -2 24 0 28 5 3 4 25 21 49 37 79 54 82 64 82 309 0 178 3 218 15 231 8 8 15 21 15 28 0 13 -117 88 -137 88 -6 0 -23 -10 -39 -22z" />
+<path d="M470 605 c0 -19 11 -19 36 0 18 14 18 14 -8 15 -18 0 -28 -5 -28 -15z" />
+</g>
+</svg></g></g></svg>

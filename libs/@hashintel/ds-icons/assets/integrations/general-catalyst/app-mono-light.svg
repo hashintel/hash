@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="general-catalyst-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="general-catalyst-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="general-catalyst-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#general-catalyst-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#general-catalyst-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#general-catalyst-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="general-catalyst-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242022321429 -0.814178571429 -0.0821919642857 0 1.13839285714" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#general-catalyst-app-mono-light-mono)"><defs><clipPath id="general-catalyst-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#general-catalyst-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1006 1077" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g clip-path="url(#general-catalyst-app-mono-light-clip0_27749_131)">
+<path d="M908.991 500.418L908.972 500.219H502.627V643.971H827.093C840.554 643.971 850.288 656.856 846.613 669.806C803.137 822.963 660.131 934.257 491.936 929.349C300.497 923.764 146.451 766.059 145.101 574.544C143.702 375.898 304.31 214.427 502.63 214.427V69.5312C224.942 69.5312 -0.127724 294.802 0.195446 572.565C0.518617 850.769 224.429 1074.4 502.632 1074.4C770.645 1074.4 989.567 864.53 1004.21 600.176C1004.21 545.912 958.663 500.532 908.991 500.418Z" fill="#1F1F1F" />
+<path d="M793.5 433.539C871.296 433.539 939.48 392.514 977.692 330.942L884.431 273.126C865.578 303.538 831.913 323.804 793.498 323.804C734.443 323.804 686.57 275.93 686.57 216.876C686.57 157.822 734.443 109.948 793.498 109.948C831.874 109.948 865.51 130.175 884.374 160.538L977.632 102.721C939.409 41.2017 871.254 0.216309 793.498 0.216309C673.838 0.216309 576.837 97.217 576.837 216.876C576.837 336.535 673.841 433.536 793.498 433.536L793.5 433.539Z" fill="#1F1F1F" />
+</g>
+<defs>
+<clipPath id="general-catalyst-app-mono-light-clip0_27749_131">
+<rect width="1006" height="1076.37" fill="white" />
+</clipPath>
+</defs>
+</svg></g></g></svg>

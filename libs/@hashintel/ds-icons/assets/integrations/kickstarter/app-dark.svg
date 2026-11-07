@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kickstarter-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="kickstarter-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="kickstarter-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kickstarter-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kickstarter-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#kickstarter-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="kickstarter-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kickstarter-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 290" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g fill="#05CE78">
+        <path d="M209.302,144.583 L235.582,118.478 C262.806,91.436 262.806,47.391 235.582,20.349 C208.358,-6.694 164.018,-6.694 136.794,20.349 L127.225,29.853 C114.557,11.781 93.667,0 69.812,0 C31.267,0 0,31.059 0,69.346 L0,219.686 C0,257.973 31.267,289.032 69.812,289.032 C93.667,289.032 114.557,277.251 127.225,259.178 L136.794,268.683 C164.018,295.726 208.358,295.726 235.582,268.683 C262.806,241.641 262.806,197.597 235.582,170.554 L209.302,144.583" />
+    </g>
+</svg></g></svg>

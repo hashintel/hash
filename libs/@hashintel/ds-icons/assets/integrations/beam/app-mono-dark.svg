@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="beam-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="beam-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="beam-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#beam-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#beam-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#beam-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="beam-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#beam-app-mono-dark-mono)"><defs><clipPath id="beam-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#beam-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220.833333 219.656475" fill="#111111" fill-rule="evenodd" clip-rule="evenodd" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+ <g transform="scale(0.007918973067572598)"><defs>
+  <g />
+ </defs>
+ <g id="beam-app-mono-dark-Layer_x0020_1">
+  <path d="M13869 0c7659,0 13869,6209 13869,13869 0,3411 -1232,6533 -3274,8948l-4899 -4899c-338,417 -699,819 -1080,1199 -968,969 -2072,1814 -3232,2457 -184,102 -367,198 -553,289l0 5849c-275,16 -552,26 -831,26 -7659,0 -13869,-6209 -13869,-13869 0,-2896 888,-5581 2403,-7803l8461 6385c-1566,1635 -2795,3268 -3538,4633 -700,1285 -980,2234 -675,2543 309,305 1259,26 2543,-674 1289,-701 2816,-1835 4358,-3278l-1282 -1929c-225,-340 -458,-663 -139,-982 321,-320 643,-87 983,138l1931 1283c1440,-1540 2573,-3069 3275,-4359 701,-1285 981,-2234 674,-2541 -307,-306 -1257,-27 -2542,673 -1367,745 -3001,1972 -4633,3536l-6468 -8569c2351,-1833 5307,-2925 8518,-2925zm-5788 20858c534,-151 1122,-401 1747,-742 1612,-878 3547,-2359 5422,-4234l-2 -1 2 -1c1877,-1878 3358,-3812 4234,-5421 340,-624 590,-1211 742,-1746 1163,1908 783,4319 -441,6528 -579,1043 -1349,2046 -2239,2936 -890,891 -1893,1661 -2937,2240 -2209,1224 -4621,1603 -6528,441z" fill="#111111" />
+ </g>
+</g></svg></g></g></svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-illustrator-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-illustrator-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-illustrator-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-illustrator-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-illustrator-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-illustrator-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-illustrator-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-illustrator-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-illustrator-app-dark-Vector" d="M34.4678 0H7.53225C3.3723 0 0 3.3723 0 7.53225V34.4678C0 38.6277 3.3723 42 7.53225 42H34.4678C38.6277 42 42 38.6277 42 34.4678V7.53225C42 3.3723 38.6277 0 34.4678 0Z" fill="#330000" />
+<path id="adobe-illustrator-app-dark-Vector_2" d="M14.2156 11.1485H20.3994L27.3346 30.5092H21.6708L20.7173 27.5618H13.4641L12.5106 30.5092H7.07806L14.2156 11.1485ZM19.2146 22.9672L17.1052 16.4655L14.9957 22.9672H19.2146Z" fill="#FF9A00" />
+<path id="adobe-illustrator-app-dark-Vector_3" d="M28.1644 12.42C28.1644 11.0329 29.2336 10.1371 30.8518 10.1371C32.441 10.1371 33.4524 11.0618 33.4524 12.42C33.4524 13.807 32.441 14.7606 30.8518 14.7606C29.1757 14.7606 28.1644 13.8359 28.1644 12.42ZM28.3088 15.4252H33.3657V30.5092H28.3088V15.4252Z" fill="#FF9A00" />
+<defs>
+<clipPath id="adobe-illustrator-app-dark-clip0_2136_6974">
+<rect width="42" height="42" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

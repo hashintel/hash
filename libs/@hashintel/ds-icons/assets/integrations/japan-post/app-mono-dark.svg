@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="japan-post-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="japan-post-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="japan-post-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#japan-post-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#japan-post-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#japan-post-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="japan-post-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272734407307 -0.917495992973 -0.0926219388879 0 1.28285233917" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#japan-post-app-mono-dark-mono)"><defs><clipPath id="japan-post-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#japan-post-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="japan-post-app-mono-dark-svgRoot" x="14.222222222222221" y="14.222222222222221" viewBox="-73.98677 -16.18484 116.14508 60.64582" xml:space="preserve" fill="#111111" color="black" width="35.55555555555556" height="35.55555555555556">
+<defs><clipPath id="japan-post-app-mono-dark-symbol-crop"><rect x="-79.45916" y="-16.71185" width="133.14808639999998" height="63.925825" /></clipPath></defs><g clip-path="url(#japan-post-app-mono-dark-symbol-crop)"><defs>
+
+
+		</defs>
+<g>
+	<g id="japan-post-app-mono-dark-g23">
+		<path id="japan-post-app-mono-dark-path25" fill="#C40F35" d="M24.623-16.024H-2.118l-7.982,38.488c-2.792,13.305-11.229,16.811-21.483,16.811    c-9.346,0-18.174-4.933-15.902-16.811c0.52-2.596,0.714-3.569,1.169-5.777h12.072c-0.26,1.169-0.713,3.052-1.297,5.777    c-0.845,4.023,0.907,6.62,5.516,6.62c4.544,0,6.88-2.4,7.724-6.62l7.984-38.488h-28.104c-15.123,0-19.666,3.765-22.393,16.94    l-9.021,43.355h54.455c13.37,0,20.705-7.725,22.587-17.004c1.817-8.892,1.882-8.892,1.882-8.892h13.24    c13.436,0,21.549-5.646,23.431-17.136C43.575-9.403,35.852-16.024,24.623-16.024 M29.295,1.24    c-0.713,5.387-4.932,7.789-12.396,7.725H7.034l3.245-15.836h10.125C27.933-6.872,29.946-3.108,29.295,1.24" />
+	</g>
+	<g id="japan-post-app-mono-dark-g41">
+		<path id="japan-post-app-mono-dark-path43" fill="#C40F35" d="M-75.784,53.554h3.829l-1.233,5.778h4.478l1.233-5.778h3.765l-3.116,15.121h-3.83l1.364-6.488    h-4.479l-1.363,6.488H-78.9L-75.784,53.554" />
+	</g>
+	<g id="japan-post-app-mono-dark-g59">
+		<path id="japan-post-app-mono-dark-path61" fill="#C40F35" d="M-56.962,68.935c-4.608,0-6.23-3.05-6.23-6.164c0.064-5.711,2.986-9.477,8.438-9.477    c4.543,0,6.23,3.049,6.166,6.166C-48.654,65.171-51.576,68.935-56.962,68.935 M-55.08,56.281c-2.92,0-4.154,3.636-4.219,6.166    c0,1.883,0.65,3.504,2.597,3.504c2.92,0,4.154-3.634,4.219-6.166C-52.483,57.902-53.133,56.281-55.08,56.281" />
+	</g>
+	<g id="japan-post-app-mono-dark-g77">
+		<path id="japan-post-app-mono-dark-path79" fill="#C40F35" d="M-44.63,53.554h3.765l-2.467,12.137h5.907l-0.649,2.984h-9.735L-44.63,53.554" />
+	</g>
+	<path id="japan-post-app-mono-dark-path97" fill="#C40F35" d="M-32.623,53.554h4.933c4.479,0,7.204,2.013,7.139,6.036c-0.13,6.36-3.83,9.085-9.151,9.085   h-6.102L-32.623,53.554 M-31.325,65.691h1.623c3.699,0,5.192-2.984,5.257-5.774c0-2.794-1.752-3.376-4.089-3.376h-0.907   L-31.325,65.691" />
+	<path id="japan-post-app-mono-dark-path115" fill="#C40F35" d="M-16.526,53.554h3.829l-3.18,15.121h-3.83L-16.526,53.554" />
+	<g id="japan-post-app-mono-dark-g131">
+		<path id="japan-post-app-mono-dark-path133" fill="#C40F35" d="M-8.998,53.554h4.674l2.79,10.448l0,0l2.143-10.448h3.569L0.932,68.675h-4.673l-2.791-10.449    h-0.065l-2.077,10.449h-3.57L-8.998,53.554" />
+	</g>
+	<g id="japan-post-app-mono-dark-g149">
+		<path id="japan-post-app-mono-dark-path151" fill="#C40F35" d="M18.197,57.06c-1.233-0.52-2.401-0.779-4.088-0.779c-3.765,0-5.322,2.854-5.387,5.711    c0,2.66,1.557,3.959,3.504,3.959c0.455,0,0.974-0.13,1.494-0.26l0.648-2.984h-2.207l0.584-2.856h5.906l-1.817,8.438    c-1.428,0.455-3.7,0.647-4.933,0.647c-4.543,0-7.14-2.92-7.075-7.075c0.065-4.997,2.986-8.565,9.541-8.565    c1.687,0,3.181,0.26,4.674,0.714L18.197,57.06" />
+	</g>
+	<g id="japan-post-app-mono-dark-g167">
+		<path id="japan-post-app-mono-dark-path169" fill="#C40F35" d="M30.854,56.93c-0.713-0.327-1.688-0.649-3.116-0.649c-1.492,0-2.725,0.26-2.725,1.427    c0,2.143,5.452,1.363,5.452,5.971c-0.065,4.155-3.765,5.257-7.011,5.257c-1.428,0-3.115-0.39-4.348-0.777l0.908-3.116    c0.779,0.52,2.272,0.909,3.505,0.909c1.169,0,2.986-0.26,2.986-1.818c0.065-2.402-5.452-1.491-5.387-5.776    c0.065-3.893,3.311-5.062,6.36-5.062c1.752,0,3.375,0.194,4.349,0.649L30.854,56.93" />
+	</g>
+</g>
+<g id="japan-post-app-mono-dark-g185">
+	<path id="japan-post-app-mono-dark-path187" fill="#C40F35" d="M181.69,12.014h19.277v-5.97h-26.285V-5.638h-8.503V6.045h-26.221v5.97h17.458   c-3.374,12.721-10.125,23.171-18.367,29.533v6.944c12.916-6.944,22.133-18.239,26.936-36.477h0.194v28.624h-13.11v5.906h13.11   v11.941h8.503V46.544h13.111v-5.906h-13.111V12.014h0.585c4.737,18.304,13.952,30.439,26.608,36.607v-9.022   C193.893,34.664,185.976,26.034,181.69,12.014" />
+</g>
+<g id="japan-post-app-mono-dark-g203">
+	<path id="japan-post-app-mono-dark-path205" fill="#C40F35" d="M78.234,57.902h52.962V-2.459H78.234V57.902 M86.736,30.252h35.958v21.679H86.736V30.252    M86.736,3.511h35.958v20.835H86.736V3.511" />
+</g>
+<g id="japan-post-app-mono-dark-shape59-20" transform="translate(220.937,-16.5062)">
+	<path fill="#C40F35" d="M9.823,31.023h4.222v7.466H9.823V31.023z M14.044,51.838H9.823v-8.063h4.222V51.838z M2.84,51.838h-4.346   v-8.063H2.84V51.838z M-1.505,31.023h4.362v7.466h-4.362V31.023z M24.119,13.792H13.616c-3.125,2.403-7.877,3.072-22.844,3.072   v4.84c4.702,0,8.686-0.052,12.068-0.189v4.514h-13.099v4.994h2.698v7.466h-3.71v5.287h3.71v8.063h-2.698v4.977H2.84v6.625   c-4.325,0.362-8.736,0.617-13.13,0.791v6.914c12.784-1.063,23.646-2.556,33.327-4.514v-5.372   c-4.154,0.551-8.613,1.083-13.215,1.548v-5.992h12.989v-4.977h-2.71v-8.063h3.588v-5.287h-3.588v-7.466h2.71v-4.994H9.823v-4.995   C17.974,20.126,21.182,18.083,24.119,13.792z" />
+</g>
+<g id="japan-post-app-mono-dark-shape60-22" transform="translate(242.253,-15.2969)">
+	<path fill="#C40F35" d="M20.884,37.534c5.954-14.054,6.023-15.272,6.023-18.225v-5.337H3.999v58.039h6.984V19.309h8.543   c-0.153,3.072-0.584,5.235-5.045,18.433c4.823,7.019,5.852,10.089,5.852,14.193c0,3.876-0.769,6.297-4.495,6.297h-1.905v7.035   h2.299c8.445,0,11.225-3.482,11.225-12.099C27.456,47.798,25.294,42.698,20.884,37.534z" />
+</g>
+<g id="japan-post-app-mono-dark-shape61-24" transform="translate(259.656,-17.1469)">
+	<path fill="#C40F35" d="M46.716,58.537c-2.848,0.72-5.713,1.338-8.668,1.887V43.091h5.546v-5.474h-5.546V22.893h10.434v-5.458   H18.091v5.458h12.853v38.663c-1.407,0.19-2.833,0.396-4.289,0.583V32.624h-6.746v30.255c-1.133,0.119-2.282,0.24-3.449,0.343v7.465   c13.13-1.716,21.968-3.688,30.257-6.64V58.537z" />
+</g>
+<g id="japan-post-app-mono-dark-shape62-26" transform="translate(275.165,-15.5469)">
+	<path fill="#C40F35" d="M41.261,29.787c0.394-0.892,0.756-1.854,1.097-2.866h7.553c-1.1,9.646-2.662,16.715-4.84,22.104   C43.045,44.169,41.706,37.905,41.261,29.787z M49.328,56.214c4.101-6.726,6.622-15.994,7.857-29.292h3.555V21.43H43.801   c0.599-2.798,1.047-5.938,1.321-9.405h-7.517c-1.166,12.031-3.74,20.662-7.224,24.284v6.041c2.197-1.134,4.271-2.661,6.124-4.77   c0.653,7.464,2.25,13.557,4.721,18.481c-3.499,4.79-7.998,7.586-13.659,10.076v5.694c7.224-2.385,12.956-5.37,17.436-9.985   c4.067,4.893,9.473,8.082,16.131,9.985v-7.652C56.587,62.549,52.554,60.128,49.328,56.214z" />
+</g>
+</g></svg></g></g></svg>

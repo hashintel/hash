@@ -1,0 +1,51 @@
+<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" id="svg3228" viewBox="90.36364 1.77686 115.44539 138.79166" fill="#111111">
+  <ns0:defs id="defs3230">
+    <ns0:clipPath id="clipPath3001" clipPathUnits="userSpaceOnUse">
+      <ns0:path id="path3003" d="m 0,841.89 595.276,0 L 595.276,0 0,0 0,841.89 z" />
+    </ns0:clipPath>
+  </ns0:defs>
+
+  <ns0:g id="layer1" transform="translate(-114.26333,-548.47293)">
+    <ns0:g id="g2997" transform="matrix(1.0336531,0,0,-1.0336531,-46.491884,1054.1247)">
+      <ns0:g id="g2999" clip-path="url(#clipPath3001)">
+        <ns0:g id="g3005" transform="translate(245.8096,384.0361)">
+          <ns0:path d="m 0,0 c 3.28,1.288 6.631,1.055 10.787,-2.131 13.404,-13.861 34.001,-17.705 38.695,-18.158 -2.452,0.667 -33.304,6.906 -24.629,29.954 0.213,0.4 26.406,72.363 26.406,72.363 L 80.847,10.877 c 11.607,-24.162 -20.178,-30.138 -23.951,-31.166 4.632,0.445 24.746,4.19 38.156,17.603 4.478,3.704 8.019,4.044 11.478,2.686 -3.98,9.059 -2.357,17.443 -0.843,22.016 l 1.48,3.605 c 0,0 -18.961,-8.543 -28.117,14.012 L 53.604,103.371 27.379,38.512 C 17.242,12.878 -0.636,25.621 -0.636,25.621 l 0.532,-1.12 C 1.336,21.215 4.884,11.11 0,0 m 53.271,-19.729 c -0.093,0.479 -0.193,0.954 -0.306,1.42 -0.114,-0.466 -0.213,-0.941 -0.308,-1.42 -3.257,-9.908 -31.309,-8.753 -55.498,17.835 0,0 21.825,-30.068 55.806,-28.817 33.979,-1.251 55.804,28.817 55.804,28.817 C 84.583,-28.482 56.528,-29.637 53.271,-19.729" id="path3007" fill="#2d2c2e" fill-opacity="1" fill-rule="nonzero" stroke="none" />
+        </ns0:g>
+        <ns0:g id="g3013" transform="translate(356.5488,415.1709)">
+          </ns0:g>
+        <ns0:g id="g3017" transform="translate(391.7461,445.207)">
+          </ns0:g>
+        <ns0:g id="g3021" transform="translate(203.1577,407.3535)">
+          </ns0:g>
+        <ns0:g id="g3025" transform="translate(286.5151,417.4238)">
+          </ns0:g>
+        <ns0:g id="g3029" transform="translate(408.373,438.1533)">
+          </ns0:g>
+        <ns0:g id="g3037" transform="translate(213.1738,375.1885)">
+          </ns0:g>
+        <ns0:g id="g3041" transform="translate(257.7588,383.8506)">
+          </ns0:g>
+        <ns0:g id="g3045" transform="translate(294.4531,386.1943)">
+          </ns0:g>
+        <ns0:g id="g3049" transform="translate(331,386.1943)">
+          </ns0:g>
+        <ns0:g id="g3053" transform="translate(371.2539,382.9316)">
+          </ns0:g>
+        <ns0:g id="g3057" transform="translate(429.5156,429.46)">
+          </ns0:g>
+        <ns0:g id="g3061" transform="translate(333.0957,431.1758)">
+          </ns0:g>
+        <ns0:g id="g3065" transform="translate(307.9434,431.1758)">
+          </ns0:g>
+        <ns0:g id="g3069" transform="translate(246.2202,431.1758)">
+          </ns0:g>
+        <ns0:g id="g3073" transform="translate(221.0684,431.1758)">
+          </ns0:g>
+        <ns0:g id="g3077" transform="translate(433.0449,380.6729)">
+          </ns0:g>
+        <ns0:g id="g3081" transform="translate(439.9844,379.7471)">
+          </ns0:g>
+      </ns0:g>
+    </ns0:g>
+  </ns0:g>
+</ns0:svg>

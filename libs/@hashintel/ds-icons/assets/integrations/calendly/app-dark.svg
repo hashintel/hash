@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="calendly-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="calendly-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="calendly-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#calendly-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#calendly-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#calendly-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="calendly-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#calendly-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><linearGradient id="calendly-app-dark-calendly-grad" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse"><stop stop-color="#6AB0FF" /><stop offset="1" stop-color="#4793EB" /></linearGradient></defs><path d="M32 16C32 28.0702 26.5636 32 16 32C5.43644 32 0 28.0498 0 16C0 3.95022 5.43644 0 16 0C26.5636 0 32 3.95022 32 16Z" fill="url(#calendly-app-dark-calendly-grad)" /><path d="M16.0001 28.5778C7.69694 28.5778 3.42236 25.4879 3.42236 16.0003C3.42236 6.51276 7.69614 3.42227 16.0001 3.42227C24.3041 3.42227 28.5779 6.51178 28.5779 16.0003C28.5779 25.4889 24.3037 28.5778 16.0001 28.5778ZM22.8505 9.18619C18.4643 4.79916 11.8407 4.31036 8.05747 8.09347C4.27392 11.877 4.76316 18.5004 9.14974 22.8865C13.5364 27.2736 20.1593 27.7619 23.9425 23.9787C27.726 20.1952 27.2371 13.5722 22.8506 9.1861L22.8505 9.18619ZM16.0001 20.3381C17.7685 20.3381 19.2715 19.1248 19.8168 17.4367C19.865 17.2861 20.0042 17.1839 20.162 17.1839H22.0489C22.2106 17.1839 22.3353 17.325 22.3169 17.4858C21.9008 21.1847 19.7653 22.4362 16.0001 22.4362C11.7797 22.4362 9.60761 20.864 9.60761 16.0361C9.60761 11.2081 11.7793 9.63623 16.0001 9.63623C19.7656 9.63623 21.9008 10.8874 22.3169 14.5867C22.3353 14.7474 22.2105 14.8887 22.0489 14.8887H20.162C20.0041 14.8887 19.865 14.7865 19.8168 14.6358C19.2715 12.9477 17.7689 11.7344 16.0001 11.7344C13.7715 11.7344 11.9649 13.6601 11.9649 16.036C11.9649 18.4119 13.7715 20.3379 16.0001 20.3379V20.3381Z" fill="#ffffff" /></svg></g></svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="xp-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="xp-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="xp-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#xp-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#xp-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#xp-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="xp-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.228746835443 -0.769518987342 -0.0776835443038 0 1.07594936709" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#xp-app-mono-dark-mono)"><defs><clipPath id="xp-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#xp-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="1.40197 1.30725 98.43835 20.91096" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M59.927 21.783h-5.126V6.639h5.126v15.144zm16.583 0h-5.164v-8.595c0-1.963-.654-2.48-1.708-2.48-1.054 0-1.735.517-1.735 2.423v8.652h-5.126V6.639h5.126V7.65a5.661 5.661 0 013.757-1.326c3.274 0 4.841 2.218 4.841 6.2l.01 9.259zm15.094-3.287c-1.738 2.597-3.361 3.605-6.01 3.605-4.385 0-7.004-2.828-7.004-7.932 0-4.645 2.334-7.845 7.12-7.845 2.818 0 4.441 1.326 5.75 3.459l-3.523 2.712c-.71-1.327-1.194-1.96-2.304-1.96-1.31 0-1.964 1.326-1.964 3.72s.71 3.635 2.105 3.635c.969 0 1.653-.547 2.592-1.963l3.238 2.57zm8.146.289a3.339 3.339 0 01-.993 2.282 3.254 3.254 0 01-2.282.938c-.851 0-1.67-.337-2.281-.938a3.339 3.339 0 01-.993-2.282c0-1.907 1.394-3.272 3.273-3.272 1.879 0 3.276 1.365 3.276 3.272z" fill="#121212" /><path d="M29.91 1.5c4.696 0 7.805 1.826 7.805 6.724 0 5.157-3.373 6.983-8.179 6.983h-2.774v6.576H51.39L62.948 1.5H29.909z" fill="#0084D5" /><path d="M29.539 15.207c4.803 0 8.179-1.826 8.179-6.983 0-4.898-3.118-6.724-7.81-6.724h-8.607v20.283h5.464v-6.576h2.774zM26.765 6.08h3.003c1.761 0 2.43.892 2.43 2.23 0 1.535-.716 2.317-2.518 2.317h-2.915V6.08zm-7.339 15.703L13.528 11.43l5.66-9.927h-6.13l-2.595 4.55-2.595-4.55h-5.89l5.54 9.716L1.5 21.783h6.127l2.956-5.184 2.954 5.184h5.889z" fill="#121212" /></svg></g></g></svg>

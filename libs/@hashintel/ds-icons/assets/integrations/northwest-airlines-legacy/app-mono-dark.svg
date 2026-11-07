@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="northwest-airlines-legacy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="northwest-airlines-legacy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="northwest-airlines-legacy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#northwest-airlines-legacy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#northwest-airlines-legacy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#northwest-airlines-legacy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="northwest-airlines-legacy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#northwest-airlines-legacy-app-mono-dark-mono)"><defs><clipPath id="northwest-airlines-legacy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#northwest-airlines-legacy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.15497 -0.1241 96.30994 53.2482" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#A6A6A6" d="m49.9865 37.365-1.2422-5.125c-2.5508 9.883-11.543 17.203-22.2461 17.203-12.5781 0-22.8789-10.285-22.8789-22.933 0-12.649 10.3008-22.926 22.8789-22.926 10.8828 0 19.9961 7.551 22.3711 17.687h3.6328C50.0646 9.182 39.342.018 26.4982.018 11.967.018.0177 11.908.0177 26.51c0 14.597 11.9493 26.472 26.4805 26.472 10.7617 0 20.0352-6.418 24.1914-15.617h-.7031" /><path fill="#CC0000" d="m10.2209 11.846 7.3593 12.757 7.3282-12.757H10.2209" /><path d="M26.4982 21.271h7.3906v2.786h.0664c.9258-2.262 3.0547-3.145 5.2422-3.145 4.1367 0 5.6524 2.148 5.6524 5.262v11.191h-7.7813v-9.277c0-.926 0-2.195-1.3476-2.195-1.3946 0-1.3946 1.269-1.3946 2.195v9.277h-7.8281V21.271" /><path d="M55.5373 31.799h.0859l1.6524-10.528h9.3515l1.7813 10.528h.0664l1.7265-10.528h7.0938l-3.9258 16.094h-9.6836l-1.9023-10.902h-.0625l-1.9805 10.902h-9.7539l-3.9024-16.094h7.629l1.8242 10.528" /><path d="M86.1543 20.912c-3.023 0-4.41.273-6.7264.922v4.496c1.5394-.762 3.5234-1.359 5.3594-1.359 1.953 0 4.07.25 4.105 2.32-.714-.074-1.937-.223-3.019-.223-3.859 0-8.297.989-8.297 5.922 0 3.36 2.902 4.735 5.883 4.735 2.199 0 4.172-.868 5.254-2.696h.062v2.336h7.207v-9.789c0-5.871-5.39-6.664-9.828-6.664zm2.738 9.863c0 1.387-.793 2.868-2.398 2.868-1.211 0-1.82-.43-1.82-1.543 0-1.665 1.847-1.813 3.449-1.813h.769v.488" /></svg></g></g></svg>

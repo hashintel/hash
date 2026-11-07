@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="toyota-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="toyota-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="toyota-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#toyota-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#toyota-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#toyota-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="toyota-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28668867259 -0.964439034038 -0.0973608756397 0 1.34848858227" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#toyota-app-mono-dark-mono)"><defs><clipPath id="toyota-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#toyota-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="77.66234 139.67188 356.67533 232.69841" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M244.847 360.114C226.186 348.423 212.431 308.079 212.431 260.134C212.431 258.375 212.438 256.638 212.483 254.908L212.497 254.93C160.581 246.772 123.072 224.422 122.108 197.981L121.959 198.293C109.258 214.082 102.006 232.335 102.006 251.783C102.006 309.014 164.827 355.906 244.513 360.055L244.847 360.114ZM78 255.955C78 191.924 157.693 140 255.996 140C354.307 140 434 191.924 434 255.955C434 319.993 354.307 371.917 255.996 371.917C157.693 371.917 78 319.993 78 255.955ZM256.004 156.731C274.984 156.731 291.129 185.525 297.112 225.699L297.127 225.632C334.057 219.886 359.904 206.629 359.904 191.196C359.904 170.494 313.384 153.725 256.004 153.725C198.631 153.725 152.111 170.494 152.111 191.196C152.111 206.629 177.958 219.879 214.88 225.632L214.903 225.699C220.885 185.525 237.031 156.731 256.004 156.731ZM267.495 360.048C347.18 355.898 410.009 309.007 410.009 251.776C410.009 232.327 402.749 214.074 390.056 198.285L389.9 197.974C388.942 224.414 351.434 246.765 299.51 254.923L299.532 254.901C299.569 256.63 299.584 258.367 299.584 260.127C299.584 308.072 285.822 348.416 267.168 360.107L267.495 360.048ZM256.004 228.675C264.242 228.685 272.477 228.333 280.685 227.621L280.678 227.629C276.744 201.886 267.183 183.707 256.011 183.707C244.84 183.707 235.286 201.886 231.344 227.629L231.337 227.621C239.54 228.33 247.77 228.682 256.004 228.675ZM256.004 324.031C270.293 324.031 281.955 294.295 282.571 257.009L282.645 257.031C264.924 258.664 247.091 258.664 229.37 257.031L229.444 257.009C230.06 294.295 241.714 324.031 256.004 324.031Z" fill="#D71920" />
+</svg></g></g></svg>

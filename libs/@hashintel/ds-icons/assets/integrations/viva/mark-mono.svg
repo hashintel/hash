@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><defs><filter id="viva-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.624603955491 -2.10120766212 -0.212118558732 0 2.93793017634" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#viva-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.01371 0 23.97257 24" fill="#73c900" color="black" x="0.0" y="0.0" width="64" height="64"><path d="M16.126 24A7.843 7.843 0 0 1 8.293 16.151V15.726H7.87A7.77 7.77 0 0 1 2.336 13.424 7.8 7.8 0 0 1 0.041 7.877C0.041 5.789 0.859 3.819 2.337 2.334A7.68 7.68 0 0 1 7.874 0H16.126C18.212 0 20.178 0.818 21.663 2.303A7.8 7.8 0 0 1 23.959 7.849V16.123A7.865 7.865 0 0 1 16.126 24M7.87 3.665A4.15 4.15 0 0 0 4.907 4.879 4.17 4.17 0 0 0 3.7 7.85C3.7 8.97 4.121 10.03 4.908 10.82A4.17 4.17 0 0 0 7.871 12.03H11.954V16.12C11.954 18.423 13.829 20.305 16.126 20.305A4.184 4.184 0 0 0 20.3 16.12V7.846A4.17 4.17 0 0 0 19.09 4.879 4.15 4.15 0 0 0 16.126 3.665Z" /></svg></g></svg>

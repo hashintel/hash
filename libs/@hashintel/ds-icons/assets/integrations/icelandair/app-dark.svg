@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="icelandair-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="icelandair-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="icelandair-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#icelandair-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#icelandair-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#icelandair-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="icelandair-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#icelandair-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1.76229 24 20.47543" fill="#7A63FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M17.998 1.788 0 22.212h17.655L24 1.788Zm1.3 8.935-.127.264a46.476 46.476 0 0 1-.671 1.362c-.363.592-.626.857-.927 1.029-.237.136-.54.27-1.135.29-.46.013-.792-.053-1.2-.134-.172-.034-.359-.071-.574-.106-.984-.157-1.942-.218-2.97.108-.75.237-1.217.642-1.217.642l.958-2.151c.326-.667 1.413-1.15 2.843-1.133.675.009 1.154.104 1.61.194.414.083.808.16 1.31.167 1.578-.007 2.1-.532 2.1-.532zm-1.524 3.124s-.508 1.116-1.071 1.836c-.744.88-1.48.941-2.933.806-3.664-.324-4.485.634-4.65.827l-.016.019s.024-.117.1-.284c.119-.27.25-.556.393-.864.145-.313.3-.648.463-1.014.15-.313.248-.378.372-.46l.084-.057c.691-.456 1.798-.881 3.271-.75.58.05.986.137 1.34.212.31.066.58.123.892.141.245.015.56.019.857-.045.714-.151.898-.367.898-.367zm-5.884 3.162c-.086.198-.65 1.354-.65 1.354s-.348.053-.86.046c-.438-.006-.716-.061-.925-.143-.182-.07-.337-.268-.282-.416.04-.11.13-.194.243-.268.516-.33 1.446-.504 2.474-.573z" /></svg></g></svg>

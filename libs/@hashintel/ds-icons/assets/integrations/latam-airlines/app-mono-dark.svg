@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Adapted from Soaring Symbols. Bounds and theme colors adjusted; app tiles composed. Brand names and artwork remain trademarks of their respective owners.
+
+MIT License
+
+Copyright (c) 2024 Anh Thang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="latam-airlines-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="latam-airlines-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="latam-airlines-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#latam-airlines-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#latam-airlines-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#latam-airlines-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="latam-airlines-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22641523618 -0.761675338268 -0.0768917217882 0 1.06498229624" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#latam-airlines-app-mono-dark-mono)"><defs><clipPath id="latam-airlines-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#latam-airlines-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="4.47086 0 15.05829 24" fill="#000000" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path fill="#ed1650" d="M8.193 0c-.135-.001-.163.096-.163.341v1.14c0 1.052.793 1.337 1.148 1.467l7.095 2.566 2.17-.783c1.054-.384 1.054-.68.616-.84L8.739.159C8.468.062 8.3.001 8.193 0ZM4.665 3.017c-.134 0-.162.098-.162.346v1.14c0 1.046.793 1.337 1.148 1.46l4.685 1.696 3.636-1.316-8.764-3.167c-.27-.098-.438-.158-.543-.16Zm0 4.294c-.134-.002-.162.095-.162.343v1.539s0 .575.527.383l3-1.082-2.822-1.022c-.27-.097-.438-.16-.543-.161Zm12.938.348-3.636 1.316 2.3.835 2.171-.783c1.059-.389 1.06-.684.62-.845z" /><path fill="#1b0088" d="M19.054 3.891c.443.161.443.456-.616.84L5.03 9.576c-.527.192-.527-.383-.527-.383 0 .176 0 .653.355.778l2.733.99c.439.16.438.16.882 0L18.97 7.166c.527-.192.527-.602.527-1.83 0-1.285 0-1.285-.443-1.446zm.005 4.291c.443.161.443.456-.616.84L8.03 12.785v2.627l10.94-3.955c.527-.191.527-.6.527-1.828 0-1.286 0-1.286-.438-1.447zm-5.44 6.912a.516.516 0 0 0-.205.038L8.03 17.081h.005v2.628l5.207-1.882c.35-.13.615-.223.615-1.01v-.964c0-.43 0-.743-.238-.76zm-3.294 5.473a.57.57 0 0 0-.177.038l-2.118.768h.005V24l1.94-.7c.35-.129.616-.223.616-1.005v-.97c0-.445 0-.766-.266-.758z" /></svg></g></g></svg>

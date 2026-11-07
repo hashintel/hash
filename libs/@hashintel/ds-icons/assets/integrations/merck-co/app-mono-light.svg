@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="merck-co-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="merck-co-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="merck-co-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#merck-co-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#merck-co-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#merck-co-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="merck-co-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.340015779973 -1.14383483461 -0.115471022173 0 1.59932163675" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#merck-co-app-mono-light-mono)"><defs><clipPath id="merck-co-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#merck-co-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.235999 0.236313 15.907124 15.901551" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g id="merck-co-app-mono-light-layer1" transform="translate(-66.948993,-156.00435)"><g id="merck-co-app-mono-light-g14189" transform="translate(0.26458445,-0.26457685)"><path d="m 70.909982,160.49485 c 0,-2.18793 1.773767,-3.96134 3.961342,-3.96134 2.18828,0 3.961341,1.77341 3.961341,3.96134 z m 0,7.92233 c 0,-2.18757 1.773767,-3.96134 3.961342,-3.96134 -2.187575,0 -3.961342,-1.77306 -3.961342,-3.96099 -2.187575,0 -3.960989,1.77341 -3.960989,3.96099 0,2.18828 1.773414,3.96134 3.960989,3.96134 m 0,0 c 0,2.18828 1.773767,3.96134 3.961342,3.96134 2.18828,0 3.961341,-1.77306 3.961341,-3.96134 z m 3.961342,-3.96134 c 2.18828,0 3.961341,1.77377 3.961341,3.96134 2.187928,0 3.961695,-1.77306 3.961695,-3.96134 0,-2.18758 -1.773767,-3.96099 -3.961695,-3.96099 0,2.18793 -1.773061,3.96099 -3.961341,3.96099" id="merck-co-app-mono-light-path13366" fill="#007a73" fill-opacity="1" fill-rule="nonzero" stroke="none" stroke-width="0.35277778" /></g></g></svg></g></g></svg>

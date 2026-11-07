@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="index-ventures-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="index-ventures-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="index-ventures-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#index-ventures-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#index-ventures-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#index-ventures-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="index-ventures-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#index-ventures-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 32.89" fill="#e42313" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+    <g clip-path="url(#index-ventures-app-light-header_logo)">
+        <path d="M18.185 0H0V3.63008H18.185V0Z" />
+        <path d="M36.4044 7.26016H10.9247V10.8902H36.4044V7.26016Z" />
+        <path d="M40.0345 14.5549H10.9247V18.185H40.0345V14.5549Z" />
+        <path d="M36.4044 21.8151H10.9247V25.4451H36.4044V21.8151Z" />
+        <path d="M29.1096 29.1097H10.9247V32.7398H29.1096V29.1097Z" />
+    </g>
+    <defs>
+        <clipPath id="index-ventures-app-light-header_logo">
+            <rect width="40" height="32.7398" />
+        </clipPath>
+    </defs>
+</svg></g></svg>

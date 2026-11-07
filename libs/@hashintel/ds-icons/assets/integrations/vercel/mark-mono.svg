@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><filter id="vercel-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#vercel-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 222" preserveAspectRatio="xMidYMid" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+    <g>
+        <polygon fill="#000000" points="127.999778 0 256 221.704527 0 221.704527" />
+    </g>
+</svg></g></svg>

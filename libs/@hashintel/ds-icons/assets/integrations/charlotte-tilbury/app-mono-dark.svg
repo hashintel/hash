@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="charlotte-tilbury-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="charlotte-tilbury-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="charlotte-tilbury-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#charlotte-tilbury-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#charlotte-tilbury-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#charlotte-tilbury-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="charlotte-tilbury-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#charlotte-tilbury-app-mono-dark-mono)"><defs><clipPath id="charlotte-tilbury-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#charlotte-tilbury-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 106 105.18229" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g id="charlotte-tilbury-app-mono-dark-brand-assets/monogram" fill="none" fill-rule="evenodd" stroke="none" stroke-width="1"><g id="charlotte-tilbury-app-mono-dark-CT-Motif" fill="#111111"><path id="charlotte-tilbury-app-mono-dark-Fill-1" d="M73.058 97.295c-1.16.578-2.364 1.03-3.582 1.438a40 40 0 0 1-3.657 1.07 40.2 40.2 0 0 1-9.524 1.147c-2.533 0-5.014-.248-7.43-.702a40 40 0 0 1-5.472-1.42c-17.499-5.912-30.359-23.537-31.089-44.595a51 51 0 0 1-.037-1.571c0-.106-.007-.211-.007-.318q.002-.099.004-.196a52 52 0 0 1 .202-4.471l.056-.608a55 55 0 0 1 .422-3.219q.052-.343.111-.681a49 49 0 0 1 .3-1.582c1.537-7.51 4.656-14.354 8.938-20.1 5.756-7.723 13.623-13.452 22.635-16.103a40 40 0 0 1 9.405-1.594l.071-.006a55 55 0 0 1 1.677-.05l.617-.011q.335-.007.667-.007c3.991 0 7.674.803 10.502 1.668h11.05C75.013 3.406 66.758 0 56.211 0c-1.918 0-3.887.108-5.856.324-9.846 1.08-19.388 4.877-27.167 10.753H3.487L0 17.065l2.384-.041a2717.732 2717.732 0 0 1 14.747-.628C11.601 22.009 7.429 28.6 4.946 35.703c-2.139 6.094-3.052 12.556-2.733 19.028.499 13.335 6.096 25.755 15.912 35.148 10.241 9.802 23.884 15.199 38.417 15.199 19.67 0 36.945-9.949 46.612-24.845l-8.827-3.397c-4.845 9.144-13.542 16.613-21.269 20.459m30.139-86.24H44.928a37.6 37.6 0 0 0-9.127 4.754l13.263-.006v78.601c2.214.53 4.53.798 6.91.798 1.366 0 2.76-.094 4.173-.265V15.823c8.256.119 15.015.238 20.563.348 5.069.101 9.115.194 12.319.279 8.233.215 10.953.366 11.341.394l1.566.097zm-1.161 16.819s-1.545-2.425-4.01-5.594c-2.705-.09-6.714-.206-12.538-.335 4.596 5.982 7.536 11.036 7.536 11.036z" /></g></g></svg></g></g></svg>

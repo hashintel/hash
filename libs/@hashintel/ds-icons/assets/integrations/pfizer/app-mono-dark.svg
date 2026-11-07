@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pfizer-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="pfizer-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="pfizer-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pfizer-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#pfizer-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#pfizer-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="pfizer-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.234257318786 -0.788056605812 -0.0795549314033 0 1.101868856" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#pfizer-app-mono-dark-mono)"><defs><clipPath id="pfizer-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#pfizer-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="pfizer-app-mono-dark-svg352" viewBox="0 0 369.999685 369.407496" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs id="pfizer-app-mono-dark-defs349" />
+  <path d="m 19.4861,163.82961 c 11.7991,-43.1384 60.9416,-53.405 106.1867,-54.6733 37.1946,-1.0426 78.666,3.8755 78.666,3.8755 l -19.4861,71.2433 c 0,0 -41.4714,-4.9181 -78.666,-3.8755 C 60.942,181.66791 11.7992,191.93451 0,235.07291 Z" id="pfizer-app-mono-dark-path4664" fill="#0190ff" fill-opacity="1" stroke="none" stroke-width="0.20077688px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+  <path d="M 301.8419,297.3069 C 168.7224,289.0059 14.0255,220.34151 19.4861,163.82961 L 1.1196,230.98071 C -4.4516,288.6378 139.0512,357.0924 282.3559,368.5503 Z" id="pfizer-app-mono-dark-path4668" fill="#2b01be" fill-opacity="1" stroke="none" stroke-width="0.20077688px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+  <path id="pfizer-app-mono-dark-path4672" d="m 350.2187,204.72081 c -11.7989,43.13829 -60.9416,53.40489 -106.1864,54.67319 -37.1946,1.0426 -78.6657,-3.8755 -78.6657,-3.8755 l 19.4861,-71.24339 c 0,0 41.4711,4.91819 78.666,3.8756 45.2444,-1.26831 94.3871,-11.5349 106.186,-54.6733 z" fill="#2b01be" fill-opacity="1" stroke="none" stroke-width="0.20077688px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+  <path id="pfizer-app-mono-dark-path4674" d="m 67.8627,71.243305 c 133.12,8.3011 287.8165,76.965605 282.356,133.477505 l 18.3667,-67.1511 C 374.1564,79.912405 230.6538,11.4579 87.3487,0 Z" fill="#0190ff" fill-opacity="1" stroke="none" stroke-width="0.20077688px" stroke-linecap="butt" stroke-linejoin="miter" stroke-opacity="1" />
+</svg></g></g></svg>

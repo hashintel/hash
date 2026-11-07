@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="yubikey-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="yubikey-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="yubikey-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yubikey-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#yubikey-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#yubikey-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="yubikey-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#yubikey-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="1.47545 1.04114 29.04911 29.98628" preserveAspectRatio="xMidYMid meet" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+<g transform="translate(0.000000,32.000000) scale(0.100000,-0.100000)" fill="#84bd00" stroke="none">
+<path d="M85 291 c-59 -36 -70 -57 -70 -131 0 -59 3 -72 25 -95 35 -38 73 -55 120 -55 47 0 85 17 120 55 22 23 25 36 25 95 0 59 -3 72 -25 95 -14 15 -37 33 -52 41 -38 20 -107 17 -143 -5z m135 -26 c79 -41 79 -169 0 -210 -110 -57 -222 55 -165 165 29 55 105 76 165 45z" />
+<path d="M90 236 c0 -2 11 -33 24 -68 16 -43 21 -69 15 -79 -14 -22 -11 -29 14 -29 19 0 28 12 55 78 18 43 32 84 32 90 0 7 -9 12 -20 12 -14 0 -23 -11 -32 -41 l-12 -42 -18 42 c-12 29 -23 41 -38 41 -11 0 -20 -2 -20 -4z" />
+</g>
+</svg></g></svg>

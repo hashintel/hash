@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="die-welt-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="die-welt-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="die-welt-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#die-welt-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#die-welt-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#die-welt-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="die-welt-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261872742976 -0.880956659344 -0.0889332645478 0 1.23176266687" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#die-welt-app-mono-dark-mono)"><defs><clipPath id="die-welt-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#die-welt-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.65303 -1.87246 1027.30606 515.74491" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#003a5a" stroke="none">
+<path d="M0 2560 l0 -2560 5120 0 5120 0 0 2560 0 2560 -5120 0 -5120 0 0 -2560z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#ffffff" stroke="none">
+<path d="M5000 3334 c-92 -20 -143 -38 -216 -79 -130 -73 -247 -211 -305 -359 -45 -117 -62 -231 -56 -381 9 -201 55 -336 162 -473 55 -71 146 -147 220 -184 126 -65 282 -94 454 -85 212 11 390 77 530 197 l24 20 -44 48 c-24 26 -74 80 -111 121 l-68 73 -35 -26 c-97 -74 -260 -122 -382 -112 -112 9 -178 38 -248 110 -57 58 -84 108 -110 204 l-6 22 535 0 536 0 6 26 c12 46 -4 265 -25 345 -90 346 -352 551 -703 548 -51 0 -122 -7 -158 -15z m329 -349 c81 -45 136 -122 167 -237 l12 -48 -348 0 -348 0 12 48 c36 132 107 217 216 256 33 12 71 15 140 13 83 -2 102 -6 149 -32z" />
+<path d="M2073 3307 c3 -8 91 -319 197 -693 105 -373 200 -709 211 -747 l20 -67 222 2 222 3 144 492 c80 271 148 489 152 485 3 -4 71 -226 149 -494 l143 -488 222 0 221 0 209 738 c115 405 210 747 213 760 l4 22 -185 0 c-183 0 -185 0 -191 -22 -3 -13 -67 -260 -143 -551 -75 -290 -139 -524 -143 -520 -6 7 -61 209 -292 1061 l-9 32 -198 0 -198 0 -148 -542 c-81 -299 -151 -546 -154 -550 -3 -4 -66 226 -140 510 -74 284 -138 532 -143 550 l-9 32 -191 0 c-154 0 -189 -3 -185 -13z" />
+<path d="M6090 2560 l0 -760 510 0 510 0 0 165 0 165 -325 0 -325 0 0 595 0 595 -185 0 -185 0 0 -760z" />
+<path d="M6910 3160 l0 -160 223 -2 222 -3 3 -597 2 -598 180 0 180 0 2 598 3 597 223 3 222 2 0 160 0 160 -630 0 -630 0 0 -160z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#557b91" stroke="none">
+<path d="M2067 3323 c-3 -5 54 -7 126 -5 240 4 265 8 70 10 -105 1 -194 -1 -196 -5z" />
+<path d="M3037 3323 c-3 -5 56 -7 131 -5 252 4 278 8 75 10 -111 1 -204 -1 -206 -5z" />
+<path d="M4123 3323 c53 -2 141 -2 195 0 53 1 9 3 -98 3 -107 0 -151 -2 -97 -3z" />
+<path d="M6272 3323 l188 -3 3 -593 2 -592 0 595 0 595 -190 0 -190 1 187 -3z" />
+<path d="M6904 3317 c-2 -7 -3 -85 -1 -172 l3 -160 2 168 2 167 630 0 630 0 3 -167 3 -168 -1 170 0 170 -633 3 c-511 2 -634 0 -638 -11z" />
+<path d="M5892 2615 c0 -16 2 -22 5 -12 2 9 2 23 0 30 -3 6 -5 -1 -5 -18z" />
+<path d="M3527 1798 c2 -5 105 -8 228 -8 123 0 226 3 228 8 3 4 -100 7 -228 7 -128 0 -231 -3 -228 -7z" />
+<path d="M2613 1793 c65 -2 168 -2 230 0 62 1 9 3 -118 3 -126 0 -177 -2 -112 -3z" />
+<path d="M6343 1793 c141 -2 373 -2 515 0 141 1 25 2 -258 2 -283 0 -399 -1 -257 -2z" />
+<path d="M7453 1793 c54 -2 139 -2 190 0 51 1 7 3 -98 3 -104 0 -146 -2 -92 -3z" />
+<path d="M5113 1763 c9 -2 23 -2 30 0 6 3 -1 5 -18 5 -16 0 -22 -2 -12 -5z" />
+<path d="M5253 1763 c9 -2 23 -2 30 0 6 3 -1 5 -18 5 -16 0 -22 -2 -12 -5z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#c4d1d8" stroke="none">
+<path d="M4649 3163 l-24 -28 28 24 c25 23 32 31 24 31 -2 0 -14 -12 -28 -27z" />
+<path d="M7355 2395 c0 -330 1 -464 2 -297 2 167 2 437 0 600 -1 163 -2 27 -2 -303z" />
+<path d="M7725 2395 c0 -330 1 -464 2 -297 2 167 2 437 0 600 -1 163 -2 27 -2 -303z" />
+<path d="M4413 2555 c0 -22 2 -30 4 -17 2 12 2 30 0 40 -3 9 -5 -1 -4 -23z" />
+<path d="M5675 2140 c10 -11 20 -20 23 -20 3 0 -3 9 -13 20 -10 11 -20 20 -23 20 -3 0 3 -9 13 -20z" />
+<path d="M5183 2093 c15 -2 39 -2 55 0 15 2 2 4 -28 4 -30 0 -43 -2 -27 -4z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#20526e" stroke="none">
+<path d="M6085 2560 c0 -421 1 -593 2 -383 2 211 2 555 0 765 -1 211 -2 39 -2 -382z" />
+<path d="M4624 3148 l-19 -23 23 19 c12 11 22 21 22 23 0 8 -8 2 -26 -19z" />
+<path d="M4820 2708 c0 -5 153 -8 340 -8 187 0 340 3 340 8 0 4 -153 7 -340 7 -187 0 -340 -3 -340 -7z" />
+<path d="M5655 2170 c10 -11 20 -20 23 -20 3 0 -3 9 -13 20 -10 11 -20 20 -23 20 -3 0 3 -9 13 -20z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#87a2b1" stroke="none">
+<path d="M5123 3353 c9 -2 23 -2 30 0 6 3 -1 5 -18 5 -16 0 -22 -2 -12 -5z" />
+<path d="M5183 3353 c9 -2 23 -2 30 0 6 3 -1 5 -18 5 -16 0 -22 -2 -12 -5z" />
+<path d="M5640 3187 c0 -2 15 -16 33 -33 l32 -29 -29 33 c-28 30 -36 37 -36 29z" />
+<path d="M4412 2615 c0 -16 2 -22 5 -12 2 9 2 23 0 30 -3 6 -5 -1 -5 -18z" />
+<path d="M5893 2550 c0 -25 2 -35 4 -22 2 12 2 32 0 45 -2 12 -4 2 -4 -23z" />
+<path d="M4412 2495 c0 -16 2 -22 5 -12 2 9 2 23 0 30 -3 6 -5 -1 -5 -18z" />
+<path d="M5083 2423 c147 -2 387 -2 535 0 147 1 26 2 -268 2 -294 0 -415 -1 -267 -2z" />
+<path d="M5581 2237 c2 -1 13 -9 24 -17 19 -14 19 -14 6 3 -7 9 -18 17 -24 17 -6 0 -8 -1 -6 -3z" />
+<path d="M7114 1965 c0 -93 2 -133 3 -88 2 45 2 122 0 170 -1 48 -3 12 -3 -82z" />
+<path d="M4625 1980 c10 -11 20 -20 23 -20 3 0 -3 9 -13 20 -10 11 -20 20 -23 20 -3 0 3 -9 13 -20z" />
+<path d="M5173 1763 c15 -2 37 -2 50 0 12 2 0 4 -28 4 -27 0 -38 -2 -22 -4z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#f2f4f6" stroke="none">
+<path d="M7018 2993 c61 -2 163 -2 225 0 61 1 11 3 -113 3 -124 0 -174 -2 -112 -3z" />
+<path d="M7838 2993 c61 -2 163 -2 225 0 61 1 11 3 -113 3 -124 0 -174 -2 -112 -3z" />
+<path d="M5390 2935 c13 -14 26 -25 28 -25 3 0 -5 11 -18 25 -13 14 -26 25 -28 25 -3 0 5 -11 18 -25z" />
+<path d="M5635 2180 c10 -11 20 -20 23 -20 3 0 -3 9 -13 20 -10 11 -20 20 -23 20 -3 0 3 -9 13 -20z" />
+<path d="M5745 2060 c10 -11 20 -20 23 -20 3 0 -3 9 -13 20 -10 11 -20 20 -23 20 -3 0 3 -9 13 -20z" />
+</g>
+<g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="#013a5a" stroke="none">
+<path d="M6633 2133 c93 -2 241 -2 330 0 89 1 14 3 -168 3 -181 0 -254 -2 -162 -3z" />
+</g>
+</svg></g></g></svg>

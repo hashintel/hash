@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="motel-one-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="motel-one-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="motel-one-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#motel-one-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#motel-one-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#motel-one-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="motel-one-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#motel-one-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.97371 3.97371 22.05257 15.04569" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g fill="none"><g><path fill="#00AEB7" d="M7.351 17.527c-2.592 0-4.51-1.316-4.51-3.377c0-3.693 5.38-8.777 12.384-8.914c3.126-.058 5.876.943 5.955 3.77c.1 3.534-5.045 7.893-8.072 7.893c-.653 0-.851-.431-.851-.863c0-.686.554-2.083 1.148-3.634l1.68-4.417c.041-.098 0-.156-.078-.156h-.95c-.1 0-.14.02-.199.058c-1.621.885-2.473 1.14-4.056 1.334c-.059 0-.1.039-.12.099l-.317.903c-.02.06 0 .098.08.098h.968c.77 0 .95.197.95.668c0 .412-.12.865-.79 2.788l-.397 1.12c-.554 1.57-1.187 2.63-2.829 2.63zM7.707 19C15.937 19 23 13.62 23 8.81C23 5.276 19.498 4 16.372 4C7.766 4 1 9.87 1 14.326C1 17.547 4.086 19 7.707 19" /></g></g></svg></g></svg>

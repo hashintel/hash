@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="letterboxd-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="letterboxd-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="letterboxd-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#letterboxd-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#letterboxd-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#letterboxd-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="letterboxd-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.348890639359 -1.1736904293 -0.118484967835 0 1.6410660365" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#letterboxd-app-mono-light-mono)"><defs><clipPath id="letterboxd-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#letterboxd-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="30.416667 40.416667 98.333333 37.083333" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+
+    <defs />
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(31.000000, 30.000000)">
+            <g transform="translate(0.000000, 11.000000)">
+                <ellipse fill="#40BCF4" cx="79.2100081" cy="18" rx="18.0271053" ry="18" />
+                <ellipse fill="#00E054" cx="48.6185567" cy="18" rx="18.0271053" ry="18" />
+                <ellipse fill="#FF8000" cx="18.0271053" cy="18" rx="18.0271053" ry="18" />
+                <path d="M33.322831,27.5305134 C31.5918989,24.7666961 30.5914514,21.5000059 30.5914514,18 C30.5914514,14.4999941 31.5918989,11.2333039 33.322831,8.46948657 C35.0537631,11.2333039 36.0542106,14.4999941 36.0542106,18 C36.0542106,21.5000059 35.0537631,24.7666961 33.322831,27.5305134 Z" fill="#556677" />
+                <path d="M63.9142824,8.46948657 C65.6452145,11.2333039 66.645662,14.4999941 66.645662,18 C66.645662,21.5000059 65.6452145,24.7666961 63.9142824,27.5305134 C62.1833504,24.7666961 61.1829028,21.5000059 61.1829028,18 C61.1829028,14.4999941 62.1833504,11.2333039 63.9142824,8.46948657 Z" fill="#556677" />
+            </g>
+            </g>
+    </g>
+</svg></g></g></svg>
