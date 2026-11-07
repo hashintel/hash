@@ -15095,7 +15095,9 @@
     "name": "theTelegraph",
     "slug": "the-telegraph",
     "label": "The Telegraph",
-    "integrationNames": ["The Telegraph"],
+    "integrationNames": [
+      "The Telegraph"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/telegraph.svg",
@@ -15105,9 +15107,15 @@
     },
     "logoDarkColors": {},
     "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
-    "categories": ["News & publishing"],
+    "categories": [
+      "News & publishing"
+    ],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "The Daily Telegraph",
+      "Daily Telegraph"
+    ]
   },
   {
     "name": "theGuardian",

@@ -18216,6 +18216,7 @@ export const integrationIconCatalog = [
     logoRaster: false,
     lastCheckedAutomated: "2026-11-06",
     lastCheckedManually: null,
+    searchAliases: ["The Daily Telegraph", "Daily Telegraph"],
   },
   {
     name: "theGuardian",
