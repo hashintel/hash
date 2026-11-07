@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-photoshop-elements-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-photoshop-elements-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-photoshop-elements-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-photoshop-elements-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-photoshop-elements-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-photoshop-elements-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="adobe-photoshop-elements-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#adobe-photoshop-elements-app-mono-light-mono)"><defs><clipPath id="adobe-photoshop-elements-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-photoshop-elements-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 256 256" xml:space="preserve" enable-background="new 0 0 256 256" color="black" width="35.55555555555556" height="35.55555555555556">
+<g>
+	<path d="M210.7,252.8H45.3c-25,0-45.3-20.3-45.3-45.3V48.5c0-25,20.3-45.3,45.3-45.3h165.3c25,0,45.3,20.3,45.3,45.3   v158.9C256,232.5,235.7,252.8,210.7,252.8z" fill="#000000" />
+	<g>
+		<g id="adobe-photoshop-elements-app-mono-light-Group_1428_2_" transform="translate(-118.757 -953.722)">
+			<path id="adobe-photoshop-elements-app-mono-light-Path_1953_2_" d="M245.5,1094.5l15.7,28.9c12.3-4.1,22.1-13.4,26.9-25.5l1.3-3.4H245.5z M247.6,1064.7     l-14.6-26.5c-12.2,4.6-21.9,14.1-26.7,26.3l0.4,0.3L247.6,1064.7z M233,1087.1l-14.9,25.9c7.8,7.1,18,11.1,28.5,11.3     c2.4-0.1,4.9-0.3,7.3-0.7l0.3-0.4L233,1087.1z M261,1072.9l14.9-25.6c-8-7-18.2-10.9-28.8-10.9c-2.1,0-4.3,0.2-6.4,0.5l-0.3,0.5     L261,1072.9z M234,1072.1h-29.9c-0.6,2.7-0.9,5.6-0.9,8.4c0,9.8,3.3,19.4,9.4,27.1l0.7,0.4L234,1072.1z M259.9,1087.1h30.3     c0.5-2.5,0.7-5.1,0.7-7.7c0-9.7-3.4-19.2-9.6-26.7l-0.7-0.5L259.9,1087.1z" fill-rule="evenodd" clip-rule="evenodd" fill="#FFFFFF" />
+		</g>
+		<g>
+			<path d="M152.6,232.5c-2.5,0-5-0.6-7.2-1.9L27.8,165.1c-3.4-1.9-5.9-5-6.9-8.8c-1-3.7-0.5-7.6,1.5-11L91.1,29.8     c2.7-4.5,7.6-7.3,12.9-7.3c2.5,0,5,0.6,7.2,1.8l117.6,65.5c3.4,1.9,5.9,5,6.9,8.8c1,3.7,0.5,7.6-1.5,11l-68.6,115.6     C162.9,229.7,157.9,232.5,152.6,232.5z M104,33.2c-1.5,0-3,0.8-3.7,2L31.7,150.8c-0.5,0.8-0.6,1.8-0.4,2.7c0.3,1,0.9,1.7,1.7,2.2     l117.6,65.5c0.6,0.3,1.3,0.5,2,0.5c1.5,0,2.9-0.8,3.7-2l68.6-115.6c0.5-0.8,0.6-1.8,0.4-2.7c-0.3-1-0.9-1.7-1.7-2.2L106,33.7     C105.4,33.4,104.7,33.2,104,33.2z" opacity="0.6" fill="#FFFFFF" />
+		</g>
+	</g>
+</g>
+</svg></g></g></svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-substance-3d-painter-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-substance-3d-painter-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-substance-3d-painter-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-painter-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-substance-3d-painter-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-substance-3d-painter-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-substance-3d-painter-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-substance-3d-painter-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-substance-3d-painter-app-light-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#1E3101" />
+<path id="adobe-substance-3d-painter-app-light-Vector_2" d="M87.8906 63.7059C119.264 63.7059 136.932 78.4019 136.932 103.005C136.932 131.737 112.989 143.296 90.5324 143.296H75.3411V174.339H44.6284V63.7059H87.8906ZM75.3411 89.9604V117.041H88.8812C98.2933 117.041 104.898 113.243 104.898 103.666C104.898 94.9144 99.2839 89.9604 89.5418 89.9604H75.3411Z" fill="#99E83F" />
+<path id="adobe-substance-3d-painter-app-light-Vector_3" d="M182.491 88.9699H198.342V111.922H182.491V141.314C182.491 149.24 185.793 152.212 191.407 152.212C193.224 152.212 195.865 151.882 198.342 151.056L198.508 173.843C194.875 175.164 190.912 175.99 183.482 175.99C164.657 175.99 153.594 167.073 153.594 145.938V111.922H141.21V88.9699H153.594V67.3385H182.491V88.9699Z" fill="#99E83F" />
+<defs>
+<clipPath id="adobe-substance-3d-painter-app-light-clip0_2136_9170">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

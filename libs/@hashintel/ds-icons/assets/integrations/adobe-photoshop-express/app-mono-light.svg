@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-photoshop-express-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-photoshop-express-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-photoshop-express-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-photoshop-express-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-photoshop-express-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-photoshop-express-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="adobe-photoshop-express-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#adobe-photoshop-express-app-mono-light-mono)"><defs><clipPath id="adobe-photoshop-express-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-photoshop-express-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.00439453 0 54 54" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M44.2692 0H9.73958C4.36299 0 0.00439453 4.35859 0.00439453 9.73519V44.2648C0.00439453 49.6414 4.36299 54 9.73958 54H44.2692C49.6458 54 54.0044 49.6414 54.0044 44.2648V9.73519C54.0044 4.35859 49.6458 0 44.2692 0Z" fill="#000000" />
+<path opacity="0.6" d="M27.0042 50.0974C25.0713 50.0974 23.1384 49.3616 21.6669 47.8901L6.11003 32.3333C3.1671 29.3903 3.1671 24.6016 6.11003 21.6586L21.6669 6.10173C24.6099 3.1588 29.3985 3.1588 32.3416 6.10173L47.8983 21.6586C50.8414 24.6016 50.8414 29.3903 47.8983 32.3333L32.3416 47.8901C30.87 49.3616 28.9371 50.0974 27.0042 50.0974ZM27.0042 6.20223C25.6626 6.20223 24.3208 6.71292 23.2995 7.73435L7.74265 23.2912C5.69985 25.334 5.69985 28.6579 7.74265 30.7008L23.2995 46.2575C24.289 47.2471 25.6047 47.7921 27.0042 47.7921C28.4037 47.7921 29.7194 47.2471 30.7089 46.2575L46.2658 30.7007C48.3086 28.6579 48.3086 25.334 46.2658 23.2912L30.7089 7.73435C29.6876 6.71292 28.3459 6.20223 27.0042 6.20223Z" fill="#FFFFFF" />
+<path d="M21.6624 18.6484C26.5618 18.6484 29.3208 20.9435 29.3208 24.7858C29.3208 29.2727 25.5818 31.0778 22.0748 31.0778H19.7024V35.9258H14.9058V18.6484H21.6624ZM19.7024 22.7487V26.9777H21.8169C23.2869 26.9777 24.3183 26.3846 24.3183 24.8889C24.3183 23.5221 23.4414 22.7487 21.92 22.7487L19.7024 22.7487Z" fill="#FFFFFF" />
+<path d="M30.5006 35.0763L30.5261 31.0793C31.893 31.9819 33.8013 32.5492 35.1165 32.5492C36.0189 32.5492 36.4314 32.2914 36.4314 31.8273C36.4314 31.3114 35.8644 31.1052 34.781 30.77C32.6923 30.1511 30.3975 29.3 30.3975 26.5667C30.3975 23.7816 32.6923 22.2344 36.0189 22.2344C37.5917 22.2344 38.8814 22.4664 40.0159 22.9565L39.99 26.7729C39.0876 26.2313 37.3083 25.7415 36.1479 25.7415C35.2968 25.7415 34.9617 25.9993 34.9617 26.3862C34.9617 26.8503 35.3744 26.9793 36.612 27.366C39.01 28.0881 41.0218 28.8617 41.0218 31.6725C41.0218 34.3544 38.8297 36.1594 35.4 36.1594C33.5948 36.1594 31.893 35.8499 30.5006 35.0763Z" fill="#FFFFFF" />
+</svg></g></g></svg>

@@ -1132,3 +1132,7 @@ Amplify Partners uses its official website’s outlined wordmark and striped-A m
 This addition includes 32 current identities and the separately labeled earlier Automattic wordmark. Artwork is retained as native SVG paths where available; Applebee’s, Zaxby’s and the current Automattic symbol are vector conversions of sourced raster artwork. Nobu’s circular emblem is extracted from an official vector menu. Exact source URLs and adaptation notes remain in the source metadata. No third-party trademark rights are granted.
 
 Applebee’s artwork is attributed to Applebee’s and licensed under Creative Commons Attribution-ShareAlike 2.5 (https://creativecommons.org/licenses/by-sa/2.5/). Vector conversion, isolated mark, bounds, theme colors, and app tiles are adaptations distributed under the same license. Applebee’s trademarks remain the property of their owner.
+
+## Adobe product identities
+
+Adobe product names and artwork remain trademarks of Adobe. The app identities use current artwork served by Adobe, with native badge shapes and colors retained. Mono colors, app-tile composition, and dark logo text are adaptations. Adobe Express retains Adobe’s embedded gradient image within its native vector outline; the mono variant uses the outline as a cutout. A current outlined full-logo lockup is included for Acrobat Reader. Other additions expose marks and app tiles without substitute wordmarks. No third-party trademark rights are granted.

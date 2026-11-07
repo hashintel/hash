@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-scan-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-scan-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-scan-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-scan-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-scan-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-scan-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-scan-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-scan-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 234" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs /><rect width="240" height="234" rx="42.5" fill="#008cad" /><path d="M192.977,135.474c-4.767-5.119-13.888-7.718-27.106-7.718a143.08442,143.08442,0,0,0-21.892,1.9,108.2989,108.2989,0,0,1-12.613-14.718,134.19058,134.19058,0,0,1-7.892-12.261c4.656-14.653,7.015-26.548,7.015-35.366,0-10.826-4.289-22.4-16.327-22.4a12.111,12.111,0,0,0-10.077,5.947c-5.135,8.818-3.078,26.963,5.118,45.427-2.854,8.483-5.963,16.742-9.774,25.894a231.77545,231.77545,0,0,1-11.05,22.945C76.1,150.063,50,162.054,47.513,175.3a11.239,11.239,0,0,0,3.571,10.556,15.55893,15.55893,0,0,0,10.635,3.794c15.722,0,31.4-21.765,41.951-40.5,6-2.042,12.118-3.891,18.209-5.5,6.681-1.769,13.139-3.22,19.23-4.3,16.646,14.526,31.443,16.727,38.857,16.727,10.189,0,14-4.418,15.387-8.132A12.459,12.459,0,0,0,192.977,135.474Zm-10.842,7.637c-.558,2.886-3.54,4.752-7.622,4.752a14.4494,14.4494,0,0,1-3.444-.431c-7.494-1.786-14.669-5.405-21.828-11.05a108.47967,108.47967,0,0,1,16.152-1.243,57.98751,57.98751,0,0,1,10.763.829c3.236.669,6.888,2.455,5.979,7.143ZM110.542,54.618a4.145,4.145,0,0,1,3.476-2.249c3.811,0,4.64,4.592,4.64,8.435.032,6.123-1.817,15.881-4.99,26.676C107.274,70.546,108.167,58.683,110.542,54.618Zm22.339,77.093c-4.321.909-8.786,1.961-13.314,3.157-3.252.861-6.553,1.8-9.854,2.806,1.754-3.587,3.365-7.143,4.768-10.523,1.85-4.466,3.587-8.93,5.182-13.3q2.1,3.3,4.337,6.395a127.44646,127.44646,0,0,0,9.235,11.381ZM84.52,154.879c-10.061,16.2-19.962,26.436-25.75,26.436a3.628,3.628,0,0,1-2.583-.925,3.775,3.775,0,0,1-1.324-3.7C55.963,170.887,67.428,162.516,84.52,154.879Z" fill="#fff" /></svg></g></svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><defs><filter id="adobe-illustrator-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#adobe-illustrator-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42" fill="none" color="black" x="0.0" y="0.0" width="64" height="64">
+<path id="adobe-illustrator-mark-mono-Vector" d="M34.4678 0H7.53225C3.3723 0 0 3.3723 0 7.53225V34.4678C0 38.6277 3.3723 42 7.53225 42H34.4678C38.6277 42 42 38.6277 42 34.4678V7.53225C42 3.3723 38.6277 0 34.4678 0Z" fill="#000000" />
+<path id="adobe-illustrator-mark-mono-Vector_2" d="M14.2156 11.1485H20.3994L27.3346 30.5092H21.6708L20.7173 27.5618H13.4641L12.5106 30.5092H7.07806L14.2156 11.1485ZM19.2146 22.9672L17.1052 16.4655L14.9957 22.9672H19.2146Z" fill="#FFFFFF" />
+<path id="adobe-illustrator-mark-mono-Vector_3" d="M28.1644 12.42C28.1644 11.0329 29.2336 10.1371 30.8518 10.1371C32.441 10.1371 33.4524 11.0618 33.4524 12.42C33.4524 13.807 32.441 14.7606 30.8518 14.7606C29.1757 14.7606 28.1644 13.8359 28.1644 12.42ZM28.3088 15.4252H33.3657V30.5092H28.3088V15.4252Z" fill="#FFFFFF" />
+<defs>
+<clipPath id="adobe-illustrator-mark-mono-clip0_2136_6974">
+<rect width="42" height="42" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

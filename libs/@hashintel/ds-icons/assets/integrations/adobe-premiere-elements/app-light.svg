@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-premiere-elements-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="adobe-premiere-elements-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-premiere-elements-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-premiere-elements-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-premiere-elements-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-premiere-elements-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-premiere-elements-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-premiere-elements-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" x="14.222222222222221" y="14.222222222222221" viewBox="0 0 256 256" xml:space="preserve" enable-background="new 0 0 256 256" width="35.55555555555556" height="35.55555555555556">
+<g id="adobe-premiere-elements-app-light-_1_line">
+	<g>
+		<path d="M45.3,3.2h165.3c25,0,45.3,20.3,45.3,45.3v158.9c0,25-20.3,45.3-45.3,45.3H45.3c-25,0-45.3-20.3-45.3-45.3    V48.5C0,23.5,20.3,3.2,45.3,3.2z" fill="#00005B" />
+		<g>
+			<g id="adobe-premiere-elements-app-light-Group_1427">
+				<path id="adobe-premiere-elements-app-light-Path_1956" d="M128.2,82.1c-24.6,0-44.6,20-44.6,44.6s20,44.6,44.6,44.6s44.6-20,44.6-44.6      C172.8,102.1,152.9,82.1,128.2,82.1z M152.9,129.7l-39.3,21.2c-2.6,1.5-4.7,0.3-4.8-2.7v-42.4c0-3,2.1-4.2,4.8-2.7l39.3,21.3      C155.7,125.8,155.7,128.3,152.9,129.7z" fill-rule="evenodd" clip-rule="evenodd" fill="#9999FF" />
+			</g>
+			<path d="M152.5,232.6c-2.5,0-5-0.6-7.2-1.8L27.6,165.1c-3.4-1.9-5.9-5-6.9-8.8c-1-3.7-0.5-7.6,1.5-11L91,29.6     c2.7-4.5,7.6-7.3,12.9-7.3c2.5,0,5,0.6,7.2,1.8l117.7,65.7c3.4,1.9,5.9,5,6.9,8.8c1,3.7,0.5,7.7-1.5,11l-68.7,115.7     C162.8,229.8,157.9,232.6,152.5,232.6L152.5,232.6z M103.9,33.1c-1.5,0-3,0.8-3.7,2L31.5,150.8c-0.5,0.8-0.6,1.8-0.4,2.7     c0.3,1,0.9,1.7,1.8,2.2l117.7,65.6c0.6,0.3,1.3,0.5,2,0.5c1.5,0,3-0.8,3.7-2L225,104.1c0.5-0.8,0.6-1.8,0.4-2.7     c-0.3-1-0.9-1.7-1.8-2.2L105.9,33.6C105.3,33.3,104.6,33.1,103.9,33.1z" opacity="0.6" fill="#9999FF" enable-background="new" />
+		</g>
+	</g>
+</g>
+</svg></g></svg>

@@ -35,7 +35,41 @@ import * as adani from "./geometry/adani";
 import * as adidas from "./geometry/adidas";
 import * as admiral from "./geometry/admiral";
 import * as adobe from "./geometry/adobe";
+import * as adobeAcrobat from "./geometry/adobe-acrobat";
+import * as adobeAcrobatReader from "./geometry/adobe-acrobat-reader";
+import * as adobeAcrobatSign from "./geometry/adobe-acrobat-sign";
+import * as adobeAfterEffects from "./geometry/adobe-after-effects";
+import * as adobeAnimate from "./geometry/adobe-animate";
+import * as adobeAudition from "./geometry/adobe-audition";
+import * as adobeBridge from "./geometry/adobe-bridge";
+import * as adobeCapture from "./geometry/adobe-capture";
+import * as adobeCharacterAnimator from "./geometry/adobe-character-animator";
 import * as adobeCreativeCloud from "./geometry/adobe-creative-cloud";
+import * as adobeDimension from "./geometry/adobe-dimension";
+import * as adobeDreamweaver from "./geometry/adobe-dreamweaver";
+import * as adobeExpress from "./geometry/adobe-express";
+import * as adobeFirefly from "./geometry/adobe-firefly";
+import * as adobeFonts from "./geometry/adobe-fonts";
+import * as adobeFresco from "./geometry/adobe-fresco";
+import * as adobeIllustrator from "./geometry/adobe-illustrator";
+import * as adobeInCopy from "./geometry/adobe-incopy";
+import * as adobeInDesign from "./geometry/adobe-indesign";
+import * as adobeLightroom from "./geometry/adobe-lightroom";
+import * as adobeLightroomClassic from "./geometry/adobe-lightroom-classic";
+import * as adobeMediaEncoder from "./geometry/adobe-media-encoder";
+import * as adobePhotoshop from "./geometry/adobe-photoshop";
+import * as adobePhotoshopElements from "./geometry/adobe-photoshop-elements";
+import * as adobePhotoshopExpress from "./geometry/adobe-photoshop-express";
+import * as adobePortfolio from "./geometry/adobe-portfolio";
+import * as adobePremiere from "./geometry/adobe-premiere";
+import * as adobePremiereElements from "./geometry/adobe-premiere-elements";
+import * as adobeScan from "./geometry/adobe-scan";
+import * as adobeStock from "./geometry/adobe-stock";
+import * as adobeSubstance3DDesigner from "./geometry/adobe-substance-3d-designer";
+import * as adobeSubstance3DModeler from "./geometry/adobe-substance-3d-modeler";
+import * as adobeSubstance3DPainter from "./geometry/adobe-substance-3d-painter";
+import * as adobeSubstance3DSampler from "./geometry/adobe-substance-3d-sampler";
+import * as adobeSubstance3DStager from "./geometry/adobe-substance-3d-stager";
 import * as adp from "./geometry/adp";
 import * as advantest from "./geometry/advantest";
 import * as adversal from "./geometry/adversal";
@@ -27859,6 +27893,346 @@ export const integrationGeometry: Readonly<
     monoInkScale: 1,
     logoViewBox: null,
     ratio: 1.55,
+    alignment: "center",
+  },
+  adobePhotoshop: {
+    ...adobePhotoshop,
+    markViewBox: "0 0 42 42",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeIllustrator: {
+    ...adobeIllustrator,
+    markViewBox: "0 0 42 42",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeInDesign: {
+    ...adobeInDesign,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeInCopy: {
+    ...adobeInCopy,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeLightroom: {
+    ...adobeLightroom,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeLightroomClassic: {
+    ...adobeLightroomClassic,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobePremiere: {
+    ...adobePremiere,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAfterEffects: {
+    ...adobeAfterEffects,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAudition: {
+    ...adobeAudition,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAnimate: {
+    ...adobeAnimate,
+    markViewBox: "0 0 54 54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeDreamweaver: {
+    ...adobeDreamweaver,
+    markViewBox: "0 0 54 54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeBridge: {
+    ...adobeBridge,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeMediaEncoder: {
+    ...adobeMediaEncoder,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeCharacterAnimator: {
+    ...adobeCharacterAnimator,
+    markViewBox: "0 0 54 54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAcrobat: {
+    ...adobeAcrobat,
+    markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAcrobatSign: {
+    ...adobeAcrobatSign,
+    markViewBox: "0 0 240 234",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeExpress: {
+    ...adobeExpress,
+    markViewBox: "0 0 55.385 54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeFirefly: {
+    ...adobeFirefly,
+    markViewBox: "0 0 168 168",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeFresco: {
+    ...adobeFresco,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeCapture: {
+    ...adobeCapture,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobePhotoshopExpress: {
+    ...adobePhotoshopExpress,
+    markViewBox: "0.00439453 0 54 54",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobePhotoshopElements: {
+    ...adobePhotoshopElements,
+    markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobePremiereElements: {
+    ...adobePremiereElements,
+    markViewBox: "0 0 256 256",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeSubstance3DPainter: {
+    ...adobeSubstance3DPainter,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeSubstance3DDesigner: {
+    ...adobeSubstance3DDesigner,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeSubstance3DSampler: {
+    ...adobeSubstance3DSampler,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeSubstance3DStager: {
+    ...adobeSubstance3DStager,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeSubstance3DModeler: {
+    ...adobeSubstance3DModeler,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeDimension: {
+    ...adobeDimension,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeStock: {
+    ...adobeStock,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobePortfolio: {
+    ...adobePortfolio,
+    markViewBox: "0 0 240 240",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeFonts: {
+    ...adobeFonts,
+    markViewBox: "0 0 240 234",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeScan: {
+    ...adobeScan,
+    markViewBox: "0 0 240 234",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: null,
+    ratio: 1.8,
+    alignment: "center",
+  },
+  adobeAcrobatReader: {
+    ...adobeAcrobatReader,
+    markViewBox: "0 0 41.204 40",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1,
+    logoViewBox: "0 0 300.459 40",
+    ratio: 1.8,
     alignment: "center",
   },
 } as const;

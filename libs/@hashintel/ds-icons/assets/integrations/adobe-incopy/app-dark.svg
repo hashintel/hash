@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="adobe-incopy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="adobe-incopy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="adobe-incopy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-incopy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#adobe-incopy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#adobe-incopy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="adobe-incopy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#adobe-incopy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path id="adobe-incopy-app-dark-Vector" d="M196.959 0H43.0414C19.2703 0 0 19.2703 0 43.0414V196.959C0 220.73 19.2703 240 43.0414 240H196.959C220.73 240 240 220.73 240 196.959V43.0414C240 19.2703 220.73 0 196.959 0Z" fill="#49021F" />
+<path id="adobe-incopy-app-dark-Vector_2" d="M67.4279 63.7059H98.1405V174.339H67.4279V63.7059Z" fill="#FF3366" />
+<path id="adobe-incopy-app-dark-Vector_3" d="M176.675 114.069C171.556 111.262 165.777 109.94 159.006 109.94C146.953 109.94 137.706 117.206 137.706 131.076C137.706 144.946 146.787 152.212 159.172 152.212C166.767 152.212 171.721 151.056 176.675 148.414V172.027C170.565 174.834 163.465 175.99 154.548 175.99C127.138 175.99 108.644 158.322 108.644 131.241C108.644 103.17 129.78 86.6582 155.209 86.6582C163.96 86.6582 170.895 87.4837 176.675 90.2907V114.069Z" fill="#FF3366" />
+<defs>
+<clipPath id="adobe-incopy-app-dark-clip0_2136_7616">
+<rect width="240" height="240" fill="white" />
+</clipPath>
+</defs>
+</svg></g></svg>

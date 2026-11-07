@@ -6362,7 +6362,15 @@
     "logoNotes": "Outlined vector artwork from the linked collection; colors adapted for the preview theme.",
     "categories": ["Design & creative"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/creativecloud/all-apps.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "bilibili",
@@ -15225,7 +15233,177 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Design & creative"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": [
+      "Adobe Photoshop",
+      "Photoshop",
+      "Photoshop CC",
+      "Adobe Illustrator",
+      "Illustrator",
+      "Illustrator CC",
+      "Adobe InDesign",
+      "InDesign",
+      "InDesign CC",
+      "Adobe InCopy",
+      "InCopy",
+      "Adobe Lightroom",
+      "Lightroom",
+      "Adobe Lightroom Classic",
+      "Lightroom Classic",
+      "Lightroom Classic CC",
+      "Adobe Premiere",
+      "Premiere",
+      "Premiere Pro",
+      "Adobe Premiere Pro",
+      "Adobe After Effects",
+      "After Effects",
+      "Adobe Audition",
+      "Audition",
+      "Adobe Animate",
+      "Animate",
+      "Adobe Dreamweaver",
+      "Dreamweaver",
+      "Adobe Bridge",
+      "Bridge",
+      "Adobe Media Encoder",
+      "Media Encoder",
+      "Adobe Character Animator",
+      "Character Animator",
+      "Adobe Acrobat",
+      "Acrobat",
+      "Acrobat Pro",
+      "Adobe Acrobat Pro",
+      "Adobe Acrobat Sign",
+      "Acrobat Sign",
+      "Adobe Sign",
+      "Adobe Express",
+      "Express",
+      "Adobe Firefly",
+      "Firefly",
+      "Adobe Fresco",
+      "Fresco",
+      "Adobe Capture",
+      "Capture",
+      "Adobe Photoshop Express",
+      "Photoshop Express",
+      "Adobe Photoshop Elements",
+      "Photoshop Elements",
+      "Adobe Premiere Elements",
+      "Premiere Elements",
+      "Adobe Substance 3D Painter",
+      "Substance 3D Painter",
+      "Adobe Substance 3D Designer",
+      "Substance 3D Designer",
+      "Adobe Substance 3D Sampler",
+      "Substance 3D Sampler",
+      "Adobe Substance 3D Stager",
+      "Substance 3D Stager",
+      "Adobe Substance 3D Modeler",
+      "Substance 3D Modeler",
+      "Adobe Dimension",
+      "Dimension",
+      "Adobe Stock",
+      "Stock",
+      "Adobe Portfolio",
+      "Portfolio",
+      "Adobe Fonts",
+      "Fonts",
+      "Adobe Scan",
+      "Scan",
+      "Adobe Acrobat Reader",
+      "Acrobat Reader",
+      "Adobe Creative Cloud",
+      "Creative Cloud",
+      "Behance"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Adobe Photoshop",
+          "Photoshop",
+          "Photoshop CC",
+          "Adobe Illustrator",
+          "Illustrator",
+          "Illustrator CC",
+          "Adobe InDesign",
+          "InDesign",
+          "InDesign CC",
+          "Adobe InCopy",
+          "InCopy",
+          "Adobe Lightroom",
+          "Lightroom",
+          "Adobe Lightroom Classic",
+          "Lightroom Classic",
+          "Lightroom Classic CC",
+          "Adobe Premiere",
+          "Premiere",
+          "Premiere Pro",
+          "Adobe Premiere Pro",
+          "Adobe After Effects",
+          "After Effects",
+          "Adobe Audition",
+          "Audition",
+          "Adobe Animate",
+          "Animate",
+          "Adobe Dreamweaver",
+          "Dreamweaver",
+          "Adobe Bridge",
+          "Bridge",
+          "Adobe Media Encoder",
+          "Media Encoder",
+          "Adobe Character Animator",
+          "Character Animator",
+          "Adobe Acrobat",
+          "Acrobat",
+          "Acrobat Pro",
+          "Adobe Acrobat Pro",
+          "Adobe Acrobat Sign",
+          "Acrobat Sign",
+          "Adobe Sign",
+          "Adobe Express",
+          "Express",
+          "Adobe Firefly",
+          "Firefly",
+          "Adobe Fresco",
+          "Fresco",
+          "Adobe Capture",
+          "Capture",
+          "Adobe Photoshop Express",
+          "Photoshop Express",
+          "Adobe Photoshop Elements",
+          "Photoshop Elements",
+          "Adobe Premiere Elements",
+          "Premiere Elements",
+          "Adobe Substance 3D Painter",
+          "Substance 3D Painter",
+          "Adobe Substance 3D Designer",
+          "Substance 3D Designer",
+          "Adobe Substance 3D Sampler",
+          "Substance 3D Sampler",
+          "Adobe Substance 3D Stager",
+          "Substance 3D Stager",
+          "Adobe Substance 3D Modeler",
+          "Substance 3D Modeler",
+          "Adobe Dimension",
+          "Dimension",
+          "Adobe Stock",
+          "Stock",
+          "Adobe Portfolio",
+          "Portfolio",
+          "Adobe Fonts",
+          "Fonts",
+          "Adobe Scan",
+          "Scan",
+          "Adobe Acrobat Reader",
+          "Acrobat Reader",
+          "Adobe Creative Cloud",
+          "Creative Cloud",
+          "Behance"
+        ],
+        "url": "https://www.adobe.com/creativecloud/all-apps.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "starbucks",
@@ -22331,12 +22509,128 @@
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
     "monoInkScale": 1.02,
-    "searchAliases": ["Adobe"],
+    "searchAliases": [
+      "Adobe",
+      "Adobe Photoshop",
+      "Photoshop",
+      "Photoshop CC",
+      "Adobe Illustrator",
+      "Illustrator",
+      "Illustrator CC",
+      "Adobe InDesign",
+      "InDesign",
+      "InDesign CC",
+      "Adobe InCopy",
+      "InCopy",
+      "Adobe Lightroom",
+      "Lightroom",
+      "Adobe Lightroom Classic",
+      "Lightroom Classic",
+      "Lightroom Classic CC",
+      "Adobe Premiere",
+      "Premiere",
+      "Premiere Pro",
+      "Adobe Premiere Pro",
+      "Adobe After Effects",
+      "After Effects",
+      "Adobe Audition",
+      "Audition",
+      "Adobe Animate",
+      "Animate",
+      "Adobe Dreamweaver",
+      "Dreamweaver",
+      "Adobe Bridge",
+      "Bridge",
+      "Adobe Media Encoder",
+      "Media Encoder",
+      "Adobe Character Animator",
+      "Character Animator",
+      "Adobe Acrobat",
+      "Acrobat",
+      "Acrobat Pro",
+      "Adobe Acrobat Pro",
+      "Adobe Express",
+      "Express",
+      "Adobe Firefly",
+      "Firefly",
+      "Adobe Fresco",
+      "Fresco",
+      "Adobe Capture",
+      "Capture",
+      "Adobe Photoshop Express",
+      "Photoshop Express",
+      "Adobe Stock",
+      "Stock",
+      "Adobe Portfolio",
+      "Portfolio",
+      "Adobe Fonts",
+      "Fonts"
+    ],
     "searchAliasSources": [
       {
         "aliases": ["Adobe"],
         "url": "https://www.adobe.com/products/catalog.html",
         "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": [
+          "Adobe Photoshop",
+          "Photoshop",
+          "Photoshop CC",
+          "Adobe Illustrator",
+          "Illustrator",
+          "Illustrator CC",
+          "Adobe InDesign",
+          "InDesign",
+          "InDesign CC",
+          "Adobe InCopy",
+          "InCopy",
+          "Adobe Lightroom",
+          "Lightroom",
+          "Adobe Lightroom Classic",
+          "Lightroom Classic",
+          "Lightroom Classic CC",
+          "Adobe Premiere",
+          "Premiere",
+          "Premiere Pro",
+          "Adobe Premiere Pro",
+          "Adobe After Effects",
+          "After Effects",
+          "Adobe Audition",
+          "Audition",
+          "Adobe Animate",
+          "Animate",
+          "Adobe Dreamweaver",
+          "Dreamweaver",
+          "Adobe Bridge",
+          "Bridge",
+          "Adobe Media Encoder",
+          "Media Encoder",
+          "Adobe Character Animator",
+          "Character Animator",
+          "Adobe Acrobat",
+          "Acrobat",
+          "Acrobat Pro",
+          "Adobe Acrobat Pro",
+          "Adobe Express",
+          "Express",
+          "Adobe Firefly",
+          "Firefly",
+          "Adobe Fresco",
+          "Fresco",
+          "Adobe Capture",
+          "Capture",
+          "Adobe Photoshop Express",
+          "Photoshop Express",
+          "Adobe Stock",
+          "Stock",
+          "Adobe Portfolio",
+          "Portfolio",
+          "Adobe Fonts",
+          "Fonts"
+        ],
+        "url": "https://www.adobe.com/creativecloud/all-apps.html",
+        "checkedOn": "2026-11-07"
       }
     ]
   },
@@ -74210,5 +74504,1402 @@
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null
+  },
+  {
+    "name": "adobePhotoshop",
+    "slug": "adobe-photoshop",
+    "label": "Adobe Photoshop",
+    "integrationNames": ["Adobe Photoshop", "Photoshop", "Photoshop CC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-40.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/photoshop.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-40.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeIllustrator",
+    "slug": "adobe-illustrator",
+    "label": "Adobe Illustrator",
+    "integrationNames": ["Adobe Illustrator", "Illustrator", "Illustrator CC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/illustrator-40.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#330000": "#000000",
+      "#FF9A00": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/illustrator.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/illustrator-40.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeInDesign",
+    "slug": "adobe-indesign",
+    "label": "Adobe InDesign",
+    "integrationNames": ["Adobe InDesign", "InDesign", "InDesign CC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/indesign.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#49021F": "#000000",
+      "#FF3366": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/indesign.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/indesign.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeInCopy",
+    "slug": "adobe-incopy",
+    "label": "Adobe InCopy",
+    "integrationNames": ["Adobe InCopy", "InCopy"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/incopy.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#49021F": "#000000",
+      "#FF3366": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/incopy.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/incopy.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeLightroom",
+    "slug": "adobe-lightroom",
+    "label": "Adobe Lightroom",
+    "integrationNames": ["Adobe Lightroom", "Lightroom"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/lightroom.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/lightroom.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/lightroom.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeLightroomClassic",
+    "slug": "adobe-lightroom-classic",
+    "label": "Adobe Lightroom Classic",
+    "integrationNames": [
+      "Adobe Lightroom Classic",
+      "Lightroom Classic",
+      "Lightroom Classic CC"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/lightroom-classic.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/lightroom-classic.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/lightroom-classic.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobePremiere",
+    "slug": "adobe-premiere",
+    "label": "Adobe Premiere",
+    "integrationNames": [
+      "Adobe Premiere",
+      "Premiere",
+      "Premiere Pro",
+      "Adobe Premiere Pro"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/premiere-pro.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/premiere.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/premiere-pro.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAfterEffects",
+    "slug": "adobe-after-effects",
+    "label": "Adobe After Effects",
+    "integrationNames": ["Adobe After Effects", "After Effects"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/after-effects.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/after-effects.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/after-effects.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAudition",
+    "slug": "adobe-audition",
+    "label": "Adobe Audition",
+    "integrationNames": ["Adobe Audition", "Audition"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/audition.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/audition.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/audition.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAnimate",
+    "slug": "adobe-animate",
+    "label": "Adobe Animate",
+    "integrationNames": ["Adobe Animate", "Animate"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/animate.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/animate.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/animate.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeDreamweaver",
+    "slug": "adobe-dreamweaver",
+    "label": "Adobe Dreamweaver",
+    "integrationNames": ["Adobe Dreamweaver", "Dreamweaver"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/dreamweaver.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#470137": "#000000",
+      "#FF61F6": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/dreamweaver.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative", "Developer tools"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/dreamweaver.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeBridge",
+    "slug": "adobe-bridge",
+    "label": "Adobe Bridge",
+    "integrationNames": ["Adobe Bridge", "Bridge"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/bridge.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000B1D": "#000000",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/bridge.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/bridge.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeMediaEncoder",
+    "slug": "adobe-media-encoder",
+    "label": "Adobe Media Encoder",
+    "integrationNames": ["Adobe Media Encoder", "Media Encoder"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/media-encoder.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/media-encoder.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/media-encoder.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeCharacterAnimator",
+    "slug": "adobe-character-animator",
+    "label": "Adobe Character Animator",
+    "integrationNames": ["Adobe Character Animator", "Character Animator"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/character-animator.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/character-animator.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/character-animator.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAcrobat",
+    "slug": "adobe-acrobat",
+    "label": "Adobe Acrobat",
+    "integrationNames": [
+      "Adobe Acrobat",
+      "Acrobat",
+      "Acrobat Pro",
+      "Adobe Acrobat Pro"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#B30B00": "#000000",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/acrobat.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/acrobat-pro.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAcrobatSign",
+    "slug": "adobe-acrobat-sign",
+    "label": "Adobe Acrobat Sign",
+    "integrationNames": ["Adobe Acrobat Sign", "Acrobat Sign", "Adobe Sign"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/acrobat-sign.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#584ccc": "#000000",
+      "#fff": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/acrobat/business/sign.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/acrobat-sign.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeExpress",
+    "slug": "adobe-express",
+    "label": "Adobe Express",
+    "integrationNames": ["Adobe Express", "Express"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/express.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000b1d": "#000000",
+      "url(#express-gradient)": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included. Adobe supplies the gradient mesh as an embedded PNG inside vector outlines; it is retained without tracing. The mono version uses the exact vector outline as a cutout.",
+    "brandWebsite": "https://www.adobe.com/express/",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/express.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeFirefly",
+    "slug": "adobe-firefly",
+    "label": "Adobe Firefly",
+    "integrationNames": ["Adobe Firefly", "Firefly"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/firefly.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#EB1000": "#000000",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/firefly.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative", "AI"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/firefly.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeFresco",
+    "slug": "adobe-fresco",
+    "label": "Adobe Fresco",
+    "integrationNames": ["Adobe Fresco", "Fresco"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/fresco.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/fresco.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/fresco.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeCapture",
+    "slug": "adobe-capture",
+    "label": "Adobe Capture",
+    "integrationNames": ["Adobe Capture", "Capture"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/capture.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000B1D": "#000000",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/capture.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/capture.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobePhotoshopExpress",
+    "slug": "adobe-photoshop-express",
+    "label": "Adobe Photoshop Express",
+    "integrationNames": ["Adobe Photoshop Express", "Photoshop Express"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-express.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included. Removed unused bottom viewBox space and aligned bounds to the native badge.",
+    "brandWebsite": "https://www.adobe.com/products/photoshop-express.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-express.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobePhotoshopElements",
+    "slug": "adobe-photoshop-elements",
+    "label": "Adobe Photoshop Elements",
+    "integrationNames": ["Adobe Photoshop Elements", "Photoshop Elements"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-elements.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#001E36": "#000000",
+      "#31A8FF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/photoshop-elements.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/photoshop-elements.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobePremiereElements",
+    "slug": "adobe-premiere-elements",
+    "label": "Adobe Premiere Elements",
+    "integrationNames": ["Adobe Premiere Elements", "Premiere Elements"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/premiere-elements.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#00005B": "#000000",
+      "#9999FF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/premiere-elements.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/premiere-elements.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeSubstance3DPainter",
+    "slug": "adobe-substance-3d-painter",
+    "label": "Adobe Substance 3D Painter",
+    "integrationNames": ["Adobe Substance 3D Painter", "Substance 3D Painter"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-painter.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/substance3d/apps/painter.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-painter.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeSubstance3DDesigner",
+    "slug": "adobe-substance-3d-designer",
+    "label": "Adobe Substance 3D Designer",
+    "integrationNames": [
+      "Adobe Substance 3D Designer",
+      "Substance 3D Designer"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-designer.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/substance3d/apps/designer.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-designer.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeSubstance3DSampler",
+    "slug": "adobe-substance-3d-sampler",
+    "label": "Adobe Substance 3D Sampler",
+    "integrationNames": ["Adobe Substance 3D Sampler", "Substance 3D Sampler"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-sampler.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/substance3d/apps/sampler.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-sampler.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeSubstance3DStager",
+    "slug": "adobe-substance-3d-stager",
+    "label": "Adobe Substance 3D Stager",
+    "integrationNames": ["Adobe Substance 3D Stager", "Substance 3D Stager"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-stager.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/substance3d/apps/stager.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-stager.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeSubstance3DModeler",
+    "slug": "adobe-substance-3d-modeler",
+    "label": "Adobe Substance 3D Modeler",
+    "integrationNames": ["Adobe Substance 3D Modeler", "Substance 3D Modeler"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-modeler.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/substance3d/apps/modeler.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Substance", "Substance 3D"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/substance-3d-modeler.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeDimension",
+    "slug": "adobe-dimension",
+    "label": "Adobe Dimension",
+    "integrationNames": ["Adobe Dimension", "Dimension"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/dimension.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#1E3101": "#000000",
+      "#99E83F": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/products/dimension.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/dimension.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeStock",
+    "slug": "adobe-stock",
+    "label": "Adobe Stock",
+    "integrationNames": ["Adobe Stock", "Stock"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/stock.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000B1D": "#000000",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://stock.adobe.com/",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/stock.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobePortfolio",
+    "slug": "adobe-portfolio",
+    "label": "Adobe Portfolio",
+    "integrationNames": ["Adobe Portfolio", "Portfolio"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/portfolio.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000B1D": "#000000",
+      "white": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon from Adobe’s official asset library, checked against its current product catalogue and MAX 2025 identity refresh. Native badge colors and proportions retained. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://portfolio.adobe.com/",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/portfolio.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeFonts",
+    "slug": "adobe-fonts",
+    "label": "Adobe Fonts",
+    "integrationNames": ["Adobe Fonts", "Fonts"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/fonts.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#000b1d": "#000000",
+      "#fff": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://fonts.adobe.com/",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Design & creative"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe", "Adobe Creative Cloud", "Creative Cloud"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--cc--adobecom.aem.live/cc-shared/assets/img/product-icons/svg/fonts.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeScan",
+    "slug": "adobe-scan",
+    "label": "Adobe Scan",
+    "integrationNames": ["Adobe Scan", "Scan"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/product-icons/svg/acrobat-scan.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#008cad": "#000000",
+      "#fff": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "brandWebsite": "https://www.adobe.com/acrobat/mobile/scanner-app.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/product-icons/svg/acrobat-scan.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "adobeAcrobatReader",
+    "slug": "adobe-acrobat-reader",
+    "label": "Adobe Acrobat Reader",
+    "integrationNames": ["Adobe Acrobat Reader", "Acrobat Reader"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/shared-images/adobe-logos/acrobat-reader-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "markMonoColors": {
+      "#b30b00": "#000000",
+      "#fff": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#000b1d": "#F5F7FA"
+    },
+    "logoNotes": "Current outlined Acrobat Reader lockup from Adobe’s product page. Its native badge is also used for mark variants. Dark logo text is adapted for contrast; badge colors are unchanged.",
+    "brandWebsite": "https://www.adobe.com/acrobat/pdf-reader.html",
+    "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
+    "categories": ["Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Adobe"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Adobe"],
+        "url": "https://www.adobe.com/products/catalog.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "identitySources": [
+      {
+        "url": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/shared-images/adobe-logos/acrobat-reader-logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "logoSource": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/shared-images/adobe-logos/acrobat-reader-logo.svg"
   }
 ]
