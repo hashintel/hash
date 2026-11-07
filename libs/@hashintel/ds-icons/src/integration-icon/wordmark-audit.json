@@ -9224,8 +9224,8 @@
     },
     {
       "name": "aquafresh",
-      "status": "unavailable",
-      "reason": "No reviewed standalone lettering; existing lockup needs source research or manual separation."
+      "status": "available",
+      "method": "lettering-elements"
     },
     {
       "name": "strategyAnd",

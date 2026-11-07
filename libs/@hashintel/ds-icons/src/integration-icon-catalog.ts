@@ -53368,7 +53368,7 @@ export const integrationIconCatalog = [
     slug: "aquafresh",
     label: "Aquafresh",
     integrationNames: ["Aquafresh"],
-    source: "https://baza.easybase.pl/media/img/original/10/63/2/1063235.pdf",
+    source: "https://vectorseek.com/vector_logo/aquafresh-logo-vector/",
     categories: ["Consumer goods", "Health & wellbeing"],
     category: "Integrations",
     variants: [
@@ -53381,13 +53381,14 @@ export const integrationIconCatalog = [
       "app-mono-light",
       "logo-light",
       "logo-dark",
+      "wordmark-light",
+      "wordmark-dark",
     ],
-    logoSource:
-      "https://baza.easybase.pl/media/img/original/10/63/2/1063235.pdf",
+    logoSource: "https://logos-world.net/aquafresh-logo/",
     logoNotes:
-      "Smooth vector color regions traced from the 1630-pixel print-production logo, replacing the small website extraction. The wordmark is the compact identity used for mark variants.",
+      "Native lettering and ribbon paths from the VectorSeek SVG, with the cyan lower ribbon matched to the flat-color artwork on Logos World. A smooth radial gradient replaces concentric shading rings. The original white lettering outline remains for dark-background contrast; standalone wordmarks omit the ribbon.",
     logoRaster: false,
-    lastCheckedAutomated: "2026-11-06",
+    lastCheckedAutomated: "2026-11-07",
     lastCheckedManually: null,
   },
   {

@@ -25004,13 +25004,13 @@ export const integrationGeometry: Readonly<
   },
   aquafresh: {
     ...aquafresh,
-    markViewBox: "7.32457 4.09565 1495.50514 462.8087",
+    markViewBox: "23 178.4 454 143.2",
     monoAlphaMatrix:
-      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.257804564424 -0.867271046455 -0.0875516912109 0 1.21262730209",
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251851734852 -0.84724534697 -0.0855300811679 0 1.18462716299",
     monoInkScale: 1,
-    logoViewBox: "7.32457 4.09565 1495.50514 462.8087",
-    wordmarkViewBox: null,
-    wordmarkDarkViewBox: null,
+    logoViewBox: "23 178.4 454 143.2",
+    wordmarkViewBox: "23 217.7 262.5 64.7",
+    wordmarkDarkViewBox: "23 217.7 262.5 64.7",
     ratio: 1.55,
     alignment: "center",
   },
