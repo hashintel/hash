@@ -2,6 +2,24 @@
 
 Brand names, marks, and logos belong to their respective owners. The package's MIT/Apache licenses apply to its implementation; they do not grant rights to third-party trademarks or replace the owners' brand-use terms.
 
+## Google Noto Emoji
+
+The Google Nano Banana mark uses Google Noto Emoji banana artwork under the Apache License, Version 2.0. SVG metadata has been removed; themed variants and app tiles are composed by this library. The accompanying lettering is outlined Google Sans, and the full lock-up is a library composition.
+
+Copyright 2013 Google, Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 ## MCP Server symbol
 
 The MCP Server symbol reproduces the official Model Context Protocol mark from [the project's original SVG](https://github.com/modelcontextprotocol/docs/blob/573dc60c2e7aab2605b29d0bf27194aa7b02e4fb/favicon.svg), distributed under the MIT License. Copyright (c) 2024–2025 Anthropic, PBC and contributors. The original SVG is retained in `src/hash-icon/mcp-server.svg`; its three paths, round caps, and stroke proportions are unchanged. The component scales the artwork uniformly from its 180-unit canvas to 24 units and uses `currentColor` instead of black. The license is included in `licenses/Model-Context-Protocol-MIT.txt`.

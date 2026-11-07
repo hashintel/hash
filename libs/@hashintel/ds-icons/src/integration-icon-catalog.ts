@@ -83434,6 +83434,52 @@ export const integrationIconCatalog = [
     lastCheckedAutomated: "2026-11-07",
     lastCheckedManually: null,
   },
+  {
+    name: "googleNanoBanana",
+    slug: "google-nano-banana",
+    label: "Google Nano Banana",
+    integrationNames: [
+      "Google Nano Banana",
+      "Google NanoBanana",
+      "Nano Banana",
+      "NanoBanana",
+    ],
+    source:
+      "https://github.com/googlefonts/noto-emoji/blob/99701e07d3d1fe1bdbcdb14964547f0fd592966f/2D/svg/emoji_u1f34c.svg",
+    categories: ["AI", "Design & creative"],
+    category: "Integrations",
+    variants: [
+      "mark-mono",
+      "mark-light",
+      "mark-dark",
+      "app-dark",
+      "app-light",
+      "app-mono-dark",
+      "app-mono-light",
+      "logo-light",
+      "logo-dark",
+      "wordmark-light",
+      "wordmark-dark",
+    ],
+    logoSource:
+      "https://fonts.googleapis.com/css?family=Google+Sans:400&subset=latin&display=swap",
+    logoNotes:
+      "Google uses the banana emoji for Nano Banana. The mark retains Google Noto Emoji banana paths; theme and mono variants are derived. The full logo is composed from this mark and Nano Banana lettering outlined in Google Sans Regular, following the other Google product entries. This is a library composition, not a downloaded official lock-up. The standalone wordmark omits the emoji.",
+    logoRaster: false,
+    lastCheckedAutomated: "2026-11-07",
+    lastCheckedManually: null,
+    searchAliases: [
+      "Google",
+      "Google DeepMind",
+      "Gemini",
+      "Google Gemini",
+      "Alphabet",
+      "Gemini Image",
+      "Nano Banana Pro",
+      "Nano Banana 2",
+      "Nano Banana 2.1",
+    ],
+  },
 ] as const;
 
 export type IntegrationIconName =

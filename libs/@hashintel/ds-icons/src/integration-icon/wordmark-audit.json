@@ -14261,6 +14261,11 @@
       "name": "plusCompany",
       "status": "available",
       "method": "lettering-bounds"
+    },
+    {
+      "name": "googleNanoBanana",
+      "status": "available",
+      "method": "composed-google-sans-lettering"
     }
   ]
 }

@@ -50199,4 +50199,29 @@ export const integrationIconGeographicMarkets: {
     sources: [],
     referenceUrls: ["https://www.wbd.com/"],
   },
+  googleNanoBanana: {
+    scope: "global",
+    basis: "digital-service",
+    primaryCountries: [],
+    countries: [],
+    regions: [],
+    countryCoverage: "not-enumerated",
+    localities: [],
+    assessment: "source-supported",
+    assessedOn: "2026-11-07",
+    verifiedOn: "2026-11-07",
+    temporalContext: "current",
+    notes:
+      "Available internationally through Gemini; Google states image generation is available in Gemini-supported languages and countries. Country eligibility, age, plan and model restrictions are not enumerated here.",
+    sources: [
+      {
+        url: "https://gemini.google/overview/image-generation/",
+        checkedOn: "2026-11-07",
+        summary:
+          "The FAQ says AI image generation is available in all languages and countries where the Gemini app is available.",
+      },
+    ],
+    referenceUrls: ["https://deepmind.google/models/gemini-image/"],
+    relatedBrand: "googleGemini",
+  },
 };

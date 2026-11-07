@@ -1073,6 +1073,7 @@ import * as googleGemini from "./geometry/google-gemini";
 import * as gmail from "./geometry/google-mail";
 import * as googleMaps from "./geometry/google-maps";
 import * as googleMeet from "./geometry/google-meet";
+import * as googleNanoBanana from "./geometry/google-nano-banana";
 import * as googlePay from "./geometry/google-pay";
 import * as googlePlay from "./geometry/google-play";
 import * as googlePlusLegacy from "./geometry/google-plus-legacy";
@@ -37096,6 +37097,18 @@ export const integrationGeometry: Readonly<
     wordmarkViewBox: "68.809355 9.391753 93.172183 36.506652",
     wordmarkDarkViewBox: "68.809355 9.391753 93.172183 36.506652",
     ratio: 1.8,
+    alignment: "center",
+  },
+  googleNanoBanana: {
+    ...googleNanoBanana,
+    markViewBox: "0 0 128 128",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.349420886749 -1.17547421544 -0.118665042443 0 1.64356014463",
+    monoInkScale: 3,
+    logoViewBox: "0 0 565.792349726776 100",
+    wordmarkViewBox: "79 -716 5800 732",
+    wordmarkDarkViewBox: "79 -716 5800 732",
+    ratio: 1.55,
     alignment: "center",
   },
 } as const;
