@@ -1172,3 +1172,7 @@ Applebee’s artwork is attributed to Applebee’s and licensed under Creative C
 ## Adobe product identities
 
 Adobe product names and artwork remain trademarks of Adobe. The app identities use current artwork served by Adobe, with native badge shapes and colors retained. Mono colors, app-tile composition, and dark logo text are adaptations. Adobe Express retains Adobe’s embedded gradient image within its native vector outline; the mono variant uses the outline as a cutout. A current outlined full-logo lockup is included for Acrobat Reader. Other additions expose marks and app tiles without substitute wordmarks. No third-party trademark rights are granted.
+
+## Lobe Icons
+
+Selected AI brand outlines are adapted from Lobe Icons 1.102.0, copyright (c) 2023 LobeHub, under the MIT License. Bounds, theme colors, separate lettering and app tiles are adaptations. Brand names and artwork remain subject to their owners’ rights. The complete license is included in `licenses/lobe-icons-MIT.txt`.

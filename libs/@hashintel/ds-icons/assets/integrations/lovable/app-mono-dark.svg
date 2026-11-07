@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lovable-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="lovable-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="lovable-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lovable-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#lovable-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#lovable-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="lovable-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.360624702323 -1.21316456774 -0.122469913018 0 1.69625918308" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#lovable-app-mono-dark-mono)"><defs><clipPath id="lovable-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#lovable-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.02651 -0.03769 23.67426 24.0754" fill="#111111" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path clip-rule="evenodd" d="M7.082 0c3.91 0 7.081 3.179 7.081 7.1v2.7h2.357c3.91 0 7.082 3.178 7.082 7.1 0 3.923-3.17 7.1-7.082 7.1H0V7.1C0 3.18 3.17 0 7.082 0z" fill="url(#lovable-app-mono-dark-lobe-icons-lovable-_R_0_)" fill-rule="evenodd" /><defs><radialGradient cx="0" cy="0" gradientTransform="matrix(-1 22.49999 -30.45394 -1.3535 14 3)" gradientUnits="userSpaceOnUse" id="lovable-app-mono-dark-lobe-icons-lovable-_R_0_" r="1"><stop offset=".25" stop-color="#FE7B02" /><stop offset=".433" stop-color="#FE4230" /><stop offset=".548" stop-color="#FE529A" /><stop offset=".654" stop-color="#DD67EE" /><stop offset=".95" stop-color="#4B73FF" /></radialGradient></defs></svg></g></g></svg>

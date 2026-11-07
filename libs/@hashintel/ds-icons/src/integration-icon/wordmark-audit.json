@@ -14656,6 +14656,366 @@
       "name": "caxton",
       "status": "available",
       "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "perplexity",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "glean",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "sierra",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "reflectionAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "worldLabs",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "figureAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "skildAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "suno",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "lovable",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "replit",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ambienceHealthcare",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "eliseai",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "mercor",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "togetherAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "baseten",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "groq",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cerebras",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "crusoe",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "nscale",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "fluidstack",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "vastData",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "poolside",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "augmentCode",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "windsurf",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "midjourney",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ideogram",
+      "status": "unavailable",
+      "reason": "No reviewed current standalone lettering was verified."
+    },
+    {
+      "name": "pika",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "krea",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "writer",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hebbia",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "rogo",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "inflectionAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ai21",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "sakanaAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "upstage",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "moonshotAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "stepfun",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "waabi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "wayve",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "polyai",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "parloa",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cresta",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cartesia",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "apptronik",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "oneX",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "agilityRobotics",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "unitree",
+      "status": "unavailable",
+      "reason": "No reviewed current standalone lettering was verified."
+    },
+    {
+      "name": "sambanova",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "tenstorrent",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "speak",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "tennr",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "baichuan",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "alephAlpha",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "stabilityAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "characterAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "heygen",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "openEvidence",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "twelveLabs",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "listenLabs",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "genspark",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "gamma",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "lightmatter",
+      "status": "unavailable",
+      "reason": "No reviewed current standalone lettering was verified."
+    },
+    {
+      "name": "isomorphicLabs",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "physicalIntelligence",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "thinkingMachinesLab",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "abridge",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "jasper",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hippocraticAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "shieldAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "sensetime",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "safeSuperintelligence",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "surgeAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
     }
   ]
 }

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aleph-alpha-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="aleph-alpha-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="aleph-alpha-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aleph-alpha-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#aleph-alpha-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#aleph-alpha-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="aleph-alpha-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#aleph-alpha-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.87874 -1.24708 755.75749 796.49419" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><svg width="754" height="794"><svg viewBox="583 143 754 794">
+  <path fill="#171717" d="M1166.79,223.2l-59.94-78.11c-4.22-5.5-12.14-6.43-17.53-2.07-28.12,22.71-53.77,48.36-76.48,76.48-4.35,5.39-3.43,13.32,2.07,17.53l78.11,59.94c5.27,4.04,12.78,3.17,16.98-1.97,16.39-20.05,34.76-38.43,54.82-54.82,5.14-4.2,6.01-11.72,1.97-16.98Z" />
+  <path fill="#171717" d="M1166.75,857.34c4.07-5.3,3.14-12.88-2.06-17.06-120.14-96.6-130.53-194.09-142.51-306.54-13.09-122.86-27.89-261.8-189.48-390.78-5.4-4.31-13.29-3.38-17.49,2.1l-59.93,78.1c-4.07,5.3-3.14,12.88,2.06,17.06,120.14,96.6,130.53,194.09,142.51,306.54,13.09,122.86,27.89,261.8,189.48,390.77,5.4,4.31,13.29,3.38,17.49-2.1l59.93-78.1Z" />
+  <path fill="#171717" d="M907.12,843.47l-78.12-59.94c-5.27-4.04-12.78-3.17-16.98,1.97-16.39,20.05-34.76,38.42-54.81,54.81-5.14,4.2-6.01,11.72-1.97,16.98l59.94,78.12c4.22,5.5,12.14,6.43,17.53,2.07,28.12-22.71,53.78-48.36,76.48-76.48,4.35-5.39,3.43-13.32-2.07-17.53Z" />
+  <path fill="#171717" d="M1337.73,702.72c2.66-5.97.13-12.88-5.63-15.95-52.36-27.92-88.01-83.04-88.01-146.52s35.65-118.6,88.01-146.52c5.77-3.07,8.29-9.98,5.63-15.95l-40.16-90.2c-2.84-6.37-10.42-9.17-16.66-6.05-94.84,47.43-159.96,145.47-159.96,258.72s65.12,211.28,159.96,258.72c6.23,3.12,13.82.31,16.66-6.05l40.16-90.2Z" />
+  <path fill="#171717" d="M583.27,702.72c-2.66-5.97-.13-12.88,5.63-15.95,52.36-27.92,88.01-83.04,88.01-146.52,0-63.48-35.65-118.6-88.01-146.52-5.77-3.07-8.29-9.98-5.63-15.95l40.16-90.2c2.84-6.37,10.42-9.17,16.66-6.05,94.84,47.43,159.96,145.47,159.96,258.72s-65.12,211.28-159.96,258.72c-6.23,3.12-13.82.31-16.66-6.05l-40.16-90.2Z" />
+</svg></svg></svg></g></svg>

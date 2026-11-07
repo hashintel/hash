@@ -3210,7 +3210,9 @@
     "name": "kimi",
     "slug": "kimi",
     "label": "Kimi",
-    "integrationNames": ["Kimi"],
+    "integrationNames": [
+      "Kimi"
+    ],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/kimi-icon-clean.svg",
@@ -3225,13 +3227,31 @@
       "wordmarkHeight": 0.62,
       "gap": 0.3
     },
-    "categories": ["AI"],
+    "categories": [
+      "AI"
+    ],
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "wordmark": {
       "source": "logo",
       "viewBox": "0 0 512 171"
-    }
+    },
+    "searchAliases": [
+      "Moonshot AI",
+      "Moonshot",
+      "月之暗面"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Moonshot AI",
+          "Moonshot",
+          "月之暗面"
+        ],
+        "url": "https://www.moonshot.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "nvidia",
@@ -102696,6 +102716,3623 @@
     "wordmarkDarkColors": {
       "#111111": "#F5F7FA",
       "#193347": "#F5F7FA"
+    }
+  },
+  {
+    "name": "perplexity",
+    "slug": "perplexity",
+    "label": "Perplexity",
+    "integrationNames": [
+      "Perplexity"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/perplexity.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/perplexity-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.perplexity.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Browsers & search"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.perplexity.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/perplexity.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/perplexity-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI search"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "glean",
+    "slug": "glean",
+    "label": "Glean",
+    "integrationNames": [
+      "Glean"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets-global.website-files.com/6127a84dfe068e153ef20572/63f382fd40bd5b4e4e92b242_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#343CED": "#666CF1"
+    },
+    "logoDarkColors": {
+      "#343CED": "#666CF1"
+    },
+    "logoSource": "https://assets-global.website-files.com/6127a84dfe068e153ef20572/63f382fd40bd5b4e4e92b242_Logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.glean.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.glean.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://assets-global.website-files.com/6127a84dfe068e153ef20572/63f382fd40bd5b4e4e92b242_Logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#343CED": "#666CF1"
+    }
+  },
+  {
+    "name": "sierra",
+    "slug": "sierra",
+    "label": "Sierra",
+    "integrationNames": [
+      "Sierra"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://sierra.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://sierra.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://sierra.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://sierra.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI agents"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "reflectionAi",
+    "slug": "reflection-ai",
+    "label": "Reflection AI",
+    "integrationNames": [
+      "Reflection AI"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/reflection-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1E3207": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://reflection.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://reflection.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://reflection.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/reflection-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/reflection-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "worldLabs",
+    "slug": "world-labs",
+    "label": "World Labs",
+    "integrationNames": [
+      "World Labs"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.worldlabs.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.worldlabs.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.worldlabs.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.worldlabs.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "World models"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "figureAi",
+    "slug": "figure-ai",
+    "label": "Figure AI",
+    "integrationNames": [
+      "Figure AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.figure.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://images.ctfassets.net/qx5k8y1u9drj/3ygvPaiOiIX62OhZ7oNO2h/d50ccd3bc449eab7ae098d87aa0cd040/figure-logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.figure.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.figure.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://images.ctfassets.net/qx5k8y1u9drj/3ygvPaiOiIX62OhZ7oNO2h/d50ccd3bc449eab7ae098d87aa0cd040/figure-logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics",
+      "Figure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "skildAi",
+    "slug": "skild-ai",
+    "label": "Skild AI",
+    "integrationNames": [
+      "Skild AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.skild.ai/svgs/name_logo_white.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.skild.ai/svgs/name_logo_white.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.skild.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.skild.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.skild.ai/svgs/name_logo_white.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "suno",
+    "slug": "suno",
+    "label": "Suno",
+    "integrationNames": [
+      "Suno"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/suno.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://suno.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://suno.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Music & video",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://suno.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/suno.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI music"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "lovable",
+    "slug": "lovable",
+    "label": "Lovable",
+    "integrationNames": [
+      "Lovable"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/lovable-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/lovable-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://lovable.dev/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://lovable.dev/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/lovable-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/lovable-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI coding"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "replit",
+    "slug": "replit",
+    "label": "Replit",
+    "integrationNames": [
+      "Replit"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/replit-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://replit.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://replit.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://replit.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/replit-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/replit-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI coding"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "ambienceHealthcare",
+    "slug": "ambience-healthcare",
+    "label": "Ambience Healthcare",
+    "integrationNames": [
+      "Ambience Healthcare"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.ambiencehealthcare.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.ambiencehealthcare.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.ambiencehealthcare.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.ambiencehealthcare.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "eliseai",
+    "slug": "eliseai",
+    "label": "EliseAI",
+    "integrationNames": [
+      "EliseAI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/63cc1eef179b054a9306598d/6a8466b670a83f89ac035a5c_favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#5F30C9": "#8967D7"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://eliseai.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.eliseai.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.eliseai.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/63cc1eef179b054a9306598d/6a8466b670a83f89ac035a5c_favicon.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://eliseai.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI",
+      "Elise AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "monoInkScale": 1.08051
+  },
+  {
+    "name": "mercor",
+    "slug": "mercor",
+    "label": "Mercor",
+    "integrationNames": [
+      "Mercor"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mercor.com:443/images/m_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#5A4AFC": "#7365FC"
+    },
+    "logoDarkColors": {
+      "#6366ef": "#696CF0",
+      "#5e50fc": "#7165FC",
+      "#6366f1": "#686BF1",
+      "#6366f2": "#686BF2",
+      "#5A4AFC": "#7365FC",
+      "#6266f1": "#676BF1",
+      "#6b66f9": "#6C68F9",
+      "#695ffd": "#6F65FD"
+    },
+    "logoSource": "https://www.mercor.com/logo-full.png",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://mercor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Databases & analytics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://mercor.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.mercor.com:443/images/m_logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.mercor.com/logo-full.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI data"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#6366ef": "#696CF0",
+      "#5e50fc": "#7165FC",
+      "#6366f1": "#686BF1",
+      "#6366f2": "#686BF2",
+      "#6266f1": "#676BF1",
+      "#6b66f9": "#6C68F9",
+      "#695ffd": "#6F65FD"
+    }
+  },
+  {
+    "name": "togetherAi",
+    "slug": "together-ai",
+    "label": "Together AI",
+    "integrationNames": [
+      "Together AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/together-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.together.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.together.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.together.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/together-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/together-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure",
+      "Together.ai"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "baseten",
+    "slug": "baseten",
+    "label": "Baseten",
+    "integrationNames": [
+      "Baseten"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baseten.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baseten-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.baseten.co/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.baseten.co/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baseten.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baseten-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "groq",
+    "slug": "groq",
+    "label": "Groq",
+    "integrationNames": [
+      "Groq"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://groq.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://groq.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://groq.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://groq.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "cerebras",
+    "slug": "cerebras",
+    "label": "Cerebras",
+    "integrationNames": [
+      "Cerebras"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/cerebras-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.cerebras.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.cerebras.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Technology & electronics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.cerebras.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/cerebras-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/cerebras-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI chips",
+      "Cerebras Systems"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "crusoe",
+    "slug": "crusoe",
+    "label": "Crusoe",
+    "integrationNames": [
+      "Crusoe"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.crusoe.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.crusoe.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.crusoe.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.crusoe.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "nscale",
+    "slug": "nscale",
+    "label": "Nscale",
+    "integrationNames": [
+      "Nscale"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nscale.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.nscale.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.nscale.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.nscale.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "fluidstack",
+    "slug": "fluidstack",
+    "label": "Fluidstack",
+    "integrationNames": [
+      "Fluidstack"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://fluidstack.io/images/brand/fluidstack-lockup-black.svg?dpl=dpl_9k1ZYJSgX9eyL6oHu9zWeR4Kpj6U",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://fluidstack.io/images/brand/fluidstack-lockup-black.svg?dpl=dpl_9k1ZYJSgX9eyL6oHu9zWeR4Kpj6U",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.fluidstack.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.fluidstack.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://fluidstack.io/images/brand/fluidstack-lockup-black.svg?dpl=dpl_9k1ZYJSgX9eyL6oHu9zWeR4Kpj6U",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://fluidstack.io/images/brand/fluidstack-wordmark.svg?dpl=dpl_9k1ZYJSgX9eyL6oHu9zWeR4Kpj6U",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "vastData",
+    "slug": "vast-data",
+    "label": "VAST Data",
+    "integrationNames": [
+      "VAST Data"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.vastdata.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0E142C": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0E142C": "#F5F7FA"
+    },
+    "logoSource": "https://www.vastdata.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.vastdata.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.vastdata.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.vastdata.com/favicon.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure",
+      "VAST"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "poolside",
+    "slug": "poolside",
+    "label": "Poolside",
+    "integrationNames": [
+      "Poolside"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/poolside.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://poolside.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://poolside.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://poolside.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/poolside.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/poolside-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI coding"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "augmentCode",
+    "slug": "augment-code",
+    "label": "Augment Code",
+    "integrationNames": [
+      "Augment Code"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.augmentcode.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.augmentcode.com/augment_code_wordmark.svg?dpl=dpl_9uZvKuuNTNu2TjxeBfYKUz15GLZi",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.augmentcode.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.augmentcode.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.augmentcode.com/favicon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.augmentcode.com/augment_code_wordmark.svg?dpl=dpl_9uZvKuuNTNu2TjxeBfYKUz15GLZi",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI coding",
+      "Augment",
+      "Harness"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "windsurf",
+    "slug": "windsurf",
+    "label": "Windsurf",
+    "integrationNames": [
+      "Windsurf"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/windsurf.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://windsurf.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://windsurf.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://windsurf.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/windsurf.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/windsurf-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI coding",
+      "Codeium",
+      "Cognition"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "midjourney",
+    "slug": "midjourney",
+    "label": "Midjourney",
+    "integrationNames": [
+      "Midjourney"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/midjourney.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/midjourney-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.midjourney.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.midjourney.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/midjourney.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/midjourney-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI images"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "ideogram",
+    "slug": "ideogram",
+    "label": "Ideogram",
+    "integrationNames": [
+      "Ideogram"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://ideogram.ai/favicon.svg?v=new-brand-20261020",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://ideogram.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. No current full logo or standalone wordmark was verified; only mark and app-tile variants are provided. ",
+    "brandWebsite": "https://ideogram.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://ideogram.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://ideogram.ai/favicon.svg?v=new-brand-20261020",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI images"
+    ]
+  },
+  {
+    "name": "pika",
+    "slug": "pika",
+    "label": "Pika",
+    "integrationNames": [
+      "Pika"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/pika.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://pika.art/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://pika.art/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Design & creative",
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://pika.art/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/pika.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI video"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "krea",
+    "slug": "krea",
+    "label": "Krea",
+    "integrationNames": [
+      "Krea"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/krea.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/krea-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.krea.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.krea.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/krea.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/krea-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI images"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "writer",
+    "slug": "writer",
+    "label": "Writer",
+    "integrationNames": [
+      "Writer"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://writer.com/wp-content/uploads/2024/08/footer-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://writer.com/wp-content/uploads/2024/12/logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://writer.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://writer.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://writer.com/wp-content/uploads/2024/08/footer-logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://writer.com/wp-content/uploads/2024/12/logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "hebbia",
+    "slug": "hebbia",
+    "label": "Hebbia",
+    "integrationNames": [
+      "Hebbia"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hebbia.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.hebbia.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.hebbia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hebbia.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "rogo",
+    "slug": "rogo",
+    "label": "Rogo",
+    "integrationNames": [
+      "Rogo"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://rogo.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://rogo.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://rogo.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Finance & payments",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://rogo.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://rogo.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Finance AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "inflectionAi",
+    "slug": "inflection-ai",
+    "label": "Inflection AI",
+    "integrationNames": [
+      "Inflection AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/inflection.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/inflection-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://inflection.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://inflection.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/inflection.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/inflection-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "ai21",
+    "slug": "ai21",
+    "label": "AI21",
+    "integrationNames": [
+      "AI21"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/ai21.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E91E63": "#EA2668"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/ai21-brand-color.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.ai21.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.ai21.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/ai21.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/ai21-brand-color.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "AI21 Labs"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E91E63": "#EA2668"
+    }
+  },
+  {
+    "name": "sakanaAi",
+    "slug": "sakana-ai",
+    "label": "Sakana AI",
+    "integrationNames": [
+      "Sakana AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sakana-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#e10600": "#E73732"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#e10600": "#E73732"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sakana-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://sakana.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://sakana.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sakana-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sakana-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Sakana"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "upstage",
+    "slug": "upstage",
+    "label": "Upstage",
+    "integrationNames": [
+      "Upstage"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/upstage-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#805DFA": "#825FFA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#805DFA": "#825FFA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/upstage-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.upstage.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.upstage.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/upstage-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/upstage-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "moonshotAi",
+    "slug": "moonshot-ai",
+    "label": "Moonshot AI",
+    "integrationNames": [
+      "Moonshot AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/moonshot.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://statics.kimi.ai/moonshot-ai/assets/static/moonshot-ai-wordmark.DeMGOuiG.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.moonshot.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.moonshot.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/moonshot.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://statics.kimi.ai/moonshot-ai/assets/static/moonshot-ai-wordmark.DeMGOuiG.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/moonshot-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Moonshot",
+      "Kimi",
+      "月之暗面"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "stepfun",
+    "slug": "stepfun",
+    "label": "StepFun",
+    "integrationNames": [
+      "StepFun"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.stepfun.com/step_favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.stepfun.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.stepfun.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.stepfun.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.stepfun.com/step_favicon.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Step Fun",
+      "阶跃星辰"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "waabi",
+    "slug": "waabi",
+    "label": "Waabi",
+    "integrationNames": [
+      "Waabi"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://waabi.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://waabi.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://waabi.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Automotive",
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://waabi.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Autonomous driving"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "wayve",
+    "slug": "wayve",
+    "label": "Wayve",
+    "integrationNames": [
+      "Wayve"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://wayve.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://wayve.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://wayve.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Automotive",
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://wayve.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Autonomous driving"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "polyai",
+    "slug": "polyai",
+    "label": "PolyAI",
+    "integrationNames": [
+      "PolyAI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://poly.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://poly.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://poly.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://poly.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Voice AI",
+      "Poly AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "parloa",
+    "slug": "parloa",
+    "label": "Parloa",
+    "integrationNames": [
+      "Parloa"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.parloa.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.parloa.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.parloa.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.parloa.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Voice AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "cresta",
+    "slug": "cresta",
+    "label": "Cresta",
+    "integrationNames": [
+      "Cresta"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/67fe49bf21b9f9d5b910d3c9/68653f17c341bd5245e35bb7_CRESTA-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#25252A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#25252A": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/67fe49bf21b9f9d5b910d3c9/68653f17c341bd5245e35bb7_CRESTA-logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://cresta.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://cresta.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/67fe49bf21b9f9d5b910d3c9/68653f17c341bd5245e35bb7_CRESTA-logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Voice AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#25252A": "#F5F7FA"
+    }
+  },
+  {
+    "name": "cartesia",
+    "slug": "cartesia",
+    "label": "Cartesia",
+    "integrationNames": [
+      "Cartesia"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cartesia.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cartesia.ai/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://cartesia.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://cartesia.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Voice AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "apptronik",
+    "slug": "apptronik",
+    "label": "Apptronik",
+    "integrationNames": [
+      "Apptronik"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/6a0dd86942776facbc2f6ba4/6a0dd86942776facbc2f6e8e_apptronik-favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/6a0dd86942776facbc2f6ba4/6a32d000ae9712d1f8ed76c3_Apptronik-Logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://apptronik.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://apptronik.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/6a0dd86942776facbc2f6ba4/6a0dd86942776facbc2f6e8e_apptronik-favicon.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/6a0dd86942776facbc2f6ba4/6a32d000ae9712d1f8ed76c3_Apptronik-Logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "oneX",
+    "slug": "one-x",
+    "label": "1X",
+    "integrationNames": [
+      "1X"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.1x.tech/icons/1xLogo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#413E3E": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#413E3E": "#F5F7FA"
+    },
+    "logoSource": "https://www.1x.tech/icons/1xLogo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.1x.tech/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.1x.tech/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.1x.tech/icons/1xLogo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics",
+      "1X Technologies"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#413E3E": "#F5F7FA"
+    }
+  },
+  {
+    "name": "agilityRobotics",
+    "slug": "agility-robotics",
+    "label": "Agility Robotics",
+    "integrationNames": [
+      "Agility Robotics"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.agilityrobotics.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.agilityrobotics.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.agilityrobotics.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.agilityrobotics.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "unitree",
+    "slug": "unitree",
+    "label": "Unitree",
+    "integrationNames": [
+      "Unitree"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.unitree.com/unitree-favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.unitree.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. No current full logo or standalone wordmark was verified; only mark and app-tile variants are provided. ",
+    "brandWebsite": "https://www.unitree.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.unitree.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.unitree.com/unitree-favicon.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics",
+      "Unitree Robotics",
+      "宇树科技"
+    ]
+  },
+  {
+    "name": "sambanova",
+    "slug": "sambanova",
+    "label": "SambaNova",
+    "integrationNames": [
+      "SambaNova"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sambanova-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sambanova-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://sambanova.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Cloud & hosting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://sambanova.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sambanova-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/sambanova-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI infrastructure",
+      "SambaNova Systems"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "tenstorrent",
+    "slug": "tenstorrent",
+    "label": "Tenstorrent",
+    "integrationNames": [
+      "Tenstorrent"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://tenstorrent.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#202020": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#202020": "#F5F7FA"
+    },
+    "logoSource": "https://tenstorrent.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://tenstorrent.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://tenstorrent.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI chips"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#202020": "#F5F7FA"
+    },
+    "monoInkScale": 2.33945
+  },
+  {
+    "name": "speak",
+    "slug": "speak",
+    "label": "Speak",
+    "integrationNames": [
+      "Speak"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.speak.com/cdn.prod.website-files.com/61a88c135006e8345b005efd/6577ac86d3e376c4d5f8243e_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1C49FF": "#4B6EFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1C49FF": "#4B6EFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.speak.com/cdn.prod.website-files.com/61a88c135006e8345b005efd/6577ac86d3e376c4d5f8243e_logo.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.speak.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.speak.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.speak.com/cdn.prod.website-files.com/61a88c135006e8345b005efd/6577ac86d3e376c4d5f8243e_logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.speak.com/cdn.prod.website-files.com/61a88c135006e8345b005efd/6577ac86d3e376c4d5f8243f_speak-wordmark.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI education"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1C49FF": "#4B6EFF",
+      "#000000": "#F5F7FA"
+    },
+    "monoInkScale": 1.43258
+  },
+  {
+    "name": "tennr",
+    "slug": "tennr",
+    "label": "Tennr",
+    "integrationNames": [
+      "Tennr"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.tennr.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.tennr.com/",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.tennr.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.tennr.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "baichuan",
+    "slug": "baichuan",
+    "label": "Baichuan AI",
+    "integrationNames": [
+      "Baichuan AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baichuan-color.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baichuan-text.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.baichuan-ai.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.baichuan-ai.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baichuan-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/baichuan-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Baichuan",
+      "百川"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "alephAlpha",
+    "slug": "aleph-alpha",
+    "label": "Aleph Alpha",
+    "integrationNames": [
+      "Aleph Alpha"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://aleph-alpha.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#171717": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#171717": "#F5F7FA"
+    },
+    "logoSource": "https://aleph-alpha.com/_astro/logo-wbm.BbZZsjJT_2eFLy7.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://aleph-alpha.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://aleph-alpha.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://aleph-alpha.com/favicon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://aleph-alpha.com/_astro/logo-wbm.BbZZsjJT_2eFLy7.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/alephalpha-text.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "stabilityAi",
+    "slug": "stability-ai",
+    "label": "Stability AI",
+    "integrationNames": [
+      "Stability AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/stability.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/stability-brand.svg",
+    "logoNotes": "Native vector outlines; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://stability.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.",
+    "categories": [
+      "AI",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://stability.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/stability.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://unpkg.com/@lobehub/icons-static-svg@1.102.0/icons/stability-brand.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI images",
+      "Stability.ai",
+      "Stable Diffusion"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "characterAi",
+    "slug": "character-ai",
+    "label": "Character.AI",
+    "integrationNames": [
+      "Character.AI"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://storage.ghost.io/c/ad/34/ad34888f-5b63-4d5f-a358-18cf16489b83/content/images/size/w256h256/2025/11/logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Character.ai_2025_vector_logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://character.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://character.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://storage.ghost.io/c/ad/34/ad34888f-5b63-4d5f-a358-18cf16489b83/content/images/size/w256h256/2025/11/logo.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Character.ai_2025_vector_logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI assistants",
+      "Character AI",
+      "c.ai"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "heygen",
+    "slug": "heygen",
+    "label": "HeyGen",
+    "integrationNames": [
+      "HeyGen"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/HeyGen_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/44/HeyGen_logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.heygen.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Design & creative",
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.heygen.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/44/HeyGen_logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI video"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "openEvidence",
+    "slug": "open-evidence",
+    "label": "OpenEvidence",
+    "integrationNames": [
+      "OpenEvidence"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.openevidence.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.openevidence.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.openevidence.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.openevidence.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI",
+      "Open Evidence"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "twelveLabs",
+    "slug": "twelve-labs",
+    "label": "Twelve Labs",
+    "integrationNames": [
+      "Twelve Labs"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.twelvelabs.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.twelvelabs.io/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.twelvelabs.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Design & creative",
+      "Music & video"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.twelvelabs.io/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI video",
+      "TwelveLabs"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "listenLabs",
+    "slug": "listen-labs",
+    "label": "Listen Labs",
+    "integrationNames": [
+      "Listen Labs"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://listenlabs.ai/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://listenlabs.ai/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://listenlabs.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://listenlabs.ai/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI",
+      "Salesforce"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "genspark",
+    "slug": "genspark",
+    "label": "Genspark",
+    "integrationNames": [
+      "Genspark"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn1.genspark.ai/user-upload-image/admin/brand/genspark/logos/icon-square.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#ffffff": "#111111"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#ffffff": "#111111"
+    },
+    "logoSource": "https://cdn1.genspark.ai/user-upload-image/admin/brand/genspark/logos/final-standard-light.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.genspark.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.genspark.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn1.genspark.ai/user-upload-image/admin/brand/genspark/logos/icon-square.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn1.genspark.ai/user-upload-image/admin/brand/genspark/logos/final-standard-light.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI agents"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "gamma",
+    "slug": "gamma",
+    "label": "Gamma",
+    "integrationNames": [
+      "Gamma"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://brand.gamma.app/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1662D3": "#3A7ADA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://brand.gamma.app/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. Compact G separated from current native brand lettering.",
+    "brandWebsite": "https://gamma.app/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Productivity",
+      "Design & creative"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://gamma.app/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://brand.gamma.app/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI presentations"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "lightmatter",
+    "slug": "lightmatter",
+    "label": "Lightmatter",
+    "integrationNames": [
+      "Lightmatter"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lightmatter.com/wp-content/uploads/2022/08/logo-lm.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://lightmatter.co/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. No current full logo or standalone wordmark was verified; only mark and app-tile variants are provided. ",
+    "brandWebsite": "https://lightmatter.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://lightmatter.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://lightmatter.com/wp-content/uploads/2022/08/logo-lm.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://lightmatter.co/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI chips"
+    ]
+  },
+  {
+    "name": "isomorphicLabs",
+    "slug": "isomorphic-labs",
+    "label": "Isomorphic Labs",
+    "integrationNames": [
+      "Isomorphic Labs"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/683d9417ea8f9b604314bfb1/685b2dd03af637d54142e925_isomorphic.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1E1E1E": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/683d9417ea8f9b604314bfb1/685b2dd03af637d54142e925_isomorphic.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. Native website lockup and favicon device are distinct supplied forms.The official favicon device is placed in the leading cell of the native website lockup.",
+    "brandWebsite": "https://www.isomorphiclabs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.isomorphiclabs.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/683d9417ea8f9b604314bfb1/685b2dd03af637d54142e925_isomorphic.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI",
+      "Isomorphic",
+      "Alphabet",
+      "Google DeepMind"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1E1E1E": "#F5F7FA"
+    }
+  },
+  {
+    "name": "physicalIntelligence",
+    "slug": "physical-intelligence",
+    "label": "Physical Intelligence",
+    "integrationNames": [
+      "Physical Intelligence"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.physicalintelligence.company/_next/static/media/dcb532816ecc2c68-s.p.woff2",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.physicalintelligence.company/_next/static/media/dcb532816ecc2c68-s.p.woff2",
+    "logoNotes": "Website identity lettering outlined from the official webfont, with compact artwork from the official site. Bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.physicalintelligence.company/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Technology & electronics",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.physicalintelligence.company/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.physicalintelligence.company/_next/static/media/dcb532816ecc2c68-s.p.woff2",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Robotics"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "thinkingMachinesLab",
+    "slug": "thinking-machines-lab",
+    "label": "Thinking Machines Lab",
+    "integrationNames": [
+      "Thinking Machines Lab"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://thinkingmachines.ai/fonts/iowan-old-style/iowan-old-style_regular.woff2",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#252525": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://thinkingmachines.ai/fonts/iowan-old-style/iowan-old-style_regular.woff2",
+    "logoNotes": "Website identity lettering outlined from the official webfont, with compact artwork from the official site. Bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://thinkingmachines.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://thinkingmachines.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://thinkingmachines.ai/fonts/iowan-old-style/iowan-old-style_regular.woff2",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Thinking Machines AI",
+      "TML"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "abridge",
+    "slug": "abridge",
+    "label": "Abridge",
+    "integrationNames": [
+      "Abridge"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/6279c9d10eb860662e5ec006/663e90f63e32aea60e6769b6_abridge-logo-symbol-webclip.png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/6279c9d10eb860662e5ec006/664287c9ef936d8ce43517f8_abridge-logo-wordmark-black.webp",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Artwork vectorized from the referenced raster identity with a transparent exterior. Full preview lockup composed from the separately sourced mark and lettering. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.abridge.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.abridge.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/6279c9d10eb860662e5ec006/663e90f63e32aea60e6769b6_abridge-logo-symbol-webclip.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/6279c9d10eb860662e5ec006/664287c9ef936d8ce43517f8_abridge-logo-wordmark-black.webp",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "jasper",
+    "slug": "jasper",
+    "label": "Jasper",
+    "integrationNames": [
+      "Jasper"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://22774847.fs1.hubspotusercontent-na1.net/hubfs/22774847/Jasper%20Logos%20(2025)/Jasper%20Logo%20(2025).png",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://22774847.fs1.hubspotusercontent-na1.net/hubfs/22774847/Jasper%20Logos%20(2025)/Jasper%20Logo%20(2025).png",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.jasper.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.jasper.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://22774847.fs1.hubspotusercontent-na1.net/hubfs/22774847/Jasper%20Logos%20(2025)/Jasper%20Logo%20(2025).png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Enterprise AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {}
+  },
+  {
+    "name": "hippocraticAi",
+    "slug": "hippocratic-ai",
+    "label": "Hippocratic AI",
+    "integrationNames": [
+      "Hippocratic AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://hippocraticai.com/wp-content/uploads/2025/09/logo-5.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://hippocraticai.com/wp-content/uploads/2025/09/logo-5.png",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.hippocraticai.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hippocraticai.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://hippocraticai.com/wp-content/uploads/2025/09/logo-5.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Healthcare AI"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "monoInkScale": 2.05645
+  },
+  {
+    "name": "shieldAi",
+    "slug": "shield-ai",
+    "label": "Shield AI",
+    "integrationNames": [
+      "Shield AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9d/SAI-Logo-Horizontal-Black_%281%29.png?download=1",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/SAI-Logo-Horizontal-Black_%281%29.png?download=1",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://shield.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Aerospace & defense"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://shield.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/SAI-Logo-Horizontal-Black_%281%29.png?download=1",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "Autonomous systems"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "sensetime",
+    "slug": "sensetime",
+    "label": "SenseTime",
+    "integrationNames": [
+      "SenseTime"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.sensetime.com/assets/logo-frame10.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e83220": "#E83523",
+      "#e72f20": "#E83628",
+      "#d31f1a": "#DB4743",
+      "#e71b28": "#E9313C",
+      "#e83422": "#E83523",
+      "#d92820": "#DE443D",
+      "#800001": "#B36667",
+      "#af1113": "#C7585A",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#e83220": "#E83523",
+      "#e72f20": "#E83628",
+      "#d31f1a": "#DB4743",
+      "#e71b28": "#E9313C",
+      "#e83422": "#E83523",
+      "#d92820": "#DE443D",
+      "#800001": "#B36667",
+      "#af1113": "#C7585A",
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.sensetime.com/assets/logo-frame10.png",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.sensetime.com/en",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.sensetime.com/en",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.sensetime.com/assets/logo-frame10.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "Sense Time",
+      "商汤"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#e83220": "#E83523",
+      "#e72f20": "#E83628",
+      "#d31f1a": "#DB4743",
+      "#e71b28": "#E9313C",
+      "#e83422": "#E83523",
+      "#d92820": "#DE443D",
+      "#800001": "#B36667",
+      "#af1113": "#C7585A",
+      "#000000": "#F5F7FA"
+    },
+    "monoInkScale": 1.11842
+  },
+  {
+    "name": "safeSuperintelligence",
+    "slug": "safe-superintelligence",
+    "label": "Safe Superintelligence",
+    "integrationNames": [
+      "Safe Superintelligence"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Safe_Superintelligence_Inc._logo.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://ssi.inc/public/og-preview.jpg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Artwork vectorized from the referenced raster identity with a transparent exterior. Artwork vectorized from the referenced raster identity with a transparent exterior. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://ssi.inc/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://ssi.inc/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Safe_Superintelligence_Inc._logo.jpg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://ssi.inc/public/og-preview.jpg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI research",
+      "SSI",
+      "Safe Superintelligence Inc."
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "surgeAi",
+    "slug": "surge-ai",
+    "label": "Surge AI",
+    "integrationNames": [
+      "Surge AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/6a5b7e190c239069b2ce48b0_surge-favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#24241D": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/68e340b3dfa20e2c97749a3a_Logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Source and extraction metadata are retained for future review. ",
+    "brandWebsite": "https://www.surgehq.ai/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Databases & analytics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.surgehq.ai/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/6a5b7e190c239069b2ce48b0_surge-favicon.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/68dc970bd6e945ea3fb0f426/68e340b3dfa20e2c97749a3a_Logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Artificial intelligence",
+      "AI data"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#24241D": "#F5F7FA"
     }
   }
 ]

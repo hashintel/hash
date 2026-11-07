@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jasper-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="jasper-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="jasper-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jasper-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#jasper-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#jasper-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="jasper-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#jasper-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="3.80319 -1.98871 2000.82591 755.97608" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,752.000000) scale(0.100000,-0.100000)" fill="#FF4030" stroke="none">
+<path d="M1332 7500 c-87 -23 -170 -66 -234 -120 -65 -56 -139 -171 -168 -261 -34 -102 -35 -262 -2 -364 57 -183 184 -311 367 -372 68 -22 98 -26 200 -27 191 0 306 45 419 165 69 73 116 158 141 254 19 76 19 231 0 314 -50 209 -213 374 -412 416 -94 20 -223 18 -311 -5z" />
+<path d="M1283 5683 l-703 -296 0 -110 0 -109 28 5 c15 3 63 12 107 21 95 20 154 14 194 -20 37 -31 57 -81 70 -178 7 -52 11 -488 11 -1319 1 -683 5 -1339 10 -1457 16 -384 64 -619 192 -935 92 -228 126 -328 143 -416 26 -142 17 -287 -26 -370 -56 -110 -197 -151 -287 -82 -42 32 -121 152 -195 298 -70 136 -119 195 -195 232 -53 26 -65 28 -182 28 -117 0 -129 -2 -182 -28 -146 -71 -216 -232 -188 -427 28 -198 174 -366 391 -450 135 -52 206 -63 389 -63 144 0 177 3 261 25 321 86 536 262 686 563 80 160 129 321 166 547 l21 133 3 2353 c2 1293 0 2352 -4 2351 -5 0 -324 -134 -710 -296z" />
+</g>
+</svg></g></svg>

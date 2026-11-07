@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed. Some native outlines are adapted from Lobe Icons, copyright (c) 2023 LobeHub, under the MIT License; see licenses/lobe-icons-MIT.txt.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="baichuan-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="baichuan-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="baichuan-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#baichuan-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#baichuan-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#baichuan-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="baichuan-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#baichuan-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.0173 1.95767 22.04939 20.08465" fill="#F5F7FA" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><linearGradient id="baichuan-app-dark-lobe-icons-baichuan-_R_0_" x1="17.764%" x2="100%" y1="8.678%" y2="91.322%"><stop offset="0%" stop-color="#FEC13E" /><stop offset="100%" stop-color="#FF6933" /></linearGradient></defs><path d="M7.333 2h-3.2l-2 4.333V17.8L0 22h5.2l2.028-4.2L7.333 2zm7.334 0h-5.2v20h5.2V2zM16.8 7.733H22V22h-5.2V7.733zM22 2h-5.2v4.133H22V2z" fill="url(#baichuan-app-dark-lobe-icons-baichuan-_R_0_)" fill-rule="nonzero" /></svg></g></svg>

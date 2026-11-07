@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="apptronik-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="apptronik-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="apptronik-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apptronik-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#apptronik-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#apptronik-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="apptronik-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#apptronik-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.17418 -0.08483 96.34835 96.25901" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,96.000000) scale(0.100000,-0.100000)" fill="#F5F7FA" stroke="none">
+<path d="M340 945 c-14 -7 -47 -24 -75 -37 -70 -32 -163 -129 -201 -208 -18 -36 -38 -97 -44 -136 -11 -61 -10 -84 3 -150 18 -89 42 -154 58 -154 11 0 69 60 69 71 0 4 12 21 26 38 23 27 26 40 28 123 2 82 5 99 30 141 52 88 151 147 246 147 95 0 194 -59 246 -147 25 -42 28 -59 30 -139 2 -88 4 -94 39 -140 54 -73 72 -94 84 -94 16 0 40 65 58 155 13 67 13 91 3 150 -7 39 -27 99 -44 135 -38 79 -131 176 -201 208 -27 13 -63 30 -78 38 -38 19 -241 18 -277 -1z" />
+<path d="M424 595 c-21 -31 -79 -112 -129 -180 -49 -69 -132 -183 -184 -255 -51 -71 -97 -130 -102 -130 -5 0 -9 -7 -9 -15 0 -13 20 -15 123 -15 l122 1 90 125 c50 68 98 134 108 146 9 12 17 25 17 30 0 4 8 8 18 8 10 0 29 -17 42 -38 14 -21 63 -90 110 -155 l85 -116 123 -1 c102 0 122 2 122 15 0 8 -4 15 -9 15 -5 0 -51 59 -102 130 -52 72 -134 186 -184 255 -49 68 -108 149 -129 180 -22 30 -47 55 -56 55 -9 0 -34 -25 -56 -55z" />
+<path d="M465 182 c-22 -16 -96 -133 -90 -142 8 -13 202 -13 210 0 9 15 -86 150 -105 150 -3 0 -9 -4 -15 -8z" />
+</g>
+</svg></g></svg>
