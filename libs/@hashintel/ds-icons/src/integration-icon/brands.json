@@ -30961,12 +30961,8 @@
   {
     "name": "deutscheBorse",
     "slug": "deutsche-borse",
-    "label": "Deutsche B\u00f6rse",
-    "integrationNames": [
-      "Deutsche B\u00f6rse",
-      "Deutsche Boerse",
-      "Deutsche Borse"
-    ],
+    "label": "Deutsche Börse",
+    "integrationNames": ["Deutsche Börse", "Deutsche Boerse", "Deutsche Borse"],
     "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/en/0/0c/Deutsche_B%C3%B6rse.svg",
@@ -30987,7 +30983,8 @@
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/0c/Deutsche_B%C3%B6rse.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/0c/Deutsche_B%C3%B6rse.svg",
+    "searchAliases": ["Boerse", "Börse", "Borse"]
   },
   {
     "name": "tradeRepublic",
@@ -32325,7 +32322,12 @@
     "name": "sixt",
     "slug": "sixt",
     "label": "Sixt",
-    "integrationNames": ["Sixt"],
+    "integrationNames": [
+      "Sixt",
+      "Sixt Car Hire",
+      "Sixt Car Rental",
+      "SIXT Rent a Car"
+    ],
     "ratio": 1.55,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Sixt_Logo_2023.svg",
@@ -73080,7 +73082,15 @@
     "categories": ["Finance & payments", "Databases & analytics"],
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "logoSource": "https://www.lseg.com/content/dam/lseg/en_us/images/logos/bespoke/lseg-logo.svg"
+    "logoSource": "https://www.lseg.com/content/dam/lseg/en_us/images/logos/bespoke/lseg-logo.svg",
+    "searchAliases": ["London Stock Exchange", "LSE"],
+    "searchAliasSources": [
+      {
+        "aliases": ["London Stock Exchange", "LSE"],
+        "url": "https://www.londonstockexchange.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "nyse",
@@ -75901,5 +75911,321 @@
       }
     ],
     "logoSource": "https://main--dc--adobecom.aem.live/dc-shared/assets/images/shared-images/adobe-logos/acrobat-reader-logo.svg"
+  },
+  {
+    "name": "londonStockExchange",
+    "slug": "london-stock-exchange",
+    "label": "London Stock Exchange",
+    "integrationNames": ["London Stock Exchange", "LSE"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.londonstockexchange.com/content/dam/lse/en_us/images/logos/bespoke/london-stock-exchange-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001EFF": "#586CFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001EFF": "#586CFF"
+    },
+    "logoNotes": "Official London Stock Exchange outlined lockup, with its coat of arms isolated for marks and app tiles. Kept distinct from LSEG.",
+    "brandWebsite": "https://www.londonstockexchange.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.londonstockexchange.com/content/dam/lse/en_us/images/logos/bespoke/london-stock-exchange-logo.svg",
+    "searchAliases": ["LSEG", "London Stock Exchange Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["LSEG", "London Stock Exchange Group"],
+        "url": "https://www.londonstockexchange.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "ecotricity",
+    "slug": "ecotricity",
+    "label": "Ecotricity",
+    "integrationNames": ["Ecotricity"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.ecotricity.co.uk/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#131720": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#131720": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Current outlined wordmark embedded in the official website. Used intact for compact mark variants; the textured Union Flag app artwork is not approximated. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.ecotricity.co.uk/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.ecotricity.co.uk/"
+  },
+  {
+    "name": "harbourEnergy",
+    "slug": "harbour-energy",
+    "label": "Harbour Energy",
+    "integrationNames": ["Harbour Energy"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.harbourenergy.com/media/k3woofm4/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FA4616": "#FA4616",
+      "#7A99AC": "#7A99AC",
+      "#003A70": "#597FA2"
+    },
+    "logoDarkColors": {
+      "#FA4616": "#FA4616",
+      "#7A99AC": "#7A99AC",
+      "#003A70": "#597FA2"
+    },
+    "logoNotes": "Official outlined website logo, with brand colors restored from the official December 2025 acquisition presentation: navy #003A70, slate #7A99AC, orange #FA4616. Symbol isolated for marks.",
+    "brandWebsite": "https://www.harbourenergy.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.harbourenergy.com/media/k3woofm4/logo.svg",
+    "paletteSource": "https://www.harbourenergy.com/media/jzlbtu3i/harbour_energy_llog_acquisition_december_2025.pdf"
+  },
+  {
+    "name": "indra",
+    "slug": "indra",
+    "label": "Indra",
+    "integrationNames": ["Indra", "Indra Sistemas"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Indra_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002532": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#002532": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Current Indra commercial lockup matching the official brand reference. The shared native symbol and INDRA lettering are retained from the Indra Group vector source; the separate GROUP descriptor is omitted. Native outlines, no replacement typography.",
+    "brandWebsite": "https://www.indragroup.com/en",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Industry & energy", "Technology & electronics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Indra_Group_logo.svg",
+    "identitySources": [
+      {
+        "url": "https://www.indragroup.com/es/sobre-indra/nuestras-marcas",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indragroup.com/cms-content/2025/07/Logo-indra.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Indra Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Indra Group"],
+        "url": "https://www.indragroup.com/en",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "bme",
+    "slug": "bme",
+    "label": "Bolsas y Mercados Españoles",
+    "integrationNames": [
+      "Bolsas y Mercados Españoles",
+      "BME",
+      "Bolsas y Mercados Espanoles"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.bolsasymercados.es/content/dam/bme/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#959595": "#959595",
+      "#002C5F": "#637E9D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#959595": "#959595",
+      "#002C5F": "#637E9D"
+    },
+    "logoNotes": "Official BME lockup. Mark variants isolate the BME lettering, while full logos preserve the complete official lockup and parent endorsement.",
+    "brandWebsite": "https://www.bolsasymercados.es/en/home.html",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bolsasymercados.es/content/dam/bme/images/logo.svg",
+    "searchAliases": ["SIX", "SIX Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["SIX", "SIX Group"],
+        "url": "https://www.bolsasymercados.es/en/home.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "hertz",
+    "slug": "hertz",
+    "label": "Hertz",
+    "integrationNames": ["Hertz", "Hertz Car Rental", "Hertz Rent a Car"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/42/Hertz_Car_Rental_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFD100": "#FFD100",
+      "#000000": "#F5F7FA",
+      "#58595B": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FFD100": "#FFD100",
+      "#000000": "#F5F7FA",
+      "#58595B": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined Hertz wordmark and yellow underline from the official artwork archived on Wikimedia. Wordmark retained for compact marks. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.hertz.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics", "Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/42/Hertz_Car_Rental_logo.svg",
+    "markMonoColors": {
+      "#FFD100": "#000000",
+      "#000000": "#000000",
+      "#58595B": "#000000"
+    }
+  },
+  {
+    "name": "avis",
+    "slug": "avis",
+    "label": "Avis",
+    "integrationNames": ["Avis", "Avis Car Rental", "Avis Rent a Car"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://images.avis.com/is/content/abggwebprod/Logo-1",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D4002A": "#DF3E5E"
+    },
+    "logoDarkColors": {
+      "#D4002A": "#DF3E5E"
+    },
+    "logoNotes": "Current outlined Avis wordmark delivered by the official website. Wordmark retained for compact marks. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.avis.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics", "Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images.avis.com/is/content/abggwebprod/Logo-1",
+    "searchAliases": ["Avis Budget Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Avis Budget Group"],
+        "url": "https://www.avis.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "budget",
+    "slug": "budget",
+    "label": "Budget",
+    "integrationNames": ["Budget", "Budget Rent a Car", "Budget Car Rental"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Budget_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F57D14": "#F57D14",
+      "#202D59": "#737B96",
+      "#111111": "#F5F7FA",
+      "#ED451E": "#ED451E"
+    },
+    "logoDarkColors": {
+      "#F57D14": "#F57D14",
+      "#202D59": "#737B96",
+      "#111111": "#F5F7FA",
+      "#ED451E": "#ED451E"
+    },
+    "logoNotes": "Outlined Budget lockup from official EPS artwork archived on Wikimedia. Orange symbol isolated for marks.",
+    "brandWebsite": "https://www.budget.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics", "Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Budget_logo.svg",
+    "markMonoColors": {
+      "#F57D14": "#666666",
+      "#ED451E": "#000000"
+    },
+    "searchAliases": ["Avis Budget Group"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Avis Budget Group"],
+        "url": "https://www.budget.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "enterpriseRentACar",
+    "slug": "enterprise-rent-a-car",
+    "label": "Enterprise Rent-A-Car",
+    "integrationNames": [
+      "Enterprise Rent-A-Car",
+      "Enterprise",
+      "Enterprise Rent a Car",
+      "Enterprise Car Rental",
+      "Enterprise Car Hire"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Enterprise_Rent-A-Car_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#171917": "#171917",
+      "#15965B": "#15965B",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined Enterprise wordmark and e emblem from official artwork archived on Wikimedia, checked against the current official website. Colors match the current website badge. The wordmark lockup omits the descriptive rent-a-car subline; no replacement typography is composed. Mark variants isolate the native e emblem.",
+    "brandWebsite": "https://www.enterprise.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Transport & logistics", "Travel & hospitality"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Enterprise_Rent-A-Car_Logo.svg",
+    "markMonoColors": {
+      "#15965B": "#000000",
+      "#171917": "#000000",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "paletteSource": "https://www.enterprise.co.uk/content/dam/ecom/logo-enterprise-rent-a-car.png",
+    "searchAliases": ["Enterprise Mobility", "Enterprise Holdings"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Enterprise Mobility", "Enterprise Holdings"],
+        "url": "https://www.enterprise.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   }
 ]
