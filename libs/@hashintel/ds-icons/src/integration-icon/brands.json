@@ -6733,12 +6733,17 @@
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "searchAliases": ["Block"],
+    "searchAliases": ["Block", "Square", "Cash App", "TIDAL"],
     "searchAliasSources": [
       {
         "aliases": ["Block"],
         "url": "https://block.xyz/",
         "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Block", "Square", "Cash App", "TIDAL"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-07"
       }
     ]
   },
@@ -13366,12 +13371,17 @@
     "categories": ["Music & video"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "searchAliases": ["Block"],
+    "searchAliases": ["Block", "Square", "Cash App", "TIDAL"],
     "searchAliasSources": [
       {
         "aliases": ["Block"],
         "url": "https://block.xyz/",
         "checkedOn": "2026-11-06"
+      },
+      {
+        "aliases": ["Block", "Square", "Cash App", "TIDAL"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-07"
       }
     ]
   },
@@ -16263,7 +16273,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Block", "Square", "Cash App", "TIDAL"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Block", "Square", "Cash App", "TIDAL"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "geminiExchange",
@@ -17810,7 +17828,15 @@
     "logoNotes": "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     "categories": ["Finance & payments"],
     "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "searchAliases": ["Morgan Stanley", "E*TRADE", "ETrade", "E-Trade"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Morgan Stanley", "E*TRADE", "ETrade", "E-Trade"],
+        "url": "https://us.etrade.com/home",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "goldmanSachs",
@@ -45069,7 +45095,27 @@
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/NetJets_logo.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/NetJets_logo.svg",
+    "searchAliases": [
+      "Berkshire Hathaway",
+      "GEICO",
+      "NetJets",
+      "Duracell",
+      "Dairy Queen"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Berkshire Hathaway",
+          "GEICO",
+          "NetJets",
+          "Duracell",
+          "Dairy Queen"
+        ],
+        "url": "https://www.berkshirehathaway.com/subs/sublinks.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "asimov",
@@ -55250,7 +55296,27 @@
     "categories": ["Food & drink"],
     "lastCheckedAutomated": "2026-11-06",
     "lastCheckedManually": null,
-    "logoSource": "https://ninos.kiddle.co/images/a/ae/Dairy_Queen_logo.svg"
+    "logoSource": "https://ninos.kiddle.co/images/a/ae/Dairy_Queen_logo.svg",
+    "searchAliases": [
+      "Berkshire Hathaway",
+      "GEICO",
+      "NetJets",
+      "Duracell",
+      "Dairy Queen"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Berkshire Hathaway",
+          "GEICO",
+          "NetJets",
+          "Duracell",
+          "Dairy Queen"
+        ],
+        "url": "https://www.berkshirehathaway.com/subs/sublinks.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
   },
   {
     "name": "raisingCanes",
@@ -71439,5 +71505,2710 @@
     "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "logoSource": "https://cdn.prod.website-files.com/5e34767f6a3a0e7f41cafc58/66aa91601068b9460d2fd908_PC%20Logo-2024.svg"
+  },
+  {
+    "name": "tdBank",
+    "slug": "td-bank",
+    "label": "TD Bank",
+    "integrationNames": ["TD Bank", "Toronto-Dominion Bank", "TD"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Toronto-Dominion_Bank_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#54B948": "#54B948",
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://td.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Toronto-Dominion_Bank_logo.svg"
+  },
+  {
+    "name": "bmo",
+    "slug": "bmo",
+    "label": "BMO",
+    "integrationNames": ["BMO", "Bank of Montreal"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/03/BMO_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0079C1": "#0F81C5",
+      "#ED1C24": "#EE272F",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#0079C1": "#0F81C5",
+      "#ED1C24": "#EE272F",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bmo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/03/BMO_Logo.svg"
+  },
+  {
+    "name": "scotiabank",
+    "slug": "scotiabank",
+    "label": "Scotiabank",
+    "integrationNames": ["Scotiabank"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.scotiabank.com/content/dam/scotiabank/images/logos/2019/scotiabank-logo-red-desktop-200px.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EC111A": "#EE2830",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#EC111A": "#EE2830",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://scotiabank.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.scotiabank.com/content/dam/scotiabank/images/logos/2019/scotiabank-logo-red-desktop-200px.svg"
+  },
+  {
+    "name": "cibc",
+    "slug": "cibc",
+    "label": "CIBC",
+    "integrationNames": ["CIBC", "Canadian Imperial Bank of Commerce"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.cibc.com/content/dam/global-assets/logos/cibc-logos/no-tagline/cibc-logo-colour-142x36.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#C41F3E": "#D04E67",
+      "#111111": "#F5F7FA",
+      "#8B1D41": "#B0657E"
+    },
+    "logoDarkColors": {
+      "#C41F3E": "#D04E67",
+      "#111111": "#F5F7FA",
+      "#8B1D41": "#B0657E"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://cibc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cibc.com/content/dam/global-assets/logos/cibc-logos/no-tagline/cibc-logo-colour-142x36.svg"
+  },
+  {
+    "name": "nationalBankOfCanada",
+    "slug": "national-bank-of-canada",
+    "label": "National Bank of Canada",
+    "integrationNames": [
+      "National Bank of Canada",
+      "Banque Nationale du Canada"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nbc.ca/content/dam/bnc/particuliers/picto/picto-logo-bn-24x22.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#E41C23": "#E7353B"
+    },
+    "logoDarkColors": {
+      "#DD1F26": "#E23D43",
+      "#FFFFFF": "#FFFFFF",
+      "#010101": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#252525": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://nbc.ca/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/2/2e/National_Bank_of_Canada_logo.svg"
+  },
+  {
+    "name": "desjardins",
+    "slug": "desjardins",
+    "label": "Desjardins",
+    "integrationNames": ["Desjardins"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Desjardins_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00874E": "#0E8E58"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00874E": "#0E8E58"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://desjardins.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Desjardins_Group_logo.svg"
+  },
+  {
+    "name": "manulife",
+    "slug": "manulife",
+    "label": "Manulife",
+    "integrationNames": ["Manulife"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/11/Manulife_logo_%282018%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00AC5B": "#00AC5B",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#00AC5B": "#00AC5B",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://manulife.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/11/Manulife_logo_%282018%29.svg",
+    "monoInkScale": 2.02381
+  },
+  {
+    "name": "sunLife",
+    "slug": "sun-life",
+    "label": "Sunlife",
+    "integrationNames": ["Sun Life", "Sunlife"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.sunlife.com/content/dam/sunlife/global/logos/sunlife/sunlife-logo-horizontal-rgb-primary-public.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FEBE10": "#FEBE10",
+      "#111111": "#F5F7FA",
+      "#003946": "#5D818A"
+    },
+    "logoDarkColors": {
+      "#FEBE10": "#FEBE10",
+      "#111111": "#F5F7FA",
+      "#003946": "#5D818A"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://sunlife.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sunlife.com/content/dam/sunlife/global/logos/sunlife/sunlife-logo-horizontal-rgb-primary-public.svg",
+    "monoInkScale": 3.26923
+  },
+  {
+    "name": "truist",
+    "slug": "truist",
+    "label": "Truist",
+    "integrationNames": ["Truist"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://static.truist.com/content/dam/global-images/truist-logo-purple.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2E1A47": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2E1A47": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://truist.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.truist.com/content/dam/global-images/truist-logo-purple.svg"
+  },
+  {
+    "name": "fifthThirdBank",
+    "slug": "fifth-third-bank",
+    "label": "Fifth Third Bank",
+    "integrationNames": ["Fifth Third Bank", "Fifth Third"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/28/Fifth_Third_Bank_logo_%282023%2C_horizontal%2C_color_with_blue_wordmark%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#1D4094": "#627AB5",
+      "#111111": "#F5F7FA",
+      "#26D07C": "#26D07C",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://53.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/28/Fifth_Third_Bank_logo_%282023%2C_horizontal%2C_color_with_blue_wordmark%29.svg"
+  },
+  {
+    "name": "citizensBank",
+    "slug": "citizens-bank",
+    "label": "Citizens Bank",
+    "integrationNames": ["Citizens Bank"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Citizens_Financial_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00965E": "#00965E",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#00965E": "#00965E",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://citizensbank.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Citizens_Financial_Group_logo.svg"
+  },
+  {
+    "name": "mTBank",
+    "slug": "m-t-bank",
+    "label": "M&T Bank",
+    "integrationNames": ["M&T Bank", "M&T"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d6/M%26T_Bank_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#027856": "#258B6E"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#027856": "#258B6E"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://mtb.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d6/M%26T_Bank_wordmark.svg"
+  },
+  {
+    "name": "regionsBank",
+    "slug": "regions-bank",
+    "label": "Regions Bank",
+    "integrationNames": ["Regions Bank"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/93/Regions_Financial_Corp_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#658D1B": "#658D1B",
+      "#84BD00": "#84BD00",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#658D1B": "#658D1B",
+      "#84BD00": "#84BD00",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://regions.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/93/Regions_Financial_Corp_logo.svg",
+    "monoInkScale": 1.42458
+  },
+  {
+    "name": "ally",
+    "slug": "ally",
+    "label": "Ally",
+    "integrationNames": ["Ally"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.ally.com/images/icons/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#852EF2": "#9C55F4"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://ally.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.ally.com/"
+  },
+  {
+    "name": "bny",
+    "slug": "bny",
+    "label": "BNY",
+    "integrationNames": ["BNY", "Bank of New York Mellon", "BNY Mellon"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.bny.com/corporate/global/en.html",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2D9BAD": "#2D9BAD",
+      "#00243D": "#6A7F8E",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#2D9BAD": "#2D9BAD",
+      "#00243D": "#6A7F8E",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bny.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bny.com/corporate/global/en.html",
+    "monoInkScale": 1.84783
+  },
+  {
+    "name": "stateStreet",
+    "slug": "state-street",
+    "label": "State Street",
+    "integrationNames": ["State Street"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/65/State-street-logo-final.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001AFF": "#5B6BFF",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#001AFF": "#5B6BFF",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://statestreet.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/State-street-logo-final.svg"
+  },
+  {
+    "name": "northernTrust",
+    "slug": "northern-trust",
+    "label": "Northern Trust",
+    "integrationNames": ["Northern Trust"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/e/e0/Northern_Trust_Corp._logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#115740": "#528575",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#115740": "#528575",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://northerntrust.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/e/e0/Northern_Trust_Corp._logo.svg"
+  },
+  {
+    "name": "fidelityInternational",
+    "slug": "fidelity-international",
+    "label": "Fidelity International",
+    "integrationNames": ["Fidelity International", "FIL"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/5/54/Fidelity_International_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#006193": "#3783AA",
+      "#B72F2A": "#C65A56",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://fidelityinternational.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/5/54/Fidelity_International_logo.svg"
+  },
+  {
+    "name": "tRowePrice",
+    "slug": "t-rowe-price",
+    "label": "T. Rowe Price",
+    "integrationNames": ["T. Rowe Price"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6b/T._Rowe_Price_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://troweprice.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6b/T._Rowe_Price_wordmark.svg"
+  },
+  {
+    "name": "capitalGroup",
+    "slug": "capital-group",
+    "label": "Capital Group",
+    "integrationNames": ["Capital Group"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/33/Capital_Group_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#667E8A": "#F5F7FA",
+      "#0089C9": "#0089C9",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#A3C8D8": "#A3C8D8",
+      "#009CDC": "#009CDC",
+      "#005F9E": "#3781B3"
+    },
+    "logoDarkColors": {
+      "#667E8A": "#F5F7FA",
+      "#0089C9": "#0089C9",
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#A3C8D8": "#A3C8D8",
+      "#009CDC": "#009CDC",
+      "#005F9E": "#3781B3"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://capitalgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/33/Capital_Group_Logo.svg",
+    "monoInkScale": 1.44886
+  },
+  {
+    "name": "pimco",
+    "slug": "pimco",
+    "label": "PIMCO",
+    "integrationNames": ["PIMCO"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Pimco_Logo_2025.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#022D5E": "#637E9C"
+    },
+    "logoDarkColors": {
+      "#022D5E": "#637E9C"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://pimco.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Pimco_Logo_2025.svg"
+  },
+  {
+    "name": "invesco",
+    "slug": "invesco",
+    "label": "Invesco",
+    "integrationNames": ["Invesco"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/9a/Invesco_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000AD2": "#696EE4"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000AD2": "#696EE4"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://invesco.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/9a/Invesco_Logo.svg"
+  },
+  {
+    "name": "amundi",
+    "slug": "amundi",
+    "label": "Amundi",
+    "integrationNames": ["Amundi"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Amundi_2025_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0E284B": "#6D7D92",
+      "#111111": "#F5F7FA",
+      "#009FE3": "#009FE3"
+    },
+    "logoDarkColors": {
+      "#0E284B": "#6D7D92",
+      "#111111": "#F5F7FA",
+      "#009FE3": "#009FE3"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://amundi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Amundi_2025_logo.svg"
+  },
+  {
+    "name": "schroders",
+    "slug": "schroders",
+    "label": "Schroders",
+    "integrationNames": ["Schroders"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.schroders.com/en/global/individual/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001E41": "#6C7E92"
+    },
+    "logoDarkColors": {
+      "#001E41": "#6C7E92"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://schroders.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.schroders.com/en/global/individual/"
+  },
+  {
+    "name": "eTrade",
+    "slug": "e-trade",
+    "label": "E*TRADE",
+    "integrationNames": ["E*TRADE", "ETrade", "E-Trade"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn2.etrade.net/1/26022716140.0/aempros/content/dam/etrade/retail/en_US/images/global/logos/etrade-from-morgan-stanley-logo-dark-theme.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#6633CC": "#8C66D9",
+      "#000000": "#F5F7FA",
+      "#0F8EC7": "#0F8EC7"
+    },
+    "logoDarkColors": {
+      "#6633CC": "#8C66D9",
+      "#000000": "#F5F7FA",
+      "#0F8EC7": "#0F8EC7"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://etrade.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn2.etrade.net/1/26022716140.0/aempros/content/dam/etrade/retail/en_US/images/global/logos/etrade-from-morgan-stanley-logo-dark-theme.svg",
+    "searchAliases": ["Morgan Stanley", "E*TRADE", "ETrade", "E-Trade"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Morgan Stanley", "E*TRADE", "ETrade", "E-Trade"],
+        "url": "https://us.etrade.com/home",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "etoro",
+    "slug": "etoro",
+    "label": "eToro",
+    "integrationNames": ["eToro"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.etoro.com/wp-content/uploads/favicons/safari-pinned-tab.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://etoro.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.etoro.com/"
+  },
+  {
+    "name": "saxoBank",
+    "slug": "saxo-bank",
+    "label": "Saxo Bank",
+    "integrationNames": ["Saxo Bank"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.home.saxo/-/media/global/logos/saxo-2022/saxo-beinvested-logo-blue.svg?h=1&w=1&la=en&hash=B7EF4C6FC7C9823028101C89D2431798",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#051478": "#6F78B1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#051478": "#6F78B1"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://home.saxo/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.home.saxo/-/media/global/logos/saxo-2022/saxo-beinvested-logo-blue.svg?h=1&w=1&la=en&hash=B7EF4C6FC7C9823028101C89D2431798"
+  },
+  {
+    "name": "hargreavesLansdown",
+    "slug": "hargreaves-lansdown",
+    "label": "Hargreaves Lansdown",
+    "integrationNames": ["Hargreaves Lansdown"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.hl.co.uk/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#071D49": "#6F7C95"
+    },
+    "logoDarkColors": {
+      "#071D49": "#6F7C95"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://hl.co.uk/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.hl.co.uk/"
+  },
+  {
+    "name": "kkr",
+    "slug": "kkr",
+    "label": "KKR",
+    "integrationNames": ["KKR"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.kkr.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#49004B": "#976E98"
+    },
+    "logoDarkColors": {
+      "#49004B": "#976E98"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kkr.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.kkr.com/"
+  },
+  {
+    "name": "apolloGlobalManagement",
+    "slug": "apollo-global-management",
+    "label": "Apollo Global Management",
+    "integrationNames": ["Apollo Global Management"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://d1io3yog0oux5.cloudfront.net/_89a8fecd520bcfa7f96361eee84d6d4f/apollo/files/theme/images/logo-sm.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007B63": "#1F8B76"
+    },
+    "logoDarkColors": {
+      "#007B63": "#1F8B76"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://apollo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://d1io3yog0oux5.cloudfront.net/_89a8fecd520bcfa7f96361eee84d6d4f/apollo/files/theme/images/logo-sm.svg"
+  },
+  {
+    "name": "eqt",
+    "slug": "eqt",
+    "label": "EQT",
+    "integrationNames": ["EQT", "EQT AB"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://eqtgroup.com/_next/static/media/eqt-logo-orange.0zt0_qpmjy2lm.svg?dpl=1793804555205",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF6600": "#FF6600",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#FF6600": "#FF6600",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://eqtgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://eqtgroup.com/_next/static/media/eqt-logo-orange.0zt0_qpmjy2lm.svg?dpl=1793804555205"
+  },
+  {
+    "name": "geico",
+    "slug": "geico",
+    "label": "GEICO",
+    "integrationNames": ["GEICO"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.geico.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://geico.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.geico.com/",
+    "searchAliases": [
+      "Berkshire Hathaway",
+      "GEICO",
+      "NetJets",
+      "Duracell",
+      "Dairy Queen"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Berkshire Hathaway",
+          "GEICO",
+          "NetJets",
+          "Duracell",
+          "Dairy Queen"
+        ],
+        "url": "https://www.berkshirehathaway.com/subs/sublinks.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "libertyMutual",
+    "slug": "liberty-mutual",
+    "label": "Liberty Mutual",
+    "integrationNames": ["Liberty Mutual"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.libertymutual.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://libertymutual.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.libertymutual.com/"
+  },
+  {
+    "name": "chubb",
+    "slug": "chubb",
+    "label": "Chubb",
+    "integrationNames": ["Chubb"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.chubb.com/content/dam/chubbredesignnext/chubb-logo-white.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://chubb.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.chubb.com/content/dam/chubbredesignnext/chubb-logo-white.svg"
+  },
+  {
+    "name": "newYorkLife",
+    "slug": "new-york-life",
+    "label": "New York Life",
+    "integrationNames": ["New York Life"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.newyorklife.com/assets/icons/nyl-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#0468FF": "#0468FF",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://newyorklife.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.newyorklife.com/assets/icons/nyl-logo.svg"
+  },
+  {
+    "name": "northwesternMutual",
+    "slug": "northwestern-mutual",
+    "label": "Northwestern Mutual",
+    "integrationNames": ["Northwestern Mutual"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.northwesternmutual.com/template/assets/4.9.8/images/logos/logo-horizontal-navy.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0E497B": "#5680A3",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0E497B": "#5680A3",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://northwesternmutual.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.northwesternmutual.com/template/assets/4.9.8/images/logos/logo-horizontal-navy.svg"
+  },
+  {
+    "name": "mapfre",
+    "slug": "mapfre",
+    "label": "Mapfre",
+    "integrationNames": ["Mapfre"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.mapfre.com/contents/ui/theme/resources/images/menu-logo-active-desktop.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF002D": "#FF002D"
+    },
+    "logoDarkColors": {
+      "#FF002D": "#FF002D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://mapfre.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mapfre.com/contents/ui/theme/resources/images/menu-logo-default.svg"
+  },
+  {
+    "name": "creditMutuel",
+    "slug": "credit-mutuel",
+    "label": "Crédit Mutuel",
+    "integrationNames": ["Crédit Mutuel"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdnsi.e-i.com/INGR/sd/cm_2015/61.130.4/fr/images/css/env/logo_mini.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#C50307": "#D64C4F",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#164194": "#5E7CB5",
+      "#111111": "#F5F7FA",
+      "#E30613": "#E8333D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://creditmutuel.fr/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdnsi.e-i.com/INGR/sd/cm_2015/61.130.4/fr/images/css/env/logo.svg"
+  },
+  {
+    "name": "dnb",
+    "slug": "dnb",
+    "label": "DNB",
+    "integrationNames": ["DNB", "DNB Bank"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.dnb.no/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007272": "#298989"
+    },
+    "logoDarkColors": {
+      "#007272": "#298989"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://dnb.no/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.dnb.no/"
+  },
+  {
+    "name": "swedbank",
+    "slug": "swedbank",
+    "label": "Swedbank",
+    "integrationNames": ["Swedbank"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.swedbank.com/content/dam/global/brand/logotypes/8999-swedbank-logo-default.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F8A943": "#F8A943",
+      "#F3640F": "#F3640F",
+      "#FFC378": "#FFC378",
+      "#BA6019": "#BC641F",
+      "#F59619": "#F59619",
+      "#B46027": "#B76630",
+      "#9F5024": "#AE6B46",
+      "#A35622": "#AE6B3E",
+      "#76310A": "#A07156",
+      "#A04E14": "#B06B3B",
+      "#AD5725": "#B5683B",
+      "#D89050": "#D89050",
+      "#8D4428": "#A76E58",
+      "#56220C": "#957567",
+      "#F29B40": "#F29B40",
+      "#6C2B13": "#9D7262",
+      "#823D1E": "#A36F59",
+      "#EA913E": "#EA913E",
+      "#DC5014": "#DC5014",
+      "#FFBE46": "#FFBE46",
+      "#8E340B": "#AD6B4D",
+      "#96441E": "#AC6B4D",
+      "#BF6B29": "#BF6B29",
+      "#FF9B0F": "#FF9B0F",
+      "#B43C19": "#C25F42",
+      "#E69646": "#E69646",
+      "#FFC85A": "#FFC85A",
+      "#DC8730": "#DC8730",
+      "#B96534": "#B96534",
+      "#FFE6A5": "#FFE6A5",
+      "#E1690F": "#E1690F",
+      "#FDAC4A": "#FDAC4A",
+      "#94441E": "#AB6C4E",
+      "#FFCD85": "#FFCD85",
+      "#FFE6A0": "#FFE6A0",
+      "#FCC677": "#FCC677",
+      "#F7780F": "#F7780F",
+      "#F5871E": "#F5871E",
+      "#FFB560": "#FFB560",
+      "#FFCE89": "#FFCE89",
+      "#D57C3F": "#D57C3F",
+      "#FFD05F": "#FFD05F",
+      "#EC9C4B": "#EC9C4B",
+      "#FCC877": "#FCC877",
+      "#AE490D": "#BA6431",
+      "#7A2C13": "#A46E5D",
+      "#964C25": "#A96D4D",
+      "#F49E4D": "#F49E4D",
+      "#994822": "#AD6C4D",
+      "#FFD79D": "#FFD79D",
+      "#E65F19": "#E65F19",
+      "#FF5F00": "#FF5F00",
+      "#C57231": "#C57231",
+      "#73230A": "#A36F5F",
+      "#994B17": "#AC6C42",
+      "#D27C3C": "#D27C3C",
+      "#FCB664": "#FCB664",
+      "#BC6327": "#BC6428",
+      "#EB962A": "#EB962A",
+      "#A5572A": "#AF6A42",
+      "#EFA952": "#EFA952",
+      "#D47429": "#D47429",
+      "#111111": "#F5F7FA",
+      "#BA3F18": "#C55D3C",
+      "#7E2A0B": "#A76D58",
+      "#944428": "#AB6C56",
+      "#642813": "#9A7366",
+      "#9C3D0C": "#B26943",
+      "#E7944B": "#E7944B",
+      "#7A280A": "#A56E5A",
+      "#FFD68E": "#FFD68E",
+      "#FAAF5A": "#FAAF5A",
+      "#CC5C0E": "#CC5C0E",
+      "#FFC283": "#FFC283",
+      "#DB7B29": "#DB7B29",
+      "#EEAF67": "#EEAF67",
+      "#C27138": "#C27138",
+      "#E5872B": "#E5872B",
+      "#AF6638": "#B16A3D",
+      "#FFE178": "#FFE178",
+      "#AA5A28": "#B26A3C",
+      "#DB650F": "#DB650F",
+      "#FFC278": "#FFC278",
+      "#7E3717": "#A37059",
+      "#DD8732": "#DD8732",
+      "#FFCB80": "#FFCB80",
+      "#9A4921": "#AD6C4B",
+      "#E56B16": "#E56B16",
+      "#AA5E33": "#B06A42",
+      "#E48E33": "#E48E33"
+    },
+    "logoDarkColors": {
+      "#F8A943": "#F8A943",
+      "#F3640F": "#F3640F",
+      "#FFC378": "#FFC378",
+      "#BA6019": "#BC641F",
+      "#F59619": "#F59619",
+      "#B46027": "#B76630",
+      "#9F5024": "#AE6B46",
+      "#A35622": "#AE6B3E",
+      "#76310A": "#A07156",
+      "#A04E14": "#B06B3B",
+      "#AD5725": "#B5683B",
+      "#D89050": "#D89050",
+      "#8D4428": "#A76E58",
+      "#56220C": "#957567",
+      "#F29B40": "#F29B40",
+      "#6C2B13": "#9D7262",
+      "#823D1E": "#A36F59",
+      "#EA913E": "#EA913E",
+      "#DC5014": "#DC5014",
+      "#FFBE46": "#FFBE46",
+      "#8E340B": "#AD6B4D",
+      "#96441E": "#AC6B4D",
+      "#BF6B29": "#BF6B29",
+      "#FF9B0F": "#FF9B0F",
+      "#B43C19": "#C25F42",
+      "#E69646": "#E69646",
+      "#FFC85A": "#FFC85A",
+      "#DC8730": "#DC8730",
+      "#B96534": "#B96534",
+      "#FFE6A5": "#FFE6A5",
+      "#E1690F": "#E1690F",
+      "#FDAC4A": "#FDAC4A",
+      "#94441E": "#AB6C4E",
+      "#FFCD85": "#FFCD85",
+      "#FFE6A0": "#FFE6A0",
+      "#FCC677": "#FCC677",
+      "#F7780F": "#F7780F",
+      "#F5871E": "#F5871E",
+      "#FFB560": "#FFB560",
+      "#FFCE89": "#FFCE89",
+      "#D57C3F": "#D57C3F",
+      "#FFD05F": "#FFD05F",
+      "#EC9C4B": "#EC9C4B",
+      "#FCC877": "#FCC877",
+      "#AE490D": "#BA6431",
+      "#7A2C13": "#A46E5D",
+      "#964C25": "#A96D4D",
+      "#F49E4D": "#F49E4D",
+      "#994822": "#AD6C4D",
+      "#FFD79D": "#FFD79D",
+      "#E65F19": "#E65F19",
+      "#FF5F00": "#FF5F00",
+      "#C57231": "#C57231",
+      "#73230A": "#A36F5F",
+      "#994B17": "#AC6C42",
+      "#D27C3C": "#D27C3C",
+      "#FCB664": "#FCB664",
+      "#BC6327": "#BC6428",
+      "#EB962A": "#EB962A",
+      "#A5572A": "#AF6A42",
+      "#EFA952": "#EFA952",
+      "#D47429": "#D47429",
+      "#111111": "#F5F7FA",
+      "#BA3F18": "#C55D3C",
+      "#7E2A0B": "#A76D58",
+      "#944428": "#AB6C56",
+      "#642813": "#9A7366",
+      "#9C3D0C": "#B26943",
+      "#E7944B": "#E7944B",
+      "#7A280A": "#A56E5A",
+      "#FFD68E": "#FFD68E",
+      "#FAAF5A": "#FAAF5A",
+      "#CC5C0E": "#CC5C0E",
+      "#FFC283": "#FFC283",
+      "#DB7B29": "#DB7B29",
+      "#EEAF67": "#EEAF67",
+      "#C27138": "#C27138",
+      "#E5872B": "#E5872B",
+      "#AF6638": "#B16A3D",
+      "#FFE178": "#FFE178",
+      "#AA5A28": "#B26A3C",
+      "#DB650F": "#DB650F",
+      "#FFC278": "#FFC278",
+      "#7E3717": "#A37059",
+      "#DD8732": "#DD8732",
+      "#FFCB80": "#FFCB80",
+      "#9A4921": "#AD6C4B",
+      "#E56B16": "#E56B16",
+      "#AA5E33": "#B06A42",
+      "#E48E33": "#E48E33"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://swedbank.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.swedbank.com/content/dam/global/brand/logotypes/8999-swedbank-logo-default.svg"
+  },
+  {
+    "name": "seb",
+    "slug": "seb",
+    "label": "SEB",
+    "integrationNames": ["SEB", "Skandinaviska Enskilda Banken"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://sebgroup.com/Images/seb-wordmark-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://sebgroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://sebgroup.com/Images/seb-wordmark-logo.svg"
+  },
+  {
+    "name": "handelsbanken",
+    "slug": "handelsbanken",
+    "label": "Handelsbanken",
+    "integrationNames": ["Handelsbanken"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.handelsbanken.com/en/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://handelsbanken.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.handelsbanken.com/en/"
+  },
+  {
+    "name": "lseg",
+    "slug": "lseg",
+    "label": "LSEG",
+    "integrationNames": ["LSEG", "London Stock Exchange Group"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.lseg.com/content/dam/lseg/en_us/images/logos/bespoke/lseg-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001EFF": "#586CFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001EFF": "#586CFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://lseg.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.lseg.com/content/dam/lseg/en_us/images/logos/bespoke/lseg-logo.svg"
+  },
+  {
+    "name": "nyse",
+    "slug": "nyse",
+    "label": "NYSE",
+    "integrationNames": ["NYSE", "New York Stock Exchange"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.nyse.com/index",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://nyse.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.nyse.com/index"
+  },
+  {
+    "name": "cboe",
+    "slug": "cboe",
+    "label": "Cboe",
+    "integrationNames": ["Cboe", "Cboe Global Markets"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.cboe.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cboe.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cboe.com/"
+  },
+  {
+    "name": "euronext",
+    "slug": "euronext",
+    "label": "Euronext",
+    "integrationNames": ["Euronext"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.euronext.com/themes/custom/euronext_com/frontend-library/public/assets/images/euronext-logo-inverse.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#8CC7E8": "#8CC7E8",
+      "#5CB8B2": "#5CB8B2",
+      "#26998A": "#26998A",
+      "#00857D": "#0B8A83",
+      "#009638": "#009638",
+      "#78BF21": "#78BF21",
+      "#007863": "#228A78",
+      "#14A3C7": "#14A3C7",
+      "#A1D1C9": "#A1D1C9",
+      "#009590": "#009590",
+      "#C2E08A": "#C2E08A",
+      "#40B5E5": "#40B5E5",
+      "#111111": "#F5F7FA",
+      "#A3D65E": "#A3D65E",
+      "#00695E": "#368980",
+      "#009945": "#009945",
+      "#85BD00": "#85BD00"
+    },
+    "logoDarkColors": {
+      "#8CC7E8": "#8CC7E8",
+      "#5CB8B2": "#5CB8B2",
+      "#26998A": "#26998A",
+      "#00857D": "#0B8A83",
+      "#009638": "#009638",
+      "#78BF21": "#78BF21",
+      "#007863": "#228A78",
+      "#14A3C7": "#14A3C7",
+      "#A1D1C9": "#A1D1C9",
+      "#009590": "#009590",
+      "#C2E08A": "#C2E08A",
+      "#40B5E5": "#40B5E5",
+      "#111111": "#F5F7FA",
+      "#A3D65E": "#A3D65E",
+      "#00695E": "#368980",
+      "#009945": "#009945",
+      "#85BD00": "#85BD00"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://euronext.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.euronext.com/themes/custom/euronext_com/frontend-library/public/assets/images/euronext-logo-inverse.svg"
+  },
+  {
+    "name": "moodyS",
+    "slug": "moody-s",
+    "label": "Moody's",
+    "integrationNames": ["Moody's", "Moodys"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.moodys.com/web/en/us/v3/images/header/v3-header-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002B49": "#657F91"
+    },
+    "logoDarkColors": {
+      "#002B49": "#657F91"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://moodys.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.moodys.com/web/en/us/v3/images/header/v3-header-logo.svg"
+  },
+  {
+    "name": "fitchRatings",
+    "slug": "fitch-ratings",
+    "label": "Fitch Ratings",
+    "integrationNames": ["Fitch Ratings"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.fitchratings.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fitchratings.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.fitchratings.com/"
+  },
+  {
+    "name": "experian",
+    "slug": "experian",
+    "label": "Experian",
+    "integrationNames": ["Experian"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.experian.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#426DA9": "#577DB2",
+      "#E63888": "#E63888",
+      "#111111": "#F5F7FA",
+      "#6D2077": "#9D6AA4",
+      "#1D4F91": "#597EAE",
+      "#AF1685": "#C350A4"
+    },
+    "logoDarkColors": {
+      "#426DA9": "#577DB2",
+      "#E63888": "#E63888",
+      "#111111": "#F5F7FA",
+      "#6D2077": "#9D6AA4",
+      "#1D4F91": "#597EAE",
+      "#AF1685": "#C350A4"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://experian.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.experian.com/static/shared/logos/logo-experian.svg"
+  },
+  {
+    "name": "fiserv",
+    "slug": "fiserv",
+    "label": "Fiserv",
+    "integrationNames": ["Fiserv"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.fiserv.com/content/dam/fiserv-ent/final-files/digital-graphics/fiserv-com-graphics/fiserv-logo-orange-ff6600.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF6600": "#FF6600",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#FF6600": "#FF6600",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fiserv.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.fiserv.com/content/dam/fiserv-ent/final-files/digital-graphics/fiserv-com-graphics/fiserv-logo-orange-ff6600.svg"
+  },
+  {
+    "name": "square",
+    "slug": "square",
+    "label": "Square",
+    "integrationNames": ["Square"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://squareup.com/us/en",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://squareup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "searchAliases": ["Block", "Square", "Cash App", "TIDAL"],
+    "searchAliasSources": [
+      {
+        "aliases": ["Block", "Square", "Cash App", "TIDAL"],
+        "url": "https://block.xyz/",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "plaid",
+    "slug": "plaid",
+    "label": "Plaid",
+    "integrationNames": ["Plaid"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://plaid.com/assets/img/favicons/safari-pinned-tab.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://plaid.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Developer tools"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://plaid.com/en-eu/"
+  },
+  {
+    "name": "airwallex",
+    "slug": "airwallex",
+    "label": "Airwallex",
+    "integrationNames": ["Airwallex"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.airwallex.com:443/en-uk",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FF4244": "#FF4244",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF8E3C": "#FF8E3C"
+    },
+    "logoDarkColors": {
+      "#FF4244": "#FF4244",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF8E3C": "#FF8E3C"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://airwallex.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.airwallex.com:443/en-uk",
+    "monoInkScale": 1.79577
+  },
+  {
+    "name": "checkoutCom",
+    "slug": "checkout-com",
+    "label": "Checkout.com",
+    "integrationNames": ["Checkout.com"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.checkout.com/",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#006CFF": "#0F75FF",
+      "#272932": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://checkout.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.checkout.com/",
+    "monoInkScale": 1.34211
+  },
+  {
+    "name": "sumup",
+    "slug": "sumup",
+    "label": "SumUp",
+    "integrationNames": ["SumUp"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/sumup.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://sumup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sumup.com/en-us/"
+  },
+  {
+    "name": "remitly",
+    "slug": "remitly",
+    "label": "Remitly",
+    "integrationNames": ["Remitly"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.remitly.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2C415A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2C415A": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://remitly.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.remitly.com/"
+  },
+  {
+    "name": "moneygram",
+    "slug": "moneygram",
+    "label": "MoneyGram",
+    "integrationNames": ["MoneyGram"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://images.ctfassets.net/toryt1tt0roy/4aB0enlewq5jCf8lvwg8Bi/84c92b9b8bbf2701a2d97265b934430b/logo_mobile.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ED0000": "#F02525",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#ED0000": "#F02525",
+      "#000000": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://moneygram.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images.ctfassets.net/toryt1tt0roy/3tKKo9I8Lr4qJRwqhdEGcT/29ad15e2d505f5c0a9dfbfb1e0a71fb7/logo-moneygram-black.svg"
+  },
+  {
+    "name": "dbs",
+    "slug": "dbs",
+    "label": "DBS",
+    "integrationNames": ["DBS", "DBS Bank", "Development Bank of Singapore"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.dbs.com/iwov-resources/flp/images/dbs_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF3333": "#FF3333",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#FF3333": "#FF3333",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://dbs.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.dbs.com/iwov-resources/flp/images/dbs_logo.svg",
+    "monoInkScale": 1.58385
+  },
+  {
+    "name": "macquarie",
+    "slug": "macquarie",
+    "label": "Macquarie",
+    "integrationNames": ["Macquarie"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.macquarie.com/assets/macq/site-wide-assets/common-icons/macquarie-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://macquarie.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.macquarie.com/assets/macq/site-wide-assets/common-icons/macquarie-logo.svg"
+  },
+  {
+    "name": "bca",
+    "slug": "bca",
+    "label": "BCA",
+    "integrationNames": ["BCA", "Bank Central Asia"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://pustaka.bca.co.id/assets-awan/bcacoid/general/images/breadcrumb/logo-bca-logo-only-light.svg?v=1",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005CAA": "#3880BD"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005CAA": "#3880BD"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bca.co.id/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://pustaka.bca.co.id/assets-awan/bcacoid/general/images/breadcrumb/logo-bca-logo-only-light.svg?v=1"
+  },
+  {
+    "name": "emiratesNbd",
+    "slug": "emirates-nbd",
+    "label": "Emirates NBD",
+    "integrationNames": ["Emirates NBD"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.emiratesnbd.com/-/media/enbd/images/logos/horizontal_logo.svg?la=en&hash=A33654369475CF9B1FA76FEB570F9B9D",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1A328C": "#6979B4"
+    },
+    "logoDarkColors": {
+      "#1A328C": "#6979B4"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://emiratesnbd.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.emiratesnbd.com/-/media/enbd/images/logos/horizontal_logo.svg?la=en&hash=A33654369475CF9B1FA76FEB570F9B9D"
+  },
+  {
+    "name": "firstAbuDhabiBank",
+    "slug": "first-abu-dhabi-bank",
+    "label": "First Abu Dhabi Bank",
+    "integrationNames": ["First Abu Dhabi Bank", "FAB"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.bankfab.com/-/media/project/fab2/fab2/data/media/img/fab-logo.svg?iar=0&hash=A347BC84EEF1BA82ED1A74E455D9E992",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#DA291C": "#DE4337"
+    },
+    "logoDarkColors": {
+      "#003B71": "#5980A3",
+      "#DA291C": "#DE4337"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bankfab.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bankfab.com/-/media/project/fab2/fab2/data/media/img/fab-logo.svg?iar=0&hash=A347BC84EEF1BA82ED1A74E455D9E992"
+  },
+  {
+    "name": "fisherInvestments",
+    "slug": "fisher-investments",
+    "label": "Fisher Investments",
+    "integrationNames": ["Fisher Investments"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Fisher_Investments_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004A3D": "#53857C"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004A3D": "#53857C"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fisherinvestments.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Fisher_Investments_Logo.svg"
+  },
+  {
+    "name": "interactiveBrokers",
+    "slug": "interactive-brokers",
+    "label": "Interactive Brokers",
+    "integrationNames": ["Interactive Brokers"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Interactive_Brokers_Logo_%282014%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#D81222": "#DF3F4C",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#960B1A": "#BB606A"
+    },
+    "logoDarkColors": {
+      "#D81222": "#DF3F4C",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#960B1A": "#BB606A"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://interactivebrokers.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Interactive_Brokers_Logo_%282014%29.svg",
+    "monoInkScale": 1.19718
+  },
+  {
+    "name": "aresManagement",
+    "slug": "ares-management",
+    "label": "Ares Management",
+    "integrationNames": ["Ares Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/86/Ares_Management_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0065A4": "#3082B5",
+      "#56A0D3": "#56A0D3"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0065A4": "#3082B5",
+      "#56A0D3": "#56A0D3"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://aresmgmt.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/8/86/Ares_Management_logo.svg",
+    "monoInkScale": 1.58385
+  },
+  {
+    "name": "tpg",
+    "slug": "tpg",
+    "label": "TPG",
+    "integrationNames": ["TPG"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fe/TPG_Capital_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#9FA1A4": "#9FA1A4",
+      "#111111": "#F5F7FA",
+      "#003767": "#5C7F9E"
+    },
+    "logoDarkColors": {
+      "#9FA1A4": "#9FA1A4",
+      "#111111": "#F5F7FA",
+      "#003767": "#5C7F9E"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://tpg.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/fe/TPG_Capital_logo.svg",
+    "monoInkScale": 2.19828
+  },
+  {
+    "name": "berkshireHathaway",
+    "slug": "berkshire-hathaway",
+    "label": "Berkshire Hathaway",
+    "integrationNames": ["Berkshire Hathaway"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/23/Berkshire_Hathaway.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2E3192": "#7476B7",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2E3192": "#7476B7",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://berkshirehathaway.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/23/Berkshire_Hathaway.svg",
+    "searchAliases": [
+      "Berkshire Hathaway",
+      "GEICO",
+      "NetJets",
+      "Duracell",
+      "Dairy Queen"
+    ],
+    "searchAliasSources": [
+      {
+        "aliases": [
+          "Berkshire Hathaway",
+          "GEICO",
+          "NetJets",
+          "Duracell",
+          "Dairy Queen"
+        ],
+        "url": "https://www.berkshirehathaway.com/subs/sublinks.html",
+        "checkedOn": "2026-11-07"
+      }
+    ]
+  },
+  {
+    "name": "aig",
+    "slug": "aig",
+    "label": "AIG",
+    "integrationNames": ["AIG"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/50/AIG_new_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#233776": "#6E7BA5"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#233776": "#6E7BA5"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://aig.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/50/AIG_new_logo.svg"
+  },
+  {
+    "name": "metlife",
+    "slug": "metlife",
+    "label": "MetLife",
+    "integrationNames": ["MetLife"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c6/MetLife_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1563A9": "#4080B9",
+      "#231F20": "#F5F7FA",
+      "#239DE0": "#239DE0",
+      "#99D538": "#99D538",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1563A9": "#4080B9",
+      "#231F20": "#F5F7FA",
+      "#239DE0": "#239DE0",
+      "#99D538": "#99D538",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://metlife.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c6/MetLife_logo.svg",
+    "monoInkScale": 1.32813
+  },
+  {
+    "name": "prudentialFinancial",
+    "slug": "prudential-financial",
+    "label": "Prudential Financial",
+    "integrationNames": ["Prudential Financial"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/7/7e/Prudential_Financial.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007AC1": "#0E81C4",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#007AC1": "#0E81C4",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://prudential.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/7/7e/Prudential_Financial.svg"
+  },
+  {
+    "name": "allstate",
+    "slug": "allstate",
+    "label": "Allstate",
+    "integrationNames": ["Allstate"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/30/Allstate_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0033A0": "#597AC1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0033A0": "#597AC1"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://allstate.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/30/Allstate_logo.svg"
+  },
+  {
+    "name": "travelers",
+    "slug": "travelers",
+    "label": "Travelers",
+    "integrationNames": ["Travelers"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/9/9e/The_Travelers_Companies.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E31B23": "#E6363D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E31B23": "#E6363D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://travelers.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/9/9e/The_Travelers_Companies.svg",
+    "monoInkScale": 1.28788
+  },
+  {
+    "name": "massmutual",
+    "slug": "massmutual",
+    "label": "MassMutual",
+    "integrationNames": ["MassMutual"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4e/MassMutual_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002F6C": "#617EA4",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#002F6C": "#617EA4",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://massmutual.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/4e/MassMutual_logo.svg"
+  },
+  {
+    "name": "theHartford",
+    "slug": "the-hartford",
+    "label": "The Hartford",
+    "integrationNames": ["The Hartford"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/0/0b/The_Hartford_Financial_Services_Group_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://thehartford.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/0/0b/The_Hartford_Financial_Services_Group_logo.svg"
+  },
+  {
+    "name": "tiaa",
+    "slug": "tiaa",
+    "label": "TIAA",
+    "integrationNames": ["TIAA"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/65/TIAA_logo_%282016%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#14ADE2": "#14ADE2",
+      "#0E92C9": "#0E92C9",
+      "#0064A1": "#3282B3",
+      "#0078B4": "#1483BA",
+      "#FFFFFF": "#FFFFFF",
+      "#00609E": "#3782B3",
+      "#14B1E7": "#14B1E7",
+      "#9DDCF9": "#9DDCF9",
+      "#009EDB": "#009EDB",
+      "#111111": "#F5F7FA",
+      "#087CB6": "#1683BA",
+      "#005495": "#4280B1",
+      "#0082BD": "#0383BE",
+      "#13A3D8": "#13A3D8"
+    },
+    "logoDarkColors": {
+      "#14ADE2": "#14ADE2",
+      "#0E92C9": "#0E92C9",
+      "#0064A1": "#3282B3",
+      "#0078B4": "#1483BA",
+      "#FFFFFF": "#FFFFFF",
+      "#00609E": "#3782B3",
+      "#14B1E7": "#14B1E7",
+      "#9DDCF9": "#9DDCF9",
+      "#009EDB": "#009EDB",
+      "#111111": "#F5F7FA",
+      "#087CB6": "#1683BA",
+      "#005495": "#4280B1",
+      "#0082BD": "#0383BE",
+      "#13A3D8": "#13A3D8"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://tiaa.org/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/TIAA_logo_%282016%29.svg"
+  },
+  {
+    "name": "marsh",
+    "slug": "marsh",
+    "label": "Marsh",
+    "integrationNames": ["Marsh", "Marsh McLennan", "Marsh & McLennan"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Marsh_h_rgb_c.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002C77": "#617CAB"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002C77": "#617CAB"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://www.marsh.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Services & consulting"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Marsh_h_rgb_c.svg",
+    "searchAliasSources": [
+      {
+        "aliases": ["Marsh McLennan", "Marsh & McLennan"],
+        "url": "https://www.marsh.com/en/home.html",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": ["Marsh McLennan", "Marsh & McLennan"]
+  },
+  {
+    "name": "hiscox",
+    "slug": "hiscox",
+    "label": "Hiscox",
+    "integrationNames": ["Hiscox"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/3/33/Hiscox_%28logo%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EE2D24": "#EE2D24",
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EE2D24": "#EE2D24",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://hiscox.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/3/33/Hiscox_%28logo%29.svg",
+    "monoInkScale": 1.31443
+  },
+  {
+    "name": "intesaSanpaolo",
+    "slug": "intesa-sanpaolo",
+    "label": "Intesa Sanpaolo",
+    "integrationNames": ["Intesa Sanpaolo"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Intesa_Sanpaolo_-_logo_%28Italy%2C_2007-%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#F17321": "#F17321",
+      "#0F6735": "#458962",
+      "#111111": "#F5F7FA",
+      "#184B8D": "#597DAD",
+      "#DDB314": "#DDB314"
+    },
+    "logoDarkColors": {
+      "#F17321": "#F17321",
+      "#0F6735": "#458962",
+      "#111111": "#F5F7FA",
+      "#184B8D": "#597DAD",
+      "#DDB314": "#DDB314"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://intesasanpaolo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Intesa_Sanpaolo_-_logo_%28Italy%2C_2007-%29.svg"
+  },
+  {
+    "name": "danskeBank",
+    "slug": "danske-bank",
+    "label": "Danske Bank",
+    "integrationNames": ["Danske Bank"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Danske_Bank_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002346": "#6A7E93"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002346": "#6A7E93"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://danskebank.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Danske_Bank_Logo.svg"
+  },
+  {
+    "name": "intercontinentalExchange",
+    "slug": "intercontinental-exchange",
+    "label": "Intercontinental Exchange",
+    "integrationNames": ["Intercontinental Exchange", "ICE"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Intercontinental_Exchange_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#73C7E8": "#73C7E8"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#73C7E8": "#73C7E8"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ice.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Intercontinental_Exchange_logo.svg"
+  },
+  {
+    "name": "cmeGroup",
+    "slug": "cme-group",
+    "label": "CME Group",
+    "integrationNames": ["CME Group"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f0/CME_Group_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0071BA": "#1D81C2",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0071BA": "#1D81C2",
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://cmegroup.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f0/CME_Group_Logo.svg",
+    "monoInkScale": 1.58385
+  },
+  {
+    "name": "sPGlobal",
+    "slug": "s-p-global",
+    "label": "S&P Global",
+    "integrationNames": ["S&P Global"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/S%26P_Global_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D6002A": "#E03D5D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D6002A": "#E03D5D"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://spglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ee/S%26P_Global_logo.svg"
+  },
+  {
+    "name": "msci",
+    "slug": "msci",
+    "label": "MSCI",
+    "integrationNames": ["MSCI"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e1/MSCI_logo_2019.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0626A9": "#6276C9",
+      "#111111": "#F5F7FA",
+      "#011B2B": "#F5F7FA",
+      "#1226AA": "#6975C9"
+    },
+    "logoDarkColors": {
+      "#0626A9": "#6276C9",
+      "#111111": "#F5F7FA",
+      "#011B2B": "#F5F7FA",
+      "#1226AA": "#6975C9"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://msci.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e1/MSCI_logo_2019.svg",
+    "monoInkScale": 1.08051
+  },
+  {
+    "name": "morningstar",
+    "slug": "morningstar",
+    "label": "Morningstar",
+    "integrationNames": ["Morningstar"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/67/Morningstar_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EA293C": "#EB2E41"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EA293C": "#EB2E41"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://morningstar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/67/Morningstar_Logo.svg"
+  },
+  {
+    "name": "factset",
+    "slug": "factset",
+    "label": "FactSet",
+    "integrationNames": ["FactSet"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/41/FactSet_wordmark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004D97": "#4980B5"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004D97": "#4980B5"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://factset.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/41/FactSet_wordmark.svg"
+  },
+  {
+    "name": "equifax",
+    "slug": "equifax",
+    "label": "Equifax",
+    "integrationNames": ["Equifax"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/18/Equifax_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#B32541": "#C5586E",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#B32541": "#C5586E",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://equifax.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/18/Equifax_Logo.svg"
+  },
+  {
+    "name": "transunion",
+    "slug": "transunion",
+    "label": "TransUnion",
+    "integrationNames": ["TransUnion"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/ba/TransUnion_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00A6CA": "#00A6CA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00A6CA": "#00A6CA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://transunion.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Databases & analytics"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/ba/TransUnion_logo.svg"
+  },
+  {
+    "name": "fico",
+    "slug": "fico",
+    "label": "FICO",
+    "integrationNames": ["FICO"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Fair_Isaac_Corporation_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0A6DE6": "#1F79E8"
+    },
+    "logoDarkColors": {
+      "#0A6DE6": "#1F79E8"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fico.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Fair_Isaac_Corporation_logo.svg"
+  },
+  {
+    "name": "fis",
+    "slug": "fis",
+    "label": "FIS",
+    "integrationNames": ["FIS"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/83/FIS_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4BCD3E": "#4BCD3E"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4BCD3E": "#4BCD3E"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://fisglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments", "Business software"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/83/FIS_logo.svg"
+  },
+  {
+    "name": "globalPayments",
+    "slug": "global-payments",
+    "label": "Global Payments",
+    "integrationNames": ["Global Payments"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/10/Global_Payments_Inc._logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003C71": "#587FA2"
+    },
+    "logoDarkColors": {
+      "#003C71": "#587FA2"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://globalpayments.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/10/Global_Payments_Inc._logo.svg"
+  },
+  {
+    "name": "gocardless",
+    "slug": "gocardless",
+    "label": "GoCardless",
+    "integrationNames": ["GoCardless"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/65/GoCardless-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1C1B18": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1C1B18": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://gocardless.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/GoCardless-Logo.svg"
+  },
+  {
+    "name": "ocbc",
+    "slug": "ocbc",
+    "label": "OCBC",
+    "integrationNames": ["OCBC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#ED1C24": "#EE272F"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#ED1C24": "#EE272F"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://ocbc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg"
+  },
+  {
+    "name": "bankMandiri",
+    "slug": "bank-mandiri",
+    "label": "Bank Mandiri",
+    "integrationNames": ["Bank Mandiri"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFB700": "#FFB700"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFB700": "#FFB700",
+      "#003A70": "#597FA2"
+    },
+    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "brandWebsite": "https://bankmandiri.co.id/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg"
+  },
+  {
+    "name": "nab",
+    "slug": "nab",
+    "label": "NAB",
+    "integrationNames": ["NAB", "National Australia Bank"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nab.com.au/etc.clientlibs/nab/clientlibs/clientlib-generated-components/resources/images/svg/nab-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#A50000": "#C55B5B",
+      "#FFFFFF": "#FFFFFF",
+      "#D10000": "#DD4444",
+      "#E90000": "#ED2B2B",
+      "#111111": "#F5F7FA",
+      "#ED0000": "#F02525",
+      "#C80000": "#D84A4A"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "brandWebsite": "https://nab.com.au/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null
+  },
+  {
+    "name": "cimb",
+    "slug": "cimb",
+    "label": "CIMB",
+    "integrationNames": ["CIMB"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.cimb.com/content/dam/cimbph/images/global/CIMB-logo-footer-without-background.svg",
+    "markLightColors": {
+      "#FFFFFF": "#7B0D16"
+    },
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#DC241F": "#E1403C",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {},
+    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://cimb.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": ["Finance & payments"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null
   }
 ]

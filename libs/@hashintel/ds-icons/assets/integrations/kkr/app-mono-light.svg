@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kkr-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="kkr-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="kkr-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kkr-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#kkr-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#kkr-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="kkr-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.231614951731 -0.779167514009 -0.0786575706256 0 1.08944003637" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#kkr-app-mono-light-mono)"><defs><clipPath id="kkr-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#kkr-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.18564 -0.16504 115.37129 28.33009" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+                            <path d="M25.8164 28L12.7227 13.2658L4.51915 19.4915V28H0V0H4.51915V14.4983L23.5967 0H30.1096L16.1839 10.5951L31.6148 28H25.8164Z" fill="#49004B" />
+                            <path d="M68.1026 28L55.0098 13.2658L46.8035 19.4915V28H42.2835V0H46.8035V14.4983L65.8839 0H72.3958L58.4692 10.5951L73.9037 28H68.1026Z" fill="#49004B" />
+                            <path d="M109.764 28L102.391 17.3247H88.6136V28H84.1027V0H105.589C111.311 0 114.768 3.40303 114.768 8.81712C114.768 13.7641 111.759 16.398 107.695 17.0916L115 28.0009H109.764V28ZM110.144 8.81618C110.144 5.71985 108.295 4.2118 104.503 4.2118H88.6136V13.1063H104.909C108.295 13.1063 110.144 11.5605 110.144 8.81618Z" fill="#49004B" />
+                        </svg></g></g></svg>

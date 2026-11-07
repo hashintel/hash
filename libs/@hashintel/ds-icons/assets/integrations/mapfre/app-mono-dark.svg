@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mapfre-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="mapfre-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mapfre-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mapfre-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mapfre-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mapfre-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="mapfre-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.274443398232 -0.923245147769 -0.0932023205662 0 1.29089086657" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#mapfre-app-mono-dark-mono)"><defs><clipPath id="mapfre-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mapfre-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.08717 -0.09873 54.07406 27.4454" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<path d="M35.4448 8.52111C35.4448 3.79033 31.7 0 26.9909 0C22.2818 0 18.5001 3.75433 18.5001 8.52111C18.5001 12.9504 20.8731 17.3062 25.1734 20.8716L25.0252 20.9465C12.9763 14.8643 7.71169 12.8004 4.22617 12.8004C1.74202 12.8004 0 14.5643 0 17.0422C0 22.223 6.2289 27.2538 12.643 27.2538C23.5424 27.2538 35.4448 17.4562 35.4448 8.52111Z" fill="#FF002D" />
+<path d="M49.7186 12.8019C45.7147 12.8019 40.6723 15.2423 28.6604 23.0135C34.4064 26.0913 37.8548 27.2553 41.2663 27.2553C47.6804 27.2553 53.9093 22.2245 53.9093 17.0437C53.9093 14.5658 52.1673 12.8019 49.7201 12.8019H49.7186Z" fill="#FF002D" />
+</svg></g></g></svg>

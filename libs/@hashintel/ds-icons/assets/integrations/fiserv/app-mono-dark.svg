@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fiserv-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="fiserv-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fiserv-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fiserv-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#fiserv-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#fiserv-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="fiserv-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424080427671 -1.42663368707 -0.14401978776 0 1.9947339025" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#fiserv-app-mono-dark-mono)"><defs><clipPath id="fiserv-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#fiserv-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="fiserv-app-mono-dark-a" viewBox="-0.11571 -0.08757 71.91142 36.17514" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><rect x="67.1" y="31.11" width="4.58" height="4.58" fill="#FF6600" /><polygon points="57.82 10.73 60.55 31.18 63.27 10.73 67.51 10.73 63.54 35.68 57.5 35.68 53.57 10.73 57.82 10.73" fill="#FF6600" /><path d="M2.35,10.73H0v3.32H2.35v21.64H6.49V14.04h2.91v-3.32h-2.91V5.66c0-.74,.15-1.31,.51-1.69,.36-.39,.91-.57,1.65-.57h.75V0h-1.5c-1.84,0-3.61,.39-4.45,1.19-.84,.8-1.09,2.04-1.09,3.81v5.72Z" fill="#FF6600" /><rect x="10.69" y="10.73" width="4.15" height="24.95" fill="#FF6600" /><path d="M34,24.62h8.65v-7.69c-.01-4.6-2.22-6.49-6.41-6.49s-6.4,1.88-6.4,6.52v12.64c.01,4.22,2.57,6.4,6.4,6.4s6.4-1.8,6.42-6.4v-2h-4.01s0,1.78,0,2.37c0,1.69-.63,2.86-2.33,2.86s-2.32-1.18-2.32-2.86v-5.35Zm0-8.52c0-1.41,.37-2.87,2.31-2.87s2.33,1.44,2.33,2.86v5.16h-4.64v-5.16Z" fill="#FF6600" /><path d="M24.17,21.5c-3.13-2.75-3.39-3.13-3.39-5.16,0-1.74,.15-2.79,1.71-2.79s1.76,1.04,1.76,2.81v2.3h4v-3.76c-.01-2.95-2.28-4.45-5.85-4.45s-5.8,1.17-5.82,5.89c0,.8,0,.8,0,.49,0,1.48,.01,3.83,3.68,6.98l1.05,.9c2.7,2.28,3,2.55,2.99,5.26,0,1.67-.1,2.94-1.86,2.94s-1.86-1.28-1.86-2.06v-3.19h-4.2v3.29c0,4.05,2.64,5.06,6.06,5.06s6.06-1.01,6.06-6.23v-.43c0-3.64-.67-4.62-4.33-7.84Z" fill="#FF6600" /><path d="M48.2,13.3v-2.57h-3.78v24.95h4.08V18.29c0-1.34,.44-2.23,1.2-2.75,.72-.5,1.61-.67,2.74-.68v-4.42c-2.16,.04-3.1,.47-4.2,2.76l-.04,.09Z" fill="#FF6600" /></svg></g></g></svg>

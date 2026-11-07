@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bny-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="bny-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="bny-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bny-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#bny-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#bny-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="bny-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241108906171 -0.81110578407 -0.0818817639959 0 1.13409645424" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1.84783"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#bny-app-mono-dark-mono)"><defs><clipPath id="bny-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#bny-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.03187 2.07895 18.1357 13.8421" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+  <defs><clipPath id="bny-app-mono-dark-symbol-crop"><rect x="0.0" y="0.0" width="19.74" height="18.0" /></clipPath></defs><g clip-path="url(#bny-app-mono-dark-symbol-crop)"><g clip-path="url(#bny-app-mono-dark-clip0_3941_12244)" fill="none">
+    <path d="M18.086 8.99809L7.97229 12.8585L0 15.9029L5.11216 8.99809L0 2.09326L7.97229 5.13763L18.086 8.99809Z" fill="#2D9BAD" />
+    <path d="M20.8613 0H33.9661C39.0201 0 40.277 2.19357 40.277 4.15273V4.41318C40.277 6.60965 38.3538 7.93794 37.027 8.10579C39.0201 8.38939 41.1557 9.85949 41.1557 12.6666V12.927C41.1557 15.3087 39.7068 18 34.036 18H20.8584V0H20.8613ZM26.4157 3.70418V6.79775H32.5899C34.0621 6.79775 34.5131 6.08875 34.5131 5.26109C34.5131 4.41318 34.0389 3.70129 32.5899 3.70129H26.4157V3.70418ZM26.4157 10.4614V13.8502H32.9681C34.6993 13.8502 35.1765 12.9791 35.1765 12.0791V12.0646C35.1765 11.1936 34.7022 10.4614 32.9681 10.4614H26.4157Z" fill="#00243D" />
+    <path d="M49.5093 0L56.9549 10.0534V0H62.5093V18H55.9686L48.6218 8.07974V18H43.0732V0H49.5122H49.5093Z" fill="#00243D" />
+    <path d="M70.2412 10.5077L62.4609 0H69.3305L73.2323 5.26977L77.134 0H84.0036L76.2233 10.5077V18H70.2412V10.5077Z" fill="#00243D" />
+  </g>
+  <defs>
+    <clipPath id="bny-app-mono-dark-clip0_3941_12244">
+      <rect width="84" height="18" fill="#FFFFFF" />
+    </clipPath>
+  </defs>
+</g></svg></g></g></svg>
