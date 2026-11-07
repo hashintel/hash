@@ -19042,7 +19042,7 @@ export const integrationIconCatalog = [
     logoNotes:
       "Sourced outlined brand artwork, with colors adapted for the preview theme.",
     logoRaster: false,
-    lastCheckedAutomated: "2026-11-06",
+    lastCheckedAutomated: "2026-11-07",
     lastCheckedManually: null,
   },
   {

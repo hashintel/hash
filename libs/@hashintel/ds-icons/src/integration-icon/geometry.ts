@@ -9823,7 +9823,7 @@ export const integrationGeometry: Readonly<
   },
   barrys: {
     ...barrys,
-    markViewBox: "0 0 79 12.16348",
+    markViewBox: "20.1006 0 58.8994 12.16348",
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
