@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="next-computer-legacy-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="next-computer-legacy-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="next-computer-legacy-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#next-computer-legacy-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#next-computer-legacy-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#next-computer-legacy-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="next-computer-legacy-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#next-computer-legacy-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.33691 -0.35256 179.73381 219.10512" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+ <g transform="matrix(1.3333 0 0 -1.3333 -13.135 231.2)">
+  <path d="m17.444 130.65 82.617 42.749 44.087-80.458-82.708-42.66-43.996 80.369" />
+  <path d="m16.984 127.05 43.066-78.748-11.3-36.541-38.898 71.011 7.132 44.278" />
+  <path d="m127.85 49.649-77.43-40.05 11.947 38.701 80.488 41.489-15.004-40.141" />
+  <path d="m52.732 143.79 4.4457 2.249 19.081-34.829-41.215 10.172 12.965-23.671-5.0008-2.5211-18.71 34.111 41.957-10.352-13.523 24.841" fill="#F14729" />
+  <path d="m118.68 127.86-34.733-17.822 2.2227-4.139 15.188 7.83 16.209-29.519 4.54 2.3383-16.209 29.52 15.005 7.741-2.223 4.051" fill="#E1038C" />
+  <path d="m61.904 58.289 5.0008-1.3485 6.7602 22.23 23.527-6.5715 1.3875 4.8594-23.524 6.5715 6.4828 21.6-5.0008 1.349-6.4828-21.6-23.064 6.4797-1.4816-4.859 23.155-6.4801-6.7602-22.23" fill="#17AE65" />
+  <path d="m90.994 146.34-16.958-8.762c-1.7593 5.76 1.2961 13.86 7.5953 17.191 6.2965 3.149 14.541 1.44 18.707-3.6l-9.3449-4.829 1.2305-4.592 15.468 7.999c-5.087 9.914-18.005 14.112-28.101 8.891-9.7242-5.04-13.892-17.73-8.6141-27.359 5.2809-9.63 18.063-13.771 28.156-8.64 7.873 4.05 11.764 12.148 10.931 20.071l-5.186-0.451c0.924-6.121-2.04-12.42-7.9677-15.481-7.1293-3.689-17.134-0.358-20.93 6.569l16.243 8.401-1.2305 4.592" fill="#FDE012" />
+ </g>
+</svg></g></svg>

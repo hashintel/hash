@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="palm-legacy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="palm-legacy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="palm-legacy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#palm-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#palm-legacy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#palm-legacy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="palm-legacy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#palm-legacy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="palm-legacy-app-dark-Layer_1" x="11.35483870967742" y="11.35483870967742" viewBox="-179.04143 170.94716 301.52571 117.97369" xml:space="preserve" fill="#F5F7FA" width="41.29032258064516" height="41.29032258064516">
+<path d="M-129.103,235.747c0,4.429-3.69,8.039-8.229,8.039h-24.71v-32.11h24.71c4.539,0,8.229,3.584,8.229,8.03V235.747z   M-137.332,195.612H-178.5v92.728h16.458v-28.502h24.71c13.647,0,24.698-10.798,24.698-24.091v-16.039  C-112.634,206.406-123.684,195.612-137.332,195.612" />
+<rect x="-17.959" y="171.528" width="16.468" height="88.31" />
+<path d="M97.302,195.612h-12.38c-6.323,0-12.07,2.337-16.439,6.18c-4.377-3.843-10.15-6.18-16.452-6.18H39.677  c-13.678,0-24.715,10.794-24.715,24.094v40.132H31.42v-40.132c0-4.448,3.711-8.03,8.257-8.03H52.03c4.516,0,8.225,3.584,8.225,8.03  v40.132h16.424v-40.132c0-4.448,3.705-8.03,8.241-8.03h12.382c4.522,0,8.227,3.584,8.227,8.03v40.132H122v-40.132  C122.004,206.406,110.916,195.612,97.302,195.612z" />
+<path d="M-50.907,243.786h-24.678c-4.544,0-8.224-3.61-8.224-8.039v-16.039c0-4.448,3.68-8.03,8.224-8.03h24.678V243.786z   M-75.584,195.612c-13.661,0-24.709,10.794-24.709,24.094v16.039c0,13.295,11.048,24.093,24.709,24.093h24.678h16.491v-64.226  h-16.491H-75.584" />
+</svg></g></svg>

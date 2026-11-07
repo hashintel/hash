@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="national-semiconductor-legacy-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="national-semiconductor-legacy-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="national-semiconductor-legacy-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#national-semiconductor-legacy-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#national-semiconductor-legacy-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#national-semiconductor-legacy-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="national-semiconductor-legacy-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#national-semiconductor-legacy-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="17.36822 17.55875 157.83298 194.13448" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="national-semiconductor-legacy-app-light-mark-crop"><rect x="0.0" y="0.0" width="193.4645648" height="229.25197" /></clipPath></defs><g clip-path="url(#national-semiconductor-legacy-app-light-mark-crop)"><defs id="national-semiconductor-legacy-app-light-defs2386" />
+  <g transform="translate(-89.741428,-405.5916)" id="national-semiconductor-legacy-app-light-layer1">
+    <g transform="translate(17.716525,17.800532)" id="national-semiconductor-legacy-app-light-g2541">
+      <path d="M 234.10629,410.30538 C 261.48137,431.38638 243.19147,521.96314 199.73809,568.4411 L 139.19023,502.60939 C 119.40606,534.21008 113.90717,575.8047 127.71423,580.5566 C 138.77182,584.3638 155.92604,565.1536 164.71235,551.4601 L 168.41814,555.6741 C 153.23634,582.6604 123.6498,610.5975 102.67021,594.513 C 75.295177,573.462 93.585077,482.85527 136.91891,436.37729 L 197.76563,502.20902 C 217.54981,470.6079 222.92915,429.01369 209.12209,424.26179 C 198.00472,420.45419 180.91028,439.6648 172.12397,453.35835 L 168.53768,449.14431 C 183.65971,422.15195 213.30606,394.26299 234.10629,410.30538" id="national-semiconductor-legacy-app-light-path16" fill="#0075BE" fill-rule="nonzero" stroke="none" />
+      </g>
+  </g>
+</g></svg></g></svg>

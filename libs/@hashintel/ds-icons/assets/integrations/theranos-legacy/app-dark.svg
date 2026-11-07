@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="theranos-legacy-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="theranos-legacy-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="theranos-legacy-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#theranos-legacy-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#theranos-legacy-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#theranos-legacy-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="theranos-legacy-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#theranos-legacy-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" viewBox="97.8334 7.01044 18.58963 18.68941" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><defs><linearGradient x1="49.69%" y1="-.17%" x2="49.69%" y2="99.95%" id="theranos-legacy-app-dark-a"><stop stop-color="#51C0B0" offset="0%" /><stop stop-color="#3ABCA9" offset="15.72%" /><stop stop-color="#00A580" offset="100%" /></linearGradient><path id="theranos-legacy-app-dark-b" d="M9.3.15C4.28.15.23 4.23.23 9.3c0 5.06 4.05 9.15 9.07 9.15 3.75 0 6.97-2.35 8.4-5.6.45-1.06.75-2.27.75-3.55 0-1.89-.6-3.63-1.57-5.14C15.15 1.74 12.45.15 9.3.15z" /><linearGradient x1="49.45%" y1="100.29%" x2="49.5%" y2="1.065%" id="theranos-legacy-app-dark-c"><stop stop-color="#FFFFFF" stop-opacity="0" offset="0%" /><stop stop-color="#FFFFFF" offset="66.04%" /></linearGradient></defs><g fill="none" fill-rule="evenodd"><path d="M107.05 7.2c-5.02 0-9.07 4.08-9.07 9.15 0 5.06 4.05 9.15 9.07 9.15 3.75 0 6.98-2.35 8.4-5.6.45-1.06.75-2.27.75-3.55 0-1.89-.6-3.63-1.57-5.14-1.73-2.42-4.43-4.01-7.58-4.01z" fill="url(#theranos-legacy-app-dark-a)" /><g transform="translate(97.75 7.05)"><mask id="theranos-legacy-app-dark-d" fill="#FFFFFF"><use ns1:href="#theranos-legacy-app-dark-b" /></mask><path fill="url(#theranos-legacy-app-dark-c)" mask="url(#theranos-legacy-app-dark-d)" d="M0-18.15h19.2v31.53H0z" /></g></g></svg></g></svg>

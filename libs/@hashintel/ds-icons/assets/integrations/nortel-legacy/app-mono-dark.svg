@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nortel-legacy-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="nortel-legacy-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="nortel-legacy-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nortel-legacy-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#nortel-legacy-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#nortel-legacy-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="nortel-legacy-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.306264949433 -1.03029488163 -0.104009075019 0 1.44056890608" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#nortel-legacy-app-mono-dark-mono)"><defs><clipPath id="nortel-legacy-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#nortel-legacy-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" id="nortel-legacy-app-mono-dark-Layer_1" x="11.35483870967742" y="11.35483870967742" viewBox="184.1 -1.61461 265.01429 241.84923" xml:space="preserve" fill="#111111" color="black" width="41.29032258064516" height="41.29032258064516">
+<g>
+	<path d="M374.92,65.05c-38.64,9.75-96.48,41.13-130.2,72.43c17.11,47.84,80.93,74.09,132.62,43.37l33.1,28.39   c-52.17,35.65-99.26,34.35-134.57,19.8c-23.45,7.19-68.58,14.85-80.52-10.07c18.1,10.41,43.67,6.53,63.23,1.55   c-20.92-12.21-37.26-29.93-47.49-48.28c-6.82,8.43-18.9,25.42-17.68,43.62c-16.92-17.4-2.26-43.14,10.24-58.69   C178.38,95.61,203.6,32.49,250.01,0l35.17,30.29c-29.93,15.99-49.81,50.57-44.95,89.13c29.32-26.19,81.09-55.94,120.42-66   c-16.7-10.07-34.39-10.04-52.51-3.33l-18.24-15.5c35.19-21.44,77.1-12.5,100.44,12.52c27.27-3.48,48.97-0.75,57.38,18.13   c-9.8-8.42-26.83-8.87-47.2-5.75c26.52,40.58,11.62,93.11-29.07,115.82L353.2,159.4C389.02,139.26,398.11,90.62,374.92,65.05" fill="#005E95" />
+	</g>
+</svg></g></g></svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="boac-legacy-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="boac-legacy-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="boac-legacy-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#boac-legacy-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#boac-legacy-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#boac-legacy-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="boac-legacy-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#boac-legacy-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.08369 0.63837 50.03956 21.44014" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><defs><clipPath id="boac-legacy-app-light-mark-crop"><rect x="0.0" y="0.0" width="51.84602579999999" height="21.994822" /></clipPath></defs><g clip-path="url(#boac-legacy-app-light-mark-crop)"><defs id="boac-legacy-app-light-defs21">
+
+
+
+</defs>
+  <g transform="translate(-209.76276,-360.059)" id="boac-legacy-app-light-g12" fill="#000000" fill-opacity="1" fill-rule="evenodd" stroke-width="0" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="2.61310005">
+	<path d="M 289.875,370.246 C 292.117,371.258 293.621,373.102 293.621,375.203 C 293.621,378.387 290.168,380.984 285.934,380.984 L 267.504,380.984 L 267.504,360.793 L 285.336,360.793 C 289.574,360.793 293.027,363.145 293.027,366.027 C 293.027,367.754 291.785,369.289 289.875,370.246 z M 311.344,360.059 C 319.59,360.059 325.555,363.383 325.555,370.875 C 325.555,378.367 317.359,381.691 311.344,381.691 C 305.328,381.691 297.133,377.809 297.133,370.875 C 297.133,363.941 303.102,360.059 311.344,360.059 z M 335.938,360.793 L 347.555,360.793 L 357.004,380.984 L 347.047,380.984 L 345.512,376.805 L 336.73,376.805 L 334.914,380.984 L 325.277,380.984 L 335.938,360.793 z M 371.48,360.059 C 378.895,360.059 384.461,362.742 385.512,368.73 L 376.473,369.191 C 375.828,366.336 373.422,365.352 371.551,365.352 C 369.371,365.352 366.465,366.789 366.465,370.711 C 366.465,374.637 369.867,376.234 371.605,376.234 C 373.031,376.234 375.508,375.297 376.348,372.699 L 385.219,373.832 C 383.395,379.246 376.637,381.691 371.48,381.691 C 365.465,381.691 357.27,377.809 357.27,370.875 C 357.27,363.941 363.238,360.059 371.48,360.059 z M 341.438,366.633 L 338.859,372.07 L 343.762,372.07 L 341.438,366.633 z M 311.414,365.352 C 313.594,365.352 316.5,366.687 316.5,370.766 C 316.5,374.844 313.207,376.234 311.469,376.234 C 309.73,376.234 306.328,374.637 306.328,370.711 C 306.328,366.789 309.234,365.352 311.414,365.352 z M 276.684,365.437 L 282.031,365.437 C 282.852,365.437 283.527,366.109 283.527,366.93 L 283.527,366.93 C 283.527,367.75 282.852,368.422 282.031,368.422 L 276.684,368.422 L 276.684,365.437 z M 276.684,372.672 L 282.699,372.672 C 283.621,372.672 284.379,373.43 284.379,374.352 L 284.379,374.352 C 284.379,375.277 283.621,376.031 282.699,376.031 L 276.684,376.031 L 276.684,372.672 z " id="boac-legacy-app-light-path14" fill="#000000" fill-opacity="1" />
+
+</g>
+  <g transform="translate(-209.76276,-360.059)" id="boac-legacy-app-light-g16" fill="#000000" fill-opacity="1" fill-rule="evenodd" stroke-width="0" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="2.61310005">
+	<path d="M 210.656,360.793 L 248.813,360.793 C 249.238,360.793 249.707,360.793 249.832,361.25 L 251.121,363.602 L 259.078,363.602 C 260.09,363.602 259.59,364.113 258.961,364.305 L 211.719,381.945 C 210.707,382.273 210.883,381.785 211.547,381.465 L 230.262,371.277 C 230.875,370.98 230.957,370.754 230.242,370.457 L 210.609,361.789 C 210.102,361.73 208.965,360.758 210.656,360.793 z " id="boac-legacy-app-light-path18" fill="#000000" fill-opacity="1" />
+
+</g>
+</g></svg></g></svg>

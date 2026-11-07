@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><defs><filter id="arthur-andersen-legacy-mark-mono-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.450371342649 -1.51507800688 -0.152948311097 0 2.11839766062" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#arthur-andersen-legacy-mark-mono-mono)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="9.67909 9.18067 63.0409 63.77118" fill="#111111" color="black" x="0.0" y="0.0" width="64" height="64">
+  <radialGradient id="arthur-andersen-legacy-mark-mono-a" cx="130.38" cy="157.17" r="30.76" fx="118.21" fy="157.38" gradientTransform="translate(-89.6 -116.4)" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#FFDB00" offset="0" />
+    <stop stop-color="#FDD603" offset=".05" />
+    <stop stop-color="#DF7531" offset="1" />
+  </radialGradient>
+  <circle cx="40.8" cy="40.8" r="30.8" fill="url(#arthur-andersen-legacy-mark-mono-a)" />
+  </svg></g></svg>
