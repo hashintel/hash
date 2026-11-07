@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mixpanel-legacy-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="mixpanel-legacy-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mixpanel-legacy-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mixpanel-legacy-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#mixpanel-legacy-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#mixpanel-legacy-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="mixpanel-legacy-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#mixpanel-legacy-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="30.0073 50.9855 51.94384 13.48859" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path fill="#7856FF" d="M43.2251 57.6914C43.2251 61.2877 40.3248 64.1879 36.7285 64.1879C33.1323 64.1879 30.232 61.2877 30.232 57.6914C30.232 54.0951 33.1323 51.1949 36.7285 51.1949C40.3248 51.1949 43.2251 54.0951 43.2251 57.6914Z M64.9188 57.8074C64.9188 60.3596 62.8306 62.4478 60.2784 62.4478C57.7262 62.4478 55.6381 60.3596 55.6381 57.8074C55.6381 55.2552 57.7262 53.1671 60.2784 53.1671C62.8306 53.1671 64.9188 55.2552 64.9188 57.8074Z M81.7401 57.8074C81.7401 58.9675 80.8121 59.8956 79.652 59.8956C78.4919 59.8956 77.5638 58.9675 77.5638 57.8074C77.5638 56.6473 78.4919 55.7193 79.652 55.7193C80.8121 55.7193 81.7401 56.6473 81.7401 57.8074Z" /></svg></g></svg>

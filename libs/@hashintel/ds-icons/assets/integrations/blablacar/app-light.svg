@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blablacar-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="blablacar-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="blablacar-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#blablacar-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#blablacar-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#blablacar-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="blablacar-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#blablacar-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0.87474 1.98031 14.32638 12.09884" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><svg width="16" height="16"><svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M15.1271 9.36988C14.7554 7.18061 12.677 5.70686 10.4851 6.07814L11.1322 2.41255L8.78992 2C8.5886 2.44017 7.70694 4.45057 7.27881 6.72013C8.1518 7.31417 8.79154 8.24755 8.98209 9.36988C9.18559 10.5682 8.83469 11.7318 8.11671 12.6012C8.29291 12.8151 8.49404 13.0134 8.72333 13.1926C9.64035 13.9092 10.75 14.1894 11.8313 14.0062C14.0233 13.6349 15.4989 11.5592 15.1271 9.36988Z" fill="#001536" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M7.23362 6.96962C7.24799 6.88611 7.26316 6.80299 7.27879 6.72013C6.44893 6.1554 5.40829 5.89721 4.34003 6.07814L4.98716 2.41255L2.64487 2C2.43621 2.45626 1.49639 4.59942 1.0886 6.96962C0.76169 8.86977 0.776832 10.9157 1.78466 12.3557C2.00124 12.6651 2.26353 12.9466 2.57826 13.1926C3.4953 13.9092 4.605 14.1894 5.68629 14.0062C6.67846 13.8381 7.52293 13.3202 8.11668 12.6012C8.05099 12.5214 7.98849 12.4397 7.92968 12.3557C6.92186 10.9157 6.90672 8.86977 7.23362 6.96962Z" fill="#0071EB" />
+</svg></svg></svg></g></svg>

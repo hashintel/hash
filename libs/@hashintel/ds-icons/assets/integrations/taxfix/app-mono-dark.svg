@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="taxfix-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="taxfix-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="taxfix-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#taxfix-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#taxfix-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#taxfix-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="taxfix-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272785457883 -0.917667730375 -0.0926392759132 0 1.28309246417" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#taxfix-app-mono-dark-mono)"><defs><clipPath id="taxfix-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#taxfix-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="21.30072 32.29609 115.75979 93.918" fill="none" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><path d="M136.886 104.253C136.886 116.128 126.956 126.057 115.081 126.057C103.207 126.057 93.4609 116.128 93.4609 104.253C93.4609 92.3785 103.207 82.4488 115.081 82.4488C126.956 82.4488 136.886 92.3785 136.886 104.253Z" fill="#154618" /><path d="M65.2709 123.572H27.8752C26.8055 123.572 26.2761 122.859 26.9892 121.8L91.3323 35.8365C91.6889 35.307 92.3912 34.9505 93.1043 34.9505H130.5C131.559 34.9505 132.099 35.6636 131.386 36.7225L67.0429 122.686C66.6864 123.216 65.9841 123.572 65.2709 123.572Z" fill="#154618" /><path d="M64.9144 54.2696C64.9144 66.1442 55.1683 76.0739 43.2938 76.0739C31.4192 76.0739 21.4895 66.1442 21.4895 54.2696C21.4895 42.395 31.4192 32.4653 43.2938 32.4653C55.1683 32.4653 64.9144 42.395 64.9144 54.2696Z" fill="#154618" /></svg></g></g></svg>

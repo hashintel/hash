@@ -50255,5 +50255,1675 @@
     "referenceUrls": [
       "https://www.surgehq.ai/"
     ]
+  },
+  "rippling": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.rippling.com/"
+    ]
+  },
+  "deel": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.deel.com/"
+    ]
+  },
+  "gusto": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.gusto.com/"
+    ]
+  },
+  "retool": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.retool.com/"
+    ]
+  },
+  "airbyte": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.airbyte.com/"
+    ]
+  },
+  "whatnot": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.whatnot.com/"
+    ]
+  },
+  "vinted": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.vinted.com/"
+    ]
+  },
+  "launchdarkly": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.launchdarkly.com/"
+    ]
+  },
+  "mixpanel": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mixpanel.com/"
+    ]
+  },
+  "fullstory": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.fullstory.com/"
+    ]
+  },
+  "strapi": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.strapi.io/"
+    ]
+  },
+  "convex": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.convex.dev/"
+    ]
+  },
+  "render": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.render.com/"
+    ]
+  },
+  "prefect": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.prefect.io/"
+    ]
+  },
+  "upstash": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.upstash.com/"
+    ]
+  },
+  "lithic": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lithic.com/"
+    ]
+  },
+  "navan": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.navan.com/"
+    ]
+  },
+  "spendesk": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.spendesk.com/"
+    ]
+  },
+  "iterable": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.iterable.com/"
+    ]
+  },
+  "klaviyo": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.klaviyo.com/"
+    ]
+  },
+  "shippo": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.goshippo.com/"
+    ]
+  },
+  "flockSafety": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.flocksafety.com/"
+    ]
+  },
+  "saronic": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.saronic.com/"
+    ]
+  },
+  "skydio": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.skydio.com/"
+    ]
+  },
+  "zipline": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.flyzipline.com/"
+    ]
+  },
+  "hadrian": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hadrian.co/"
+    ]
+  },
+  "boomSupersonic": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.boomsupersonic.com/"
+    ]
+  },
+  "hingeHealth": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hingehealth.com/"
+    ]
+  },
+  "modernHealth": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.modernhealth.com/"
+    ]
+  },
+  "omadaHealth": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.omadahealth.com/"
+    ]
+  },
+  "devotedHealth": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.devoted.com/"
+    ]
+  },
+  "benchling": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.benchling.com/"
+    ]
+  },
+  "komodoHealth": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.komodohealth.com/"
+    ]
+  },
+  "headway": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.headway.co/"
+    ]
+  },
+  "cultureAmp": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.cultureamp.com/"
+    ]
+  },
+  "hibob": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hibob.com/"
+    ]
+  },
+  "ada": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.ada.cx/"
+    ]
+  },
+  "relevanceAi": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.relevanceai.com/"
+    ]
+  },
+  "confluent": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.confluent.io/"
+    ]
+  },
+  "codat": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.codat.io/"
+    ]
+  },
+  "motive": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.gomotive.com/"
+    ]
+  },
+  "multiverse": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.multiverse.io/"
+    ]
+  },
+  "myheritage": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.myheritage.com/"
+    ]
+  },
+  "productboard": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.productboard.com/"
+    ]
+  },
+  "pave": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.pave.com/"
+    ]
+  },
+  "starburst": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.starburst.io/"
+    ]
+  },
+  "taktile": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.taktile.com/"
+    ]
+  },
+  "taxfix": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.taxfix.de/"
+    ]
+  },
+  "trustpilot": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.trustpilot.com/"
+    ]
+  },
+  "wealthfront": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "US"
+    ],
+    "countries": [
+      "US"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.wealthfront.com/"
+    ]
+  },
+  "blablacar": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.blablacar.com/"
+    ]
+  },
+  "datasnipper": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.datasnipper.com/"
+    ]
+  },
+  "coalition": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.coalitioninc.com/"
+    ]
+  },
+  "deepnote": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.deepnote.com/"
+    ]
+  },
+  "dreamGames": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dreamgames.com/"
+    ]
+  },
+  "revenuecat": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.revenuecat.com/"
+    ]
+  },
+  "materialize": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.materialize.com/"
+    ]
+  },
+  "pitch": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.pitch.com/"
+    ]
+  },
+  "collibra": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.collibra.com/"
+    ]
+  },
+  "planetscale": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.planetscale.com/"
+    ]
+  },
+  "urbanCompany": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.urbancompany.com/"
+    ]
+  },
+  "acko": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "IN"
+    ],
+    "countries": [
+      "IN"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.acko.com/"
+    ]
+  },
+  "papayaGlobal": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.papayaglobal.com/"
+    ]
+  },
+  "torq": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.torq.io/"
+    ]
+  },
+  "goat": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.goat.com/"
+    ]
+  },
+  "remote": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.remote.com/"
+    ]
+  },
+  "aurora": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.aurora.tech/"
+    ]
+  },
+  "motorway": {
+    "scope": "country",
+    "basis": "business-presence",
+    "primaryCountries": [
+      "GB"
+    ],
+    "countries": [
+      "GB"
+    ],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Provisional principal operating market based on the brand website; this is not an assertion of eligibility for every service.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.motorway.co.uk/"
+    ]
+  },
+  "cedar": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.cedar.com/"
+    ]
+  },
+  "nexthink": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nexthink.com/"
+    ]
+  },
+  "gong": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.gong.io/"
+    ]
+  },
+  "sylvera": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sylvera.com/"
+    ]
+  },
+  "flexport": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.flexport.com/"
+    ]
+  },
+  "fireblocks": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.fireblocks.com/"
+    ]
+  },
+  "ankorstore": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.ankorstore.com/"
+    ]
+  },
+  "alan": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.alan.com/"
+    ]
+  },
+  "beamery": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.beamery.com/"
+    ]
+  },
+  "complyadvantage": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.complyadvantage.com/"
+    ]
+  },
+  "printify": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.printify.com/"
+    ]
+  },
+  "commonRoom": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.commonroom.io/"
+    ]
+  },
+  "anrok": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.anrok.com/"
+    ]
+  },
+  "codaLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "historical",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.coda.io/"
+    ],
+    "relatedBrand": "superhumanDocs"
+  },
+  "superhumanDocs": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://coda.io/"
+    ]
+  },
+  "safetycultureLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "historical",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.safetyculture.com/"
+    ],
+    "relatedBrand": "mitti"
+  },
+  "mitti": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://mitti.com/"
+    ]
+  },
+  "remoteLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.remote.com/"
+    ],
+    "relatedBrand": "remote"
+  },
+  "mixpanelLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mixpanel.com/"
+    ],
+    "relatedBrand": "mixpanel"
+  },
+  "ziplineLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.flyzipline.com/"
+    ],
+    "relatedBrand": "zipline"
+  },
+  "cedarLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.cedar.com/"
+    ],
+    "relatedBrand": "cedar"
+  },
+  "paveLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.pave.com/"
+    ],
+    "relatedBrand": "pave"
+  },
+  "hibobLegacy": {
+    "scope": "global",
+    "basis": "business-presence",
+    "primaryCountries": [],
+    "countries": [],
+    "regions": [],
+    "countryCoverage": "not-enumerated",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "International brand relevance is provisional. This describes business presence and recognition, not product availability or eligibility in every country. Geographic markets have not been exhaustively enumerated. This record describes an older brand identity.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hibob.com/"
+    ],
+    "relatedBrand": "hibob"
   }
 }

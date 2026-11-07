@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="retool-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="retool-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="retool-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#retool-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#retool-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#retool-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="retool-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#retool-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="13.81013 10.54714 100.28044 106.90573" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g clip-path="url(#retool-app-dark-clip0_12001_1534)">
+<path fill="#F5F7FA" d="M80.6416 15.6667C80.6416 12.9052 78.403 10.6666 75.6415 10.6666H18.974C16.2125 10.6666 13.9739 12.9052 13.9739 15.6667V39.0004C13.9739 41.7618 16.2125 44.0004 18.974 44.0004H75.6415C78.403 44.0004 80.6416 46.239 80.6416 49.0005V55.6673C80.6416 58.4287 78.403 60.6674 75.6415 60.6674H38.9743C36.2128 60.6674 33.9742 62.906 33.9742 65.6674V89.0011C33.9742 91.7626 36.2128 94.0012 38.9743 94.0012H75.6415C78.403 94.0012 80.6416 96.2398 80.6416 99.0013V112.335C80.6416 115.096 82.8802 117.335 85.6417 117.335H108.975C111.737 117.335 113.975 115.096 113.975 112.335V89.0011C113.975 86.2397 111.737 84.001 108.975 84.001H85.6417C82.8802 84.001 80.6416 81.7624 80.6416 79.001V72.3342C80.6416 69.5727 82.8802 67.3341 85.6417 67.3341H108.975C111.737 67.3341 113.975 65.0955 113.975 62.3341V39.0004C113.975 36.2389 111.737 34.0003 108.975 34.0003H85.6417C82.8802 34.0003 80.6416 31.7617 80.6416 29.0002V15.6667Z" />
+</g>
+<defs>
+<clipPath id="retool-app-dark-clip0_12001_1534">
+<rect fill="#ffffff" height="128" width="128" />
+</clipPath>
+</defs>
+</svg></g></svg>

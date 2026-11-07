@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goat-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="goat-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goat-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#goat-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#goat-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#goat-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="goat-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#goat-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-2.07281 -1.51723 1566.14561 361.03446" fill="#F5F7FA" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+	<path fill-rule="evenodd" d="m179.6 171.4h149.3v108.7c-30.6 44.7-83.4 77.4-149.3 77.4-100.4 0-179.6-75.6-179.6-178.5 0-102.9 79.2-178.5 180-178.5 61.3 0 108.1 24.6 140.4 64.6l-36.1 32.3c-19.6-28.9-58.3-51.8-104.3-51.8-74.9 0-129.4 55.2-129.4 133.4 0 77.4 54.1 133.5 129.4 133.5 43.8 0 76.2-18.3 99.2-44.7v-51.8h-99.6zm630.6 7.6c0 102.9-78.7 178.5-179.5 178.5-100.5 0-179.6-75.6-179.6-178.5 0-102.8 79.1-178.5 179.6-178.5 100.8 0 179.5 75.7 179.5 178.5zm-49.8 0c0-78.2-55.3-133.4-129.7-133.4-74.9 0-129.4 55.2-129.4 133.4 0 77.4 54.9 133.5 129.4 133.5 74.9 0 129.7-56.1 129.7-133.5zm324.3-171.3l148.1 342.2h-50.2l-41.7-94.8h-162.6l-41.7 94.8h-50.2l148.5-342.1zm36.6 202.7l-61.3-141.5h-0.4l-61.7 141.5zm440.4-202.7v45h-117v297.5h-50.2v-297.5h-117.4v-45z" fill="#F5F7FA" />
+</svg></g></svg>

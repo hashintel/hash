@@ -7079,8 +7079,8 @@
     },
     {
       "name": "lockheedMartin",
-      "status": "unavailable",
-      "reason": "No reviewed standalone lettering; existing lockup needs source research or manual separation."
+      "status": "available",
+      "method": "separate-outlined-lettering"
     },
     {
       "name": "northropGrumman",
@@ -15014,6 +15014,461 @@
     },
     {
       "name": "surgeAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "rippling",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "deel",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "gusto",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "retool",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "airbyte",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "whatnot",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "vinted",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "launchdarkly",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "mixpanel",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "fullstory",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "strapi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "convex",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "render",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "prefect",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "upstash",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "lithic",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "navan",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "spendesk",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "iterable",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "klaviyo",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "shippo",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "flockSafety",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "saronic",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "skydio",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "zipline",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hadrian",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "boomSupersonic",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hingeHealth",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "modernHealth",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "omadaHealth",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "devotedHealth",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "benchling",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "komodoHealth",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "headway",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cultureAmp",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hibob",
+      "status": "unavailable",
+      "reason": "No reviewed standalone lettering was verified for this identity."
+    },
+    {
+      "name": "ada",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "relevanceAi",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "confluent",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "codat",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "motive",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "multiverse",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "myheritage",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "productboard",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "pave",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "starburst",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "taktile",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "taxfix",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "trustpilot",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "wealthfront",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "blablacar",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "datasnipper",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "coalition",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "deepnote",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "dreamGames",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "revenuecat",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "materialize",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "pitch",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "collibra",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "planetscale",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "urbanCompany",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "acko",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "papayaGlobal",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "torq",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "goat",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "remote",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "aurora",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "motorway",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cedar",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "nexthink",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "gong",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "sylvera",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "flexport",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "fireblocks",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ankorstore",
+      "status": "unavailable",
+      "reason": "No reviewed standalone lettering was verified for this identity."
+    },
+    {
+      "name": "alan",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "beamery",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "complyadvantage",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "printify",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "commonRoom",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "anrok",
+      "status": "unavailable",
+      "reason": "No reviewed standalone lettering was verified for this identity."
+    },
+    {
+      "name": "codaLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "superhumanDocs",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "safetycultureLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "mitti",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "remoteLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "mixpanelLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "ziplineLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "cedarLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "paveLegacy",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "hibobLegacy",
       "status": "available",
       "method": "separate-outlined-lettering"
     }

@@ -42292,26 +42292,37 @@
     "name": "lockheedMartin",
     "slug": "lockheed-martin",
     "label": "Lockheed Martin",
-    "integrationNames": ["Lockheed Martin"],
-    "ratio": 1.55,
+    "integrationNames": [
+      "Lockheed Martin"
+    ],
+    "ratio": 1.8,
     "alignment": "center",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg",
     "markLightColors": {},
     "markDarkColors": {
-      "#003478": "#5D7EA9",
-      "#111111": "#F5F7FA"
+      "#003478": "#F5F7FA"
     },
     "logoDarkColors": {
       "#003478": "#5D7EA9",
       "#111111": "#F5F7FA"
     },
-    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments. The wordmark is the compact identity used for mark variants.",
+    "logoNotes": "Full logo retained from the recorded vector source. Mark and app variants use only the star, with its horizontal ray shortened to match the supplied compact-symbol reference. Standalone lettering is separated from the same native lock-up.",
     "brandWebsite": "https://www.lockheedmartin.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
-    "categories": ["Aerospace & defense", "Industry & energy"],
-    "lastCheckedAutomated": "2026-11-06",
+    "categories": [
+      "Aerospace & defense",
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg"
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Lockheed_Martin_logo_%282%29.svg",
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#003478": "#5D7EA9",
+      "#111111": "#F5F7FA"
+    }
   },
   {
     "name": "northropGrumman",
@@ -106333,6 +106344,4679 @@
     },
     "wordmarkDarkColors": {
       "#24241D": "#F5F7FA"
+    }
+  },
+  {
+    "name": "rippling",
+    "slug": "rippling",
+    "label": "Rippling",
+    "integrationNames": [
+      "Rippling"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.rippling.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.rippling.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.rippling.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.rippling.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "deel",
+    "slug": "deel",
+    "label": "Deel",
+    "integrationNames": [
+      "Deel"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.deel.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1B1B1B": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1B1B1B": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/10/logo_0011E00001jHjoFQAS-20240307172247.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.deel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.deel.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/10/logo_0011E00001jHjoFQAS-20240307172247.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1B1B1B": "#F5F7FA"
+    }
+  },
+  {
+    "name": "gusto",
+    "slug": "gusto",
+    "label": "Gusto",
+    "integrationNames": [
+      "Gusto"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.gusto.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.gusto.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.gusto.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "retool",
+    "slug": "retool",
+    "label": "Retool",
+    "integrationNames": [
+      "Retool"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://dqpcjghenxt8u.cloudfront.net/images/sanity/retool-favicon-light-128x128.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#242424": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.retool.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.retool.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.retool.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://dqpcjghenxt8u.cloudfront.net/images/sanity/retool-favicon-light-128x128.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://sequoiacap.com/our-companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "airbyte",
+    "slug": "airbyte",
+    "label": "Airbyte",
+    "integrationNames": [
+      "Airbyte"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/gilbarbara/logos",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#5D51D5": "#776DDC"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#5D51D5": "#776DDC"
+    },
+    "logoSource": "https://www.airbyte.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.airbyte.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.airbyte.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.accel.com/companies",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA",
+      "#5D51D5": "#776DDC"
+    }
+  },
+  {
+    "name": "whatnot",
+    "slug": "whatnot",
+    "label": "Whatnot",
+    "integrationNames": [
+      "Whatnot"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.whatnot.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001nUg3N-20230418003645.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.whatnot.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Retail",
+      "Websites & commerce"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.whatnot.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001nUg3N-20230418003645.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "monoInkScale": 12.14286
+  },
+  {
+    "name": "vinted",
+    "slug": "vinted",
+    "label": "Vinted",
+    "integrationNames": [
+      "Vinted"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007782": "#208892"
+    },
+    "logoDarkColors": {
+      "#007782": "#208892"
+    },
+    "logoSource": "https://cdn.sanity.io/images/458oembh/production/18201354609a4c0dfb6969e922c4c5faef53974b-190x110.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.vinted.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Retail",
+      "Websites & commerce"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.vinted.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/simple-icons/simple-icons",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/458oembh/production/18201354609a4c0dfb6969e922c4c5faef53974b-190x110.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.accel.com/companies",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#007782": "#208892"
+    }
+  },
+  {
+    "name": "launchdarkly",
+    "slug": "launchdarkly",
+    "label": "LaunchDarkly",
+    "integrationNames": [
+      "LaunchDarkly"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.launchdarkly.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.launchdarkly.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.launchdarkly.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.launchdarkly.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "mixpanel",
+    "slug": "mixpanel",
+    "label": "Mixpanel",
+    "integrationNames": [
+      "Mixpanel"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.mixpanel.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.mixpanel.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.mixpanel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.mixpanel.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/mixpanel.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Mixpanel (legacy)"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "fullstory",
+    "slug": "fullstory",
+    "label": "FullStory",
+    "integrationNames": [
+      "FullStory"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.fullstory.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.fullstory.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.fullstory.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.fullstory.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "strapi",
+    "slug": "strapi",
+    "label": "Strapi",
+    "integrationNames": [
+      "Strapi"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.strapi.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#212067": "#7978A3",
+      "#4945FF": "#6A66FF"
+    },
+    "logoDarkColors": {
+      "#212067": "#7978A3",
+      "#4945FF": "#6A66FF"
+    },
+    "logoSource": "https://strapi.io/images/logo/strapi-full-logo-dark.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.strapi.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.strapi.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://strapi.io/images/logo/strapi-full-logo-dark.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/strapi/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#212067": "#7978A3",
+      "#4945FF": "#6A66FF"
+    },
+    "monoInkScale": 1.26866
+  },
+  {
+    "name": "convex",
+    "slug": "convex",
+    "label": "Convex",
+    "integrationNames": [
+      "Convex"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#8D2676": "#AC629C"
+    },
+    "logoDarkColors": {
+      "#141414": "#F5F7FA",
+      "#8D2676": "#AC629C"
+    },
+    "logoSource": "https://www.convex.dev/logo-color.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.convex.dev/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.convex.dev/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/pheralb/svgl",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.convex.dev/logo-color.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#141414": "#F5F7FA",
+      "#8D2676": "#AC629C"
+    }
+  },
+  {
+    "name": "render",
+    "slug": "render",
+    "label": "Render",
+    "integrationNames": [
+      "Render"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/files/2e9xvz8g/production/2bbaef1e599e85ec7b351c0af3f64ae85cf2a8c9.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.render.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Cloud & hosting",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.render.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/pheralb/svgl",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/files/2e9xvz8g/production/2bbaef1e599e85ec7b351c0af3f64ae85cf2a8c9.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "prefect",
+    "slug": "prefect",
+    "label": "Prefect",
+    "integrationNames": [
+      "Prefect"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.prefect.io/logos/brands/prefect-logo-reverse-mark.svg?dpl=dpl_CSV36FNKARRC53izEjW4N9zoYi17",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/files/2e9xvz8g/production/206be3e8599e0281a0b8accbb26320236ee9f678.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.prefect.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.prefect.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.prefect.io/logos/brands/prefect-logo-reverse-mark.svg?dpl=dpl_CSV36FNKARRC53izEjW4N9zoYi17",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/files/2e9xvz8g/production/206be3e8599e0281a0b8accbb26320236ee9f678.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "upstash",
+    "slug": "upstash",
+    "label": "Upstash",
+    "integrationNames": [
+      "Upstash"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.upstash.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#050505": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/02/logo_0018b00002JerHfAAJ-20240214160924.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.upstash.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.upstash.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/02/logo_0018b00002JerHfAAJ-20240214160924.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/upstash-icon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#050505": "#F5F7FA"
+    }
+  },
+  {
+    "name": "lithic",
+    "slug": "lithic",
+    "label": "Lithic",
+    "integrationNames": [
+      "Lithic"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.lithic.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.lithic.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.lithic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.lithic.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/privacycom/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "navan",
+    "slug": "navan",
+    "label": "Navan",
+    "integrationNames": [
+      "Navan"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.navan.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000001Ivi8T-20230418013541.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.navan.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Travel & hospitality",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.navan.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000001Ivi8T-20230418013541.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "spendesk",
+    "slug": "spendesk",
+    "label": "Spendesk",
+    "integrationNames": [
+      "Spendesk"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.spendesk.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#5D21D2": "#8E64E0"
+    },
+    "logoDarkColors": {
+      "#5D21D2": "#8E64E0"
+    },
+    "logoSource": "https://a.storyblok.com/f/146026/x/5f4956f538/spendesk-logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.spendesk.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.spendesk.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a.storyblok.com/f/146026/x/5f4956f538/spendesk-logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/spendesk/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#5D21D2": "#8E64E0"
+    }
+  },
+  {
+    "name": "iterable",
+    "slug": "iterable",
+    "label": "Iterable",
+    "integrationNames": [
+      "Iterable"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.iterable.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://iterable.com/wp-content/uploads/2026/04/iterable-logo-light.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.iterable.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.iterable.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://iterable.com/wp-content/uploads/2026/04/iterable-logo-light.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/iterable/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "klaviyo",
+    "slug": "klaviyo",
+    "label": "Klaviyo",
+    "integrationNames": [
+      "Klaviyo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.klaviyo.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.klaviyo.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.klaviyo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.klaviyo.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.accel.com/companies",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "shippo",
+    "slug": "shippo",
+    "label": "Shippo",
+    "integrationNames": [
+      "Shippo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.goshippo.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1b1d1d": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1b1d1d": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/6462967bbf70fa5b5b227351/646bd3ac70ee08fca9869afe_shippo-logo-dark.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.goshippo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.goshippo.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/6462967bbf70fa5b5b227351/646bd3ac70ee08fca9869afe_shippo-logo-dark.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1b1d1d": "#F5F7FA"
+    }
+  },
+  {
+    "name": "flockSafety",
+    "slug": "flock-safety",
+    "label": "Flock Safety",
+    "integrationNames": [
+      "Flock Safety"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.flocksafety.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.flocksafety.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.flocksafety.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Security & privacy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.flocksafety.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "saronic",
+    "slug": "saronic",
+    "label": "Saronic",
+    "integrationNames": [
+      "Saronic"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.saronic.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.saronic.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.saronic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Aerospace & defense"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.saronic.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "skydio",
+    "slug": "skydio",
+    "label": "Skydio",
+    "integrationNames": [
+      "Skydio"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.skydio.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#22211F": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.skydio.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.skydio.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Aerospace & defense"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.skydio.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "zipline",
+    "slug": "zipline",
+    "label": "Zipline",
+    "integrationNames": [
+      "Zipline"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.flyzipline.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.flyzipline.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.flyzipline.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.flyzipline.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Zipline (legacy)"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "hadrian",
+    "slug": "hadrian",
+    "label": "Hadrian",
+    "integrationNames": [
+      "Hadrian"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hadrian.co/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.hadrian.co/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.hadrian.co/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hadrian.co/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "boomSupersonic",
+    "slug": "boom-supersonic",
+    "label": "Boom Supersonic",
+    "integrationNames": [
+      "Boom Supersonic"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.boomsupersonic.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.boomsupersonic.com/assets/svg/logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.boomsupersonic.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Aerospace & defense"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.boomsupersonic.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.boomsupersonic.com/assets/svg/logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "hingeHealth",
+    "slug": "hinge-health",
+    "label": "Hinge Health",
+    "integrationNames": [
+      "Hinge Health"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hingehealth.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007B34": "#228D4F"
+    },
+    "logoDarkColors": {
+      "#007B34": "#228D4F"
+    },
+    "logoSource": "https://images.ctfassets.net/hjcv6wdwxsdz/7M2bRDJrfnseMjP87h67Id/4a04655ee954c5d817cd02baf0e5d15a/Hinge_Health_Logo_Horizontal.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.hingehealth.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hingehealth.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://images.ctfassets.net/hjcv6wdwxsdz/7M2bRDJrfnseMjP87h67Id/4a04655ee954c5d817cd02baf0e5d15a/Hinge_Health_Logo_Horizontal.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#007B34": "#228D4F"
+    }
+  },
+  {
+    "name": "modernHealth",
+    "slug": "modern-health",
+    "label": "Modern Health",
+    "integrationNames": [
+      "Modern Health"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.modernhealth.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#3C3C3C": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#3C3C3C": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/5f39912be9da2f5c8fc5cc45/67016969deaa29d5b5e44ac8_ModernHealth-logo-main.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.modernhealth.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.modernhealth.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/5f39912be9da2f5c8fc5cc45/67016969deaa29d5b5e44ac8_ModernHealth-logo-main.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#3C3C3C": "#F5F7FA"
+    },
+    "monoInkScale": 1.6242
+  },
+  {
+    "name": "omadaHealth",
+    "slug": "omada-health",
+    "label": "Omada Health",
+    "integrationNames": [
+      "Omada Health"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.omadahealth.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003E48": "#5B8389",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#003E48": "#5B8389",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.omadahealth.com/hubfs/omada-logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.omadahealth.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.omadahealth.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.omadahealth.com/hubfs/omada-logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#003E48": "#5B8389",
+      "#111111": "#F5F7FA"
+    },
+    "monoInkScale": 1.73469
+  },
+  {
+    "name": "devotedHealth",
+    "slug": "devoted-health",
+    "label": "Devoted Health",
+    "integrationNames": [
+      "Devoted Health"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://devoted-health-2020.cdn.prismic.io/devoted-health-2020/d8_Jer9nBs5YYBs7_logo-farm-test-3.svg?fit=max",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#592d82": "#8D6FA9",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#2F2F2F": "#F5F7FA",
+      "#202322": "#F5F7FA",
+      "#530077": "#9A69AF"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2025/06/logo_0018000001aApdAAAS-20250606173138.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.devoted.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.devoted.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://devoted-health-2020.cdn.prismic.io/devoted-health-2020/d8_Jer9nBs5YYBs7_logo-farm-test-3.svg?fit=max",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2025/06/logo_0018000001aApdAAAS-20250606173138.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA",
+      "#2F2F2F": "#F5F7FA",
+      "#202322": "#F5F7FA",
+      "#530077": "#9A69AF"
+    }
+  },
+  {
+    "name": "benchling",
+    "slug": "benchling",
+    "label": "Benchling",
+    "integrationNames": [
+      "Benchling"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.benchling.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000DB5": "#6B73D4"
+    },
+    "logoDarkColors": {
+      "#000DB5": "#6B73D4"
+    },
+    "logoSource": "https://www.benchling.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.benchling.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Life sciences",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.benchling.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000DB5": "#6B73D4"
+    }
+  },
+  {
+    "name": "komodoHealth",
+    "slug": "komodo-health",
+    "label": "Komodo Health",
+    "integrationNames": [
+      "Komodo Health"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.komodohealth.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#113E5C": "#628093"
+    },
+    "logoDarkColors": {
+      "#113E5C": "#628093"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/06/logo_0018000001PqtUzAAJ-20260617153439.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.komodohealth.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.komodohealth.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/06/logo_0018000001PqtUzAAJ-20260617153439.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#113E5C": "#628093"
+    }
+  },
+  {
+    "name": "headway",
+    "slug": "headway",
+    "label": "Headway",
+    "integrationNames": [
+      "Headway"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.headway.co/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#4D4C4D": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#4D4C4D": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001mTWZI-20230418000633.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.headway.co/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.headway.co/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001mTWZI-20230418000633.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#4D4C4D": "#F5F7FA"
+    },
+    "monoInkScale": 1.80851
+  },
+  {
+    "name": "cultureAmp",
+    "slug": "culture-amp",
+    "label": "Culture Amp",
+    "integrationNames": [
+      "Culture Amp"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.cultureamp.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.cultureamp.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.cultureamp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.cultureamp.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/culture-amp/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "hibob",
+    "slug": "hibob",
+    "label": "HiBob",
+    "integrationNames": [
+      "HiBob"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://new.hibob.com/app/uploads/2025/07/Hibob-logo-icon-48x48-1-1.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#EE164F": "#EF1E55"
+    },
+    "logoDarkColors": {
+      "#3a3a37": "#F5F7FA",
+      "#ee164f": "#EF1E55"
+    },
+    "logoSource": "https://www.hibob.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. The Hi lettering is integral to the speech-bubble mark, so no separate wordmark is asserted. ",
+    "brandWebsite": "https://www.hibob.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hibob.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://new.hibob.com/app/uploads/2025/07/Hibob-logo-icon-48x48-1-1.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "HiBob (legacy)"
+    ]
+  },
+  {
+    "name": "ada",
+    "slug": "ada",
+    "label": "Ada",
+    "integrationNames": [
+      "Ada"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.ada.cx/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/files/2e9xvz8g/production/17e73bffe326a1ec8c46292ede12fe09a73af79d.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.ada.cx/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Communication",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.ada.cx/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/files/2e9xvz8g/production/17e73bffe326a1ec8c46292ede12fe09a73af79d.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "relevanceAi",
+    "slug": "relevance-ai",
+    "label": "Relevance AI",
+    "integrationNames": [
+      "Relevance AI"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.relevanceai.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0D162F": "#F5F7FA",
+      "#9646E5": "#9F57E7",
+      "#4F46E5": "#726BEA"
+    },
+    "logoDarkColors": {
+      "#0D162F": "#F5F7FA",
+      "#9646E5": "#9F57E7",
+      "#4F46E5": "#726BEA"
+    },
+    "logoSource": "https://cdn.relevanceai.com/images/logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.relevanceai.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "AI",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.relevanceai.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.relevanceai.com/images/logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#0D162F": "#F5F7FA",
+      "#9646E5": "#9F57E7",
+      "#4F46E5": "#726BEA"
+    },
+    "monoInkScale": 1.35638
+  },
+  {
+    "name": "confluent",
+    "slug": "confluent",
+    "label": "Confluent",
+    "integrationNames": [
+      "Confluent"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.confluent.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#173361": "#6B7C9A"
+    },
+    "logoDarkColors": {
+      "#173361": "#6B7C9A"
+    },
+    "logoSource": "https://images.ctfassets.net/8vofjvai1hpv/3YxxHIezkZt1v5mroo76ym/47e73d34ed8b7218d172a1f79d2da2b3/Confluent__Inc._logo_1.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.confluent.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.confluent.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://images.ctfassets.net/8vofjvai1hpv/3YxxHIezkZt1v5mroo76ym/47e73d34ed8b7218d172a1f79d2da2b3/Confluent__Inc._logo_1.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/confluent/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "IBM",
+      "International Business Machines"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#173361": "#6B7C9A"
+    }
+  },
+  {
+    "name": "codat",
+    "slug": "codat",
+    "label": "Codat",
+    "integrationNames": [
+      "Codat"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.codat.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0C142E": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0C142E": "#F5F7FA"
+    },
+    "logoSource": "https://codat.io/wp-content/uploads/2026/02/logo-white.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.codat.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.codat.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://codat.io/wp-content/uploads/2026/02/logo-white.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/codat/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#0C142E": "#F5F7FA"
+    }
+  },
+  {
+    "name": "motive",
+    "slug": "motive",
+    "label": "Motive",
+    "integrationNames": [
+      "Motive"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gomotive.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.gomotive.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.gomotive.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.gomotive.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/motive/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "multiverse",
+    "slug": "multiverse",
+    "label": "Multiverse",
+    "integrationNames": [
+      "Multiverse"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.multiverse.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.multiverse.io/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.multiverse.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Education & research"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.multiverse.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/whitehat/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "myheritage",
+    "slug": "myheritage",
+    "label": "MyHeritage",
+    "integrationNames": [
+      "MyHeritage"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.myheritage.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cf.mhcache.com/FP/Assets/Images/Common/myheritage_logo_inverse.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.myheritage.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.myheritage.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cf.mhcache.com/FP/Assets/Images/Common/myheritage_logo_inverse.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/myheritage/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "productboard",
+    "slug": "productboard",
+    "label": "Productboard",
+    "integrationNames": [
+      "Productboard"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.productboard.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0071E1": "#137CE3"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000C2C": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/gilbarbara/logos",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.productboard.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Productivity",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.productboard.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.productboard.com/favicon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/productboard/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000C2C": "#F5F7FA"
+    }
+  },
+  {
+    "name": "pave",
+    "slug": "pave",
+    "label": "Pave",
+    "integrationNames": [
+      "Pave"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.pave.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.pave.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.pave.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.pave.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/pave/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Pave (legacy)"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "starburst",
+    "slug": "starburst",
+    "label": "Starburst",
+    "integrationNames": [
+      "Starburst"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.starburst.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001j8vh8-20230418063545.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.starburst.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.starburst.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001j8vh8-20230418063545.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/starburst/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "taktile",
+    "slug": "taktile",
+    "label": "Taktile",
+    "integrationNames": [
+      "Taktile"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.taktile.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.taktile.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.taktile.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.taktile.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/taktile/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "taxfix",
+    "slug": "taxfix",
+    "label": "Taxfix",
+    "integrationNames": [
+      "Taxfix"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.taxfix.de/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#154618": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#154618": "#F5F7FA"
+    },
+    "logoSource": "https://www.taxfix.de/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.taxfix.de/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.taxfix.de/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/taxfix/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#154618": "#F5F7FA"
+    }
+  },
+  {
+    "name": "trustpilot",
+    "slug": "trustpilot",
+    "label": "Trustpilot",
+    "integrationNames": [
+      "Trustpilot"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {
+      "#005128": "#4F876B",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://github.com/pheralb/svgl",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.trustpilot.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.trustpilot.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/simple-icons/simple-icons",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/pheralb/svgl",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/trustpilot/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#005128": "#4F876B",
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "wealthfront",
+    "slug": "wealthfront",
+    "label": "Wealthfront",
+    "integrationNames": [
+      "Wealthfront"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.wealthfront.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.wealthfront.com/next/contenthash/next/svg/optimized/wordmark-surface-dynamic.contenthash.d9e2432c7c6d88eabff40bd4374f8be7a9522262.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.wealthfront.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.wealthfront.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.wealthfront.com/next/contenthash/next/svg/optimized/wordmark-surface-dynamic.contenthash.d9e2432c7c6d88eabff40bd4374f8be7a9522262.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/wealthfront/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "blablacar",
+    "slug": "blablacar",
+    "label": "BlaBlaCar",
+    "integrationNames": [
+      "BlaBlaCar"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.blablacar.com/language-selector/assets/images/favicon-a73bd49737b2c145.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#001536": "#717D8F",
+      "#111111": "#F5F7FA",
+      "#0071EB": "#0F7AEC"
+    },
+    "logoDarkColors": {
+      "#054752": "#56838A",
+      "#001536": "#717D8F",
+      "#0071EB": "#0F7AEC"
+    },
+    "logoSource": "https://www.blablacar.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. Full lock-up composed from the official separate mark and lettering. ",
+    "brandWebsite": "https://www.blablacar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.blablacar.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.blablacar.com/language-selector/assets/images/favicon-a73bd49737b2c145.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/blablacar/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.accel.com/companies",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#054752": "#56838A",
+      "#001536": "#717D8F",
+      "#0071EB": "#0F7AEC"
+    }
+  },
+  {
+    "name": "datasnipper",
+    "slug": "datasnipper",
+    "label": "DataSnipper",
+    "integrationNames": [
+      "DataSnipper"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.datasnipper.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#061737": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#061737": "#F5F7FA"
+    },
+    "logoSource": "https://www.datasnipper.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.datasnipper.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.datasnipper.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/datasnipper/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#061737": "#F5F7FA"
+    }
+  },
+  {
+    "name": "coalition",
+    "slug": "coalition",
+    "label": "Coalition",
+    "integrationNames": [
+      "Coalition"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.coalitioninc.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://images.ctfassets.net/o2pgk9gufvga/3q8TgCFAc4D2nCKYiGJwtN/7d58502e38ce4ee36c8e0488fdcd5c49/Coalition_Logo.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.coalitioninc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Security & privacy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.coalitioninc.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://images.ctfassets.net/o2pgk9gufvga/3q8TgCFAc4D2nCKYiGJwtN/7d58502e38ce4ee36c8e0488fdcd5c49/Coalition_Logo.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/coalition/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "deepnote",
+    "slug": "deepnote",
+    "label": "Deepnote",
+    "integrationNames": [
+      "Deepnote"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.deepnote.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1560ab": "#437FBB",
+      "#012447": "#697E92",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1560ab": "#437FBB",
+      "#012447": "#697E92",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.deepnote.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.deepnote.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.deepnote.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/deepnote/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1560ab": "#437FBB",
+      "#012447": "#697E92",
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "dreamGames",
+    "slug": "dream-games",
+    "label": "Dream Games",
+    "integrationNames": [
+      "Dream Games"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.dreamgames.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2E32FF": "#6568FF"
+    },
+    "logoDarkColors": {
+      "#2E32FF": "#6568FF"
+    },
+    "logoSource": "https://www.dreamgames.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.dreamgames.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Gaming"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.dreamgames.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/dream-games/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#2E32FF": "#6568FF"
+    }
+  },
+  {
+    "name": "revenuecat",
+    "slug": "revenuecat",
+    "label": "RevenueCat",
+    "integrationNames": [
+      "RevenueCat"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/simple-icons/simple-icons",
+    "markLightColors": {},
+    "markDarkColors": {},
+    "logoDarkColors": {},
+    "logoSource": "https://www.revenuecat.com/website/_next/static/immutable/media/logo.3-m_vtr0mkp56.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.revenuecat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.revenuecat.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/simple-icons/simple-icons",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.revenuecat.com/website/_next/static/immutable/media/logo.3-m_vtr0mkp56.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/revenuecat-inc/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {}
+  },
+  {
+    "name": "materialize",
+    "slug": "materialize",
+    "label": "Materialize",
+    "integrationNames": [
+      "Materialize"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.materialize.com/__static/01a1ad87-9b7d-4156-b1b4-5ccec0748d46/logos/logomark-purple.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#7F4EFF": "#895BFF"
+    },
+    "logoDarkColors": {
+      "#120E22": "#F5F7FA",
+      "#7F4EFF": "#895BFF"
+    },
+    "logoSource": "https://www.materialize.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.materialize.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.materialize.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.materialize.com/__static/01a1ad87-9b7d-4156-b1b4-5ccec0748d46/logos/logomark-purple.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#120E22": "#F5F7FA",
+      "#7F4EFF": "#895BFF"
+    }
+  },
+  {
+    "name": "pitch",
+    "slug": "pitch",
+    "label": "Pitch",
+    "integrationNames": [
+      "Pitch"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://github.com/pheralb/svgl",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#8D49F7": "#9657F8",
+      "#6B53FF": "#7862FF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.pitch.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.pitch.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Productivity",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.pitch.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/pheralb/svgl",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/pitch/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "collibra",
+    "slug": "collibra",
+    "label": "Collibra",
+    "integrationNames": [
+      "Collibra"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.collibra.com/astro-assets/logos/logo-icon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.collibra.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.collibra.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.collibra.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.collibra.com/astro-assets/logos/logo-icon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://images.collibracloud.com/images/0y2g3iho/production/353865b8a1cc6709859bea6edb5196d26d298f6f-138x33.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/collibra/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "planetscale",
+    "slug": "planetscale",
+    "label": "PlanetScale",
+    "integrationNames": [
+      "PlanetScale"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.planetscale.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoSource": "https://www.planetscale.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.planetscale.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.planetscale.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/planetscale.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001iarGm-20230418013747.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA"
+    }
+  },
+  {
+    "name": "urbanCompany",
+    "slug": "urban-company",
+    "label": "Urban Company",
+    "integrationNames": [
+      "Urban Company"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.urbancompany.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/images/2e9xvz8g/production/d0525ee52626a7392a8ffa85b9f200b340dd4bda-800x300.webp",
+    "logoNotes": "Vectorized from the recorded raster artwork; bounds, standalone lettering and theme colors adapted. ",
+    "brandWebsite": "https://www.urbancompany.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Services & consulting"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.urbancompany.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/2e9xvz8g/production/d0525ee52626a7392a8ffa85b9f200b340dd4bda-800x300.webp",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "acko",
+    "slug": "acko",
+    "label": "Acko",
+    "integrationNames": [
+      "Acko"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.acko.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#3D2588": "#8272B2",
+      "#794CEA": "#8961ED"
+    },
+    "logoDarkColors": {
+      "#3D2588": "#8272B2",
+      "#794CEA": "#8961ED"
+    },
+    "logoSource": "https://cdn.sanity.io/images/458oembh/production/2f831e1cfe86c768af824748744a01d51dc3390e-2112x512.png",
+    "logoNotes": "Vectorized from the recorded raster artwork; bounds, standalone lettering and theme colors adapted. ",
+    "brandWebsite": "https://www.acko.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.acko.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/458oembh/production/2f831e1cfe86c768af824748744a01d51dc3390e-2112x512.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.accel.com/companies",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#3D2588": "#8272B2",
+      "#794CEA": "#8961ED"
+    }
+  },
+  {
+    "name": "papayaGlobal",
+    "slug": "papaya-global",
+    "label": "Papaya Global",
+    "integrationNames": [
+      "Papaya Global"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.papayaglobal.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/images/2e9xvz8g/production/467a470814119f27dfd5ce7d391da976d285b835-800x200.webp",
+    "logoNotes": "Vectorized from the recorded raster artwork; bounds, standalone lettering and theme colors adapted. ",
+    "brandWebsite": "https://www.papayaglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.papayaglobal.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/2e9xvz8g/production/467a470814119f27dfd5ce7d391da976d285b835-800x200.webp",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "torq",
+    "slug": "torq",
+    "label": "Torq",
+    "integrationNames": [
+      "Torq"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.torq.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.sanity.io/images/2e9xvz8g/production/83dfd484dc0a6ed56ebb79c9c655191444f16b66-800x330.webp",
+    "logoNotes": "Vectorized from the recorded raster artwork; bounds, standalone lettering and theme colors adapted. ",
+    "brandWebsite": "https://www.torq.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Security & privacy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.torq.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/2e9xvz8g/production/83dfd484dc0a6ed56ebb79c9c655191444f16b66-800x330.webp",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "goat",
+    "slug": "goat",
+    "label": "GOAT",
+    "integrationNames": [
+      "GOAT"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.goat.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://companieslogo.com/img/orig/goat-61bf2a34.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.goat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Retail",
+      "Websites & commerce"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.goat.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://companieslogo.com/img/orig/goat-61bf2a34.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/goat/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "remote",
+    "slug": "remote",
+    "label": "Remote",
+    "integrationNames": [
+      "Remote"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://logoapi.sh/icon/remote.com.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#14191E": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.remote.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.remote.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.remote.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://logoapi.sh/icon/remote.com.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/remote/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Remote (legacy)"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "aurora",
+    "slug": "aurora",
+    "label": "Aurora",
+    "integrationNames": [
+      "Aurora"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.aurora.tech/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1368E5": "#2D79E8"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1368E5": "#2D79E8"
+    },
+    "logoSource": "https://www.aurora.tech/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.aurora.tech/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Automotive"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.aurora.tech/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/aurora/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1368E5": "#2D79E8"
+    }
+  },
+  {
+    "name": "motorway",
+    "slug": "motorway",
+    "label": "Motorway",
+    "integrationNames": [
+      "Motorway"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.motorway.co.uk/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.motorway.co.uk/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.motorway.co.uk/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Automotive"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.motorway.co.uk/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/motorway/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "cedar",
+    "slug": "cedar",
+    "label": "Cedar",
+    "integrationNames": [
+      "Cedar"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.cedar.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0F130A": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0F130A": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/69386146ee2bda039fe1d40a/6995a5e5cc62e7787285a831_Vector.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.cedar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.cedar.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/69386146ee2bda039fe1d40a/6995a5e5cc62e7787285a831_Vector.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Cedar (legacy)"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#0F130A": "#F5F7FA"
+    }
+  },
+  {
+    "name": "nexthink",
+    "slug": "nexthink",
+    "label": "Nexthink",
+    "integrationNames": [
+      "Nexthink"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.nexthink.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#12254C": "#717C94"
+    },
+    "logoDarkColors": {
+      "#12254C": "#717C94"
+    },
+    "logoSource": "https://us-east-1-nexthink.graphassets.com/AIRWVWK6hSWST0XjfARH4z/rLruRfoSSJWqnGitNRAV",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.nexthink.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.nexthink.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://us-east-1-nexthink.graphassets.com/AIRWVWK6hSWST0XjfARH4z/rLruRfoSSJWqnGitNRAV",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/nexthink/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#12254C": "#717C94"
+    }
+  },
+  {
+    "name": "gong",
+    "slug": "gong",
+    "label": "Gong",
+    "integrationNames": [
+      "Gong"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.gong.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1D0254": "#8475A2",
+      "#7121DB": "#975DE5"
+    },
+    "logoDarkColors": {
+      "#1D0254": "#8475A2",
+      "#7121DB": "#975DE5"
+    },
+    "logoSource": "https://cdn.sanity.io/images/ww20clc6/production/0b50133901322a215dfcf2f3311fc378ffdaacd6-117x42.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.gong.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.gong.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.sanity.io/images/ww20clc6/production/0b50133901322a215dfcf2f3311fc378ffdaacd6-117x42.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/gong/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1D0254": "#8475A2",
+      "#7121DB": "#975DE5"
+    },
+    "monoInkScale": 1.26238
+  },
+  {
+    "name": "sylvera",
+    "slug": "sylvera",
+    "label": "Sylvera",
+    "integrationNames": [
+      "Sylvera"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.sylvera.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/673b5918a90b730875736def/673b5918a90b730875736e27_sylvera.svg",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.sylvera.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Industry & energy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.sylvera.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/673b5918a90b730875736def/673b5918a90b730875736e27_sylvera.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/sylvera/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "flexport",
+    "slug": "flexport",
+    "label": "Flexport",
+    "integrationNames": [
+      "Flexport"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.flexport.com/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#566ae5": "#5E71E6"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.flexport.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.flexport.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.flexport.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.flexport.com/favicon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "fireblocks",
+    "slug": "fireblocks",
+    "label": "Fireblocks",
+    "integrationNames": [
+      "Fireblocks"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://logoapi.sh/icon/fireblocks.com.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#212647": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#212647": "#F5F7FA"
+    },
+    "logoSource": "https://www.fireblocks.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.fireblocks.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Cryptocurrency",
+      "Security & privacy"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.fireblocks.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://logoapi.sh/icon/fireblocks.com.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/fireblocks/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#212647": "#F5F7FA"
+    }
+  },
+  {
+    "name": "ankorstore",
+    "slug": "ankorstore",
+    "label": "Ankorstore",
+    "integrationNames": [
+      "Ankorstore"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://logoapi.sh/icon/ankorstore.com.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.ankorstore.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.ankorstore.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Retail",
+      "Websites & commerce"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.ankorstore.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://logoapi.sh/icon/ankorstore.com.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/ankorstore/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": []
+  },
+  {
+    "name": "alan",
+    "slug": "alan",
+    "label": "Alan",
+    "integrationNames": [
+      "Alan"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.alan.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#5c59f3": "#6C6AF4"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#5c59f3": "#6C6AF4"
+    },
+    "logoSource": "https://www.alan.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.alan.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.alan.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/alan/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#5c59f3": "#6C6AF4"
+    }
+  },
+  {
+    "name": "beamery",
+    "slug": "beamery",
+    "label": "Beamery",
+    "integrationNames": [
+      "Beamery"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.beamery.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.beamery.com/",
+    "logoNotes": "Clean monochrome vectorization of the published logo preview; bounds and standalone lettering adapted. ",
+    "brandWebsite": "https://www.beamery.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.beamery.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://iconlogovector.com/uploads/images/2026/02/lg-699a8fd5eeea7-Beamery.webp",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/beamery/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "complyadvantage",
+    "slug": "complyadvantage",
+    "label": "ComplyAdvantage",
+    "integrationNames": [
+      "ComplyAdvantage"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.complyadvantage.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.complyadvantage.com/",
+    "logoNotes": "Clean monochrome vectorization of the published logo preview; bounds and standalone lettering adapted. ",
+    "brandWebsite": "https://www.complyadvantage.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.complyadvantage.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://iconlogovector.com/uploads/images/2026/08/lg-6a7d91a9d6989-ComplyAdvantage.webp",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/complyadvantage/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "printify",
+    "slug": "printify",
+    "label": "Printify",
+    "integrationNames": [
+      "Printify"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.printify.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2F2E0C": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#2F2E0C": "#F5F7FA"
+    },
+    "logoSource": "https://www.printify.com/",
+    "logoNotes": "Native vector outlines and separate lettering; bounds and theme colors adapted. ",
+    "brandWebsite": "https://www.printify.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Retail",
+      "Websites & commerce"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.printify.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/printify/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#2F2E0C": "#F5F7FA"
+    }
+  },
+  {
+    "name": "commonRoom",
+    "slug": "common-room",
+    "label": "Common Room",
+    "integrationNames": [
+      "Common Room"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.commonroom.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.commonroom.io/",
+    "logoNotes": "Current full lock-up vectorized from the official high-resolution artwork; includes the Zoom endorsement. Native standalone mark. ",
+    "brandWebsite": "https://www.commonroom.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Marketing & sales",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.commonroom.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.commonroom.io/static/img/logos/common-room-logo-color.png",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/common-room/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Zoom"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "anrok",
+    "slug": "anrok",
+    "label": "Anrok",
+    "integrationNames": [
+      "Anrok"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.anrok.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#241B37": "#F5F7FA"
+    },
+    "logoDarkColors": {},
+    "logoSource": "https://www.anrok.com/",
+    "logoNotes": "Vectorized flat favicon; no verified standalone lettering was found. ",
+    "brandWebsite": "https://www.anrok.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Finance & payments"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.anrok.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://logoapi.sh/icon/anrok.com.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/anrok/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": []
+  },
+  {
+    "name": "codaLegacy",
+    "slug": "coda-legacy",
+    "label": "Coda (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.coda.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#101010": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.coda.io/",
+    "logoNotes": "Legacy identity retained separately from the current artwork. Coda became Superhuman Docs in July 2026. ",
+    "brandWebsite": "https://www.coda.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Productivity",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.coda.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/coda-icon.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/coda.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Coda",
+      "Superhuman Docs"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#101010": "#F5F7FA",
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "superhumanDocs",
+    "slug": "superhuman-docs",
+    "label": "Superhuman Docs",
+    "integrationNames": [
+      "Superhuman Docs"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://coda.io/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#421d24": "#FCFAF7"
+    },
+    "logoDarkColors": {
+      "#421d24": "#FCFAF7",
+      "#e8e5df": "#383735"
+    },
+    "logoSource": "https://coda.io/",
+    "logoNotes": "Current identity from the official website; separate legacy identity retained. ",
+    "brandWebsite": "https://coda.io/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Productivity",
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://coda.io/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.kleinerperkins.com/partnerships/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://help.coda.io/hc/en-us/articles/40685056076685-What-s-changing-Grammarly-becomes-Superhuman",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Coda",
+      "Superhuman",
+      "Grammarly"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#421d24": "#FCFAF7"
+    }
+  },
+  {
+    "name": "safetycultureLegacy",
+    "slug": "safetyculture-legacy",
+    "label": "SafetyCulture (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.safetyculture.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#293745": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#6559FF": "#7065FF"
+    },
+    "logoDarkColors": {
+      "#293745": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#6559FF": "#7065FF"
+    },
+    "logoSource": "https://www.safetyculture.com/",
+    "logoNotes": "Legacy identity retained separately from the current artwork. Historical SafetyCulture platform branding, before the platform became Mitti; SafetyCulture remains the parent company. ",
+    "brandWebsite": "https://www.safetyculture.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.safetyculture.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://wp.logos-download.com/wp-content/uploads/2024/10/SafetyCulture_Logo.svg?dl",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/safetyculture/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "SafetyCulture",
+      "Mitti",
+      "iAuditor"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#293745": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#6559FF": "#7065FF"
+    }
+  },
+  {
+    "name": "mitti",
+    "slug": "mitti",
+    "label": "Mitti",
+    "integrationNames": [
+      "Mitti"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://mitti.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#4A42C8": "#756FD5",
+      "#1C1714": "#F5F7FA",
+      "#425DC8": "#5F76D1"
+    },
+    "logoDarkColors": {
+      "#1C1714": "#F5F7FA",
+      "#4A42C8": "#756FD5",
+      "#425DC8": "#5F76D1"
+    },
+    "logoSource": "https://mitti.com/",
+    "logoNotes": "Current identity from the official website; separate legacy identity retained. Standalone M and underline are composed from the native outlines, with placement matched to the official favicon. ",
+    "brandWebsite": "https://mitti.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://mitti.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/safetyculture/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://mitti.com/safetyculture",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "SafetyCulture",
+      "iAuditor"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1C1714": "#F5F7FA",
+      "#4A42C8": "#756FD5",
+      "#425DC8": "#5F76D1"
+    }
+  },
+  {
+    "name": "remoteLegacy",
+    "slug": "remote-legacy",
+    "label": "Remote (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets.ctfassets.net/dlbjkw4rng8s/253WwGJwyOqyXUt9a7H9Ki/dc267cf19b9b87ad2789ea768ab53920/choose_remote_compressed.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://assets.ctfassets.net/dlbjkw4rng8s/253WwGJwyOqyXUt9a7H9Ki/dc267cf19b9b87ad2789ea768ab53920/choose_remote_compressed.pdf",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.remote.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.remote.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://assets.ctfassets.net/dlbjkw4rng8s/253WwGJwyOqyXUt9a7H9Ki/dc267cf19b9b87ad2789ea768ab53920/choose_remote_compressed.pdf",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/remote/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://remote.com/blog/introducing-remote-s-new-mission-brand-pay-the-world",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Remote"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "mixpanelLegacy",
+    "slug": "mixpanel-legacy",
+    "label": "Mixpanel (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000000nYjTV-20230418010642.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#7856FF": "#7F5FFF"
+    },
+    "logoDarkColors": {
+      "#7856FF": "#7F5FFF"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000000nYjTV-20230418010642.svg",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.mixpanel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Databases & analytics",
+      "Developer tools"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.mixpanel.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000000nYjTV-20230418010642.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Mixpanel"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#7856FF": "#7F5FFF"
+    }
+  },
+  {
+    "name": "ziplineLegacy",
+    "slug": "zipline-legacy",
+    "label": "Zipline (legacy)",
+    "integrationNames": [],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000001RBPJf-20230418003547.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#242021": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#242021": "#F5F7FA"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000001RBPJf-20230418003547.svg",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.flyzipline.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Transport & logistics"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.flyzipline.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0018000001RBPJf-20230418003547.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Zipline"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#242021": "#F5F7FA"
+    }
+  },
+  {
+    "name": "cedarLegacy",
+    "slug": "cedar-legacy",
+    "label": "Cedar (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_001800000126QhG-20230417220542.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#012D67": "#637EA2"
+    },
+    "logoDarkColors": {
+      "#012D67": "#637EA2"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_001800000126QhG-20230417220542.svg",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.cedar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Health & wellbeing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.cedar.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_001800000126QhG-20230417220542.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Cedar"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#012D67": "#637EA2"
+    },
+    "monoInkScale": 1.80851
+  },
+  {
+    "name": "paveLegacy",
+    "slug": "pave-legacy",
+    "label": "Pave (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/08/logo_0011E00001mT3MhQAK-20260820121905.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#021340": "#737C95",
+      "#235CF3": "#4273F5"
+    },
+    "logoDarkColors": {
+      "#021340": "#737C95",
+      "#235CF3": "#4273F5"
+    },
+    "logoSource": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/08/logo_0011E00001mT3MhQAK-20260820121905.svg",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.pave.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.pave.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/08/logo_0011E00001mT3MhQAK-20260820121905.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://a16z.com/portfolio/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/pave/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.indexventures.com/companies/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Pave"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#021340": "#737C95",
+      "#235CF3": "#4273F5"
+    },
+    "monoInkScale": 1.44068
+  },
+  {
+    "name": "hibobLegacy",
+    "slug": "hibob-legacy",
+    "label": "HiBob (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/hibob.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.hibob.com/",
+    "logoNotes": "Legacy identity retained separately from the current artwork. ",
+    "brandWebsite": "https://www.hibob.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": [
+      "Business software"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.hibob.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/hibob.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bvp.com/portfolio",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "HiBob"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
     }
   }
 ]
