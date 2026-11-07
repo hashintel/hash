@@ -5528,7 +5528,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.1668 0.3372 180.3336 19.0936",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5618,7 +5618,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.38284 -0.52993 413.90569 129.86987",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5668,7 +5668,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.59307 191.33598 640.77369 170.72859",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5688,7 +5688,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.417389095053 -1.40412361609 -0.14174737847 0 1.96326008962",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "22.25733 16.03739 565.92533 167.34214",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5718,7 +5718,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
     monoInkScale: 1.02,
-    logoViewBox: null,
+    logoViewBox: "-0.27522 3.75621 296.78484 35.13006",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5728,7 +5728,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.596875412868 -2.00792707095 -0.202701810015 0 2.80750429383",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.8812 1.25658 141.14545 40.6169",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5748,7 +5748,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.82842 -0.709 895.63112 231.29711",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5758,7 +5758,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393612232451 -1.3241367293 -0.133672639619 0 1.85142160137",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.7367 -0.9311 796.4734 126.86219",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5808,7 +5808,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.06999 -0.208 248.13998 48.416",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5818,7 +5818,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.567816900966 -1.91017237804 -0.192833397224 0 2.67082267623",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.68104 0.31367 187.7808 39.49509",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5858,7 +5858,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.436012424179 -1.46677368661 -0.148071952143 0 2.05085806293",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.10749 -0.1177 110.68308 32.2354",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5868,7 +5868,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.393060306514 -1.32228001514 -0.133485202871 0 1.84882552452",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.10749 -0.11008 116.21499 31.22016",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5878,7 +5878,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.311320267143 -1.04730129379 -0.105725885643 0 1.46434744658",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.06955 0.77715 191.36597 45.94021",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5908,7 +5908,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.395886975813 -1.33178911148 -0.134445153592 0 1.86212124089",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.29613 -0.14824 128.49088 40.21333",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5918,7 +5918,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.89848 1.85734 130.79851 32.45543",
     ratio: 1.8,
     alignment: "center",
   },
@@ -5948,7 +5948,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.354760437075 -1.19343680431 -0.120478379853 0 1.66867562124",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.52042 -1.31504 1323.04084 241.77754",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6038,7 +6038,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "2.72384 1.87866 1178.06361 236.56857",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6058,7 +6058,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.336263458168 -1.13121178401 -0.114196715333 0 1.58167195751",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.83732 1.84551 118.41705 36.30897",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6098,7 +6098,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.360366288971 -1.21229524869 -0.12238215458 0 1.69504369224",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.37647 0.58481 163.45844 27.14778",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6158,7 +6158,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
     monoInkScale: 1.004,
-    logoViewBox: null,
+    logoViewBox: "-0.07959 -0.25537 281.97744 48.51075",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6178,7 +6178,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.473720910724 -1.59362744755 -0.160877938637 0 2.22822629692",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.53193 -0.74862 575.08385 157.40725",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6218,7 +6218,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.394082618291 -1.32571913736 -0.133832384951 0 1.8536341406",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.93593 -1.27113 1011.87187 242.89213",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6228,7 +6228,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.52443 -0.02224 20.95115 24.04448",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6258,7 +6258,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.2525 -0.19196 272.985 70.34953",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6278,7 +6278,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.3702 -0.43224 400.24041 127.56449",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6288,7 +6288,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.22127755102 -0.744391836735 -0.0751469387755 0 1.04081632653",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.04967 0.33796 175.8725 27.43765",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6298,7 +6298,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261749340955 -0.880541527052 -0.088891356618 0 1.23118222463",
     monoInkScale: 1.1136,
-    logoViewBox: null,
+    logoViewBox: "-1.668 -1.308 1802.176 566.776",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6318,7 +6318,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251198234064 -0.845046928517 -0.0853081491037 0 1.18155331169",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.18164 -0.13356 109.12127 144.40013",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6358,7 +6358,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.42627 -0.43609 460.25964 108.576",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6398,7 +6398,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.87674 4.97502 525.14012 131.36506",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6448,7 +6448,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.09637 0.87742 104.12572 21.77558",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6468,7 +6468,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.06474 -1.47319 1151.12948 211.46553",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6498,7 +6498,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.600724685859 -2.02087627152 -0.204009041952 0 2.82560999934",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.6301 4.89255 147.54775 33.59932",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6558,7 +6558,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.246758543217 -0.830111524502 -0.0838004083739 0 1.16067047609",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.45407 -0.57429 490.90813 86.14859",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6568,7 +6568,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.23723 -0.1803 256.47445 213.70083",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6598,7 +6598,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.24742 -0.33007 266.63451 40.66015",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6628,7 +6628,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.419782013479 -1.41217354676 -0.142560025274 0 1.97451558551",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "328.98653 330.93695 2035.05694 1000.43915",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6688,7 +6688,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.283001139041 -0.952033935289 -0.0961085712078 0 1.33114364554",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "14.72956 38.89622 72.28089 20.85422",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6698,7 +6698,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244667571088 -0.823077360498 -0.0830903040101 0 1.1508352356",
     monoInkScale: 1.1539,
-    logoViewBox: null,
+    logoViewBox: "1.01493 -0.25973 239.20747 80.51947",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6798,7 +6798,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.1668 0.0732 180.2176 31.1576",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6818,7 +6818,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.222919879109 -0.749916733485 -0.0757046814285 0 1.04854129402",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.946 -2.0365 2103.892 244.07301",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6868,7 +6868,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.286198005752 -0.962788399407 -0.0971942427813 0 1.34618064794",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.26503 -0.24615 285.6085 90.30784",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6878,7 +6878,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.364467433702 -1.22609176192 -0.123774923393 0 1.71433411901",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.03641 -0.0106 128.15835 31.27381",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6918,7 +6918,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.15776 0.06592 558.59504 87.50745",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6928,7 +6928,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.09915 -0.08246 106.64666 18.16491",
     ratio: 1.8,
     alignment: "center",
   },
@@ -6998,7 +6998,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.4227793808 -1.42225688216 -0.143577945878 0 1.98861420884",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.88227 -1.38676 1134.76613 179.83268",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7008,7 +7008,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.353163968194 -1.18806618087 -0.119936211212 0 1.66116636027",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.14363 2.8408 154.9876 23.31841",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7028,7 +7028,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241938722959 -0.81389734083 -0.0821635738365 0 1.13799963763",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.62179 0.12375 672.24359 186.61727",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7038,7 +7038,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.47074 10.49626 1456.17545 1240.53959",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7118,7 +7118,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.7001 -0.9515 756.90019 145.803",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7138,7 +7138,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.668 -1.708 1803.336 252.416",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7148,7 +7148,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.34339192399 -1.15519239905 -0.116617577197 0 1.61520190024",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.47445 -0.5195 512.94891 133.37968",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7158,7 +7158,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.528103569202 -1.77657418953 -0.179346555486 0 2.48402431421",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.51658 -0.6157 558.49316 128.8314",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7168,7 +7168,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367557225513 -1.23648601923 -0.124824231807 0 1.72886747655",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "74.0955 -0.47445 363.809 512.94891",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7238,7 +7238,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.345421459674 -1.16201988692 -0.117306817443 0 1.62474816403",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.47445 -0.56569 512.94891 175.8013",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7258,7 +7258,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.418926938734 -1.40929702061 -0.142269637707 0 1.97049359705",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.71796 -1.07989 776.21352 201.08623",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7298,7 +7298,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.298488972872 -1.00413599905 -0.10136831534 0 1.40399328726",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.11491 -0.10936 123.75035 48.21872",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7308,7 +7308,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.17018 0.28568 603.34036 169.42864",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7348,7 +7348,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.328070536406 -1.10365027111 -0.111414359024 0 1.54313516654",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "8.57102 -0.18276 301.82684 201.39662",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7428,7 +7428,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.359992987796 -1.21103943966 -0.122255379675 0 1.69328780713",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "2.13668 2.11567 430.77468 99.81664",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7438,7 +7438,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.326009696162 -1.0967174727 -0.110714487596 0 1.53344165645",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.18613 -1.46912 1282.37227 316.93824",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7458,7 +7458,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.24811146412 -0.834662836964 -0.0842598669306 0 1.16703416801",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1094.14444 1474.36667 2811.71111 2054.48889",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7568,7 +7568,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.02717 -0.06117 74.994 32.12233",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7688,7 +7688,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.23723 -0.25966 254.49472 50.18977",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7698,7 +7698,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.512494493423 -1.7240642601 -0.174045636995 0 2.41060439051",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.1112 0.87547 119.7584 30.4384",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7748,7 +7748,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.302865921788 -1.0188603352 -0.102854748603 0 1.42458100559",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.38722 1.80696 1496.88024 396.24625",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7758,7 +7758,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.327160218167 -1.10058790232 -0.111105210497 0 1.53885333098",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.11583 -0.08806 125.23167 30.17611",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7768,7 +7768,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.42024 -0.4202 454.34049 125.5404",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7778,7 +7778,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.367516361403 -1.23634854974 -0.124810354155 0 1.7286752653",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "9.80847 9.87762 121.97426 79.93596",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7858,7 +7858,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.438259798255 -1.47433399676 -0.148835171373 0 2.06142896639",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.86602 -1.11437 936.28203 156.82873",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7928,7 +7928,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.244385000703 -0.822126775649 -0.0829943417252 0 1.14950611808",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.25391 14.01705 274.33124 71.96591",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7948,7 +7948,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.794192359416 -2.67171390148 -0.2697116103 0 3.7356178712",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.76728 -1.09905 829.53456 274.19809",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7958,7 +7958,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289322400779 -0.973299064144 -0.0982553026163 0 1.36087676754",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.37394 -1.22743 1325.74789 601.45487",
     ratio: 1.8,
     alignment: "center",
   },
@@ -7968,7 +7968,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.372085457555 -1.25171928148 -0.126362041559 0 1.7501667806",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.06672 0.33488 71.94784 19.33024",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8078,7 +8078,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.290133750626 -0.976028496932 -0.0985308409935 0 1.36469308855",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.09081 -0.07113 98.11847 18.14226",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8148,7 +8148,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.343690169775 -1.15619571695 -0.116718862925 0 1.61660474965",
     monoInkScale: 1.004,
-    logoViewBox: null,
+    logoViewBox: "5.40315 2.76134 414.54405 116.51958",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8208,7 +8208,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.45690143409 -1.53704565222 -0.155165962095 0 2.1491130484",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.10193 -0.11668 109.28231 34.23335",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8238,7 +8238,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.399977866313 -1.34555112882 -0.135834440018 0 1.88136343515",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.46075 0.03676 1272.71797 221.92647",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8268,7 +8268,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.375726148843 -1.26396679987 -0.12759843813 0 1.76729138685",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.80064 -0.74202 865.60128 175.48403",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8308,7 +8308,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.1112 -0.10587 120.2224 30.36107",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8418,7 +8418,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.289 -0.76761 1024.57799 166.19578",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8478,7 +8478,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.38444 -1.61797 1493.88048 405.23593",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8488,7 +8488,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.47816 -0.44393 516.29125 154.22254",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8508,7 +8508,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.384632303069 -1.29392767241 -0.130623011672 0 1.80918298715",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.28158 -1.62091 1382.88936 399.24182",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8528,7 +8528,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.10564 -0.06509 113.69701 28.54259",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8548,7 +8548,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.424210508195 -1.42707128627 -0.144063963743 0 1.99534575821",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.44356 -1.99829 1432.03701 348.07233",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8698,7 +8698,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.469007102629 -1.57776989558 -0.159277106349 0 2.20605410456",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "16.9114 -0.11909 75.39742 42.02543",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8728,7 +8728,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.309208672649 -1.04019775484 -0.105008777824 0 1.45441520531",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.81732 -0.89626 883.63464 259.68752",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8738,7 +8738,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235852668324 -0.793423463714 -0.0800967199108 0 1.10937285195",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.19275 -0.16477 208.1174 30.32954",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8778,7 +8778,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.53027 0.73052 230.23719 47.13446",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8818,7 +8818,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.03782 -0.17199 133.90292 29.9609",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8858,7 +8858,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "2.80476 1.25771 949.62008 227.94486",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8918,7 +8918,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.24093 -0.13691 260.81698 65.60371",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8948,7 +8948,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.359458316149 -1.20924077004 -0.122073802568 0 1.69077288876",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "36.38959 24.97177 2174.65741 604.9329",
     ratio: 1.8,
     alignment: "center",
   },
@@ -8988,7 +8988,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-4.0032 -4.9632 4328.0064 513.9264",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9018,7 +9018,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.779715572738 -2.62301306501 -0.264795222727 0 3.66752386048",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.3492 -0.3401 377.52839 46.43019",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9128,7 +9128,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.297352116508 -1.00031154152 -0.100982233358 0 1.39864589138",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.17329 -0.17755 186.503 50.35509",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9178,7 +9178,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.23723 -0.19166 256.47445 209.55867",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9218,7 +9218,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.270634961047 -0.910433321452 -0.0919089566679 0 1.27297723917",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.3614 -0.31795 390.7228 47.88715",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9238,7 +9238,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.49765917603 -1.67415730337 -0.169007490637 0 2.34082397004",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.80713 -1.00145 872.05294 202.00291",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9248,7 +9248,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.397278343263 -1.33646976059 -0.134917668784 0 1.86866577264",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.75846 1.74321 231.87472 44.51357",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9268,7 +9268,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.375385855363 -1.26282203084 -0.1274828728 0 1.765690759",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.35306 -0.28491 381.70612 67.07947",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9358,7 +9358,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "1.43256 -0.30831 396.53732 92.91362",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9388,7 +9388,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.439024271735 -1.47690573445 -0.149094790307 0 2.06502479649",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.76746 0.02128 101.59783 30.95745",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9498,7 +9498,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.47813 1.35998 1318.19307 245.83551",
     ratio: 1.8,
     alignment: "center",
   },
@@ -9638,7 +9638,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.28432685762 -0.956493737393 -0.0965587917223 0 1.33737938674",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.08433 -0.10862 91.16865 40.21724",
     ratio: 1.8,
     alignment: "center",
   },
@@ -10988,7 +10988,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.300039516023 -1.0093521254 -0.101894887379 0 1.4112865288",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.78952 -1.03642 849.18651 164.07284",
     ratio: 1.8,
     alignment: "center",
   },
@@ -11168,7 +11168,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.242450072628 -0.815617553827 -0.0823372306856 0 1.14040485714",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.21406 -0.17814 231.42812 23.46302",
     ratio: 1.8,
     alignment: "center",
   },
@@ -14719,7 +14719,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.6606 -1.48267 1180.3212 1602.96533",
     ratio: 1.8,
     alignment: "center",
   },
@@ -15319,7 +15319,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-0.20387 -0.1746 220.40773 35.6852",
     ratio: 1.8,
     alignment: "center",
   },
@@ -18229,7 +18229,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.42614 -1.5966 1541.85228 1209.19321",
     ratio: 1.8,
     alignment: "center",
   },
@@ -18319,7 +18319,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.397400655334 -1.33688122622 -0.134959206562 0 1.86924108812",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "-1.668 -2.108 1803.336 895.056",
     ratio: 1.8,
     alignment: "center",
   },
@@ -19269,7 +19269,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.989035647827 -3.3271791878 -0.335881344182 0 4.65209617981",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "2.5719 9.74499 124.3752 20.51002",
     ratio: 1.8,
     alignment: "center",
   },
@@ -26208,7 +26208,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.664814951071 -2.23648002354 -0.225774409536 0 3.12706938415",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "17.41739 16.6306 406.16569 66.67073",
     ratio: 1.8,
     alignment: "center",
   },
@@ -28498,7 +28498,7 @@ export const integrationGeometry: Readonly<
     monoAlphaMatrix:
       "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
     monoInkScale: 1,
-    logoViewBox: null,
+    logoViewBox: "0.88487 0.89241 128.23027 20.04784",
     ratio: 1.8,
     alignment: "center",
   },

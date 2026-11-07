@@ -5784,11 +5784,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "a11y-project",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Government & nonprofits"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.a11yproject.com/",
+    "logoRaster": false
   },
   {
     "name": "accessibleIcon",
@@ -5984,11 +5986,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "amilia",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.amilia.com/",
+    "logoRaster": false
   },
   {
     "name": "android",
@@ -6122,11 +6126,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "apper",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/FortAwesome/Font-Awesome/blob/14c65a3747d0f3b751f15831fc719236aea8729d/svgs/brands/apper.svg",
+    "logoRaster": false
   },
   {
     "name": "applePay",
@@ -6174,10 +6180,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "arch-linux",
     "paletteSource": "https://wiki.archlinux.org/index.php/DeveloperWiki:TrademarkPolicy#Logo_Usage_Guidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Official two-color full logo from the Arch Linux artwork page.",
     "categories": ["Operating systems"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://archlinux.org/static/logos/archlinux-logo-dark-scalable.svg",
+    "logoRaster": false
   },
   {
     "name": "artstation",
@@ -6234,11 +6242,13 @@
     "logoDarkColors": {},
     "fontAwesomeId": "atlassian",
     "paletteSource": "https://atlassian.design/foundations/logos",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "monoInkScale": 1.02
+    "monoInkScale": 1.02,
+    "logoSource": "https://www.atlassian.com/",
+    "logoRaster": false
   },
   {
     "name": "audible",
@@ -6255,9 +6265,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "audible",
     "paletteSource": "https://commons.wikimedia.org/wiki/File:Audible_logo.svg",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions. The separate German-language endorsement is omitted; the Audible lettering and sound mark are unchanged.",
     "categories": ["Music & video"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Amazon"],
     "searchAliasSources": [
@@ -6266,7 +6276,9 @@
         "url": "https://www.aboutamazon.com/what-we-do",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://images-na.ssl-images-amazon.com/images/G/03/AudibleDE/de_DE/img2/site/logo/audible_logo_de._CB294884942_.svg",
+    "logoRaster": false
   },
   {
     "name": "autoprefixer",
@@ -6303,11 +6315,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "avianex",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Travel & hospitality"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.avianex.com/wp-content/themes/avianex/dst/img/logo.svg",
+    "logoRaster": false
   },
   {
     "name": "bandcamp",
@@ -6324,10 +6338,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "bandcamp",
     "paletteSource": "https://bandcamp.com/buttons",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Music & video"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://bandcamp.com/buttons",
+    "logoRaster": false
   },
   {
     "name": "battleNet",
@@ -6445,9 +6461,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "bitbucket",
     "paletteSource": "https://atlassian.design/foundations/logos",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Atlassian"],
     "searchAliasSources": [
@@ -6456,7 +6472,9 @@
         "url": "https://www.atlassian.com/software",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://bitbucket.org/",
+    "logoRaster": false
   },
   {
     "name": "bitcoin",
@@ -6471,10 +6489,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "bitcoin",
     "paletteSource": "https://bitcoin.org",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Cryptocurrency"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://bitcoin.org/img/icons/logotop.svg?1793926253",
+    "logoRaster": false
   },
   {
     "name": "bity",
@@ -6549,9 +6569,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "blogger",
     "paletteSource": "https://www.blogger.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Native SVG symbol and outlined wordmark from Blogger’s published header, retaining its 32px icon, 80px wordmark viewport, and spacing.",
     "categories": ["News & publishing"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Google", "Alphabet"],
     "searchAliasSources": [
@@ -6565,7 +6585,9 @@
         "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.blogger.com/about/",
+    "logoRaster": false
   },
   {
     "name": "bluesky",
@@ -6580,10 +6602,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "bluesky",
     "paletteSource": "https://bsky.social/about/blog/press-faq",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://bsky.social:443/about",
+    "logoRaster": false
   },
   {
     "name": "bluetooth",
@@ -6600,10 +6624,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "bluetooth",
     "paletteSource": "https://www.bluetooth.com/develop-with-bluetooth/marketing-branding",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Technology & electronics"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.bluetooth.com/",
+    "logoRaster": false
   },
   {
     "name": "boardGameGeek",
@@ -6656,10 +6682,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "brave",
     "paletteSource": "https://brave.com/brave-branding-assets",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Browsers & search"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://brave.com/static-assets/images/brave-logo-dark.svg",
+    "logoRaster": false
   },
   {
     "name": "buffer",
@@ -6677,10 +6705,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "buffer",
     "paletteSource": "https://buffer.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Marketing & sales"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://buffer.com/",
+    "logoRaster": false
   },
   {
     "name": "buildAwesome",
@@ -6737,10 +6767,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "buysellads",
     "paletteSource": "https://docs.buysellads.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Marketing & sales"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.buysellads.com/logos/buysellads-wordmark.svg",
+    "logoRaster": false
   },
   {
     "name": "cashApp",
@@ -6974,11 +7006,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "centercode",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.centercode.com/logos/centercode-logo.svg?dpl=dpl_BNymeCEB234maJ6gGXyDTjxnXyU8",
+    "logoRaster": false
   },
   {
     "name": "centos",
@@ -7019,9 +7053,9 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "chrome",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Browsers & search"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Google", "Alphabet"],
     "searchAliasSources": [
@@ -7035,7 +7069,9 @@
         "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.google.com/chrome/static/images/chrome-logo-landscape.svg",
+    "logoRaster": false
   },
   {
     "name": "chromecast",
@@ -7126,10 +7162,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "cloudsmith",
     "paletteSource": "https://cloudsmith.com/company/brand/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cloudsmith.com/company/brand",
+    "logoRaster": false
   },
   {
     "name": "cloudversify",
@@ -7250,9 +7288,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "confluence",
     "paletteSource": "https://www.atlassian.com/company/news/press-kit",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Productivity"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "monoInkScale": 1.004,
     "searchAliases": ["Atlassian"],
@@ -7262,7 +7300,9 @@
         "url": "https://www.atlassian.com/software",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.atlassian.com/software/confluence",
+    "logoRaster": false
   },
   {
     "name": "connectdevelop",
@@ -7299,10 +7339,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "contao",
     "paletteSource": "https://contao.org/en/media",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://contao.org/files/contao/logo/contao-logo-corporate.svg",
+    "logoRaster": false
   },
   {
     "name": "githubCopilot",
@@ -7393,10 +7435,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "creative-commons",
     "paletteSource": "https://creativecommons.org/mission/downloads",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Government & nonprofits"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://mirrors.creativecommons.org/presskit/logos/cc.logo.large.png",
+    "logoRaster": false
   },
   {
     "name": "criticalRole",
@@ -7413,10 +7457,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "critical-role",
     "paletteSource": "https://critrole.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Gaming"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/simple-icons/simple-icons/blob/e451c581fccb01b56f47e1a77292bdd1fd95b1a4/icons/criticalrole.svg",
+    "logoRaster": false
   },
   {
     "name": "css",
@@ -7470,11 +7516,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "cuttlefish",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Services & consulting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cuttlefish.com/css/cf25/uploads/communities-logo.svg?v=2",
+    "logoRaster": false
   },
   {
     "name": "dAndD",
@@ -7511,11 +7559,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "d-and-d-beyond",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Gaming"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.dndbeyond.com/en",
+    "logoRaster": false
   },
   {
     "name": "dailymotion",
@@ -7532,10 +7582,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "dailymotion",
     "paletteSource": "https://careers.dailymotion.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Music & video"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://corpostatic.dailymotion.com/corporate-cms-release-assets-prod-aws/725db18/app/themes/dailymotion/front/build/images/logo.svg",
+    "logoRaster": false
   },
   {
     "name": "dartLang",
@@ -7552,11 +7604,13 @@
     "logoDarkColors": {},
     "fontAwesomeId": "dart-lang",
     "paletteSource": "https://github.com/dart-lang/site-shared/tree/18458ff440afd3d06f04e5cb871c4c5eda29c9d5/src/_assets/image/dart/logo",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "monoInkScale": 1.1136
+    "monoInkScale": 1.1136,
+    "logoSource": "https://dart.dev/assets/img/logo/dart-logo-for-shares.png",
+    "logoRaster": false
   },
   {
     "name": "dashcube",
@@ -7594,10 +7648,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "debian",
     "paletteSource": "https://www.debian.org/logos/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Operating systems"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.debian.org/logos/openlogo.svg",
+    "logoRaster": false
   },
   {
     "name": "deezer",
@@ -7673,11 +7729,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "deskpro",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://2401116.fs1.hubspotusercontent-na1.net/hubfs/2401116/Website/Static/deskpro-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "dev",
@@ -7762,10 +7820,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "diaspora",
     "paletteSource": "https://wiki.diasporafoundation.org/Branding",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://wiki.diasporafoundation.org/images/0/02/Diaspora_logo_roboto.svg",
+    "logoRaster": false
   },
   {
     "name": "digg",
@@ -7870,11 +7930,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "dochub",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Productivity"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.mrkhub.com/dochub-frontend/254/images/logos/dochub-2025.svg",
+    "logoRaster": false
   },
   {
     "name": "dolibarr",
@@ -7910,11 +7972,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "draft2digital",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["News & publishing"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://draft2digital-prod-static.s3.amazonaws.com/img/outer/d2d-logo-dark.png",
+    "logoRaster": false
   },
   {
     "name": "dribbble",
@@ -7981,10 +8045,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "duolingo",
     "paletteSource": "https://design.duolingo.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Official outlined wordmark served by Duolingo’s press site.",
     "categories": ["Education & research"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://press.duolingo.com/2b2efbe1b1a37089bad6.svg",
+    "logoRaster": false
   },
   {
     "name": "dyalog",
@@ -8120,10 +8186,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "elementor",
     "paletteSource": "https://elementor.com/logos/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://elementor.com/",
+    "logoRaster": false
   },
   {
     "name": "eleventy",
@@ -8141,10 +8209,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "eleventy",
     "paletteSource": "https://www.11ty.dev",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/eleventy.svg",
+    "logoRaster": false
   },
   {
     "name": "elloLegacy",
@@ -8204,11 +8274,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "envira",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://enviragallery.com/wp-content/themes/envira-gallery-edd/images/envira-logo-1.svg",
+    "logoRaster": false
   },
   {
     "name": "erlang",
@@ -8268,10 +8340,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "etsy",
     "paletteSource": "https://www.etsy.com/uk/press",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Outlined orange wordmark from Etsy’s current public press asset download.",
     "categories": ["Retail", "Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://extfiles.etsy.com/Press/brand-assets/etsy-logos.zip",
+    "logoRaster": false
   },
   {
     "name": "expeditedssl",
@@ -8400,10 +8474,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "fedora",
     "paletteSource": "https://fedoraproject.org/wiki/Legal:Trademark_guidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Operating systems"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://fedoraproject.org/assets/images/logos/fedora-logo-official.svg",
+    "logoRaster": false
   },
   {
     "name": "firefox",
@@ -8418,11 +8494,13 @@
     "logoDarkColors": {},
     "fontAwesomeId": "firefox",
     "paletteSource": "https://mozilla.design/firefox/logos-usage/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Browsers & search"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "monoInkScale": 1.1539
+    "monoInkScale": 1.1539,
+    "logoSource": "https://www.firefox.com/media/img/logos/firefox/logo-word-hor.f3b18871b657.svg",
+    "logoRaster": false
   },
   {
     "name": "firstdraft",
@@ -8633,11 +8711,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "forumbee",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://d56vh6ph4jjmq.cloudfront.net/fb-main/logo/color/forumbee.svg",
+    "logoRaster": false
   },
   {
     "name": "foursquare",
@@ -8674,10 +8754,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "free-code-camp",
     "paletteSource": "https://design-style-guide.freecodecamp.org",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Official outlined primary full logo from the freeCodeCamp style guide.",
     "categories": ["Education & research"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://design-style-guide.freecodecamp.org/downloads/fcc_primary_large.svg",
+    "logoRaster": false
   },
   {
     "name": "freebsd",
@@ -8780,10 +8862,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "gitee",
     "paletteSource": "https://gitee.com/about_us",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://gitee.com/static/images/logo-black.svg?t=158106664",
+    "logoRaster": false
   },
   {
     "name": "gitkraken",
@@ -8801,10 +8885,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "gitkraken",
     "paletteSource": "https://www.gitkraken.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.gitkraken.com/wp-content/uploads/2025/03/gitkraken-logo-stencil-monochrome-light.svg",
+    "logoRaster": false
   },
   {
     "name": "gitlab",
@@ -8892,13 +8978,17 @@
     "markDarkColors": {
       "#111111": "#F5F7FA"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#103253": "#9ECDF3"
+    },
     "fontAwesomeId": "globaleaks",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Security & privacy"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://globaleaks.org/images/globaleaks-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "gofore",
@@ -8914,11 +9004,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "gofore",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Services & consulting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://gofore.com/",
+    "logoRaster": false
   },
   {
     "name": "golang",
@@ -9115,9 +9207,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "google-scholar",
     "paletteSource": "https://commons.wikimedia.org/wiki/File:Google_Scholar_logo.svg",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Education & research"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Google", "Alphabet"],
     "searchAliasSources": [
@@ -9131,7 +9223,9 @@
         "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://scholar.google.com/intl/de/scholar/images/1x/scholar_logo_64dp.png",
+    "logoRaster": false
   },
   {
     "name": "googleWallet",
@@ -9145,9 +9239,9 @@
     "markDarkColors": {},
     "logoDarkColors": {},
     "fontAwesomeId": "google-wallet",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. Color mark from SuperTiny Icons, with the outer square background removed.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Finance & payments"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Google", "Alphabet"],
     "searchAliasSources": [
@@ -9161,7 +9255,9 @@
         "url": "https://abc.xyz/assets/99/21/46cafdba41089a12a2d86ea47d44/goog026-annualreport2024-web.pdf",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.gstatic.com/marketing-cms/assets/images/1c/83/2e19c3f2412c83e9297a50cbf5e1/header-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "gratipayLegacy",
@@ -9198,10 +9294,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "grav",
     "paletteSource": "https://getgrav.org/media",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://getgrav.org/user/pages/media/grav-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "gripfire",
@@ -9217,11 +9315,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "gripfire",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Services & consulting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.gripfire.com/logo512.png",
+    "logoRaster": false
   },
   {
     "name": "grunt",
@@ -9385,11 +9485,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "hire-a-helper",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Services & consulting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images.contentstack.io/v3/assets/bltf3108d72654049b3/blt9270b4b47e577af1/691b70e763fae97cbe73c15a/hireahelper-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "hive",
@@ -9423,13 +9525,17 @@
     "markDarkColors": {
       "#111111": "#F5F7FA"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#1b4287": "#8BADDF"
+    },
     "fontAwesomeId": "hornbill",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published full logo converted from the original 6161px raster asset to outlined SVG.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.hornbill.com/hubfs/Logo%20Hornbill/Hornbill_corporate_logo_2021.png",
+    "logoRaster": false
   },
   {
     "name": "hotjar",
@@ -9444,10 +9550,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "hotjar",
     "paletteSource": "https://www.hotjar.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Databases & analytics"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/hotjar.svg",
+    "logoRaster": false
   },
   {
     "name": "houzz",
@@ -9464,10 +9572,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "houzz",
     "paletteSource": "https://www.houzz.com/logoGuidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Consumer goods"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.houzz.com/res/29897783/pic/houzz_logo.svg?v=29897783",
+    "logoRaster": false
   },
   {
     "name": "html5",
@@ -9482,10 +9592,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "html5",
     "paletteSource": "https://www.w3.org/html/logo/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg?utm_source=es.wikipedia.org&utm_campaign=index&utm_content=original",
+    "logoRaster": false
   },
   {
     "name": "ideal",
@@ -9627,11 +9739,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "invision",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Design & creative"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/invision.svg",
+    "logoRaster": false
   },
   {
     "name": "ioxhost",
@@ -9668,11 +9782,13 @@
     "logoDarkColors": {},
     "fontAwesomeId": "itch-io",
     "paletteSource": "https://itch.io/press-kit",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Gaming"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.itch.io/images/logo-black-new.svg",
+    "logoRaster": false
   },
   {
     "name": "itunes",
@@ -9762,9 +9878,9 @@
     "logoDarkColors": {},
     "fontAwesomeId": "jira",
     "paletteSource": "https://atlassian.design/foundations/logos/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Atlassian"],
     "searchAliasSources": [
@@ -9773,7 +9889,9 @@
         "url": "https://www.atlassian.com/software",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.atlassian.com/software/jira",
+    "logoRaster": false
   },
   {
     "name": "joget",
@@ -9789,11 +9907,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "joget",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://joget.com/wp-content/uploads/2024/08/cropped-Joget_logo_new_Horizontal_Green.png",
+    "logoRaster": false
   },
   {
     "name": "joomla",
@@ -9870,10 +9990,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "julia",
     "paletteSource": "https://github.com/JuliaLang/julia-logo-graphics/blob/b5551ca7946b4a25746c045c15fbb8806610f8d0/images/julia-dots.svg",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://julialang.org/assets/infra/logo.svg",
+    "logoRaster": false
   },
   {
     "name": "jxl",
@@ -10037,10 +10159,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "kubernetes",
     "paletteSource": "https://github.com/kubernetes/kubernetes/tree/cac53883f4714452f3084a22e4be20d042a9df33/logo",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Cloud & hosting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://kubernetes.io/",
+    "logoRaster": false
   },
   {
     "name": "laravel",
@@ -10055,10 +10179,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "laravel",
     "paletteSource": "https://github.com/laravel/art/tree/5a8325b064634b900f25dbb6f1cafd888b2d2211",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://laravel.com/",
+    "logoRaster": false
   },
   {
     "name": "lastfm",
@@ -10100,10 +10226,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "leanpub",
     "paletteSource": "https://leanpub.com/press",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["News & publishing"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://leanpub.com/images/press/Leanpub-Logo-Square-Black-On-White.svg",
+    "logoRaster": false
   },
   {
     "name": "leetcode",
@@ -10329,10 +10457,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "matrix",
     "paletteSource": "https://matrix.org",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Communication"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://matrix.org/images/matrix-logo-white.svg",
+    "logoRaster": false
   },
   {
     "name": "mattermost",
@@ -10583,11 +10713,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "mintbit",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Services & consulting"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.mintbit.com/assets/logo.svg",
+    "logoRaster": false
   },
   {
     "name": "mix",
@@ -10604,10 +10736,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "mix",
     "paletteSource": "https://mix.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://mix.com/logo_white.svg",
+    "logoRaster": false
   },
   {
     "name": "mixcloud",
@@ -10706,10 +10840,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "monero",
     "paletteSource": "https://www.getmonero.org/press-kit",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Cryptocurrency"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.getmonero.org/img/monero-logo.png",
+    "logoRaster": false
   },
   {
     "name": "napster",
@@ -10726,10 +10862,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "napster",
     "paletteSource": "https://www.napster.com/us/wp-content/uploads/sites/5/2022/03/logo-napster.svg",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Music & video"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.prod.website-files.com/69ae6251111a514c4038172a/69b2676cfaca4a559c6d5fcc_napster-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "neos",
@@ -10745,11 +10883,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "neos",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.neos.io/",
+    "logoRaster": false
   },
   {
     "name": "nextcloud",
@@ -10766,10 +10906,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "nextcloud",
     "paletteSource": "https://nextcloud.com/trademarks/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Productivity"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://nextcloud.com/c/uploads/2022/10/nextcloud-logo-blue-transparent.svg",
+    "logoRaster": false
   },
   {
     "name": "nimblr",
@@ -10947,10 +11089,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "octopus-deploy",
     "paletteSource": "https://octopus.com/company/brand",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Native glyph and outlined wordmark from the published website header, combined with its 8px-equivalent spacing.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://octopus.com/",
+    "logoRaster": false
   },
   {
     "name": "odnoklassniki",
@@ -11088,10 +11232,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "opera",
     "paletteSource": "https://brand.opera.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Browsers & search"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn-production-opera-website.operacdn.com/staticfiles/assets/images/ds-icons/logo/opera-logo-text-flat-2026.module.c7a56b93b7e7.svg",
+    "logoRaster": false
   },
   {
     "name": "optinMonster",
@@ -11128,10 +11274,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "orcid",
     "paletteSource": "https://info.orcid.org/brand-guidelines/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Education & research", "Government & nonprofits"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://info.orcid.org/wp-content/uploads/2025/06/ORCID-Logotype-with-tagline-1.png",
+    "logoRaster": false
   },
   {
     "name": "openSourceInitiative",
@@ -11149,10 +11297,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "osi",
     "paletteSource": "https://opensource.org/logo-usage-guidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Government & nonprofits"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://i0.wp.com/opensource.org/wp-content/uploads/2023/01/OSI_Horizontal_Logo_0.png",
+    "logoRaster": false
   },
   {
     "name": "padlet",
@@ -11169,10 +11319,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "padlet",
     "paletteSource": "https://legal.padlet.com/trademark",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Productivity"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://legal.padlet.com/trademark",
+    "logoRaster": false
   },
   {
     "name": "page4",
@@ -11396,10 +11548,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "pinterest",
     "paletteSource": "https://business.pinterest.com/en/brand-guidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.pinterest.com/",
+    "logoRaster": false
   },
   {
     "name": "pix",
@@ -11559,11 +11713,13 @@
     "logoDarkColors": {},
     "fontAwesomeId": "python",
     "paletteSource": "https://www.python.org/community/logos/",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
-    "monoInkScale": 1.004
+    "monoInkScale": 1.004,
+    "logoSource": "https://www.python.org/static/community_logos/python-logo-generic.svg",
+    "logoRaster": false
   },
   {
     "name": "qq",
@@ -11687,10 +11843,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "ravelry",
     "paletteSource": "https://www.ravelry.com/help/logos",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://style-cdn.ravelrycache.com/images/assets/logos/primary.svg",
+    "logoRaster": false
   },
   {
     "name": "react",
@@ -11749,10 +11907,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "readme",
     "paletteSource": "https://readme.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://readme.com/_next/static/immutable/media/wordmark-mask.1h5u4yyxrcjdy.png",
+    "logoRaster": false
   },
   {
     "name": "redRiver",
@@ -11812,13 +11972,18 @@
     "markDarkColors": {
       "#217DC6": "#3186CA"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#675e8c": "#675e8c",
+      "#724a75": "#724a75"
+    },
     "fontAwesomeId": "renren",
     "paletteSource": "https://seeklogo.com/vector-logo/184137/renren-inc",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images.seeklogo.com/logo-png/18/2/renren-inc-logo-png_seeklogo-184137.png",
+    "logoRaster": false
   },
   {
     "name": "replyd",
@@ -11894,11 +12059,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "rev",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Productivity"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.rev.com/",
+    "logoRaster": false
   },
   {
     "name": "robloxCreatorStudio",
@@ -12126,11 +12293,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "screenpal",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Design & creative", "Music & video"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://dfjnl57l0uncv.cloudfront.net/www/cb1eb5b77b/images/sp_logo_light.svg",
+    "logoRaster": false
   },
   {
     "name": "scribd",
@@ -12251,11 +12420,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "shirtsinbulk",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Retail"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "http://www.shirtsinbulk.com/cdn/shop/files/SIB-Logo-V3_grande.png?v=1683212455",
+    "logoRaster": false
   },
   {
     "name": "shoelace",
@@ -12271,11 +12442,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "shoelace",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://shoelace.style/assets/images/wordmark.svg",
+    "logoRaster": false
   },
   {
     "name": "shopware",
@@ -12313,10 +12486,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "signal-messenger",
     "paletteSource": "https://signal.org/brand",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Communication"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://signal.org/assets/images/header/logo.png",
+    "logoRaster": false
   },
   {
     "name": "simplybuilt",
@@ -12352,11 +12527,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "sistrix",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Marketing & sales"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sistrix.com/wp-content/themes/sistrix-child/assets/images/logos/sistrix-logo-white.svg",
+    "logoRaster": false
   },
   {
     "name": "sitrox",
@@ -12391,10 +12568,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "sketch",
     "paletteSource": "https://www.sketch.com/about-us/#press",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Design & creative"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.sketch.com/logo/horizontal_onetrust_trans.png",
+    "logoRaster": false
   },
   {
     "name": "skyatlas",
@@ -12729,10 +12908,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "viadeo",
     "paletteSource": "https://viadeo.journaldunet.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://astatic.ccmbg.com/viadeo.journaldunet.com/img/viadeo/logo-viadeo.svg?1",
+    "logoRaster": false
   },
   {
     "name": "vimeo",
@@ -12790,10 +12971,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "xing",
     "paletteSource": "https://dev.xing.com/logo_rules",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Social & communities"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.xingcdn.com/xws/assets/xws/dev/xing-brand-logo-a4da2740b6cbfb3bbe866b9414e8672a41354611d4871f0603b8433d05aafff9.svg",
+    "logoRaster": false
   },
   {
     "name": "squarespace",
@@ -12811,10 +12994,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "squarespace",
     "paletteSource": "https://www.squarespace.com/brand-guidelines",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.squarespace.com/",
+    "logoRaster": false
   },
   {
     "name": "stackExchange",
@@ -12892,11 +13077,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "staylinked",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.staylinked.com/hubfs/_img/logo.svg",
+    "logoRaster": false
   },
   {
     "name": "stickerMule",
@@ -12978,11 +13165,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "stubber",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["AI", "Business software"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.stubber.com:443/stubber-logo-header.svg",
+    "logoRaster": false
   },
   {
     "name": "studiovinari",
@@ -13058,11 +13247,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "superpowers",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Gaming", "Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://superpowers-html5.com/wp-content/uploads/2025/03/Superpowers-HTML5-Logo.png",
+    "logoRaster": false
   },
   {
     "name": "supple",
@@ -13187,10 +13378,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "symfony",
     "paletteSource": "https://symfony.com/trademark",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://symfony.com/",
+    "logoRaster": false
   },
   {
     "name": "symfonycasts",
@@ -13248,10 +13441,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "teamspeak",
     "paletteSource": "https://teamspeak.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Communication"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://teamspeak.com/user/themes/teamspeak/images/logo_front.svg",
+    "logoRaster": false
   },
   {
     "name": "tencentWeiboLegacy",
@@ -13330,11 +13525,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "themeco",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://theme.co/",
+    "logoRaster": false
   },
   {
     "name": "themeisle",
@@ -13391,10 +13588,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "threema",
     "paletteSource": "https://threema.ch/en/press",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Communication"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://threema.com/assets/company/logo/dark/threema_logo_bw.svg",
+    "logoRaster": false
   },
   {
     "name": "tidal",
@@ -13639,13 +13838,17 @@
     "markDarkColors": {
       "#3544B1": "#727CC8"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#283A97": "#91A2F0"
+    },
     "fontAwesomeId": "umbraco",
     "paletteSource": "https://umbraco.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://umbraco.com",
+    "logoRaster": false
   },
   {
     "name": "uncharted",
@@ -13743,10 +13946,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "unreal-engine",
     "paletteSource": "https://www.unrealengine.com/en-US/branding",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Gaming"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/unrealengine.svg",
+    "logoRaster": false
   },
   {
     "name": "unsplash",
@@ -13823,10 +14028,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "usps",
     "paletteSource": "https://www.usps.com",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Transport & logistics"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.usps.com/global-elements/header/images/utility-header/logo-sb.svg",
+    "logoRaster": false
   },
   {
     "name": "ussunnah",
@@ -13863,10 +14070,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "vaadin",
     "paletteSource": "https://vaadin.com/trademark",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Languages & frameworks"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://vaadin.com/",
+    "logoRaster": false
   },
   {
     "name": "venmo",
@@ -13883,10 +14092,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "venmo",
     "paletteSource": "https://venmo.com/about/brand",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Finance & payments"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.paypalobjects.com/paypal-ui/logos/svg/venmo-color.svg",
+    "logoRaster": false
   },
   {
     "name": "viacoin",
@@ -13923,10 +14134,12 @@
     "logoDarkColors": {},
     "fontAwesomeId": "viber",
     "paletteSource": "https://www.viber.com/brand-center",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Communication"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.viber.com/app/themes/viber/assets/images/logov2.svg",
+    "logoRaster": false
   },
   {
     "name": "vim",
@@ -14103,13 +14316,20 @@
     "markDarkColors": {
       "#111111": "#F5F7FA"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#286078": "#91BED5",
+      "#2A6485": "#91BED5",
+      "#111111": "#91BED5",
+      "#285D78": "#91BED5"
+    },
     "fontAwesomeId": "watchman-monitoring",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only. The sourced Font Awesome mark is monochrome; no unverified brand palette is assigned.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Developer tools"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://watchmanmonitoring.com/assets/images/watchman-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "waze",
@@ -14168,10 +14388,12 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "weebly",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn11.editmysite.com/images/landing-pages/global/logotype.svg",
+    "logoRaster": false
   },
   {
     "name": "weibo",
@@ -14418,11 +14640,13 @@
     },
     "logoDarkColors": {},
     "fontAwesomeId": "wpbeginner",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "artworkAttribution": "Font Awesome Free 7.3.1 by Fonticons, Inc. (https://fontawesome.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: normalized bounds, themed fills, and app-tile composition.",
     "categories": ["Education & research", "Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.wpbeginner.com/wp-content/uploads/2010/02/wpbeginner-logo-520.png",
+    "logoRaster": false
   },
   {
     "name": "wpexplorer",
@@ -14718,13 +14942,17 @@
     "markDarkColors": {
       "#A61E69": "#C16296"
     },
-    "logoDarkColors": {},
+    "logoDarkColors": {
+      "#A4286A": "#DF6DA5"
+    },
     "fontAwesomeId": "yoast",
     "paletteSource": "https://yoast.com/brand",
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Websites & commerce"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://yoast.com/app/themes/yoast-theme/images/logo-diap.svg",
+    "logoRaster": false
   },
   {
     "name": "youtubeShorts",
@@ -18000,9 +18228,9 @@
       "#111111": "#F5F7FA"
     },
     "logoDarkColors": {},
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "categories": ["Technology & electronics"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Tencent"],
     "searchAliasSources": [
@@ -18011,7 +18239,9 @@
         "url": "https://www.tencent.com/what-we-create/",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.tencent.com/wp-content/uploads/2024/05/logo@2x-en.png",
+    "logoRaster": false
   },
   {
     "name": "ibm",
@@ -18396,11 +18626,15 @@
     "markDarkColors": {
       "#012169": "#5D8FFD"
     },
-    "logoDarkColors": {},
-    "logoNotes": "No separate verified full-logo asset; mark and app-tile variants only.",
+    "logoDarkColors": {
+      "#012169": "#CAD9FF"
+    },
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "categories": ["Finance & payments"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www1.bac-assets.com/homepage/spa-assets/images/assets-images-site-login-common-logo-flagscape-CSXdf6fc172.svg",
+    "logoRaster": false
   },
   {
     "name": "kfc",
@@ -28297,12 +28531,14 @@
       "#FFFFFF": "#FFFFFF"
     },
     "logoDarkColors": {},
-    "logoNotes": "Official shield emblem. No separate verified outlined full logo is included.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "brandWebsite": "https://www.brewdog.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Food & drink"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.shopify.com/s/files/1/0822/7281/3382/files/BrewDogLogo.png?v=1724795739",
+    "logoRaster": false
   },
   {
     "name": "johnnieWalker",
@@ -29862,12 +30098,14 @@
       "#000000": "#F5F7FA"
     },
     "logoDarkColors": {},
-    "logoNotes": "Official compact L favicon. No separate verified outlined full logo is included.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "brandWebsite": "https://www.libertylondon.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Retail", "Fashion & luxury"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.libertylondon.com/",
+    "logoRaster": false
   },
   {
     "name": "harveyNichols",
@@ -43739,11 +43977,11 @@
       "#111111": "#F5F7FA"
     },
     "logoDarkColors": {},
-    "logoNotes": "Verified brand symbol; a separate full wordmark lock-up is not included.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "brandWebsite": "https://seat.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Automotive"],
-    "lastCheckedAutomated": "2026-11-06",
+    "lastCheckedAutomated": "2026-11-07",
     "lastCheckedManually": null,
     "searchAliases": ["Volkswagen", "Volkswagen Group", "VW"],
     "searchAliasSources": [
@@ -43752,7 +43990,9 @@
         "url": "https://www.volkswagen-group.com/en/brands-and-brand-groups-15811",
         "checkedOn": "2026-11-06"
       }
-    ]
+    ],
+    "logoSource": "https://www.seat.es/content/dam/countries/es/seat-website/homepage/open-graph-generico/logo-seat.jpg",
+    "logoRaster": false
   },
   {
     "name": "cupra",
@@ -44050,12 +44290,14 @@
       "#FF5A00": "#FF5A00"
     },
     "logoDarkColors": {},
-    "logoNotes": "Verified brand symbol; a separate full wordmark lock-up is not included.",
+    "logoNotes": "Full logo converted from published raster artwork to vector outlines; no embedded image or live text.",
     "brandWebsite": "https://galp.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Industry & energy"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.galp.com/es/img/Galp_Logo_Transparent.png",
+    "logoRaster": false
   },
   {
     "name": "jeronimoMartins",
@@ -46539,12 +46781,14 @@
       "#FFCC01": "#FFCC01"
     },
     "logoDarkColors": {},
-    "logoNotes": "Outlined brand artwork, with transparent bounds and theme-specific contrast adjustments.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "brandWebsite": "https://clickhouse.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Databases & analytics"],
-    "lastCheckedAutomated": "2026-11-06",
-    "lastCheckedManually": null
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://clickhouse.com/",
+    "logoRaster": false
   },
   {
     "name": "clubhouse",
@@ -68503,13 +68747,17 @@
       "#111111": "#F5F7FA",
       "#D1AA67": "#D1AA67"
     },
-    "logoDarkColors": {},
-    "logoNotes": "Outlined brand symbol. A separately verified full wordmark is not included.",
+    "logoDarkColors": {
+      "#002E6E": "#CAD9FF"
+    },
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "brandWebsite": "https://itchotels.com/",
     "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
     "categories": ["Travel & hospitality"],
     "lastCheckedAutomated": "2026-11-07",
-    "lastCheckedManually": null
+    "lastCheckedManually": null,
+    "logoSource": "https://www.itchotels.com/content/dam/itchotels/global/common/icons/footer-itchl-logo.svg",
+    "logoRaster": false
   },
   {
     "name": "razorpay",
@@ -76741,7 +76989,7 @@
       "#fff": "#FFFFFF"
     },
     "logoDarkColors": {},
-    "logoNotes": "Current product icon served by Adobe’s official product assets. Native badge colors and proportions retained; the icon is not marked legacy. Mono artwork uses a solid badge with subtractive lettering. No separate verified current outlined full-logo lockup is included.",
+    "logoNotes": "Published outlined full logo, retaining the native lettering and proportions.",
     "brandWebsite": "https://fonts.adobe.com/",
     "artworkAttribution": "Adobe product artwork. Brand names and artwork remain trademarks of Adobe. Mono colors adapted and app tiles composed.",
     "categories": ["Design & creative"],
@@ -76764,7 +77012,9 @@
         "url": "https://adobe.design/ideas/behind-the-design-adobe-s-updated-app-icons",
         "checkedOn": "2026-11-07"
       }
-    ]
+    ],
+    "logoSource": "https://afwebcdn.fonts.adobe.com/assets/spectrum/adobe-fonts-logo--light-404ec346d931eb0923079a208fcf67253f5df08c9bda416ef2d86eb500867c25.svg",
+    "logoRaster": false
   },
   {
     "name": "adobeScan",
