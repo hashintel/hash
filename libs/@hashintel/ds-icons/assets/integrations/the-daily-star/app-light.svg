@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="the-daily-star-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="the-daily-star-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="the-daily-star-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-daily-star-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-daily-star-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#the-daily-star-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="the-daily-star-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#the-daily-star-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.03547 -0.03713 18.07095 23.07426" fill="none" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+						<path d="M8.21452 17.0832C6.32983 16.394 3.49248 16.4423 1.88768 18.1308C-0.459695 20.6005 2.06706 24.2879 5.71142 20.6453C6.73012 19.6276 7.45514 18.4065 8.21452 17.0832ZM13.2507 9.69397C12.7691 10.5056 13.0825 9.96688 12.6242 10.7943C15.2391 11.748 16.0199 13.4163 14.798 15.531C14.3806 16.2539 13.9269 15.823 13.9684 15.3332C14.028 14.6306 13.1522 13.7259 11.4045 13.0191C10.7176 14.2728 10.8509 14.0633 10.1536 15.3108C11.5244 15.8085 12.8259 16.4934 14.0243 17.3475C16.3768 15.2105 18.2753 11.9601 13.2507 9.69364V9.69397ZM15.7185 1.2574C16.2561 0.98784 16.3154 1.35965 16.1347 1.81238C15.6161 3.11152 13.5752 4.39281 13.2487 3.95235C12.6044 3.08518 11.6993 2.17246 10.6371 1.65901C9.46655 1.09243 8.12793 1.02546 7.38868 2.0412C6.65574 3.04723 7.4575 4.21779 8.80992 4.96698C9.61682 5.41469 12.1778 6.4763 13.9382 7.14133C15.0126 5.3697 15.6701 4.46246 16.8909 3.09377C17.2139 2.73212 17.7487 3.23821 17.4255 3.60042C16.2702 4.89521 15.6473 5.73425 14.6176 7.42161C21.119 10.3722 16.9586 16.5321 12.8745 19.5074C12.8056 19.5574 12.7223 19.5813 12.6386 19.5751C12.5548 19.5689 12.4756 19.5329 12.4143 19.4731C11.4688 18.5452 10.1709 17.779 8.93365 17.2983C8.1214 18.7227 7.40816 20.0623 6.33947 21.1627C2.06342 25.5652 -2.08184 21.1885 1.15923 17.1123C2.80856 15.0381 6.2364 14.1343 9.44996 15.0711C10.1472 13.8287 10.012 14.0417 10.6963 12.7913C7.54012 11.6517 4.03148 9.92156 4.52831 6.23532C4.63845 5.41748 5.24081 5.45007 5.36603 6.1237C5.73999 8.1362 9.30761 9.65156 11.9162 10.5638C12.377 9.72913 12.0661 10.2599 12.5516 9.43814C10.3132 8.48044 6.9688 7.47843 5.938 4.96999C4.91897 2.49069 6.82356 0.683118 8.6391 0.164755C10.3119 -0.313313 12.6773 0.309079 14.2951 1.25941C14.8928 1.6109 15.311 1.46156 15.7185 1.25707V1.2574Z" fill="#161616" />
+					</svg></g></svg>

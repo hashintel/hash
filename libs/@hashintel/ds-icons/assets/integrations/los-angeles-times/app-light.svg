@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="los-angeles-times-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="los-angeles-times-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="los-angeles-times-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#los-angeles-times-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#los-angeles-times-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#los-angeles-times-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="los-angeles-times-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#los-angeles-times-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 74" fill="#111111" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><path d="M30.287 57.51V16.63C24.552999999999997 16.003 21.628999999999998 11.811 19.704 9.540999999999999L14.169 14.008C14.199 20.227 16.02 25.655 18.149 30.613C20.097 35.144999999999996 22.229 41.013999999999996 22.229 45.08C22.229 51.775999999999996 18.529 56.004999999999995 9.702 64.307L9.994 64.59700000000001C15.237 60.66700000000001 23.241999999999997 57.63000000000001 30.287 57.510000000000005V57.51ZM51.262 58.187999999999995 43.008 73.434C38.518 70.304 31.353 68.384 25.238000000000003 68.384C13.178000000000003 68.384 4.856000000000002 70.533 0.5750000000000028 73.24L0.08900000000000285 72.658C3.913000000000003 69.311 10.285000000000002 63.931 10.285000000000002 51.683C10.285000000000002 46.522999999999996 8.198000000000002 40.675 6.692000000000002 36.826C4.949000000000002 32.373 3.5850000000000017 30.034 3.5850000000000017 23.816000000000003C3.5850000000000017 12.991000000000003 9.395000000000001 6.8770000000000024 18.539 2.259000000000004L19.315 3.133000000000004C16.161 5.757000000000004 14.635000000000002 9.136000000000005 14.169 12.552000000000005L28.832 0.317C32.573 5.573 36.069 7.599 40.677 7.599C44.46 7.599 45.533 5.92 45.533 4.589C45.533 3.6290000000000004 44.271 3.4920000000000004 44.271 2.5500000000000003C44.271 1.6570000000000003 44.915 1.3850000000000002 45.435 1.3850000000000002C46.595 1.3850000000000002 47.183 2.8820000000000006 47.183 4.007C47.183 11.378 41.016999999999996 16.823999999999998 34.463 16.823999999999998C33.327 16.823999999999998 32.467 16.950999999999997 31.745 16.823999999999998V57.51C37.425 57.51 43.29 59.21 47.572 61.393L49.805 57.51L51.262 58.187999999999995Z" fill-rule="evenodd" /></svg></g></svg>

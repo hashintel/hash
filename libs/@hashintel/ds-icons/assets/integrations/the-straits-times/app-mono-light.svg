@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="the-straits-times-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="the-straits-times-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="the-straits-times-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-straits-times-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-straits-times-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#the-straits-times-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="the-straits-times-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.241867483049 -0.813657685214 -0.0821393804145 0 1.13766454868" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#the-straits-times-app-mono-light-mono)"><defs><clipPath id="the-straits-times-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#the-straits-times-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="5.83217 5.75554 144.48051 132.48892" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,144.000000) scale(0.100000,-0.100000)" fill="#0b204e" stroke="none">
+<path d="M360 1365 c-7 -8 -27 -15 -45 -15 -18 0 -38 -7 -45 -15 -7 -8 -20 -15 -29 -15 -9 0 -47 -30 -84 -68 -54 -54 -67 -74 -67 -99 0 -17 -7 -36 -15 -43 -20 -17 -20 -103 0 -120 8 -7 15 -27 15 -44 0 -26 13 -44 68 -99 37 -37 75 -67 84 -67 8 0 21 -7 28 -15 7 -8 20 -15 30 -15 10 0 23 -7 30 -15 7 -8 27 -15 44 -15 26 0 44 -13 99 -68 l67 -68 0 -90 0 -90 -38 -37 -38 -37 -105 0 -105 0 -66 67 c-36 38 -68 77 -70 88 -2 13 -12 21 -31 23 l-27 3 0 -84 c0 -74 3 -86 23 -105 17 -16 36 -22 69 -22 28 0 50 -6 58 -15 18 -22 222 -22 240 0 8 9 30 15 60 15 30 0 52 6 60 15 7 8 20 15 29 15 21 0 151 130 151 152 0 8 7 21 15 28 21 18 21 162 0 180 -8 7 -15 27 -15 45 0 26 -12 44 -75 104 -41 40 -75 77 -75 81 0 4 7 10 15 14 8 3 15 14 15 24 0 22 70 92 92 92 8 0 21 7 28 15 9 11 32 15 81 15 l69 0 0 -444 c0 -374 -2 -445 -14 -456 -8 -6 -16 -21 -18 -33 -2 -12 -12 -24 -23 -27 -30 -8 -65 -33 -65 -47 0 -10 54 -13 240 -13 150 0 240 4 240 10 0 5 -20 28 -45 51 l-45 42 0 458 0 459 68 0 c63 0 71 -2 97 -29 15 -17 37 -31 48 -33 12 -2 24 -12 27 -24 6 -25 65 -94 80 -94 6 0 10 37 10 98 0 153 30 142 -398 142 l-352 0 0 83 c0 74 -3 86 -23 105 -17 16 -36 22 -69 22 -28 0 -50 6 -58 15 -10 12 -37 15 -120 15 -83 0 -110 -3 -120 -15z m262 -82 c21 -21 38 -47 38 -59 0 -12 7 -25 16 -28 9 -3 14 -15 12 -28 -2 -18 -10 -24 -39 -26 -60 -5 -78 -33 -81 -127 l-3 -80 -36 -3 c-23 -2 -40 2 -49 12 -7 9 -20 16 -30 16 -10 0 -23 7 -30 15 -7 8 -20 15 -28 15 -9 0 -33 17 -54 37 l-38 37 0 90 0 90 37 38 37 38 105 0 105 0 38 -37z" />
+</g>
+</svg></g></g></svg>

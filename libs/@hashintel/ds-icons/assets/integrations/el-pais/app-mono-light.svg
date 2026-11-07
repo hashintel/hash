@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#000000"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="el-pais-app-mono-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="el-pais-app-mono-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="el-pais-app-mono-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#el-pais-app-mono-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#el-pais-app-mono-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#el-pais-app-mono-light-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="el-pais-app-mono-light-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243339614359 -0.818610029113 -0.0826393234088 0 1.14458896688" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#el-pais-app-mono-light-mono)"><defs><clipPath id="el-pais-app-mono-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#el-pais-app-mono-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.2373 -0.21617 147.4746 34.43235" fill="#111111" color="black" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516"><g fill-rule="nonzero" fill="none"><path d="M0 33v-3.01h2.206c1.343 0 2.088-.408 2.088-2.852V11.29c0-1.744-.471-2.277-2.52-2.277H0V6h26v10.75h-2.92c-.588-5.537-1.06-7.736-6.337-7.736H9.805v8.474h2.088c2.368 0 3.429-1.226 3.429-4.525v-.532h2.919v13.603h-2.92v-.972c0-3.3-1.06-4.564-3.428-4.564H9.805v9.493h7.88c3.627 0 5.04-2.328 5.394-8.39H26V33H0zM28 33v-3.01h2.559c1.117 0 1.881-.408 1.881-1.796V10.766c0-1.22-.525-1.75-2.12-1.75h-2.319V6h14.637v3.014h-2.24c-1.755 0-2.36.41-2.36 1.835v19.18h6.521c4.12 0 5.118-2.321 5.484-8.636H53V33H28V33zM61 32.998V29.99h2.547c.92 0 1.713-.324 1.713-1.388V10.395c0-1.058-.793-1.382-1.713-1.382H61V6h15.606C82.58 6 86 8.815 86 13.411c0 5.012-3.58 7.372-8.917 7.372h-6.245v7.82c0 1.064.993 1.388 1.906 1.388h2.547V33H61v-.002zm9.837-15.23h3.62c3.744 0 5.735-1.179 5.735-4.31 0-3.139-1.594-4.443-5.736-4.443h-3.62v8.753zM81 33h12.253v-3.01h-3.06c-.75 0-1.26-.168-1.26-.732 0-.369.08-.616.156-.855l1.292-4.079h8.912l1.297 4.079c.078.239.156.609.156.979 0 .402-.313.609-1.213.609h-3.106V33H123v-3.01h-2.277c-1.33 0-1.925-.692-1.925-1.996V10.966c0-1.543 1.22-1.953 2.473-1.953H123V6h-13.895v3.014h2.199c1.533 0 2 .81 2 1.835v17.677c0 1.057-.625 1.465-2.238 1.465h-.978c-2.08 0-3.412-.284-4.123-2.204L98.12 6h-5.5l-7.497 21.787c-.666 1.92-2.042 2.204-4.122 2.204L81 33zm17.16-11.684h-6.636l3.145-9.819h.07l3.42 9.819zM143.307 5.83h2.254v10.395h-2.796c-.93-4.5-3.378-7.716-8.003-7.716-3.618 0-5.097.992-5.097 3.717 0 6.186 17.335 1.57 17.335 13.073 0 6.56-4.819 8.701-10.263 8.701-2.913 0-5.826-1.32-8.08-3.257l-.852 2.43h-2.648V21.997h2.88c.542 5.529 3.727 8.496 9.247 8.496 3.416 0 5.05-1.695 5.05-3.671 0-7.053-17.334-1.734-17.334-13.528C125 7.476 129.934 5 134.642 5c2.952 0 5.438 1.443 7.383 2.888l1.282-2.058z" fill="#212020" /><path fill="#016CA2" d="M123 0v3h-14z" /></g></svg></g></g></svg>

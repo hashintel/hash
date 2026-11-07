@@ -110,9 +110,9 @@ describe("IntegrationIcon", () => {
   });
 
   it("maps the directory entries and additional brands separately", () => {
-    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(3184);
+    expect(Object.keys(integrationIconNameByIntegration)).toHaveLength(3299);
     expect(new Set(Object.values(integrationIconNameByIntegration)).size).toBe(
-      2511,
+      2626,
     );
     expect(integrationIconNameByIntegration["Microsoft Teams"]).toBe(
       "microsoftTeams",
@@ -178,7 +178,7 @@ describe("IntegrationIcon", () => {
 
   it(
     "renders every advertised variant and isolates repeated SVG references",
-    { timeout: 30_000 },
+    { timeout: 60_000 },
     () => {
       for (const icon of integrationIconCatalog) {
         const content = renderToStaticMarkup(

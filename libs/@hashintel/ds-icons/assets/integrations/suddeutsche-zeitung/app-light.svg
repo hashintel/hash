@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#374151"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="suddeutsche-zeitung-app-light-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FBFCFD" stop-opacity=".78" />
+      <stop offset=".48" stop-color="#EFF3F6" stop-opacity=".50" />
+      <stop offset="1" stop-color="#F7F9FB" stop-opacity=".68" />
+    </linearGradient>
+    <radialGradient id="suddeutsche-zeitung-app-light-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".45" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="suddeutsche-zeitung-app-light-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".64" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity=".12" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".08" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".45" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#suddeutsche-zeitung-app-light-background-surface)" stroke="#9EADBB" stroke-opacity=".22" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#suddeutsche-zeitung-app-light-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#suddeutsche-zeitung-app-light-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="suddeutsche-zeitung-app-light-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#suddeutsche-zeitung-app-light-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.06583 4.17405 94.17051 58.98973" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,66.000000) scale(0.100000,-0.100000)" fill="#242437" stroke="none">
+<path d="M171 609 c-45 -14 -99 -55 -117 -90 -47 -91 16 -193 146 -235 107 -34 155 -56 188 -87 17 -17 32 -39 32 -50 0 -52 -53 -83 -123 -73 -42 6 -133 46 -189 82 -26 17 -27 17 -66 -17 -41 -35 -56 -66 -26 -55 46 18 65 17 97 -3 38 -23 137 -51 182 -51 55 0 107 21 149 60 40 38 41 40 41 103 0 56 -4 69 -24 91 -35 37 -96 69 -211 112 -71 26 -107 45 -125 66 -14 16 -25 33 -25 38 0 5 10 21 23 35 46 55 162 51 268 -7 58 -32 60 -32 87 -16 79 50 105 58 209 58 56 0 104 -3 106 -7 3 -5 -62 -118 -144 -253 -82 -134 -148 -249 -146 -255 2 -6 76 -11 193 -13 149 -2 194 1 208 11 26 19 14 51 -17 44 -12 -3 -67 -9 -123 -12 -81 -6 -102 -5 -106 6 -3 8 59 122 138 254 79 132 144 246 144 253 0 9 -47 12 -204 12 -172 0 -206 -2 -216 -16 -30 -36 -50 -37 -107 -8 -43 21 -72 28 -132 30 -42 2 -91 -1 -110 -7z" />
+</g>
+</svg></g></svg>

@@ -82265,5 +82265,4718 @@
         "checkedOn": "2026-11-07"
       }
     ]
+  },
+  {
+    "name": "laNacionArgentina",
+    "slug": "la-nacion-argentina",
+    "label": "La Nación (Argentina)",
+    "integrationNames": [
+      "La Nación (Argentina)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lanacion.com.ar/pf/resources/images/favicon-512.png?d=2078",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#006b91": "#2D85A4"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005082": "#4982A6"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://lanacion.com.ar",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b9/La-Naci%C3%B3n-Logo.svg",
+    "searchAliases": [
+      "La Nacion (Argentina)",
+      "La Nación Argentina",
+      "La Nacion Argentina"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theAge",
+    "slug": "the-age",
+    "label": "The Age",
+    "integrationNames": [
+      "The Age"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://theage.com.au/apple-touch-icons/theage.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#101c3a": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0A1633": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://theage.com.au",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Age-logo-blue.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theSydneyMorningHerald",
+    "slug": "the-sydney-morning-herald",
+    "label": "The Sydney Morning Herald",
+    "integrationNames": [
+      "The Sydney Morning Herald"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.smh.com.au/apple-touch-icons/smh.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#101c3a": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.smh.com.au/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5f/The_Sydney_Morning_Herald_logo.svg",
+    "searchAliases": [
+      "SMH"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "diePresse",
+    "slug": "die-presse",
+    "label": "Die Presse",
+    "integrationNames": [
+      "Die Presse"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://diepresse.com/assets_v2/images/icon/favicon-96x96.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#051622": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://diepresse.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://diepresse.com",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "derStandard",
+    "slug": "der-standard",
+    "label": "Der Standard",
+    "integrationNames": [
+      "Der Standard"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/01/DER_STANDARD_schwarz.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1e1e1e": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1e1e1e": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.derstandard.at",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/01/DER_STANDARD_schwarz.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "azadliq",
+    "slug": "azadliq",
+    "label": "Azadlıq",
+    "integrationNames": [
+      "Azadlıq"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Logo_of_Azadl%C4%B1q_Newspaper_of_Azerbaijan.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.azadliq.info/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Logo_of_Azadl%C4%B1q_Newspaper_of_Azerbaijan.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theNassauGuardian",
+    "slug": "the-nassau-guardian",
+    "label": "The Nassau Guardian",
+    "integrationNames": [
+      "The Nassau Guardian"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Nassau_Guardian_logo.webp",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0081c5": "#0182C5",
+      "#0082c9": "#0082c9",
+      "#5f6062": "#F5F7FA",
+      "#615f60": "#F5F7FA",
+      "#0081c7": "#0182C7",
+      "#5e6164": "#F5F7FA",
+      "#0082c8": "#0082c8"
+    },
+    "logoDarkColors": {
+      "#0081c5": "#0182C5",
+      "#0082c9": "#0082c9",
+      "#5f6062": "#F5F7FA",
+      "#615f60": "#F5F7FA",
+      "#0081c7": "#0182C7",
+      "#5e6164": "#F5F7FA",
+      "#0082c8": "#0082c8"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://thenassauguardian.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Nassau_Guardian_logo.webp",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "akhbarAlKhaleej",
+    "slug": "akhbar-al-khaleej",
+    "label": "Akhbar Al Khaleej",
+    "integrationNames": [
+      "Akhbar Al Khaleej"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/50/Akhbar_Al_Khaleej_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#b7d4e2": "#b7d4e2",
+      "#b9e4fa": "#b9e4fa",
+      "#f7f9f9": "#f7f9f9",
+      "#575557": "#F5F7FA",
+      "#bae4fa": "#bae4fa",
+      "#030303": "#F5F7FA",
+      "#9c9f9f": "#9c9f9f"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#b7d4e2": "#b7d4e2",
+      "#b9e4fa": "#b9e4fa",
+      "#f7f9f9": "#f7f9f9",
+      "#575557": "#F5F7FA",
+      "#bae4fa": "#bae4fa",
+      "#030303": "#F5F7FA",
+      "#9c9f9f": "#9c9f9f"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.akhbar-alkhaleej.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/50/Akhbar_Al_Khaleej_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "gulfDailyNews",
+    "slug": "gulf-daily-news",
+    "label": "Gulf Daily News",
+    "integrationNames": [
+      "Gulf Daily News"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/42/Gulf_Daily_News_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#a06c6f": "#A16E71",
+      "#231f20": "#F5F7FA",
+      "#231f1f": "#F5F7FA",
+      "#221f20": "#F5F7FA",
+      "#312123": "#F5F7FA",
+      "#1f1c1d": "#F5F7FA",
+      "#e51b23": "#E8343B",
+      "#c21f25": "#D05156"
+    },
+    "logoDarkColors": {
+      "#a06c6f": "#A16E71",
+      "#231f20": "#F5F7FA",
+      "#231f1f": "#F5F7FA",
+      "#221f20": "#F5F7FA",
+      "#312123": "#F5F7FA",
+      "#1f1c1d": "#F5F7FA",
+      "#e51b23": "#E8343B",
+      "#c21f25": "#D05156"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.gdnonline.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/42/Gulf_Daily_News_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theDailyStar",
+    "slug": "the-daily-star",
+    "label": "The Daily Star",
+    "integrationNames": [
+      "The Daily Star"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://thedailystar.net",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#161616": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#040D33": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://thedailystar.net",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.thedailystar.net/themes/custom/swallow/logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leSoir",
+    "slug": "le-soir",
+    "label": "Le Soir",
+    "integrationNames": [
+      "Le Soir"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Logo_du_journal_Le_Soir.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004071": "#5580A1"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#004071": "#5580A1"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lesoir.be",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Logo_du_journal_Le_Soir.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "deStandaard",
+    "slug": "de-standaard",
+    "label": "De Standaard",
+    "integrationNames": [
+      "De Standaard"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_De_Standaard.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.standaard.be",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_De_Standaard.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theRoyalGazette",
+    "slug": "the-royal-gazette",
+    "label": "The Royal Gazette",
+    "integrationNames": [
+      "The Royal Gazette"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/70/The_Royal_Gazette_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#020101": "#F5F7FA",
+      "#010201": "#F5F7FA",
+      "#010102": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#070707": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#020101": "#F5F7FA",
+      "#010201": "#F5F7FA",
+      "#010102": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#070707": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.royalgazette.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/70/The_Royal_Gazette_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elDiario",
+    "slug": "el-diario",
+    "label": "El Diario",
+    "integrationNames": [
+      "El Diario"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/19/El_Diario_logo.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00679b": "#2F83AE",
+      "#9fa6aa": "#9fa6aa",
+      "#f2c51a": "#f2c51a",
+      "#d8241c": "#DE443D",
+      "#07813e": "#1F8D50"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00679b": "#2F83AE",
+      "#9fa6aa": "#9fa6aa",
+      "#f2c51a": "#f2c51a",
+      "#d8241c": "#DE443D",
+      "#07813e": "#1F8D50"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://eldiario.net",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/19/El_Diario_logo.jpg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "oEstadoDeSPaulo",
+    "slug": "o-estado-de-s-paulo",
+    "label": "Estadão",
+    "integrationNames": [
+      "O Estado de S. Paulo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.estadao.com.br",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1E1E21": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#002FD8": "#5474E5"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://www.estadao.com.br",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.estadao.com.br",
+    "searchAliases": [
+      "Estadão",
+      "Estadao",
+      "O Estado de São Paulo",
+      "O Estado de S. Paulo"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "folhaDeSPaulo",
+    "slug": "folha-de-s-paulo",
+    "label": "Folha de S.Paulo",
+    "integrationNames": [
+      "Folha de S.Paulo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://f.i.uol.com.br/hunting/folha/1/common/icons/favicon-192.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#087da7": "#1785AC",
+      "#047ba6": "#1785AD",
+      "#268db2": "#268db2",
+      "#b0d6e3": "#b0d6e3",
+      "#9acadb": "#9acadb",
+      "#61acc7": "#61acc7",
+      "#0078a4": "#1885AD",
+      "#81bdd3": "#81bdd3"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://folha.uol.com.br",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://folha.uol.com.br",
+    "searchAliases": [
+      "Folha de São Paulo",
+      "Folha"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "oGlobo",
+    "slug": "o-globo",
+    "label": "O Globo",
+    "integrationNames": [
+      "O Globo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://s2-oglobo.glbimg.com/CLDaDI_KHASlanlr6tbD06p-gsY=/192x192/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_da025474c0c44edd99332dddb09cabe8/internal_photos/bs/2023/1/X/nkkB7tSdirnIUbGhakCQ/favicon-o-globo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2453ff": "#486FFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2258FB": "#4371FC"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://oglobo.globo.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/9b/O_Globo_2025.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leDevoir",
+    "slug": "le-devoir",
+    "label": "Le Devoir",
+    "integrationNames": [
+      "Le Devoir"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.ledevoir.com/images/ul/logos/2018/logo_ledevoir.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#859da9": "#859da9"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#859da9": "#859da9"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ledevoir.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.ledevoir.com/images/ul/logos/2018/logo_ledevoir.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laPresse",
+    "slug": "la-presse",
+    "label": "La Presse",
+    "integrationNames": [
+      "La Presse"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://static.lpcdn.ca/lpweb/mobile/img/la-presse-logo-web.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#ED1C23": "#ED1C23",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#ED1C23": "#ED1C23",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://lapresse.ca",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.lpcdn.ca/lpweb/mobile/img/la-presse-logo-web.svg",
+    "searchAliases": [
+      "La Presse Canada"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theGlobeAndMail",
+    "slug": "the-globe-and-mail",
+    "label": "The Globe and Mail",
+    "integrationNames": [
+      "The Globe and Mail"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.theglobeandmail.com/pf/resources/assets/meta/favicon.ico?d=988",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#da161f": "#E03F46"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E02022": "#E43B3D"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://theglobeandmail.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/b5/The_Globe_and_Mail_%282019-10-31%29.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elMercurio",
+    "slug": "el-mercurio",
+    "label": "El Mercurio",
+    "integrationNames": [
+      "El Mercurio"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.emol.com/assets/img/mer/favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d3d2d3": "#d3d2d3",
+      "#000000": "#F5F7FA",
+      "#a8a7a8": "#a8a7a8",
+      "#1a171b": "#F5F7FA",
+      "#59575a": "#F5F7FA",
+      "#8c8b8d": "#8c8b8d",
+      "#302e31": "#F5F7FA",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#545152": "#F5F7FA",
+      "#494546": "#F5F7FA",
+      "#2C2B2B": "#F5F7FA",
+      "#3F3B3C": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.emol.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e9/El_Mercurio.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elTiempo",
+    "slug": "el-tiempo",
+    "label": "El Tiempo",
+    "integrationNames": [
+      "El Tiempo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.eltiempo.com/favicon-114x114.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0e65a5": "#3981B5",
+      "#0e65a6": "#3981B6",
+      "#0f65a5": "#3A81B5",
+      "#0f66a6": "#3981B6",
+      "#0e66a6": "#3881B6"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0C5991": "#4681AB"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.eltiempo.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.eltiempo.com",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elEspectador",
+    "slug": "el-espectador",
+    "label": "El Espectador",
+    "integrationNames": [
+      "El Espectador"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.elespectador.com/wp-content/plugins/elespectador-features/assets/src/images/favicons/logoFavicon-96.svg?ver=1790581652",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#131313": "#F5F7FA",
+      "#E31516": "#E73637"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#E00914": "#E63841",
+      "#141414": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://elespectador.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/83/El-Espectador-logo-2024.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laNacionCostaRica",
+    "slug": "la-nacion-costa-rica",
+    "label": "La Nación (Costa Rica)",
+    "integrationNames": [
+      "La Nación (Costa Rica)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nacion.com/pf/resources/la-nacion/favicon.ico?d=828",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d6d6d6": "#d6d6d6",
+      "#3a3a3a": "#F5F7FA",
+      "#1c1c1c": "#F5F7FA",
+      "#555555": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#828282": "#828282",
+      "#ffffff": "#ffffff",
+      "#f3f3f3": "#f3f3f3"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003C6F": "#587FA1"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.nacion.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6d/La_Naci%C3%B3n_%28Costa_Rica%29.svg",
+    "searchAliases": [
+      "La Nacion (Costa Rica)",
+      "La Nación Costa Rica",
+      "La Nacion Costa Rica"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "granma",
+    "slug": "granma",
+    "label": "Granma",
+    "integrationNames": [
+      "Granma"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.granma.cu/static/ico/favicon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d61c1b": "#DD4443"
+    },
+    "logoDarkColors": {
+      "#b72221": "#C95857"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.granma.cu/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.granma.cu/static/img/granma-logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "lidoveNoviny",
+    "slug": "lidove-noviny",
+    "label": "Lidové noviny",
+    "integrationNames": [
+      "Lidové noviny"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://1gr.cz/u/favicon/apple-touch-icon/lidovky-transparent.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#aabfd5": "#aabfd5",
+      "#1a538d": "#1a538d",
+      "#d8e2ec": "#d8e2ec",
+      "#eff3f7": "#eff3f7",
+      "#124d89": "#124d89",
+      "#6088b0": "#6088b0",
+      "#d2dde8": "#d2dde8",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#1C4382": "#617CA8"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://lidovky.cz",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://1gr.cz/o/lidovky_ln5/ln-logo-2.svg",
+    "searchAliases": [
+      "Lidove noviny"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    },
+    "publicationStatus": {
+      "status": "current",
+      "notes": "The publication continues online following the end of its print edition.",
+      "source": "https://lidovky.cz",
+      "checkedOn": "2026-11-07"
+    }
+  },
+  {
+    "name": "berlingske",
+    "slug": "berlingske",
+    "label": "Berlingske",
+    "integrationNames": [
+      "Berlingske"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://berlingske.dk/brands/berlingske/icon-192x192.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#3d3d3d": "#F5F7FA",
+      "#2b2b2b": "#F5F7FA",
+      "#050505": "#F5F7FA",
+      "#c9c9c9": "#c9c9c9",
+      "#9f9f9f": "#9f9f9f",
+      "#000000": "#F5F7FA",
+      "#828282": "#828282"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://berlingske.dk",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://berlingske.dk/brands/berlingske/logos/BerlingskeLogo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "listinDiario",
+    "slug": "listin-diario",
+    "label": "Listín Diario",
+    "integrationNames": [
+      "Listín Diario"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://listindiario.com/images/logo_especial_60.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#fdd80e": "#fdd80e",
+      "#1f1c0d": "#1f1c0d",
+      "#9f8f38": "#9f8f38",
+      "#cfb83d": "#cfb83d",
+      "#5a5226": "#5a5226",
+      "#eacd32": "#eacd32",
+      "#ffd700": "#ffd700",
+      "#000000": "#000000"
+    },
+    "logoDarkColors": {
+      "#231f20": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://listindiario.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/34/Listindiariologo.png",
+    "searchAliases": [
+      "Listin Diario"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elComercioEcuador",
+    "slug": "el-comercio-ecuador",
+    "label": "El Comercio (Ecuador)",
+    "integrationNames": [
+      "El Comercio (Ecuador)"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Logo-ec.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#029bd8": "#029bd8",
+      "#009cd7": "#009cd7",
+      "#e2011a": "#E83347",
+      "#76cae9": "#76cae9",
+      "#e3001a": "#E83247",
+      "#039dd8": "#039dd8",
+      "#009ed7": "#009ed7"
+    },
+    "logoDarkColors": {
+      "#029bd8": "#029bd8",
+      "#009cd7": "#009cd7",
+      "#e2011a": "#E83347",
+      "#76cae9": "#76cae9",
+      "#e3001a": "#E83247",
+      "#039dd8": "#039dd8",
+      "#009ed7": "#009ed7"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.elcomercio.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Logo-ec.png",
+    "searchAliases": [
+      "El Comercio Ecuador"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "alAhram",
+    "slug": "al-ahram",
+    "label": "Al-Ahram",
+    "integrationNames": [
+      "Al-Ahram"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/f/f5/Al-Ahram_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1b1919": "#F5F7FA",
+      "#694e50": "#F5F7FA",
+      "#1e1918": "#F5F7FA",
+      "#b40615": "#CC545F",
+      "#1b1918": "#F5F7FA",
+      "#191918": "#F5F7FA",
+      "#1b1917": "#F5F7FA",
+      "#e70016": "#EB2D3F"
+    },
+    "logoDarkColors": {
+      "#1b1919": "#F5F7FA",
+      "#694e50": "#F5F7FA",
+      "#1e1918": "#F5F7FA",
+      "#b40615": "#CC545F",
+      "#1b1918": "#F5F7FA",
+      "#191918": "#F5F7FA",
+      "#1b1917": "#F5F7FA",
+      "#e70016": "#EB2D3F"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://gate.ahram.org.eg/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/f/f5/Al-Ahram_logo.png",
+    "searchAliases": [
+      "Al Ahram",
+      "الأهرام"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "alMasryAlYoum",
+    "slug": "al-masry-al-youm",
+    "label": "Al-Masry Al-Youm",
+    "integrationNames": [
+      "Al-Masry Al-Youm"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/41/Almasry_Alyoum_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1E191A": "#F5F7FA",
+      "#F70C08": "#F70C08"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1E191A": "#F5F7FA",
+      "#F70C08": "#F70C08"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.almasryalyoum.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/41/Almasry_Alyoum_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theFijiTimes",
+    "slug": "the-fiji-times",
+    "label": "The Fiji Times",
+    "integrationNames": [
+      "The Fiji Times"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/00/The_Fiji_Times_%282025-07-29%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#404041": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#404041": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.fijitimes.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/00/The_Fiji_Times_%282025-07-29%29.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "shantiDut",
+    "slug": "shanti-dut",
+    "label": "Shanti Dut",
+    "integrationNames": [
+      "Shanti Dut"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.fijitimes.com/wp-content/uploads/2019/04/2019-Fiji-Times-Rate-Card.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#bfbfbf": "#bfbfbf",
+      "#d0d0d0": "#d0d0d0",
+      "#0a0a0a": "#F5F7FA",
+      "#282828": "#F5F7FA",
+      "#9f9f9f": "#9f9f9f",
+      "#000000": "#F5F7FA",
+      "#4f4f4f": "#F5F7FA",
+      "#707070": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#bfbfbf": "#bfbfbf",
+      "#d0d0d0": "#d0d0d0",
+      "#0a0a0a": "#F5F7FA",
+      "#282828": "#F5F7FA",
+      "#9f9f9f": "#9f9f9f",
+      "#000000": "#F5F7FA",
+      "#4f4f4f": "#F5F7FA",
+      "#707070": "#F5F7FA"
+    },
+    "logoNotes": "Masthead extracted from the Fiji Times publisher media kit and converted to outlined SVG; no live text or embedded raster remains.",
+    "brandWebsite": "https://www.fijitimes.com.fj/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.fijitimes.com/wp-content/uploads/2019/04/2019-Fiji-Times-Rate-Card.pdf",
+    "searchAliases": [
+      "Shanti Doot",
+      "शान्ति दूत"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "helsinginSanomat",
+    "slug": "helsingin-sanomat",
+    "label": "Helsingin Sanomat",
+    "integrationNames": [
+      "Helsingin Sanomat"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hs.fi/_next/static/media/favicon.46812658.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://www.hs.fi/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/94/Helsingin_Sanomat_wordmark.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leFigaro",
+    "slug": "le-figaro",
+    "label": "Le Figaro",
+    "integrationNames": [
+      "Le Figaro"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Le_Figaro.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4A90E2": "#4A90E2",
+      "#163860": "#687E98"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#4A90E2": "#4A90E2",
+      "#163860": "#687E98"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lefigaro.fr",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Le_Figaro.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "liberation",
+    "slug": "liberation",
+    "label": "Libération",
+    "integrationNames": [
+      "Libération"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Logo_liberation.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#1B1B1F": "#1B1B1F",
+      "#1D1D21": "#1D1D21",
+      "#E60004": "#E60004"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#FFFFFF": "#FFFFFF",
+      "#1B1B1F": "#1B1B1F",
+      "#1D1D21": "#1D1D21",
+      "#E60004": "#E60004"
+    },
+    "logoNotes": "Outlined masthead from the source SVG. Embedded raster drop-shadow layers removed; the letter outlines, red diamond and solid offset shadow are retained.",
+    "brandWebsite": "https://www.liberation.fr/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Logo_liberation.svg",
+    "searchAliases": [
+      "Liberation"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leMonde",
+    "slug": "le-monde",
+    "label": "Le Monde",
+    "integrationNames": [
+      "Le Monde"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lemonde.fr/bucket/resources/front/static/img/logos/pwa-96-transparent.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#8F98A9": "#8F98A9",
+      "#1A171B": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://lemonde.fr",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://lemonde.fr",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "lUnion",
+    "slug": "l-union",
+    "label": "L'Union",
+    "integrationNames": [
+      "L'Union"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/65/L%27Union_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c3070d": "#D44E52",
+      "#c2060e": "#D44E54"
+    },
+    "logoDarkColors": {
+      "#c3070d": "#D44E52",
+      "#c2060e": "#D44E54"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://union.sonapresse.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/65/L%27Union_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "suddeutscheZeitung",
+    "slug": "suddeutsche-zeitung",
+    "label": "Süddeutsche Zeitung",
+    "integrationNames": [
+      "Süddeutsche Zeitung"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.sueddeutsche.de/szde-assets/img/favicon-32x32.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#242437": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#29293A": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.sueddeutsche.de/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.sueddeutsche.de/",
+    "searchAliases": [
+      "Suddeutsche Zeitung",
+      "SZ",
+      "Sueddeutsche Zeitung"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "dieWelt",
+    "slug": "die-welt",
+    "label": "Die Welt",
+    "integrationNames": [
+      "Die Welt"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.welt.de/assets/public/images/global/welt_brand.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#557b91": "#557b91",
+      "#20526e": "#20526e",
+      "#f2f4f6": "#f2f4f6",
+      "#87a2b1": "#87a2b1",
+      "#013a5a": "#013a5a",
+      "#003a5a": "#003a5a",
+      "#c4d1d8": "#c4d1d8",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#557b91": "#557b91",
+      "#20526e": "#20526e",
+      "#f2f4f6": "#f2f4f6",
+      "#87a2b1": "#87a2b1",
+      "#013a5a": "#013a5a",
+      "#003a5a": "#003a5a",
+      "#c4d1d8": "#c4d1d8",
+      "#ffffff": "#ffffff"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.welt.de/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.welt.de/assets/public/images/global/welt_brand.png",
+    "searchAliases": [
+      "WELT"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "kathimerini",
+    "slug": "kathimerini",
+    "label": "Kathimerini",
+    "integrationNames": [
+      "Kathimerini"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/09/Kathimerini-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kathimerini.gr",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/09/Kathimerini-logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "prensaLibre",
+    "slug": "prensa-libre",
+    "label": "Prensa Libre",
+    "integrationNames": [
+      "Prensa Libre"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.prensalibre.com/wp-content/themes/ux_prensalibre/client/build/images/favicon/apple-icon-114x114.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1a284f": "#737C94"
+    },
+    "logoDarkColors": {
+      "#1c2849": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.prensalibre.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/87/Prensa-libre.png",
+    "searchAliases": [
+      "Prensa Libre Guatemala"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leNouvelliste",
+    "slug": "le-nouvelliste",
+    "label": "Le Nouvelliste",
+    "integrationNames": [
+      "Le Nouvelliste"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lenouvelliste.com/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0096d5": "#0096d5"
+    },
+    "logoDarkColors": {
+      "#0096D5": "#0096D5"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://lenouvelliste.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdn.lenouvelliste.com/static/_nuxt/logo-white.DzoehRvJ.svg",
+    "searchAliases": [
+      "Le Nouvelliste Haiti"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "southChinaMorningPost",
+    "slug": "south-china-morning-post",
+    "label": "South China Morning Post",
+    "integrationNames": [
+      "South China Morning Post"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c3/SCMP_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001246": "#717B98",
+      "#FFCB05": "#FFCB05"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#001246": "#717B98",
+      "#FFCB05": "#FFCB05"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.scmp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c3/SCMP_logo.svg",
+    "searchAliases": [
+      "SCMP"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "morgunbladid",
+    "slug": "morgunbladid",
+    "label": "Morgunblaðið",
+    "integrationNames": [
+      "Morgunblaðið"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Morgunbla%C3%B0i%C3%B0_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.mbl.is/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Morgunbla%C3%B0i%C3%B0_Logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theTimesOfIndia",
+    "slug": "the-times-of-india",
+    "label": "The Times of India",
+    "integrationNames": [
+      "The Times of India"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://timesofindia.indiatimes.com/icons/toifavicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d73938": "#d73938",
+      "#cc0100": "#cc0100",
+      "#f4c7c7": "#f4c7c7",
+      "#cd0605": "#cd0605",
+      "#ce0c0b": "#ce0c0b",
+      "#cf0f0e": "#cf0f0e",
+      "#ffffff": "#ffffff",
+      "#e37473": "#e37473"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://timesofindia.indiatimes.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7a/The_times_of_india.svg",
+    "searchAliases": [
+      "TOI"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "kompas",
+    "slug": "kompas",
+    "label": "Kompas",
+    "integrationNames": [
+      "Kompas"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Kompas.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005288": "#4682A9"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005288": "#4682A9"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://kompas.id/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Kompas.svg",
+    "searchAliases": [
+      "Kompas.id"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "ettelaAt",
+    "slug": "ettela-at",
+    "label": "Ettela'at",
+    "integrationNames": [
+      "Ettela'at"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/50/Ettelaat.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F04E23": "#F04E23"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#F04E23": "#F04E23"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://ettelaat.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/50/Ettelaat.svg",
+    "searchAliases": [
+      "Ettelaat",
+      "اطلاعات"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theIrishTimes",
+    "slug": "the-irish-times",
+    "label": "The Irish Times",
+    "integrationNames": [
+      "The Irish Times"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.irishtimes.com/pf/resources/favicon.ico?d=228&mxId=00000000",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#dedede": "#dedede",
+      "#fefefe": "#fefefe",
+      "#7a7a7a": "#7a7a7a",
+      "#212121": "#212121",
+      "#0c0c0c": "#0c0c0c",
+      "#000000": "#000000",
+      "#b2b2b2": "#b2b2b2"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.irishtimes.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/40/The_Irish_Times_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "haaretz",
+    "slug": "haaretz",
+    "label": "Haaretz",
+    "integrationNames": [
+      "Haaretz"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://haaretz.co.il/v2/htz-bucket/static/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0a68ff": "#0a68ff",
+      "#0b68ff": "#0b68ff",
+      "#1e74ff": "#1e74ff",
+      "#dce9ff": "#dce9ff",
+      "#fefeff": "#fefeff",
+      "#76aaff": "#76aaff",
+      "#0967ff": "#0967ff"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://haaretz.co.il",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Haaretz_logo.svg",
+    "searchAliases": [
+      "הארץ"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "corriereDellaSera",
+    "slug": "corriere-della-sera",
+    "label": "Corriere della Sera",
+    "integrationNames": [
+      "Corriere della Sera"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://components2.corriereobjects.it/rcs_cor_corriere-layout/v2/assets/img/ext/favicon/touch-icon-ipad-retina.png?v=1",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#085278": "#4D829E",
+      "#6693ab": "#6693ab",
+      "#fcffff": "#fcffff",
+      "#013d68": "#59809C",
+      "#0a5279": "#4D829E",
+      "#0b5278": "#4E829D"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#141215": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.corriere.it",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images2.corriereobjects.it/includes2013/LIBS/css/assets/logo/logo_header_hp.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laRepubblica",
+    "slug": "la-repubblica",
+    "label": "la Repubblica",
+    "integrationNames": [
+      "la Repubblica"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.repstatic.it/cless/main/nazionale/2016-v1/img/common/favicon/apple-touch-icon-precomposed.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#050505": "#F5F7FA",
+      "#959595": "#959595",
+      "#3f3f3f": "#F5F7FA",
+      "#040404": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#c8c8c8": "#c8c8c8"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.repubblica.it",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c7/La_Repubblica.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "ilSole24Ore",
+    "slug": "il-sole-24-ore",
+    "label": "Il Sole 24 Ore",
+    "integrationNames": [
+      "Il Sole 24 Ore"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.ilsole24ore.com/static/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#dedede": "#dedede",
+      "#131313": "#F5F7FA",
+      "#555555": "#F5F7FA",
+      "#454545": "#F5F7FA",
+      "#a8a8a8": "#a8a8a8",
+      "#767676": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#ffffff": "#171717"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0F0F0F": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.ilsole24ore.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Il_Sole_24_Ore.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laStampa",
+    "slug": "la-stampa",
+    "label": "La Stampa",
+    "integrationNames": [
+      "La Stampa"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f6/La_Stampa.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lastampa.it",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/f/f6/La_Stampa.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "ilMessaggero",
+    "slug": "il-messaggero",
+    "label": "Il Messaggero",
+    "integrationNames": [
+      "Il Messaggero"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://statics.cedscdn.it/utils/img/favicon/ilmessaggero/apple-icon-120x120.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#393939": "#F5F7FA",
+      "#616161": "#F5F7FA",
+      "#c9c9c9": "#c9c9c9",
+      "#161616": "#F5F7FA",
+      "#060606": "#F5F7FA",
+      "#808080": "#808080",
+      "#000000": "#F5F7FA",
+      "#a0a0a0": "#a0a0a0"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1D1D1B": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#A41A16": "#BF5F5C"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.ilmessaggero.it/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/30/Il_Messaggero.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theGleaner",
+    "slug": "the-gleaner",
+    "label": "The Gleaner",
+    "integrationNames": [
+      "The Gleaner"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://jamaica-gleaner.com",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#005AAB": "#3B80BE"
+    },
+    "logoDarkColors": {
+      "#F2B40E": "#F2B40E",
+      "#00519C": "#4580B7",
+      "#0C0E12": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://jamaica-gleaner.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://jamaica-gleaner.com",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theAsahiShimbun",
+    "slug": "the-asahi-shimbun",
+    "label": "The Asahi Shimbun",
+    "integrationNames": [
+      "The Asahi Shimbun"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.asahi.com/logo_icon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#9b9b9b": "#9b9b9b",
+      "#464646": "#F5F7FA",
+      "#303030": "#F5F7FA",
+      "#1a1a1a": "#F5F7FA",
+      "#606060": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#bebebe": "#bebebe",
+      "#7d7d7d": "#7d7d7d"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.asahi.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.asahicom.jp/images/clear/logo.svg",
+    "searchAliases": [
+      "Asahi Shimbun",
+      "朝日新聞"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "nihonKeizaiShimbunNikkei",
+    "slug": "nihon-keizai-shimbun-nikkei",
+    "label": "Nikkei",
+    "integrationNames": [
+      "Nihon Keizai Shimbun (Nikkei)"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/25/Nikkei_logo_ja.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.nikkei.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/25/Nikkei_logo_ja.svg",
+    "searchAliases": [
+      "Nikkei",
+      "Nihon Keizai Shimbun",
+      "日本経済新聞",
+      "Nihon Keizai Shimbun (Nikkei)"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "yomiuriShimbun",
+    "slug": "yomiuri-shimbun",
+    "label": "Yomiuri Shimbun",
+    "integrationNames": [
+      "Yomiuri Shimbun"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/Yomiuri-Shimbun-Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.yomiuri.co.jp/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/4/44/Yomiuri-Shimbun-Logo.svg",
+    "searchAliases": [
+      "読売新聞",
+      "讀賣新聞"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "mainichiShimbun",
+    "slug": "mainichi-shimbun",
+    "label": "Mainichi Shimbun",
+    "integrationNames": [
+      "Mainichi Shimbun"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/10/Mainichi_Shimbun_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FEFEFE": "#FEFEFE",
+      "#0078C6": "#1181CA",
+      "#231916": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FEFEFE": "#FEFEFE",
+      "#0078C6": "#1181CA",
+      "#231916": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.mainichi.jp/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/10/Mainichi_Shimbun_logo.svg",
+    "searchAliases": [
+      "毎日新聞"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "alRaI",
+    "slug": "al-ra-i",
+    "label": "Al Ra'i",
+    "integrationNames": [
+      "Al Ra'i"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://alrai.com/uploads/pdf/2021/03/26/alrai-20210326f.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1b9fcf": "#1b9fcf",
+      "#080808": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1b9fcf": "#1b9fcf",
+      "#080808": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.alrai.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://alrai.com/uploads/pdf/2021/03/26/alrai-20210326f.pdf",
+    "searchAliases": [
+      "Al Rai",
+      "Alrai",
+      "الرأي"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "dailyNation",
+    "slug": "daily-nation",
+    "label": "Daily Nation",
+    "integrationNames": [
+      "Daily Nation"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Nationlogo.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f09343": "#f09343",
+      "#f49638": "#f49638",
+      "#f39339": "#f39339",
+      "#f29333": "#f29333",
+      "#ec9538": "#ec9538",
+      "#794a1c": "#794a1c",
+      "#010001": "#010001",
+      "#f09336": "#f09336"
+    },
+    "logoDarkColors": {
+      "#f09343": "#f09343",
+      "#f49638": "#f49638",
+      "#f39339": "#f39339",
+      "#f29333": "#f29333",
+      "#ec9538": "#ec9538",
+      "#794a1c": "#794a1c",
+      "#010001": "#010001",
+      "#f09336": "#f09336"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://nation.africa/kenya",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Nationlogo.jpg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "kohaDitore",
+    "slug": "koha-ditore",
+    "label": "Koha Ditore",
+    "integrationNames": [
+      "Koha Ditore"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Koha_Ditore_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#EC1C24": "#ED2A31"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#EC1C24": "#ED2A31"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://koha.net/koha-ditore",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Koha_Ditore_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "diena",
+    "slug": "diena",
+    "label": "Diena",
+    "integrationNames": [
+      "Diena"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://diena.lv/assets/logos/diena-dark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1D2934": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1D2934": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.diena.lv",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://diena.lv/assets/logos/diena-dark.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "anNahar",
+    "slug": "an-nahar",
+    "label": "An-Nahar",
+    "integrationNames": [
+      "An-Nahar"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.annahar.com/images/favicon/apple-icon-120x120.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00b8df": "#00b8df",
+      "#11b2d6": "#11b2d6",
+      "#00b8dc": "#00b8dc",
+      "#01b5db": "#01b5db",
+      "#00bbdb": "#00bbdb",
+      "#0bbbdc": "#0bbbdc",
+      "#00b8d9": "#00b8d9"
+    },
+    "logoDarkColors": {
+      "#02c5fa": "#02c5fa",
+      "#0292b9": "#0292b9",
+      "#02c3f7": "#02c3f7",
+      "#02c0f4": "#02c0f4",
+      "#02c0f2": "#02c0f2",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.annahar.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Annahar.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "newStraitsTimes",
+    "slug": "new-straits-times",
+    "label": "New Straits Times",
+    "integrationNames": [
+      "New Straits Times"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nst.com.my/assets/favicons/android-icon-144x144.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#e02a30": "#E33C42"
+    },
+    "logoDarkColors": {
+      "#151514": "#F5F7FA",
+      "#d52828": "#DB4646",
+      "#d42728": "#DA4748",
+      "#161615": "#F5F7FA",
+      "#161616": "#F5F7FA",
+      "#161613": "#F5F7FA",
+      "#d52729": "#DB4648",
+      "#d52829": "#DB4647"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.nst.com.my/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/0/0b/NSTlogo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "excelsior",
+    "slug": "excelsior",
+    "label": "Excélsior",
+    "integrationNames": [
+      "Excélsior"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.excelsior.com.mx/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.excelsior.com.mx/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.excelsior.com.mx/",
+    "searchAliases": [
+      "Excelsior"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "reforma",
+    "slug": "reforma",
+    "label": "Reforma",
+    "integrationNames": [
+      "Reforma"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.reforma.com/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#01b541": "#01b541"
+    },
+    "logoDarkColors": {
+      "#2c7746": "#47895E",
+      "#2a2411": "#F5F7FA",
+      "#cac975": "#cac975",
+      "#429852": "#429852",
+      "#367a4a": "#4B885D",
+      "#38884d": "#3C8A51",
+      "#4a8f53": "#4a8f53",
+      "#375a35": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.reforma.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://frontpages.freedomforum.org/newspapers/mex_ref",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "nrc",
+    "slug": "nrc",
+    "label": "NRC",
+    "integrationNames": [
+      "NRC"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets.nrc.nl/static/front/icons/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#CD171A": "#D84A4C",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://www.nrc.nl/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/71/NRC_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theNewZealandHerald",
+    "slug": "the-new-zealand-herald",
+    "label": "The New Zealand Herald",
+    "integrationNames": [
+      "The New Zealand Herald"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nzherald.co.nz/pf/resources/images/favicons/favicon.ico?d=1077",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#5d5853": "#F5F7FA",
+      "#454039": "#F5F7FA",
+      "#aeadac": "#aeadac",
+      "#000000": "#F5F7FA",
+      "#29231c": "#F5F7FA",
+      "#868481": "#868481",
+      "#ffffff": "#ffffff",
+      "#d5d5d4": "#d5d5d4"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.nzherald.co.nz/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/1/14/The_New_Zealand_Herald_logo.webp",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theGuardianNigeria",
+    "slug": "the-guardian-nigeria",
+    "label": "The Guardian (Nigeria)",
+    "integrationNames": [
+      "The Guardian (Nigeria)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://pan-ng.org/wp-content/uploads/2026/04/MARCH20260330-1.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231f20": "#F5F7FA",
+      "#00aeef": "#00aeef",
+      "#b2b4b7": "#b2b4b7",
+      "#353435": "#F5F7FA",
+      "#6d6e70": "#F5F7FA",
+      "#62bcdc": "#62bcdc",
+      "#c6d7df": "#c6d7df",
+      "#242021": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#bfd4dc": "#bfd4dc",
+      "#231f20": "#F5F7FA",
+      "#4f4d4e": "#F5F7FA",
+      "#2c292a": "#F5F7FA",
+      "#00aeef": "#00aeef",
+      "#878c8f": "#878c8f",
+      "#242021": "#F5F7FA",
+      "#48c5f3": "#48c5f3"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.guardian.ng",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://pan-ng.org/wp-content/uploads/2026/04/MARCH20260330-1.pdf",
+    "searchAliases": [
+      "Guardian Nigeria"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "rodongSinmun",
+    "slug": "rodong-sinmun",
+    "label": "Rodong Sinmun",
+    "integrationNames": [
+      "Rodong Sinmun"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Rodong_Sinmun.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#ff2626": "#ff2626",
+      "#1a10d0": "#736DE2",
+      "#ffcb01": "#ffcb01",
+      "#ff0000": "#ff0000",
+      "#fc9a79": "#fc9a79",
+      "#ffe6c4": "#ffe6c4",
+      "#ff5f5f": "#ff5f5f",
+      "#ff0909": "#ff0909"
+    },
+    "logoDarkColors": {
+      "#ff2626": "#ff2626",
+      "#1a10d0": "#736DE2",
+      "#ffcb01": "#ffcb01",
+      "#ff0000": "#ff0000",
+      "#fc9a79": "#fc9a79",
+      "#ffe6c4": "#ffe6c4",
+      "#ff5f5f": "#ff5f5f",
+      "#ff0909": "#ff0909"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://rodong.rep.kp/en/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Rodong_Sinmun.png",
+    "searchAliases": [
+      "Rodong Shinmun",
+      "로동신문"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "aftenposten",
+    "slug": "aftenposten",
+    "label": "Aftenposten",
+    "integrationNames": [
+      "Aftenposten"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.aftenposten.no/ap/images/footer/circular-ap-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1e2940": "#F5F7FA",
+      "#000c26": "#F5F7FA",
+      "#f7f7f8": "#f7f7f8",
+      "#dadcdf": "#dadcdf",
+      "#6b7180": "#F5F7FA",
+      "#aaadb6": "#aaadb6",
+      "#ffffff": "#ffffff",
+      "#010c26": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.aftenposten.no",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.aftenposten.no",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "dawn",
+    "slug": "dawn",
+    "label": "Dawn",
+    "integrationNames": [
+      "Dawn"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Dawn_Newspaper_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.dawn.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Dawn_Newspaper_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "jang",
+    "slug": "jang",
+    "label": "Jang",
+    "integrationNames": [
+      "Jang"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Daily_Jang_logo_%282024%29.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#292929": "#F5F7FA",
+      "#999999": "#999999",
+      "#818181": "#818181",
+      "#6b6b6b": "#F5F7FA",
+      "#cdcdcd": "#cdcdcd",
+      "#000000": "#F5F7FA",
+      "#525252": "#F5F7FA",
+      "#b2b2b2": "#b2b2b2"
+    },
+    "logoDarkColors": {
+      "#292929": "#F5F7FA",
+      "#999999": "#999999",
+      "#818181": "#818181",
+      "#6b6b6b": "#F5F7FA",
+      "#cdcdcd": "#cdcdcd",
+      "#000000": "#F5F7FA",
+      "#525252": "#F5F7FA",
+      "#b2b2b2": "#b2b2b2"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://jang.com.pk",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Daily_Jang_logo_%282024%29.png",
+    "searchAliases": [
+      "Daily Jang",
+      "روزنامہ جنگ"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laPrensa",
+    "slug": "la-prensa",
+    "label": "La Prensa",
+    "integrationNames": [
+      "La Prensa"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://multimedia.corprensa.com/la-prensa/assets/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f7f7f7": "#f7f7f7",
+      "#dcdcdc": "#dcdcdc",
+      "#6d6d6d": "#F5F7FA",
+      "#da0042": "#E2376B",
+      "#fefefe": "#fefefe",
+      "#000000": "#F5F7FA",
+      "#fafafa": "#fafafa",
+      "#f5f5f5": "#f5f5f5"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#EB212E": "#EC2C38"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.prensa.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/8/8d/La_Prensa_%28Panama_City%29_logo.svg",
+    "searchAliases": [
+      "La Prensa Panama"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "abcColor",
+    "slug": "abc-color",
+    "label": "ABC Color",
+    "integrationNames": [
+      "ABC Color"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.abc.com.py/pf/resources/images/favicon.png?d=2661",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#fff200": "#fff200",
+      "#ed1c24": "#ed1c24"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#fff200": "#fff200",
+      "#ed1c24": "#ed1c24"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.abc.com.py/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Abc_color.PNG",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elComercioPeru",
+    "slug": "el-comercio-peru",
+    "label": "El Comercio (Peru)",
+    "integrationNames": [
+      "El Comercio (Peru)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdna.elcomercio.pe/resources/dist/elcomercio/images/ec-white-logo-mobile.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://elcomercio.pe",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://elcomercio.pe",
+    "searchAliases": [
+      "El Comercio Peru"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "philippineDailyInquirer",
+    "slug": "philippine-daily-inquirer",
+    "label": "Philippine Daily Inquirer",
+    "integrationNames": [
+      "Philippine Daily Inquirer"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e3/PDI_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#21BBEF": "#21BBEF",
+      "#FEFFFE": "#FEFFFE",
+      "#004883": "#4E80A9"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#21BBEF": "#21BBEF",
+      "#FEFFFE": "#FEFFFE",
+      "#004883": "#4E80A9"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.inquirer.net",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e3/PDI_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "gazetaWyborcza",
+    "slug": "gazeta-wyborcza",
+    "label": "Gazeta Wyborcza",
+    "integrationNames": [
+      "Gazeta Wyborcza"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Gazeta_Wyborcza.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1a181c": "#F5F7FA",
+      "#e9001b": "#ED293F",
+      "#1a161b": "#F5F7FA",
+      "#e2001a": "#E83348",
+      "#19171b": "#F5F7FA",
+      "#1a171a": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1a181c": "#F5F7FA",
+      "#e9001b": "#ED293F",
+      "#1a161b": "#F5F7FA",
+      "#e2001a": "#E83348",
+      "#19171b": "#F5F7FA",
+      "#1a171a": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://wyborcza.pl",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Gazeta_Wyborcza.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "rzeczpospolita",
+    "slug": "rzeczpospolita",
+    "label": "Rzeczpospolita",
+    "integrationNames": [
+      "Rzeczpospolita"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/92/Rz_logo_big_txt.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.rp.pl/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/92/Rz_logo_big_txt.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "diarioDeNoticias",
+    "slug": "diario-de-noticias",
+    "label": "Diário de Notícias",
+    "integrationNames": [
+      "Diário de Notícias"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.dn.pt/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#2B2B2B": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.dn.pt/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/6/66/Di%C3%A1rio_de_Not%C3%ADcias.svg",
+    "searchAliases": [
+      "Diario de Noticias"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "publico",
+    "slug": "publico",
+    "label": "Público",
+    "integrationNames": [
+      "Público"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/96/Logo_publico.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D20911": "#DD444A"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#D20911": "#DD444A"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.publico.pt",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/96/Logo_publico.svg",
+    "searchAliases": [
+      "Publico"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elNuevoDia",
+    "slug": "el-nuevo-dia",
+    "label": "El Nuevo Día",
+    "integrationNames": [
+      "El Nuevo Día"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2a/El_Nuevo_D%C3%ADa_%282019-11-01%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#D9333A": "#DC444B",
+      "#211E1E": "#F5F7FA",
+      "#3A97D9": "#3A97D9",
+      "#0F0C0C": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#D9333A": "#DC444B",
+      "#211E1E": "#F5F7FA",
+      "#3A97D9": "#3A97D9",
+      "#0F0C0C": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.elnuevodia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2a/El_Nuevo_D%C3%ADa_%282019-11-01%29.svg",
+    "searchAliases": [
+      "El Nuevo Dia"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laSemaineAfricaine",
+    "slug": "la-semaine-africaine",
+    "label": "La Semaine Africaine",
+    "integrationNames": [
+      "La Semaine Africaine"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://lasemaineafricaine.info/wp-content/uploads/2020/08/cropped-FAVICON-300x300.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#dff1e3": "#dff1e3",
+      "#ffffff": "#ffffff",
+      "#50b168": "#50b168",
+      "#f8fbf8": "#f8fbf8",
+      "#9bd2a8": "#9bd2a8",
+      "#029227": "#029227",
+      "#199b3a": "#199b3a",
+      "#f7fbf7": "#f7fbf7"
+    },
+    "logoDarkColors": {
+      "#88c596": "#88c596",
+      "#f8fbf8": "#f8fbf8",
+      "#01b21a": "#01b21a",
+      "#fbfbfc": "#fbfbfc",
+      "#cae4ce": "#cae4ce",
+      "#55ac69": "#55ac69",
+      "#018320": "#188E34",
+      "#1e9139": "#1e9139"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://lasemaineafricaine.info",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://lasemaineafricaine.info/wp-content/uploads/2026/10/LOGO-SA.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "adevarul",
+    "slug": "adevarul",
+    "label": "Adevărul",
+    "integrationNames": [
+      "Adevărul"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://adevarul.ro/favicon-180-precomposed.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#d7d7d8": "#d7d7d8",
+      "#28272c": "#F5F7FA",
+      "#fffffe": "#fffffe",
+      "#626266": "#F5F7FA",
+      "#302f34": "#F5F7FA",
+      "#2d2c31": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#302F34": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://adevarul.ro",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://adevarul.ro/logo.svg",
+    "searchAliases": [
+      "Adevarul"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "danas",
+    "slug": "danas",
+    "label": "Danas",
+    "integrationNames": [
+      "Danas"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.danas.rs/wp-content/uploads/2021/06/cropped-danas-favicon-270x270.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#202c64": "#737A9D",
+      "#202b64": "#73799D",
+      "#212c65": "#737A9E",
+      "#212b65": "#73799E",
+      "#222c65": "#747A9E",
+      "#787c9f": "#787c9f"
+    },
+    "logoDarkColors": {
+      "#232c66": "#747A9F",
+      "#242a67": "#75799F",
+      "#1f2e64": "#717A9D",
+      "#202d67": "#717A9E",
+      "#222d63": "#737A9C",
+      "#212c68": "#737AA0",
+      "#202c69": "#737AA1",
+      "#212c66": "#737A9F"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.danas.rs/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.danas.rs/wp-content/uploads/2021/11/Danas-tamniji-logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theStraitsTimes",
+    "slug": "the-straits-times",
+    "label": "The Straits Times",
+    "integrationNames": [
+      "The Straits Times"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.straitstimes.com/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0b204e": "#6F7B97"
+    },
+    "logoDarkColors": {
+      "#0b204e": "#6F7B97"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://straitstimes.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.straitstimes.com/assets/ST-logo-default-aoeSLh4S.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "mailGuardian",
+    "slug": "mail-guardian",
+    "label": "Mail & Guardian",
+    "integrationNames": [
+      "Mail & Guardian"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Mail_%26_Guardian_logo.jpg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0d0001": "#0d0001",
+      "#d06d71": "#d06d71",
+      "#22090a": "#22090a",
+      "#fffffc": "#fffffc",
+      "#fdfffe": "#fdfffe",
+      "#000000": "#000000",
+      "#000003": "#000003"
+    },
+    "logoDarkColors": {
+      "#ec4643": "#ec4643",
+      "#171d1b": "#F5F7FA",
+      "#191b1d": "#F5F7FA",
+      "#4b2627": "#F5F7FA",
+      "#191c1b": "#F5F7FA",
+      "#171a1c": "#F5F7FA",
+      "#191a21": "#F5F7FA",
+      "#191b1f": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://mg.co.za/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://images.newsteam.io/image/2000/2Bq28FuGKoMihHVNyxf3egwCbF5ucjDUMDH4PNAFF5WbA3vNGoJH9cHEJ4fiSTxHbweyjhMeYQFz4EZ7tS6BgNw35ZQKa4rGxbocu19bAqGkcX5gaj8XtgCv7Rwcg3skvckXwfTZeNKUS9jgEtEBLs6",
+    "searchAliases": [
+      "M&G"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theChosunIlbo",
+    "slug": "the-chosun-ilbo",
+    "label": "The Chosun Ilbo",
+    "integrationNames": [
+      "The Chosun Ilbo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.chosun.com/pf/resources/icons/favicon_chosun.png?d=2433",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#c12327": "#CE5255",
+      "#eb2127": "#EC2C32",
+      "#eb212b": "#EC2C36",
+      "#d62328": "#DC4448",
+      "#b62327": "#C8585B",
+      "#e42228": "#E6363B",
+      "#b62326": "#C8585A",
+      "#c87271": "#c87271"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#222222": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.chosun.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.chosun.com/",
+    "searchAliases": [
+      "Chosun Ilbo",
+      "조선일보",
+      "朝鮮日報"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theDongAIlbo",
+    "slug": "the-dong-a-ilbo",
+    "label": "The Dong-A Ilbo",
+    "integrationNames": [
+      "The Dong-A Ilbo"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Dong-a_Ilbo_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://english.donga.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Dong-a_Ilbo_logo.svg",
+    "searchAliases": [
+      "Dong-A Ilbo",
+      "동아일보",
+      "東亞日報"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "joongangIlbo",
+    "slug": "joongang-ilbo",
+    "label": "JoongAng Ilbo",
+    "integrationNames": [
+      "JoongAng Ilbo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://assets.joongang.co.kr/images/favicon/apple-touch-icon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f63107": "#f63107",
+      "#f6330a": "#f6330a",
+      "#f63309": "#f63309",
+      "#f85a3a": "#f85a3a",
+      "#fedbd4": "#fedbd4",
+      "#fca998": "#fca998",
+      "#f74019": "#f74019"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.joongang.co.kr/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://assets.joongang.co.kr/images/index/logo_thejoongang.png",
+    "searchAliases": [
+      "The JoongAng",
+      "중앙일보"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "laVanguardia",
+    "slug": "la-vanguardia",
+    "label": "La Vanguardia",
+    "integrationNames": [
+      "La Vanguardia"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e4/La_Vanguardia_%28cabecera%29.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#111111",
+      "#FFCC00": "#FFCC00",
+      "#001D48": "#001D48"
+    },
+    "logoDarkColors": {
+      "#111111": "#111111",
+      "#FFCC00": "#FFCC00",
+      "#001D48": "#001D48"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.lavanguardia.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/e/e4/La_Vanguardia_%28cabecera%29.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "abcSpain",
+    "slug": "abc-spain",
+    "label": "ABC (Spain)",
+    "integrationNames": [
+      "ABC (Spain)"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Diario_ABC_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://abc.es",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Diario_ABC_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elMundo",
+    "slug": "el-mundo",
+    "label": "El Mundo",
+    "integrationNames": [
+      "El Mundo"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.elmundo.es/favicon_96x96.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#00558d": "#4281AB",
+      "#00578d": "#4182AA",
+      "#00568b": "#4282A9",
+      "#00558c": "#4482AA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#211915": "#F5F7FA",
+      "#6887A6": "#6887A6"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://elmundo.es",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/7/7b/El_Mundo_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elPais",
+    "slug": "el-pais",
+    "label": "El País",
+    "integrationNames": [
+      "El País"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3e/El_Pais_logo_2007.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#016CA2": "#2A84B1",
+      "#212020": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#016CA2": "#2A84B1",
+      "#212020": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://elpais.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/3e/El_Pais_logo_2007.svg",
+    "searchAliases": [
+      "El Pais"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "dagensNyheter",
+    "slug": "dagens-nyheter",
+    "label": "Dagens Nyheter",
+    "integrationNames": [
+      "Dagens Nyheter"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.dn-static.se/images/favicons/favicon-2VEEOF7N.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFE": "#FFFFFE",
+      "#DA000D": "#E33C46"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://www.dn.se/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/5/5b/Dagens_Nyheter.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "neueZurcherZeitung",
+    "slug": "neue-zurcher-zeitung",
+    "label": "Neue Zürcher Zeitung",
+    "integrationNames": [
+      "Neue Zürcher Zeitung"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.nzz.ch/favicon/favicon-180x180.png?v=3",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.nzz.ch",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/3/37/Neue_Z%C3%BCrcher_Zeitung.svg",
+    "searchAliases": [
+      "Neue Zurcher Zeitung",
+      "NZZ"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "leTemps",
+    "slug": "le-temps",
+    "label": "Le Temps",
+    "integrationNames": [
+      "Le Temps"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://letemps-17455.kxcdn.com/assets/letemps/favicon-32x32-e824bb52c6bd6b80f342839c4df01102476133a73ea43e670ede9792ed333d0b.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#a00b29": "#BF5C70"
+    },
+    "logoDarkColors": {
+      "#930025": "#BB5E76"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.letemps.ch",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.letemps.ch",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "bangkokPost",
+    "slug": "bangkok-post",
+    "label": "Bangkok Post",
+    "integrationNames": [
+      "Bangkok Post"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/28/BangkokPost.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#132F65": "#6A7C9E"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#132F65": "#6A7C9E"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.bangkokpost.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/28/BangkokPost.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "matichon",
+    "slug": "matichon",
+    "label": "Matichon",
+    "integrationNames": [
+      "Matichon"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/91/Matichon_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA",
+      "#ED1C24": "#EE272F"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA",
+      "#ED1C24": "#EE272F"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.matichon.co.th/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/9/91/Matichon_Logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "trinidadAndTobagoGuardian",
+    "slug": "trinidad-and-tobago-guardian",
+    "label": "Trinidad and Tobago Guardian",
+    "integrationNames": [
+      "Trinidad and Tobago Guardian"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a0/T%26t_guardian_logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#986362": "#A06F6E",
+      "#f2f0eb": "#f2f0eb",
+      "#262424": "#F5F7FA",
+      "#d7d0c1": "#d7d0c1",
+      "#bc2426": "#CB5557",
+      "#f3dd63": "#f3dd63",
+      "#000000": "#F5F7FA",
+      "#ed2427": "#ED292C"
+    },
+    "logoDarkColors": {
+      "#986362": "#A06F6E",
+      "#f2f0eb": "#f2f0eb",
+      "#262424": "#F5F7FA",
+      "#d7d0c1": "#d7d0c1",
+      "#bc2426": "#CB5557",
+      "#f3dd63": "#f3dd63",
+      "#000000": "#F5F7FA",
+      "#ed2427": "#ED292C"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://guardian.co.tt",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/a/a0/T%26t_guardian_logo.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "cumhuriyet",
+    "slug": "cumhuriyet",
+    "label": "Cumhuriyet",
+    "integrationNames": [
+      "Cumhuriyet"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.cumhuriyet.com.tr/assets/img/c-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f5f4f6": "#f5f4f6",
+      "#f2f1f5": "#f2f1f5",
+      "#fed4d7": "#fed4d7",
+      "#f7edf0": "#f7edf0",
+      "#f3f0f3": "#f3f0f3",
+      "#de3235": "#E03F42",
+      "#f30307": "#F4161A",
+      "#eef4f7": "#eef4f7"
+    },
+    "logoDarkColors": {
+      "#FF0101": "#FF0101",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://cumhuriyet.com.tr",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cumhuriyet.com.tr/assets/img/logo.svg?v=VJV4JOVEN9pPQrTKfmz02kjBrzLI6bAylXUobR_9zOg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theLondonGazette",
+    "slug": "the-london-gazette",
+    "label": "The London Gazette",
+    "integrationNames": [
+      "The London Gazette"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/en/d/d3/London_Gazette_logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#141414": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#141414": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://thegazette.co.uk",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/en/d/d3/London_Gazette_logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "losAngelesTimes",
+    "slug": "los-angeles-times",
+    "label": "Los Angeles Times",
+    "integrationNames": [
+      "Los Angeles Times"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.latimes.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.latimes.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.latimes.com/",
+    "searchAliases": [
+      "LA Times",
+      "L.A. Times"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "lOsservatoreRomano",
+    "slug": "l-osservatore-romano",
+    "label": "L'Osservatore Romano",
+    "integrationNames": [
+      "L'Osservatore Romano"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2d/L%27Osservatore-Romano-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://www.osservatoreromano.va/en.html",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://upload.wikimedia.org/wikipedia/commons/2/2d/L%27Osservatore-Romano-logo.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "existing",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "latvijasVestnesis",
+    "slug": "latvijas-vestnesis",
+    "label": "Latvijas Vēstnesis",
+    "integrationNames": [
+      "Latvijas Vēstnesis"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.lv.lv/favicon/apple-touch-icon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#299ec0": "#299ec0",
+      "#299dbe": "#299dbe",
+      "#e3e3e3": "#e3e3e3",
+      "#1c2326": "#1c2326",
+      "#0a090a": "#0a090a",
+      "#0b0b0c": "#0b0b0c",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0B0B0C": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.lv.lv/?menu=en",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.lv.lv/img/logo-accessibility-black.svg",
+    "searchAliases": [
+      "Latvijas Vestnesis"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "public-record",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "rossiyskayaGazeta",
+    "slug": "rossiyskaya-gazeta",
+    "label": "Rossiyskaya Gazeta",
+    "integrationNames": [
+      "Rossiyskaya Gazeta"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://rg.ru/favicon.ico",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#846b61": "#F5F7FA",
+      "#4f6b7f": "#F5F7FA",
+      "#506c7f": "#F5F7FA",
+      "#f16922": "#f16922",
+      "#f36921": "#f36921",
+      "#f26822": "#f26822",
+      "#506b7f": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#231F20": "#F5F7FA",
+      "#A5956B": "#A5956B"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://rg.ru/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://cdnfiles.rg.ru/svg/projects_logos/rg.svg",
+    "searchAliases": [
+      "Российская газета",
+      "RG.ru"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "official",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "peoplesDaily",
+    "slug": "peoples-daily",
+    "label": "People’s Daily",
+    "integrationNames": [
+      "People’s Daily"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://paper.people.com.cn/rmrb/pc/layout/index.html",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#f7c2c6": "#f7c2c6",
+      "#d07e85": "#d07e85",
+      "#982636": "#B5646F",
+      "#a50620": "#C3596B",
+      "#c40425": "#D54A62",
+      "#bb0422": "#CF4F64",
+      "#bd2941": "#CA5467",
+      "#cf0327": "#DB435E"
+    },
+    "logoDarkColors": {
+      "#f7c2c6": "#f7c2c6",
+      "#d07e85": "#d07e85",
+      "#982636": "#B5646F",
+      "#a50620": "#C3596B",
+      "#c40425": "#D54A62",
+      "#bb0422": "#CF4F64",
+      "#bd2941": "#CA5467",
+      "#cf0327": "#DB435E"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://en.people.cn/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://paper.people.com.cn/rmrb/pc/layout/index.html",
+    "searchAliases": [
+      "People's Daily",
+      "Renmin Ribao",
+      "人民日报"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "official",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "theHeraldZimbabwe",
+    "slug": "the-herald-zimbabwe",
+    "label": "The Herald (Zimbabwe)",
+    "integrationNames": [
+      "The Herald (Zimbabwe)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.cimmyt.org/news/mechanisation-to-re-configure-smallholder-production/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#272078": "#7A76AC",
+      "#cb222d": "#D54C55"
+    },
+    "logoDarkColors": {
+      "#272078": "#7A76AC",
+      "#cb222d": "#D54C55"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.heraldonline.co.zw/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cimmyt.org/news/mechanisation-to-re-configure-smallholder-production/",
+    "searchAliases": [
+      "Herald Zimbabwe",
+      "Zimpapers"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "elNacionalVenezuela",
+    "slug": "el-nacional-venezuela",
+    "label": "El Nacional (Venezuela)",
+    "integrationNames": [
+      "El Nacional (Venezuela)"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.elnacional.com/wp-content/themes/elnacional/src/assets/icons/Logo_EN.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#002992": "#617ABB",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#002992": "#617ABB",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://www.elnacional.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.elnacional.com/wp-content/themes/elnacional/src/assets/images/Logo_El_Nacional.svg",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
+  },
+  {
+    "name": "alHayatLegacy",
+    "slug": "al-hayat",
+    "label": "Al-Hayat (legacy)",
+    "integrationNames": [],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.arabnews.com/media/al-hayat-stops-publishing-its-print-edition-in-cairo-beirut-and-london-1313871",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#b51722": "#C9575F",
+      "#090909": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#b51722": "#C9575F",
+      "#090909": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://web.archive.org/web/20200216014714/https://www.alhayat.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.arabnews.com/media/al-hayat-stops-publishing-its-print-edition-in-cairo-beirut-and-london-1313871",
+    "searchAliases": [
+      "Al-Hayat",
+      "Al Hayat",
+      "الحياة"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    },
+    "publicationStatus": {
+      "status": "ceased",
+      "notes": "Al-Hayat ceased operations in 2019; retained as a legacy newspaper identity.",
+      "source": "https://saudipedia.com/en/al-hayat-newspaper",
+      "checkedOn": "2026-11-07"
+    }
+  },
+  {
+    "name": "theCambodiaDaily",
+    "slug": "the-cambodia-daily",
+    "label": "The Cambodia Daily",
+    "integrationNames": [
+      "The Cambodia Daily"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://english.cambodiadaily.com/wp-content/uploads/2013/05/CDlogofinalfaviconhighres.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#d51b16": "#DD4541"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#d51b16": "#DD4541"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://cambodiadaily.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.cambodiadaily.com/wp-content/uploads/2021/06/logo-hx50.png",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    },
+    "publicationStatus": {
+      "status": "current",
+      "notes": "The publication continues online following the end of its print edition.",
+      "source": "https://cambodiadaily.com",
+      "checkedOn": "2026-11-07"
+    }
+  },
+  {
+    "name": "thePhnomPenhPost",
+    "slug": "the-phnom-penh-post",
+    "label": "The Phnom Penh Post",
+    "integrationNames": [
+      "The Phnom Penh Post"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.multimediausa.com/old/resources/americas-exclusively-represented-asia/The-Phnom-Penh-Post.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1c1646": "#F5F7FA",
+      "#252252": "#F5F7FA",
+      "#2a2658": "#F5F7FA",
+      "#221e51": "#F5F7FA",
+      "#282361": "#7B789E",
+      "#332f5f": "#F5F7FA",
+      "#2b2764": "#7B789E",
+      "#5e5b7d": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#1c1646": "#F5F7FA",
+      "#252252": "#F5F7FA",
+      "#2a2658": "#F5F7FA",
+      "#221e51": "#F5F7FA",
+      "#282361": "#7B789E",
+      "#332f5f": "#F5F7FA",
+      "#2b2764": "#7B789E",
+      "#5e5b7d": "#F5F7FA"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed. The wordmark is the compact identity used for mark variants.",
+    "brandWebsite": "https://phnompenhpost.com",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://www.multimediausa.com/old/resources/americas-exclusively-represented-asia/The-Phnom-Penh-Post.pdf",
+    "searchAliases": [],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    },
+    "publicationStatus": {
+      "status": "current",
+      "notes": "The publication continues online following the end of its print edition.",
+      "source": "https://phnompenhpost.com",
+      "checkedOn": "2026-11-07"
+    }
+  },
+  {
+    "name": "nepszabadsag",
+    "slug": "nepszabadsag",
+    "label": "Népszabadság",
+    "integrationNames": [
+      "Népszabadság"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://nszo.hu/includes/images/favicon.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0095DC": "#0095DC"
+    },
+    "logoDarkColors": {
+      "#0095DC": "#0095DC",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoNotes": "Outlined publisher artwork and source mastheads.",
+    "brandWebsite": "https://nszo.hu/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://nszo.hu/includes/images/front/logo.svg",
+    "searchAliases": [
+      "Nepszabadsag",
+      "Népszabadság Online",
+      "NSZO"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    },
+    "publicationStatus": {
+      "status": "current",
+      "notes": "Relaunched as Népszabadság Online in October 2026; current publisher identity used.",
+      "source": "https://nszo.hu/",
+      "checkedOn": "2026-11-07"
+    }
+  },
+  {
+    "name": "hurriyet",
+    "slug": "hurriyet",
+    "label": "Hürriyet",
+    "integrationNames": [
+      "Hürriyet"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.hurriyet.com.tr/favicon-logo-2021.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#615f5f": "#F5F7FA",
+      "#ed1c24": "#EE272F",
+      "#f14046": "#f14046",
+      "#e6bfc0": "#e6bfc0",
+      "#000000": "#F5F7FA",
+      "#f8a6a9": "#f8a6a9",
+      "#ffffff": "#ffffff"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#FFFFFF": "#FFFFFF",
+      "#ED1C24": "#EE272F"
+    },
+    "logoNotes": "Selected publisher artwork and source mastheads, vectorized from raster sources where needed.",
+    "brandWebsite": "https://www.hurriyet.com.tr/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.",
+    "categories": [
+      "News & publishing"
+    ],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "logoSource": "https://static.hurriyet.com.tr/static/images/redesign/hurriyet-logo-red.svg?v=azure-3728",
+    "searchAliases": [
+      "Hurriyet"
+    ],
+    "referenceCollection": {
+      "url": "https://en.wikipedia.org/wiki/Newspaper_of_record",
+      "section": "fallen",
+      "checkedOn": "2026-11-07",
+      "notes": "Included to cover the publications named in the referenced article. This is not an endorsement of editorial independence or a statement that the title currently holds newspaper-of-record status."
+    }
   }
 ]

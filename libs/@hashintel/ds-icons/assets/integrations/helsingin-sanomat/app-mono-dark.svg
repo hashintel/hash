@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="helsingin-sanomat-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="helsingin-sanomat-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="helsingin-sanomat-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#helsingin-sanomat-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#helsingin-sanomat-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#helsingin-sanomat-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="helsingin-sanomat-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#helsingin-sanomat-app-mono-dark-mono)"><defs><clipPath id="helsingin-sanomat-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#helsingin-sanomat-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.26959 -0.26959 167.53917 167.53917" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<rect width="167" height="167" fill="none" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M98.6249 124.271H112.86C127.659 124.271 139.973 112.39 139.973 94.5665C139.973 84.3154 134.437 78.7239 123.479 72.6664C109.922 65.0946 106.194 62.2988 106.194 57.5227C106.194 53.2126 109.583 50.3004 113.989 50.3004C120.203 50.3004 127.094 55.4259 133.082 58.5712C133.534 58.8041 133.986 58.9206 134.437 58.9206C135.68 58.9206 136.923 57.8722 136.923 53.0961C136.923 44.7088 135.341 42.7285 131.726 42.7285H117.378C102.692 42.7285 94.7838 55.4259 94.7838 66.7254C94.7838 81.1702 106.646 86.0628 116.249 91.3048C123.366 95.149 130.144 97.9448 130.144 104.701C130.144 110.642 125.174 113.787 119.864 113.787C113.65 113.787 106.42 110.409 99.4157 105.75C98.6249 105.284 97.834 105.051 97.3821 105.051C94.6708 105.051 93.2021 110.642 93.2021 118.33C93.2021 123.806 95.0097 124.271 98.6249 124.271Z" fill="#000000" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M33.0097 124.271H40.24C44.0811 124.271 48.713 124.155 48.713 121.825C48.713 119.379 41.5957 106.682 41.5957 95.7315C41.5957 88.5091 43.7422 85.7133 58.4287 85.7133C70.8558 85.7133 75.0358 88.5091 75.0358 95.149C75.0358 105.983 67.9185 116.467 67.9185 121.359C67.9185 123.223 68.9352 124.271 71.6466 124.271H84.5255C85.6553 124.271 87.8018 123.806 87.8018 121.476C87.8018 121.126 87.6888 120.66 87.5758 120.078C85.5423 112.273 84.8645 103.886 84.8645 95.7315C84.8645 77.4425 88.3666 59.8525 88.3666 50.4169C88.3666 45.2913 87.9147 42.7285 82.2661 42.7285H72.7763C71.0817 42.7285 70.1779 43.311 70.1779 44.5924C70.1779 45.2913 70.4039 46.1067 70.9687 47.2716C74.3579 54.96 75.2617 60.668 75.2617 63.8132C75.2617 70.6861 69.839 71.385 63.1736 71.385C57.299 71.385 50.2946 71.2686 50.2946 62.1823C50.2946 56.3578 54.3617 48.32 54.3617 45.7573C54.3617 43.8934 53.3449 42.7285 50.7465 42.7285H38.7714C37.4157 42.7285 36.173 43.4275 36.173 44.9418C36.173 45.7573 36.6249 46.6892 37.3027 48.0871C38.7714 50.8828 40.6919 54.6105 40.6919 63.2307C40.6919 80.0053 26.9092 92.8192 26.9092 113.787C26.9092 120.194 29.1686 124.271 33.0097 124.271Z" fill="#000000" />
+</svg></g></g></svg>

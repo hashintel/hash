@@ -43920,5 +43920,2209 @@
     "notes": "Principal historical service market; country coverage is qualified and is not a statement of present availability.",
     "sources": [],
     "referenceUrls": ["https://en.wikipedia.org/wiki/British_Rail"]
+  },
+  "laNacionArgentina": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AR"],
+    "countries": ["AR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lanacion.com.ar",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theAge": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AU"],
+    "countries": ["AU"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://theage.com.au",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theSydneyMorningHerald": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AU"],
+    "countries": ["AU"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.smh.com.au/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "diePresse": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AT"],
+    "countries": ["AT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://diepresse.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "derStandard": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AT"],
+    "countries": ["AT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.derstandard.at",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "azadliq": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["AZ"],
+    "countries": ["AZ"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.azadliq.info/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theNassauGuardian": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BS"],
+    "countries": ["BS"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://thenassauguardian.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "akhbarAlKhaleej": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BH"],
+    "countries": ["BH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.akhbar-alkhaleej.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "gulfDailyNews": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BH"],
+    "countries": ["BH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.gdnonline.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theDailyStar": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BD"],
+    "countries": ["BD"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://thedailystar.net",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leSoir": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BE"],
+    "countries": ["BE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lesoir.be",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "deStandaard": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BE"],
+    "countries": ["BE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.standaard.be",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theRoyalGazette": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BM"],
+    "countries": ["BM"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.royalgazette.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elDiario": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BO"],
+    "countries": ["BO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://eldiario.net",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "oEstadoDeSPaulo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BR"],
+    "countries": ["BR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.estadao.com.br",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "folhaDeSPaulo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BR"],
+    "countries": ["BR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://folha.uol.com.br",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "oGlobo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["BR"],
+    "countries": ["BR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://oglobo.globo.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leDevoir": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CA"],
+    "countries": ["CA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://ledevoir.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laPresse": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CA"],
+    "countries": ["CA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lapresse.ca",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theGlobeAndMail": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CA"],
+    "countries": ["CA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://theglobeandmail.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elMercurio": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CL"],
+    "countries": ["CL"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.emol.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elTiempo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CO"],
+    "countries": ["CO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.eltiempo.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elEspectador": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CO"],
+    "countries": ["CO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://elespectador.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laNacionCostaRica": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CR"],
+    "countries": ["CR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nacion.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "granma": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CU"],
+    "countries": ["CU"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.granma.cu/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "lidoveNoviny": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CZ"],
+    "countries": ["CZ"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lidovky.cz",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "berlingske": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["DK"],
+    "countries": ["DK"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://berlingske.dk",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "listinDiario": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["DO"],
+    "countries": ["DO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://listindiario.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elComercioEcuador": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["EC"],
+    "countries": ["EC"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.elcomercio.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "alAhram": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["EG"],
+    "countries": ["EG"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://gate.ahram.org.eg/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "alMasryAlYoum": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["EG"],
+    "countries": ["EG"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.almasryalyoum.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theFijiTimes": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FJ"],
+    "countries": ["FJ"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.fijitimes.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "shantiDut": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FJ"],
+    "countries": ["FJ"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.fijitimes.com.fj/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "helsinginSanomat": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FI"],
+    "countries": ["FI"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.hs.fi/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leFigaro": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FR"],
+    "countries": ["FR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lefigaro.fr",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "liberation": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FR"],
+    "countries": ["FR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.liberation.fr/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leMonde": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["FR"],
+    "countries": ["FR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lemonde.fr",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "lUnion": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["GA"],
+    "countries": ["GA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://union.sonapresse.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "suddeutscheZeitung": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["DE"],
+    "countries": ["DE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.sueddeutsche.de/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "dieWelt": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["DE"],
+    "countries": ["DE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.welt.de/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "kathimerini": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["GR"],
+    "countries": ["GR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://kathimerini.gr",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "prensaLibre": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["GT"],
+    "countries": ["GT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.prensalibre.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leNouvelliste": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["HT"],
+    "countries": ["HT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lenouvelliste.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "southChinaMorningPost": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["HK"],
+    "countries": ["HK"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.scmp.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "morgunbladid": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IS"],
+    "countries": ["IS"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mbl.is/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theTimesOfIndia": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IN"],
+    "countries": ["IN"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://timesofindia.indiatimes.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "kompas": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ID"],
+    "countries": ["ID"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://kompas.id/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "ettelaAt": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IR"],
+    "countries": ["IR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://ettelaat.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theIrishTimes": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IE"],
+    "countries": ["IE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.irishtimes.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "haaretz": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IL"],
+    "countries": ["IL"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://haaretz.co.il",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "corriereDellaSera": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IT"],
+    "countries": ["IT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.corriere.it",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laRepubblica": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IT"],
+    "countries": ["IT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.repubblica.it",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "ilSole24Ore": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IT"],
+    "countries": ["IT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.ilsole24ore.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laStampa": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IT"],
+    "countries": ["IT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lastampa.it",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "ilMessaggero": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["IT"],
+    "countries": ["IT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.ilmessaggero.it/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theGleaner": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JM"],
+    "countries": ["JM"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://jamaica-gleaner.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theAsahiShimbun": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JP"],
+    "countries": ["JP"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.asahi.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "nihonKeizaiShimbunNikkei": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JP"],
+    "countries": ["JP"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nikkei.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "yomiuriShimbun": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JP"],
+    "countries": ["JP"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.yomiuri.co.jp/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "mainichiShimbun": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JP"],
+    "countries": ["JP"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.mainichi.jp/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "alRaI": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["JO"],
+    "countries": ["JO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.alrai.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "dailyNation": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KE"],
+    "countries": ["KE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://nation.africa/kenya",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "kohaDitore": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["XK"],
+    "countries": ["XK"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://koha.net/koha-ditore",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "diena": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["LV"],
+    "countries": ["LV"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.diena.lv",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "anNahar": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["LB"],
+    "countries": ["LB"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.annahar.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "newStraitsTimes": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["MY"],
+    "countries": ["MY"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nst.com.my/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "excelsior": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["MX"],
+    "countries": ["MX"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.excelsior.com.mx/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "reforma": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["MX"],
+    "countries": ["MX"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.reforma.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "nrc": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["NL"],
+    "countries": ["NL"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nrc.nl/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theNewZealandHerald": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["NZ"],
+    "countries": ["NZ"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nzherald.co.nz/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theGuardianNigeria": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["NG"],
+    "countries": ["NG"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.guardian.ng",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "rodongSinmun": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KP"],
+    "countries": ["KP"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://rodong.rep.kp/en/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "aftenposten": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["NO"],
+    "countries": ["NO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.aftenposten.no",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "dawn": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PK"],
+    "countries": ["PK"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dawn.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "jang": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PK"],
+    "countries": ["PK"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://jang.com.pk",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laPrensa": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PA"],
+    "countries": ["PA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.prensa.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "abcColor": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PY"],
+    "countries": ["PY"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.abc.com.py/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elComercioPeru": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PE"],
+    "countries": ["PE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://elcomercio.pe",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "philippineDailyInquirer": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PH"],
+    "countries": ["PH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.inquirer.net",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "gazetaWyborcza": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PL"],
+    "countries": ["PL"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://wyborcza.pl",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "rzeczpospolita": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PL"],
+    "countries": ["PL"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.rp.pl/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "diarioDeNoticias": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PT"],
+    "countries": ["PT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dn.pt/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "publico": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PT"],
+    "countries": ["PT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.publico.pt",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elNuevoDia": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["PR"],
+    "countries": ["PR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.elnuevodia.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laSemaineAfricaine": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CG"],
+    "countries": ["CG"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://lasemaineafricaine.info",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "adevarul": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["RO"],
+    "countries": ["RO"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://adevarul.ro",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "danas": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["RS"],
+    "countries": ["RS"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.danas.rs/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theStraitsTimes": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["SG"],
+    "countries": ["SG"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://straitstimes.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "mailGuardian": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ZA"],
+    "countries": ["ZA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://mg.co.za/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theChosunIlbo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KR"],
+    "countries": ["KR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.chosun.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theDongAIlbo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KR"],
+    "countries": ["KR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://english.donga.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "joongangIlbo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KR"],
+    "countries": ["KR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.joongang.co.kr/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "laVanguardia": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ES"],
+    "countries": ["ES"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lavanguardia.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "abcSpain": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ES"],
+    "countries": ["ES"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://abc.es",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elMundo": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ES"],
+    "countries": ["ES"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://elmundo.es",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elPais": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ES"],
+    "countries": ["ES"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://elpais.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "dagensNyheter": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["SE"],
+    "countries": ["SE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.dn.se/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "neueZurcherZeitung": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CH"],
+    "countries": ["CH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.nzz.ch",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "leTemps": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CH"],
+    "countries": ["CH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.letemps.ch",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "bangkokPost": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["TH"],
+    "countries": ["TH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.bangkokpost.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "matichon": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["TH"],
+    "countries": ["TH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.matichon.co.th/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "trinidadAndTobagoGuardian": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["TT"],
+    "countries": ["TT"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://guardian.co.tt",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "cumhuriyet": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["TR"],
+    "countries": ["TR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://cumhuriyet.com.tr",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theLondonGazette": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["GB"],
+    "countries": ["GB"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://thegazette.co.uk",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "losAngelesTimes": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["US"],
+    "countries": ["US"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.latimes.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "lOsservatoreRomano": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["VA"],
+    "countries": ["VA"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.osservatoreromano.va/en.html",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "latvijasVestnesis": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["LV"],
+    "countries": ["LV"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.lv.lv/?menu=en",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "rossiyskayaGazeta": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["RU"],
+    "countries": ["RU"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://rg.ru/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "peoplesDaily": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["CN"],
+    "countries": ["CN"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://en.people.cn/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theHeraldZimbabwe": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["ZW"],
+    "countries": ["ZW"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.herald.co.zw/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "elNacionalVenezuela": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["VE"],
+    "countries": ["VE"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://www.elnacional.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "alHayatLegacy": {
+    "scope": "regional",
+    "basis": "audience",
+    "primaryCountries": ["SA"],
+    "countries": ["SA", "LB", "GB"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "historical",
+    "notes": "Historical pan-Arab readership; Saudi Arabia, Lebanon and the United Kingdom reflect principal edition and publishing markets, not an exhaustive distribution footprint.",
+    "sources": [],
+    "referenceUrls": [
+      "https://web.archive.org/web/20200216014714/https://www.alhayat.com/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "theCambodiaDaily": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KH"],
+    "countries": ["KH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://cambodiadaily.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "thePhnomPenhPost": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["KH"],
+    "countries": ["KH"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://phnompenhpost.com",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "nepszabadsag": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["HU"],
+    "countries": ["HU"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://nszo.hu/",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
+  },
+  "hurriyet": {
+    "scope": "country",
+    "basis": "audience",
+    "primaryCountries": ["TR"],
+    "countries": ["TR"],
+    "regions": [],
+    "countryCoverage": "partial",
+    "localities": [],
+    "assessment": "provisional",
+    "assessedOn": "2026-11-07",
+    "verifiedOn": null,
+    "temporalContext": "current",
+    "notes": "Principal domestic readership market inferred from the publication’s country and publisher context. International readership, editions, and distribution are not exhaustively enumerated.",
+    "sources": [],
+    "referenceUrls": [
+      "https://en.wikipedia.org/wiki/Hürriyet",
+      "https://en.wikipedia.org/wiki/Newspaper_of_record"
+    ]
   }
 }

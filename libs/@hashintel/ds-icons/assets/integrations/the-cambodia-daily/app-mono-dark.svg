@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="the-cambodia-daily-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="the-cambodia-daily-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="the-cambodia-daily-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-cambodia-daily-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#the-cambodia-daily-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#the-cambodia-daily-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="the-cambodia-daily-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#the-cambodia-daily-app-mono-dark-mono)"><defs><clipPath id="the-cambodia-daily-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#the-cambodia-daily-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.33326 -0.17554 96.48823 48.35109" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,48.000000) scale(0.100000,-0.100000)" fill="#d51b16" stroke="none">
+<path d="M176 465 c-3 -8 -14 -15 -24 -15 -26 0 -122 -101 -122 -128 0 -13 -6 -22 -15 -22 -22 0 -22 -115 0 -124 8 -3 15 -14 15 -24 0 -23 100 -122 123 -122 10 0 20 -7 23 -15 5 -12 27 -15 108 -15 l101 0 20 30 c11 16 26 30 33 30 8 0 12 16 12 45 0 25 -4 45 -10 45 -5 0 -28 -20 -51 -45 -23 -25 -48 -45 -57 -45 -8 0 -23 -7 -32 -15 -15 -14 -18 -14 -30 0 -7 8 -27 15 -44 15 -37 1 -76 30 -76 58 0 11 -7 25 -15 32 -11 9 -15 35 -15 104 l0 92 38 37 c21 20 45 37 54 37 8 0 21 7 28 15 7 8 20 15 30 15 10 0 23 -7 30 -15 7 -8 20 -15 29 -15 25 -1 59 -34 63 -61 2 -18 9 -24 28 -24 22 0 25 5 28 40 2 35 -1 43 -28 60 -16 11 -30 26 -30 33 0 9 -27 12 -104 12 -83 0 -105 -3 -110 -15z" />
+<path d="M480 454 c0 -16 11 -35 30 -51 l30 -25 0 -137 c0 -131 -1 -139 -23 -159 -13 -12 -33 -22 -45 -22 -18 0 -22 -6 -22 -30 l0 -30 149 0 c123 0 150 3 155 15 3 9 18 15 39 15 26 0 43 10 85 53 29 29 52 61 52 70 0 10 7 20 15 23 11 5 15 22 15 65 0 46 -3 59 -15 59 -9 0 -15 9 -15 23 0 14 -20 42 -53 75 -42 41 -59 52 -85 52 -20 0 -35 6 -38 15 -5 12 -30 15 -140 15 l-134 0 0 -26z m307 -86 l53 -52 0 -90 0 -90 -37 -38 c-36 -37 -40 -38 -105 -38 -65 0 -68 1 -68 24 0 13 -7 29 -15 36 -12 10 -15 40 -15 150 0 75 3 140 7 143 3 4 34 7 67 7 59 0 61 -1 113 -52z" />
+<path d="M180 316 c0 -7 7 -16 15 -20 11 -4 15 -21 15 -61 l0 -56 103 3 c96 3 102 4 105 25 2 12 10 27 18 33 15 13 20 60 5 60 -5 0 -14 -7 -21 -15 -19 -23 -53 -14 -60 15 -6 24 -9 25 -93 28 -70 2 -87 0 -87 -12z m118 -59 c3 -40 -13 -55 -44 -43 -16 6 -16 8 0 24 9 10 16 29 16 41 0 38 25 18 28 -22z" />
+</g>
+<g transform="translate(0.000000,48.000000) scale(0.100000,-0.100000)" fill="#111111" stroke="none">
+<path d="M157 446 c-8 -9 -21 -16 -28 -16 -22 0 -69 -53 -69 -77 0 -14 -6 -23 -15 -23 -12 0 -15 -17 -15 -89 0 -72 3 -90 16 -95 9 -3 14 -12 11 -20 -6 -15 42 -62 90 -89 25 -14 37 -15 53 -7 22 12 27 30 8 30 -23 1 -88 65 -88 87 0 11 -7 26 -15 33 -20 17 -20 113 0 133 7 8 17 26 21 41 3 14 10 26 15 26 5 0 9 10 9 21 0 16 5 20 20 16 26 -7 36 11 18 30 -13 13 -17 13 -31 -1z" />
+<path d="M517 448 c-9 -6 -8 -12 6 -22 15 -12 17 -33 17 -190 0 -150 -2 -176 -15 -176 -8 0 -15 -6 -15 -14 0 -19 107 -27 122 -9 12 15 2 33 -18 33 -13 0 -15 26 -14 172 0 95 1 180 0 189 0 12 -11 18 -35 21 -19 2 -41 0 -48 -4z" />
+<path d="M728 446 c-34 -12 -36 -25 -5 -28 12 0 28 -2 36 -2 8 -1 16 -7 19 -14 2 -6 8 -12 14 -12 16 0 47 -43 48 -66 0 -12 7 -27 15 -34 23 -19 20 -106 -5 -137 -11 -14 -17 -29 -14 -34 3 -5 -2 -12 -10 -15 -21 -8 -21 -44 0 -44 24 0 74 39 74 58 0 10 8 24 18 33 14 12 16 28 14 97 -3 59 -7 82 -17 82 -7 0 -15 12 -18 28 -6 26 -53 62 -82 62 -7 0 -15 6 -18 14 -7 19 -37 24 -69 12z" />
+<path d="M350 437 c0 -8 9 -17 20 -20 14 -4 20 -14 20 -32 0 -24 2 -26 16 -15 9 8 14 25 12 44 -3 27 -7 31 -35 34 -24 2 -33 -1 -33 -11z" />
+<path d="M390 85 c0 -9 -9 -19 -20 -22 -27 -7 -25 -33 3 -33 33 0 49 14 45 40 -4 27 -28 40 -28 15z" />
+<path d="M760 46 c0 -10 9 -16 21 -16 24 0 21 23 -4 28 -10 2 -17 -3 -17 -12z" />
+<path d="M225 10 c-4 -6 5 -10 19 -10 14 0 26 5 26 10 0 6 -9 10 -19 10 -11 0 -23 -4 -26 -10z" />
+</g>
+</svg></g></g></svg>

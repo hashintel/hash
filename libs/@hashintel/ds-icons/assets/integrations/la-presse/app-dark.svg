@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#CBD5E1"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="la-presse-app-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="la-presse-app-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="la-presse-app-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#la-presse-app-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#la-presse-app-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#la-presse-app-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><clipPath id="la-presse-app-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#la-presse-app-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.16143 -0.16143 100.32286 100.32286" fill="#111111" x="11.35483870967742" y="11.35483870967742" width="41.29032258064516" height="41.29032258064516">
+    <g fill="none" fill-rule="evenodd">
+        <path fill="#ED1C23" d="M0 99.992h100V0H0z" />
+        <path fill="#FFFFFF" d="M75.954 54.832c-2.419-1.028-3.42-1.454-3.42-2.705 0-.732.594-1.514 2.263-1.514 1.208 0 2.73.643 3.75 1.246l.071.042.035-.075 1.775-3.81-.058-.034a10.907 10.907 0 0 0-5.573-1.533c-4.816 0-7.009 2.985-7.009 5.759 0 2.66 1.545 4.577 4.723 5.86 2.954 1.19 3.473 1.873 3.473 2.867 0 1.063-.765 1.649-2.155 1.649-1.699 0-3.66-.652-5.245-1.743l-.073-.05-1.82 3.909-.028.059.054.035c2.02 1.334 4.76 2.196 6.978 2.196 2.216 0 4.06-.66 5.333-1.91 1.132-1.113 1.755-2.642 1.755-4.307 0-1.372-.326-2.435-1.026-3.345-.755-.981-1.999-1.83-3.803-2.596M95.064 46.772H82.52v19.895h12.619V62.34h-7.9V58.64h7.051v-4.136h-7.052v-3.379h7.9v-4.352h-.074M50.197 46.772H37.653v19.895h12.62V62.34h-7.9V58.64h7.05v-4.136h-7.05v-3.379h7.9v-4.352h-.076M61.155 54.832c-2.42-1.028-3.421-1.454-3.421-2.705 0-.732.594-1.514 2.263-1.514 1.209 0 2.73.643 3.75 1.246l.072.042.035-.075 1.774-3.81-.058-.034a10.906 10.906 0 0 0-5.573-1.533c-4.815 0-7.008 2.985-7.008 5.759 0 2.66 1.544 4.577 4.722 5.86 2.954 1.19 3.474 1.873 3.474 2.867 0 1.063-.766 1.649-2.156 1.649-1.699 0-3.66-.652-5.245-1.743l-.073-.05-.037.08L51.89 64.7l-.027.059.054.035c2.02 1.334 4.759 2.196 6.977 2.196 2.217 0 4.06-.66 5.333-1.91 1.132-1.113 1.756-2.642 1.756-4.307 0-1.372-.326-2.435-1.027-3.345-.755-.981-1.998-1.83-3.802-2.596M10.95 56.787c-.43 0-.725-.027-1.37-.054v-5.63a12.97 12.97 0 0 1 1.693-.108c2.257 0 3.305 1.24 3.305 2.829 0 1.912-1.21 2.963-3.628 2.963zm6.033-8.111c-1.565-1.334-3.835-2.038-6.565-2.038-1.634 0-3.481.108-5.49.323l-.067.007v19.699H9.58V60.77l.254.011c.45.021.839.04 1.364.04 4.969 0 8.056-2.713 8.056-7.08 0-2.049-.785-3.801-2.27-5.066zM26.735 56.463c-.538 0-.86-.027-1.451-.08v-5.441a9.463 9.463 0 0 1 1.773-.135c1.962 0 3.252.97 3.252 2.613 0 1.993-1.398 3.043-3.574 3.043zm5.193 2.679c1.995-1.22 3.137-3.36 3.137-5.884 0-4.208-3.142-6.62-8.62-6.62-2.042 0-3.835.1-5.813.323l-.067.008v19.698h4.719v-6.462l.34.016c.426.02.763.035 1.277.035.249 0 .484 0 .736-.023l3.336 6.393.021.04h5.364l-.067-.113-4.363-7.411zM15.383 43.057h.048l.02-.044 1.945-4.175.05-.107H9.58V23.162H4.86v19.895h10.522M24.945 36.047l2.112-5.341 2.085 5.341h-4.197zm11.8 6.903l-9.27-19.906-.02-.043h-.715l-.02.043-9.27 19.906-.05.107h4.817l.019-.047 1.458-3.536h6.698l1.46 3.536.019.047h4.924l-.05-.107z" />
+    </g>
+</svg></g></svg>

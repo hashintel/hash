@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="el-nacional-venezuela-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="el-nacional-venezuela-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="el-nacional-venezuela-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#el-nacional-venezuela-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#el-nacional-venezuela-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#el-nacional-venezuela-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="el-nacional-venezuela-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.251994555992 -0.847725806422 -0.0855785839257 0 1.18529894634" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#el-nacional-venezuela-app-mono-dark-mono)"><defs><clipPath id="el-nacional-venezuela-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#el-nacional-venezuela-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.0565 -0.049 35.113 20.098" fill="none" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556">
+<g clip-path="url(#el-nacional-venezuela-app-mono-dark-clip0_2390_35077)">
+<path d="M27.594 20H33.0207V2.6389L35 1.79893V0H28.4322V1.79893L30.4115 2.6389V14.6032L24.0555 0H16.4692V1.79893L18.4485 2.6389V17.3908L16.4692 18.2011V20H22.8865V18.2011L21.0577 17.3908V4.64783L27.5957 20" fill="#002992" />
+<path d="M0 18.2011V20H15.0535V14.9322H11.3645L10.1045 18.0208H6.86525V10.8251H9.44475L10.374 12.8043H13.5817V6.718H10.374L9.44475 8.84592H6.86525V1.97918H9.92425L11.0932 4.76857H14.721V0H0V1.79893L1.9495 2.6389V17.3908L0 18.2011Z" fill="#002992" />
+</g>
+<defs>
+<clipPath id="el-nacional-venezuela-app-mono-dark-clip0_2390_35077">
+<rect width="35" height="20" fill="#FFFFFF" />
+</clipPath>
+</defs>
+</svg></g></g></svg>

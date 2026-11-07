@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#FFFFFF"><!--Brand names and artwork remain trademarks of their respective owners. Bounds and theme colors adjusted; app tiles composed.--><g xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="le-nouvelliste-app-mono-dark-background-surface" x1="6" y1="0" x2="58" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#526678" stop-opacity=".24" />
+      <stop offset=".48" stop-color="#273746" stop-opacity=".30" />
+      <stop offset="1" stop-color="#364A5C" stop-opacity=".26" />
+    </linearGradient>
+    <radialGradient id="le-nouvelliste-app-mono-dark-background-sheen" cx="3" cy="2" r="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.035" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="le-nouvelliste-app-mono-dark-background-reflection" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.15" />
+      <stop offset=".23" stop-color="#FFFFFF" stop-opacity="0.018" />
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity="0.01" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09" />
+    </linearGradient>
+  </defs>
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#le-nouvelliste-app-mono-dark-background-surface)" stroke="#526E86" stroke-opacity=".24" />
+  <rect x=".5" y=".5" width="63" height="63" rx="10" fill="url(#le-nouvelliste-app-mono-dark-background-sheen)" />
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="9.25" stroke="url(#le-nouvelliste-app-mono-dark-background-reflection)" stroke-width="1.5" />
+</g><defs><filter id="le-nouvelliste-app-mono-dark-mono" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.409645054382 -1.37807216789 -0.139117464376 0 1.92683468665" result="tones"/><feComposite in="tones" in2="SourceAlpha" operator="in"/><feComponentTransfer result="coverage"><feFuncA type="linear" slope="1"/></feComponentTransfer><feFlood flood-color="currentColor"/><feComposite in2="coverage" operator="in"/></filter></defs><g filter="url(#le-nouvelliste-app-mono-dark-mono)"><defs><clipPath id="le-nouvelliste-app-mono-dark-tile"><rect x=".5" y=".5" width="63" height="63" rx="10"/></clipPath></defs><g clip-path="url(#le-nouvelliste-app-mono-dark-tile)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.21698 -0.2034 81.27383 126.4068" color="black" x="14.222222222222221" y="14.222222222222221" width="35.55555555555556" height="35.55555555555556"><g transform="translate(0.000000,126.000000) scale(0.100000,-0.100000)" fill="#0096d5" stroke="none">
+<path d="M150 1237 c0 -16 -24 -47 -75 -96 -41 -40 -75 -77 -75 -82 0 -4 26 -9 58 -11 l57 -3 3 -441 c2 -377 4 -444 17 -454 8 -7 15 -20 15 -29 0 -14 94 -121 106 -121 2 0 22 20 45 45 23 25 49 45 59 45 9 0 26 10 38 23 22 23 22 27 24 478 l3 454 25 0 c18 0 26 -6 28 -22 2 -12 10 -27 18 -33 19 -17 19 -104 -1 -120 -13 -11 -15 -65 -15 -374 l0 -362 53 -52 c32 -31 61 -52 75 -52 13 0 22 -6 22 -15 0 -9 9 -15 24 -15 28 0 125 94 126 121 0 9 7 22 15 29 9 7 15 23 13 34 -4 26 -45 35 -54 12 -3 -9 -12 -16 -20 -16 -12 0 -14 74 -14 460 0 400 -2 461 -15 466 -8 4 -15 16 -15 28 0 25 -38 66 -62 66 -9 0 -21 7 -28 15 -7 8 -21 15 -32 15 -10 0 -21 7 -24 15 -4 10 -20 15 -50 15 -39 0 -44 -2 -44 -23 0 -26 -67 -97 -91 -97 -8 0 -35 20 -59 45 -24 25 -52 45 -62 45 -10 0 -21 7 -24 15 -4 9 -19 15 -35 15 -24 0 -29 -4 -29 -23z m230 -194 c3 -172 0 -857 -4 -861 -3 -2 -14 6 -25 19 -20 23 -20 39 -21 430 0 223 3 409 7 412 9 9 43 9 43 0z" />
+</g>
+</svg></g></g></svg>
