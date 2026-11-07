@@ -14476,6 +14476,186 @@
       "name": "harryPotterSlytherin",
       "status": "unavailable",
       "method": "no-verified-lettering-source"
+    },
+    {
+      "name": "bridgewater",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "citadel",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "deShaw",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "point72",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "renaissanceTechnologies",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "brevanHoward",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "marshallWace",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "balyasny",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "tciFundManagement",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "tigerGlobal",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "coatue",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "farallon",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "davidsonKempner",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "tudorInvestment",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "schonfeld",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "exoduspoint",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "winton",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "thirdPoint",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "qubeResearchTechnologies",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "rokosCapital",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "bluecrestCapital",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "goldentree",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "canyonPartners",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "manGroup",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "aqr",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "squarepoint",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "twoSigma",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "vikingGlobal",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "millennium",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "baupost",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "lonePineCapital",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "elliott",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "pershingSquare",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "capula",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "verition",
+      "status": "available",
+      "method": "separate-outlined-lettering"
+    },
+    {
+      "name": "caxton",
+      "status": "available",
+      "method": "separate-outlined-lettering"
     }
   ]
 }

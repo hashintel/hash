@@ -224,6 +224,7 @@ import * as appleWallet from "./geometry/apple-wallet";
 import * as applebees from "./geometry/applebees";
 import * as appliedIntuition from "./geometry/applied-intuition";
 import * as appliedMaterials from "./geometry/applied-materials";
+import * as aqr from "./geometry/aqr";
 import * as aquafresh from "./geometry/aquafresh";
 import * as aramco from "./geometry/aramco";
 import * as arbys from "./geometry/arbys";
@@ -315,6 +316,7 @@ import * as bajajFinance from "./geometry/bajaj-finance";
 import * as bajajFinserv from "./geometry/bajaj-finserv";
 import * as balenciaga from "./geometry/balenciaga";
 import * as balmain from "./geometry/balmain";
+import * as balyasny from "./geometry/balyasny";
 import * as bambuLab from "./geometry/bambu-lab";
 import * as banamex from "./geometry/banamex";
 import * as bancoDeChile from "./geometry/banco-de-chile";
@@ -343,6 +345,7 @@ import * as basf from "./geometry/basf";
 import * as baskinRobbins from "./geometry/baskin-robbins";
 import * as battleNet from "./geometry/battle-net";
 import * as bauhaus from "./geometry/bauhaus";
+import * as baupost from "./geometry/baupost";
 import * as bayer from "./geometry/bayer";
 import * as bayesLegacy from "./geometry/bayes";
 import * as bbc from "./geometry/bbc";
@@ -401,6 +404,7 @@ import * as blogger from "./geometry/blogger";
 import * as bloomberg from "./geometry/bloomberg";
 import * as blueDart from "./geometry/blue-dart";
 import * as blueYonder from "./geometry/blue-yonder";
+import * as bluecrestCapital from "./geometry/bluecrest-capital";
 import * as bluedataLegacy from "./geometry/bluedata";
 import * as bluefocus from "./geometry/bluefocus";
 import * as bluesky from "./geometry/bluesky";
@@ -442,9 +446,11 @@ import * as brave from "./geometry/brave";
 import * as breguet from "./geometry/breguet";
 import * as breitling from "./geometry/breitling";
 import * as brenntag from "./geometry/brenntag";
+import * as brevanHoward from "./geometry/brevan-howard";
 import * as brewdog from "./geometry/brewdog";
 import * as brex from "./geometry/brex";
 import * as bridgestone from "./geometry/bridgestone";
+import * as bridgewater from "./geometry/bridgewater";
 import * as brioni from "./geometry/brioni";
 import * as britannia from "./geometry/britannia";
 import * as britishAirways from "./geometry/british-airways";
@@ -494,12 +500,14 @@ import * as canadianAirlinesLegacy from "./geometry/canadian-airlines-legacy";
 import * as canadianPacificAirLinesLegacy from "./geometry/canadian-pacific-air-lines-legacy";
 import * as canalPlus from "./geometry/canal-plus";
 import * as canon from "./geometry/canon";
+import * as canyonPartners from "./geometry/canyon-partners";
 import * as capcom from "./geometry/capcom";
 import * as capellaSpace from "./geometry/capella-space";
 import * as capgemini from "./geometry/capgemini";
 import * as capitalGroup from "./geometry/capital-group";
 import * as capitalOne from "./geometry/capital-one";
 import * as capitecBank from "./geometry/capitec-bank";
+import * as capula from "./geometry/capula";
 import * as carhartt from "./geometry/carhartt";
 import * as carlsJr from "./geometry/carls-jr";
 import * as carlsberg from "./geometry/carlsberg";
@@ -517,6 +525,7 @@ import * as caterpillar from "./geometry/caterpillar";
 import * as cathayPacific from "./geometry/cathay-pacific";
 import * as catl from "./geometry/catl";
 import * as caviar from "./geometry/caviar";
+import * as caxton from "./geometry/caxton";
 import * as cboe from "./geometry/cboe";
 import * as cbs from "./geometry/cbs";
 import * as cdProjektRed from "./geometry/cd-projekt-red";
@@ -585,6 +594,7 @@ import * as cinepolis from "./geometry/cinepolis";
 import * as cinnabon from "./geometry/cinnabon";
 import * as circuitCityLegacy from "./geometry/circuit-city-legacy";
 import * as cisco from "./geometry/cisco";
+import * as citadel from "./geometry/citadel";
 import * as citi from "./geometry/citi";
 import * as citizen from "./geometry/citizen";
 import * as citizensBank from "./geometry/citizens-bank";
@@ -614,6 +624,7 @@ import * as cnn from "./geometry/cnn";
 import * as cnooc from "./geometry/cnooc";
 import * as coOp from "./geometry/co-op";
 import * as coach from "./geometry/coach";
+import * as coatue from "./geometry/coatue";
 import * as cocaCola from "./geometry/coca-cola";
 import * as codeberg from "./geometry/codeberg";
 import * as codepen from "./geometry/codepen";
@@ -723,10 +734,12 @@ import * as datalane from "./geometry/datalane";
 import * as datanomik from "./geometry/datanomik";
 import * as datologyai from "./geometry/datologyai";
 import * as davidAi from "./geometry/david-ai";
+import * as davidsonKempner from "./geometry/davidson-kempner";
 import * as davivienda from "./geometry/davivienda";
 import * as dawn from "./geometry/dawn";
 import * as dbs from "./geometry/dbs";
 import * as dbtLabs from "./geometry/dbt-labs";
+import * as deShaw from "./geometry/de-shaw";
 import * as deStandaard from "./geometry/de-standaard";
 import * as debian from "./geometry/debian";
 import * as decagon from "./geometry/decagon";
@@ -875,6 +888,7 @@ import * as elementor from "./geometry/elementor";
 import * as elevenLabs from "./geometry/elevenlabs";
 import * as eleventy from "./geometry/eleventy";
 import * as eliLilly from "./geometry/eli-lilly";
+import * as elliott from "./geometry/elliott";
 import * as elloLegacy from "./geometry/ello-legacy";
 import * as elpidaMemoryLegacy from "./geometry/elpida-memory-legacy";
 import * as emancro from "./geometry/emancro";
@@ -929,6 +943,7 @@ import * as evri from "./geometry/evri";
 import * as exa from "./geometry/exa";
 import * as excelsior from "./geometry/excelsior";
 import * as exeDev from "./geometry/exe-dev";
+import * as exoduspoint from "./geometry/exoduspoint";
 import * as exowatt from "./geometry/exowatt";
 import * as expeditedssl from "./geometry/expeditedssl";
 import * as experian from "./geometry/experian";
@@ -944,6 +959,7 @@ import * as fal from "./geometry/fal";
 import * as familymart from "./geometry/familymart";
 import * as fantasyFlightGames from "./geometry/fantasy-flight-games";
 import * as fanuc from "./geometry/fanuc";
+import * as farallon from "./geometry/farallon";
 import * as faro from "./geometry/faro";
 import * as fasthosts from "./geometry/fasthosts";
 import * as fastly from "./geometry/fastly";
@@ -1081,6 +1097,7 @@ import * as gofore from "./geometry/gofore";
 import * as gol from "./geometry/gol";
 import * as golang from "./geometry/golang";
 import * as goldenLegacy from "./geometry/golden";
+import * as goldentree from "./geometry/goldentree";
 import * as goldmanSachs from "./geometry/goldman-sachs";
 import * as goldsky from "./geometry/goldsky";
 import * as goodreads from "./geometry/goodreads";
@@ -1558,6 +1575,7 @@ import * as logitech from "./geometry/logitech";
 import * as londonSchoolOfEconomics from "./geometry/london-school-of-economics";
 import * as londonStockExchange from "./geometry/london-stock-exchange";
 import * as londonUnderground from "./geometry/london-underground";
+import * as lonePineCapital from "./geometry/lone-pine-capital";
 import * as longines from "./geometry/longines";
 import * as loom from "./geometry/loom";
 import * as loreal from "./geometry/loreal";
@@ -1600,6 +1618,7 @@ import * as malaysiaAirlines from "./geometry/malaysia-airlines";
 import * as malevLegacy from "./geometry/malev-legacy";
 import * as malinGoetz from "./geometry/malin-goetz";
 import * as man from "./geometry/man";
+import * as manGroup from "./geometry/man-group";
 import * as mango from "./geometry/mango";
 import * as manifestoMarket from "./geometry/manifesto-market";
 import * as manifoldLegacy from "./geometry/manifold";
@@ -1617,6 +1636,7 @@ import * as marriott from "./geometry/marriott";
 import * as marriottBonvoy from "./geometry/marriott-bonvoy";
 import * as mars from "./geometry/mars";
 import * as marsh from "./geometry/marsh";
+import * as marshallWace from "./geometry/marshall-wace";
 import * as marugameSeimen from "./geometry/marugame-seimen";
 import * as marutiSuzuki from "./geometry/maruti-suzuki";
 import * as marvelStudios from "./geometry/marvel-studios";
@@ -1694,6 +1714,7 @@ import * as microsoftTeamsLegacy from "./geometry/microsoft-teams-legacy";
 import * as microsoftWord from "./geometry/microsoft-word";
 import * as midea from "./geometry/midea";
 import * as miele from "./geometry/miele";
+import * as millennium from "./geometry/millennium";
 import * as minervaLabsLegacy from "./geometry/minerva-labs";
 import * as mini from "./geometry/mini";
 import * as miniMax from "./geometry/minimax";
@@ -1989,6 +2010,7 @@ import * as perdigao from "./geometry/perdigao";
 import * as periodicLabs from "./geometry/periodic-labs";
 import * as periscopeLegacy from "./geometry/periscope-legacy";
 import * as pernodRicard from "./geometry/pernod-ricard";
+import * as pershingSquare from "./geometry/pershing-square";
 import * as personio from "./geometry/personio";
 import * as petco from "./geometry/petco";
 import * as petrinaut from "./geometry/petrinaut";
@@ -2034,6 +2056,7 @@ import * as plex from "./geometry/plex";
 import * as plusCompany from "./geometry/plus-company";
 import * as plymouthLegacy from "./geometry/plymouth-legacy";
 import * as pnc from "./geometry/pnc";
+import * as point72 from "./geometry/point72";
 import * as pokemon from "./geometry/pokemon";
 import * as polestar from "./geometry/polestar";
 import * as polloCampero from "./geometry/pollo-campero";
@@ -2090,6 +2113,7 @@ import * as qorvo from "./geometry/qorvo";
 import * as qq from "./geometry/qq";
 import * as qualcomm from "./geometry/qualcomm";
 import * as quantumBlack from "./geometry/quantumblack";
+import * as qubeResearchTechnologies from "./geometry/qube-research-technologies";
 import * as quinscape from "./geometry/quinscape";
 import * as quora from "./geometry/quora";
 import * as qwen from "./geometry/qwen";
@@ -2133,6 +2157,7 @@ import * as regionsBank from "./geometry/regions-bank";
 import * as rei from "./geometry/rei";
 import * as relianceIndustries from "./geometry/reliance-industries";
 import * as remitly from "./geometry/remitly";
+import * as renaissanceTechnologies from "./geometry/renaissance-technologies";
 import * as renault from "./geometry/renault";
 import * as renesas from "./geometry/renesas";
 import * as renner from "./geometry/renner";
@@ -2170,6 +2195,7 @@ import * as rockrms from "./geometry/rockrms";
 import * as rockstarGames from "./geometry/rockstar-games";
 import * as rodongSinmun from "./geometry/rodong-sinmun";
 import * as rohm from "./geometry/rohm";
+import * as rokosCapital from "./geometry/rokos-capital";
 import * as rolex from "./geometry/rolex";
 import * as rollsRoyce from "./geometry/rolls-royce";
 import * as ronZacapa from "./geometry/ron-zacapa";
@@ -2243,6 +2269,7 @@ import * as schaeffler from "./geometry/schaeffler";
 import * as schibsted from "./geometry/schibsted";
 import * as schlix from "./geometry/schlix";
 import * as schneiderElectric from "./geometry/schneider-electric";
+import * as schonfeld from "./geometry/schonfeld";
 import * as schroders from "./geometry/schroders";
 import * as scoLegacy from "./geometry/sco-legacy";
 import * as scoot from "./geometry/scoot";
@@ -2374,6 +2401,7 @@ import * as sportsDirect from "./geometry/sports-direct";
 import * as spotify from "./geometry/spotify";
 import * as square from "./geometry/square";
 import * as squareEnix from "./geometry/square-enix";
+import * as squarepoint from "./geometry/squarepoint";
 import * as squarespace from "./geometry/squarespace";
 import * as srmg from "./geometry/srmg";
 import * as sse from "./geometry/sse";
@@ -2488,6 +2516,7 @@ import * as tata from "./geometry/tata";
 import * as tataMotors from "./geometry/tata-motors";
 import * as tataSteel from "./geometry/tata-steel";
 import * as tchibo from "./geometry/tchibo";
+import * as tciFundManagement from "./geometry/tci-fund-management";
 import * as tcl from "./geometry/tcl";
 import * as tcs from "./geometry/tcs";
 import * as tdBank from "./geometry/td-bank";
@@ -2562,6 +2591,7 @@ import * as therabody from "./geometry/therabody";
 import * as theranosLegacy from "./geometry/theranos-legacy";
 import * as thinkPeaks from "./geometry/think-peaks";
 import * as thinkingMachinesLegacy from "./geometry/thinking-machines-legacy";
+import * as thirdPoint from "./geometry/third-point";
 import * as thomsonReuters from "./geometry/thomson-reuters";
 import * as threads from "./geometry/threads";
 import * as three from "./geometry/three";
@@ -2573,6 +2603,7 @@ import * as tiaa from "./geometry/tiaa";
 import * as tidal from "./geometry/tidal";
 import * as tiendanube from "./geometry/tiendanube";
 import * as tiffanyCo from "./geometry/tiffany-co";
+import * as tigerGlobal from "./geometry/tiger-global";
 import * as tigerBeetle from "./geometry/tigerbeetle";
 import * as tiktok from "./geometry/tiktok";
 import * as tim from "./geometry/tim";
@@ -2619,6 +2650,7 @@ import * as trunk from "./geometry/trunk";
 import * as tsb from "./geometry/tsb";
 import * as tsmc from "./geometry/tsmc";
 import * as tudor from "./geometry/tudor";
+import * as tudorInvestment from "./geometry/tudor-investment";
 import * as tui from "./geometry/tui";
 import * as tumblr from "./geometry/tumblr";
 import * as turbopuffer from "./geometry/turbopuffer";
@@ -2629,6 +2661,7 @@ import * as tvsMotor from "./geometry/tvs-motor";
 import * as twitch from "./geometry/twitch";
 import * as twitterLegacy from "./geometry/twitter-legacy";
 import * as twix from "./geometry/twix";
+import * as twoSigma from "./geometry/two-sigma";
 import * as typeform from "./geometry/typeform";
 import * as typeSafeAi from "./geometry/typesafe-ai";
 import * as typescript from "./geometry/typescript";
@@ -2705,6 +2738,7 @@ import * as veolia from "./geometry/veolia";
 import * as veraLegacy from "./geometry/vera";
 import * as vercel from "./geometry/vercel";
 import * as verisimLife from "./geometry/verisim-life";
+import * as verition from "./geometry/verition";
 import * as verizon from "./geometry/verizon";
 import * as versace from "./geometry/versace";
 import * as versant from "./geometry/versant";
@@ -2719,6 +2753,7 @@ import * as viber from "./geometry/viber";
 import * as victorinox from "./geometry/victorinox";
 import * as vietjetAir from "./geometry/vietjet-air";
 import * as vietnamAirlines from "./geometry/vietnam-airlines";
+import * as vikingGlobal from "./geometry/viking-global";
 import * as vim from "./geometry/vim";
 import * as vimeo from "./geometry/vimeo";
 import * as vineLegacy from "./geometry/vine-legacy";
@@ -2797,6 +2832,7 @@ import * as wickes from "./geometry/wickes";
 import * as wikipedia from "./geometry/wikipedia";
 import * as windows from "./geometry/windows";
 import * as wingstop from "./geometry/wingstop";
+import * as winton from "./geometry/winton";
 import * as wipro from "./geometry/wipro";
 import * as wiproLegacy from "./geometry/wipro-legacy";
 import * as wirecardLegacy from "./geometry/wirecard-legacy";
@@ -37655,6 +37691,438 @@ export const integrationGeometry: Readonly<
     wordmarkViewBox: null,
     wordmarkDarkViewBox: null,
     ratio: 1.8,
+    alignment: "center",
+  },
+  bridgewater: {
+    ...bridgewater,
+    markViewBox: "25.64727 23.95902 1488.24743 146.08194",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.243023273536 -0.81754583835 -0.082531892518 0 1.1431010044",
+    monoInkScale: 1,
+    logoViewBox: "25.64727 23.95902 1488.24743 146.08194",
+    wordmarkViewBox: "25.64727 23.95902 1488.24743 146.08194",
+    wordmarkDarkViewBox: "25.64727 23.95902 1488.24743 146.08194",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  citadel: {
+    ...citadel,
+    markViewBox: "-0.03975 1.14263 33.21043 16.68389",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252973357374 -0.851018556886 -0.0859109896632 0 1.18990290392",
+    monoInkScale: 1,
+    logoViewBox: "-0.05763 0.69457 144.98064 17.74604",
+    wordmarkViewBox: "42.31288 0.70455 102.73619 17.68628",
+    wordmarkDarkViewBox: "42.31288 0.70455 102.73619 17.68628",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  deShaw: {
+    ...deShaw,
+    markViewBox: "-0.25373 -0.24004 191.67754 42.40744",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "-0.25373 -0.24004 191.67754 42.40744",
+    wordmarkViewBox: "-0.25368 18.10453 191.67738 24.07658",
+    wordmarkDarkViewBox: "-0.25368 18.10453 191.67738 24.07658",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  point72: {
+    ...point72,
+    markViewBox: "-0.07779 -0.11038 63.00935 63.07081",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "-0.23898 -0.297 180.47788 63.444",
+    wordmarkViewBox: "71.13186 18.63952 108.99088 25.46708",
+    wordmarkDarkViewBox: "71.13186 18.63952 108.99088 25.46708",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  renaissanceTechnologies: {
+    ...renaissanceTechnologies,
+    markViewBox: "-0.18588 -0.18127 119.20024 110.54741",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.235404920954 -0.791917212918 -0.0799446627135 0 1.10726679659",
+    monoInkScale: 1.15385,
+    logoViewBox: "-1.14654 -1.36246 866.2931 114.42491",
+    wordmarkViewBox: "160.11549 14.72797 704.99551 98.22185",
+    wordmarkDarkViewBox: "160.11549 14.72797 704.99551 98.22185",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  brevanHoward: {
+    ...brevanHoward,
+    markViewBox: "-0.10292 -0.49827 266.20584 16.99654",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.26024430216 -0.875478480269 -0.0883802380808 0 1.22410302051",
+    monoInkScale: 1,
+    logoViewBox: "-0.10292 -0.49827 266.20584 16.99654",
+    wordmarkViewBox: "-0.10292 -0.49827 266.20584 16.99654",
+    wordmarkDarkViewBox: "-0.10292 -0.49827 266.20584 16.99654",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  marshallWace: {
+    ...marshallWace,
+    markViewBox: "649.37591 335.7353 175.67075 40.7967",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240688434719 -0.80969129121 -0.0817389698341 0 1.13211869576",
+    monoInkScale: 1,
+    logoViewBox: "648.88466 335.72297 176.16173 67.8295",
+    wordmarkViewBox: "648.88736 394.54493 175.33709 8.93922",
+    wordmarkDarkViewBox: "648.88736 394.54493 175.33709 8.93922",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  balyasny: {
+    ...balyasny,
+    markViewBox: "461.4615 -0.19295 114.66892 114.7081",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.41667,
+    logoViewBox: "-0.76237 -0.90735 577.52473 144.20265",
+    wordmarkViewBox: "-0.73544 40.79335 447.35364 102.17005",
+    wordmarkDarkViewBox: "-0.73544 40.79335 447.35364 102.17005",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tciFundManagement: {
+    ...tciFundManagement,
+    markViewBox: "72.76557 74.96683 293.41893 293.33886",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.289522647845 -0.973972708086 -0.0983233074997 0 1.36181866343",
+    monoInkScale: 1,
+    logoViewBox: "71.11209 72.72532 1657.77579 297.54937",
+    wordmarkViewBox: "412.45351 118.85931 1316.36392 237.27975",
+    wordmarkDarkViewBox: "412.45351 118.85931 1316.36392 237.27975",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  tigerGlobal: {
+    ...tigerGlobal,
+    markViewBox: "39.0574 170.66717 562.47948 299.25994",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.3189 -1.0728 -0.1083 0 1.5",
+    monoInkScale: 1,
+    logoViewBox: "-0.31089 -1.35273 786.62179 80.70811",
+    wordmarkViewBox: "-0.31089 -1.35273 786.62179 80.70811",
+    wordmarkDarkViewBox: "-0.31089 -1.35273 786.62179 80.70811",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  coatue: {
+    ...coatue,
+    markViewBox: "-0.04503 -0.19991 113.98419 21.39982",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "-0.04503 -0.19991 113.98419 21.39982",
+    wordmarkViewBox: "-0.04503 -0.19991 113.98419 21.39982",
+    wordmarkDarkViewBox: "-0.04503 -0.19991 113.98419 21.39982",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  farallon: {
+    ...farallon,
+    markViewBox: "6.35876 5.81831 89.38326 89.36335",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.280631735876 -0.94406311147 -0.0953039103022 0 1.31999875765",
+    monoInkScale: 1,
+    logoViewBox: "6.11305 5.28968 357.20246 90.42064",
+    wordmarkViewBox: "111.29172 26.57392 252.0076 37.00368",
+    wordmarkDarkViewBox: "111.29172 26.57392 252.0076 37.00368",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  davidsonKempner: {
+    ...davidsonKempner,
+    markViewBox: "-0.1205 -0.44539 302.24098 40.89083",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "-0.1205 -0.44539 302.24098 40.89083",
+    wordmarkViewBox: "-0.1205 -0.44539 302.24098 40.89083",
+    wordmarkDarkViewBox: "-0.1205 -0.44539 302.24098 40.89083",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  tudorInvestment: {
+    ...tudorInvestment,
+    markViewBox: "-0.05635 -0.05635 50.11272 50.11272",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.293163043925 -0.986219233373 -0.0995596038165 0 1.37894188111",
+    monoInkScale: 1,
+    logoViewBox: "20.2637 258.74135 601.13442 127.25233",
+    wordmarkViewBox: "182.53767 281.28521 438.82774 81.19735",
+    wordmarkDarkViewBox: "182.53767 281.28521 438.82774 81.19735",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  schonfeld: {
+    ...schonfeld,
+    markViewBox: "46.96059 166.72218 985.16442 745.5528",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252153488372 -0.848260465116 -0.0856325581395 0 1.18604651163",
+    monoInkScale: 1,
+    logoViewBox: "-3.51129 -3.23709 2653.02257 303.4742",
+    wordmarkViewBox: "-3.51129 -3.23709 2653.02257 303.4742",
+    wordmarkDarkViewBox: "-3.51129 -3.23709 2653.02257 303.4742",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  exoduspoint: {
+    ...exoduspoint,
+    markViewBox: "29.18011 7.7859 206.91051 240.65158",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.321541558474 -1.08168637169 -0.10919708618 0 1.51242501634",
+    monoInkScale: 1,
+    logoViewBox: "-1.61396 -1.62235 1224.22793 167.24471",
+    wordmarkViewBox: "-1.61396 -1.62235 1224.22793 167.24471",
+    wordmarkDarkViewBox: "-1.61396 -1.62235 1224.22793 167.24471",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  winton: {
+    ...winton,
+    markViewBox: "14.07196 15.58191 89.56221 89.72592",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.238756263647 -0.803191344122 -0.0810827950861 0 1.12303040286",
+    monoInkScale: 1.03659,
+    logoViewBox: "13.79082 15.18265 284.21837 90.43465",
+    wordmarkViewBox: "125.58172 43.95675 172.23728 32.84407",
+    wordmarkDarkViewBox: "125.58172 43.95675 172.23728 32.84407",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  thirdPoint: {
+    ...thirdPoint,
+    markViewBox: "-0.03838 -0.05185 33.10845 33.1037",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.265474895133 -0.89307452963 -0.0901565730415 0 1.2487059978",
+    monoInkScale: 1,
+    logoViewBox: "-0.13254 -0.16501 100.26506 33.33003",
+    wordmarkViewBox: "-0.2744 -0.6318 1400.54881 148.2636",
+    wordmarkDarkViewBox: "-0.2744 -0.6318 1400.54881 148.2636",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  qubeResearchTechnologies: {
+    ...qubeResearchTechnologies,
+    markViewBox: "80.36688 -0.19805 129.26622 145.38324",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1.56442,
+    logoViewBox: "-0.52463 -0.44046 291.04924 332.80094",
+    wordmarkViewBox: "-0.424 175.39322 290.84799 124.20166",
+    wordmarkDarkViewBox: "-0.424 175.39322 290.84799 124.20166",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  rokosCapital: {
+    ...rokosCapital,
+    markViewBox: "-0.44721 -0.42683 215.51751 251.43376",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.258328623858 -0.869034015913 -0.0877296643582 0 1.21509230413",
+    monoInkScale: 1,
+    logoViewBox: "-1.04602 -1.04714 790.33202 254.80116",
+    wordmarkViewBox: "267.78093 13.08492 517.97235 196.18518",
+    wordmarkDarkViewBox: "267.78093 13.08492 517.97235 196.18518",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  bluecrestCapital: {
+    ...bluecrestCapital,
+    markViewBox: "-0.06861 -0.23653 173.61701 34.20849",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.275614849943 -0.927185986261 -0.0936001512976 0 1.2964009875",
+    monoInkScale: 1,
+    logoViewBox: "-0.23021 -0.17443 173.9402 53.38149",
+    wordmarkViewBox: "-0.06861 -0.23653 173.61701 34.20849",
+    wordmarkDarkViewBox: "-0.06861 -0.23653 173.61701 34.20849",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  goldentree: {
+    ...goldentree,
+    markViewBox: "-0.02001 0.04701 36.8392 34.98377",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.331689559179 -1.11582489522 -0.112643396861 0 1.56015785126",
+    monoInkScale: 2.52475,
+    logoViewBox: "-0.06982 -0.21417 175.13964 35.42764",
+    wordmarkViewBox: "45.33593 2.57471 129.7665 18.58624",
+    wordmarkDarkViewBox: "45.33593 2.57471 129.7665 18.58624",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  canyonPartners: {
+    ...canyonPartners,
+    markViewBox: "1.65325 -1.38635 1133.8525 549.40275",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.2126 -0.7152 -0.0722 0 1",
+    monoInkScale: 1.22596,
+    logoViewBox: "1.65325 -1.30548 1133.8525 878.61094",
+    wordmarkViewBox: "26.94377 589.30524 1062.28859 287.87938",
+    wordmarkDarkViewBox: "26.94377 589.30524 1062.28859 287.87938",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  manGroup: {
+    ...manGroup,
+    markViewBox: "2.47678 0.65511 240.17958 159.62896",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267148338213 -0.898704099202 -0.0907248824977 0 1.25657731991",
+    monoInkScale: 1,
+    logoViewBox: "2.25531 0.67279 240.36137 281.01539",
+    wordmarkViewBox: "2.47678 181.60049 240.17958 100.05378",
+    wordmarkDarkViewBox: "2.47678 181.60049 240.17958 100.05378",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  aqr: {
+    ...aqr,
+    markViewBox: "-1.29146 246.01229 1013.91858 1016.80335",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.433071369344 -1.45687979 -0.147073155534 0 2.03702431488",
+    monoInkScale: 1,
+    logoViewBox: "-1.29146 246.01229 1013.91858 1016.80335",
+    wordmarkViewBox: "109.30328 573.76427 785.90913 439.42165",
+    wordmarkDarkViewBox: "109.30328 573.76427 785.90913 439.42165",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  squarepoint: {
+    ...squarepoint,
+    markViewBox: "-0.11441 -0.39277 288.22883 69.28554",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.261398736136 -0.879362070013 -0.0887722895063 0 1.22953309566",
+    monoInkScale: 1,
+    logoViewBox: "-0.11441 -0.39277 288.22883 69.28554",
+    wordmarkViewBox: "8.45427 23.73919 224.76707 23.70295",
+    wordmarkDarkViewBox: "8.45427 23.73919 224.76707 23.70295",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  twoSigma: {
+    ...twoSigma,
+    markViewBox: "102.03374 246.09854 107.06114 107.079",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.240024120624 -0.807456496099 -0.0815133655178 0 1.12899398224",
+    monoInkScale: 1.86131,
+    logoViewBox: "101.39393 245.56157 596.65726 107.94547",
+    wordmarkViewBox: "236.08651 271.32506 461.9402 56.85063",
+    wordmarkDarkViewBox: "236.08651 271.32506 461.9402 56.85063",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  vikingGlobal: {
+    ...vikingGlobal,
+    markViewBox: "92.05757 -0.0796 53.80473 39.43363",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.267895263245 -0.901216802789 -0.0909785418923 0 1.26009060793",
+    monoInkScale: 1,
+    logoViewBox: "-0.19352 -0.26667 146.18408 78.86331",
+    wordmarkViewBox: "-0.19355 32.15439 146.18408 46.33783",
+    wordmarkDarkViewBox: "-0.19355 32.15439 146.18408 46.33783",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  millennium: {
+    ...millennium,
+    markViewBox: "-0.2218 -0.22217 167.28854 23.82366",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.272562732214 -0.916918466976 -0.0925636371863 0 1.28204483638",
+    monoInkScale: 1,
+    logoViewBox: "-0.2218 -0.22217 167.28854 23.82366",
+    wordmarkViewBox: "-0.2218 -0.22217 167.28854 23.82366",
+    wordmarkDarkViewBox: "-0.2218 -0.22217 167.28854 23.82366",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  baupost: {
+    ...baupost,
+    markViewBox: "1.93687 0.06323 1314.89988 89.31753",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.227785714286 -0.766285714286 -0.0773571428571 0 1.07142857143",
+    monoInkScale: 1,
+    logoViewBox: "1.93687 0.06323 1314.89988 89.31753",
+    wordmarkViewBox: "1.93687 0.06323 1314.89988 89.31753",
+    wordmarkDarkViewBox: "1.93687 0.06323 1314.89988 89.31753",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  lonePineCapital: {
+    ...lonePineCapital,
+    markViewBox: "-0.56389 -0.4388 500.66414 487.34288",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.377369128862 -1.26949388976 -0.128156402182 0 1.7750194208",
+    monoInkScale: 1,
+    logoViewBox: "-1.37726 -1.41858 1040.61453 249.8145",
+    wordmarkViewBox: "2.35374 110.92245 772.49338 49.39942",
+    wordmarkDarkViewBox: "2.35374 110.92245 772.49338 49.39942",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  elliott: {
+    ...elliott,
+    markViewBox: "-0.26629 -0.21661 200.93256 28.96324",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.252377458694 -0.849013915605 -0.0857086195563 0 1.18709999386",
+    monoInkScale: 1,
+    logoViewBox: "-0.26629 -0.21661 200.93256 28.96324",
+    wordmarkViewBox: "-0.26629 -0.21661 200.93256 28.96324",
+    wordmarkDarkViewBox: "-0.26629 -0.21661 200.93256 28.96324",
+    ratio: 1.55,
+    alignment: "center",
+  },
+  pershingSquare: {
+    ...pershingSquare,
+    markViewBox: "-0.06868 0.353 40.78585 40.3657",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.269003892178 -0.904946301438 -0.0913550377011 0 1.26530523132",
+    monoInkScale: 1,
+    logoViewBox: "-0.19507 -0.27917 147.39015 45.55833",
+    wordmarkViewBox: "43.9174 -0.12163 103.26895 45.24326",
+    wordmarkDarkViewBox: "43.9174 -0.12163 103.26895 45.24326",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  capula: {
+    ...capula,
+    markViewBox: "-0.06458 -0.06209 48.08459 44.45895",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.284838658154 -0.958215467128 -0.0967326016872 0 1.33978672697",
+    monoInkScale: 1.1087,
+    logoViewBox: "-0.29231 -0.37931 220.58465 44.94016",
+    wordmarkViewBox: "60.53129 6.26631 159.59986 30.49138",
+    wordmarkDarkViewBox: "60.53129 6.26631 159.59986 30.49138",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  verition: {
+    ...verition,
+    markViewBox: "-5.16592 -5.06569 597.14661 606.34443",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.307932180285 -1.03590355287 -0.104575274772 0 1.44841100792",
+    monoInkScale: 1,
+    logoViewBox: "-4.50658 -4.86747 3360.04175 605.94799",
+    wordmarkViewBox: "-4.50658 -4.86747 3360.04175 605.94799",
+    wordmarkDarkViewBox: "-4.50658 -4.86747 3360.04175 605.94799",
+    ratio: 1.8,
+    alignment: "center",
+  },
+  caxton: {
+    ...caxton,
+    markViewBox: "-0.21909 -0.3201 165.53217 61.15522",
+    monoAlphaMatrix:
+      "0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 -0.260534708165 -0.876455424647 -0.0884788613807 0 1.22546899419",
+    monoInkScale: 1,
+    logoViewBox: "-0.21909 -0.3201 165.53217 61.15522",
+    wordmarkViewBox: "-0.2188 16.04299 165.53159 25.3739",
+    wordmarkDarkViewBox: "-0.2188 16.04299 165.53159 25.3739",
+    ratio: 1.55,
     alignment: "center",
   },
 } as const;

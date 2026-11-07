@@ -100962,5 +100962,1740 @@
       "#D3E9F5": "#FFFFFF",
       "#086C5C": "#000000"
     }
+  },
+  {
+    "name": "bridgewater",
+    "slug": "bridgewater",
+    "label": "Bridgewater Associates",
+    "integrationNames": ["Bridgewater Associates", "Bridgewater"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://bridgewater.brightspotcdn.com/dims4/default/7a851e5/2147483647/strip/true/crop/1125x121+0+0/resize/2232x240!/quality/90/?url=http%3A%2F%2Fbridgewater-brightspot.s3.us-east-1.amazonaws.com%2Fa3%2F16%2F78d8eeed465cbe8c3f24518a7c2a%2Fbwlogola.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#231F20": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#231F20": "#F5F7FA"
+    },
+    "logoSource": "https://bridgewater.brightspotcdn.com/dims4/default/7a851e5/2147483647/strip/true/crop/1125x121+0+0/resize/2232x240!/quality/90/?url=http%3A%2F%2Fbridgewater-brightspot.s3.us-east-1.amazonaws.com%2Fa3%2F16%2F78d8eeed465cbe8c3f24518a7c2a%2Fbwlogola.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.bridgewater.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.bridgewater.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://bridgewater.brightspotcdn.com/dims4/default/7a851e5/2147483647/strip/true/crop/1125x121+0+0/resize/2232x240!/quality/90/?url=http%3A%2F%2Fbridgewater-brightspot.s3.us-east-1.amazonaws.com%2Fa3%2F16%2F78d8eeed465cbe8c3f24518a7c2a%2Fbwlogola.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#231F20": "#F5F7FA"
+    }
+  },
+  {
+    "name": "citadel",
+    "slug": "citadel",
+    "label": "Citadel",
+    "integrationNames": ["Citadel", "Citadel LLC", "Citadel Investment Group"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://commons.wikimedia.org/wiki/File:Citadel_LLC_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002E6C": "#617DA4"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002E6C": "#8A9FBB"
+    },
+    "logoSource": "https://commons.wikimedia.org/wiki/File:Citadel_LLC_Logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.citadel.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.citadel.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://commons.wikimedia.org/wiki/File:Citadel_LLC_Logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#002E6C": "#8A9FBB"
+    }
+  },
+  {
+    "name": "deShaw",
+    "slug": "de-shaw",
+    "label": "D. E. Shaw",
+    "integrationNames": [
+      "D. E. Shaw",
+      "DE Shaw",
+      "D.E. Shaw",
+      "D. E. Shaw Group",
+      "D. E. Shaw & Co."
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.deshaw.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.deshaw.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.deshaw.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.deshaw.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "point72",
+    "slug": "point72",
+    "label": "Point72",
+    "integrationNames": ["Point72", "Point72 Asset Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://point72.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://point72.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://point72.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://point72.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "renaissanceTechnologies",
+    "slug": "renaissance-technologies",
+    "label": "Renaissance Technologies",
+    "integrationNames": [
+      "Renaissance Technologies",
+      "RenTech",
+      "Renaissance Tech"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.rentec.com/img/logos/renaissance-logo-full-color-cmyk.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#991C26": "#B96269",
+      "#111111": "#F5F7FA",
+      "#1B190F": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#991C26": "#CB8C91",
+      "#111111": "#F5F7FA",
+      "#1B190F": "#F5F7FA"
+    },
+    "logoSource": "https://www.rentec.com/img/logos/renaissance-logo-full-color-cmyk.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.rentec.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.rentec.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.rentec.com/img/logos/renaissance-logo-full-color-cmyk.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#991C26": "#CB8C91",
+      "#111111": "#F5F7FA",
+      "#1B190F": "#F5F7FA"
+    },
+    "monoInkScale": 1.15385
+  },
+  {
+    "name": "brevanHoward",
+    "slug": "brevan-howard",
+    "label": "Brevan Howard",
+    "integrationNames": ["Brevan Howard"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.brevanhoward.com/svgs/main-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#223047": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#223047": "#F5F7FA"
+    },
+    "logoSource": "https://www.brevanhoward.com/svgs/main-logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.brevanhoward.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.brevanhoward.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.brevanhoward.com/svgs/main-logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#223047": "#F5F7FA"
+    }
+  },
+  {
+    "name": "marshallWace",
+    "slug": "marshall-wace",
+    "label": "Marshall Wace",
+    "integrationNames": ["Marshall Wace", "Marshall Wace Asset Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://s3-eu-west-1.amazonaws.com/agents-society-assets-files/dd5479ad8c3c6991516a83a10abc6e8e-40-pelham-v19.pdf",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#3C104D": "#8D7397"
+    },
+    "logoDarkColors": {
+      "#3C104D": "#AA97B2"
+    },
+    "logoSource": "https://s3-eu-west-1.amazonaws.com/agents-society-assets-files/dd5479ad8c3c6991516a83a10abc6e8e-40-pelham-v19.pdf",
+    "logoNotes": "Native outlined Marshall Wace artwork extracted from page 19 of the Forty Pelham brochure and checked against the official website. Original brand purple restored; mark and lettering separated for previews.",
+    "brandWebsite": "https://www.mwam.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.mwam.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://s3-eu-west-1.amazonaws.com/agents-society-assets-files/dd5479ad8c3c6991516a83a10abc6e8e-40-pelham-v19.pdf",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#3C104D": "#AA97B2"
+    }
+  },
+  {
+    "name": "balyasny",
+    "slug": "balyasny",
+    "label": "Balyasny Asset Management",
+    "integrationNames": ["Balyasny Asset Management", "Balyasny", "BAM Funds"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.bamfunds.com/logos/Balyasny_Logo_RGB.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#0054cc": "#397AD7"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#0054cc": "#709FE2"
+    },
+    "logoSource": "https://www.bamfunds.com/logos/Balyasny_Logo_RGB.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.bamfunds.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.bamfunds.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.bamfunds.com/logos/Balyasny_Logo_RGB.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#000000": "#F5F7FA",
+      "#0054cc": "#709FE2"
+    },
+    "monoInkScale": 1.41667
+  },
+  {
+    "name": "tciFundManagement",
+    "slug": "tci-fund-management",
+    "label": "TCI Fund Management",
+    "integrationNames": [
+      "TCI Fund Management",
+      "TCI",
+      "The Children’s Investment Fund",
+      "The Children's Investment Fund"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.tcifund.com/Images/Logo/tci_fundmanagement_logo_rgb.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#005188": "#4782A9"
+    },
+    "logoDarkColors": {
+      "#005188": "#78A3C0"
+    },
+    "logoSource": "https://www.tcifund.com/Images/Logo/tci_fundmanagement_logo_rgb.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.tcifund.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.tcifund.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.tcifund.com/Images/Logo/tci_fundmanagement_logo_rgb.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#005188": "#78A3C0"
+    }
+  },
+  {
+    "name": "tigerGlobal",
+    "slug": "tiger-global",
+    "label": "Tiger Global",
+    "integrationNames": ["Tiger Global", "Tiger Global Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.tigerglobal.com/Templates/TigerGlobal/media/logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#555555": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#444444": "#F5F7FA",
+      "#E17D17": "#E38728"
+    },
+    "logoSource": "https://www.tigerglobal.com/Templates/TigerGlobal/media/logo.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.tigerglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.tigerglobal.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.tigerglobal.com/Templates/TigerGlobal/media/logo.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#444444": "#F5F7FA",
+      "#E17D17": "#E38728"
+    }
+  },
+  {
+    "name": "coatue",
+    "slug": "coatue",
+    "label": "Coatue",
+    "integrationNames": ["Coatue", "Coatue Management"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.coatue.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.coatue.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.coatue.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.coatue.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "farallon",
+    "slug": "farallon",
+    "label": "Farallon Capital",
+    "integrationNames": [
+      "Farallon Capital",
+      "Farallon",
+      "Farallon Capital Management"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.prod.website-files.com/66edc75f3ad17588332fa62a/66edcf06a4574a2671b9e961_farallon-logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#253d8f": "#6979B2"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#253d8f": "#909CC6"
+    },
+    "logoSource": "https://cdn.prod.website-files.com/66edc75f3ad17588332fa62a/66edcf06a4574a2671b9e961_farallon-logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.faralloncapital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.faralloncapital.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.prod.website-files.com/66edc75f3ad17588332fa62a/66edcf06a4574a2671b9e961_farallon-logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#253d8f": "#909CC6"
+    }
+  },
+  {
+    "name": "davidsonKempner",
+    "slug": "davidson-kempner",
+    "label": "Davidson Kempner",
+    "integrationNames": [
+      "Davidson Kempner",
+      "Davidson Kempner Capital Management"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.davidsonkempner.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.davidsonkempner.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.davidsonkempner.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.davidsonkempner.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "tudorInvestment",
+    "slug": "tudor-investment",
+    "label": "Tudor Investment Corporation",
+    "integrationNames": [
+      "Tudor Investment Corporation",
+      "Tudor Investment",
+      "Tudor Group"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.tudor.com/wp-content/uploads/2025/09/logo-mark.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#2E4970": "#6A7D99"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00529b": "#75A2C9"
+    },
+    "logoSource": "https://en.wikipedia.org/wiki/File:Tudor_Investment_Corporation.svg",
+    "logoNotes": "Current native Tudor Investment monogram from its website, with outlined corporate lettering from Wikipedia. This is distinct from Tudor watches; bounds and theme colors adapted.",
+    "brandWebsite": "https://www.tudor.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.tudor.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.tudor.com/wp-content/uploads/2025/09/logo-mark.svg",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/File:Tudor_Investment_Corporation.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00529b": "#75A2C9"
+    },
+    "logoLightColors": {
+      "#00529b": "#2E4A72"
+    },
+    "wordmarkLightColors": {
+      "#00529b": "#2E4A72"
+    }
+  },
+  {
+    "name": "schonfeld",
+    "slug": "schonfeld",
+    "label": "Schonfeld",
+    "integrationNames": ["Schonfeld", "Schonfeld Strategic Advisors"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.schonfeld.com/wp-content/uploads/schonfeld-desktop-header-logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#282828": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#282828": "#F5F7FA"
+    },
+    "logoSource": "https://www.schonfeld.com/wp-content/uploads/schonfeld-desktop-header-logo.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.schonfeld.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.schonfeld.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.schonfeld.com/wp-content/uploads/schonfeld-desktop-header-logo.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#282828": "#F5F7FA"
+    }
+  },
+  {
+    "name": "exoduspoint",
+    "slug": "exoduspoint",
+    "label": "ExodusPoint",
+    "integrationNames": [
+      "ExodusPoint",
+      "ExodusPoint Capital Management",
+      "Exodus Point"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.exoduspoint.com/i/logo-R.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#0078BB": "#1382C0",
+      "#485967": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#0078BB": "#57A6D2",
+      "#485967": "#F5F7FA"
+    },
+    "logoSource": "https://www.exoduspoint.com/i/logo-R.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.exoduspoint.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.exoduspoint.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.exoduspoint.com/i/logo-R.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#0078BB": "#57A6D2",
+      "#485967": "#F5F7FA"
+    }
+  },
+  {
+    "name": "winton",
+    "slug": "winton",
+    "label": "Winton",
+    "integrationNames": ["Winton", "Winton Group", "Winton Capital Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://cdn.winton.com/images/Logos/Winton-FullLogo-EerieBlack-RGB.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#22232D": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#1A1C21": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#22232D": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#1A1C21": "#F5F7FA"
+    },
+    "logoSource": "https://cdn.winton.com/images/Logos/Winton-FullLogo-EerieBlack-RGB.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.winton.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.winton.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://cdn.winton.com/images/Logos/Winton-FullLogo-EerieBlack-RGB.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#22232D": "#F5F7FA",
+      "#111111": "#F5F7FA",
+      "#1A1C21": "#F5F7FA"
+    },
+    "monoInkScale": 1.03659
+  },
+  {
+    "name": "thirdPoint",
+    "slug": "third-point",
+    "label": "Third Point",
+    "integrationNames": ["Third Point", "Third Point LLC"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.thirdpoint.com/img/ui/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#003b77": "#587FA6"
+    },
+    "logoDarkColors": {
+      "#003b77": "#83A0BD"
+    },
+    "logoSource": "https://www.thirdpoint.com/img/ui/logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.thirdpoint.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.thirdpoint.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.thirdpoint.com/img/ui/logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#003F77": "#82A1BC"
+    }
+  },
+  {
+    "name": "qubeResearchTechnologies",
+    "slug": "qube-research-technologies",
+    "label": "Qube Research & Technologies",
+    "integrationNames": [
+      "Qube Research & Technologies",
+      "Qube",
+      "QRT",
+      "Qube Research and Technologies"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.qube-rt.com/img/qrt-large.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1b75bc": "#2D80C1",
+      "#FFFFFF": "#FFFFFF"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1b75bc": "#67A3D2"
+    },
+    "logoSource": "https://www.qube-rt.com/img/qrt-large.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.qube-rt.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.qube-rt.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.qube-rt.com/img/qrt-large.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1b75bc": "#67A3D2"
+    },
+    "monoInkScale": 1.56442
+  },
+  {
+    "name": "rokosCapital",
+    "slug": "rokos-capital",
+    "label": "Rokos Capital Management",
+    "integrationNames": ["Rokos Capital Management", "Rokos", "RCM"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.rokoscapital.com/_next/static/media/RCM%20Primary%20Logo%20Bold%20W.445e20b9.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#123343": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#123343": "#F5F7FA"
+    },
+    "logoSource": "https://www.rokoscapital.com/_next/static/media/RCM%20Primary%20Logo%20Bold%20W.445e20b9.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.rokoscapital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.rokoscapital.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.rokoscapital.com/_next/static/media/RCM%20Primary%20Logo%20Bold%20W.445e20b9.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#123343": "#F5F7FA"
+    }
+  },
+  {
+    "name": "bluecrestCapital",
+    "slug": "bluecrest-capital",
+    "label": "BlueCrest Capital Management",
+    "integrationNames": [
+      "BlueCrest Capital Management",
+      "BlueCrest",
+      "Blue Crest"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://en.wikipedia.org/wiki/File:BlueCrest_Capital_Management.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00457c": "#5281A6"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00457c": "#7EA1BD"
+    },
+    "logoSource": "https://en.wikipedia.org/wiki/File:BlueCrest_Capital_Management.svg",
+    "logoNotes": "Outlined BlueCrest corporate lettering from Wikipedia, checked against the wordmark on its official website. BlueCrest is currently a private investment manager; the hedge-fund search alias reflects its heritage. Bounds and theme colors adapted. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.bluecrestcapital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.bluecrestcapital.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/File:BlueCrest_Capital_Management.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#00457c": "#7EA1BD"
+    }
+  },
+  {
+    "name": "goldentree",
+    "slug": "goldentree",
+    "label": "GoldenTree Asset Management",
+    "integrationNames": [
+      "GoldenTree Asset Management",
+      "GoldenTree",
+      "Golden Tree"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.goldentree.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#007477": "#25888B"
+    },
+    "logoDarkColors": {
+      "#007477": "#61A9AB"
+    },
+    "logoSource": "https://www.goldentree.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.goldentree.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.goldentree.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#007477": "#61A9AB"
+    },
+    "monoInkScale": 2.52475
+  },
+  {
+    "name": "canyonPartners",
+    "slug": "canyon-partners",
+    "label": "Canyon Partners",
+    "integrationNames": ["Canyon Partners", "Canyon Capital"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.canyonpartners.com/wp-content/uploads/2022/06/brand-canyon.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#000000": "#F5F7FA",
+      "#003768": "#5C7F9E"
+    },
+    "logoDarkColors": {
+      "#000000": "#F5F7FA",
+      "#003768": "#86A0B7"
+    },
+    "logoSource": "https://www.canyonpartners.com/wp-content/uploads/2022/06/brand-canyon.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.canyonpartners.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.canyonpartners.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.canyonpartners.com/wp-content/uploads/2022/06/brand-canyon.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#000000": "#F5F7FA",
+      "#003768": "#86A0B7"
+    },
+    "monoInkScale": 1.22596
+  },
+  {
+    "name": "manGroup",
+    "slug": "man-group",
+    "label": "Man Group",
+    "integrationNames": ["Man Group", "Man AHL", "Man Numeric", "Man GLG"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.man.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003e6b": "#58819E"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003e6b": "#83A1B7"
+    },
+    "logoSource": "https://www.man.com/",
+    "logoNotes": "Native outlined logo extracted from the official website stylesheet. Mark and lettering separated, with preview bounds and theme colors adapted.",
+    "brandWebsite": "https://www.man.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.man.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#003e6b": "#83A1B7"
+    }
+  },
+  {
+    "name": "aqr",
+    "slug": "aqr",
+    "label": "AQR Capital Management",
+    "integrationNames": ["AQR Capital Management", "AQR"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.aqr.com/assets/fonts/AQRicons.woff",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#009FDF": "#18A8E2"
+    },
+    "logoSource": "https://www.aqr.com/assets/fonts/AQRicons.woff",
+    "logoNotes": "Native AQR logo glyph extracted from the official website icon font. Bounds and theme colors adapted. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.aqr.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.aqr.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.aqr.com/assets/fonts/AQRicons.woff",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#009FDF": "#18A8E2"
+    }
+  },
+  {
+    "name": "squarepoint",
+    "slug": "squarepoint",
+    "label": "Squarepoint",
+    "integrationNames": ["Squarepoint", "Squarepoint Capital"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.squarepoint-capital.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#073854": "#608092"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#073854": "#89A0AE"
+    },
+    "logoSource": "https://www.squarepoint-capital.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used. The decorative square and rules are removed from the standalone wordmark, and the two outlined words are brought together.",
+    "brandWebsite": "https://www.squarepoint-capital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.squarepoint-capital.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#073854": "#89A0AE"
+    }
+  },
+  {
+    "name": "twoSigma",
+    "slug": "two-sigma",
+    "label": "Two Sigma",
+    "integrationNames": ["Two Sigma", "Two Sigma Investments"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://wp.logos-download.com/wp-content/uploads/2023/02/Two_Sigma_Logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#211C1D": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#211C1D": "#F5F7FA",
+      "#00A8BC": "#0EADC0"
+    },
+    "logoSource": "https://wp.logos-download.com/wp-content/uploads/2023/02/Two_Sigma_Logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.twosigma.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.twosigma.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://wp.logos-download.com/wp-content/uploads/2023/02/Two_Sigma_Logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#211C1D": "#F5F7FA",
+      "#00A8BC": "#0EADC0"
+    },
+    "monoInkScale": 1.86131
+  },
+  {
+    "name": "vikingGlobal",
+    "slug": "viking-global",
+    "label": "Viking Global Investors",
+    "integrationNames": ["Viking Global Investors", "Viking Global"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://vikingglobal.com/wp-content/uploads/2024/10/logo-white.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#153E35": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#153E35": "#F5F7FA"
+    },
+    "logoSource": "https://vikingglobal.com/wp-content/uploads/2024/10/logo-white.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.vikingglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.vikingglobal.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://vikingglobal.com/wp-content/uploads/2024/10/logo-white.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#153E35": "#F5F7FA"
+    }
+  },
+  {
+    "name": "millennium",
+    "slug": "millennium",
+    "label": "Millennium",
+    "integrationNames": [
+      "Millennium",
+      "Millennium Management",
+      "Millennium Capital Partners"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.mlp.com/",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1434cb": "#5E74DB"
+    },
+    "logoDarkColors": {
+      "#1434cb": "#8A9AE5"
+    },
+    "logoSource": "https://www.mlp.com/",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.mlp.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.mlp.com/",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1434cb": "#8A9AE5"
+    }
+  },
+  {
+    "name": "baupost",
+    "slug": "baupost",
+    "label": "The Baupost Group",
+    "integrationNames": ["The Baupost Group", "Baupost", "Baupost Group"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.baupost.com/Templates/Baupost/media/logo.png",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA"
+    },
+    "logoSource": "https://www.baupost.com/Templates/Baupost/media/logo.png",
+    "logoNotes": "Artwork vectorized from the official raster logo with transparent exterior. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.baupost.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.baupost.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.baupost.com/Templates/Baupost/media/logo.png",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA"
+    }
+  },
+  {
+    "name": "lonePineCapital",
+    "slug": "lone-pine-capital",
+    "label": "Lone Pine Capital",
+    "integrationNames": ["Lone Pine Capital", "Lone Pine"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.lonepinecapital.com/wp-content/uploads/Full_Logo_White.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#42823C": "#4C8947"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0D423A": "#88A29E"
+    },
+    "logoSource": "https://www.lonepinecapital.com/wp-content/uploads/Full_Logo_White.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.lonepinecapital.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.lonepinecapital.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.lonepinecapital.com/wp-content/uploads/Full_Logo_White.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#0D423A": "#88A29E"
+    }
+  },
+  {
+    "name": "elliott",
+    "slug": "elliott",
+    "label": "Elliott Investment Management",
+    "integrationNames": [
+      "Elliott Investment Management",
+      "Elliott",
+      "Elliott Management",
+      "Elliott Management Corporation"
+    ],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.elliottmgmt.com/wp-content/themes/elliott-mgmt/dist/images/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#192A43": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#192A43": "#F5F7FA"
+    },
+    "logoSource": "https://www.elliottmgmt.com/wp-content/themes/elliott-mgmt/dist/images/logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.elliottmgmt.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.elliottmgmt.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.elliottmgmt.com/wp-content/themes/elliott-mgmt/dist/images/logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#192A43": "#F5F7FA"
+    }
+  },
+  {
+    "name": "pershingSquare",
+    "slug": "pershing-square",
+    "label": "Pershing Square",
+    "integrationNames": [
+      "Pershing Square",
+      "Pershing Square Capital Management",
+      "Pershing Square Holdings"
+    ],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.pershingsquareinc.com/wp-content/uploads/2026/03/logo.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#29374B": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#29374B": "#F5F7FA"
+    },
+    "logoSource": "https://www.pershingsquareinc.com/wp-content/uploads/2026/03/logo.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.pershingsquareinc.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.pershingsquareinc.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.pershingsquareinc.com/wp-content/uploads/2026/03/logo.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#29374B": "#F5F7FA"
+    }
+  },
+  {
+    "name": "capula",
+    "slug": "capula",
+    "label": "Capula",
+    "integrationNames": ["Capula", "Capula Investment Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://d301d7160x5gb2.cloudfront.net/app/uploads/2024/02/capula-logo.svg.gzip",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#1B4867": "#618095"
+    },
+    "logoDarkColors": {
+      "#1B4867": "#8AA1B1"
+    },
+    "logoSource": "https://d301d7160x5gb2.cloudfront.net/app/uploads/2024/02/capula-logo.svg.gzip",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews.",
+    "brandWebsite": "https://www.capulaglobal.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.capulaglobal.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://d301d7160x5gb2.cloudfront.net/app/uploads/2024/02/capula-logo.svg.gzip",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#1B4867": "#8AA1B1"
+    },
+    "monoInkScale": 1.1087
+  },
+  {
+    "name": "verition",
+    "slug": "verition",
+    "label": "Verition",
+    "integrationNames": ["Verition", "Verition Fund Management"],
+    "ratio": 1.8,
+    "alignment": "center",
+    "source": "https://www.verition.com/i/verition-logo-full.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1461ab": "#417FBB",
+      "#495056": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1461ab": "#74A2CD",
+      "#495056": "#F5F7FA"
+    },
+    "logoSource": "https://www.verition.com/i/verition-logo-full.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The V-shaped integral is part of the lettering, so it is retained in the wordmark.",
+    "brandWebsite": "https://www.verition.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.verition.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.verition.com/i/verition-logo-full.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#1461ab": "#74A2CD",
+      "#495056": "#F5F7FA"
+    }
+  },
+  {
+    "name": "caxton",
+    "slug": "caxton",
+    "label": "Caxton Associates",
+    "integrationNames": ["Caxton Associates", "Caxton"],
+    "ratio": 1.55,
+    "alignment": "center",
+    "source": "https://www.caxton.com/wp-content/uploads/2021/11/caxton-bm-02.svg",
+    "markLightColors": {},
+    "markDarkColors": {
+      "#111111": "#F5F7FA",
+      "#193347": "#F5F7FA"
+    },
+    "logoDarkColors": {
+      "#111111": "#F5F7FA",
+      "#193347": "#F5F7FA"
+    },
+    "logoSource": "https://www.caxton.com/wp-content/uploads/2021/11/caxton-bm-02.svg",
+    "logoNotes": "Outlined vector artwork from the source identity. Compact marks and standalone lettering are separated where the source supports them; bounds and theme colors are adapted for previews. The supplied wordmark or complete compact identity also serves as the mark where no separate verified symbol is used.",
+    "brandWebsite": "https://www.caxton.com/",
+    "artworkAttribution": "Brand names and artwork remain trademarks of their respective owners. Outlined artwork extracted or vectorized from the recorded sources; bounds, standalone lettering and theme colors adapted, and app tiles composed.",
+    "categories": ["Finance & payments", "Investing & venture capital"],
+    "lastCheckedAutomated": "2026-11-07",
+    "lastCheckedManually": null,
+    "identitySources": [
+      {
+        "url": "https://www.caxton.com/",
+        "checkedOn": "2026-11-07"
+      },
+      {
+        "url": "https://www.caxton.com/wp-content/uploads/2021/11/caxton-bm-02.svg",
+        "checkedOn": "2026-11-07"
+      }
+    ],
+    "searchAliases": [
+      "Hedge fund",
+      "Hedge funds",
+      "Hedge fund manager",
+      "Alternative investment manager"
+    ],
+    "wordmark": {
+      "source": "wordmark"
+    },
+    "wordmarkDarkColors": {
+      "#111111": "#F5F7FA",
+      "#193347": "#F5F7FA"
+    }
   }
 ]
