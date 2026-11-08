@@ -266,15 +266,21 @@ describe("removing net-level state", () => {
         mutations.removeTypeElement({ typeId: "item", elementId: "level" }),
       ),
     );
-    // Dynamics, lambda and kernel all read `level`; the kernel's output row
-    // additionally fails as `never` once the type has no elements.
+    // Dynamics and the kernel's output read `level`; the kernel's output row
+    // additionally fails as `never` once the type has no elements. A type
+    // with no elements delivers no token values, so the lambda and kernel
+    // that index `input.Store` fail on the place, which now exposes only
+    // `.count`.
     expect(errors.length).toBeGreaterThanOrEqual(3);
-    expect(errors.every((error) => /level|never/u.test(error.message))).toBe(
-      true,
-    );
+    expect(
+      errors.every((error) => /level|never|Store/u.test(error.message)),
+    ).toBe(true);
     expect(
       errors.filter((error) => /level/u.test(error.message)).length,
-    ).toBeGreaterThanOrEqual(3);
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      errors.filter((error) => /Store/u.test(error.message)).length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it("removing a referenced equation clears the place's dynamics reference and stays clean", () => {
@@ -302,8 +308,12 @@ describe("removing net-level state", () => {
     expect(
       definition.differentialEquations.every(({ colorId }) => colorId === null),
     ).toBe(true);
+    // Uncoloured places deliver no token values: code that read `level`
+    // through `input.Store[0]` fails on the place, which exposes `.count`.
     const errors = errorsOf(definition);
     expect(errors.length).toBeGreaterThanOrEqual(1);
-    expect(errors.every((error) => /level/u.test(error.message))).toBe(true);
+    expect(errors.every((error) => /level|Store/u.test(error.message))).toBe(
+      true,
+    );
   });
 });

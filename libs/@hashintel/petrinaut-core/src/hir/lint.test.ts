@@ -45,6 +45,7 @@ const lambdaContext: HirLambdaContext = {
   parameters: [{ name: "rate", type: "real" }],
   inputPlaces: [poolBinding],
   inputSlots: [{ ...poolBinding, slotStart: 0 }],
+  inputCounts: [{ name: "Pool", arcIndex: 0 }],
   lambdaType: "stochastic",
 };
 
@@ -53,6 +54,7 @@ const kernelContext: HirKernelContext = {
   parameters: [{ name: "sigma", type: "real" }],
   inputPlaces: lambdaContext.inputPlaces,
   inputSlots: lambdaContext.inputSlots,
+  inputCounts: lambdaContext.inputCounts,
   outputPlaces: [outBinding],
   outputSlots: [{ ...outBinding, slotStart: 0 }],
   stochasticity: true,
@@ -397,5 +399,69 @@ return all.reduce((sum, t) => sum + t.x, 0) / all.length;`,
         results.filter(([code]) => code === "hir:unused-binding"),
       ).toHaveLength(1);
     });
+  });
+});
+
+describe("input place counts", () => {
+  // Pool delivers tokens; Gate is uncoloured (or on an inhibitor arc).
+  const countLambdaContext: HirLambdaContext = {
+    ...lambdaContext,
+    inputCounts: [
+      { name: "Pool", arcIndex: 0 },
+      { name: "Gate", arcIndex: 1 },
+    ],
+  };
+
+  it("types `.count` on every input place", () => {
+    expect(
+      codes(
+        `return parameters.rate * input.Pool.count * input.Gate.count;`,
+        countLambdaContext,
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects indexing a place that delivers no tokens, naming it", () => {
+    const result = lintHirUserCode(
+      `return input.Gate[0] ? 1 : 0;`,
+      countLambdaContext,
+    );
+    const diagnostic = result.diagnostics.find(
+      (candidate) => candidate.code === "hir:count-only-input",
+    );
+    expect(diagnostic?.severity).toBe("error");
+    expect(diagnostic?.message).toContain("`Gate`");
+  });
+
+  it("records count reads without making the lambda token-dependent", () => {
+    const { analysis } = lintHirUserCode(
+      `return input.Pool.count * input.Gate.count;`,
+      countLambdaContext,
+    );
+    expect(analysis?.dependencies.placeCounts).toEqual(["Gate", "Pool"]);
+    expect(analysis?.dependencies.tokenReads).toEqual([]);
+    expect(analysis?.dependencies.readsTokenCounts).toBe(false);
+  });
+
+  it("marks `.length` on a transition input as deprecated", () => {
+    expect(
+      codes(`return input.Pool.length * 1.0;`, countLambdaContext),
+    ).toEqual([["hir:deprecated-length", "hint"]]);
+  });
+
+  it("marks `state.places.<Place>.tokens.length` as deprecated in metrics", () => {
+    const metricContext: HirMetricContext = {
+      surface: "metric",
+      parameters: [],
+      places: [{ name: "Pool", elements: [{ name: "x", type: "real" }] }],
+    };
+    const result = lintHirUserCode(
+      `return state.places.Pool.tokens.length;`,
+      metricContext,
+    );
+    expect(
+      result.diagnostics.map(({ code, severity }) => [code, severity]),
+    ).toEqual([["hir:deprecated-length", "hint"]]);
+    expect(result.diagnostics[0]?.message).toContain("state.places.Pool.count");
   });
 });

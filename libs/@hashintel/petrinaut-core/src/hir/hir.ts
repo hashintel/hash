@@ -83,6 +83,9 @@ export type HirType =
       element: HirType;
       /** Statically-known length (e.g. arc-weight token tuples). */
       length?: number;
+      /** A transition input's token tuple, which also exposes `.count`: the
+       * live token count of its place. */
+      placeCount?: true;
     }
   /** A 128-bit identifier attribute (surfaced to user code as `bigint`). */
   | { kind: "uuid" }

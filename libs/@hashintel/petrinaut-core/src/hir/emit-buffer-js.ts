@@ -30,6 +30,7 @@ import { foldHir } from "./analyze";
 import type { HirExpr, HirFunction } from "./hir";
 import type {
   HirArcSlot,
+  HirInputPlaceCount,
   HirKernelContext,
   HirLambdaContext,
   HirMetricContext,
@@ -71,6 +72,7 @@ const RESERVED_NAMES = [
   "placeCounts",
   "placeOffsets",
   "indices",
+  "inputCounts",
   "out",
   "distSink",
   "__params",
@@ -109,8 +111,9 @@ type Value =
   | { kind: "uuidSentinel"; mode: "generate" | "from"; code: string }
   /** The lambda/kernel input object. */
   | { kind: "inputRecord" }
-  /** A whole input arc slot's token tuple. */
-  | { kind: "tokens"; slot: HirArcSlot }
+  /** A whole input arc slot's token tuple. `countArc` indexes the
+   * `inputCounts` argument for `.count`. */
+  | { kind: "tokens"; slot: HirArcSlot; countArc: number }
   /** One token; `baseCode` is a JS expression for its float base offset. */
   | { kind: "token"; baseCode: string; elements: HirTokenElementInfo[] }
   | { kind: "record"; fields: Map<string, Value> }
@@ -189,6 +192,7 @@ class BufferEmitter {
   constructor(
     readonly inputSlots: HirArcSlot[],
     metricContext: HirMetricContext | null = null,
+    readonly inputCounts: HirInputPlaceCount[] = [],
   ) {
     this.metricPlaceByName = metricContext
       ? new Map(metricContext.places.map((place) => [place.name, place]))
@@ -204,6 +208,15 @@ class BufferEmitter {
       }
     }
     return null;
+  }
+
+  /** `inputCounts[...]` read for an input place, or null when no input arc
+   * connects a place of that name. */
+  private inputCountCode(name: string): { arc: number; code: string } | null {
+    const entry = this.inputCounts.find((candidate) => candidate.name === name);
+    return entry
+      ? { arc: entry.arcIndex, code: `inputCounts[${entry.arcIndex}]` }
+      : null;
   }
 
   /** Registers (on first reference) and returns the metric place ref for a
@@ -400,10 +413,23 @@ class BufferEmitter {
         const target = this.eval(expr.target, env);
         if (target.kind === "inputRecord") {
           const slot = this.slotForPlace(expr.field);
-          if (!slot) {
-            throw new BailError();
+          const count = this.inputCountCode(expr.field);
+          if (slot && count) {
+            return { kind: "tokens", slot, countArc: count.arc };
           }
-          return { kind: "tokens", slot };
+          if (count) {
+            // A place that delivers no token values exposes `.count` alone.
+            return {
+              kind: "record",
+              fields: new Map([
+                ["count", { kind: "scalar", code: count.code }],
+              ]),
+            };
+          }
+          throw new BailError();
+        }
+        if (target.kind === "tokens" && expr.field === "count") {
+          return { kind: "scalar", code: `inputCounts[${target.countArc}]` };
         }
         if (target.kind === "metricState") {
           if (expr.field !== "places") {
@@ -819,7 +845,7 @@ function slotCount(inputSlots: HirArcSlot[]): number {
 /**
  * Emits a buffer-ABI lambda:
  *
- *   (f64, u64, u8, placeBases, indices) => number | boolean
+ *   (f64, u64, u8, placeBases, indices, inputCounts) => number | boolean
  *
  * Reads `__params` for model parameters (bound at instantiation). Returns
  * `null` when the function shape cannot be scalarized.
@@ -829,13 +855,17 @@ export function emitBufferLambdaJs(
   context: HirLambdaContext,
 ): BufferProgram | null {
   try {
-    const emitter = new BufferEmitter(context.inputSlots);
+    const emitter = new BufferEmitter(
+      context.inputSlots,
+      null,
+      context.inputCounts,
+    );
     const result = emitter.eval(foldHir(fn.body), initialEnv(fn));
     if (result.kind !== "scalar") {
       return null;
     }
     const source = [
-      `(f64, u64, u8, placeBases, indices) => {`,
+      `(f64, u64, u8, placeBases, indices, inputCounts) => {`,
       ...emitter.lines.map((line) => `  ${line}`),
       `  return ${result.code};`,
       `}`,
@@ -852,7 +882,7 @@ export function emitBufferLambdaJs(
 /**
  * Emits a buffer-ABI kernel (token format v2):
  *
- *   (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
+ *   (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink, inputCounts) => void
  *
  * Output attributes are written into per-transition staging bytes at
  * compile-time-constant offsets (colored output arcs place-major, tokens
@@ -870,7 +900,11 @@ export function emitBufferKernelJs(
   context: HirKernelContext,
 ): BufferKernelProgram | null {
   try {
-    const emitter = new BufferEmitter(context.inputSlots);
+    const emitter = new BufferEmitter(
+      context.inputSlots,
+      null,
+      context.inputCounts,
+    );
     const result = emitter.eval(foldHir(fn.body), initialEnv(fn));
     if (result.kind !== "record") {
       return null;
@@ -1003,7 +1037,7 @@ export function emitBufferKernelJs(
     }
 
     const source = [
-      `(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink) => {`,
+      `(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink, inputCounts) => {`,
       ...emitter.lines.map((line) => `  ${line}`),
       ...writes.map((line) => `  ${line}`),
       `}`,

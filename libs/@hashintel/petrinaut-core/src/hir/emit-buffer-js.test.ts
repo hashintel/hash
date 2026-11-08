@@ -72,8 +72,12 @@ const lambdaContext: HirLambdaContext = {
   ],
   inputPlaces: [(({ slotStart: _s, ...binding }) => binding)(poolSlot)],
   inputSlots: [poolSlot],
+  inputCounts: [{ name: "Pool", arcIndex: 0 }],
   lambdaType: "stochastic",
 };
+
+/** The Pool place's live count, passed as the `inputCounts` argument. */
+const POOL_COUNTS = new Float64Array([5]);
 
 // A frame region with two Pool tokens, back to back. `placeBases` has one
 // entry per input arc (the Pool arc's place region starts at byte 0);
@@ -118,9 +122,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].alive ? input.Pool[0].x + input.Pool[1].v : 0);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-      1.5 + 8,
-    );
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(1.5 + 8);
   });
 
   it("resolves interned strings through the pool", () => {
@@ -130,7 +134,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].status === "shipped" && input.Pool[1].status.startsWith("q"));`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(true);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(true);
   });
 
   it("assembles uuid attributes as bigints from the two u64 lanes", () => {
@@ -140,7 +146,9 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       `export default Lambda((input, parameters) => input.Pool[0].id === input.Pool[1].id ? 1 : 0.5);`,
       pool,
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(0.5);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(0.5);
     void uuid;
   });
 
@@ -158,7 +166,70 @@ describe("emitBufferLambdaJs (token format v2)", () => {
       pool,
       { rate: 2, threshold: 1 },
     );
-    expect(fn(views.f64, views.u64, views.u8, placeBases, indices)).toBe(3);
+    expect(
+      fn(views.f64, views.u64, views.u8, placeBases, indices, POOL_COUNTS),
+    ).toBe(3);
+  });
+});
+
+describe("emitBufferLambdaJs input place counts", () => {
+  // Pool delivers tokens (arc 0); Gate delivers none (arc 1: uncoloured, or
+  // an inhibitor arc), so only its `.count` is readable.
+  const countContext: HirLambdaContext = {
+    ...lambdaContext,
+    inputCounts: [
+      { name: "Pool", arcIndex: 0 },
+      { name: "Gate", arcIndex: 1 },
+    ],
+  };
+
+  it("reads `.count` from the inputCounts argument, by input arc", () => {
+    const pool = new StringPool();
+    const { views, placeBases, indices } = makeRegion(pool);
+    const program = emitBufferLambdaJs(
+      lower(
+        `return parameters.rate * input.Pool.count * input.Gate.count;`,
+        "lambda",
+      ),
+      countContext,
+    );
+    expect(program).not.toBeNull();
+    const fn = instantiateHirBufferLambda(program!.source, { rate: 2 }, pool);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Float64Array([5, 3]),
+      ),
+    ).toBe(30);
+  });
+
+  it("mixes counts with token attributes", () => {
+    const pool = new StringPool();
+    const { views, placeBases, indices } = makeRegion(pool);
+    const program = emitBufferLambdaJs(
+      lower(
+        `const { Pool: tokens } = input;
+return tokens[0].x / tokens.count;`,
+        "lambda",
+      ),
+      countContext,
+    );
+    expect(program).not.toBeNull();
+    const fn = instantiateHirBufferLambda(program!.source, {}, pool);
+    expect(
+      fn(
+        views.f64,
+        views.u64,
+        views.u8,
+        placeBases,
+        indices,
+        new Float64Array([3, 0]),
+      ),
+    ).toBe(0.5);
   });
 });
 
@@ -188,6 +259,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
     parameters: [],
     inputPlaces: lambdaContext.inputPlaces,
     inputSlots: lambdaContext.inputSlots,
+    inputCounts: lambdaContext.inputCounts,
     outputPlaces: [
       { name: "Out", colorId: "c2", elements: outElements, tokenCount: 2 },
     ],
@@ -228,6 +300,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
       stagingViews.u64,
       stagingViews.u8,
       (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+      POOL_COUNTS,
     );
     return { program: program!, stagingViews, sinkCalls };
   }
@@ -347,6 +420,7 @@ describe("emitBufferKernelJs (token format v2)", () => {
       stagingViews.u64,
       stagingViews.u8,
       (kind, index, payload) => sinkCalls.push({ kind, index, payload }),
+      POOL_COUNTS,
     );
 
     const stride = poolLayout.strideBytes;

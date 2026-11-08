@@ -6,6 +6,7 @@
  * `indexCombinations` and fires on the first passing combination, so the
  * shader scans candidates in that same order.
  */
+import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import { buildLambdaContext } from "../../hir/surface-context";
 import { computeTransitionCapacityConstraints } from "../../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
@@ -65,6 +66,37 @@ export type TransitionFiring = {
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>;
   /** The same readers over the chosen slots (`sel_*`), for the kernel. */
   selectionTokenSlots: ReadonlyMap<string, readonly TokenReader[]>;
+  /** WGSL for each input place's live token count, by `input` name. Read
+   * before the transition consumes, so the lambda and kernel see the same
+   * counts the CPU engine passes. */
+  inputCounts: ReadonlyMap<string, string>;
+};
+
+/**
+ * WGSL count reads for `input.<name>.count`, keyed by the names the HIR was
+ * type-checked against.
+ */
+const inputCountReads = (
+  transition: Transition,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings | undefined,
+  placeIndexById: ReadonlyMap<string, number>,
+): Map<string, string> => {
+  const reads = new Map<string, string>();
+  for (const { name, arcIndex } of buildLambdaContext(
+    sdcpn,
+    transition,
+    extensions,
+  ).inputCounts) {
+    const arc = transition.inputArcs[arcIndex];
+    const placeId = arc ? getArcEndpointPlaceId(arc) : null;
+    const placeIndex =
+      placeId === null ? undefined : placeIndexById.get(placeId);
+    if (placeIndex !== undefined) {
+      reads.set(name, `f32(counts[${placeIndex}u])`);
+    }
+  }
+  return reads;
 };
 
 /**
@@ -177,6 +209,12 @@ export const planTransitionFiring = (options: {
     selectionVars,
     tokenSlots,
     selectionTokenSlots,
+    inputCounts: inputCountReads(
+      transition,
+      sdcpn,
+      extensions,
+      options.placeIndexById,
+    ),
   };
 };
 
@@ -191,6 +229,7 @@ const emitLambda = (
   fn: HirFunction,
   parameterValues: Readonly<Record<string, WgslParameterValue>>,
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>,
+  inputCounts: ReadonlyMap<string, string>,
 ): { statements: string[]; expression: string; isPredicate: boolean } => {
   const emitter = new WgslEmitter({
     parameterValues,
@@ -199,7 +238,7 @@ const emitLambda = (
   const env = new Map<string, WgslValue>();
   const tokensParam = fn.params[0];
   if (tokensParam) {
-    env.set(tokensParam.name, tokenSlotsValue(tokenSlots));
+    env.set(tokensParam.name, tokenSlotsValue(tokenSlots, inputCounts));
   }
 
   const value = emitter.emit(fn.body, env);
@@ -229,7 +268,13 @@ export const emitFiringChoice = (
   lambda: HirFunction | undefined,
   parameterValues: Readonly<Record<string, WgslParameterValue>>,
 ): { fireCondition: string; compiledLambda: boolean } => {
-  const { typedWeight, scanPlaceIndex, selectionVars, tokenSlots } = firing;
+  const {
+    typedWeight,
+    scanPlaceIndex,
+    selectionVars,
+    tokenSlots,
+    inputCounts,
+  } = firing;
 
   // Declared whether or not there is a lambda: a typed-input transition with
   // no lambda still consumes tokens, and the CPU takes combination 0 then.
@@ -246,7 +291,7 @@ export const emitFiringChoice = (
     return { fireCondition: "structurally_enabled", compiledLambda: false };
   }
 
-  const emitted = emitLambda(lambda, parameterValues, tokenSlots);
+  const emitted = emitLambda(lambda, parameterValues, tokenSlots, inputCounts);
   push(`      var fires = false;`);
   push(`      if (structurally_enabled) {`);
 

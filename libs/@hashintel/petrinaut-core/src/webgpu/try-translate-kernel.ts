@@ -65,27 +65,28 @@ export function tryTranslateKernel({
     const env = new Map<string, WgslValue>();
     const tokensParam = hir.params[0];
     if (tokensParam) {
-      // One entry per input slot, each a tuple of the arc's weight. Attribute
-      // reads resolve to a constant: the probe is about translatability, and a
-      // misspelled attribute is already a typecheck error upstream.
-      env.set(tokensParam.name, {
-        kind: "record",
-        fields: new Map(
-          context.inputSlots.map((slot) => [
-            slot.name,
-            {
-              kind: "array" as const,
-              elements: Array.from(
-                { length: slot.tokenCount },
-                (): WgslValue => ({
-                  kind: "token",
-                  read: () => ({ kind: "f32", code: "0.0" }),
-                }),
-              ),
-            },
-          ]),
-        ),
-      });
+      // One entry per input place: a tuple of the arc's weight for a slot,
+      // `.count` alone otherwise. Attribute and count reads resolve to a
+      // constant: the probe is about translatability, and a misspelled
+      // attribute is already a typecheck error upstream.
+      const placeholderCount: WgslValue = { kind: "f32", code: "0.0" };
+      const fields = new Map<string, WgslValue>(
+        context.inputCounts.map(({ name }) => [
+          name,
+          { kind: "record", fields: new Map([["count", placeholderCount]]) },
+        ]),
+      );
+      for (const slot of context.inputSlots) {
+        fields.set(slot.name, {
+          kind: "array",
+          elements: Array.from({ length: slot.tokenCount }, (): WgslValue => ({
+            kind: "token",
+            read: () => ({ kind: "f32", code: "0.0" }),
+          })),
+          count: placeholderCount,
+        });
+      }
+      env.set(tokensParam.name, { kind: "record", fields });
     }
 
     emitter.emit(hir.body, env);

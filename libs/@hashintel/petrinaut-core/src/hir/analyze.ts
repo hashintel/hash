@@ -42,6 +42,12 @@ export type HirDependencies = {
   tokenReads: HirTokenRead[];
   /** Whether the code reads token counts (`.length`). */
   readsTokenCounts: boolean;
+  /**
+   * Places whose live token count the code reads, through
+   * `input.<name>.count` (sorted, unique). Unlike `.length` and attribute
+   * reads, a place count is the same for every token combination.
+   */
+  placeCounts: string[];
   /** Whether the code constructs probability distributions. */
   samplesDistributions: boolean;
   /** Whether the code calls `Math.random()` (breaks reproducibility). */
@@ -429,6 +435,7 @@ class Analyzer {
   readonly dagEdges: DistributionDagEdge[] = [];
   readonly bindings: BindingRecord[] = [];
   readsTokenCounts = false;
+  readonly placeCounts = new Set<string>();
   usesMathRandom = false;
   generatesUuids = false;
   /** Depth of `.map(...)` iteration during evaluation. */
@@ -720,6 +727,11 @@ class Analyzer {
     switch (target.kind) {
       case "inputRecord":
         return { kind: "tokens", place: field };
+      case "tokens":
+        if (field === "count") {
+          this.placeCounts.add(target.place);
+        }
+        return SCALAR;
       case "token":
         this.recordTokenRead({ place: target.place, field });
         return SCALAR;
@@ -876,6 +888,7 @@ export function analyzeHir(fn: HirFunction): HirAnalysis {
     parameters: [...analyzer.globalDeps.parameters].sort(),
     tokenReads: [...analyzer.globalDeps.tokenReads.values()],
     readsTokenCounts: analyzer.readsTokenCounts,
+    placeCounts: [...analyzer.placeCounts].sort(),
     samplesDistributions: dagNodes.length > 0,
     usesMathRandom: analyzer.usesMathRandom,
     generatesUuids: analyzer.generatesUuids,

@@ -10,6 +10,7 @@ import {
 } from "../../extensions";
 import {
   AMBIENT_INPUT_NAMES,
+  buildLambdaContext,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -167,6 +168,18 @@ const SCOPE_SEPARATOR = "::";
  * For component port arcs: returns "InstanceName::PlaceName"
  * For regular place arcs: returns the place name as-is
  */
+/**
+ * The part of `input.<Place>` every input place has, declared once in the
+ * lambda and kernel definition files.
+ */
+const INPUT_COUNT_TYPE_DECLARATION = [
+  `/** An input place of this transition, named so editor messages say which. */`,
+  `type InputCount<_Place extends string> = {`,
+  `  /** How many tokens the place holds when the transition is evaluated, including the ones this firing would consume. */`,
+  `  readonly count: number;`,
+  `};`,
+].join("\n");
+
 function getPlaceDisplayNameForArc(
   arc: InputArc | OutputArc,
   sdcpn: SDCPN,
@@ -366,41 +379,38 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
-    // resolveArcPlace handles both regular place arcs and componentPort arcs.
+    // Build the input type from the same context the HIR checks against:
+    // one property per input-arc place. A place that delivers tokens is a
+    // tuple of the arc's weight plus `.count`; any other (uncoloured, or
+    // joined by an inhibitor arc) exposes `.count` alone.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
+    const lambdaContext = buildLambdaContext(sdcpn, transition, extensions);
+    const inputBindings = new Map(
+      lambdaContext.inputPlaces.map((binding) => [binding.name, binding]),
+    );
 
-    for (const arc of transition.inputArcs) {
-      // Inhibitor arcs never deliver tokens to the transition, so they should
-      // not contribute to the input type. Read arcs do deliver tokens and are
-      // typed like standard input arcs.
-      if (arc.type === "inhibitor") {
+    for (const { name } of lambdaContext.inputCounts) {
+      const binding = inputBindings.get(name);
+      if (!binding) {
+        inputTypeProperties.push(`  "${name}": InputCount<"${name}">;`);
         continue;
       }
-      const place = resolveArcPlace(arc);
-      if (!extensions.colors || !place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
+      const sanitizedColorId = sanitizeColorId(binding.colorId);
       const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
+        colorId: binding.colorId,
       });
       // Only add import if not already present (multiple arcs may share the same color)
       const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
       if (!inputTypeImports.includes(importStatement)) {
         inputTypeImports.push(importStatement);
       }
-      const tokenTuple = Array.from({ length: arc.weight })
+      const tokenTuple = Array.from({ length: binding.tokenCount })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
-      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
+      inputTypeProperties.push(
+        `  "${name}": [${tokenTuple}] & InputCount<"${name}">;`,
+      );
     }
 
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
@@ -470,6 +480,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
         ].join("\n"),
@@ -502,6 +513,7 @@ export function generateVirtualFiles(
           ...allImports,
           ``,
           ...outputTokenTypeAliases.values(),
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
