@@ -51,7 +51,8 @@ export const zOfferAnswersInput = z.strictObject({
     .min(offerBounds.questions.min)
     .max(offerBounds.questions.max)
     .refine((questions) => offersAnswers({ questions }), {
-      message: "At least one question must not be open.",
+      message:
+        "Every question is open, so there is nothing to offer: don't call offer_answers for this reply.",
     })
     .describe(offerText.questions),
 }) satisfies z.ZodType<OfferedQuestions>;
