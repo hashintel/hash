@@ -80,6 +80,58 @@ console.log(serialized);
 // => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
 
+## Using HashQL logic and TypeScript logic together
+
+You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`] is executed on the server. This allows us to model concepts such as macros and build-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust).
+
+Suppose we want to make incrementing the revision optional. There are two ways to do this:
+
+```ts
+const maybeIncrement = Draft.program(
+  { revision: BigInt, enabled: Boolean },
+  ($, { revision, enabled }) => {
+    const { add } = $.prelude();
+
+    return $.if(
+      enabled,
+      () => add(revision, 1n),
+      () => revision,
+    );
+  },
+);
+```
+
+This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. Sometimes, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where build-time conditionals come in.
+
+```ts
+const buildProgram = (enabled: boolean) =>
+  Draft.program({ revision: BigInt }, ($, { revision }) => {
+    const { add } = $.prelude();
+
+    if (enabled) {
+      return add(revision, 1n);
+    } else {
+      return revision;
+    }
+  });
+```
+
+The behaviour may seem equivalent, but the generated expressions differ. In the second approach, the expression depends on the value of `enabled` at construction time.
+
+```ts
+console.log(compile(maybeIncrement));
+console.log(compile(buildProgram(false)));
+console.log(compile(buildProgram(true)));
+```
+
+The conditional logic inside `Draft.program` changes the compiled output sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
+
+The reason is simple: each program goes through a compilation step on the server. If a query remains unchanged, its compilation artefacts can be cached and reused. A query that changes with every call cannot benefit from the same reuse, leading to worse execution performance.
+
+We can also use this technique to construct reusable fragments that act as macros:
+
+(example here)
+
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
 [`Draft`]: /docs/hashql/reference/hashql/Draft
@@ -99,66 +151,6 @@ console.log(serialized);
 [`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
 
 ---
-
-Writing a HashQL program in TypeScript gives us another language to work with while we build it. We can extract repeated construction into a helper, choose which fields a query returns, or share library declarations across several programs. The [language introduction](/docs/hashql/intro) explains what the resulting HashQL means. Here, we'll use the SDK to assemble and reuse those programs.
-
-The SDK's [`Draft`](/docs/hashql/reference/hashql/Draft) API gives each program a construction context, conventionally called `$`. It keeps track of declarations and their scope while we work with expressions. [`Program`](/docs/hashql/reference/hashql/Program) provides the expression-building tools underneath Draft, as well as serialization. We'll use both as we build a task summary, starting with just its revision number.
-
-## Build an expression and see its syntax
-
-Suppose we want to propose the next revision of a task. The program takes the current revision as an Integer input and adds one:
-
-```ts title="revision.ts" data-example="revision"
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
-
-const revisionInputs = { revision: BigInt };
-
-const built = Draft.program(revisionInputs, ($, { revision }) => {
-  const { add } = $.prelude();
-  return add(revision, 1n);
-});
-```
-
-The examples use the workspace's `@local/hashql` package and `effect`. Put this code in a TypeScript file where both packages resolve. Later examples explicitly replace the program or add helpers to it.
-
-`revisionInputs` describes an input's name and type. Here, the JavaScript `BigInt` constructor denotes HashQL Integer. The callback's `revision` is an [expression handle](/docs/hashql/reference/hashql/Program/Expression#Expression): a TypeScript value representing a HashQL expression. It refers to the input that the program's caller will eventually supply. We haven't supplied a revision number yet.
-
-[`$.prelude()`](/docs/hashql/reference/hashql/Draft/Context#Context.prelude) gives us handles for library declarations. Its `add` refers to the HashQL function `::core::math::add`. Calling it combines the input reference and the literal `1` into a function-call expression.
-
-[`Draft.program`](/docs/hashql/reference/hashql/Draft#program) runs the callback immediately. It returns an Effect `Result` containing either the root expression or a construction failure. Append this block to turn that expression into J-Expr JSON text:
-
-```ts title="Serialize the program" data-example="serialize"
-const serialized = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-);
-
-Result.match(serialized, {
-  onFailure: (error) => {
-    console.error("Could not construct the program:", error);
-  },
-  onSuccess: (text) => {
-    console.log(text);
-  },
-});
-```
-
-The output is this program, formatted here for readability:
-
-```json title="Generated J-Expr" data-output="revision"
-[
-  "::core::math::add",
-  ["::kernel::special_form::input", "revision", "::kernel::type::Integer"],
-  { "#literal": 1 }
-]
-```
-
-There is the addition, with its two arguments. Running this HashQL program with revision `4` would produce `5`. Running our TypeScript code produces the syntax above.
-
-[`Program.program`](/docs/hashql/reference/hashql/Program#program) wraps the root expression as a program. [`Program.compile`](/docs/hashql/reference/hashql/Program#compile) serializes it, despite the name: the HashQL compiler and query execution come later. `Result.flatMap` lets serialization failures join construction failures in one result. Invalid binding names, callback exceptions and references that escape their scope all reach this failure path. Successful serialization alone doesn't establish that a server will accept or execute the program.
 
 ## Choose which program to build
 
