@@ -76,6 +76,10 @@ export { NumberInput } from "./components/NumberInput/number-input";
 export { Popover } from "./components/Popover/popover";
 export { Radio } from "./components/Radio/radio";
 export { RadioGroup } from "./components/RadioGroup/radio-group";
+export {
+  ReorderableList,
+  type ReorderableListItem,
+} from "./components/ReorderableList/reorderable-list";
 export { RightClickMenu } from "./components/RightClickMenu/right-click-menu";
 export {
   SegmentedControl,
