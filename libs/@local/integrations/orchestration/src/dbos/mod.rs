@@ -4,7 +4,7 @@
 //! database that every process shares. A run starts on the `integration-runs` queue with its
 //! admission key as the deduplication ID, so one run per admission key is queued or running at a
 //! time. A run function's version is DBOS's application version, so a worker executes only runs
-//! started with its function's version.
+//! started with its function's version. The shared token buckets are a table in the same schema.
 
 use alloc::{format, string::String, sync::Arc};
 use core::future::Future;
@@ -14,6 +14,7 @@ use dbos::{
     sysdb::{self, SystemDatabase as _, postgres},
 };
 use error_stack::{Report, ResultExt as _};
+use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -24,6 +25,7 @@ use crate::{
     },
 };
 
+mod coordination;
 mod runs;
 mod step;
 mod stored;
@@ -68,20 +70,24 @@ impl DbosConfig {
 /// The backend on DBOS.
 ///
 /// It holds a DBOS client, through which [`Runs`](crate::Runs) starts, reads and cancels runs
-/// without a worker. A worker is a DBOS instance of its own, built by [`Worker::work`].
+/// without a worker, and a Postgres connection of its own for the token buckets. A worker is a
+/// DBOS instance of its own, built by [`Worker::work`].
 pub struct DbosBackend {
     config: DbosConfig,
     client: Client,
+    postgres: tokio_postgres::Client,
+    /// The token bucket statement, with the schema filled in.
+    consume: String,
 }
 
 impl DbosBackend {
-    /// Connects to the system database, migrating DBOS's schema if it is missing or behind, and
-    /// registers the run queue. A queue that already exists keeps its stored limits.
+    /// Connects to the system database, migrating DBOS's schema if it is missing or behind,
+    /// registers the run queue and creates the token bucket table. A queue that already exists
+    /// keeps its stored limits.
     ///
     /// # Errors
     ///
-    /// Returns [`BackendError`] if the database is unreachable, the schema cannot be migrated, or
-    /// the queue cannot be registered.
+    /// Returns [`BackendError`] if the database is unreachable or any of these cannot be done.
     #[tracing::instrument(skip_all, fields(schema = %config.schema))]
     pub async fn connect(config: DbosConfig) -> Result<Self, Report<BackendError>> {
         migrate(&config).await?;
@@ -110,7 +116,25 @@ impl DbosBackend {
             .await
             .change_context(BackendError)?;
 
-        Ok(Self { config, client })
+        let (postgres, connection) = tokio_postgres::connect(&config.database_url, NoTls)
+            .await
+            .change_context(BackendError)?;
+        tokio::spawn(async move {
+            if let Err(error) = connection.await {
+                tracing::error!(error = %error, "the token bucket connection closed");
+            }
+        });
+        postgres
+            .batch_execute(&coordination::create_table(&config.schema))
+            .await
+            .change_context(BackendError)?;
+
+        Ok(Self {
+            consume: coordination::consume(&config.schema),
+            config,
+            client,
+            postgres,
+        })
     }
 
     /// Closes the connection to the system database.
