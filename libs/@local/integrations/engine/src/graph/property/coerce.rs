@@ -4,7 +4,10 @@
 use duckdb::types::Value;
 use hash_codec::numeric::Real;
 use hash_integrations_definition::Coercion;
-use time::{Date, Month};
+use time::{
+    Date, Time, UtcOffset, format_description::BorrowedFormatItem, macros::format_description,
+    parsing::Parsed,
+};
 use type_system::knowledge::PropertyValue;
 
 use super::value::{self, ColumnValue};
@@ -27,64 +30,88 @@ pub(super) fn apply(coercion: Coercion, value: &Value) -> Option<PropertyValue> 
     }
 }
 
+/// An ISO 8601 date, which may be followed by a time, as in a timestamp.
+const ISO_DATE: &[BorrowedFormatItem<'static>] = format_description!("[year]-[month]-[day]");
+
+/// The other date forms a column may hold.
+const DATES: [&[BorrowedFormatItem<'static>]; 3] = [
+    format_description!("[day].[month].[year]"),
+    format_description!("[day]/[month]/[year]"),
+    format_description!("[year][month][day]"),
+];
+
+/// A time of day, with an optional fraction of a second.
+const CLOCK: &[BorrowedFormatItem<'static>] =
+    format_description!("[hour]:[minute]:[second][optional [.[subsecond]]]");
+
+/// A time of day without separators.
+const PACKED_CLOCK: &[BorrowedFormatItem<'static>] = format_description!("[hour][minute][second]");
+
+/// A UTC offset, which times are written with.
+const OFFSET: &[BorrowedFormatItem<'static>] =
+    format_description!("[offset_hour sign:mandatory]:[offset_minute]");
+
+/// A value read from the start of some text, and the text after it.
+struct Prefix<'text, T> {
+    value: T,
+    rest: &'text [u8],
+}
+
+fn prefix<'text, T: TryFrom<Parsed>>(
+    text: &'text [u8],
+    format: &[BorrowedFormatItem<'_>],
+) -> Option<Prefix<'text, T>> {
+    let mut parsed = Parsed::new();
+    let rest = parsed.parse_items(text, format).ok()?;
+    Some(Prefix {
+        value: T::try_from(parsed).ok()?,
+        rest,
+    })
+}
+
 /// Reads a date in ISO 8601, `DD.MM.YYYY`, `DD/MM/YYYY` or `YYYYMMDD` form as `YYYY-MM-DD`.
 ///
-/// A timestamp keeps only its date. All-zero dates, such as `00000000` or `00.00.0000`, mean no
-/// date and are rejected, as are dates that do not exist.
+/// A timestamp keeps only its date. Dates that do not exist, such as `00.04.1946`, and the year 0
+/// are rejected.
 fn date(value: &Value) -> Option<String> {
     let text = value::text(value)?;
-    let (year, month, day) = match *text.trim().as_bytes() {
-        [y0, y1, y2, y3, b'-', m0, m1, b'-', d0, d1, ..]
-        | [d0, d1, b'.', m0, m1, b'.', y0, y1, y2, y3]
-        | [d0, d1, b'/', m0, m1, b'/', y0, y1, y2, y3]
-        | [y0, y1, y2, y3, m0, m1, d0, d1] => (
-            digits([y0, y1, y2, y3])?,
-            digits([m0, m1])?,
-            digits([d0, d1])?,
-        ),
-        _ => return None,
-    };
-    let date = Date::from_calendar_date(
-        i32::from(year),
-        Month::try_from(u8::try_from(month).ok()?).ok()?,
-        u8::try_from(day).ok()?,
-    )
-    .ok()?;
-    (year > 0).then(|| date.to_string())
+    let text = text.trim().as_bytes();
+    let date = prefix::<Date>(text, ISO_DATE)
+        .or_else(|| {
+            DATES
+                .iter()
+                .find_map(|format| prefix(text, format).filter(|date| date.rest.is_empty()))
+        })?
+        .value;
+    (date.year() > 0).then(|| date.to_string())
 }
 
 /// Reads a time in `HH:MM:SS`, `HH:MM:SS.fraction` or `HHMMSS` form, with an optional `Z` or
-/// `±HH:MM` offset. A time without an offset is taken as UTC.
+/// `±HH:MM` offset, as `HH:MM:SS[.fraction]±HH:MM`. A time without an offset is taken as UTC.
+///
+/// `000000` means no time and is rejected.
 fn time(value: &Value) -> Option<String> {
     let text = value::text(value)?;
     let text = text.trim();
-    let text = match *text.as_bytes() {
-        [b'0', b'0', b'0', b'0', b'0', b'0'] => return None,
-        [h0, h1, m0, m1, s0, s1] if [h0, h1, m0, m1, s0, s1].iter().all(u8::is_ascii_digit) => {
-            String::from_utf8(vec![h0, h1, b':', m0, m1, b':', s0, s1]).ok()?
+    if text == "000000" {
+        return None;
+    }
+    let clock = [CLOCK, PACKED_CLOCK]
+        .into_iter()
+        .find_map(|format| prefix::<Time>(text.as_bytes(), format))?;
+    let offset = match clock.rest {
+        [] | [b'Z' | b'z'] => UtcOffset::UTC,
+        rest => {
+            prefix(rest, OFFSET)
+                .filter(|offset| offset.rest.is_empty())?
+                .value
         }
-        _ => text.to_owned(),
     };
-    let (&[h0, h1, b':', m0, m1, b':', s0, s1], mut rest) = text.as_bytes().split_first_chunk()?
-    else {
-        return None;
-    };
-    if digits([h0, h1])? >= 24 || digits([m0, m1])? >= 60 || digits([s0, s1])? >= 60 {
-        return None;
-    }
-    if let Some(fraction) = rest.strip_prefix(b".") {
-        let length = fraction
-            .iter()
-            .take_while(|byte| byte.is_ascii_digit())
-            .count();
-        rest = fraction.get(length..).filter(|_| length > 0)?;
-    }
-    match *rest {
-        [] => Some(format!("{text}+00:00")),
-        [b'Z' | b'z'] => Some(text),
-        [b'+' | b'-', h0, h1, b':', m0, m1] if digits([h0, h1, m0, m1]).is_some() => Some(text),
-        _ => None,
-    }
+    Some(format!(
+        "{}{}",
+        value::clock(clock.value)?,
+        offset.format(OFFSET).ok()?
+    ))
 }
 
 /// Reads `X`, `TRUE`, `1`, `YES` or `Y` in any case as `true`, and anything else as `false`.
@@ -149,22 +176,7 @@ fn decimal_text(value: &Value) -> Option<String> {
     })
 }
 
-/// Parses a decimal or scientific number, rejecting infinities and `NaN`.
+/// Parses a decimal or scientific number that a property can hold.
 fn parse_number(text: &str) -> Option<Real> {
-    if let Ok(integer) = text.parse::<i64>() {
-        return Some(Real::from(integer));
-    }
-    let float = text.parse::<f64>().ok().filter(|float| float.is_finite())?;
-    text.parse::<Real>()
-        .ok()
-        .or_else(|| Real::try_from(float).ok())
-}
-
-/// The value of `N` ASCII decimal digits, or `None` if one is not a digit.
-fn digits<const N: usize>(digits: [u8; N]) -> Option<u16> {
-    digits.iter().try_fold(0_u16, |value, &digit| {
-        digit
-            .is_ascii_digit()
-            .then(|| value * 10 + u16::from(digit - b'0'))
-    })
+    value::finite(text.parse().ok()?)
 }

@@ -81,13 +81,14 @@ fn date(#[case] value: Value, #[case] expected: Option<PropertyValue>) {
 #[case::clock(text("10:30:00"), string("10:30:00+00:00"))]
 #[case::packed(text("103000"), string("10:30:00+00:00"))]
 #[case::fraction(text("10:30:00.25"), string("10:30:00.25+00:00"))]
-#[case::utc(text("10:30:00Z"), string("10:30:00Z"))]
+#[case::utc(text("10:30:00.500Z"), string("10:30:00.5+00:00"))]
 #[case::offset(text("10:30:00+02:00"), string("10:30:00+02:00"))]
 #[case::time_value(
     Value::Time64(TimeUnit::Microsecond, 37_800_250_000),
     string("10:30:00.25+00:00")
 )]
 #[case::zero(text("000000"), None)]
+#[case::bare_fraction(text("10:30:00."), None)]
 #[case::out_of_range(text("25:00:00"), None)]
 #[case::word(text("noon"), None)]
 fn time(#[case] value: Value, #[case] expected: Option<PropertyValue>) {
@@ -116,6 +117,7 @@ fn boolean(#[case] value: Value, #[case] expected: bool) {
 #[case::scientific(Coercion::Number, text("1e3"), number("1000"))]
 #[case::numeric_value(Coercion::Number, Value::BigInt(-4), number("-4"))]
 #[case::infinite(Coercion::Number, text("inf"), None)]
+#[case::beyond_f64(Coercion::Number, text("1e400"), None)]
 #[case::not_a_number(Coercion::Number, text("n/a"), None)]
 #[case::truncated(Coercion::Integer, text("12.9"), number("12"))]
 #[case::truncated_negative(Coercion::Integer, text("-3,7"), number("-3"))]

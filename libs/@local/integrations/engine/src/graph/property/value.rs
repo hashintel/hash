@@ -121,8 +121,8 @@ pub(super) fn as_number(value: &Value) -> Option<Real> {
         Value::UBigInt(number) => Some(Real::from(*number)),
         Value::UHugeInt(number) => Some(Real::from(*number)),
         // `Real` holds infinities and `NaN`, which a property cannot.
-        Value::Float(number) => finite(f64::from(*number)),
-        Value::Double(number) => finite(*number),
+        Value::Float(number) => Real::try_from(*number).ok().and_then(finite),
+        Value::Double(number) => Real::try_from(*number).ok().and_then(finite),
         Value::Decimal(number) => number.to_string().parse().ok(),
         Value::Null
         | Value::Boolean(_)
@@ -143,11 +143,10 @@ pub(super) fn as_number(value: &Value) -> Option<Real> {
     }
 }
 
-fn finite(number: f64) -> Option<Real> {
-    number
-        .is_finite()
-        .then(|| Real::try_from(number).ok())
-        .flatten()
+/// `number` if it is finite. A property's number is written as an `f64`, so this also rejects
+/// numbers too large for one.
+pub(super) fn finite(number: Real) -> Option<Real> {
+    number.to_f64_lossy().is_finite().then_some(number)
 }
 
 /// Renders a row value as text for a conversion to read, or `None` if it is null or has no text
@@ -171,15 +170,8 @@ pub(super) fn text(value: &Value) -> Option<Cow<'_, str>> {
         Value::UHugeInt(number) => Cow::Owned(number.to_string()),
         Value::Float(number) => Cow::Owned(float_text(f64::from(*number))?),
         Value::Double(number) => Cow::Owned(float_text(*number)?),
-        Value::Decimal(number) => {
-            // Drop the zeros the column's scale pads with, so `8030.00` reads as `8030`.
-            let text = number.to_string();
-            Cow::Owned(if text.contains('.') {
-                text.trim_end_matches('0').trim_end_matches('.').to_owned()
-            } else {
-                text
-            })
-        }
+        // `Real` drops the zeros the column's scale pads with, so `8030.00` reads as `8030`.
+        Value::Decimal(_) => Cow::Owned(as_number(value)?.to_string()),
         Value::Date32(days) => Cow::Owned(date(*days)?.to_string()),
         Value::Timestamp(unit, value) => Cow::Owned(
             OffsetDateTime::from_unix_timestamp_nanos(i128::from(unit.to_micros(*value)) * 1_000)
@@ -201,21 +193,9 @@ pub(super) fn text(value: &Value) -> Option<Cow<'_, str>> {
     })
 }
 
-/// Renders a float as JavaScript's `String()` does for the values pipelines see: integral values
-/// without a fraction, others in their shortest form.
+/// Renders a finite float in its shortest form, without a fraction if it is integral.
 fn float_text(number: f64) -> Option<String> {
-    if !number.is_finite() {
-        return None;
-    }
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "checked to be integral and within the exactly representable range"
-    )]
-    Some(if number.fract() == 0.0 && number.abs() < 1e15 {
-        (number as i64).to_string()
-    } else {
-        number.to_string()
-    })
+    number.is_finite().then(|| number.to_string())
 }
 
 fn date(days: i32) -> Option<Date> {
@@ -228,15 +208,15 @@ fn time_of_day(unit: TimeUnit, value: i64) -> Option<String> {
     if !(0..86_400_000_000).contains(&micros) {
         return None;
     }
-    let time = Time::MIDNIGHT + Duration::microseconds(micros);
-    let clock = time
-        .format(format_description!("[hour]:[minute]:[second]"))
-        .ok()?;
-    if time.microsecond() == 0 {
-        return Some(clock);
-    }
-    let fraction = time
-        .format(format_description!("[subsecond digits:6]"))
-        .ok()?;
-    Some(format!("{clock}.{}", fraction.trim_end_matches('0')))
+    clock(Time::MIDNIGHT + Duration::microseconds(micros))
+}
+
+/// Renders `time` as `HH:MM:SS`, with a fraction in its shortest form only if it has one.
+pub(super) fn clock(time: Time) -> Option<String> {
+    let format = if time.nanosecond() == 0 {
+        format_description!("[hour]:[minute]:[second]")
+    } else {
+        format_description!("[hour]:[minute]:[second].[subsecond digits:1+]")
+    };
+    time.format(format).ok()
 }
