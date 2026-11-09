@@ -55,6 +55,8 @@ export type HirCompiledBufferLambda = (
   u8: Uint8Array,
   placeBases: Int32Array,
   indices: Int32Array,
+  /** Live token count of each input arc's place, in input-arc order. */
+  inputCounts: Float64Array,
 ) => number | boolean;
 
 /**
@@ -83,6 +85,8 @@ export type HirCompiledBufferKernel = (
   outU64: BigUint64Array,
   outU8: Uint8Array,
   sink: HirKernelSink,
+  /** Live token count of each input arc's place, in input-arc order. */
+  inputCounts: Float64Array,
 ) => void;
 
 export type HirLambdaArtifact = {

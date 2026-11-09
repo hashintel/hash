@@ -400,6 +400,7 @@ export function compileNetShader(
         profile,
         discreteTypesByPlaceId: discreteTypes,
         selectionTokenSlots: firing.selectionTokenSlots,
+        inputCounts: firing.inputCounts,
         parameterValues: emitterParameterValues,
         extensions,
       });

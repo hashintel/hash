@@ -816,8 +816,8 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(0);
     });
 
-    it("returns invalid when accessing untyped input place", () => {
-      // GIVEN - place2 has no color, so it should not appear in input
+    it("returns invalid when indexing an uncoloured input place's tokens", () => {
+      // GIVEN - place2 has no color, so `input.Untyped` exposes `.count` only
       const sdcpn = createSDCPN({
         types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
         places: [
@@ -834,7 +834,7 @@ describe("checkSDCPN", () => {
             ],
             outputArcs: [{ placeId: "place3", weight: 1 }],
             transitionKernelCode: `export default TransitionKernel((input, parameters) => {
-              // Accessing Untyped should fail since it has no color
+              // Untyped tokens carry no values; only its count is readable
               const token = input.Untyped[0];
               return { Target: [{ x: 1 }] };
             });`,
@@ -846,13 +846,47 @@ describe("checkSDCPN", () => {
       // WHEN
       const result = check(sdcpn);
 
-      // THEN - should error because Untyped is not in the input type
+      // THEN
       expect(result.isValid).toBe(false);
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
-      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "Untyped",
+      const messages = result.itemDiagnostics[0]!.diagnostics.map(
+        (diagnostic) =>
+          typeof diagnostic.messageText === "string"
+            ? diagnostic.messageText
+            : diagnostic.messageText.messageText,
       );
+      expect(messages.join("\n")).toContain("Untyped");
+    });
+
+    it("accepts reading an uncoloured input place's count", () => {
+      // GIVEN
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Untyped", colorId: null },
+          { id: "place3", name: "Target", colorId: "color1" },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            inputArcs: [
+              { placeId: "place1", weight: 1, type: "standard" },
+              { placeId: "place2", weight: 1, type: "inhibitor" },
+            ],
+            outputArcs: [{ placeId: "place3", weight: 1 }],
+            transitionKernelCode: `return { Target: [{ x: input.Source[0].x + input.Source.count + input.Untyped.count }] };`,
+          },
+        ],
+      });
+
+      // WHEN
+      const result = check(sdcpn);
+
+      // THEN
+      expect(result.itemDiagnostics).toEqual([]);
+      expect(result.isValid).toBe(true);
     });
 
     it("returns invalid when returning untyped output place instead of typed one", () => {

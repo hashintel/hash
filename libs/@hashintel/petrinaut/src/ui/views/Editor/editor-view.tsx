@@ -19,6 +19,7 @@ import {
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
@@ -399,6 +400,14 @@ const EditorViewContent = ({
                 text: "SIR Model",
                 onClick: () => {
                   createNewNet(sirModel);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-sir-mass-action",
+                text: "SIR Mass-Action Model",
+                onClick: () => {
+                  createNewNet(sirMassActionModel);
                   clearSelection();
                 },
               },

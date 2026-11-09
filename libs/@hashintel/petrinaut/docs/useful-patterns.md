@@ -143,6 +143,35 @@ An input arc with **weight > 1** requires multiple tokens from the same place fo
 
 The transition kernel receives the consumed tokens and can compute outputs based on all of them.
 
+## Mass-action and population-dependent rates
+
+A stochastic rate is the transition's total rate, so a constant rate fires just as often whether a place holds 2 tokens or 2,000. To make a rate follow the population, read the token counts of the input places with `input.Place.count` (see [Reading input places](petri-net-extensions.md#reading-input-places)).
+
+**Mass action.** In a reaction network, a reaction fires at a rate constant times the counts of its inputs. For `S + I -> 2I`:
+
+```ts
+return parameters.beta * input.Susceptible.count * input.Infected.count;
+```
+
+and for `I -> R`, each infected individual recovers at rate `gamma`:
+
+```ts
+return parameters.gamma * input.Infected.count;
+```
+
+When an input arc has weight 2 (`2A -> B`), count unordered pairs of tokens: `parameters.k * A * (A - 1) / 2` with `const A = input.A.count;`.
+
+**Other rate laws.** Any expression of the counts works, for example saturating Michaelis-Menten kinetics, with the enzyme on a read arc so it is not consumed:
+
+```ts
+const S = input.Substrate.count;
+return (parameters.kcat * input.Enzyme.count * S) / (parameters.Km + S);
+```
+
+**Step size.** The simulation fires each transition at most once per time step, so a rate that grows with the population needs a time step small enough that `rate * dt` stays well below 1 (0.1 or less keeps the error to a few percent).
+
+**Example:** the [SIR Mass-Action Model](examples.md#sir-mass-action-model) fires infection at `beta * S * I` and recovery at `gamma * I`.
+
 ## Optimization objectives (metrics that read parameters)
 
 A [metric](simulation.md) can read `parameters` directly, not just place token counts. This lets one metric express an economic objective -- revenue minus costs -- whose value depends both on how the run unfolded and on the decision parameters that drove it. Maximizing (or minimizing) that metric turns the model into an optimization problem.
