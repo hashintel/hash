@@ -64,6 +64,19 @@ The closure is immediately evaluated, and does not propagate panics, instead it 
 
 The prelude is the set of symbols, such as [`add`], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Draft`] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server on execution, and overriding it will almost certainly lead to unexpected behaviour.
 
+To be able to use the compiled program, one must first make sure that the program is well-formed, users of [`effect`] should use the necessary facilities, such as [`Effect.fromResult`], to handle the [`Result`] value appropriately, outside of effect, one can use [`Result.getOrThrow`] to throw an error if the program is not well-formed.
+
+```ts title="Serialize the program" data-example="serialize"
+const serialized = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+```
+
+The output is an `Expression`, which can be used in other HashQL operations, and records the inputs and output type, this allows for natural composition of multiple HashQL fragments. A finished `Expression` can then be turned into a `Program` using the [`Program.program`] function. This `Program` itself does not do much, except signal that the program is well-formed and ready to be executed, but does not guarantee syntactic correctness. `Program.compile` then turns the `Program` into `J-Expr` JSON, which can then be sent to the server.
+
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
 [`Draft`]: /docs/hashql/reference/hashql/Draft
