@@ -48,6 +48,16 @@
         "petrinaut-optimizer-core"
       ]
     },
+    "probe:load": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
     "probe:ownership-unit": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
