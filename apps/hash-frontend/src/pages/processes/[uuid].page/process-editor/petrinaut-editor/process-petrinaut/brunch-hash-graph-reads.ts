@@ -200,6 +200,18 @@ const closedTypeIn = (
   }
 };
 
+/** Collect actual keys, including nested objects and arrays; definitions remain authoritative. */
+const collectPropertyKeys = (value: unknown, found: Set<string>) => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectPropertyKeys(item, found);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      found.add(key);
+      collectPropertyKeys(item, found);
+    }
+  }
+};
+
 /**
  * Every entity edition in the response, each described only from itself, so
  * its edition id is the edition whose properties it carries, and labelled
@@ -243,9 +255,9 @@ export const hashEntityReadResult = (
 
   // Each property the entities carry, by base URL, from its latest version
   // the response resolved; and each type they carry, by its title.
-  const usedBaseUrls = new Set(
-    entities.flatMap(({ entity }) => Object.keys(entity.properties)),
-  );
+  const usedBaseUrls = new Set<string>();
+  for (const { entity } of entities)
+    collectPropertyKeys(entity.properties, usedBaseUrls);
   const propertyTypesByBaseUrl = new Map<
     BaseUrl,
     { versionedUrl: VersionedUrl; title: string; description?: string }

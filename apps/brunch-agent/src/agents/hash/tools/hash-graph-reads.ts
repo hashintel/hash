@@ -74,10 +74,23 @@ const formatBytes = (bytes: number) =>
       ? `${(bytes / 1000).toFixed(1)} KB`
       : `${(bytes / 1_000_000).toFixed(1)} MB`;
 
+/**
+ * A name or identifier from HASH's graph — a key, slug, URL or shortname,
+ * which a HASH user may have written — as it is shown inside the read's text:
+ * bare when it is a plain word or URL, else JSON-quoted, so no line break,
+ * quote, comma or brace in it can pose as more of the read's structure.
+ */
+const plainOrQuoted = (text: string) =>
+  /^[\p{L}\p{N}_.~:/?#@!$&*+=%-]+$/u.test(text) ? text : JSON.stringify(text);
+
+/** The slug in a property or entity type URL, if it is one. */
+const slugOf = (url: string) =>
+  /\/(?:property|entity)-type\/([^/]+)\//.exec(url)?.[1];
+
 /** `…/property-type/planned-delivery-time/` → `planned_delivery_time`. */
 const slugName = (url: string) => {
-  const slug = /\/(?:property|entity)-type\/([^/]+)\//.exec(url)?.[1];
-  return slug === undefined ? url : slug.replaceAll("-", "_");
+  const slug = slugOf(url);
+  return plainOrQuoted(slug === undefined ? url : slug.replaceAll("-", "_"));
 };
 
 /**
@@ -94,20 +107,20 @@ const propertyNamer = (baseUrls: Iterable<string>) => {
   }
   return (baseUrl: string) => {
     const slug = slugName(baseUrl);
-    return sharedSlugs.has(slug) ? baseUrl : slug;
+    return sharedSlugs.has(slug) ? plainOrQuoted(baseUrl) : slug;
   };
 };
 
 type PropertyNamer = ReturnType<typeof propertyNamer>;
 
-/** Adds to `found` the type URLs `value` uses as keys, at any depth. */
-const collectNestedTypeUrls = (value: unknown, found: Set<string>) => {
+/** Collects keys at any depth: literal JSON keys reserve aliases too. */
+const collectNestedKeys = (value: unknown, found: Set<string>) => {
   if (Array.isArray(value)) {
-    for (const item of value) collectNestedTypeUrls(item, found);
+    for (const item of value) collectNestedKeys(item, found);
   } else if (typeof value === "object" && value !== null) {
     for (const [key, item] of Object.entries(value)) {
-      if (slugName(key) !== key) found.add(key);
-      collectNestedTypeUrls(item, found);
+      found.add(key);
+      collectNestedKeys(item, found);
     }
   }
 };
@@ -318,13 +331,10 @@ export const hashEntityReadForModel = (
       ...unmatchedFullNote,
     ].join("\n");
 
-  const carriedBaseUrls = new Set(
-    entities.flatMap(({ properties }) => Object.keys(properties)),
-  );
-  const namedBaseUrls = new Set(carriedBaseUrls);
+  const carriedKeys = new Set<string>();
   for (const { properties } of entities)
-    collectNestedTypeUrls(Object.values(properties), namedBaseUrls);
-  const nameOf = propertyNamer(namedBaseUrls);
+    collectNestedKeys(properties, carriedKeys);
+  const nameOf = propertyNamer(carriedKeys);
   const typeTitles = new Map(
     entityTypes.map(({ entityTypeId, title }) => [
       entityTypeId,
@@ -342,7 +352,7 @@ export const hashEntityReadForModel = (
   const headingOf = (id: string) => {
     const title = titleOf(id);
     return (typesByTitle.get(title)?.length ?? 0) > 1
-      ? `${title} (${id})`
+      ? `${title} (${plainOrQuoted(id)})`
       : title;
   };
   const linked = entities.filter(({ matched }) => !matched).length;
@@ -380,7 +390,7 @@ export const hashEntityReadForModel = (
   const summarised = rendered.some((entity) => entity.summarised);
 
   const legend = propertyTypes
-    .filter(({ baseUrl }) => carriedBaseUrls.has(baseUrl))
+    .filter(({ baseUrl }) => carriedKeys.has(baseUrl))
     .map(
       ({ baseUrl, title, description }) =>
         `  ${nameOf(baseUrl)}: ${legendLine(title, description)}`,
@@ -397,7 +407,9 @@ export const hashEntityReadForModel = (
     ...unmatchedFullNote,
     ...(legend.length === 0 ? [] : ["properties:", ...legend]),
     "entity types:",
-    ...[...typesByTitle].map(([title, ids]) => `  ${title}: ${ids.join(", ")}`),
+    ...[...typesByTitle].map(
+      ([title, ids]) => `  ${title}: ${ids.map(plainOrQuoted).join(", ")}`,
+    ),
     "entities:",
     ...rendered.map(({ block }) => block),
   ].join("\n");
@@ -489,7 +501,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
     ...truncationNote(truncated),
     ...entityTypes.map((type) =>
       [
-        `- ${oneLine(type.title)}: ${type.entityTypeId}`,
+        `- ${oneLine(type.title)}: ${plainOrQuoted(type.entityTypeId)}`,
         ...(type.description === undefined || type.description === ""
           ? []
           : [`  description: ${oneLine(type.description)}`]),
@@ -508,10 +520,10 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
               "  links:",
               ...type.links.map(
                 ({ linkEntityTypeId, title, destinationEntityTypeIds }) =>
-                  `    ${title === undefined ? slugName(linkEntityTypeId) : oneLine(title)}: ${linkEntityTypeId} -> ${
+                  `    ${title === undefined ? slugName(linkEntityTypeId) : oneLine(title)}: ${plainOrQuoted(linkEntityTypeId)} -> ${
                     destinationEntityTypeIds === undefined
                       ? "any"
-                      : destinationEntityTypeIds.join(", ")
+                      : destinationEntityTypeIds.map(plainOrQuoted).join(", ")
                   }`,
               ),
             ]),
@@ -569,7 +581,7 @@ export const hashWebReadForModel = (output: unknown) => {
       [
         `- ${kind}`,
         ...(name === undefined ? [] : [JSON.stringify(name)]),
-        ...(shortname === undefined ? [] : [`@${shortname}`]),
+        ...(shortname === undefined ? [] : [`@${plainOrQuoted(shortname)}`]),
         `webId: ${webId}`,
       ].join(" "),
     ),

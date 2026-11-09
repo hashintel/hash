@@ -371,6 +371,56 @@ test("the read runs the request it built and returns each entity from its own ed
   });
 });
 
+test("nested property definitions retain units through arrays without defining opaque JSON keys", async () => {
+  const durationUrl = "https://hash.ai/@alice/types/property-type/duration/";
+  const properties = {
+    [nameUrl]: "Acme Parts",
+    "https://hash.ai/@alice/types/property-type/order/": {
+      items: [{ [durationUrl]: 5, note: "opaque", duration: 1 }],
+    },
+  };
+  const nestedResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      definitions: {
+        ...response.queryEntitySubgraph.definitions,
+        propertyTypes: {
+          ...response.queryEntitySubgraph.definitions?.propertyTypes,
+          [`${durationUrl}v/1`]: propertyType(
+            `${durationUrl}v/1`,
+            "Duration",
+            "Elapsed time in days.",
+          ),
+        },
+      },
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "edition-2",
+              properties,
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+  const output = await run(() => Promise.resolve(nestedResponse), {});
+  expect(output).toMatchObject({
+    propertyTypes: [
+      { baseUrl: nameUrl, title: "Name", description: "What it's called." },
+      {
+        baseUrl: durationUrl,
+        title: "Duration",
+        description: "Elapsed time in days.",
+      },
+    ],
+    entities: [{ properties }],
+  });
+});
+
 test("an entity reached by following links is left out when archived by its property, as pages are", async () => {
   const { subgraph } = response.queryEntitySubgraph;
   const withArchivedPage = {
