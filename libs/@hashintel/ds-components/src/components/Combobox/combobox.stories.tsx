@@ -8,7 +8,7 @@ import { Dialog } from "../Dialog/dialog";
 import { Combobox } from "./combobox";
 import { MultipleDemo } from "./multi-combobox.story";
 
-import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-list";
 import type { ComboboxItem, ComboboxProps } from "./combobox";
 import type { MultiComboboxProps } from "./multi-combobox.story";
 import type { Meta, StoryObj } from "@storybook/react-vite";

@@ -21,6 +21,9 @@ const sourceFiles = [
   ...globSync("./src/components/*/*.tsx", {
     exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
   }),
+  ...globSync("./src/primitives/*/*.tsx", {
+    exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.fixtures.tsx"],
+  }),
   // Compound parts (Dialog.Body, Popover.Footer, …) are defined in src/util.
   ...globSync("./src/util/**/*.tsx", {
     exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.fixtures.tsx"],

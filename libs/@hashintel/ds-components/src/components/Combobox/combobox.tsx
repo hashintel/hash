@@ -13,19 +13,14 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
-import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
-import { OverflowRow } from "../../util/OverflowRow/overflow-row";
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { renderAdornment } from "../../util/render-adornment";
-import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
+import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
+import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   type Item,
   type ItemOrGroup,
   SelectableList,
-} from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
+} from "../../primitives/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../primitives/SelectableList/selectable-list-multi-suffix";
 import {
   type CollapsibleExpansion,
   type CollapsibleFolder,
@@ -34,7 +29,12 @@ import {
   flattenVisibleItems,
   getItemId,
   useCollapsibleExpansion,
-} from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list-util";
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
+import { renderAdornment } from "../../util/render-adornment";
 import { Chip } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
