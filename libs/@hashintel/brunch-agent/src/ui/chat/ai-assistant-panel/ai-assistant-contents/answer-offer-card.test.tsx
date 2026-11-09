@@ -13,7 +13,7 @@ import { AnswerOfferCard } from "./answer-offer-card";
 import type {
   OfferedQuestion,
   OfferedQuestions,
-} from "../../../../conversation/question-kinds/kinds";
+} from "../../../../conversation/question-kinds";
 
 afterEach(cleanup);
 

@@ -2,11 +2,12 @@ import { describe, expect, expectTypeOf, test } from "vitest";
 
 import {
   brunchTools,
-  type OfferAnswersInput,
   type OfferedQuestions,
   zOfferAnswersInput,
 } from "../index";
-import { offerBounds, offerText, questionKinds } from "./question-kinds/kinds";
+import { offerBounds, offerText, questionKinds } from "./question-kinds";
+
+import type { z } from "zod";
 
 const quarantine = {
   kind: "choose",
@@ -98,7 +99,9 @@ describe("offer_answers input", () => {
   });
 
   test("parses exactly the domain's question shape", () => {
-    expectTypeOf<OfferAnswersInput>().toEqualTypeOf<OfferedQuestions>();
+    expectTypeOf<
+      z.output<typeof zOfferAnswersInput>
+    >().toEqualTypeOf<OfferedQuestions>();
   });
 
   test("tells the model what each field means, with the domain's bounds", () => {
