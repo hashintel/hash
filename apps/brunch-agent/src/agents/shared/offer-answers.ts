@@ -9,6 +9,8 @@ import {
   zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
+import { repliesWith, turnPartsWith } from "./ledger-tools.ts";
+
 const kindUses = Object.entries(questionKinds).map(
   ([kind, { use }]) => `${kind} ${use}`,
 );
@@ -22,8 +24,6 @@ export const offerAnswersToolDescription = [
   "The user can always answer in their own words.",
 ].join(" ");
 
-const vCallPart = v.object({ toolCallId: v.string() });
-const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
 const vClosingCommitPart = v.object({
   toolName: v.literal(brunchTools.ledgerCommit),
   input: v.object({ endTurn: v.literal(true) }),
@@ -31,23 +31,16 @@ const vClosingCommitPart = v.object({
 });
 
 /**
- * Whether the message holding this call closes as `ledger_commit` would: it
- * has replied, and holds a commit with `endTurn` still running in this batch
- * or already recorded. One message spans every step of a turn, so a commit
- * that closed nothing in an earlier step must not let this call end it.
+ * Whether the turn closes as `ledger_commit` would: it has replied by this
+ * call, and holds a commit with `endTurn` still running in this batch or
+ * already recorded. Without the reply this call keeps the turn open, so the
+ * user still gets one.
  */
-const closesWithCommit = (history: LedgerHistory, toolCallId: string) => {
-  const parts = history.messages.find((message) =>
-    message.parts.some(
-      (part) => v.is(vCallPart, part) && part.toolCallId === toolCallId,
-    ),
-  )?.parts;
-  return (
-    parts !== undefined &&
-    parts.some((part) => v.is(vTextPart, part) && part.text.trim() !== "") &&
-    parts.some((part) => v.is(vClosingCommitPart, part))
+const closesWithCommit = (history: LedgerHistory, toolCallId: string) =>
+  repliesWith(history, toolCallId) &&
+  turnPartsWith(history, toolCallId).some((part) =>
+    v.is(vClosingCommitPart, part),
   );
-};
 
 /**
  * Buttons and fields beneath the reply for the questions it asks. Returns at
@@ -60,9 +53,8 @@ export const createOfferAnswersTool = (
     name: brunchTools.offerAnswers,
     description: offerAnswersToolDescription,
     input: zOfferAnswersInput,
-    async run({ data, toolCallId, signal }) {
+    async run({ data, toolCallId }) {
       const history = await readHistory();
-      signal?.throwIfAborted();
       return {
         output: { offered: data.questions.length },
         // Flue ends a batch only when every call in it terminates, so the

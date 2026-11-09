@@ -35,9 +35,9 @@ import {
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { createOfferAnswersTool } from "../src/agents/shared/offer-answers.ts";
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
 import { browserResultEnvelope } from "../src/shared/conversation/browser-tool-executor.ts";
-import { createOfferAnswersTool } from "../src/shared/offer-answers.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
 
 type Step = (context: TranscriptContext) => AssistantMessage;

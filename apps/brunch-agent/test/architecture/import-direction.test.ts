@@ -134,7 +134,17 @@ const isOutsideQuestionKinds = (modulePath: string): boolean =>
   modulePath.startsWith(`${libraryRoot}/src/ui/`) ||
   modulePath.startsWith(`${libraryRoot}/src/ui.ts`) ||
   modulePath.startsWith(`${libraryRoot}/src/conversation/offer-answers`) ||
-  ["zod", "react", "ai", "@flue"].some((name) => isPackage(modulePath, name));
+  modulePath === `${libraryRoot}/src/index.ts` ||
+  [
+    "zod",
+    "valibot",
+    "react",
+    "ai",
+    "@ai-sdk",
+    "@flue",
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers",
+  ].some((name) => isPackage(modulePath, name));
 
 const isInternalSpecifier = (modulePath: string): boolean =>
   modulePath.startsWith(".") ||
@@ -255,8 +265,15 @@ describe("Brunch import direction", () => {
     ...(
       [
         ["zod", "node_modules/zod/index.js"],
+        ["valibot", "node_modules/valibot/dist/index.js"],
         ["react", "node_modules/react/index.js"],
         ["ai", "node_modules/ai/dist/index.mjs"],
+        ["@ai-sdk/react", "node_modules/@ai-sdk/react/dist/index.mjs"],
+        [
+          "@hashintel/ds-components",
+          "libs/@hashintel/ds-components/dist/main.js",
+        ],
+        ["../../index", `${libraryRoot}/src/index.ts`],
         [
           "../offer-answers",
           `${libraryRoot}/src/conversation/offer-answers.ts`,
