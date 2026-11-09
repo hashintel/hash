@@ -5,6 +5,7 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 
 import { getNameLabel } from "../shared/name-label";
 import { getStepsBefore } from "../shared/step-order";
+import { getFlowInputLabel } from "../shared/value-display";
 import { findStep, getStepName } from "./shared/find-step";
 
 import type {
@@ -144,7 +145,7 @@ export const getSourceOptions = ({
         ? [
             {
               source: { kind: "flow-input", inputName: name },
-              label: label ?? getNameLabel(name),
+              label: getFlowInputLabel({ label, name }),
               from: `Start · ${flowInputsLabel}`,
               shape,
             },
@@ -205,7 +206,7 @@ export const getSourceLabel = (
         ({ name }) => name === source.inputName,
       );
 
-      return `${flowInputsLabel} › ${flowInput?.label ?? getNameLabel(source.inputName)}`;
+      return `${flowInputsLabel} › ${flowInput ? getFlowInputLabel(flowInput) : getNameLabel(source.inputName)}`;
     }
 
     case "step-output": {

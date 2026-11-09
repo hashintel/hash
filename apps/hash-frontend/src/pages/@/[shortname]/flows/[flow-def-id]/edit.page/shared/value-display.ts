@@ -1,5 +1,16 @@
+import { getNameLabel } from "./name-label";
+
 import type { IconName } from "@hashintel/ds-components";
-import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowInputDefinition,
+  PayloadKind,
+} from "@local/hash-isomorphic-utils/flows/types";
+
+/** A flow input as people read it: its label, or else its name. */
+export const getFlowInputLabel = ({
+  label,
+  name,
+}: Pick<FlowInputDefinition, "label" | "name">) => label ?? getNameLabel(name);
 
 const kindDisplays: Record<PayloadKind, { label: string; icon: IconName }> = {
   ActorType: { label: "actor type", icon: "user" },
