@@ -49,6 +49,22 @@ const answerText = (
   }
 };
 
+const answerTexts = (
+  offer: OfferedQuestions,
+  answers: readonly (QuestionAnswer | undefined)[],
+) =>
+  offer.questions.map((question, index) => {
+    const answer = answers[index];
+    return answer === undefined ? undefined : answerText(question, answer);
+  });
+
+const lineHead = (label: string, index: number) => `${index + 1}. ${label}:`;
+
+const line = (label: string, index: number, text: string | undefined) =>
+  text === undefined
+    ? lineHead(label, index)
+    : `${lineHead(label, index)} ${text}`;
+
 /**
  * What the person sends, or the draft they finish in the composer, for the
  * answers given so far, by question position. It must read correctly on its
@@ -59,18 +75,14 @@ export const composeAnswers = (
   offer: OfferedQuestions,
   answers: readonly (QuestionAnswer | undefined)[],
 ): string | undefined => {
-  const texts = offer.questions.map((question, index) => {
-    const answer = answers[index];
-    return answer === undefined ? undefined : answerText(question, answer);
-  });
+  const texts = answerTexts(offer, answers);
   if (texts.every((text) => text === undefined)) return undefined;
   if (texts.length === 1) return texts[0];
 
   const covered = coversTurn(offer);
   const lines = offer.questions.flatMap(({ label }, index) => {
     const text = texts[index];
-    if (text !== undefined) return [`${index + 1}. ${label}: ${text}`];
-    return covered ? [] : [`${index + 1}. ${label}:`];
+    return text === undefined && covered ? [] : [line(label, index, text)];
   });
   const unanswered = offer.questions
     .filter((_question, index) => texts[index] === undefined)
@@ -78,4 +90,36 @@ export const composeAnswers = (
   return covered && unanswered.length > 0
     ? `${lines.join("\n")}\n\nNot answered yet: ${unanswered.join(", ")}.`
     : lines.join("\n");
+};
+
+/**
+ * The composer's next text once these answers are written into `draft`. A
+ * blank composer gets a numbered line for every question. Otherwise each
+ * answered question's line is rewritten in place, or appended when the person
+ * has removed it, and every other line stays as they typed it.
+ */
+export const fillDraft = (
+  draft: string,
+  offer: OfferedQuestions,
+  answers: readonly (QuestionAnswer | undefined)[],
+): string => {
+  const texts = answerTexts(offer, answers);
+  if (texts.every((text) => text === undefined)) return draft;
+  if (draft.trim() === "")
+    return offer.questions
+      .map(({ label }, index) => line(label, index, texts[index]))
+      .join("\n");
+
+  const lines = draft.split("\n");
+  for (const [index, { label }] of offer.questions.entries()) {
+    const text = texts[index];
+    if (text === undefined) continue;
+    const head = lineHead(label, index);
+    const filled = line(label, index, text);
+    const at = lines.findIndex((existing) => existing.startsWith(head));
+    if (at !== -1) lines[at] = filled;
+    else if (lines.at(-1) === "") lines[lines.length - 1] = filled;
+    else lines.push(filled);
+  }
+  return lines.join("\n");
 };
