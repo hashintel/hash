@@ -1,4 +1,4 @@
-import { type NextRouter, useRouter } from "next/router";
+import Router, { type NextRouter, useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { isProcessEditorPath } from "../../../../lib/csp";
@@ -75,17 +75,25 @@ export const runStringEvaluationGate = ({
  * rather than cancelling it, treats links, programmatic navigation and the
  * browser's back and forward buttons alike.
  *
- * @returns a function that stops watching for route changes. A reload
- *   already armed by one still runs: it fires after the editor unmounts.
+ * Route changes overlap: a newer one cancels an older one, sometimes after
+ * the older one has changed history. So each outcome the router reports is
+ * judged by where it leaves the document, never by which change it ends.
+ *
+ * @returns a function that stops watching for route changes. Once one has
+ *   started for another route, the outcome is still watched: it arrives
+ *   after the editor unmounts.
  */
 export const reloadOnLeavingEditorPolicy = ({
   events,
   documentPathname,
+  committedAsPath,
   origin,
   reload,
 }: {
   events: RouterEvents;
   documentPathname: () => string | null;
+  /** The `asPath` the router has committed to its state, read when called. */
+  committedAsPath: () => string;
   origin: string;
   reload: () => void;
 }): (() => void) => {
@@ -94,21 +102,40 @@ export const reloadOnLeavingEditorPolicy = ({
     return () => {};
   }
 
-  const onRouteChangeStart = (url: string) => {
-    if (isProcessEditorPath(new URL(url, origin).pathname)) {
+  const isEditorUrl = (url: string) =>
+    isProcessEditorPath(new URL(url, origin).pathname);
+
+  let reloading = false;
+  const settledAt = (url: string) => {
+    if (reloading || isEditorUrl(url)) {
       return;
     }
-    let disarm = () => {};
-    const onRouteChangeComplete = () => {
-      disarm();
-      reload();
-    };
-    // A route change that is cancelled or fails leaves the editor in place.
-    const onRouteChangeError = () => disarm();
-    disarm = () => {
-      events.off("routeChangeComplete", onRouteChangeComplete);
-      events.off("routeChangeError", onRouteChangeError);
-    };
+    reloading = true;
+    reload();
+  };
+  const onRouteChangeComplete = (url: string) => settledAt(url);
+  // A cancelled change isn't an outcome: the change that cancelled it reports
+  // its own. Next reports a failure it rendered its error page for only after
+  // committing the failed route, so the router's path is the failed one. A
+  // failure it hasn't committed, a page that fails to load, is followed by
+  // the router's own document navigation.
+  const onRouteChangeError = (
+    error: { cancelled?: boolean },
+    failedUrl: string,
+  ) => {
+    if (!error.cancelled && committedAsPath() === failedUrl) {
+      settledAt(failedUrl);
+    }
+  };
+
+  // Outcomes are watched from the first departure for another route until
+  // the document reloads, so no outcome can disarm another change's.
+  let armed = false;
+  const onRouteChangeStart = (url: string) => {
+    if (armed || isEditorUrl(url)) {
+      return;
+    }
+    armed = true;
     events.on("routeChangeComplete", onRouteChangeComplete);
     events.on("routeChangeError", onRouteChangeError);
   };
@@ -146,6 +173,8 @@ export const useStringEvaluationGate = (): boolean => {
     return reloadOnLeavingEditorPolicy({
       events,
       documentPathname: readDocumentPathname,
+      // The singleton reads the live router; `useRouter()` returns a snapshot.
+      committedAsPath: () => Router.asPath,
       origin: window.location.origin,
       reload: () => window.location.reload(),
     });

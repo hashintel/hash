@@ -37,16 +37,27 @@ const createRouterEvents = () => {
   };
 };
 
+/** The shape of the error Next's router reports for a cancelled route change. */
+const routeCancelled = () =>
+  Object.assign(new Error("Route Cancelled"), { cancelled: true });
+
 const watchFrom = (loadedAt: string | null) => {
   const events = createRouterEvents();
   const reload = vi.fn();
+  let asPath = loadedAt ?? "/";
   const stop = reloadOnLeavingEditorPolicy({
     events,
     documentPathname: () => loadedAt,
+    committedAsPath: () => asPath,
     origin: "https://hash.test",
     reload,
   });
-  return { events, reload, stop };
+  /** Next's ordering: report, change history, then commit router state. */
+  const changeHistory = (url: string) => {
+    events.emit("beforeHistoryChange", url);
+    asPath = url;
+  };
+  return { events, reload, stop, changeHistory };
 };
 
 describe("reloadOnLeavingEditorPolicy", () => {
@@ -74,12 +85,95 @@ describe("reloadOnLeavingEditorPolicy", () => {
   });
 
   test("doesn't reload when the route change to another route is cancelled", () => {
-    const { events, reload } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
 
     events.emit("routeChangeStart", "/processes");
-    events.emit("routeChangeError", new Error("cancelled"), "/processes");
+    events.emit("routeChangeError", routeCancelled(), "/processes");
     events.emit("routeChangeStart", "/processes/def");
+    changeHistory("/processes/def");
     events.emit("routeChangeComplete", "/processes/def");
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  test("doesn't reload when a route change is cancelled after changing history", () => {
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+
+    // The second change's render supersedes the first's, after its history change.
+    events.emit("routeChangeStart", "/processes");
+    changeHistory("/processes");
+    events.emit("routeChangeStart", "/processes/def");
+    changeHistory("/processes/def");
+    events.emit("routeChangeError", routeCancelled(), "/processes");
+    events.emit("routeChangeComplete", "/processes/def");
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  test("reloads when a change superseding another to a different route completes", () => {
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+
+    // The first change's render is still pending when the second one commits.
+    events.emit("routeChangeStart", "/@alice");
+    changeHistory("/@alice");
+    events.emit("routeChangeStart", "/processes");
+    changeHistory("/processes");
+    events.emit("routeChangeError", routeCancelled(), "/@alice");
+    expect(reload).not.toHaveBeenCalled();
+    events.emit("routeChangeComplete", "/processes");
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  test("reloads when a change superseding another to the same route completes", () => {
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+
+    events.emit("routeChangeStart", "/processes");
+    changeHistory("/processes");
+    events.emit("routeChangeStart", "/processes");
+    changeHistory("/processes");
+    events.emit("routeChangeError", routeCancelled(), "/processes");
+    expect(reload).not.toHaveBeenCalled();
+    events.emit("routeChangeComplete", "/processes");
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  test("reloads once the router has shown its error page at another route", () => {
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+
+    events.emit("routeChangeStart", "/@alice");
+    changeHistory("/@alice");
+    events.emit("routeChangeError", new Error("getInitialProps"), "/@alice");
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  test("leaves a route change that fails before changing history to the router", () => {
+    const { events, reload } = watchFrom("/processes/abc");
+
+    // A page that fails to load: Next reports it, then navigates the document itself.
+    events.emit("routeChangeStart", "/@alice");
+    events.emit(
+      "routeChangeError",
+      new Error("Failed to load script"),
+      "/@alice",
+    );
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  test("leaves a page that fails to load to the router while an earlier change renders", () => {
+    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+
+    events.emit("routeChangeStart", "/processes");
+    changeHistory("/processes");
+    events.emit("routeChangeStart", "/@alice");
+    events.emit(
+      "routeChangeError",
+      new Error("Failed to load script"),
+      "/@alice",
+    );
 
     expect(reload).not.toHaveBeenCalled();
   });
@@ -104,6 +198,17 @@ describe("reloadOnLeavingEditorPolicy", () => {
     events.emit("routeChangeComplete", "/processes");
 
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  test("stops watching once the editor stops watching, if it only moved to another editor", () => {
+    const { events, reload, stop } = watchFrom("/processes/abc");
+
+    events.emit("routeChangeStart", "/processes/def");
+    stop();
+    events.emit("routeChangeComplete", "/processes/def");
+    events.emit("routeChangeComplete", "/processes");
+
+    expect(reload).not.toHaveBeenCalled();
   });
 
   test("ignores route changes that start after the editor stops watching", () => {
