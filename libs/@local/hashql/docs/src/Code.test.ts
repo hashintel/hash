@@ -1,30 +1,23 @@
+import { describe, expect, test } from "@effect/vitest";
 import { Option, Result } from "effect";
-import * as factory from "typescript/ast/factory";
-import { describe, expect, test } from "vitest";
 
-import * as AST from "./AST/index.js";
 import * as Code from "./Code.js";
 
-/** A name in code that refers to `node`, with no compiler behind either. */
-const referenceTo = (node: AST.Declaration.Interned): AST.Reference.Reference =>
-  AST.Reference.make({
-    node: factory.createIdentifier("Box"),
-    target: { _tag: "Local", node },
-    url: Option.none(),
-    quickInfo: Option.none(),
-  });
+import type * as AST from "./AST/index.js";
 
-/** A name that refers to the first declaration of a fresh AST, as every call's does. */
-const target = (): AST.Reference.Reference =>
-  referenceTo(AST.make().reserve<AST.Declaration.Declaration>().id);
+/** A name that reads as a type and links to the node at `index`, with no AST behind it. */
+const linkTo = (index: number): Pick<Code.Link, "target" | "meaning"> => ({
+  // SAFETY: Preparing code compares a link's target by identity and never looks it up in an AST.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- No preparation dereferences this identity.
+  target: index as AST.Target.Interned,
+  meaning: "type",
+});
 
-/** A name that refers to the second declaration of a fresh AST, which `target`'s is not. */
-const other = (): AST.Reference.Reference => {
-  const ast = AST.make();
-  ast.reserve<AST.Declaration.Declaration>();
+/** A name that links to the first declaration of an AST, as every call's does. */
+const target = (): Pick<Code.Link, "target" | "meaning"> => linkTo(0);
 
-  return referenceTo(ast.reserve<AST.Declaration.Declaration>().id);
-};
+/** A name that links to the second declaration of an AST, which `target`'s is not. */
+const other = (): Pick<Code.Link, "target" | "meaning"> => linkTo(1);
 
 describe("code", () => {
   test("link_hover_join", () => {
@@ -32,7 +25,7 @@ describe("code", () => {
     const destination = target();
     const source = Code.prepare({
       text: "😀 Box + other \n",
-      links: [{ offset: 3, length: 3, reference: destination }],
+      links: [{ offset: 3, length: 3, ...destination }],
       quickInfo: [
         { offset: 9, length: 5, text: "const other: number" },
         { offset: 3, length: 3, text: "interface Box" },
@@ -45,7 +38,7 @@ describe("code", () => {
           _tag: "Link",
           offset: 3,
           length: 3,
-          reference: destination,
+          ...destination,
           quickInfo: Option.some("interface Box"),
         },
         {
@@ -65,8 +58,8 @@ describe("code", () => {
       Code.prepare({
         text: "Box + Box",
         links: [
-          { offset: 6, length: 3, reference: destination },
-          { offset: 0, length: 3, reference: destination },
+          { offset: 6, length: 3, ...destination },
+          { offset: 0, length: 3, ...destination },
         ],
         quickInfo: [],
       }),
@@ -78,14 +71,14 @@ describe("code", () => {
             _tag: "Link",
             offset: 0,
             length: 3,
-            reference: destination,
+            ...destination,
             quickInfo: Option.none(),
           },
           {
             _tag: "Link",
             offset: 6,
             length: 3,
-            reference: destination,
+            ...destination,
             quickInfo: Option.none(),
           },
         ],
@@ -98,8 +91,8 @@ describe("code", () => {
     const source = Code.prepare({
       text: "Box",
       links: [
-        { offset: 0, length: 3, reference: target() },
-        { offset: 0, length: 3, reference: target() },
+        { offset: 0, length: 3, ...target() },
+        { offset: 0, length: 3, ...target() },
       ],
       quickInfo: [
         { offset: 0, length: 3, text: "Box" },
@@ -135,7 +128,7 @@ describe("code", () => {
     expect(
       Code.prepare({
         text: "Box",
-        links: [{ offset, length, reference: target() }],
+        links: [{ offset, length, ...target() }],
         quickInfo: [],
       }),
     ).toMatchObject({
@@ -152,7 +145,7 @@ describe("code", () => {
     expect(
       Code.prepare({
         text: "Box",
-        links: [{ offset: 0, length: 3, reference: target() }],
+        links: [{ offset: 0, length: 3, ...target() }],
         quickInfo: [{ offset: 1, length: 2, text: "overlap" }],
       }),
     ).toMatchObject({
@@ -169,8 +162,8 @@ describe("code", () => {
       Code.prepare({
         text: "Box",
         links: [
-          { offset: 0, length: 3, reference: target() },
-          { offset: 0, length: 3, reference: other() },
+          { offset: 0, length: 3, ...target() },
+          { offset: 0, length: 3, ...other() },
         ],
         quickInfo: [],
       }),
@@ -185,7 +178,7 @@ describe("code", () => {
     expect(
       Code.prepare({
         text: "Box",
-        links: [{ offset: 0, length: 3, reference: target() }],
+        links: [{ offset: 0, length: 3, ...target() }],
         quickInfo: [{ offset: 0, length: 2, text: "shorter" }],
       }),
     ).toMatchObject({
@@ -200,8 +193,8 @@ describe("code", () => {
       Code.prepare({
         text: "Box",
         links: [
-          { offset: 0, length: 3, reference: target() },
-          { offset: 0, length: 2, reference: target() },
+          { offset: 0, length: 3, ...target() },
+          { offset: 0, length: 2, ...target() },
         ],
         quickInfo: [],
       }),

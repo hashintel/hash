@@ -1,14 +1,14 @@
-import { Array, Function, HashMap, Option, Result, pipe } from "effect";
+import { Array, Function, HashMap, Option, Result, Tuple, pipe } from "effect";
 
 import * as Anchor from "./Anchor.js";
-import * as AST from "./AST/index.js";
 import * as Catalogue from "./Catalogue.js";
 import * as Tree from "./Tree/index.js";
 
+import type * as AST from "./AST/index.js";
 import type * as Document from "./Document.js";
 import type * as Placement from "./Placement.js";
 
-type Target = AST.Reference.Reference.Target;
+type Target = AST.Target.Interned;
 
 /**
  * Where the output writes each page and each node a link can name: a file per page, and an element id per export, member, group, index and trait.
@@ -218,23 +218,17 @@ export const collect = (
     };
   });
 
-/** The anchor of the public declaration or documented member a local target names. A private declaration has none. */
+/** The anchor of the public declaration or documented member `target` names. A private declaration and an item outside the package have none. */
 export const local: {
   (
-    target: Extract<Target, { readonly _tag: "Local" }>,
+    target: Target,
   ): (destinations: Destinations) => Option.Option<Anchor.Anchor>;
-  (
-    destinations: Destinations,
-    target: Extract<Target, { readonly _tag: "Local" }>,
-  ): Option.Option<Anchor.Anchor>;
+  (destinations: Destinations, target: Target): Option.Option<Anchor.Anchor>;
 } = Function.dual(
   2,
-  (
-    destinations: Destinations,
-    target: Extract<Target, { readonly _tag: "Local" }>,
-  ): Option.Option<Anchor.Anchor> =>
-    HashMap.get(destinations.members, target.node).pipe(
-      Option.orElse(() => HashMap.get(destinations.declarations, target.node)),
+  (destinations: Destinations, target: Target): Option.Option<Anchor.Anchor> =>
+    HashMap.get(destinations.members, target).pipe(
+      Option.orElse(() => HashMap.get(destinations.declarations, target)),
     ),
 );
 
@@ -247,7 +241,9 @@ export const trait: {
 } = Function.dual(
   2,
   (destinations: Destinations, target: Target): Option.Option<Anchor.Anchor> =>
-    Array.findFirst(destinations.traitAnchors, ([candidate]) =>
-      AST.Reference.sameTarget(candidate, target),
-    ).pipe(Option.map(([, anchor]) => anchor)),
+    pipe(
+      destinations.traitAnchors,
+      Array.findFirst(([candidate]) => candidate === target),
+      Option.map(Tuple.get(1)),
+    ),
 );

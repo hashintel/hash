@@ -73,12 +73,15 @@ const { Text, Declaration, Guide } = Data.taggedEnum<Piece>();
 export const traitPieces = ({
   trait,
   declaration,
+  external,
 }: {
   readonly trait: Tree.Trait.Trait;
   readonly declaration: Option.Option<string>;
+  /** Declared outside the package, such as one of Effect's interfaces. */
+  readonly external: boolean;
 }): readonly Piece[] => {
   const unexported: Piece[] = [];
-  if (trait.origin._tag === "Local") {
+  if (!external) {
     unexported.push(
       Text({ value: "Declared inside the package, which does not export it." }),
     );

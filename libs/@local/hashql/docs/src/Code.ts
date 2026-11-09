@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Function,
   HashMap,
   Match,
   Option,
@@ -10,18 +11,21 @@ import {
   pipe,
 } from "effect";
 
-import * as AST from "./AST/index.js";
+import * as ExternalTarget from "./ExternalTarget.js";
 import * as Signature from "./Signature.js";
 
+import type * as AST from "./AST/index.js";
+import type * as References from "./internal/references.js";
 import type { Data } from "effect";
-import type { Node } from "typescript/ast";
+import type { Identifier, Node } from "typescript/ast";
 
-/** A name with a reference can also carry hover text. A hover-only name has no reference. The output turns a reference into a destination. */
+/** A name that links to its target can also carry hover text. A hover-only name links nowhere. The output turns a target into a destination. */
 export type Name = Data.TaggedEnum<{
   Link: {
     readonly offset: number;
     readonly length: number;
-    readonly reference: AST.Reference.Reference;
+    readonly target: AST.Target.Interned;
+    readonly meaning: ExternalTarget.Meaning;
     readonly quickInfo: Option.Option<string>;
   };
   Hover: {
@@ -41,7 +45,9 @@ export interface Source {
 export interface Link {
   readonly offset: number;
   readonly length: number;
-  readonly reference: AST.Reference.Reference;
+  readonly target: AST.Target.Interned;
+  /** What the name means where it stands, which picks the page of an item outside the package. */
+  readonly meaning: ExternalTarget.Meaning;
 }
 
 /** Quick info as an editor shows it over the name at `offset`. */
@@ -56,6 +62,17 @@ export interface Input {
   readonly links: readonly Link[];
   readonly quickInfo: readonly Hover[];
 }
+
+/** A link over `name` where it stands in its own source text, such as a name in an example's code. */
+export const linkOf: {
+  (target: AST.Target.Interned): (name: Identifier) => Link;
+  (name: Identifier, target: AST.Target.Interned): Link;
+} = Function.dual(2, (name: Identifier, target: AST.Target.Interned): Link => ({
+  offset: name.getStart(),
+  length: name.getWidth(),
+  target,
+  meaning: ExternalTarget.meaning(name),
+}));
 
 // oxlint-disable-next-line unicorn/throw-new-error -- Schema constructs the tagged error.
 export class CodeError extends Schema.TaggedError<CodeError>()("CodeError", {
@@ -106,10 +123,7 @@ export const prepare = ({
         Option.isSome(previous) &&
         (previous.value._tag !== "Link" ||
           previous.value.length !== link.length ||
-          !AST.Reference.sameTarget(
-            previous.value.reference.target,
-            link.reference.target,
-          ))
+          previous.value.target !== link.target)
       ) {
         return yield* Result.fail(conflict(link.offset));
       }
@@ -117,7 +131,8 @@ export const prepare = ({
         _tag: "Link",
         offset: link.offset,
         length: link.length,
-        reference: link.reference,
+        target: link.target,
+        meaning: link.meaning,
         quickInfo: Option.none(),
       });
     }
@@ -180,23 +195,24 @@ export const prepare = ({
     return { text, names: ordered };
   });
 
-/** Prints `nodes` with each name that finds its reference in `ast` as a link. A name a transform made itself finds none. */
+/** Prints `nodes` with each name `names` resolves as a link. A name a transform made itself resolves to nothing. */
 export const print = Effect.fnUntraced(function* (
   nodes: readonly Node[],
-  ast: AST.Store["Service"],
+  names: References.Names,
 ) {
   const printed = yield* Signature.print(nodes);
-  const names = Array.flatMap(
+  const links = Array.flatMap(
     printed.occurrences,
     ({ node, offset, length }): Name[] =>
-      Array.map(Option.toArray(ast.referenceAt(node)), (reference): Name => ({
+      Array.map(Option.toArray(names(node)), (target): Name => ({
         _tag: "Link",
         offset,
         length,
-        reference,
+        target,
+        meaning: ExternalTarget.meaning(node),
         quickInfo: Option.none(),
       })),
   );
 
-  return { text: printed.text, names } satisfies Source;
+  return { text: printed.text, names: links } satisfies Source;
 });

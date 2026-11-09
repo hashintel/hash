@@ -63,30 +63,31 @@ const externalKinds = [
 /** The kind of what `target` names, which colours a link whose label is code. */
 const kindOf =
   (output: Output.Output) =>
-  (target: AST.Reference.Reference.Target): Option.Option<Tree.Row.Kind> => {
-    if (target._tag === "External") {
+  (target: AST.Target.Interned): Option.Option<Tree.Row.Kind> => {
+    const external = Output.external(output)(target);
+    if (Option.isSome(external)) {
       return pipe(
         externalKinds,
         Array.findFirst(([flag]) =>
-          TypeScript.Symbol.hasFlag(target.symbol, flag),
+          TypeScript.Symbol.hasFlag(external.value.symbol, flag),
         ),
         Option.map(([, kind]) => kind),
       );
     }
 
     const { document } = output;
-    const owner = HashMap.get(document.owners, target.node);
+    const owner = HashMap.get(document.owners, target);
     if (Option.isSome(owner)) {
       return HashMap.get(document.entries, owner.value).pipe(
         Option.flatMap(({ members }) =>
-          Array.findFirst(members, ({ id }) => id === target.node),
+          Array.findFirst(members, ({ id }) => id === target),
         ),
         Option.map(({ type }) => type),
       );
     }
 
     return document.catalogue.ast
-      .narrow(target.node, AST.Declaration.isDeclaration)
+      .narrow(target, AST.Declaration.isDeclaration)
       .pipe(
         Option.flatMap((id) => HashMap.get(document.entries, id)),
         Option.map(({ kind }) => kind),
@@ -101,7 +102,7 @@ export const codeLink =
     href,
     label,
   }: {
-    readonly target: AST.Reference.Reference.Target;
+    readonly target: AST.Target.Interned;
     readonly href: string;
     readonly label: string;
   }): ElementContent => ({
@@ -137,9 +138,9 @@ const nameOf =
       });
     }
 
-    // A name whose reference has no destination, such as a type parameter's, carries only its quick info.
+    // A name whose target has no destination, such as a type parameter, carries only its quick info.
     return Result.succeed(
-      Option.match(Output.link(output)(name.reference), {
+      Option.match(Output.link(output)(name), {
         onNone: (): ElementContent => ({
           type: "element",
           tagName: "span",
@@ -151,9 +152,7 @@ const nameOf =
           tagName: "a",
           properties: {
             href,
-            dataKind: Option.getOrUndefined(
-              kindOf(output)(name.reference.target),
-            ),
+            dataKind: Option.getOrUndefined(kindOf(output)(name.target)),
             title: Option.getOrUndefined(name.quickInfo),
           },
           children: [text(spelling)],
@@ -207,7 +206,7 @@ const labelOf = (
   return inlineCode(node.value);
 };
 
-/** Phrasing as hast. A link whose reference has no destination, such as a private declaration's, reads as its label. */
+/** Phrasing as hast. A link whose target has no destination, such as a private declaration, reads as its label. */
 export const phrasing =
   (output: Output.Output) =>
   (node: Tree.Prose.Phrasing): Written<ElementContent[]> => {
@@ -224,7 +223,7 @@ export const phrasing =
       node.children.length === 1 &&
       node.children[0]?.type === "inlineCode"
     ) {
-      kind = kindOf(output)(destination.target);
+      kind = kindOf(output)(destination);
     }
 
     return Result.succeed(

@@ -5,6 +5,7 @@ import * as Location from "../Location.js";
 import * as QuickInfo from "../QuickInfo.js";
 import * as Tree from "../Tree/index.js";
 import * as TypeScript from "../TypeScript/index.js";
+import * as References from "./references.js";
 import * as Syntax from "./signature-syntax.js";
 
 import type * as AST from "../AST/index.js";
@@ -188,15 +189,15 @@ const termsOf =
       Result.map(joined),
     );
 
-/** An example's code as written, with each name that finds its reference in `ast` as a link that shows the name's quick info. */
+/** An example's code as written, with each name `ast` resolves as a link that shows the name's quick info. */
 const example = Effect.fnUntraced(function* (
   program: SourceFile,
   ast: AST.Store["Service"],
 ) {
   const names = Array.flatMap(TypeScript.Node.identifiers(program), (name) =>
     Array.map(
-      Option.toArray(ast.referenceAt(name)),
-      (reference) => [name, reference] as const,
+      Option.toArray(ast.nameOf(name)),
+      (resolved) => [name, resolved] as const,
     ),
   );
   const quickInfo = yield* Effect.forEach(
@@ -220,11 +221,9 @@ const example = Effect.fnUntraced(function* (
   return yield* Effect.fromResult(
     Code.prepare({
       text: program.text,
-      links: Array.map(names, ([name, reference]) => ({
-        offset: name.getStart(),
-        length: name.getWidth(),
-        reference,
-      })),
+      links: Array.map(names, ([name, { target }]) =>
+        Code.linkOf(name, ast.idOf(target)),
+      ),
       quickInfo: Array.getSomes(quickInfo),
     }),
   );
@@ -233,9 +232,9 @@ const example = Effect.fnUntraced(function* (
 /** `type` whole when it fits on a term line, or else with its deepest lists of type arguments hidden, one level at a time, until it fits or it has hidden its outermost lists. */
 const fitted = Effect.fnUntraced(function* (
   type: Node,
-  ast: AST.Store["Service"],
+  names: References.Names,
 ) {
-  const whole = yield* Code.print([type], ast);
+  const whole = yield* Code.print([type], names);
   const deepest = Syntax.deepest([type]);
   if (whole.text.length <= width || Option.isNone(deepest)) {
     return whole;
@@ -243,7 +242,7 @@ const fitted = Effect.fnUntraced(function* (
 
   let candidate = whole;
   for (const depth of Array.reverse(Array.range(0, deepest.value))) {
-    candidate = yield* Code.print(Syntax.elide([type], depth), ast);
+    candidate = yield* Code.print(Syntax.elide([type], depth), names);
     if (candidate.text.length <= width) {
       break;
     }
@@ -267,15 +266,16 @@ export const pages = Effect.fnUntraced(function* (
     page(found, value);
   }
 
+  const names = References.linksOf(ast);
   const printed = new WeakMap<Printable, Code.Source>();
   for (const syntax of found.syntax) {
     if (!printed.has(syntax)) {
-      printed.set(syntax, yield* Code.print(nodesOf(syntax), ast));
+      printed.set(syntax, yield* Code.print(nodesOf(syntax), names));
     }
   }
   for (const type of found.types) {
     if (!printed.has(type)) {
-      printed.set(type, yield* fitted(type, ast));
+      printed.set(type, yield* fitted(type, names));
     }
   }
 

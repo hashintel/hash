@@ -1,19 +1,19 @@
 import { Array, HashMap, Option, Order, pipe } from "effect";
 
 import * as Anchor from "../Anchor.js";
+import * as AST from "../AST/index.js";
 import * as Destinations from "../Destinations.js";
 import * as Tree from "../Tree/index.js";
 import * as Related from "./related.js";
 
-import type * as AST from "../AST/index.js";
 import type * as Code from "../Code.js";
 import type * as Document from "../Document.js";
 import type * as Print from "./print.js";
 import type { Node } from "typescript/ast";
 
-type Target = AST.Reference.Reference.Target;
+type Target = AST.Target.Interned;
 
-/** What an adapter reads to write one page. Its links resolve through the destinations and the URLs the parser fixed for external names, and its code was printed before any page is written. */
+/** What an adapter reads to write one page. Its links resolve through the destinations and the pages of the items outside the package, and the reference prints its code before it writes any page. */
 export interface Output {
   readonly file: Anchor.File;
   readonly document: Document.Document;
@@ -25,31 +25,48 @@ export interface Output {
 
 export type Failure = Code.CodeError;
 
+/** The item outside the package that `target` names, or none for a node the package declares. */
+export const external =
+  (output: Output) =>
+  (target: Target): Option.Option<AST.ExternalItem.ExternalItem> => {
+    const { ast } = output.document.catalogue;
+
+    return Option.map(
+      ast.narrow(target, AST.ExternalItem.isExternalItem),
+      ast.get,
+    );
+  };
+
+/** The URL of what `target` names as a name with `meaning` reads it, relative to the page's file for a node the reference documents. */
+const urlOf = (
+  output: Output,
+  target: Target,
+  meaning: Code.Link["meaning"],
+): Option.Option<string> =>
+  Option.match(external(output)(target), {
+    onSome: (item) => Option.map(item.page(meaning), ({ href: url }) => url),
+    onNone: () =>
+      Destinations.local(output.destinations, target).pipe(
+        Option.map((anchor) => Anchor.href(anchor, output.file)),
+      ),
+  });
+
 /** The URL of what `target` names, relative to the page's file for a node the reference documents. A private declaration, a parameter and an external type no page documents have none, and a name of theirs is not a link. An external type links to the page of its type. */
 export const href =
   (output: Output) =>
-  (target: Target): Option.Option<string> => {
-    if (target._tag === "External") {
-      return Option.map(target.url, ({ href: url }) => url);
-    }
-
-    return Destinations.local(output.destinations, target).pipe(
-      Option.map((anchor) => Anchor.href(anchor, output.file)),
-    );
-  };
+  (target: Target): Option.Option<string> =>
+    urlOf(output, target, "type");
 
 /** The URL a name links to. An external name links to the page of what it means where it stands, which for a namespace that shares its name with a type is the namespace's page. */
 export const link =
   (output: Output) =>
-  (reference: AST.Reference.Reference): Option.Option<string> => {
-    if (reference.target._tag === "External") {
-      return Option.map(reference.url, ({ href: url }) => url);
-    }
+  ({
+    target,
+    meaning,
+  }: Pick<Code.Link, "target" | "meaning">): Option.Option<string> =>
+    urlOf(output, target, meaning);
 
-    return href(output)(reference.target);
-  };
-
-/** The URL a comment's link points to: what its reference names, or the address it writes. */
+/** The URL a comment's link points to: what its name resolved to, or the address it writes. */
 export const destination =
   (output: Output) =>
   (value: Tree.Prose.Link["destination"]): Option.Option<string> => {
@@ -57,7 +74,7 @@ export const destination =
       return Option.some(value.href);
     }
 
-    return link(output)(value);
+    return href(output)(value);
   };
 
 /** The URL a row links to: what its reference names, or a trait's section on the traits page. */
