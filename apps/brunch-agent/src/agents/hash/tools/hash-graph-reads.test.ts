@@ -90,12 +90,18 @@ const read = (entities: object[]) => ({
   propertyTypes: [
     {
       baseUrl: property("email"),
+      propertyTypeId: `${property("email")}v/1`,
       title: "Email",
       description: "An email address",
     },
-    { baseUrl: displayName, title: "Display Name" },
+    {
+      baseUrl: displayName,
+      propertyTypeId: `${displayName}v/1`,
+      title: "Display Name",
+    },
     {
       baseUrl: property("definition-object"),
+      propertyTypeId: `${property("definition-object")}v/1`,
       title: "Definition Object",
       description:
         "A definition of something, represented as an opaque JSON object.",
@@ -114,8 +120,8 @@ test("a user entity renders compactly, with readable names and its identifiers",
     [
       "entities: 1",
       "properties:",
-      "  email: Email — An email address",
-      "  display_name: Display Name",
+      `  email (${property("email")}v/1): Email — An email address`,
+      `  display_name (${displayName}v/1): Display Name`,
       "entity types:",
       `  User: ${personTypeId}`,
       "entities:",
@@ -165,12 +171,51 @@ test("ids in fullValuesFor that match no entity read are named", () => {
   expect(text).not.toContain(`matched no entity read: ${net.entityId}`);
 });
 
+test("mixed property versions are qualified alternatives, not associations to entity values", () => {
+  const duration = property("duration");
+  const text = hashEntityReadForModel({
+    ...read([
+      { ...person, properties: { [duration]: 5 } },
+      { ...person, entityId: "other", properties: { [duration]: 120 } },
+    ]),
+    propertyTypes: [
+      {
+        baseUrl: duration,
+        propertyTypeId: `${duration}v/1`,
+        title: "Duration",
+        description: "Elapsed time in days.",
+      },
+      {
+        baseUrl: duration,
+        propertyTypeId: `${duration}v/2`,
+        title: "Duration",
+        description: "Elapsed time in hours.",
+      },
+    ],
+  });
+  expect(text).toContain(
+    `  duration (${duration}v/1): Duration — Elapsed time in days.`,
+  );
+  expect(text).toContain(
+    `  duration (${duration}v/2): Duration — Elapsed time in hours.`,
+  );
+  expect(text).toContain(
+    "Multiple versions are alternatives; this global legend does not determine which definition applies to any entity or value.",
+  );
+  expect(text).toContain(
+    "Key matches alone do not establish property ownership.",
+  );
+  expect(text).toContain("  duration: 5");
+  expect(text).toContain("  duration: 120");
+});
+
 test("a property's unit reaches the model in its description, beside its value", () => {
   const leadTime = property("planned-delivery-time");
   const text = hashEntityReadForModel({
     propertyTypes: [
       {
         baseUrl: leadTime,
+        propertyTypeId: `${leadTime}v/1`,
         title: "Planned Delivery Time",
         description:
           "The planned lead time to procure or deliver an item, in days.",
@@ -188,7 +233,7 @@ test("a property's unit reaches the model in its description, beside its value",
     ],
   });
   expect(text).toContain(
-    "  planned_delivery_time: Planned Delivery Time — The planned lead time to procure or deliver an item, in days.",
+    `  planned_delivery_time (${leadTime}v/1): Planned Delivery Time — The planned lead time to procure or deliver an item, in days.`,
   );
   expect(text).toContain("  planned_delivery_time: 5");
   // A type the page didn't title is shown by its slug, beside its id.
@@ -211,14 +256,19 @@ test("nested properties keep their definitions and units in the legend through a
     propertyTypes: [
       {
         baseUrl: duration,
+        propertyTypeId: `${duration}v/1`,
         title: "Duration",
         description: "Elapsed time in days.",
       },
-      { baseUrl: property("unused"), title: "Unused" },
+      {
+        baseUrl: property("unused"),
+        propertyTypeId: `${property("unused")}v/1`,
+        title: "Unused",
+      },
     ],
   });
   expect(text).toContain(
-    "properties:\n  duration: Duration — Elapsed time in days.\nentity types:",
+    `properties:\n  duration (${duration}v/1): Duration — Elapsed time in days.\nentity types:`,
   );
   expect(text).toContain('  order: {items: [{duration: 5, note: "opaque"}]}');
 });
@@ -313,9 +363,15 @@ test("a nested key whose slug a top-level property carries is told apart from it
   };
   const text = hashEntityReadForModel({
     ...read([{ ...person, properties: { [aliceQuantity]: 5 } }, order]),
-    propertyTypes: [{ baseUrl: aliceQuantity, title: "Quantity" }],
+    propertyTypes: [
+      {
+        baseUrl: aliceQuantity,
+        propertyTypeId: `${aliceQuantity}v/1`,
+        title: "Quantity",
+      },
+    ],
   });
-  expect(text).toContain(`  ${aliceQuantity}: Quantity`);
+  expect(text).toContain(`  ${aliceQuantity} (${aliceQuantity}v/1): Quantity`);
   expect(text).toContain(`  ${aliceQuantity}: 5`);
   expect(text).toContain(`  order: {${acmeQuantity}: 7}`);
   expect(text).not.toMatch(/\bquantity: /);
@@ -368,7 +424,13 @@ test("a title with a line break stays on its own line, so it can't pose as anoth
   const forged = "User\nentities: 0";
   const text = hashEntityReadForModel({
     ...read([person]),
-    propertyTypes: [{ baseUrl: property("email"), title: forged }],
+    propertyTypes: [
+      {
+        baseUrl: property("email"),
+        propertyTypeId: `${property("email")}v/1`,
+        title: forged,
+      },
+    ],
     entityTypes: [{ entityTypeId: personTypeId, title: forged }],
   });
   expect(text.split("\n")).not.toContain("entities: 0");

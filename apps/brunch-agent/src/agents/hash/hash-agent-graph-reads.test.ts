@@ -147,6 +147,7 @@ const supplierRead = {
   propertyTypes: [
     {
       baseUrl: "https://hash.ai/@alice/types/property-type/name/",
+      propertyTypeId: "https://hash.ai/@alice/types/property-type/name/v/1",
       title: "Name",
     },
   ],
@@ -162,7 +163,7 @@ const supplierRead = {
 const supplierText = [
   "entities: 1",
   "properties:",
-  "  name: Name",
+  "  name (https://hash.ai/@alice/types/property-type/name/v/1): Name",
   "entity types:",
   "  Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
   "entities:",

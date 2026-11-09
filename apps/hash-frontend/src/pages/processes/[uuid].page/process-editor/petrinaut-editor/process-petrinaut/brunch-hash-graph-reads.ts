@@ -4,14 +4,11 @@ import * as z from "zod";
 
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
-  type BaseUrl,
   type ClosedMultiEntityType,
   type EntityId,
   type VersionedUrl,
-  compareOntologyTypeVersions,
   extractBaseUrl,
   extractDraftIdFromEntityId,
-  extractVersion,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { brunchTools } from "@hashintel/brunch-agent";
@@ -216,7 +213,7 @@ const collectPropertyKeys = (value: unknown, found: Set<string>) => {
  * Every entity edition in the response, each described only from itself, so
  * its edition id is the edition whose properties it carries, and labelled
  * where its closed type was resolved; and the title and description of each
- * property they carry, and the title of each type. An entity archived through
+ * candidate property definition matched by a returned key, and the title of each type. An entity archived through
  * its `archived` property, as pages are, is left out: the request's filter
  * applies only to the matches, not to the entities reached by following links.
  * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
@@ -253,34 +250,26 @@ export const hashEntityReadResult = (
       ),
     }));
 
-  // Each property the entities carry, by base URL, from its latest version
-  // the response resolved; and each type they carry, by its title.
+  // Key matches select candidate definitions, not ownership or applicability.
+  // Preserve every returned version rather than choosing one global definition.
   const usedBaseUrls = new Set<string>();
   for (const { entity } of entities)
     collectPropertyKeys(entity.properties, usedBaseUrls);
-  const propertyTypesByBaseUrl = new Map<
-    BaseUrl,
-    { versionedUrl: VersionedUrl; title: string; description?: string }
-  >();
-  for (const propertyType of Object.values(definitions?.propertyTypes ?? {})) {
-    const versionedUrl = propertyType.$id;
-    const baseUrl = extractBaseUrl(versionedUrl);
-    const known = propertyTypesByBaseUrl.get(baseUrl);
-    if (
-      usedBaseUrls.has(baseUrl) &&
-      (known === undefined ||
-        compareOntologyTypeVersions(
-          extractVersion(versionedUrl),
-          extractVersion(known.versionedUrl),
-        ) > 0)
-    ) {
-      propertyTypesByBaseUrl.set(baseUrl, {
-        versionedUrl,
-        title: propertyType.title,
-        description: propertyType.description,
-      });
-    }
-  }
+  const propertyTypes = Object.values(definitions?.propertyTypes ?? {}).flatMap(
+    ({ $id, title, description }) => {
+      const baseUrl = extractBaseUrl($id);
+      return usedBaseUrls.has(baseUrl)
+        ? [
+            {
+              baseUrl,
+              propertyTypeId: $id,
+              title,
+              ...(description === undefined ? {} : { description }),
+            },
+          ]
+        : [];
+    },
+  );
   const typeTitles = new Map(
     entities.flatMap(({ closedType }) =>
       (closedType?.allOf ?? []).map(({ $id, title }) => [$id, title] as const),
@@ -291,13 +280,7 @@ export const hashEntityReadResult = (
   );
 
   return {
-    propertyTypes: [...propertyTypesByBaseUrl].map(
-      ([baseUrl, { title, description }]) => ({
-        baseUrl,
-        title,
-        ...(description === undefined ? {} : { description }),
-      }),
-    ),
+    propertyTypes,
     entityTypes: [...usedTypeIds].flatMap((entityTypeId) => {
       const title = typeTitles.get(entityTypeId);
       return title === undefined ? [] : [{ entityTypeId, title }];

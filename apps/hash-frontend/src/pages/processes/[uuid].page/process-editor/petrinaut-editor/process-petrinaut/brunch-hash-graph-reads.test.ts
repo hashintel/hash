@@ -261,7 +261,6 @@ const responseWith = (closedMultiEntityTypes: object) =>
         dataTypes: {},
         entityTypes: {},
         propertyTypes: {
-          // Two versions of the one property: the later one is described.
           [`${nameUrl}v/1`]: propertyType(`${nameUrl}v/1`, "Old name"),
           [`${nameUrl}v/2`]: propertyType(
             `${nameUrl}v/2`,
@@ -334,7 +333,13 @@ test("the read runs the request it built and returns each entity from its own ed
   );
   expect(output).toEqual({
     propertyTypes: [
-      { baseUrl: nameUrl, title: "Name", description: "What it's called." },
+      { baseUrl: nameUrl, propertyTypeId: `${nameUrl}v/1`, title: "Old name" },
+      {
+        baseUrl: nameUrl,
+        propertyTypeId: `${nameUrl}v/2`,
+        title: "Name",
+        description: "What it's called.",
+      },
     ],
     entityTypes: [
       { entityTypeId: supplierTypeId, title: "Supplier" },
@@ -367,6 +372,69 @@ test("the read runs the request it built and returns each entity from its own ed
           rightEntityId: "alice-web~product",
         },
       },
+    ],
+  });
+});
+
+test("the host preserves both returned property versions with their distinct units", async () => {
+  const durationUrl = "https://hash.ai/@alice/types/property-type/duration/";
+  const mixedResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      definitions: {
+        ...response.queryEntitySubgraph.definitions,
+        propertyTypes: {
+          [`${durationUrl}v/1`]: propertyType(
+            `${durationUrl}v/1`,
+            "Duration",
+            "Elapsed time in days.",
+          ),
+          [`${durationUrl}v/2`]: propertyType(
+            `${durationUrl}v/2`,
+            "Duration",
+            "Elapsed time in hours.",
+          ),
+        },
+      },
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "edition-2",
+              properties: { [durationUrl]: 5 },
+            }),
+          },
+          "alice-web~other": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~other",
+              editionId: "edition-other",
+              properties: { [durationUrl]: 120 },
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+  expect(await run(() => Promise.resolve(mixedResponse), {})).toMatchObject({
+    propertyTypes: [
+      {
+        baseUrl: durationUrl,
+        propertyTypeId: `${durationUrl}v/1`,
+        title: "Duration",
+        description: "Elapsed time in days.",
+      },
+      {
+        baseUrl: durationUrl,
+        propertyTypeId: `${durationUrl}v/2`,
+        title: "Duration",
+        description: "Elapsed time in hours.",
+      },
+    ],
+    entities: [
+      { properties: { [durationUrl]: 5 } },
+      { properties: { [durationUrl]: 120 } },
     ],
   });
 });
@@ -410,7 +478,13 @@ test("nested property definitions retain units through arrays without defining o
   const output = await run(() => Promise.resolve(nestedResponse), {});
   expect(output).toMatchObject({
     propertyTypes: [
-      { baseUrl: nameUrl, title: "Name", description: "What it's called." },
+      { baseUrl: nameUrl, propertyTypeId: `${nameUrl}v/1`, title: "Old name" },
+      {
+        baseUrl: nameUrl,
+        propertyTypeId: `${nameUrl}v/2`,
+        title: "Name",
+        description: "What it's called.",
+      },
       {
         baseUrl: durationUrl,
         title: "Duration",
