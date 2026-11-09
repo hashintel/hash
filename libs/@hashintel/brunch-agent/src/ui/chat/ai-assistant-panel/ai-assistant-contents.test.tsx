@@ -5835,4 +5835,51 @@ describe("offered answers", () => {
     renderOffer(props);
     expect(card()).toBeNull();
   });
+
+  test("drafts into the composer when the reply also asks open questions, keeping its text", () => {
+    const askingOpening: PetrinautAiMessage = {
+      id: "asking-opening",
+      role: "assistant",
+      parts: [
+        { type: "text", text: "1. What counts as the summer peak? …" },
+        {
+          type: "dynamic-tool",
+          toolName: "offer_answers",
+          toolCallId: "offer-opening",
+          state: "output-available",
+          input: {
+            questions: [
+              { kind: "open", label: "Summer peak case" },
+              { kind: "open", label: "Model boundary" },
+              { kind: "open", label: "What else judges it" },
+              {
+                kind: "choose",
+                label: "Time to spend",
+                options: ["Quick", "Standard", "Thorough", "Deep"],
+              },
+            ],
+          },
+          output: { offered: 4 },
+        },
+      ],
+    };
+    const typed =
+      "1. Summer peak case: last July's incident\n2. Model boundary: chillers and BMS\n3. What else judges it: energy cost\n4. Time to spend:";
+    const onInputChange = vi.fn<(value: string) => void>();
+    const { onSendPrompt } = renderOffer({
+      input: typed,
+      messages: [opening, askingOpening],
+      onInputChange,
+    });
+    const quick = screen.getByRole("button", { name: "Quick" });
+    quick.focus();
+    fireEvent.click(quick);
+    expect(onInputChange).toHaveBeenCalledExactlyOnceWith(
+      "1. Summer peak case: last July's incident\n2. Model boundary: chillers and BMS\n3. What else judges it: energy cost\n4. Time to spend: Quick",
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    );
+    expect(onSendPrompt).not.toHaveBeenCalled();
+  });
 });

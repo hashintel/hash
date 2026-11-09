@@ -371,6 +371,7 @@ const BrunchMessage = memo(
                 key={item.key}
                 offer={item.offer}
                 onSend={(text) => handlersRef.current.onSendAnswer?.(text)}
+                onDraft={(fill) => handlersRef.current.onDraftAnswer?.(fill)}
               />
             )
           ) : item.type === "experiment" ? (
