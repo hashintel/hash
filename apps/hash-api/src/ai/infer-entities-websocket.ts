@@ -237,6 +237,7 @@ export const openInferEntitiesWebSocket = ({
         | undefined;
       let sessionExpiryTimeout: ReturnType<typeof setTimeout> | undefined;
       let authenticationInProgress: Promise<User | undefined> | undefined;
+      let unauthenticatedTimeout: ReturnType<typeof setTimeout> | undefined;
 
       const closeUnauthenticated = () => {
         if (socket.readyState === socket.OPEN) {
@@ -319,7 +320,7 @@ export const openInferEntitiesWebSocket = ({
         await authenticate(request.headers.cookie);
       }
 
-      const unauthenticatedTimeout = setTimeout(() => {
+      unauthenticatedTimeout = setTimeout(() => {
         if (!authenticatedSession) {
           closeUnauthenticated();
         }
