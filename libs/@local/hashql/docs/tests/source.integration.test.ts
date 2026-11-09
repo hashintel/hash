@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Array, Effect, FileSystem, Option, Path, pipe } from "effect";
-import { describe, expect, test } from "vitest";
+import { expect, layer } from "@effect/vitest";
+import { Array, Effect, FileSystem, Option, Path, Schema, pipe } from "effect";
 
 import * as Source from "../src/Source.js";
 
@@ -35,34 +35,21 @@ const sourceMap = JSON.stringify({
   ).join(";"),
 });
 
-const inDirectory = async <A>(
-  use: (directory: string) => Promise<A>,
-): Promise<A> =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const directory = yield* fs.makeTempDirectoryScoped();
-    yield* fs.writeFileString(
-      path.join(directory, "exports.json"),
-      '[["fixture", "index.d.ts"]]',
-    );
-    yield* fs.writeFileString(
-      path.join(directory, "tsdoc.json"),
-      configuration,
-    );
-    yield* fs.writeFileString(path.join(directory, "index.d.ts"), source);
-    yield* fs.makeDirectory(path.join(directory, ".git"));
-    yield* fs.writeFileString(
-      path.join(directory, "index.d.ts.map"),
-      sourceMap,
-    );
-    return yield* Effect.promise(async () => use(directory));
-  }).pipe(
-    Effect.scoped,
-    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- This fixture owns its temporary directory.
-    Effect.provide(NodeServices.layer),
-    Effect.runPromise,
+/** A generated directory of the fixture, removed when the test's scope closes. */
+const inDirectory = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const directory = yield* fs.makeTempDirectoryScoped();
+  yield* fs.writeFileString(
+    path.join(directory, "exports.json"),
+    '[["fixture", "index.d.ts"]]',
   );
+  yield* fs.writeFileString(path.join(directory, "tsdoc.json"), configuration);
+  yield* fs.writeFileString(path.join(directory, "index.d.ts"), source);
+  yield* fs.makeDirectory(path.join(directory, ".git"));
+  yield* fs.writeFileString(path.join(directory, "index.d.ts.map"), sourceMap);
+  return directory;
+});
 
 const modulePage = (loaded: Source.HastPages): Source.HastPage =>
   pipe(
@@ -71,15 +58,17 @@ const modulePage = (loaded: Source.HastPages): Source.HastPage =>
     Option.getOrThrow,
   );
 
-describe("source", () => {
-  test("generated_formats", async () => {
-    expect.hasAssertions();
-    await inDirectory(async (directory) => {
+layer(NodeServices.layer, { excludeTestServices: true })("source", (it) => {
+  it.effect(
+    "generated_formats",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const directory = yield* inDirectory;
       const load = Source.loader({
         directory,
         sourceUrl: ({ file, line }) => `https://source.test/${file}#L${line}`,
       });
-      const loaded = await load();
+      const loaded = yield* Effect.promise(load);
       expect(loaded.pages.map(({ file }) => file)).toStrictEqual([
         "index.html",
         "traits.html",
@@ -99,7 +88,9 @@ describe("source", () => {
           "https://source.test/src/value.ts#L6",
         ].filter((text) => !page.markdown.includes(text)),
       ).toStrictEqual([]);
-      const body = JSON.stringify(page.hast);
+      const body = yield* Schema.encodeEffect(
+        Schema.fromJsonString(Schema.Unknown),
+      )(page.hast);
       expect(
         [
           '"tagName":"api-export"',
@@ -108,14 +99,18 @@ describe("source", () => {
           String.raw`"names":"[\"again\"]"`,
         ].filter((text) => !body.includes(text)),
       ).toStrictEqual([]);
-    });
-  });
+    }),
+  );
 
-  test("search_and_outline", async () => {
-    expect.hasAssertions();
-    await inDirectory(async (directory) => {
+  it.effect(
+    "search_and_outline",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const directory = yield* inDirectory;
       const page = modulePage(
-        await Source.loader({ directory, sourceUrl: () => "" })(),
+        yield* Effect.promise(
+          Source.loader({ directory, sourceUrl: () => "" }),
+        ),
       );
       expect(page.toc).toContainEqual({
         title: "Value",
@@ -140,36 +135,37 @@ describe("source", () => {
         content:
           'import { choose } from "fixture";\nchoose({ field: "example" });',
       });
-    });
-  });
+    }),
+  );
 
-  test("lazy_load_failure", async () => {
-    expect.hasAssertions();
-    const load = Source.loader({
-      directory: "/missing/hashql-docs-fixture",
-      sourceUrl: () => "",
-    });
-    expect(load).toBeTypeOf("function");
-    await expect(load()).rejects.toThrow("NotFound");
-  });
+  it.effect(
+    "lazy_load_failure",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const load = Source.loader({
+        directory: "/missing/hashql-docs-fixture",
+        sourceUrl: () => "",
+      });
+      expect(load).toBeTypeOf("function");
+      yield* Effect.promise(() => expect(load()).rejects.toThrow("NotFound"));
+    }),
+  );
 
-  test("composition_failure", async () => {
-    expect.hasAssertions();
-    await inDirectory(async (directory) => {
-      await Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        yield* fs.writeFileString(
-          `${directory}/exports.json`,
-          '[["@first/pkg", "index.d.ts"], ["@second/pkg", "index.d.ts"]]',
-        );
-      }).pipe(
-        // oxlint-disable-next-line effecttsgo/strict-effect-provide -- This is the fixture's filesystem boundary.
-        Effect.provide(NodeServices.layer),
-        Effect.runPromise,
+  it.effect(
+    "composition_failure",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const directory = yield* inDirectory;
+      const fs = yield* FileSystem.FileSystem;
+      yield* fs.writeFileString(
+        `${directory}/exports.json`,
+        '[["@first/pkg", "index.d.ts"], ["@second/pkg", "index.d.ts"]]',
       );
-      await expect(
-        Source.loader({ directory, sourceUrl: () => "" })(),
-      ).rejects.toMatchObject({ _tag: "AnchorError" });
-    });
-  });
+      yield* Effect.promise(() =>
+        expect(
+          Source.loader({ directory, sourceUrl: () => "" })(),
+        ).rejects.toMatchObject({ _tag: "AnchorError" }),
+      );
+    }),
+  );
 });
