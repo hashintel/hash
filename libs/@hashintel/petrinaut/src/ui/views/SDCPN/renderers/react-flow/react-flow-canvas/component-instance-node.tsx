@@ -1,4 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -7,12 +8,13 @@ import {
   COMPONENT_INSTANCE_HEADER_HEIGHT,
 } from "@hashintel/petrinaut-core";
 
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { nodeFocusStyle } from "../../../styles/focus";
 import { iconContainerBaseStyle } from "./node-card";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { pinColorStyle, pinStyle, portOnSide } from "./port-pin";
 
-import type { CanvasInstanceBinding } from "../../../canvas-scene";
+import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
 import type { ComponentInstanceNodeType } from "./react-flow-types";
 
 const containerStyle = css({
@@ -47,7 +49,7 @@ const headerStyle = css({
   gap: "[8px]",
   height: `[${COMPONENT_INSTANCE_HEADER_HEIGHT}px]`,
   flexShrink: "0",
-  padding: "[4px 10px 4px 4px]",
+  padding: "[4px 6px 4px 4px]",
   borderBottom: "1px solid",
   borderBottomColor: "neutral.s30",
 });
@@ -59,6 +61,7 @@ const iconTileStyle = css({
 const textStyle = css({
   display: "flex",
   flexDirection: "column",
+  flex: "1",
   minWidth: "0",
   overflow: "hidden",
 });
@@ -86,6 +89,38 @@ const unboundSubtitleStyle = css({
   color: "[#b45309]",
 });
 
+/**
+ * Folds and unfolds the ports. `nodrag` and `nopan` keep React Flow from
+ * turning the press into a drag of the card or a pan of the canvas.
+ */
+const foldToggleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: "0",
+  width: "[22px]",
+  height: "[22px]",
+  border: "none",
+  borderRadius: "sm",
+  background: "[transparent]",
+  color: "neutral.s90",
+  cursor: "pointer",
+  _hover: {
+    backgroundColor: "neutral.s20",
+    color: "neutral.s115",
+  },
+});
+
+/** The folded body: how many ports the card hides, in place of their rows. */
+const foldedBodyStyle = css({
+  flex: "1",
+  display: "flex",
+  alignItems: "center",
+  padding: "[0 14px]",
+  fontSize: "xs",
+  color: "neutral.a90",
+});
+
 const portLabelStyle = css({
   position: "absolute",
   fontSize: "[11px]",
@@ -98,6 +133,13 @@ const portLabelStyle = css({
   whiteSpace: "nowrap",
   pointerEvents: "none",
   transform: "translateY(-50%)",
+});
+
+/** A folded card's pins shrink to wire ends: the links still show where they land. */
+const foldedPinStyle = css({
+  width: "[7px]",
+  height: "[7px]",
+  border: "[1px solid white]",
 });
 
 // A side the port does not use keeps its handle, so a link can still land
@@ -122,28 +164,73 @@ const describeBinding = (
     : `${subnetName} · ${binding.implementationName}`;
 };
 
+const describeFoldedPorts = (ports: CanvasPort[]): string => {
+  const inputs = ports.filter((port) => port.direction !== "out").length;
+  const outputs = ports.filter((port) => port.direction !== "in").length;
+  return `${inputs} in · ${outputs} out`;
+};
+
+/**
+ * The centre of each port's pin, by side, within the body under the header.
+ * Unfolded, every port has a row of its own and pins both sides of it, one
+ * visible. Folded, the pins of each side spread along that side alone, so
+ * the wires that land there stay apart.
+ */
+const pinCentres = (
+  ports: CanvasPort[],
+  height: number,
+  expanded: boolean,
+): { left: number[]; right: number[] } => {
+  const bodyTop = COMPONENT_INSTANCE_HEADER_HEIGHT;
+  const bodyHeight =
+    height -
+    COMPONENT_INSTANCE_HEADER_HEIGHT -
+    COMPONENT_INSTANCE_FOOTER_HEIGHT;
+  const spread = (count: number, index: number) =>
+    bodyTop + (bodyHeight * (index + 0.5)) / count;
+  if (expanded) {
+    const rows = ports.map((_port, index) => spread(ports.length, index));
+    return { left: rows, right: rows };
+  }
+  const bySide = (side: "left" | "right") => {
+    const pinned = ports.filter((port) => portOnSide(port.direction, side));
+    return ports.map((port) => {
+      const index = pinned.indexOf(port);
+      // A port that does not pin this side lands at the row of the side it
+      // does pin, so a link arriving from the wrong side still ends level
+      // with its port.
+      const own = index === -1 ? pinned.length : index;
+      return spread(
+        Math.max(pinned.length, 1),
+        Math.min(own, pinned.length - 1),
+      );
+    });
+  };
+  const left = bySide("left");
+  const right = bySide("right");
+  return {
+    left: ports.map((port, index) =>
+      portOnSide(port.direction, "left") ? left[index]! : right[index]!,
+    ),
+    right: ports.map((port, index) =>
+      portOnSide(port.direction, "right") ? right[index]! : left[index]!,
+    ),
+  };
+};
+
 export const ComponentInstanceNode: React.FC<
   NodeProps<ComponentInstanceNodeType>
 > = ({ data, selected }: NodeProps<ComponentInstanceNodeType>) => {
+  const { toggleComponentInstanceExpanded } = use(EditorContext);
+
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
-  const { ports, binding } = data;
+  const { ports, binding, expanded, foldable } = data;
   const isInterface = binding.kind === "interface";
   const unbound = isInterface && binding.implementationName === null;
-
-  // One row per port under the header, the rows sharing the height the
-  // scene gave the node (`getComponentInstanceHeight`).
-  const rowHeight =
-    ports.length === 0
-      ? 0
-      : (data.height -
-          COMPONENT_INSTANCE_HEADER_HEIGHT -
-          COMPONENT_INSTANCE_FOOTER_HEIGHT) /
-        ports.length;
-  const rowCentre = (index: number) =>
-    COMPONENT_INSTANCE_HEADER_HEIGHT + rowHeight * (index + 0.5);
+  const centres = pinCentres(ports, data.height, expanded);
 
   return (
     <div className={containerStyle}>
@@ -163,12 +250,30 @@ export const ComponentInstanceNode: React.FC<
               {describeBinding(data.subnetName, binding)}
             </div>
           </div>
+          {foldable ? (
+            <button
+              type="button"
+              className={cx("nodrag", "nopan", foldToggleStyle)}
+              aria-label={expanded ? "Hide ports" : "Show ports"}
+              aria-expanded={expanded}
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleComponentInstanceExpanded(data.id);
+              }}
+            >
+              <Icon name={expanded ? "chevronUp" : "chevronDown"} size="xs" />
+            </button>
+          ) : null}
         </div>
+        {expanded ? null : (
+          <div className={foldedBodyStyle}>{describeFoldedPorts(ports)}</div>
+        )}
       </div>
 
       {ports.map((port, index) => {
-        const top = rowCentre(index);
         const pinColor = pinColorStyle(port.typeColor);
+        const leftTop = centres.left[index]!;
+        const rightTop = centres.right[index]!;
         return (
           <div key={port.id}>
             {/* Both pins are source handles: a connection's source is then
@@ -179,9 +284,10 @@ export const ComponentInstanceNode: React.FC<
               id={portInHandleId(port.id)}
               className={cx(
                 pinStyle,
+                expanded ? undefined : foldedPinStyle,
                 portOnSide(port.direction, "left") ? undefined : unusedPinStyle,
               )}
-              style={{ top, ...pinColor }}
+              style={{ top: leftTop, ...pinColor }}
             />
             <Handle
               type="source"
@@ -189,23 +295,26 @@ export const ComponentInstanceNode: React.FC<
               id={portOutHandleId(port.id)}
               className={cx(
                 pinStyle,
+                expanded ? undefined : foldedPinStyle,
                 portOnSide(port.direction, "right")
                   ? undefined
                   : unusedPinStyle,
               )}
-              style={{ top, ...pinColor }}
+              style={{ top: rightTop, ...pinColor }}
             />
-            <span
-              className={portLabelStyle}
-              style={{
-                top,
-                ...(port.direction === "out"
-                  ? { right: PORT_LABEL_INSET }
-                  : { left: PORT_LABEL_INSET }),
-              }}
-            >
-              {port.name}
-            </span>
+            {expanded ? (
+              <span
+                className={portLabelStyle}
+                style={{
+                  top: leftTop,
+                  ...(port.direction === "out"
+                    ? { right: PORT_LABEL_INSET }
+                    : { left: PORT_LABEL_INSET }),
+                }}
+              >
+                {port.name}
+              </span>
+            ) : null}
           </div>
         );
       })}
