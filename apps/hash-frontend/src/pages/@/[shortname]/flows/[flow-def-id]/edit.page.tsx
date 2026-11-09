@@ -199,8 +199,8 @@ const FlowEditor = ({
   const { flowDefinition } = editorState;
 
   /*
-   * Replacing the editor after a conflict remounts the top bar and the canvas, e.g. closing a run form filled in for the
-   * flow as it was, and clears the selection.
+   * Replacing the editor after a conflict remounts the run form and the canvas, e.g. closing a run form filled in for
+   * the flow as it was, and clears the selection.
    */
   const [session, setSession] = useState<{
     editor: typeof editor;
@@ -330,7 +330,7 @@ const FlowEditor = ({
       sx={{ display: "flex", flexDirection: "column", height: editorHeight }}
     >
       <TopBar
-        key={session.key}
+        editorKey={session.key}
         editorState={editorState}
         onRename={editor.setName}
         saveStatus={status}

@@ -227,6 +227,7 @@ const LeaveFlowDialog = ({
  * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, Run, and its menu.
  */
 export const TopBar = ({
+  editorKey,
   editorState,
   onRename,
   saveStatus,
@@ -237,6 +238,11 @@ export const TopBar = ({
   onLeave,
   onLeaveWithoutSaving,
 }: {
+  /**
+   * Changes when the flow is reloaded after changing elsewhere, closing a run form filled in for the flow as it was.
+   * The rest of the bar keeps its state, e.g. the leave confirmation for a leave that the reload interrupted.
+   */
+  editorKey: number;
   editorState: FlowEditorState;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
@@ -295,6 +301,7 @@ export const TopBar = ({
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
         <RunFlow
+          key={editorKey}
           editorState={editorState}
           saveRefusedReason={saveRefusedReason}
           onRun={onRun}
