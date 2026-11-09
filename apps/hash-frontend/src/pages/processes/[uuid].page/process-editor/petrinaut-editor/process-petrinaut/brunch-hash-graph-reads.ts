@@ -200,7 +200,9 @@ const closedTypeIn = (
 /** Collect actual keys, including nested objects and arrays; definitions remain authoritative. */
 const collectPropertyKeys = (value: unknown, found: Set<string>) => {
   if (Array.isArray(value)) {
-    for (const item of value) collectPropertyKeys(item, found);
+    for (const item of value) {
+      collectPropertyKeys(item, found);
+    }
   } else if (typeof value === "object" && value !== null) {
     for (const [key, item] of Object.entries(value)) {
       found.add(key);
@@ -253,8 +255,9 @@ export const hashEntityReadResult = (
   // Key matches select candidate definitions, not ownership or applicability.
   // Preserve every returned version rather than choosing one global definition.
   const usedBaseUrls = new Set<string>();
-  for (const { entity } of entities)
+  for (const { entity } of entities) {
     collectPropertyKeys(entity.properties, usedBaseUrls);
+  }
   const propertyTypes = Object.values(definitions?.propertyTypes ?? {}).flatMap(
     ({ $id, title, description }) => {
       const baseUrl = extractBaseUrl($id);
@@ -264,7 +267,7 @@ export const hashEntityReadResult = (
               baseUrl,
               propertyTypeId: $id,
               title,
-              ...(description === undefined ? {} : { description }),
+              description,
             },
           ]
         : [];
