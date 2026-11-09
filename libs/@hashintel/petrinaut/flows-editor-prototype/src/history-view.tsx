@@ -13,7 +13,8 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { runLabel } from "./run-id";
+import { RunIdText, runLabel } from "./run-id";
+import { runIdMonoTake } from "./run-id-mono";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
@@ -283,7 +284,16 @@ export const RunSwitcher = ({
               warnings={outcomeOf(candidate, now) === "warnings"}
               size={14}
             />
-            <span>{runMenuLabel(candidate, now)}</span>
+            <span>
+              {runIdMonoTake() ? (
+                <>
+                  <RunIdText run={candidate} prefix />
+                  {runMenuLabel(candidate, now).slice(runLabel(candidate).length)}
+                </>
+              ) : (
+                runMenuLabel(candidate, now)
+              )}
+            </span>
           </span>
         ),
         suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
@@ -342,7 +352,16 @@ export const RunSwitcher = ({
                 tooltip={withTime ? undefined : run.when}
                 data-run-picker
               >
-                {withTime ? `${runLabel(run)} · ${run.when}` : `${runLabel(run)}`}
+                {runIdMonoTake() ? (
+                  <>
+                    <RunIdText run={run} prefix />
+                    {withTime ? ` · ${run.when}` : null}
+                  </>
+                ) : withTime ? (
+                  `${runLabel(run)} · ${run.when}`
+                ) : (
+                  `${runLabel(run)}`
+                )}
               </Button>
             )
           }

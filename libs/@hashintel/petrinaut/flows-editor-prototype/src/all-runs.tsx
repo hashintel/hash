@@ -33,7 +33,7 @@ import {
   warningsOf,
   warningsText,
 } from "./run-history";
-import { runId, runLabel } from "./run-id";
+import { runId, RunIdsIn, runLabel } from "./run-id";
 import { RunOutputsCell } from "./run-outputs";
 import { StatTiles, statTilesTake } from "./stat-tiles";
 import {
@@ -1063,7 +1063,7 @@ const StatValue = ({ stat, className }: { stat: Stat; className: string }) => {
       onClick={stat.onOpen}
       data-stat-value
     >
-      {stat.text}
+      <RunIdsIn text={stat.text} />
     </button>
   ) : (
     <span

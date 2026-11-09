@@ -12,7 +12,8 @@ import { useEffect, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { runLabel } from "./run-id";
+import { RunIdsIn, RunIdText, runLabel } from "./run-id";
+import { runIdMonoTake } from "./run-id-mono";
 import { START_ID } from "./document";
 import { useEditor } from "./editor-context";
 import { glyphSet, RunGlyph } from "./run-glyph";
@@ -211,7 +212,7 @@ const LogLine = ({
             whiteSpace: "nowrap",
           })}
         >
-          {title}
+          <RunIdsIn text={title} />
         </span>
         {detail ? (
           <span
@@ -574,7 +575,11 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
               color: "neutral.fg.heading",
             })}
           >
-            {runLabel(run)}
+            {runIdMonoTake() ? (
+              <RunIdText run={run} prefix copyable />
+            ) : (
+              runLabel(run)
+            )}
           </span>
           <span
             className={css({ display: "flex", alignItems: "center", gap: "1" })}

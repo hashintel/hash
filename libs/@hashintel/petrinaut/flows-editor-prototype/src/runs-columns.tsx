@@ -201,7 +201,7 @@ const mutedStyle = css({ color: "neutral.fg.subtle" });
 
 export const IdCell = ({ run }: { run: RunRecord }) => (
   <td className={idCellStyle}>
-    <RunIdText run={run} take={tableIdTake()} />
+    <RunIdText run={run} take={tableIdTake()} copyable />
   </td>
 );
 

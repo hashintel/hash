@@ -15,14 +15,18 @@ import { createElement } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { RunRecord } from "./run-history";
+import { MonoRunId, runIdMonoTake } from "./run-id-mono";
 
 export type RunIdTake = "a" | "b" | "c" | "d";
 
+/** `?runid=`; a `?runidmono=` take without it shows 4 characters ("b"). */
 export const runIdTake = (): RunIdTake | null => {
   const value = new URLSearchParams(globalThis.location.search).get("runid");
   return value === "a" || value === "b" || value === "c" || value === "d"
     ? value
-    : null;
+    : runIdMonoTake()
+      ? "b"
+      : null;
 };
 
 /** A stable, made-up UUID per run, so the same run keeps the same ID on every load. */
@@ -65,22 +69,57 @@ const monoStyle = css({
   letterSpacing: "[0]",
 });
 
-/** The short ID as text, in monospace for takes c and d. */
+/** The short ID as text: in the `?runidmono=` take when one is set, else in monospace for takes c and d. */
 export const RunIdText = ({
   run,
   take = runIdTake(),
   prefix = false,
+  copyable = false,
 }: {
   run: Pick<RunRecord, "id">;
   take?: RunIdTake | null;
   /** "Run A4" instead of "A4". */
   prefix?: boolean;
-}) =>
-  createElement(
+  /** With a `?runidmono=` take: the take's copy control. */
+  copyable?: boolean;
+}) => {
+  const monoTake = runIdMonoTake();
+  return createElement(
     "span",
     null,
     prefix ? "Run " : null,
-    runIdMono(take)
-      ? createElement("span", { className: monoStyle }, runId(run, take))
-      : runId(run, take),
+    monoTake
+      ? createElement(MonoRunId, {
+          id: runId(run, take),
+          uuid: runUuid(run),
+          monoTake,
+          copyable,
+        })
+      : runIdMono(take)
+        ? createElement("span", { className: monoStyle }, runId(run, take))
+        : runId(run, take),
   );
+};
+
+/** A run log line with its "Run 3FA4" in the `?runidmono=` take; the plain text when no take is set. */
+export const RunIdsIn = ({ text }: { text: string }) => {
+  const monoTake = runIdMonoTake();
+  if (!monoTake) {
+    return text;
+  }
+  const parts = text.split(/(?<=\bRun )([0-9A-Fa-f]{4})\b/);
+  return createElement(
+    "span",
+    null,
+    ...parts.map((part, index) =>
+      index % 2 === 1
+        ? createElement(MonoRunId, {
+            key: index,
+            id: part,
+            uuid: part,
+            monoTake,
+          })
+        : part,
+    ),
+  );
+};
