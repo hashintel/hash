@@ -357,10 +357,15 @@ test("an entity reached by following links is left out when archived by its prop
   ).toEqual(["alice-web~supplier", "alice-web~link", "alice-web~live-page"]);
 });
 
-/** A named draft, an unrelated linked draft, and a live linked product. */
+/** Draft links, as created when either endpoint is a draft, in both directions. */
 const draftSupplierId = "alice-web~supplier~draft-1";
 const otherDraftId = "alice-web~rival~draft-2";
 const liveProductId = "alice-web~product";
+const toRivalId = "alice-web~to-rival~draft-ab";
+const toProductId = "alice-web~to-product~draft-ac";
+const fromProductId = "alice-web~from-product~draft-ca";
+const unrelatedLinkId = "alice-web~unrelated~draft-bc";
+const linkToLinkId = "alice-web~link-to-link~draft-link";
 const withLinkedDrafts = {
   queryEntitySubgraph: {
     ...response.queryEntitySubgraph,
@@ -384,7 +389,7 @@ const withLinkedDrafts = {
             properties: {},
           }),
           entity({
-            entityId: "alice-web~to-rival",
+            entityId: toRivalId,
             editionId: "edition-ab",
             properties: {},
             linkData: {
@@ -393,11 +398,38 @@ const withLinkedDrafts = {
             },
           }),
           entity({
-            entityId: "alice-web~to-product",
+            entityId: toProductId,
             editionId: "edition-ac",
             properties: {},
             linkData: {
               leftEntityId: draftSupplierId,
+              rightEntityId: liveProductId,
+            },
+          }),
+          entity({
+            entityId: fromProductId,
+            editionId: "edition-ca",
+            properties: {},
+            linkData: {
+              leftEntityId: liveProductId,
+              rightEntityId: draftSupplierId,
+            },
+          }),
+          entity({
+            entityId: unrelatedLinkId,
+            editionId: "edition-bc",
+            properties: {},
+            linkData: {
+              leftEntityId: otherDraftId,
+              rightEntityId: liveProductId,
+            },
+          }),
+          entity({
+            entityId: linkToLinkId,
+            editionId: "edition-link",
+            properties: {},
+            linkData: {
+              leftEntityId: toProductId,
               rightEntityId: liveProductId,
             },
           }),
@@ -419,7 +451,7 @@ const entityIdsRead = async (input: unknown) =>
   ).entities.map(({ entityId }) => entityId);
 
 test.each([undefined, false])(
-  "a read that names a draft with includeDrafts %s keeps only that draft and live linked entities, preserving link endpoints",
+  "a read that names a draft with includeDrafts %s retains its draft links without widening to other drafts or links",
   async (includeDrafts) => {
     const query = vi.fn<QueryEntitySubgraph>(() =>
       Promise.resolve(withLinkedDrafts),
@@ -440,17 +472,27 @@ test.each([undefined, false])(
         { entityId: draftSupplierId, draft: true, matched: true },
         { entityId: liveProductId, draft: false, matched: false },
         {
-          entityId: "alice-web~to-rival",
+          entityId: toRivalId,
+          draft: true,
           linkData: {
             leftEntityId: draftSupplierId,
             rightEntityId: otherDraftId,
           },
         },
         {
-          entityId: "alice-web~to-product",
+          entityId: toProductId,
+          draft: true,
           linkData: {
             leftEntityId: draftSupplierId,
             rightEntityId: liveProductId,
+          },
+        },
+        {
+          entityId: fromProductId,
+          draft: true,
+          linkData: {
+            leftEntityId: liveProductId,
+            rightEntityId: draftSupplierId,
           },
         },
       ],
@@ -458,13 +500,23 @@ test.each([undefined, false])(
   },
 );
 
+test("an explicitly named draft link is retained without retaining its unnamed draft endpoint", async () => {
+  expect(await entityIdsRead({ entityIds: [unrelatedLinkId] })).toEqual([
+    liveProductId,
+    unrelatedLinkId,
+  ]);
+});
+
 test("a read that asks for drafts returns every draft reached by following links", async () => {
   const everyEntity = [
     draftSupplierId,
     otherDraftId,
     liveProductId,
-    "alice-web~to-rival",
-    "alice-web~to-product",
+    toRivalId,
+    toProductId,
+    fromProductId,
+    unrelatedLinkId,
+    linkToLinkId,
   ];
   expect(
     await entityIdsRead({ entityIds: [draftSupplierId], includeDrafts: true }),
@@ -476,7 +528,7 @@ test("a read that names no draft returns whatever the graph returns", async () =
   expect(await entityIdsRead({ entityIds: [liveProductId] })).toContain(
     otherDraftId,
   );
-  expect(await entityIdsRead({})).toHaveLength(5);
+  expect(await entityIdsRead({})).toHaveLength(8);
 });
 
 test("a response with a cursor, which the graph sets when it stopped at its limit, marks the read truncated", async () => {

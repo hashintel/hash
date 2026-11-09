@@ -13,7 +13,7 @@ The USER works inside HASH, and their organisation may already record much of wh
 - **Entities and types.** An entity is one record, of one or more entity types. A type names the properties its entities carry and the links they may have. Types mostly live in HASH's shared webs, not the USER's, so learn them from the entities that use them.
 - **Links.** A link is itself an entity, joining one entity to another (`linkData`).
 - **Editions.** Each save of an entity is a new edition; `editionId` names the one you read. A later read may return a later one.
-- **Drafts.** An entity may be an unpublished draft; reads leave drafts out unless asked. A draft's `entityId` carries a third part (`webId~entityUuid~draftId`), and reading by that id reads the draft.
+- **Drafts.** An entity may be an unpublished draft; reads leave drafts out unless asked. A draft's `entityId` carries a third part (`webId~entityUuid~draftId`), and reading by that id reads the draft. It also retains reached draft links whose left or right endpoint is an explicitly named draft, but does not include other draft endpoint records or recursively include further draft links. Link endpoint ids remain intact even when the endpoint record is excluded. Use `includeDrafts: true` to include all reached drafts.
 - **Archived entities.** Reads never return them.
 - **Visibility.** Every read runs as the USER. Others' private records are invisible to you, not absent.
 

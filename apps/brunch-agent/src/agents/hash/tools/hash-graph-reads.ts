@@ -106,7 +106,7 @@ export const vHashEntityReadInput = v.strictObject({
     v.pipe(
       v.boolean(),
       v.description(
-        "Whether to include draft entities. Defaults to false. An entity id with a draft part reads that draft either way.",
+        "Whether to include draft entities. Defaults to false. An entity id with a draft part reads that draft either way, along with reached draft links whose left or right endpoint is an explicitly named draft. This exception does not include other draft endpoint records or recursively include further draft links; link endpoint ids remain intact.",
       ),
     ),
   ),

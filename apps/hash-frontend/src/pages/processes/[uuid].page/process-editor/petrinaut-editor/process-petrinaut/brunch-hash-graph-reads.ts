@@ -107,8 +107,8 @@ const namedDraftIds = (input: IssuedHashEntityRead): Set<EntityId> =>
   );
 
 /**
- * When named drafts alone enable drafts query-wide, keep only those drafts.
- * Otherwise leave the graph's draft scope unchanged.
+ * When named drafts alone enable drafts query-wide, scope drafts to those
+ * named and links touching them. Otherwise leave the draft scope unchanged.
  */
 const hashEntityReadOnlyDrafts = (
   input: IssuedHashEntityRead,
@@ -178,8 +178,9 @@ const truncatedWhen = (cursor: unknown) =>
  * its edition id is the edition whose properties it carries. An entity
  * archived through its `archived` property, as pages are, is left out: the
  * request's filter applies only to the matches, not to the entities reached
- * by following links. Given `onlyDrafts`, other drafts are left out too;
- * links to excluded entities keep their endpoint ids.
+ * by following links. Given `onlyDrafts`, retain named drafts and draft links
+ * whose endpoint is a named draft, without expanding that set. Other drafts
+ * are left out; links to excluded entities keep their endpoint ids.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
@@ -193,12 +194,15 @@ export const hashEntityReadResult = (
   );
   const entities = getEntities(subgraph, false)
     .filter((entity) => entity.properties[archivedBaseUrl] !== true)
-    .filter(({ metadata: { recordId } }) => {
+    .filter(({ metadata: { recordId }, linkData }) => {
       const { entityId } = recordId;
       return (
         onlyDrafts === undefined ||
         extractDraftIdFromEntityId(entityId) === undefined ||
-        onlyDrafts.has(entityId)
+        onlyDrafts.has(entityId) ||
+        (linkData !== undefined &&
+          (onlyDrafts.has(linkData.leftEntityId) ||
+            onlyDrafts.has(linkData.rightEntityId)))
       );
     });
   return {
