@@ -500,12 +500,15 @@ async fn link_named_inputs() {
     );
 }
 
-/// Stages the SQL sources of `definition` and prepares its entity pipelines in order, returning
-/// the sinks and the checkpoints for its link pipelines.
-async fn prepare_entities(
-    workspace: &Workspace,
-    definition: &Definition,
-) -> (Vec<PreparedSink>, BTreeMap<CheckpointName, Box<str>>) {
+/// The tables prepared from a definition's entity pipelines.
+struct PreparedEntities {
+    sinks: Vec<PreparedSink>,
+    /// The checkpoint tables by name, which the link pipelines read.
+    checkpoints: BTreeMap<CheckpointName, Box<str>>,
+}
+
+/// Stages the SQL sources of `definition` and prepares its entity pipelines in order.
+async fn prepare_entities(workspace: &Workspace, definition: &Definition) -> PreparedEntities {
     let mut checkpoints = BTreeMap::new();
     let mut sinks = Vec::new();
     for pipeline in definition.entity_pipelines() {
@@ -542,7 +545,7 @@ async fn prepare_entities(
         checkpoints.extend(prepared.checkpoints);
         sinks.extend(prepared.sinks);
     }
-    (sinks, checkpoints)
+    PreparedEntities { sinks, checkpoints }
 }
 
 /// Reads `columns` of each row of `table`, ordered by the first column.
@@ -574,7 +577,7 @@ async fn definition_aviation_tables() {
     let workspace = open(&directory).await;
     let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
         .expect("the aviation definition should parse");
-    let (sinks, checkpoints) = prepare_entities(&workspace, &definition).await;
+    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, &definition).await;
 
     let mut entities = BTreeMap::new();
     for sink in &sinks {
@@ -624,7 +627,7 @@ async fn definition_flightaware_tables() {
     let definition =
         Definition::from_yaml(include_str!("../../definition/examples/flightaware.yaml"))
             .expect("the flightaware definition should parse");
-    let (sinks, checkpoints) = prepare_entities(&workspace, &definition).await;
+    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, &definition).await;
 
     let mut entities = BTreeMap::new();
     for sink in &sinks {
