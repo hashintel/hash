@@ -13,15 +13,51 @@ graph LR
 "
 />
 
-J-Expr is the transport syntax used between the SDK and the server. The [`JExpr`] API builds expressions in this syntax without checking their HashQL types. [`Program`] builds on J-Expr with a purely functional interface over a typed expression tree. [`Draft`] provides a more convenient imperative interface for constructing programs from those expressions.
+J-Expr is the transport syntax used between the SDK and the server. The [`J-Expr`] API builds expressions in this syntax without checking their HashQL types. [`Program`] builds on J-Expr with a purely functional interface over a typed expression tree. [`Draft`] provides a more convenient imperative interface for constructing programs from those expressions.
 
 The distinction between [`Program`] and [`Draft`] is analogous to writing Redux reducers with and without Immer. Without Immer, reducers explicitly construct the next state without mutating the previous one, often using spread syntax to copy the affected objects. Immer gives us a mutable representation of that state, called a _draft_, and records our changes to produce the next immutable state. HashQL's [`Draft`] follows the same idea: we write declarations in order, and it assembles the expression tree for us. That's where the name comes from.
 
-The lower-level [`Program`] and [`JExpr`] APIs are considered unstable, so we'll focus on [`Draft`] for program construction. We'll still use [`Program`]'s expression helpers and serialization where needed.
+The lower-level [`Program`] and [`J-Expr`] APIs are considered unstable, so we'll focus on [`Draft`] for program construction. We'll still use [`Program`]'s expression helpers and serialization where needed.
 
-[`JExpr`]: /docs/hashql/reference/hashql/JExpr
+## Getting Started
+
+The HashQL SDK makes extensive use of the excellent [effect] library, and therefore adopts some of its conventions and idioms. To use the SDK, you don't need to have familiarity with [effect] itself.
+
+To start, you must first import the SDK, you do this via:
+
+```ts
+import * as Draft from "@local/hashql/Draft";
+```
+
+You are also free to import individual symbols instead, most commonly you'll want to import [`program`], the function we'll use to create a [`J-Expr`] program, which can then later be sent to the server.
+
+```ts
+import { program } from "@local/hashql/Draft";
+```
+
+## Building our first J-Expr program
+
+The primary entrypoint for building a J-Expr program is the [`program`] function. It takes two arguments: the inputs that the program will use (external context) which needs to be supplied on every call to the server, and the program itself.
+
+The program is constructed using a closure itself, which takes two arguments: the construction context (conventionally called `$`), and the program inputs. Any behaviour that is outside of [`Program`], such as scope-management is done through `$`, so expect to call it often (hence the short name).
+
+```ts title="revision.ts" data-example="revision"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const revisionInputs = { revision: BigInt };
+
+const built = Draft.program(revisionInputs, ($, { revision }) => {
+  const { add } = $.prelude();
+  return add(revision, 1n);
+});
+```
+
+[`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
 [`Draft`]: /docs/hashql/reference/hashql/Draft
+[effect]: https://effect.website
 
 ---
 
