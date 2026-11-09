@@ -32,7 +32,8 @@ pub use self::{
     capture::{CaptureError, SourceCapture},
     entity_id::derive_entity_id,
     graph::{
-        Archive, EntityUpsert, GraphOperation, LinkEndpoint, LinkUpsert, OperationKind,
+        Archive, ConversionFailure, EntityUpsert, FailureReason, GraphOperation, LinkEndpoint,
+        LinkUpsert, OperationKind, ResolvedProperties, SinkColumns, SinkRow, UnsupportedValue,
         integration_provenance,
     },
     pipeline::{

@@ -7089,6 +7089,7 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "hash-codec",
  "hash-crypto",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
