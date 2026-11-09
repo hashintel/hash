@@ -99,6 +99,24 @@ const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
   ];
 };
 
+const namedDraftIds = (input: IssuedHashEntityRead): Set<EntityId> =>
+  new Set(
+    (input.entityIds ?? [])
+      .map((entityId) => entityId as EntityId)
+      .filter((entityId) => extractDraftIdFromEntityId(entityId) !== undefined),
+  );
+
+/**
+ * When named drafts alone enable drafts query-wide, keep only those drafts.
+ * Otherwise leave the graph's draft scope unchanged.
+ */
+const hashEntityReadOnlyDrafts = (
+  input: IssuedHashEntityRead,
+): ReadonlySet<EntityId> | undefined => {
+  const named = namedDraftIds(input);
+  return input.includeDrafts === true || named.size === 0 ? undefined : named;
+};
+
 /**
  * The `queryEntitySubgraph` request for one read: every given filter must
  * match. An entity id that names a draft reads that draft, whether or not
@@ -111,9 +129,7 @@ export const hashEntityReadRequest = (
   const entityIds = (input.entityIds ?? []).map(
     (entityId) => entityId as EntityId,
   );
-  const namesDraft = entityIds.some(
-    (entityId) => extractDraftIdFromEntityId(entityId) !== undefined,
-  );
+  const namesDraft = namedDraftIds(input).size > 0;
   const entityIdFilter = (entityId: EntityId): Filter =>
     input.includeDrafts === true
       ? generateEntityIdFilter({ entityId, includeArchived: true })
@@ -162,18 +178,29 @@ const truncatedWhen = (cursor: unknown) =>
  * its edition id is the edition whose properties it carries. An entity
  * archived through its `archived` property, as pages are, is left out: the
  * request's filter applies only to the matches, not to the entities reached
- * by following links.
+ * by following links. Given `onlyDrafts`, other drafts are left out too;
+ * links to excluded entities keep their endpoint ids.
  */
-export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
+export const hashEntityReadResult = (
+  response: QueryEntitySubgraphQuery,
+  onlyDrafts?: ReadonlySet<EntityId>,
+) => {
   const { subgraph, cursor } = deserializeQueryEntitySubgraphResponse(
     response.queryEntitySubgraph,
   );
   const matched = new Set(
     getRoots(subgraph).map(({ metadata }) => metadata.recordId.editionId),
   );
-  const entities = getEntities(subgraph, false).filter(
-    (entity) => entity.properties[archivedBaseUrl] !== true,
-  );
+  const entities = getEntities(subgraph, false)
+    .filter((entity) => entity.properties[archivedBaseUrl] !== true)
+    .filter(({ metadata: { recordId } }) => {
+      const { entityId } = recordId;
+      return (
+        onlyDrafts === undefined ||
+        extractDraftIdFromEntityId(entityId) === undefined ||
+        onlyDrafts.has(entityId)
+      );
+    });
   return {
     entities: entities.map((entity) => {
       const { entityId, editionId } = entity.metadata.recordId;
@@ -237,9 +264,13 @@ export const createHashEntityReadTool = (
   inputSchema: zHashEntityReadInput,
   outputSchema: { parse: (value) => value },
   execute: async ({ input, signal }) => {
-    const request = hashEntityReadRequest(zHashEntityReadInput.parse(input));
+    const readInput = zHashEntityReadInput.parse(input);
+    const request = hashEntityReadRequest(readInput);
     return settlingQueryFailure(signal, async () =>
-      hashEntityReadResult(await queryEntitySubgraph(request, signal)),
+      hashEntityReadResult(
+        await queryEntitySubgraph(request, signal),
+        hashEntityReadOnlyDrafts(readInput),
+      ),
     );
   },
 });

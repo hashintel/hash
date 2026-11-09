@@ -357,6 +357,128 @@ test("an entity reached by following links is left out when archived by its prop
   ).toEqual(["alice-web~supplier", "alice-web~link", "alice-web~live-page"]);
 });
 
+/** A named draft, an unrelated linked draft, and a live linked product. */
+const draftSupplierId = "alice-web~supplier~draft-1";
+const otherDraftId = "alice-web~rival~draft-2";
+const liveProductId = "alice-web~product";
+const withLinkedDrafts = {
+  queryEntitySubgraph: {
+    ...response.queryEntitySubgraph,
+    subgraph: {
+      roots: [{ baseId: draftSupplierId, revisionId: "2026-10-26T00:00:00Z" }],
+      vertices: Object.fromEntries(
+        [
+          entity({
+            entityId: draftSupplierId,
+            editionId: "edition-a",
+            properties: {},
+          }),
+          entity({
+            entityId: otherDraftId,
+            editionId: "edition-b",
+            properties: {},
+          }),
+          entity({
+            entityId: liveProductId,
+            editionId: "edition-c",
+            properties: {},
+          }),
+          entity({
+            entityId: "alice-web~to-rival",
+            editionId: "edition-ab",
+            properties: {},
+            linkData: {
+              leftEntityId: draftSupplierId,
+              rightEntityId: otherDraftId,
+            },
+          }),
+          entity({
+            entityId: "alice-web~to-product",
+            editionId: "edition-ac",
+            properties: {},
+            linkData: {
+              leftEntityId: draftSupplierId,
+              rightEntityId: liveProductId,
+            },
+          }),
+        ].map((vertex) => [
+          vertex.inner.metadata.recordId.entityId,
+          { "2026-10-26T00:00:00Z": vertex },
+        ]),
+      ),
+      edges: {},
+      temporalAxes: {},
+    },
+  },
+} as unknown as QueryEntitySubgraphQuery;
+const entityIdsRead = async (input: unknown) =>
+  (
+    (await run(() => Promise.resolve(withLinkedDrafts), input)) as {
+      entities: { entityId: string }[];
+    }
+  ).entities.map(({ entityId }) => entityId);
+
+test.each([undefined, false])(
+  "a read that names a draft with includeDrafts %s keeps only that draft and live linked entities, preserving link endpoints",
+  async (includeDrafts) => {
+    const query = vi.fn<QueryEntitySubgraph>(() =>
+      Promise.resolve(withLinkedDrafts),
+    );
+    const output = await run(query, {
+      entityIds: [draftSupplierId],
+      includeDrafts,
+    });
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeDrafts: true,
+        traversalPaths: oneLinkDeep,
+      }),
+      expect.any(AbortSignal),
+    );
+    expect(output).toMatchObject({
+      entities: [
+        { entityId: draftSupplierId, draft: true, matched: true },
+        { entityId: liveProductId, draft: false, matched: false },
+        {
+          entityId: "alice-web~to-rival",
+          linkData: {
+            leftEntityId: draftSupplierId,
+            rightEntityId: otherDraftId,
+          },
+        },
+        {
+          entityId: "alice-web~to-product",
+          linkData: {
+            leftEntityId: draftSupplierId,
+            rightEntityId: liveProductId,
+          },
+        },
+      ],
+    });
+  },
+);
+
+test("a read that asks for drafts returns every draft reached by following links", async () => {
+  const everyEntity = [
+    draftSupplierId,
+    otherDraftId,
+    liveProductId,
+    "alice-web~to-rival",
+    "alice-web~to-product",
+  ];
+  expect(
+    await entityIdsRead({ entityIds: [draftSupplierId], includeDrafts: true }),
+  ).toEqual(everyEntity);
+  expect(await entityIdsRead({ includeDrafts: true })).toEqual(everyEntity);
+});
+
+test("a read that names no draft returns whatever the graph returns", async () => {
+  expect(await entityIdsRead({ entityIds: [liveProductId] })).toContain(
+    otherDraftId,
+  );
+  expect(await entityIdsRead({})).toHaveLength(5);
+});
+
 test("a response with a cursor, which the graph sets when it stopped at its limit, marks the read truncated", async () => {
   const withCursor = (cursor: unknown) =>
     ({
