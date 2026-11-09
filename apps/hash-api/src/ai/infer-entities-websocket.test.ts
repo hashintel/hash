@@ -1,18 +1,13 @@
-import { once } from "node:events";
 import { EventEmitter } from "node:events";
-import { createServer, request } from "node:http";
 
-import express from "express";
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  onTestFinished,
   vi,
 } from "vitest";
-import { WebSocket } from "ws";
 
 import { openInferEntitiesWebSocket } from "./infer-entities-websocket";
 
@@ -20,7 +15,7 @@ import type { ImpureGraphContext } from "../graph/context-types";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Client } from "@temporalio/client";
 import type { IncomingMessage, Server } from "node:http";
-import type { AddressInfo, Socket } from "node:net";
+import type { WebSocket } from "ws";
 
 const mocks = vi.hoisted(() => ({
   serverOn: vi.fn(),
@@ -32,15 +27,11 @@ const mocks = vi.hoisted(() => ({
   signal: vi.fn(),
 }));
 
-vi.mock("ws", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("ws")>();
-  return {
-    ...actual,
-    WebSocketServer: class {
-      on = mocks.serverOn;
-    },
-  };
-});
+vi.mock("ws", () => ({
+  WebSocketServer: class {
+    on = mocks.serverOn;
+  },
+}));
 
 vi.mock("../auth/create-auth-handlers", () => ({
   getUserAndSession: mocks.getUserAndSession,
