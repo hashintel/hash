@@ -122,10 +122,11 @@ fn stop_reason(
             recorded,
             requested: expected,
         }),
-        dbos::Error::SystemDatabase(error) => dbos::Error::SystemDatabase(error),
-        dbos::Error::WorkflowCancelled { workflow_id } => {
+        dbos::Error::SystemDatabase(sysdb::Error::WorkflowCancelled { workflow_id })
+        | dbos::Error::WorkflowCancelled { workflow_id } => {
             dbos::Error::WorkflowCancelled { workflow_id }
         }
+        dbos::Error::SystemDatabase(error) => dbos::Error::SystemDatabase(error),
         other => {
             tracing::error!(error = %other, "DBOS stopped a step for an unhandled reason");
             dbos::Error::Application(RunFailureStored::Function {
