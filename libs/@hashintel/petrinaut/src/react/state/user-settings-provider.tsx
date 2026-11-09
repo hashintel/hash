@@ -14,7 +14,6 @@ import type {
   TimelineChartType,
 } from "./editor-context";
 import type {
-  ArcRendering,
   SubViewSectionSettings,
   UserSettings,
 } from "./user-settings-context";
@@ -47,6 +46,16 @@ type PersistedUserSettings = Partial<UserSettings> & {
   brunchDemoMode?: boolean;
   /** Opened the built-in welcome guide on init. Dropped on the next write. */
   showWalkthroughOnInit?: boolean;
+  /**
+   * Gated arcs drawn through node outlines while they were experimental.
+   * They are the only arcs, so the key is dropped on the next write.
+   */
+  enableAutomaticArcConnections?: boolean;
+  /**
+   * Chose the curve of arcs between fixed handles, which went with them.
+   * Dropped on the next write.
+   */
+  arcRendering?: "smoothstep" | "bezier" | "custom";
 };
 
 const loadSettings = (): UserSettings => {
@@ -66,6 +75,8 @@ const loadSettings = (): UserSettings => {
         enableNotebookView: _enableNotebookView,
         brunchDemoMode: _brunchDemoMode,
         showWalkthroughOnInit: _showWalkthroughOnInit,
+        enableAutomaticArcConnections: _enableAutomaticArcConnections,
+        arcRendering: _arcRendering,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -105,13 +116,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ...settings,
         enableExperimentalIconPack: value,
       })),
-    setEnableAutomaticArcConnections: (value: boolean) =>
-      setState((settings) => ({
-        ...settings,
-        enableAutomaticArcConnections: value,
-      })),
-    setArcRendering: (value: ArcRendering) =>
-      setState((prev) => ({ ...prev, arcRendering: value })),
     setCursorMode: (value: CursorMode) =>
       setState((prev) => ({ ...prev, cursorMode: value })),
     setIsLeftSidebarOpen: (value: boolean) =>

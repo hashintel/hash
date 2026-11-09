@@ -78,31 +78,41 @@ export const getOutlineAttachment = (
   };
 };
 
+/** Where an arc meets an endpoint: a node's outline, or a bare point. */
+const attach = (
+  endpoint: OutlineNode | CanvasPoint,
+  direction: CanvasPoint,
+): { point: CanvasPoint; normal: CanvasPoint } =>
+  "position" in endpoint
+    ? getOutlineAttachment(endpoint, direction)
+    : { point: endpoint, normal: { x: 0, y: 0 } };
+
+const centerOf = (endpoint: OutlineNode | CanvasPoint): CanvasPoint =>
+  "position" in endpoint ? endpoint.position : endpoint;
+
 export const getOutlineArcPath = (
-  source: OutlineNode,
+  source: OutlineNode | CanvasPoint,
   target: OutlineNode | CanvasPoint,
   hasReverseArc = false,
 ): OutlineArcPath => {
-  const targetCenter = "position" in target ? target.position : target;
+  const sourceCenter = centerOf(source);
+  const targetCenter = centerOf(target);
   const direction = {
-    x: targetCenter.x - source.position.x,
-    y: targetCenter.y - source.position.y,
+    x: targetCenter.x - sourceCenter.x,
+    y: targetCenter.y - sourceCenter.y,
   };
   if (direction.x === 0 && direction.y === 0) {
     direction.x = 1;
   }
   const lane = hasReverseArc ? 0.3 : 0;
-  const sourceAttachment = getOutlineAttachment(source, {
+  const sourceAttachment = attach(source, {
     x: direction.x - direction.y * lane,
     y: direction.y + direction.x * lane,
   });
-  const targetAttachment =
-    "position" in target
-      ? getOutlineAttachment(target, {
-          x: -direction.x - direction.y * lane,
-          y: -direction.y + direction.x * lane,
-        })
-      : { point: target, normal: { x: 0, y: 0 } };
+  const targetAttachment = attach(target, {
+    x: -direction.x - direction.y * lane,
+    y: -direction.y + direction.x * lane,
+  });
   const start = sourceAttachment.point;
   const end = targetAttachment.point;
   const controlDistance = Math.min(

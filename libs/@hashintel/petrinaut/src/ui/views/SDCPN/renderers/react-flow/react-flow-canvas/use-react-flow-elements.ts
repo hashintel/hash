@@ -1,7 +1,5 @@
 import { MarkerType } from "@xyflow/react";
-import { use } from "react";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
 import { portInHandleId, portOutHandleId } from "./port-handles";
@@ -75,14 +73,15 @@ const toReactFlowEdge = (arc: CanvasArc): ArcEdgeType => {
 };
 
 /**
- * The scene as React Flow nodes and edges. No per-frame value rides here: a
- * place's token count and a transition's firing state reach them by
- * subscription, so a playback frame leaves this list untouched.
+ * The scene as React Flow nodes and edges. An arc between a place and a
+ * transition carries its path along both outlines; an arc at a subnet port
+ * runs between handles instead. No per-frame value rides here: a place's
+ * token count and a transition's firing state reach them by subscription, so
+ * a playback frame leaves this list untouched.
  */
 export const useReactFlowElements = (
   scene: CanvasScene,
 ): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
-  const { enableAutomaticArcConnections } = use(UserSettingsContext);
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const connections = new Set(
     scene.arcs
@@ -97,18 +96,16 @@ export const useReactFlowElements = (
     edges: useStableItems(
       scene.arcs.map((arc) => {
         const edge = toReactFlowEdge(arc);
-        if (enableAutomaticArcConnections && edge.data) {
-          const source = nodesById.get(arc.sourceId);
-          const target = nodesById.get(arc.targetId);
-          const sourceOutline = source && getOutlineNode(source);
-          const targetOutline = target && getOutlineNode(target);
-          if (sourceOutline && targetOutline) {
-            edge.data.outlinePath = getOutlineArcPath(
-              sourceOutline,
-              targetOutline,
-              connections.has(JSON.stringify([arc.targetId, arc.sourceId])),
-            );
-          }
+        const source = nodesById.get(arc.sourceId);
+        const target = nodesById.get(arc.targetId);
+        const sourceOutline = source && getOutlineNode(source);
+        const targetOutline = target && getOutlineNode(target);
+        if (edge.data && sourceOutline && targetOutline) {
+          edge.data.outlinePath = getOutlineArcPath(
+            sourceOutline,
+            targetOutline,
+            connections.has(JSON.stringify([arc.targetId, arc.sourceId])),
+          );
         }
         return edge;
       }),

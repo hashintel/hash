@@ -545,35 +545,6 @@ export const UserSettingsDialog = ({
                           value={settings.enableExperimentalIconPack}
                           onChange={settings.setEnableExperimentalIconPack}
                         />
-                        <SettingToggle
-                          label="Automatic arc connections"
-                          description="Connect node outlines and choose attachment directions automatically."
-                          value={settings.enableAutomaticArcConnections}
-                          onChange={settings.setEnableAutomaticArcConnections}
-                        />
-                        {!settings.enableAutomaticArcConnections && (
-                          <SettingRow
-                            label="Arc rendering"
-                            description="Choose the shape of connections between nodes."
-                            wideControl
-                          >
-                            {(aria) => (
-                              <Select
-                                {...aria}
-                                size="sm"
-                                className={selectStyle}
-                                required
-                                value={settings.arcRendering}
-                                onChange={settings.setArcRendering}
-                                items={[
-                                  { value: "smoothstep", text: "Square" },
-                                  { value: "bezier", text: "Bezier" },
-                                  { value: "custom", text: "Adaptive Bezier" },
-                                ]}
-                              />
-                            )}
-                          </SettingRow>
-                        )}
                       </SettingsGroup>
                       <SettingsGroup title="Interaction">
                         <SettingToggle

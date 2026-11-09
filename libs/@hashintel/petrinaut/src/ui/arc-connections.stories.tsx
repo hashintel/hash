@@ -1,7 +1,3 @@
-import { use, useState } from "react";
-
-import { UserSettingsContext } from "../react/state/user-settings-context";
-import { UserSettingsProvider } from "../react/state/user-settings-provider";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -111,43 +107,27 @@ const definitionWithSubnet: SDCPN = {
   ],
 };
 
-const AutomaticArcEditor = ({
+const ArcConnectionsEditor = ({
   readonly = false,
   withSubnet = false,
 }: {
   readonly?: boolean;
   withSubnet?: boolean;
-}) => {
-  const settings = use(UserSettingsContext);
-  const [automaticArcs, setAutomaticArcs] = useState(true);
-  return (
-    <UserSettingsContext
-      value={{
-        ...settings,
-        enableAutomaticArcConnections: automaticArcs,
-        setEnableAutomaticArcConnections: setAutomaticArcs,
-      }}
-    >
-      <PetrinautStoryProvider
-        initialTitle="Automatic arc connections"
-        initialDefinition={withSubnet ? definitionWithSubnet : definition}
-        readonly={readonly}
-      />
-    </UserSettingsContext>
-  );
-};
+}) => (
+  <div style={{ height: "100vh", width: "100vw" }}>
+    <PetrinautStoryProvider
+      initialTitle="Arc connections"
+      initialDefinition={withSubnet ? definitionWithSubnet : definition}
+      readonly={readonly}
+    />
+  </div>
+);
 
 const meta = {
-  title: "Petrinaut/Automatic arc connections",
+  title: "Petrinaut/Arc connections",
   parameters: { layout: "fullscreen" },
-  render: (args) => (
-    <div style={{ height: "100vh", width: "100vw" }}>
-      <UserSettingsProvider>
-        <AutomaticArcEditor {...args} />
-      </UserSettingsProvider>
-    </div>
-  ),
-} satisfies Meta<typeof AutomaticArcEditor>;
+  component: ArcConnectionsEditor,
+} satisfies Meta<typeof ArcConnectionsEditor>;
 
 export default meta;
 

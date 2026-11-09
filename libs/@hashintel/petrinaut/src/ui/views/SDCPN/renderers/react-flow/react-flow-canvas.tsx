@@ -51,6 +51,7 @@ import {
 } from "./react-flow-canvas/selection-keys";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
+import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
@@ -120,13 +121,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
-  const {
-    compactNodes,
-    showMinimap,
-    showAnimations,
-    partialSelection,
-    enableAutomaticArcConnections,
-  } = use(UserSettingsContext);
+  const { compactNodes, showMinimap, showAnimations, partialSelection } =
+    use(UserSettingsContext);
   const { globalMode } = use(EditorContext);
   const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
@@ -142,49 +138,15 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
 
-  useEffect(() => {
-    const cancel = () => {
-      flowStore.getState().cancelConnection();
-      flowStore.setState({ connectionClickStartHandle: null });
-    };
-    cancel();
-    if (!enableAutomaticArcConnections) {
-      return;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      const { connection, connectionClickStartHandle } = flowStore.getState();
-      if (
-        event.key === "Escape" &&
-        (connection.inProgress || connectionClickStartHandle)
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        cancel();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [enableAutomaticArcConnections, flowStore]);
-
-  const isValidOutlineConnection: IsValidConnection = (connection) => {
-    const canvasConnection = toCanvasConnection(connection);
-    return (
-      !canvasConnection.sourcePortId &&
-      !canvasConnection.targetPortId &&
-      interactions.isValidConnection(canvasConnection)
-    );
-  };
+  const isValidConnection: IsValidConnection = (connection) =>
+    interactions.isValidConnection(toCanvasConnection(connection));
 
   const connect = (connection: Connection) => {
     const { connection: gesture, connectionClickStartHandle } =
       flowStore.getState();
-    if (
-      (!gesture.inProgress && !connectionClickStartHandle) ||
-      (enableAutomaticArcConnections && !isValidOutlineConnection(connection))
-    ) {
-      return;
+    if (gesture.inProgress || connectionClickStartHandle) {
+      interactions.connect(toCanvasConnection(connection));
     }
-    interactions.connect(toCanvasConnection(connection));
   };
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
@@ -200,6 +162,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   }, [controller, registerController]);
 
   useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
+  useEscapeCancelsConnection();
   useMonacoKeyboardIsolation();
   useMultiSelectionModifier(isMac);
 
@@ -267,12 +230,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           edgeTypes={REACTFLOW_EDGE_TYPES}
           onNodesChange={applyChanges}
           onEdgesChange={applyChanges}
-          connectionLineComponent={
-            enableAutomaticArcConnections ? OutlineConnectionLine : undefined
-          }
-          isValidConnection={
-            enableAutomaticArcConnections ? isValidOutlineConnection : undefined
-          }
+          connectionLineComponent={OutlineConnectionLine}
+          isValidConnection={isValidConnection}
           onConnect={interactions.readonly ? undefined : connect}
           onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
           // Node click selection is handled by ReactFlow's internal

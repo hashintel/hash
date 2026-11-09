@@ -5,8 +5,14 @@ import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
 
 import type { NodeType } from "./react-flow-types";
 
+/**
+ * The arc being drawn. It leaves the source node's outline, or the port it
+ * was dragged from, and meets the target's outline once the target is valid.
+ */
 export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   fromNode,
+  fromX,
+  fromY,
   toNode,
   toX,
   toY,
@@ -24,13 +30,10 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   const source = getOutlineNode(fromNode.data);
   const target =
     connectionStatus === "valid" && toNode ? getOutlineNode(toNode.data) : null;
-  if (!source) {
-    return null;
-  }
   const [path] = getOutlineArcPath(
-    source,
+    source ?? { x: fromX, y: fromY },
     target ?? { x: toX, y: toY },
-    target !== null && hasReverseArc,
+    source !== null && target !== null && hasReverseArc,
   );
   return (
     <>

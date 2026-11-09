@@ -1,6 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
-import { useState, type ReactNode } from "react";
+import { cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -8,10 +7,6 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
-import {
-  defaultUserSettingsContextValue,
-  UserSettingsContext,
-} from "../../../../../../react/state/user-settings-context";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
@@ -98,24 +93,7 @@ const scene: CanvasScene = {
   ],
 };
 
-const Settings = ({ children }: { children: ReactNode }) => {
-  const [enabled, setEnabled] = useState(false);
-  return (
-    <UserSettingsContext
-      value={{
-        ...defaultUserSettingsContextValue,
-        enableAutomaticArcConnections: enabled,
-      }}
-    >
-      <button type="button" onClick={() => setEnabled(!enabled)}>
-        Toggle automatic arcs
-      </button>
-      {children}
-    </UserSettingsContext>
-  );
-};
-
-describe("automatic arc rendering", () => {
+describe("arc rendering", () => {
   it.each([false, true])(
     "attaches diagonal arcs to square transition corners with compact nodes %s",
     (compactNodes) => {
@@ -127,38 +105,24 @@ describe("automatic arc rendering", () => {
         x: transitionSize.width * 3,
         y: transitionSize.height * 3,
       };
-      const { result } = renderHook(
-        () =>
-          useReactFlowElements({
-            ...scene,
-            dimensions,
-            nodes: nodes.map((node) =>
-              node.kind === "transition"
-                ? { ...node, ...transitionSize, position: transitionPosition }
-                : node,
-            ),
-            arcs: [
-              {
-                ...arcBase,
-                id: "input",
-                sourceId: "place",
-                targetId: "transition",
-              },
-            ],
-          }),
-        {
-          wrapper: ({ children }) => (
-            <UserSettingsContext
-              value={{
-                ...defaultUserSettingsContextValue,
-                compactNodes,
-                enableAutomaticArcConnections: true,
-              }}
-            >
-              {children}
-            </UserSettingsContext>
+      const { result } = renderHook(() =>
+        useReactFlowElements({
+          ...scene,
+          dimensions,
+          nodes: nodes.map((node) =>
+            node.kind === "transition"
+              ? { ...node, ...transitionSize, position: transitionPosition }
+              : node,
           ),
-        },
+          arcs: [
+            {
+              ...arcBase,
+              id: "input",
+              sourceId: "place",
+              targetId: "transition",
+            },
+          ],
+        }),
       );
 
       const path = result.current.edges.find((edge) => edge.id === "input")
@@ -174,45 +138,27 @@ describe("automatic arc rendering", () => {
     },
   );
 
-  it("changes only ordinary arc geometry and restores all legacy edge data when switched off", () => {
-    const { result } = renderHook(() => useReactFlowElements(scene), {
-      wrapper: Settings,
-    });
-    const legacy = result.current.edges;
-    expect(legacy.every((edge) => edge.data?.outlinePath === undefined)).toBe(
-      true,
-    );
+  it("draws arcs between nodes along their outlines and leaves subnet port arcs to their handles", () => {
+    const { result } = renderHook(() => useReactFlowElements(scene));
+    const edges = new Map(result.current.edges.map((edge) => [edge.id, edge]));
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
-    );
-    for (const edge of result.current.edges) {
-      const original = legacy.find((candidate) => candidate.id === edge.id);
-      if (edge.id.startsWith("port-")) {
-        expect(edge).toEqual(original);
-      } else {
-        expect(edge.data?.outlinePath).toBeDefined();
-        expect({
-          ...edge,
-          data: { ...edge.data, outlinePath: undefined },
-        }).toEqual(original);
-      }
-    }
+    expect(edges.get("input")?.data?.outlinePath).toBeDefined();
+    expect(edges.get("output")?.data?.outlinePath).toBeDefined();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
-    );
-    expect(result.current.edges).toEqual(legacy);
+    const fromPort = edges.get("port-input");
+    expect(fromPort?.sourceHandle).toBe("port-out-port");
+    expect(fromPort?.data?.outlinePath).toBeUndefined();
+
+    const intoPort = edges.get("port-output");
+    expect(intoPort?.targetHandle).toBe("port-in-port");
+    expect(intoPort?.data?.outlinePath).toBeUndefined();
   });
 
   it("recomputes attachments during node movement without mutating the scene", () => {
     const snapshot = structuredClone(scene);
     const { result, rerender } = renderHook(
       (input: CanvasScene) => useReactFlowElements(input),
-      { initialProps: scene, wrapper: Settings },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
+      { initialProps: scene },
     );
     const previous = result.current.edges.find((edge) => edge.id === "input")
       ?.data?.outlinePath;
@@ -234,10 +180,7 @@ describe("automatic arc rendering", () => {
   it("preserves unaffected nodes and arcs when focus changes", () => {
     const { result, rerender } = renderHook(
       (input: CanvasScene) => useReactFlowElements(input),
-      { initialProps: scene, wrapper: Settings },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle automatic arcs" }),
+      { initialProps: scene },
     );
     const previous = result.current;
     rerender({

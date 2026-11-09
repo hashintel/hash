@@ -96,6 +96,12 @@ describe("outline arc paths", () => {
     expect(path).toMatch(/ 75,200$/);
   });
 
+  it("starts a preview from a subnet port at the port", () => {
+    const [path] = getOutlineArcPath({ x: -200, y: 0 }, target);
+    expect(path).toMatch(/^M -200,0 C /);
+    expect(path).toMatch(/ 250,0$/);
+  });
+
   it.each([0, 1, 50, 100])(
     "stays finite with %s pixels between centers",
     (distance) => {
