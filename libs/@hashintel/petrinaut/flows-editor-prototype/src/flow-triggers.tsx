@@ -436,7 +436,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
   return (
     <>
       <div
-        className={css({ display: "flex", gap: "2", alignItems: "flex-start" })}
+        className={css({ display: "flex", gap: "3", alignItems: "flex-start" })}
       >
         <span
           className={cx(
@@ -815,7 +815,7 @@ const TriggersPanelAtScale = () => {
   return (
     <>
       <div
-        className={css({ display: "flex", gap: "2", alignItems: "flex-start" })}
+        className={css({ display: "flex", gap: "3", alignItems: "flex-start" })}
       >
         <span
           className={cx(

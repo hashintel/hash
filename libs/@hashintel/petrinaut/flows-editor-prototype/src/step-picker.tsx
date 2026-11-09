@@ -9,7 +9,8 @@
  * - 3 (K3): a command palette in the middle of the screen: suggested steps, recent steps, then every step.
  * - 4 (K4): "Add a step" takes the right panel's place, with where the step goes at the top.
  *
- * Tiles are the Add tab's (14 px, 3 px corners, 10 px icon) in the step kind's tint, the icon tinted inside it.
+ * Tiles follow approved-parts G77 ("Two-line rows"): 32 px with a 16 px icon across both lines of a row with a
+ * second line; 24 px with a 14 px icon, in a 32 px slot, on a one-line row. Both in the step's P-a hue.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -17,6 +18,7 @@ import { Icon, type IconName } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { type CatalogEntry, groupEntries, stepGroups } from "./catalog";
+import { RowTile } from "./menu-rows";
 import {
   groupIconColour,
   groupRowColour,
@@ -224,7 +226,6 @@ const headingStyle = css({
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
   width: "[100%]",
   minHeight: "[32px]",
   flexShrink: 0,
@@ -236,8 +237,8 @@ const rowStyle = css({
   color: "neutral.fg.heading",
   textStyle: "sm",
   "&[data-active=true]": { backgroundColor: "neutral.bg.surface.hover" },
-  "&[data-two]": { alignItems: "flex-start" },
-  "&[data-two] > span:first-child": { marginTop: "[3px]" },
+  // G77: the tile sits in a 32 px slot, 12 px from the text, centred across both lines of a two-line row.
+  gap: "3",
 });
 
 const rowTextStyle = css({
@@ -301,7 +302,7 @@ const StepRow = ({
       onClick={onPick}
       onMouseEnter={onHover}
     >
-      <KindTile icon={entry.icon} />
+      <RowTile icon={entry.icon} twoLine={two} tint={tileColor(entry.icon)} />
       {look === "inline" ? (
         <>
           <span className={cx(titleStyle, css({ flexShrink: 0 }))}>
