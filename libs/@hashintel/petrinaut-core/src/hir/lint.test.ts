@@ -447,6 +447,29 @@ describe("input place counts", () => {
     ).toContainEqual(["hir:invalid-index", "error"]);
   });
 
+  it("types `.count` through an array of input places", () => {
+    const queueBinding = { ...poolBinding, name: "Queue" };
+    expect(
+      codes(
+        `const places = [input.Pool, input.Queue];
+return places[0].count + places[1].count;`,
+        {
+          ...countLambdaContext,
+          inputPlaces: [poolBinding, queueBinding],
+          inputSlots: [
+            { ...poolBinding, slotStart: 0 },
+            { ...queueBinding, slotStart: 2 },
+          ],
+          inputCounts: [
+            { name: "Pool", arcIndex: 0 },
+            { name: "Queue", arcIndex: 1 },
+            { name: "Gate", arcIndex: 2 },
+          ],
+        },
+      ),
+    ).toEqual([]);
+  });
+
   it("records count reads without making the lambda token-dependent", () => {
     const { analysis } = lintHirUserCode(
       `return input.Pool.count * input.Gate.count;`,

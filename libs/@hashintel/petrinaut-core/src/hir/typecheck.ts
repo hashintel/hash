@@ -204,6 +204,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
         kind: "array",
         element: joinTypes(left.element, right.element),
         length: left.length === right.length ? left.length : undefined,
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     if (left.kind === "record" && right.kind === "record") {
@@ -222,6 +223,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
           name: field.name,
           type: joinTypes(field.type, rightByName.get(field.name)!),
         })),
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     return left;
