@@ -180,7 +180,8 @@ export const setupBrunchAgentProxy = (
   /**
    * Authenticates the session and checks that Brunch is configured before
    * handing the handler the account's Brunch actor key and upstream config:
-   * 401 without a session, and 503 when `HASH_BRUNCH_AGENT_ORIGIN` is unset.
+   * 401 without a session or before signup is complete, and 503 when
+   * `HASH_BRUNCH_AGENT_ORIGIN` is unset.
    */
   const withConfiguredActor =
     (
@@ -195,7 +196,9 @@ export const setupBrunchAgentProxy = (
       ) => void,
     ) =>
     (request: Request, response: Response, next: NextFunction) => {
-      if (!request.user) {
+      // Registered before NodeAPI drops incomplete users outside GraphQL, so
+      // apply that rule here: an account mid-signup is treated as anonymous.
+      if (!request.user?.isAccountSignupComplete) {
         response.status(401).json({ error: "Authentication required" });
         return;
       }

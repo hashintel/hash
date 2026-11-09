@@ -33,10 +33,12 @@ const listen = async (server: Server) => {
 const startProxy = async ({
   configured = true,
   signedIn = true,
+  signupComplete = true,
   appJsonParser = true,
 }: {
   configured?: boolean;
   signedIn?: boolean;
+  signupComplete?: boolean;
   appJsonParser?: boolean;
 } = {}) => {
   const upstreamRequests: {
@@ -73,10 +75,14 @@ const startProxy = async ({
   const app = express();
   app.use((request, _response, next) => {
     if (signedIn) {
-      // The proxy reads only the signed-in account's id; tests name another
-      // account with a header the proxy never forwards.
+      // The proxy reads only the account's id and whether its signup is
+      // complete; tests name another account with a header the proxy never
+      // forwards.
       const accountId = request.headers["x-test-account"] ?? "account-1";
-      request.user = { accountId } as unknown as User;
+      request.user = {
+        accountId,
+        isAccountSignupComplete: signupComplete,
+      } as unknown as User;
     }
     next();
   });
@@ -457,6 +463,47 @@ test.each(["/api/brunch/identity", "/api/brunch/agents/hash/instance"])(
     const response = await send(path);
 
     expect(response.status).toBe(401);
+    expect(upstreamRequests).toEqual([]);
+  },
+);
+
+test.each(
+  [
+    { route: "identity", method: "GET", path: "/api/brunch/identity" },
+    {
+      route: "a turn submission",
+      method: "POST",
+      path: "/api/brunch/agents/hash/instance",
+    },
+  ].flatMap((row) => [
+    { ...row, configured: true },
+    { ...row, configured: false },
+  ]),
+)(
+  "refuses $route to an account that has not completed signup, as without a session (configured: $configured)",
+  async ({ method, path, configured }) => {
+    const { send, upstreamRequests } = await startProxy({
+      configured,
+      signupComplete: false,
+    });
+
+    const response = await send(path, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        cookie: "ory_kratos_session=account-1",
+      },
+      body:
+        method === "POST" ? JSON.stringify({ message: "hello" }) : undefined,
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "Authentication required",
+    });
+    // Refused before the turn limiter, which sets these on every request it
+    // counts.
+    expect(response.headers["ratelimit-limit"]).toBeUndefined();
     expect(upstreamRequests).toEqual([]);
   },
 );
