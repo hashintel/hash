@@ -174,7 +174,9 @@ The helper takes the same kind of expression as `revision` and constructs an add
 
 ## Assemble a task summary
 
-For our task summary program, we need to express structured values rather than just a single integer. Our tasks should have a title, a revision and two flags: `blocked` and `done`. We can construct this struct type with [`Program.Structural.type`]:
+For our task summary program, we need to express structured values, rather than just rely on a single integer. To make use of that we use [structs], which are similar to records in TypeScript. Our tasks should have a title, a revision and two flags: `blocked` and `done`.
+
+We can construct this struct type with [`Program.Structural.type`], or inside of [`Draft.program`] using [`$.type`]:
 
 ```ts
 const taskType = Program.Structural.type({
@@ -185,11 +187,16 @@ const taskType = Program.Structural.type({
 }).pipe(Result.getOrThrow);
 ```
 
-The constructor returns a [`Result`], which we unwrap with [`Result.getOrThrow`]. `taskType` is now a type expression describing the struct, not task data.
+The constructor returns a [`Result`], with a [`ProgramError.Construction`]. This error can happen when the identifier chosen for a field is not a valid HashQL identifier. For the purposes of our program we then [`Result.getOrThrow`] to unwrap the error. It is in general acceptable to do this for constant type expressions, but otherwise [`effect`] programs should make use of e.g. [`Effect.fromResult`] to handle errors.
 
-(Inputs also support [shorthand type definitions][structural-definitions], as we used for `revision` above.)
+The result is that `taskType` is now a [`TypeExpression`] (not an [`Expression`]!), which describes the struct type.
 
-Passing this type as the `task` input tells Draft to expect a struct with these fields. Let's use that input to return the task's title and next revision:
+<Callout>
+  Inputs also support [shorthand type definitions][structural-definitions], as
+  we used for `revision` above.
+</Callout>
+
+We then use this type and pass it to the `task` input of `summarizeTask`. This does two changes: callers that consume this expression must now provide that shape, and the handle will now have the type that `taskType` described. Let's use it in our example:
 
 ```ts
 const summarizeTask = Draft.program({ task: taskType }, ($, { task }) => {
@@ -212,11 +219,14 @@ console.log(compile(summarizeTask));
 
 </details>
 
-[`Program.Structural.struct`] constructs a struct value from its field expressions. This is the other side of our input definition: `taskType` describes the shape we expect, while `struct` constructs the value our program returns. Reading `task.title` and `task.revision` constructs field access within that program.
+[`Program.Structural.struct`] is the way that we create a struct value from the field expressions that we provide. HashQL operates in three "universes": modules, types, and values. Where [`Program.Structural.Type`] is the type version of the struct constructor, [`Program.Structural.struct`] is the value version. You can then use normal JavaScript field notation on these struct values to access their fields, which in turn returns an expression handle.
 
-<Callout>You can destructure named fields, for example `const { title, revision } = task`. They are still expression handles, not the task's runtime values.</Callout>
+<Callout>
+  You cannot destructure named fields from expression handles. `const {...rest}{" "}
+  = task` will not work.
+</Callout>
 
-Now let's use the task's flags to decide whether it needs review. We want blocked, unfinished tasks to receive the label `"review"`, and every other task to receive `"clear"`:
+Now that we have a more structured way to access task fields, as well as construct algebraic data types (ADTs), we can extend our program, let's say that we introduce a new field `attention` that depends on the task's flags. We want blocked, unfinished tasks to receive the label `"review"`, and every other task to receive `"clear"`:
 
 ```ts title="Choose a label from the task's fields" data-example="summary-attention"
 const summarizeTaskWithAttention = Draft.program(
@@ -248,9 +258,11 @@ console.log(compile(summarizeTaskWithAttention));
 
 </details>
 
-In addition to providing access to the prelude, `$` offers several constructors and helpers, documented in [`Draft.Context`]. In particular, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. You can also call equality directly from the prelude. The difference is in what the SDK gives us back: the prelude call returns an ordinary Boolean expression, while `$.eq` returns a predicate with fluent methods such as `.and`, `.or` and `.not`.
+To be able to increase the readability aspect, `$` does not only offer access to the modules, or the prelude, but also provides a set of helper functions for common operations. You can still use the full HashQL API from [`Program`], but the [`Draft.Context`] has a lot of helper functions made available for convenience, and enables you to write more readable HashQL programs through e.g. fluid predicate composition.
 
-Inside the callback, we could construct our condition either way:
+In our example `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. The interesting part is that it doesn't return just a `Boolean` value, but instead returns a [`Program.Operators.Boolean`], this means that you can create a chain of predicates using `.and`, `.or` and `.not`.
+
+As said prior, you are not constrained by the SDK to just use the helper functions, an alternative way to write the same condition would be:
 
 ```ts title="Function calls and fluent predicates" data-example="predicate-comparison"
 const { eq } = $.prelude();
@@ -258,9 +270,9 @@ const viaPrelude = $.and(eq(task.blocked, true), $.not(task.done));
 const viaHelper = $.eq(task.blocked, true).and($.not(task.done));
 ```
 
-Both forms produce the same HashQL calls. The helper form lets us continue composing the predicate directly, so we'll use it in our examples. The helper also requires matching operand types, whereas the prelude's equality declaration permits different types.
+At the end of the callback, both forms produce identical HashQL calls, `$` is simply a convenience wrapper that you can use to write more pleasant to read and maintain HashQL code. Use of `$` is considered idiomatic for the TypeScript SDK, and therefore recommended over the prelude imports, which is why we're going to continue using it in our examples.
 
-Our summary still only describes a result. It returns the task's title, a proposed next revision and the chosen attention label. It doesn't update the task stored in the graph.
+Now what's important to know is that our summary still only describes a result, it is nothing more than a fancy function that is sent to the server to do some computation, and then returns the result. It doesn't update the task stored in the graph.
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
