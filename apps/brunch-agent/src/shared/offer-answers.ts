@@ -16,7 +16,7 @@ const kindUses = Object.entries(questionKinds).map(
 export const offerAnswersToolDescription = [
   `Offer quick answers for the questions your reply asks, in the same response as the closing ${brunchTools.ledgerCommit} with endTurn.`,
   "Your reply must still ask every question in full; this only adds buttons and fields beneath it.",
-  "List every question the reply asks, in order.",
+  "List every question the reply asks, in order. Call it only when at least one of them is not open.",
   `Use ${kindUses.slice(0, -1).join(", ")}, and ${kindUses.at(-1)}.`,
   `Never offer choices on ${neverOffer.join(", nor on ")}.`,
   "The user can always answer in their own words.",
