@@ -8,6 +8,9 @@ import {
   type OutlineNode,
 } from "./outline-arcs";
 
+const numbersOf = (path: string) =>
+  [...path.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
+
 const circle: OutlineNode = {
   position: { x: 40, y: 60 },
   width: 100,
@@ -116,6 +119,22 @@ describe("outline arc paths", () => {
     );
     const lastControlX = Number(path.match(/ ([-\d.]+),[-\d.]+ 300,100$/)?.[1]);
     expect(lastControlX).toBeLessThan(300);
+  });
+
+  it("separates arcs into and out of one component at the transition", () => {
+    const transition = { ...circle, width: 160, height: 80, cornerRadius: 0 };
+    const startY = (path: string) => numbersOf(path)[1] ?? Number.NaN;
+    const endY = (path: string) => numbersOf(path).at(-1) ?? Number.NaN;
+    const intoPort = fixedEndpoint(400, 110, Position.Left);
+    const outOfPort = fixedEndpoint(600, 110, Position.Right);
+
+    const [together] = getOutlineArcPath(transition, intoPort);
+    const [back] = getOutlineArcPath(outOfPort, transition);
+    expect(Math.abs(startY(together) - endY(back))).toBeLessThan(10);
+
+    const [into] = getOutlineArcPath(transition, intoPort, true);
+    const [outOf] = getOutlineArcPath(outOfPort, transition, true);
+    expect(Math.abs(startY(into) - endY(outOf))).toBeGreaterThan(30);
   });
 
   it.each([0, 1, 50, 100])(

@@ -40,7 +40,7 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   const [path] = getOutlineArcPath(
     sourceOutline ?? fixedEndpoint(fromX, fromY, fromPosition),
     targetOutline ?? fixedEndpoint(toX, toY, snapped ? toPosition : undefined),
-    sourceOutline !== null && targetOutline !== null && hasReverseArc,
+    snapped && hasReverseArc,
   );
   return (
     <>

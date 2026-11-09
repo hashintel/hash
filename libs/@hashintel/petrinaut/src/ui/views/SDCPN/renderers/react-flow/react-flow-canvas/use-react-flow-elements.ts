@@ -94,10 +94,10 @@ export const useReactFlowElements = (
     const node = nodesById.get(nodeId);
     return node ? getOutlineNode(node) : null;
   };
+  // Node pairs only, ports aside: an arc into a subnet port and one out of
+  // the same component would otherwise meet the transition at one point.
   const connections = new Set(
-    scene.arcs
-      .filter((arc) => !arc.sourcePortId && !arc.targetPortId)
-      .map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),
+    scene.arcs.map((arc) => JSON.stringify([arc.sourceId, arc.targetId])),
   );
 
   // Rebuilt from the scene, then held at their previous identity where

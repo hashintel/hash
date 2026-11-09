@@ -162,6 +162,10 @@ describe("arc rendering", () => {
     expect(intoPort?.targetHandle).toBe("port-in-port");
     expect(intoPort?.data?.sourceOutline).not.toBeNull();
     expect(intoPort?.data?.targetOutline).toBeNull();
+
+    // Into and out of the same component: separate curves at the transition.
+    expect(fromPort?.data?.hasReverseArc).toBe(true);
+    expect(intoPort?.data?.hasReverseArc).toBe(true);
   });
 
   it("recomputes attachments during node movement without mutating the scene", () => {
