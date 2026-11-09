@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { composeAnswers, coversTurn } from "./answers";
+import { composeAnswers, coversTurn, fillDraft } from "./answers";
 
 import type { OfferedQuestion, OfferedQuestions } from "./kinds";
 
@@ -133,5 +133,74 @@ describe("several questions", () => {
   test("answers nothing until something is answered", () => {
     expect(composeAnswers(batch, [])).toBeUndefined();
     expect(composeAnswers(opening, [])).toBeUndefined();
+  });
+});
+
+describe("a draft in the composer", () => {
+  const quick = [
+    undefined,
+    undefined,
+    undefined,
+    { type: "option", option: "Quick" },
+  ] satisfies Parameters<typeof fillDraft>[2];
+
+  test("an empty composer gets a line for every question", () => {
+    expect(fillDraft("", opening, quick)).toBe(composeAnswers(opening, quick));
+    expect(fillDraft(" \n ", opening, quick)).toBe(
+      "1. Summer peak case:\n2. Model boundary:\n3. What else judges it:\n4. Time to spend: Quick",
+    );
+    expect(
+      fillDraft("", batch, [undefined, { type: "option", option: "Yes" }]),
+    ).toBe("1. Batch start:\n2. Delay clock: Yes");
+  });
+
+  test("keeps what the person typed on the other lines", () => {
+    const typed =
+      "1. Summer peak case: last July's incident\n2. Model boundary: chillers and BMS\n3. What else judges it: energy cost\n4. Time to spend:";
+    expect(fillDraft(typed, opening, quick)).toBe(
+      "1. Summer peak case: last July's incident\n2. Model boundary: chillers and BMS\n3. What else judges it: energy cost\n4. Time to spend: Quick",
+    );
+  });
+
+  test("re-choosing replaces the question's line rather than adding one", () => {
+    const drafted = fillDraft("", opening, quick);
+    expect(
+      fillDraft(drafted, opening, [
+        undefined,
+        undefined,
+        undefined,
+        { type: "option", option: "Deep" },
+      ]),
+    ).toBe(
+      "1. Summer peak case:\n2. Model boundary:\n3. What else judges it:\n4. Time to spend: Deep",
+    );
+  });
+
+  test("leaves lines the person added, and lines of unanswered questions", () => {
+    expect(
+      fillDraft(
+        "1. Batch start: it waits\nAlso, the clock pauses overnight.",
+        batch,
+        [undefined, { type: "own-words", text: "From the planned start." }],
+      ),
+    ).toBe(
+      "1. Batch start: it waits\nAlso, the clock pauses overnight.\n2. Delay clock: Not quite — From the planned start.",
+    );
+  });
+
+  test("appends a missing line after unrelated text", () => {
+    expect(fillDraft("Mostly the August heatwave.", opening, quick)).toBe(
+      "Mostly the August heatwave.\n4. Time to spend: Quick",
+    );
+    expect(fillDraft("Mostly the August heatwave.\n", opening, quick)).toBe(
+      "Mostly the August heatwave.\n4. Time to spend: Quick",
+    );
+  });
+
+  test("changes nothing without an answer", () => {
+    expect(fillDraft("Half a thought", opening, [])).toBe("Half a thought");
+    expect(
+      fillDraft("", opening, [undefined, { type: "own-words", text: " " }]),
+    ).toBe("");
   });
 });

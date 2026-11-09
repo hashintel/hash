@@ -440,6 +440,12 @@ export const AiAssistantContents = ({
       .join("\n\n");
     if (prompt) onRetryPrompt?.(prompt);
   };
+  const onDraftAnswer = (fill: (draft: string) => string) => {
+    const draft = fill(input);
+    onInputChange(draft);
+    inputRef.current?.focus({ preventScroll: true });
+    inputRef.current?.setSelectionRange(draft.length, draft.length);
+  };
   // Stable container for the per-render callbacks so the memoised transcript
   // messages don't see identity churn from the panel's inline arrow functions
   // on every render. The ref itself is stable across renders, so memoised
@@ -451,6 +457,7 @@ export const AiAssistantContents = ({
     onSelectToolTarget,
     onRetryMessage,
     onSendAnswer: onSendPrompt,
+    onDraftAnswer,
   });
   useEffect(() => {
     handlersRef.current = {
@@ -458,6 +465,7 @@ export const AiAssistantContents = ({
       onSelectToolTarget,
       onRetryMessage,
       onSendAnswer: onSendPrompt,
+      onDraftAnswer,
     };
   });
   const showHostActions =

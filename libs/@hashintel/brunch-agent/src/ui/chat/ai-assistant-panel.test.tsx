@@ -6796,6 +6796,179 @@ describe("AiAssistantPanel composer submissions", () => {
     ]);
   });
 
+  const offerReplies = (questions: unknown[]) => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        const id = `offer-${requestMessages.length}`;
+        return Promise.resolve(
+          streamChunks([
+            ...textChunks(`${id}-text`, "A few questions."),
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              providerExecuted: true,
+              toolCallId: id,
+              toolName: brunchTools.offerAnswers,
+              input: { questions },
+            },
+            {
+              type: "tool-output-available",
+              dynamic: true,
+              providerExecuted: true,
+              toolCallId: id,
+              output: { offered: questions.length },
+            },
+            { type: "finish-step" },
+          ]),
+        );
+      }),
+    };
+    return { requestMessages, transport };
+  };
+  const ledgerTurnOf = (message: PetrinautAiMessage | undefined) =>
+    foldCommits({
+      messages: [
+        ...(message ? [message] : []),
+        {
+          id: `commit-after-${message?.id}`,
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: brunchTools.ledgerCommit,
+              toolCallId: `commit-${message?.id}`,
+              state: "output-available",
+              input: {
+                entries: [
+                  [
+                    "entity/create",
+                    {
+                      name: "Batch",
+                      kind: "resource",
+                      origin: "stated",
+                      status: "confirmed",
+                    },
+                  ],
+                ],
+              },
+              output: {
+                status: "recorded",
+                commitId: `commit-${message?.id}`,
+                revision: 1,
+                ids: ["e1"],
+              },
+            },
+          ],
+        },
+      ],
+    }).state.turns;
+  const typeAndSend = (text: string) => {
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+      { target: { value: text } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  };
+
+  test("answers sent together are the message typing them sends, and the Ledger reads the same turn", async () => {
+    const { requestMessages, transport } = offerReplies([
+      {
+        kind: "choose",
+        label: "Batch start",
+        options: ["Starts when both are available", "Must be rescheduled"],
+      },
+      { kind: "confirm", label: "Delay clock" },
+    ]);
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Batches wait for material.",
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Must be rescheduled" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Not quite…" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Delay clock" }), {
+      target: { value: "From the rescheduled start." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send answers" }));
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+    await screen.findByRole("button", { name: "Send answers" });
+    const text =
+      "1. Batch start: Must be rescheduled\n2. Delay clock: Not quite — From the rescheduled start.";
+    typeAndSend(text);
+    await waitFor(() => expect(requestMessages).toHaveLength(3));
+
+    const clicked = requestMessages[1]?.at(-1);
+    const typed = requestMessages[2]?.at(-1);
+    expect(clicked).toEqual({
+      id: expect.any(String) as string,
+      role: "user",
+      parts: [{ type: "text", text }],
+    });
+    expect({ ...clicked, id: undefined }).toEqual({ ...typed, id: undefined });
+    const excerpt =
+      "1. Batch start: Must be rescheduled 2. Delay clock: Not quite — From the rescheduled start.";
+    expect(ledgerTurnOf(clicked)).toEqual([{ id: clicked?.id, excerpt }]);
+    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
+  });
+
+  test("a drafted answer, finished and sent from the composer, is the message typing it sends", async () => {
+    const { requestMessages, transport } = offerReplies([
+      { kind: "open", label: "Summer peak case" },
+      { kind: "open", label: "Model boundary" },
+      { kind: "open", label: "What else judges it" },
+      {
+        kind: "choose",
+        label: "Time to spend",
+        options: ["Quick", "Standard", "Thorough", "Deep"],
+      },
+    ]);
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Should we add a chiller before summer?",
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Quick" }));
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    }) as HTMLTextAreaElement;
+    const draft =
+      "1. Summer peak case:\n2. Model boundary:\n3. What else judges it:\n4. Time to spend: Quick";
+    await waitFor(() => expect(composer.value).toBe(draft));
+    expect(document.activeElement).toBe(composer);
+    expect(composer.selectionStart).toBe(draft.length);
+    composer.setSelectionRange(0, 0);
+    fireEvent.click(screen.getByRole("button", { name: "Quick" }));
+    expect(composer.value).toBe(draft);
+    expect(composer.selectionStart).toBe(draft.length);
+    expect(requestMessages).toHaveLength(1);
+
+    const text = draft.replace(
+      "1. Summer peak case:",
+      "1. Summer peak case: last July's incident",
+    );
+    typeAndSend(text);
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+    await screen.findByRole("button", { name: "Quick" });
+    typeAndSend(text);
+    await waitFor(() => expect(requestMessages).toHaveLength(3));
+
+    const drafted = requestMessages[1]?.at(-1);
+    const typed = requestMessages[2]?.at(-1);
+    expect(drafted).toEqual({
+      id: expect.any(String) as string,
+      role: "user",
+      parts: [{ type: "text", text }],
+    });
+    expect({ ...drafted, id: undefined }).toEqual({ ...typed, id: undefined });
+    const excerpt =
+      "1. Summer peak case: last July's incident 2. Model boundary: 3. What else judges it: 4. Time to spend: Quick";
+    expect(ledgerTurnOf(drafted)).toEqual([{ id: drafted?.id, excerpt }]);
+    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
+  });
+
   test("can force a separate message while an interactive tool is pending", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
