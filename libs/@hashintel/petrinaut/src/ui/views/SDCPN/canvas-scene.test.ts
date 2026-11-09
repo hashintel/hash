@@ -10,7 +10,12 @@ import {
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
 
-import type { Place, SDCPN, Transition } from "@hashintel/petrinaut-core";
+import type {
+  Place,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "@hashintel/petrinaut-core";
 
 const place = (id: string, x: number, y: number): Place => ({
   id,
@@ -257,6 +262,110 @@ describe("buildCanvasScene", () => {
       sourcePortId: null,
       targetId: "right",
       targetPortId: "in",
+    });
+  });
+
+  describe("components and ports", () => {
+    const token = {
+      id: "tok",
+      name: "Tok",
+      iconSlug: "circle",
+      displayColor: "#ff0000",
+      elements: [{ elementId: "v", name: "v", type: "real" as const }],
+    };
+    const iface: Subnet = {
+      id: "iface",
+      name: "Stage",
+      interface: true,
+      places: [
+        {
+          ...place("in", 0, 0),
+          isPort: true,
+          portDirection: "in",
+          colorId: "tok",
+        },
+      ],
+      transitions: [],
+      types: [token],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const fast: Subnet = {
+      ...iface,
+      id: "fast",
+      name: "Fast",
+      interface: undefined,
+      implements: ["iface"],
+    };
+    const instance = (
+      id: string,
+      subnetId: string,
+      implementation?: string,
+    ) => ({
+      id,
+      name: id,
+      subnetId,
+      parameterValues: {},
+      x: 0,
+      y: 0,
+      ...(implementation === undefined ? {} : { implementation }),
+    });
+    const composed: SDCPN = {
+      ...sdcpn,
+      subnets: [iface, fast],
+      implementations: { iface: "fast" },
+      componentInstances: [
+        instance("bound", "iface"),
+        instance("plain", "fast"),
+        instance("loose", "iface", "ghost"),
+      ],
+    };
+
+    it("tells an instance's binding from the subnet it points at", () => {
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: composed,
+        net: {
+          ...composed,
+          componentInstances: composed.componentInstances ?? [],
+          fusions: [],
+        },
+      });
+      const binding = (id: string) =>
+        nodes.find(
+          (node) => node.id === id && node.kind === "componentInstance",
+        );
+
+      expect(binding("bound")).toMatchObject({
+        subnetName: "Stage",
+        binding: { kind: "interface", implementationName: "Fast" },
+        ports: [
+          { id: "in", name: "in", direction: "in", typeColor: "#ff0000" },
+        ],
+      });
+      expect(binding("plain")).toMatchObject({
+        binding: { kind: "component" },
+      });
+      expect(binding("loose")).toMatchObject({
+        binding: { kind: "interface", implementationName: null },
+      });
+      expect(nodes.find((node) => node.id === "p1")).toMatchObject({
+        port: null,
+      });
+    });
+
+    it("flags a port place inside a subnet with its direction", () => {
+      const { nodes } = buildCanvasScene({
+        ...input,
+        sdcpn: composed,
+        net: { ...iface, componentInstances: [], fusions: [] },
+      });
+
+      expect(nodes.find((node) => node.id === "in")).toMatchObject({
+        kind: "place",
+        port: "in",
+        typeColor: "#ff0000",
+      });
     });
   });
 });

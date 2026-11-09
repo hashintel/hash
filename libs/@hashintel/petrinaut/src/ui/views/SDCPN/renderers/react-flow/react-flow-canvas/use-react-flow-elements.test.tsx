@@ -30,6 +30,7 @@ const nodes: CanvasNode[] = [
     ...nodeBase,
     id: "place",
     kind: "place",
+    port: null,
     dynamicsEnabled: false,
     hasColorType: false,
     hasVisualizer: false,
@@ -52,7 +53,10 @@ const nodes: CanvasNode[] = [
     kind: "componentInstance",
     position: { x: 600, y: 0 },
     subnetName: "Subnet",
-    ports: [{ id: "port", name: "Port", direction: "inout" }],
+    binding: { kind: "component" },
+    ports: [
+      { id: "port", name: "Port", direction: "inout", typeColor: undefined },
+    ],
   },
 ];
 const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {

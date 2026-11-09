@@ -8,6 +8,7 @@
 
 import {
   effectivePortDirection,
+  resolveImplementation,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
@@ -59,6 +60,8 @@ type CanvasNodeBase = {
 
 export type CanvasPlaceNode = CanvasNodeBase & {
   kind: "place";
+  /** The direction of the port this place is, `null` for a plain place. */
+  port: PortDirection | null;
   dynamicsEnabled: boolean;
   hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
@@ -80,11 +83,23 @@ export type CanvasPort = {
   name: string;
   /** Which way tokens cross the port, as the component declares or uses it. */
   direction: PortDirection;
+  /** Display colour of the port's token type, when it has one. */
+  typeColor: string | undefined;
 };
+
+/**
+ * What an instance runs: its component, or the implementation bound to the
+ * interface it points at, `null` while nothing is bound.
+ */
+export type CanvasInstanceBinding =
+  | { kind: "component" }
+  | { kind: "interface"; implementationName: string | null };
 
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
+  /** The subnet the instance points at: its component or its interface. */
   subnetName: string;
+  binding: CanvasInstanceBinding;
   ports: CanvasPort[];
 };
 
@@ -252,6 +267,7 @@ export const buildCanvasScene = ({
       ...dimensions.place,
       ...positionOf(place, draggingStateByNodeId),
       ...interaction(place.id),
+      port: place.isPort ? effectivePortDirection(net, place) : null,
       dynamicsEnabled:
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
       hasColorType: (placeType?.elements.length ?? 0) > 0,
@@ -294,7 +310,21 @@ export const buildCanvasScene = ({
         direction: subnet
           ? effectivePortDirection(subnet, place)
           : ("inout" as const),
+        typeColor:
+          extensions.colors && place.colorId
+            ? subnet?.types.find((type) => type.id === place.colorId)
+                ?.displayColor
+            : undefined,
       }));
+    const resolved = resolveImplementation(sdcpn, instance);
+    const binding: CanvasInstanceBinding =
+      resolved === null || resolved.kind === "component"
+        ? { kind: "component" }
+        : {
+            kind: "interface",
+            implementationName:
+              resolved.kind === "bound" ? resolved.implementation.name : null,
+          };
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
@@ -304,6 +334,7 @@ export const buildCanvasScene = ({
       ...positionOf(instance, draggingStateByNodeId),
       ...interaction(instance.id),
       subnetName: subnet?.name ?? "Unknown subnet",
+      binding,
       ports,
     });
   }

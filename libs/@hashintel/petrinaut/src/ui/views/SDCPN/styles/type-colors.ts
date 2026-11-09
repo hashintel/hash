@@ -29,3 +29,12 @@ export const arcStrokeColor = (typeColor: string | undefined): string =>
   typeColor
     ? hexToHsl(typeColor).lighten(-15).saturate(-30).css(1)
     : UNTYPED_ARC_STROKE;
+
+const UNTYPED_PORT_PIN = "#6b7280";
+
+/**
+ * The pin a port draws, on an instance's edge and on the port place itself:
+ * the arc stroke of its token type, so a pin and the arcs it meets agree.
+ */
+export const portPinColor = (typeColor: string | undefined): string =>
+  typeColor ? arcStrokeColor(typeColor) : UNTYPED_PORT_PIN;

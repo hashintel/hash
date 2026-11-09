@@ -10,12 +10,13 @@ import {
 describe("getComponentInstanceHeight", () => {
   it("uses the base height for few ports", () => {
     expect(getComponentInstanceHeight(compactNodeDimensions, 0)).toBe(96);
-    expect(getComponentInstanceHeight(compactNodeDimensions, 2)).toBe(96);
+    expect(getComponentInstanceHeight(compactNodeDimensions, 1)).toBe(96);
   });
 
-  it("grows with the port count", () => {
-    expect(getComponentInstanceHeight(compactNodeDimensions, 3)).toBe(112);
-    expect(getComponentInstanceHeight(compactNodeDimensions, 10)).toBe(308);
+  it("grows by a row per port under the header", () => {
+    expect(getComponentInstanceHeight(compactNodeDimensions, 2)).toBe(106);
+    expect(getComponentInstanceHeight(compactNodeDimensions, 3)).toBe(132);
+    expect(getComponentInstanceHeight(compactNodeDimensions, 10)).toBe(314);
   });
 });
 
