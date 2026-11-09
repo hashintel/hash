@@ -89,6 +89,7 @@ import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
+import { clientIpFromHeader } from "./lib/client-ip";
 import {
   CORS_CONFIG,
   getEnvStorageType,
@@ -96,9 +97,8 @@ import {
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
 import {
+  clientIpSource,
   isDevEnv,
-  isProdEnv,
-  isStagingEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
@@ -420,16 +420,19 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if ((isProdEnv || isStagingEnv) && !isSelfHostedInstance) {
+  if (clientIpSource !== "connect-info") {
     /**
-     * Hosted production and staging sit behind Cloudflare, so take the client
-     * IP from the Cloudflare-set header.
+     * When the header holds no usable address, falls back to the connection
+     * address, which is what Express reads without this override.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
       enumerable: true,
-      get() {
-        return this.get("cf-connecting-ip");
+      get(this: Request) {
+        return (
+          clientIpFromHeader(this.get(clientIpSource)) ??
+          this.socket.remoteAddress
+        );
       },
     });
   }
@@ -711,7 +714,7 @@ const main = async () => {
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in hosted production and staging).
+       * We additionally attach our req.ip as context; `HASH_API_CLIENT_IP_SOURCE` sets where it is read from.
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
