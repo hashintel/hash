@@ -26,8 +26,24 @@ export type Route =
   /** `/` with a legacy query (`?screen=J1.4`, `?state=run-a`, `?task`, `?guide`, `?results`). */
   | { page: "legacy" };
 
+/**
+ * The folder the app is served from: "/" locally, "/flows-editor-prototype/" on the branch preview. Routes are
+ * written without it; it is added when the address changes and removed when the address is read.
+ */
+const basePath = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+
+const withoutBase = (pathname: string) =>
+  basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
+    ? pathname.slice(basePath.length) || "/"
+    : pathname;
+
+const withBase = (path: string) =>
+  basePath && path.startsWith("/") && !path.startsWith(`${basePath}/`) && path !== basePath
+    ? `${basePath}${path}`
+    : path;
+
 export const parseRoute = (pathname: string, search: string): Route => {
-  const parts = pathname.split("/").filter(Boolean);
+  const parts = withoutBase(pathname).split("/").filter(Boolean);
   const query = new URLSearchParams(search);
   if (parts[0] === "runs") {
     return { page: "runs" };
@@ -85,12 +101,12 @@ const changeEvent = "flows-proto:navigate";
 /** Old `/flows/:flowId/history` links land on `/flows/:flowId/logs`, query kept. */
 const redirectHistoryPath = () => {
   const { pathname, search } = globalThis.location;
-  const match = /^\/flows\/([^/]+)\/history\/?$/.exec(pathname);
+  const match = /^\/flows\/([^/]+)\/history\/?$/.exec(withoutBase(pathname));
   if (match) {
     globalThis.history.replaceState(
       null,
       "",
-      `/flows/${match[1]}/logs${search}`,
+      withBase(`/flows/${match[1]}/logs${search}`),
     );
   }
 };
@@ -135,7 +151,7 @@ export const cameFrom = (): string | null => {
 
 export const navigate = (path: string, options: { replace?: boolean } = {}) => {
   const current = `${globalThis.location.pathname}${globalThis.location.search}`;
-  const next = withCarriedTakes(path);
+  const next = withCarriedTakes(withBase(path));
   if (next === current) {
     return;
   }
