@@ -206,6 +206,13 @@ export const openInferEntitiesWebSocket = ({
 
   wss.on("connection", (socket, request) => {
     const ipAddress = request.socket.remoteAddress ?? "unknown";
+
+    // Handle protocol errors before authentication and on rejected connections.
+    socket.on("error", (error) => {
+      logger.error("Infer-entities WebSocket error", { error, ipAddress });
+      socket.terminate();
+    });
+
     const activeConnections = activeConnectionsByIp.get(ipAddress) ?? 0;
 
     if (activeConnections >= MAX_CONNECTIONS_PER_IP) {
