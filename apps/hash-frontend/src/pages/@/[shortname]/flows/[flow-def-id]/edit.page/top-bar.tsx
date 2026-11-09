@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-import { Button, Chip, Dialog, EllipsisMenu } from "@hashintel/ds-components";
+import {
+  Button,
+  Chip,
+  Dialog,
+  EllipsisMenu,
+  SegmentedControl,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
@@ -13,6 +19,7 @@ import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-ed
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const topBar = css({
+  position: "relative",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -30,6 +37,12 @@ const titleGroup = css({
   alignItems: "center",
   gap: "2",
   minWidth: "0",
+});
+const viewSwitch = css({
+  position: "absolute",
+  top: "[50%]",
+  left: "[50%]",
+  transform: "[translate(-50%, -50%)]",
 });
 const dialogText = css({ textStyle: "sm" });
 
@@ -159,13 +172,19 @@ const LeaveFlowDialog = ({
   </Dialog>
 );
 
+/** Whether the editor shows the flow, to edit it, or its runs. */
+export type FlowEditorView = "editor" | "logs";
+
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, Run, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
+ * runs, whether its edits are saved, Run, and its menu.
  */
 export const TopBar = ({
   editorKey,
   webId,
   editorState,
+  view,
+  onViewChange,
   onRename,
   saveStatus,
   saveRefusedReason,
@@ -183,6 +202,8 @@ export const TopBar = ({
   /** The web the flow is in. */
   webId: WebId;
   editorState: FlowEditorState;
+  view: FlowEditorView;
+  onViewChange: (view: FlowEditorView) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
   /** Why the API refused the latest edits, if it did. */
@@ -240,6 +261,18 @@ export const TopBar = ({
           placeholder="Untitled flow"
           ariaLabel="Flow name"
           onRename={onRename}
+        />
+      </div>
+      <div className={viewSwitch}>
+        <SegmentedControl<FlowEditorView>
+          size="sm"
+          aria-label="Flow view"
+          items={[
+            { value: "editor", label: "Editor" },
+            { value: "logs", label: "Logs" },
+          ]}
+          value={view}
+          onChange={onViewChange}
         />
       </div>
       <div className={barGroup}>

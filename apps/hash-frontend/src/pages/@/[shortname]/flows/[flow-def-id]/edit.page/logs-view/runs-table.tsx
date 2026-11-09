@@ -1,0 +1,294 @@
+import { useRouter } from "next/router";
+import { useState } from "react";
+
+import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+
+import {
+  countRunsByTab,
+  defaultRunSort,
+  filterRuns,
+  getRunDuration,
+  initialSortDirections,
+  isInTab,
+  sortRuns,
+} from "./run-list";
+import { formatDuration, formatEndTime, formatRunTime } from "./run-times";
+import { IdCell, StatusCell } from "./runs-table/run-cells";
+import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
+
+import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
+import type { RunTab } from "./run-state";
+import type { RunFilterProperty } from "./runs-table/run-filters";
+import type { Sorter } from "@hashintel/ds-components";
+
+const tabs: { id: RunTab; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "running", label: "Running" },
+  { id: "completed", label: "Completed" },
+  { id: "failed", label: "Failed" },
+];
+
+/** The table's columns, in order, each also a choice in Sort. */
+const columns: (Sorter<RunSortKey> & { align?: "right" })[] = [
+  { name: "ID", sortKey: "id" },
+  { name: "Status", sortKey: "status", sortIcon: "generic" },
+  { name: "Started", sortKey: "started", sortIcon: "numeric" },
+  { name: "Ended", sortKey: "ended", sortIcon: "numeric" },
+  { name: "Web", sortKey: "web" },
+  {
+    name: "Duration",
+    sortKey: "duration",
+    sortIcon: "numeric",
+    align: "right",
+  },
+];
+
+const noFilters: RunFilters = { states: [], trigger: null };
+
+const tabCount = css({ color: "fg.subtle", ml: "1.5" });
+const filterBar = css({ mt: "3" });
+const table = css({
+  width: "full",
+  mt: "3",
+  borderCollapse: "collapse",
+  textStyle: "sm",
+  "& th": {
+    height: "8",
+    px: "4",
+    textAlign: "left",
+    textStyle: "xs",
+    fontWeight: "medium",
+    color: "fg.muted",
+    whiteSpace: "nowrap",
+    borderBottomWidth: "1px",
+    borderBottomStyle: "solid",
+    borderBottomColor: "bd.subtle",
+  },
+  "& td": {
+    height: "12",
+    px: "4",
+    color: "fg.body",
+    whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums",
+    borderBottomWidth: "1px",
+    borderBottomStyle: "solid",
+    borderBottomColor: "bd.subtle",
+  },
+  "& [data-align=right]": { textAlign: "right" },
+});
+const openableRow = css({
+  cursor: "pointer",
+  _hover: { backgroundColor: "bg.subtle" },
+});
+const sortButton = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  cursor: "pointer",
+  "& [data-sort-arrow]": { opacity: "0" },
+  "&:hover [data-sort-arrow]": { opacity: "0.5" },
+  "&[data-active]": { color: "fg.heading" },
+  "&[data-active] [data-sort-arrow]": { opacity: "1" },
+});
+const muted = css({ color: "fg.subtle" });
+const noMatches = css({ color: "fg.muted" });
+
+/** A column's header, which sorts the table by it, or flips the order when it already does. */
+const SortHeader = ({
+  column,
+  sort,
+  onSort,
+}: {
+  column: (typeof columns)[number];
+  sort: RunSort;
+  onSort: (sort: RunSort) => void;
+}) => {
+  const active = sort.key === column.sortKey;
+  const ascending = active && sort.direction === "ASCENDING";
+
+  return (
+    <th
+      data-align={column.align}
+      aria-sort={active ? (ascending ? "ascending" : "descending") : undefined}
+    >
+      <button
+        type="button"
+        className={sortButton}
+        data-active={active || undefined}
+        onClick={() =>
+          onSort({
+            key: column.sortKey,
+            direction: active
+              ? ascending
+                ? "DESCENDING"
+                : "ASCENDING"
+              : initialSortDirections[column.sortKey],
+          })
+        }
+      >
+        {column.name}
+        <span data-sort-arrow>
+          <Icon name={ascending ? "sortUp" : "sortDown"} size="xs" />
+        </span>
+      </button>
+    </th>
+  );
+};
+
+/** The flow's runs, by status tab, with Sort and Filter. */
+export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
+  const router = useRouter();
+  const [tab, setTab] = useState<RunTab>("all");
+  const [sort, setSort] = useState<RunSort>(defaultRunSort);
+  const [filters, setFilters] = useState<RunFilters>(noFilters);
+  const [shownFilters, setShownFilters] = useState<RunFilterProperty[]>([]);
+  const [addedFilter, setAddedFilter] = useState<RunFilterProperty | null>(
+    null,
+  );
+
+  const filtered = filterRuns(rows, filters);
+  const counts = countRunsByTab(filtered);
+  const shown = sortRuns(
+    filtered.filter((row) => isInTab(row, tab)),
+    sort,
+    now,
+  );
+  const appliedFilterCount =
+    (filters.states.length > 0 ? 1 : 0) + (filters.trigger ? 1 : 0);
+
+  const runPathOf = (row: RunRow) =>
+    row.webShortname
+      ? generateWorkerRunPath({
+          shortname: row.webShortname,
+          flowRunEntityId: row.flowRunEntityId,
+        })
+      : null;
+
+  return (
+    <>
+      <Tabs value={tab} onChange={setTab} variant="pill" size="sm">
+        <Tabs.TabList
+          items={tabs.map(({ id, label }) => ({
+            id,
+            children: (
+              <>
+                {label}
+                <span className={tabCount}>{counts[id]}</span>
+              </>
+            ),
+          }))}
+          actions={
+            <>
+              <SortMenu
+                items={columns}
+                value={{ sortKey: sort.key, direction: sort.direction }}
+                onChange={(key, direction) => setSort({ key, direction })}
+                position="bottom-end"
+              />
+              <AddRunFilter
+                shown={shownFilters}
+                appliedCount={appliedFilterCount}
+                onAdd={(property) => {
+                  setShownFilters((current) => [...current, property]);
+                  setAddedFilter(property);
+                }}
+              />
+            </>
+          }
+        />
+      </Tabs>
+      {shownFilters.length > 0 && (
+        <div className={filterBar}>
+          <RunFilterBar
+            shown={shownFilters}
+            added={addedFilter}
+            filters={filters}
+            onChange={setFilters}
+            onRemove={(property) => {
+              setShownFilters((current) =>
+                current.filter((each) => each !== property),
+              );
+              setFilters((current) =>
+                property === "status"
+                  ? { ...current, states: [] }
+                  : { ...current, trigger: null },
+              );
+            }}
+            onClear={() => {
+              setShownFilters([]);
+              setFilters(noFilters);
+            }}
+          />
+        </div>
+      )}
+      <table className={table}>
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <SortHeader
+                key={column.sortKey}
+                column={column}
+                sort={sort}
+                onSort={setSort}
+              />
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((row) => {
+            const runPath = runPathOf(row);
+            const duration = getRunDuration(row, now);
+
+            return (
+              <tr
+                key={row.flowRunEntityId}
+                className={runPath ? openableRow : undefined}
+                onClick={
+                  runPath
+                    ? () => {
+                        void router.push(runPath);
+                      }
+                    : undefined
+                }
+              >
+                <td>
+                  <IdCell row={row} href={runPath} />
+                </td>
+                <td>
+                  <StatusCell state={row.state} />
+                </td>
+                <td>{formatRunTime(row.startedAt, now)}</td>
+                <td>
+                  {row.endedAt ? (
+                    formatEndTime(row.endedAt, row.startedAt, now)
+                  ) : (
+                    <span className={muted}>–</span>
+                  )}
+                </td>
+                <td className={muted}>
+                  {row.webShortname ? `@${row.webShortname}` : "–"}
+                </td>
+                <td data-align="right">
+                  {duration === null ? (
+                    <span className={muted}>–</span>
+                  ) : (
+                    formatDuration(duration)
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={columns.length} className={noMatches}>
+                No runs match
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </>
+  );
+};

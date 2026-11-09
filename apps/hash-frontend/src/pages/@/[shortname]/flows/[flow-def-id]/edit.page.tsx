@@ -8,7 +8,10 @@ import {
 } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import {
+  generateFlowEditorPath,
+  generateWorkerRunPath,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import {
@@ -29,6 +32,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
+import { LogsView } from "./edit.page/logs-view";
 import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
 import { findStep } from "./edit.page/step-panel/shared/find-step";
 import { TopBar } from "./edit.page/top-bar";
@@ -50,6 +54,7 @@ import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { CanvasHandle } from "./edit.page/canvas";
 import type { StepPanelSubject } from "./edit.page/step-panel";
+import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
@@ -322,6 +327,21 @@ const FlowEditor = ({
     return true;
   };
 
+  /* In the URL, so a view can be linked to and Back returns to the one before. */
+  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
+  const showView = (nextView: FlowEditorView) => {
+    const editorPath = generateFlowEditorPath({
+      shortname,
+      flowDefinitionEntityId,
+    });
+
+    void router.push(
+      nextView === "logs" ? `${editorPath}?view=logs` : editorPath,
+      undefined,
+      { shallow: true },
+    );
+  };
+
   const leaveWithoutSaving = () => {
     discardUnsavedEdits();
     void router.push("/flows");
@@ -335,6 +355,8 @@ const FlowEditor = ({
         editorKey={session.key}
         webId={webId}
         editorState={editorState}
+        view={view}
+        onViewChange={showView}
         onRename={editor.setName}
         saveStatus={status}
         saveRefusedReason={saveRefusedReason}
@@ -346,76 +368,84 @@ const FlowEditor = ({
         onLeave={leave}
         onLeaveWithoutSaving={leaveWithoutSaving}
       />
-      <div className={editorBody}>
-        <LeftPanel
-          steps={flowDefinition.steps}
-          selectedStepIds={selectedStepIds}
-          onStepClick={(stepId) =>
-            setSession((current) => ({
-              ...current,
-              selectedStepIds: [stepId],
-              startSelected: false,
-              focusRequest: { stepId },
-            }))
-          }
-          collapsedGroupIds={collapsedStepIds}
-          onToggleGroup={toggleCollapsed}
-          onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
-          onAddStep={(actionDefinitionId) =>
-            canvasRef.current?.addStepInView(actionDefinitionId)
-          }
-        />
-        <div className={canvasArea}>
-          {(saveRefusedReason !== null || changedElsewhere) && (
-            <div
-              className={notices}
-              style={panelSubject ? { right: stepPanelWidth + 16 } : undefined}
-            >
-              {saveRefusedReason !== null && (
-                <Banner tone="error">
-                  <Banner.Title>Your latest edits can't be saved</Banner.Title>
-                  <Banner.Description as="div">
-                    {saveRefusedReason.split("\n").map((line) => (
-                      <div key={line}>{line}</div>
-                    ))}
-                  </Banner.Description>
-                </Banner>
-              )}
-              {changedElsewhere && (
-                <Banner
-                  tone="warning"
-                  dismissible={{ onDismiss: dismissChangedElsewhere }}
-                >
-                  <Banner.Title>This flow changed elsewhere</Banner.Title>
-                  <Banner.Description>
-                    It was saved from somewhere else, so it now shows the latest
-                    version. Your latest edits weren't saved.
-                  </Banner.Description>
-                </Banner>
-              )}
-            </div>
-          )}
-          <Canvas
-            key={session.key}
-            ref={canvasRef}
-            editor={editor}
+      {view === "logs" ? (
+        <LogsView flowDefinitionEntityId={flowDefinitionEntityId} />
+      ) : (
+        <div className={editorBody}>
+          <LeftPanel
+            steps={flowDefinition.steps}
             selectedStepIds={selectedStepIds}
-            startSelected={startSelected}
-            onSelectionChange={setSelection}
-            focusRequest={focusRequest}
-            collapsedStepIds={collapsedStepIds}
-            onToggleCollapsed={toggleCollapsed}
-            coveredRight={panelSubject ? stepPanelWidth : 0}
+            onStepClick={(stepId) =>
+              setSession((current) => ({
+                ...current,
+                selectedStepIds: [stepId],
+                startSelected: false,
+                focusRequest: { stepId },
+              }))
+            }
+            collapsedGroupIds={collapsedStepIds}
+            onToggleGroup={toggleCollapsed}
+            onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
+            onAddStep={(actionDefinitionId) =>
+              canvasRef.current?.addStepInView(actionDefinitionId)
+            }
           />
-          {panelSubject && (
-            <StepPanel
+          <div className={canvasArea}>
+            {(saveRefusedReason !== null || changedElsewhere) && (
+              <div
+                className={notices}
+                style={
+                  panelSubject ? { right: stepPanelWidth + 16 } : undefined
+                }
+              >
+                {saveRefusedReason !== null && (
+                  <Banner tone="error">
+                    <Banner.Title>
+                      Your latest edits can't be saved
+                    </Banner.Title>
+                    <Banner.Description as="div">
+                      {saveRefusedReason.split("\n").map((line) => (
+                        <div key={line}>{line}</div>
+                      ))}
+                    </Banner.Description>
+                  </Banner>
+                )}
+                {changedElsewhere && (
+                  <Banner
+                    tone="warning"
+                    dismissible={{ onDismiss: dismissChangedElsewhere }}
+                  >
+                    <Banner.Title>This flow changed elsewhere</Banner.Title>
+                    <Banner.Description>
+                      It was saved from somewhere else, so it now shows the
+                      latest version. Your latest edits weren't saved.
+                    </Banner.Description>
+                  </Banner>
+                )}
+              </div>
+            )}
+            <Canvas
+              key={session.key}
+              ref={canvasRef}
               editor={editor}
-              subject={panelSubject}
-              onSelectStart={() => setSelection({ stepIds: [], start: true })}
+              selectedStepIds={selectedStepIds}
+              startSelected={startSelected}
+              onSelectionChange={setSelection}
+              focusRequest={focusRequest}
+              collapsedStepIds={collapsedStepIds}
+              onToggleCollapsed={toggleCollapsed}
+              coveredRight={panelSubject ? stepPanelWidth : 0}
             />
-          )}
+            {panelSubject && (
+              <StepPanel
+                editor={editor}
+                subject={panelSubject}
+                onSelectStart={() => setSelection({ stepIds: [], start: true })}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </DsComponentsScope>
   );
 };
