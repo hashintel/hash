@@ -1,12 +1,13 @@
 use core::{num::NonZero, time::Duration};
 
 use backon::{BackoffBuilder as _, ExponentialBuilder};
+use serde::{Deserialize, Serialize};
 
 /// How often a failed step is attempted, and how long to wait between attempts.
 ///
 /// The delay after the `n`th failure is `initial_delay * multiplier^(n - 1)`, capped at
 /// `max_delay`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RetryPolicy {
     pub max_attempts: NonZero<u32>,
     pub initial_delay: Duration,
