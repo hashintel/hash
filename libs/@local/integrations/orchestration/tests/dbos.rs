@@ -10,15 +10,17 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::{
+    future::{Future, ready},
     num::NonZero,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicU32, Ordering},
     time::Duration,
 };
 
 use error_stack::Report;
 use hash_integrations_orchestration::{
-    BackendError, FunctionVersion, Payload, RetryPolicy, RunError, RunFunction, RunId, RunPhase,
-    RunStart, RunStatus, Runs as _, StartError, StepContext, StepName, Worker as _,
+    BackendError, FailureKind, FunctionVersion, Payload, RetryPolicy, RunError, RunFailure,
+    RunFunction, RunId, RunPhase, RunStart, RunStatus, Runs as _, StartError, StepContext,
+    StepFailure, StepIndex, StepName, Worker as _,
     dbos::{DbosBackend, DbosConfig},
 };
 use tokio::{sync::Notify, task::JoinHandle};
@@ -218,8 +220,18 @@ async fn stop_worker(
         .expect("the worker should shut down cleanly");
 }
 
-#[tokio::test]
-async fn run_executes_its_steps() {
+const fn finished(status: &RunStatus) -> bool {
+    matches!(
+        status.phase,
+        RunPhase::Completed | RunPhase::Failed(_) | RunPhase::Cancelled
+    )
+}
+
+/// Starts one run of `function` on a worker, waits for it to finish and returns its status.
+async fn run_to_end<F: RunFunction + 'static>(
+    function: Arc<F>,
+    input: &(impl serde::Serialize + Sync),
+) -> RunStatus {
     let config = config();
     let postgres = postgres().await;
     let backend = Arc::new(
@@ -227,28 +239,150 @@ async fn run_executes_its_steps() {
             .await
             .expect("should connect"),
     );
-    let (worker, shutdown) = spawn_worker(&backend, Arc::new(DoubleThenAddOne));
+    let (worker, shutdown) = spawn_worker(&backend, function);
     let run = run_id("run-1");
 
     backend
-        .start(run.clone(), start(DoubleThenAddOne::VERSION, &20_u32))
+        .start(run.clone(), start(F::VERSION, input))
         .await
         .expect("should start the run");
-    let status = wait_until(&backend, &run, |status| {
-        status.phase != RunPhase::Pending && status.phase != RunPhase::Running
-    })
-    .await;
+    let status = wait_until(&backend, &run, finished).await;
 
+    stop_worker(worker, &shutdown).await;
+    backend.close().await;
+    drop_schema(&postgres, &config.schema).await;
+    status
+}
+
+#[tokio::test]
+async fn run_executes_its_steps() {
     assert_eq!(
-        status,
+        run_to_end(Arc::new(DoubleThenAddOne), &20_u32).await,
         RunStatus {
             phase: RunPhase::Completed,
             steps_recorded: 2
         }
     );
-    stop_worker(worker, &shutdown).await;
-    backend.close().await;
-    drop_schema(&postgres, &config.schema).await;
+}
+
+/// One step that fails until it has been attempted `succeed_after` times.
+struct Failing {
+    kind: FailureKind,
+    succeed_after: u32,
+    attempts: AtomicU32,
+}
+
+impl Failing {
+    fn new(kind: FailureKind, succeed_after: u32) -> Arc<Self> {
+        Arc::new(Self {
+            kind,
+            succeed_after,
+            attempts: AtomicU32::new(0),
+        })
+    }
+}
+
+impl RunFunction for Failing {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context
+            .run(step("flaky"), || async {
+                if self.attempts.fetch_add(1, Ordering::SeqCst) < self.succeed_after {
+                    return Err(Report::new(StepFailure {
+                        kind: self.kind,
+                        code: "flaky".parse().expect("should be a failure code"),
+                    }));
+                }
+                Ok(())
+            })
+            .await
+    }
+}
+
+fn failed_step(attempts: u32) -> RunPhase {
+    RunPhase::Failed(RunFailure::Step {
+        index: StepIndex::new(0),
+        name: step("flaky"),
+        attempts: NonZero::new(attempts).expect("attempts should be nonzero"),
+        code: "flaky".parse().expect("should be a failure code"),
+    })
+}
+
+#[tokio::test]
+async fn step_retries_then_succeeds() {
+    let function = Failing::new(FailureKind::Retryable, 1);
+
+    let status = run_to_end(Arc::clone(&function), &()).await;
+
+    assert_eq!(status.phase, RunPhase::Completed);
+    assert_eq!(
+        status.steps_recorded, 1,
+        "one checkpoint should cover both attempts"
+    );
+    assert_eq!(function.attempts.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
+async fn step_fails_permanently() {
+    let function = Failing::new(FailureKind::Permanent, u32::MAX);
+
+    let status = run_to_end(Arc::clone(&function), &()).await;
+
+    assert_eq!(status.phase, failed_step(1));
+    assert_eq!(
+        function.attempts.load(Ordering::SeqCst),
+        1,
+        "a permanent failure should not be retried"
+    );
+}
+
+#[tokio::test]
+async fn step_exhausts_its_attempts() {
+    let function = Failing::new(FailureKind::Retryable, u32::MAX);
+
+    let status = run_to_end(Arc::clone(&function), &()).await;
+
+    assert_eq!(
+        status.phase,
+        failed_step(3),
+        "the policy allows three attempts"
+    );
+    assert_eq!(function.attempts.load(Ordering::SeqCst), 3);
+}
+
+/// Fails on its own, before requesting any step.
+struct FailsItself;
+
+impl RunFunction for FailsItself {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    fn run(
+        &self,
+        _: &mut impl StepContext,
+        (): (),
+    ) -> impl Future<Output = Result<(), Report<RunError>>> + Send {
+        ready(Err(Report::new(RunError::Failed {
+            code: "bad-definition".parse().expect("should be a failure code"),
+        })))
+    }
+}
+
+#[tokio::test]
+async fn run_function_fails_itself() {
+    assert_eq!(
+        run_to_end(Arc::new(FailsItself), &()).await,
+        RunStatus {
+            phase: RunPhase::Failed(RunFailure::Function {
+                code: "bad-definition".parse().expect("should be a failure code"),
+            }),
+            steps_recorded: 0
+        }
+    );
 }
 
 /// Without a worker, a started run stays queued and holds its admission key.
