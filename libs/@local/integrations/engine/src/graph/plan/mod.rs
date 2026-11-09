@@ -176,7 +176,7 @@ impl GraphPlan {
         values: SinkRow<'_>,
         column: &ColumnName,
     ) -> Option<String> {
-        let source_id = values.text(column).map(Into::into);
+        let source_id = values.text(column);
         if source_id.is_none() {
             self.issues.push(PlanIssue::MissingSourceId {
                 row,

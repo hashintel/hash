@@ -113,7 +113,7 @@ impl SinkRow<'_> {
     /// text form.
     ///
     /// The text is not trimmed, as it identifies a record across runs.
-    pub(in crate::graph) fn text(&self, column: &ColumnName) -> Option<Cow<'_, str>> {
+    pub(in crate::graph) fn text(&self, column: &ColumnName) -> Option<String> {
         self.value(column).and_then(value::text)
     }
 
