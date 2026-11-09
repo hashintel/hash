@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  latestOffers,
   neverOffer,
   type OfferedQuestion,
   offersAnswers,
@@ -77,5 +78,39 @@ describe("what an offer must offer", () => {
       expect.stringContaining("the user's purpose"),
       expect.stringContaining("open or narrative"),
     ]);
+  });
+});
+
+describe("several offers in one turn", () => {
+  const reworded = {
+    ...p0.readingOfTheirWords,
+    label: "quarantined shipment ",
+    options: ["Counted as open", "Out until released", "Counted as reserved"],
+  } satisfies OfferedQuestion;
+
+  test("a question offered again keeps only its latest offer", () => {
+    expect(
+      latestOffers([
+        { questions: [p0.readingOfTheirWords, p0.values] },
+        { questions: [reworded] },
+      ]),
+    ).toEqual([{ questions: [p0.values] }, { questions: [reworded] }]);
+  });
+
+  test("offers on different questions each stand", () => {
+    const offers = [
+      { questions: [p0.readingOfTheirWords] },
+      { questions: [p0.confirmation] },
+    ];
+    expect(latestOffers(offers)).toEqual(offers);
+  });
+
+  test("withdraws an earlier offer left with nothing to answer", () => {
+    expect(
+      latestOffers([
+        { questions: [p0.readingOfTheirWords, p0.narrative] },
+        { questions: [reworded, p0.narrative] },
+      ]),
+    ).toEqual([undefined, { questions: [reworded, p0.narrative] }]);
   });
 });

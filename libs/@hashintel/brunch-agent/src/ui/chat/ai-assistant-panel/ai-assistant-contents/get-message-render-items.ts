@@ -4,6 +4,7 @@ import {
   zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
+import { latestOffers } from "../../../../conversation/question-kinds";
 import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
@@ -136,6 +137,16 @@ export const getMessageRenderItems = (
           turn.voiceAgentWrapUp = { text: data.text, state };
       }
     }
+  });
+  const offerCards = turn.cards.filter((card) => card.type === "answers");
+  const shown = latestOffers(offerCards.map(({ offer }) => offer));
+  const shownByCard = new Map(
+    offerCards.map((card, index) => [card, shown[index]]),
+  );
+  turn.cards = turn.cards.flatMap((card): MessageRenderItems["cards"] => {
+    if (card.type !== "answers") return [card];
+    const offer = shownByCard.get(card);
+    return offer ? [{ ...card, offer }] : [];
   });
   return turn;
 };

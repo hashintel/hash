@@ -196,6 +196,43 @@ describe("conversation turn structure", () => {
     },
   );
 
+  test("shows a question offered twice in one turn only on its latest card", () => {
+    const offerPart = (toolCallId: string, questions: unknown[]) =>
+      ({
+        type: "tool-offer_answers",
+        toolCallId,
+        state: "output-available",
+        input: { questions },
+        output: { offered: questions.length },
+      }) as unknown as PetrinautAiMessage["parts"][number];
+    const quarantine = {
+      kind: "choose",
+      label: "Quarantined shipment",
+      options: ["Stays counted as open", "Drops out until released"],
+    };
+    const demand = { kind: "confirm", label: "Production demand" };
+    const turn = getMessageRenderItems({
+      id: "turn",
+      role: "assistant",
+      parts: [
+        offerPart("offer-1", [quarantine, demand]),
+        offerPart("offer-2", [
+          { ...quarantine, options: ["Counted as open", "Out until released"] },
+        ]),
+      ],
+    });
+    expect(
+      turn.cards.map((card) =>
+        card.type === "answers"
+          ? [card.key, card.offer.questions.map(({ label }) => label)]
+          : card.key,
+      ),
+    ).toEqual([
+      ["offer-1", ["Production demand"]],
+      ["offer-2", ["Quarantined shipment"]],
+    ]);
+  });
+
   test("accepts optional mediation data without rendering unknown data", () => {
     const turn = getMessageRenderItems({
       id: "voice",
