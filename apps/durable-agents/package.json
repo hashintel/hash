@@ -10,6 +10,7 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "probe:async-browser-call": "tsx test/browser-call/async-probe.ts",
+    "probe:load": "tsx test/load/probe.ts",
     "probe:ownership-unit": "tsx test/integration/ownership-unit-probe.ts",
     "probe:postgres-viewer": "tsx test/integration/viewer-probe.ts",
     "probe:two-writers": "tsx test/integration/two-writers-probe.ts",
