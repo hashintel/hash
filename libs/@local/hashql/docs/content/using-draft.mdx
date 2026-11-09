@@ -82,7 +82,7 @@ console.log(serialized);
 
 ## Using HashQL logic and TypeScript logic together
 
-You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`] is executed on the server. This allows us to model concepts such as macros and build-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust).
+You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`][draft-program] is executed on the server. This allows us to model concepts such as macros and build-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust). Here, build time means when our TypeScript code calls `Draft.program`, not when TypeScript itself is compiled.
 
 Suppose we want to make incrementing the revision optional. There are two ways to do this:
 
@@ -92,14 +92,15 @@ const maybeIncrement = Draft.program(
   ($, { revision, enabled }) => {
     const { add } = $.prelude();
 
-    return $.if(
-      enabled,
-      () => add(revision, 1n),
-      () => revision,
-    );
+    return $.if(enabled, {
+      then: () => add(revision, 1n),
+      else: () => revision,
+    });
   },
 );
 ```
+
+Both branch callbacks run during construction to build their expressions. The server later evaluates `enabled` and selects one of the HashQL branches.
 
 This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. Sometimes, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where build-time conditionals come in.
 
@@ -116,21 +117,50 @@ const buildProgram = (enabled: boolean) =>
   });
 ```
 
-The behaviour may seem equivalent, but the generated expressions differ. In the second approach, the expression depends on the value of `enabled` at construction time.
+Both approaches produce the same result for matching input values, but they make the choice at different times. The first sends a conditional to the server. The second chooses which expression to construct before sending it. We can reuse our serialisation pipeline as a helper to compare the outputs:
 
 ```ts
+import type { Type } from "@local/hashql";
+
+const compile = <T extends Type.Any, I, E>(
+  built: Result.Result<Program.Expression.Expression<T, I>, E>,
+) =>
+  pipe(
+    built,
+    Result.map(Program.program),
+    Result.flatMap(Program.compile),
+    Result.getOrThrow,
+  );
+
 console.log(compile(maybeIncrement));
+// => ["::kernel::special_form::if",["::kernel::special_form::input","enabled","::kernel::type::Boolean"],["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],["::kernel::special_form::input","revision","::kernel::type::Integer"]]
+
 console.log(compile(buildProgram(false)));
+// => ["::kernel::special_form::input","revision","::kernel::type::Integer"]
+
 console.log(compile(buildProgram(true)));
+// => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
 
 The conditional logic inside `Draft.program` changes the compiled output sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
 
-The reason is simple: each program goes through a compilation step on the server. If a query remains unchanged, its compilation artefacts can be cached and reused. A query that changes with every call cannot benefit from the same reuse, leading to worse execution performance.
+The reason is simple: each program goes through a compilation step on the server. If a query remains unchanged, its compilation artefacts can be cached and reused. Keeping the decision as an input lets different calls reuse one compiled program. Making the decision during construction produces separate programs for the different configurations.
 
 We can also use this technique to construct reusable fragments that act as macros:
 
-(example here)
+```ts
+const incrementTwice = Draft.program(revisionInputs, ($, { revision }) => {
+  const { add } = $.prelude();
+  const increment = (value: typeof revision) => add(value, 1n);
+
+  return increment(increment(revision));
+});
+
+console.log(compile(incrementTwice));
+// => ["::core::math::add",["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],{"#literal":1}]
+```
+
+The helper takes the same kind of expression as `revision` and constructs an addition each time we call it. Calling it twice produces two nested HashQL additions. Remember that the TypeScript helper runs only during construction, so the server receives those additions rather than a call to `increment`.
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
