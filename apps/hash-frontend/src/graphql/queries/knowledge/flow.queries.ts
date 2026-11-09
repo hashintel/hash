@@ -16,6 +16,31 @@ export const startFlowMutation = gql`
   }
 `;
 
+export const getFlowDefinitionRunsQuery = gql`
+  query getFlowDefinitionRuns(
+    $flowDefinitionEntityId: EntityId!
+    $cursor: String
+    $limit: Int
+  ) {
+    getFlowRuns(
+      flowDefinitionEntityIds: [$flowDefinitionEntityId]
+      cursor: $cursor
+      limit: $limit
+    ) {
+      nextCursor
+      flowRuns {
+        flowRunEntityId
+        flowScheduleId
+        webId
+        status
+        startedAt
+        closedAt
+        openInputRequests
+      }
+    }
+  }
+`;
+
 export const getFlowRunProgressQuery = gql`
   query getFlowRunProgress($flowRunEntityId: EntityId!, $after: String) {
     getFlowRunById(flowRunEntityId: $flowRunEntityId) {
