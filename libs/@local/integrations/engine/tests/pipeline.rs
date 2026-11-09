@@ -6,9 +6,11 @@ use alloc::collections::BTreeMap;
 use core::{future::poll_fn, task::Poll, time::Duration};
 
 use duckdb::types::Value;
-use hash_integrations_definition::{Definition, EntityPipeline, PrimaryKey};
+use hash_integrations_definition::{
+    CheckpointName, Definition, EntityPipeline, PrimaryKey, SourceKind,
+};
 use hash_integrations_engine::{
-    AssertionFailure, PreparationError, TableAssertions, Workspace, WorkspaceConfig,
+    AssertionFailure, PreparationError, PreparedSink, TableAssertions, Workspace, WorkspaceConfig,
 };
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
@@ -498,12 +500,12 @@ async fn link_named_inputs() {
     );
 }
 
-#[tokio::test]
-async fn definition_aviation_tables() {
-    let directory = TempDir::new().expect("the directory should be created");
-    let workspace = open(&directory).await;
-    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
-        .expect("the aviation definition should parse");
+/// Stages the SQL sources of `definition` and prepares its entity pipelines in order, returning
+/// the sinks and the checkpoints for its link pipelines.
+async fn prepare_entities(
+    workspace: &Workspace,
+    definition: &Definition,
+) -> (Vec<PreparedSink>, BTreeMap<CheckpointName, Box<str>>) {
     let mut checkpoints = BTreeMap::new();
     let mut sinks = Vec::new();
     for pipeline in definition.entity_pipelines() {
@@ -512,7 +514,7 @@ async fn definition_aviation_tables() {
             .get(&pipeline.source)
             .expect("the pipeline source should exist");
         let table = match &source.kind {
-            hash_integrations_definition::SourceKind::Sql { query, primary_key } => {
+            SourceKind::Sql { query, primary_key } => {
                 let table = format!("source/{}", pipeline.source).into_boxed_str();
                 workspace
                     .stage_table(
@@ -525,45 +527,81 @@ async fn definition_aviation_tables() {
                     .expect("the SQL source should be staged");
                 table
             }
-            hash_integrations_definition::SourceKind::Checkpoint { checkpoint } => checkpoints
+            SourceKind::Checkpoint { checkpoint } => checkpoints
                 .get(checkpoint)
                 .cloned()
                 .expect("the checkpoint source should exist"),
-            hash_integrations_definition::SourceKind::Local { .. }
-            | hash_integrations_definition::SourceKind::Postgres { .. }
-            | hash_integrations_definition::SourceKind::Rest { .. } => {
-                panic!("the aviation fixture should use SQL and checkpoint sources")
+            SourceKind::Local { .. } | SourceKind::Postgres { .. } | SourceKind::Rest { .. } => {
+                panic!("the example should use SQL and checkpoint sources")
             }
         };
         let prepared = workspace
             .prepare_pipeline(pipeline.clone(), table, checkpoints.clone())
             .await
-            .expect("the aviation pipeline should be prepared");
+            .expect("the pipeline should be prepared");
         checkpoints.extend(prepared.checkpoints);
         sinks.extend(prepared.sinks);
     }
-    assert_eq!(
-        sinks.len(),
-        2,
-        "airfields and aircraft should each produce an entity sink"
-    );
+    (sinks, checkpoints)
+}
+
+/// Reads `columns` of each row of `table`, ordered by the first column.
+async fn read_columns(workspace: &Workspace, table: &str, columns: &[&str]) -> Vec<Vec<Value>> {
+    workspace
+        .query(
+            format!("SELECT {} FROM \"{table}\" ORDER BY 1", columns.join(", ")).into_boxed_str(),
+        )
+        .await
+        .expect("the table should be readable")
+        .iter()
+        .map(<[Value]>::to_vec)
+        .collect()
+}
+
+fn text_rows<const N: usize>(rows: &[[&str; N]]) -> Vec<Vec<Value>> {
+    rows.iter()
+        .map(|row| {
+            row.iter()
+                .map(|cell| Value::Text((*cell).to_owned()))
+                .collect()
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn definition_aviation_tables() {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
+        .expect("the aviation definition should parse");
+    let (sinks, checkpoints) = prepare_entities(&workspace, &definition).await;
+
+    let mut entities = BTreeMap::new();
     for sink in &sinks {
-        let rows = workspace
-            .query(
-                format!(
-                    "SELECT count(*), count(_content_hash) FROM \"{}\"",
-                    sink.table
-                )
-                .into_boxed_str(),
+        entities.insert(
+            sink.step.to_string(),
+            read_columns(
+                &workspace,
+                &sink.table,
+                &[sink.sink.entity_id.as_ref(), "_content_hash IS NOT NULL"],
             )
-            .await
-            .expect("the prepared sink should be readable");
-        assert_eq!(
-            rows.iter().next(),
-            Some([Value::BigInt(2), Value::BigInt(2)].as_slice()),
-            "each sink should contain two rows with content hashes"
+            .await,
         );
     }
+    let hashed = |ids: &[&str]| -> Vec<Vec<Value>> {
+        ids.iter()
+            .map(|id| vec![Value::Text((*id).to_owned()), Value::Boolean(true)])
+            .collect()
+    };
+    assert_eq!(
+        entities,
+        BTreeMap::from([
+            ("sink-aircraft".to_owned(), hashed(&["N100", "SE-XXX"])),
+            ("sink-airfields".to_owned(), hashed(&["ESSA", "ESSB"])),
+        ]),
+        "every aircraft and airfield should have a content hash"
+    );
+
     let link = definition
         .link_pipelines()
         .first()
@@ -572,29 +610,116 @@ async fn definition_aviation_tables() {
         .prepare_link_pipeline(link.clone(), checkpoints)
         .await
         .expect("the aviation links should be prepared");
-    let rows = workspace
-        .query(
-            format!(
-                "SELECT TAIL, HOME_BASE FROM \"{}\" ORDER BY TAIL",
-                prepared.table
-            )
-            .into_boxed_str(),
-        )
-        .await
-        .expect("the link endpoints should be readable");
     assert_eq!(
-        rows.iter().collect::<Vec<_>>(),
-        [
-            [
-                Value::Text("N100".to_owned()),
-                Value::Text("ESSA".to_owned())
-            ],
-            [
-                Value::Text("SE-XXX".to_owned()),
-                Value::Text("ESSA".to_owned())
-            ],
-        ],
+        read_columns(&workspace, &prepared.table, &["TAIL", "HOME_BASE"]).await,
+        text_rows(&[["N100", "ESSA"], ["SE-XXX", "ESSA"]]),
         "both aircraft should link to their home airfield"
+    );
+}
+
+#[tokio::test]
+async fn definition_flightaware_tables() {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    let definition =
+        Definition::from_yaml(include_str!("../../definition/examples/flightaware.yaml"))
+            .expect("the flightaware definition should parse");
+    let (sinks, checkpoints) = prepare_entities(&workspace, &definition).await;
+
+    let mut entities = BTreeMap::new();
+    for sink in &sinks {
+        entities.insert(
+            sink.step.to_string(),
+            read_columns(&workspace, &sink.table, &[sink.sink.entity_id.as_ref()]).await,
+        );
+    }
+    assert_eq!(
+        entities,
+        BTreeMap::from([
+            (
+                "write-airlines".to_owned(),
+                text_rows(&[["BAW"], ["DLH"], ["UAE"]])
+            ),
+            (
+                "write-airports".to_owned(),
+                text_rows(&[["EDDF"], ["EGLL"], ["KJFK"], ["OMDB"]])
+            ),
+            (
+                "write-flights".to_owned(),
+                text_rows(&[
+                    ["BAW115-1715000000-schedule-0001"],
+                    ["DLH901-1715000000-schedule-0002"],
+                    ["UAE5-1715000000-schedule-0003"],
+                ])
+            ),
+        ]),
+        "each airport and airline should appear once"
+    );
+
+    let flights = sinks
+        .iter()
+        .find(|sink| sink.step.as_ref() == "write-flights")
+        .expect("the flight sink should exist");
+    assert_eq!(
+        read_columns(
+            &workspace,
+            &flights.table,
+            &["flightNumber", "flightStatus", "flightDate"]
+        )
+        .await,
+        text_rows(&[
+            ["BA115", "Landed", "2024-05-06"],
+            ["EK5", "Cancelled", "2024-05-07"],
+            ["LH901", "Active", "2024-05-07"],
+        ]),
+        "the status and date should be derived from the flight's times"
+    );
+
+    let mut links = BTreeMap::new();
+    for link in definition.link_pipelines() {
+        let prepared = workspace
+            .prepare_link_pipeline(link.clone(), checkpoints.clone())
+            .await
+            .expect("the link pipeline should be prepared");
+        links.insert(
+            link.id.to_string(),
+            read_columns(
+                &workspace,
+                &prepared.table,
+                &[link.from.column.as_ref(), link.to.column.as_ref()],
+            )
+            .await,
+        );
+    }
+    assert_eq!(
+        links,
+        BTreeMap::from([
+            (
+                "flight-lands-at".to_owned(),
+                text_rows(&[
+                    ["BAW115-1715000000-schedule-0001", "EGLL"],
+                    ["DLH901-1715000000-schedule-0002", "EGLL"],
+                    ["UAE5-1715000000-schedule-0003", "EGLL"],
+                ])
+            ),
+            (
+                "flight-operated-by".to_owned(),
+                text_rows(&[
+                    ["BAW115-1715000000-schedule-0001", "BAW"],
+                    ["DLH901-1715000000-schedule-0002", "DLH"],
+                    ["UAE5-1715000000-schedule-0003", "UAE"],
+                ])
+            ),
+            (
+                "flight-takes-off-from".to_owned(),
+                text_rows(&[
+                    ["BAW115-1715000000-schedule-0001", "KJFK"],
+                    ["DLH901-1715000000-schedule-0002", "EDDF"],
+                    ["UAE5-1715000000-schedule-0003", "OMDB"],
+                ])
+            ),
+        ]),
+        "each flight should link to its origin, destination and operator"
     );
 }
 
