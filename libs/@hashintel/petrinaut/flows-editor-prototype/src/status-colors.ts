@@ -793,7 +793,7 @@ export const pickerPalette = (): "a" | "b" | "c" | "d" | null => {
  * `applyPalette` points these variables at the neutral steps under it.
  */
 const runTile = (property: "bg" | "icon", colour: string) =>
-  pickerPalette() ? `var(--flows-run-tile-${property}, ${colour})` : colour;
+  pickerPalette() && !circleTiles ? `var(--flows-run-tile-${property}, ${colour})` : colour;
 
 const runTileVariables = `.petrinaut-root[data-run-tiles] { --flows-run-tile-bg: ${tokenVar("neutral.s25")}; --flows-run-tile-icon: ${tokenVar("neutral.s105")}; }`;
 
@@ -804,6 +804,9 @@ const paletteSwatch = (group: string) => {
   const steps = hue ? equalSteps[hue] : undefined;
   if (!palette || !steps) {
     return null;
+  }
+  if (circleTiles) {
+    return circleSteps[hue!] ?? steps;
   }
   return palette === "c" ? { tile: "neutral.s25", icon: steps.icon } : steps;
 };
@@ -876,8 +879,55 @@ const groupTileColor = (icon: string) => {
 export const circleTiles =
   new URLSearchParams(globalThis.location.search).get("tileshape") === "circle";
 
-const shaped = (style: CSSProperties): CSSProperties =>
-  circleTiles ? { ...style, borderRadius: "9999px" } : style;
+/**
+ * Under `?tileshape=circle` (Aakarsh, 9 Nov: no grey tile backgrounds anywhere): the DS chip pairing, bg/shaded s20
+ * with fg/icon/max s90, in the editor and the run view alike. Yellow keeps its s110 icon on s30, as yellow s90 is lemon
+ * on s20 (1.2:1). Steps in no group get no tile, only a neutral icon.
+ */
+const circleSteps: Record<string, { tile: string; icon: string }> = {
+  orange: { tile: "orange.s20", icon: "orange.s90" },
+  green: { tile: "green.s20", icon: "green.s90" },
+  blue: { tile: "blue.s20", icon: "blue.s90" },
+  purple: { tile: "purple.s20", icon: "purple.s90" },
+  pink: { tile: "pink.s20", icon: "pink.s90" },
+  yellow: { tile: "yellow.s30", icon: "yellow.s110" },
+};
+
+/**
+ * `?panelcircle=16-9|18-10|20-11` (circle/icon px) and `?panelstroke=1`: the circle in the Steps tree, run left panel
+ * and Used in rows, with more room around the icon. Unset under `?tileshape=circle` is 18-10.
+ */
+const panelCircle = (() => {
+  const query = new URLSearchParams(globalThis.location.search);
+  const [size, icon] = (query.get("panelcircle") ?? "18-10").split("-").map(Number);
+  return {
+    size: size && size >= 12 && size <= 24 ? size : 18,
+    icon: icon && icon >= 8 && icon <= 16 ? icon : 10,
+    stroke: query.get("panelstroke") === "1" ? 1 : 1.25,
+  };
+})();
+
+if (circleTiles && typeof document !== "undefined") {
+  const sheet = document.createElement("style");
+  const { icon, stroke } = panelCircle;
+  sheet.textContent = `[style*="--panel-circle"] svg { width: ${icon}px !important; height: ${icon}px !important; min-width: ${icon}px !important; --icon-size: ${icon}px; stroke-width: ${stroke} !important; }`;
+  document.head.append(sheet);
+}
+
+const shaped = (style: CSSProperties, panel = false): CSSProperties =>
+  circleTiles
+    ? {
+        ...style,
+        borderRadius: "9999px",
+        ...(panel
+          ? ({
+              width: `${panelCircle.size}px`,
+              height: `${panelCircle.size}px`,
+              "--panel-circle": "1",
+            } as CSSProperties)
+          : {}),
+      }
+    : style;
 
 const tileColorOf = (icon: string, ghost = false): CSSProperties =>
   ghost
@@ -885,7 +935,8 @@ const tileColorOf = (icon: string, ghost = false): CSSProperties =>
         backgroundColor: flowsVar("ghost-tile-bg"),
         color: flowsVar("ghost-tile-icon"),
       }
-    : (groupTileColor(icon) ?? {
+    : (groupTileColor(icon) ??
+      (circleTiles ? { backgroundColor: "transparent", color: tokenVar("neutral.s105") } : null) ?? {
         backgroundColor: runTile("bg", flowsVar(`tile-${tileKindOf(icon)}-bg`)),
         color: runTile("icon", flowsVar(`tile-${tileKindOf(icon)}-icon`)),
       });
@@ -958,7 +1009,7 @@ const quieterTree: Record<string, (hue: string) => CSSProperties> = {
 };
 
 export const treeTileColor = (icon: string): CSSProperties =>
-  shaped(treeTileColorOf(icon));
+  shaped(treeTileColorOf(icon), true);
 
 const treeTileColorOf = (icon: string): CSSProperties => {
   const take = new URLSearchParams(globalThis.location.search).get("treetiles");
