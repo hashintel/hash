@@ -34,6 +34,6 @@ pub use self::{
     payload::{Payload, PayloadError},
     policy::RetryPolicy,
     run::{RunError, RunFunction, StepContext},
-    runs::{BackendError, CancelOutcome, RunStatus, Runs, StartError, Started, Worker},
+    runs::{BackendError, RunStatus, Runs, StartError, Worker},
     state::{InvalidTransition, RunPhase, RunState, StepDecision},
 };

@@ -1,23 +1,16 @@
+use alloc::sync::Arc;
 use core::future::Future;
 
 use error_stack::Report;
 use tokio_util::sync::CancellationToken;
 
-use crate::{RunFunction, RunId, RunPhase, RunStart, StepName};
+use crate::{RunFunction, RunId, RunPhase, RunStart};
 
 /// Reports that a backend could not complete a request, for example because its storage is
 /// unavailable.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("the backend could not complete the request")]
 pub struct BackendError;
-
-/// Whether starting a run created it or attached to it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Started {
-    Created,
-    /// A run with the same ID and the same start was already recorded.
-    Attached,
-}
 
 /// Reports why a run did not start.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
@@ -30,25 +23,11 @@ pub enum StartError {
     Backend,
 }
 
-/// What a cancel request found.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CancelOutcome {
-    /// The run stops at its next step that has not been recorded.
-    Requested,
-    /// The run had already finished.
-    Finished,
-    /// No run has this ID.
-    Unknown,
-}
-
 /// The state of a run, read without a worker.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunStatus {
     pub phase: RunPhase,
     pub steps_recorded: u32,
-    /// The step that failed and waits for another attempt.
-    pub retrying_step: Option<StepName>,
-    pub cancel_requested: bool,
 }
 
 /// Starts, inspects and cancels runs. None of these needs a worker.
@@ -67,7 +46,7 @@ pub trait Runs: Send + Sync {
         &self,
         run: RunId,
         start: RunStart,
-    ) -> impl Future<Output = Result<Started, Report<StartError>>> + Send;
+    ) -> impl Future<Output = Result<(), Report<StartError>>> + Send;
 
     /// Returns the status of `run`, or `None` if no run has this ID.
     ///
@@ -79,15 +58,13 @@ pub trait Runs: Send + Sync {
         run: &RunId,
     ) -> impl Future<Output = Result<Option<RunStatus>, Report<BackendError>>> + Send;
 
-    /// Requests that `run` stops before its next step that has not been recorded.
+    /// Requests that `run` stops before its next step that has not been recorded. Cancelling a
+    /// finished or unknown run returns `Ok(())`.
     ///
     /// # Errors
     ///
     /// Returns [`BackendError`] if the backend could not record the request.
-    fn cancel(
-        &self,
-        run: &RunId,
-    ) -> impl Future<Output = Result<CancelOutcome, Report<BackendError>>> + Send;
+    fn cancel(&self, run: &RunId) -> impl Future<Output = Result<(), Report<BackendError>>> + Send;
 }
 
 /// Executes runs. Any process can execute any run, and a run that a stopped process was
@@ -95,12 +72,15 @@ pub trait Runs: Send + Sync {
 pub trait Worker: Send + Sync {
     /// Executes runs started with `F::VERSION` until `shutdown` is cancelled.
     ///
+    /// A backend may execute runs on tasks it spawns, so it takes `function` as an `Arc` to share
+    /// it with them.
+    ///
     /// # Errors
     ///
     /// Returns [`BackendError`] if the backend stops working.
-    fn work<F: RunFunction>(
+    fn work<F: RunFunction + 'static>(
         &self,
-        function: &F,
+        function: Arc<F>,
         shutdown: CancellationToken,
     ) -> impl Future<Output = Result<(), Report<BackendError>>> + Send;
 }
