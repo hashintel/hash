@@ -23,20 +23,31 @@ export const offerAnswersToolDescription = [
 ].join(" ");
 
 const vCallPart = v.object({ toolCallId: v.string() });
+const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
 const vClosingCommitPart = v.object({
   toolName: v.literal(brunchTools.ledgerCommit),
   input: v.object({ endTurn: v.literal(true) }),
+  output: v.optional(v.object({ status: v.literal("recorded") })),
 });
 
-/** Whether the response holding this call also holds a commit with `endTurn`. */
-const closesWithCommit = (history: LedgerHistory, toolCallId: string) =>
-  history.messages
-    .find((message) =>
-      message.parts.some(
-        (part) => v.is(vCallPart, part) && part.toolCallId === toolCallId,
-      ),
-    )
-    ?.parts.some((part) => v.is(vClosingCommitPart, part)) ?? false;
+/**
+ * Whether the message holding this call closes as `ledger_commit` would: it
+ * has replied, and holds a commit with `endTurn` still running in this batch
+ * or already recorded. One message spans every step of a turn, so a commit
+ * that closed nothing in an earlier step must not let this call end it.
+ */
+const closesWithCommit = (history: LedgerHistory, toolCallId: string) => {
+  const parts = history.messages.find((message) =>
+    message.parts.some(
+      (part) => v.is(vCallPart, part) && part.toolCallId === toolCallId,
+    ),
+  )?.parts;
+  return (
+    parts !== undefined &&
+    parts.some((part) => v.is(vTextPart, part) && part.text.trim() !== "") &&
+    parts.some((part) => v.is(vClosingCommitPart, part))
+  );
+};
 
 /**
  * Buttons and fields beneath the reply for the questions it asks. Returns at
