@@ -5,6 +5,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   generateArcId,
   getArcEndpointKey,
+  getComponentInstanceHeight,
 } from "@hashintel/petrinaut-core";
 
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
@@ -78,6 +79,7 @@ const input: CanvasSceneInput = {
     selectedIds: new Set(),
   }),
   keptOpenVisualizerIds: new Set(),
+  expandedInstanceIds: new Set(),
 };
 
 describe("buildCanvasScene", () => {
@@ -351,6 +353,54 @@ describe("buildCanvasScene", () => {
       });
       expect(nodes.find((node) => node.id === "p1")).toMatchObject({
         port: null,
+      });
+    });
+
+    it("folds an instance with many ports until it is unfolded", () => {
+      const wide: Subnet = {
+        ...fast,
+        id: "wide",
+        name: "Wide",
+        implements: undefined,
+        places: ["a", "b", "c", "d", "e"].map((name) => ({
+          ...place(name, 0, 0),
+          isPort: true,
+        })),
+      };
+      const withWide: SDCPN = {
+        ...sdcpn,
+        subnets: [wide, fast],
+        componentInstances: [
+          instance("big", "wide"),
+          instance("small", "fast"),
+        ],
+      };
+      const net = {
+        ...withWide,
+        componentInstances: withWide.componentInstances ?? [],
+        fusions: [],
+      };
+
+      const folded = buildCanvasScene({ ...input, sdcpn: withWide, net });
+      expect(folded.nodes.find((node) => node.id === "big")).toMatchObject({
+        foldable: true,
+        expanded: false,
+        height: compactNodeDimensions.componentInstance.height,
+      });
+      expect(folded.nodes.find((node) => node.id === "small")).toMatchObject({
+        foldable: false,
+        expanded: true,
+      });
+
+      const unfolded = buildCanvasScene({
+        ...input,
+        sdcpn: withWide,
+        net,
+        expandedInstanceIds: new Set(["big"]),
+      });
+      expect(unfolded.nodes.find((node) => node.id === "big")).toMatchObject({
+        expanded: true,
+        height: getComponentInstanceHeight(compactNodeDimensions, 5),
       });
     });
 

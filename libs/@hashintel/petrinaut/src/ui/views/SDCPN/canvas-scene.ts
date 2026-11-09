@@ -95,12 +95,19 @@ export type CanvasInstanceBinding =
   | { kind: "component" }
   | { kind: "interface"; implementationName: string | null };
 
+/** A component with more ports than this starts folded, its ports behind a toggle. */
+export const COMPONENT_INSTANCE_FOLD_THRESHOLD = 4;
+
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
   /** The subnet the instance points at: its component or its interface. */
   subnetName: string;
   binding: CanvasInstanceBinding;
   ports: CanvasPort[];
+  /** Whether the card can fold its ports away: it has more than the threshold. */
+  foldable: boolean;
+  /** Whether the ports show in rows, or fold into the card's base height. */
+  expanded: boolean;
 };
 
 export type CanvasNode =
@@ -179,6 +186,8 @@ export type CanvasSceneInput = {
   /** Places whose state visualizer stays open without a hover. */
   keptOpenVisualizerIds: ReadonlySet<string>;
   activeVisualizerIds?: ReadonlySet<string>;
+  /** The foldable instances whose ports are unfolded. */
+  expandedInstanceIds: ReadonlySet<string>;
 };
 
 const positionOf = (
@@ -244,6 +253,7 @@ export const buildCanvasScene = ({
   focus,
   keptOpenVisualizerIds,
   activeVisualizerIds,
+  expandedInstanceIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
@@ -325,17 +335,23 @@ export const buildCanvasScene = ({
             implementationName:
               resolved.kind === "bound" ? resolved.implementation.name : null,
           };
+    const foldable = ports.length > COMPONENT_INSTANCE_FOLD_THRESHOLD;
+    const expanded = !foldable || expandedInstanceIds.has(instance.id);
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
       label: instance.name,
       width: dimensions.componentInstance.width,
-      height: getComponentInstanceHeight(dimensions, ports.length),
+      height: expanded
+        ? getComponentInstanceHeight(dimensions, ports.length)
+        : dimensions.componentInstance.height,
       ...positionOf(instance, draggingStateByNodeId),
       ...interaction(instance.id),
       subnetName: subnet?.name ?? "Unknown subnet",
       binding,
       ports,
+      foldable,
+      expanded,
     });
   }
 

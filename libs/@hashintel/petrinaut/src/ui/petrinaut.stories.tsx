@@ -887,6 +887,132 @@ export const Interfaces: Story = {
   ),
 };
 
+/** A cell with seven ports: four feeds in, three results out. */
+const cellSubnet: NonNullable<SDCPN["subnets"]>[number] = {
+  id: "cell",
+  name: "Cell",
+  places: [
+    place("cell_frames", "Frames", 80, 80, {
+      isPort: true,
+      portDirection: "in",
+    }),
+    place("cell_boards", "Boards", 80, 200, {
+      isPort: true,
+      portDirection: "in",
+    }),
+    place("cell_screws", "Screws", 80, 320, {
+      isPort: true,
+      portDirection: "in",
+    }),
+    place("cell_power", "Power", 80, 440, {
+      isPort: true,
+      portDirection: "in",
+    }),
+    place("cell_assemblies", "Assemblies", 620, 140, {
+      isPort: true,
+      portDirection: "out",
+    }),
+    place("cell_scrap", "Scrap", 620, 260, {
+      isPort: true,
+      portDirection: "out",
+    }),
+    place("cell_rejects", "Rejects", 620, 380, {
+      isPort: true,
+      portDirection: "out",
+    }),
+  ],
+  transitions: [
+    {
+      id: "cell_assemble",
+      name: "Assemble",
+      inputArcs: [
+        "cell_frames",
+        "cell_boards",
+        "cell_screws",
+        "cell_power",
+      ].map((placeId) => ({ placeId, weight: 1, type: "standard" as const })),
+      outputArcs: ["cell_assemblies", "cell_scrap", "cell_rejects"].map(
+        (placeId) => ({ placeId, weight: 1 }),
+      ),
+      lambdaType: "stochastic",
+      lambdaCode: generateDefaultLambdaCode("stochastic"),
+      transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+      x: 350,
+      y: 260,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+/**
+ * One instance of the cell with every port wired: three feeds and three
+ * results fused with the root's places, power fed by an arc. The card starts
+ * folded, with the wires meeting its edges; its chevron unfolds the ports.
+ */
+const manyPortsNet: SDCPN = {
+  places: [
+    place("frames", "Frames", 160, 120, { showAsInitialState: true }),
+    place("boards", "Boards", 160, 260, { showAsInitialState: true }),
+    place("screws", "Screws", 160, 400, { showAsInitialState: true }),
+    place("assemblies", "Assemblies", 1040, 160),
+    place("scrap", "Scrap", 1040, 300),
+    place("rejects", "Rejects", 1040, 440),
+  ],
+  transitions: [
+    {
+      id: "supply_power",
+      name: "Supply power",
+      inputArcs: [],
+      outputArcs: [{ endpoint: port("cell1", "cell_power"), weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: generateDefaultLambdaCode("stochastic"),
+      transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+      x: 160,
+      y: 540,
+    },
+  ],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+  subnets: [cellSubnet],
+  componentInstances: [
+    {
+      id: "cell1",
+      name: "Assembly cell",
+      subnetId: "cell",
+      parameterValues: {},
+      x: 600,
+      y: 300,
+    },
+  ],
+  fusions: (
+    [
+      ["frames", "cell_frames"],
+      ["boards", "cell_boards"],
+      ["screws", "cell_screws"],
+      ["assemblies", "cell_assemblies"],
+      ["scrap", "cell_scrap"],
+      ["rejects", "cell_rejects"],
+    ] as const
+  ).map(([placeId, portPlaceId]) => ({
+    id: `fuse_${placeId}`,
+    members: [{ kind: "place" as const, placeId }, port("cell1", portPlaceId)],
+  })),
+};
+
+export const ManyPorts: Story = {
+  name: "Many ports",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={manyPortsNet}
+      initialTitle="Assembly cell"
+    />
+  ),
+};
+
 export const SubnetsWithoutColors: Story = {
   name: "Subnets — without colours",
   render: () => (

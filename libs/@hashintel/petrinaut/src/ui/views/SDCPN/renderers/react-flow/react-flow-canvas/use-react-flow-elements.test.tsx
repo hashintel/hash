@@ -57,6 +57,8 @@ const nodes: CanvasNode[] = [
     ports: [
       { id: "port", name: "Port", direction: "inout", typeColor: undefined },
     ],
+    foldable: false,
+    expanded: true,
   },
 ];
 const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {

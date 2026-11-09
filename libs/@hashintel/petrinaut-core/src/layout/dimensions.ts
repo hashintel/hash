@@ -20,13 +20,13 @@ export type RenderNodeDimensions = {
 export const compactNodeDimensions: RenderNodeDimensions = {
   place: { width: 180, height: 50 },
   transition: { width: 180, height: 50 },
-  componentInstance: { width: 180, height: 96 },
+  componentInstance: { width: 200, height: 96 },
 };
 
 export const classicNodeDimensions: RenderNodeDimensions = {
   place: { width: 104, height: 104 },
   transition: { width: 180, height: 60 },
-  componentInstance: { width: 180, height: 96 },
+  componentInstance: { width: 200, height: 96 },
 };
 
 /**
