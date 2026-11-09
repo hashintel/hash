@@ -55,9 +55,12 @@ vi.mock("../graphql/api-types.gen", () => ({
   FlowRunStatus: { Running: "RUNNING" },
 }));
 
-vi.mock("./infer-entities-websocket/handle-cancel-infer-entities-request", () => ({
-  handleCancelInferEntitiesRequest: mocks.handleCancelInferEntitiesRequest,
-}));
+vi.mock(
+  "./infer-entities-websocket/handle-cancel-infer-entities-request",
+  () => ({
+    handleCancelInferEntitiesRequest: mocks.handleCancelInferEntitiesRequest,
+  }),
+);
 
 vi.mock("./infer-entities-websocket/handle-infer-entities-request", () => ({
   handleInferEntitiesRequest: mocks.handleInferEntitiesRequest,
@@ -108,10 +111,13 @@ const connect = async (upgradeCookie?: string) => {
   ) => void;
   const socket = new TestSocket();
   sockets.push(socket);
-  onConnection(socket as unknown as WebSocket, {
-    headers: { cookie: upgradeCookie },
-    socket: { remoteAddress: "127.0.0.1" },
-  } as IncomingMessage);
+  onConnection(
+    socket as unknown as WebSocket,
+    {
+      headers: { cookie: upgradeCookie },
+      socket: { remoteAddress: "127.0.0.1" },
+    } as IncomingMessage,
+  );
   await vi.advanceTimersByTimeAsync(0);
   return socket;
 };
@@ -134,10 +140,12 @@ const operations = [
     },
     dispatch: mocks.handleCancelInferEntitiesRequest,
   },
-  ...["automatic-inference-request", "manual-inference-request"].map((type) => ({
-    message: { type, requestUuid: "request", payload: {} },
-    dispatch: mocks.handleInferEntitiesRequest,
-  })),
+  ...["automatic-inference-request", "manual-inference-request"].map(
+    (type) => ({
+      message: { type, requestUuid: "request", payload: {} },
+      dispatch: mocks.handleInferEntitiesRequest,
+    }),
+  ),
 ];
 
 const expectRejected = (socket: TestSocket) => {
@@ -156,7 +164,9 @@ beforeEach(() => {
   mocks.getUserAndSession.mockResolvedValue(authentication());
   mocks.getFlowRuns.mockResolvedValue({ flowRuns: [] });
   mocks.getFlowRunEntityById.mockResolvedValue({
-    properties: { "https://hash.ai/@h/types/property-type/workflow-id/": "flow" },
+    properties: {
+      "https://hash.ai/@h/types/property-type/workflow-id/": "flow",
+    },
   });
 });
 
@@ -180,23 +190,26 @@ describe.each(["upgrade", "first-message"])("%s authentication", (method) => {
   };
 
   describe.each(["revoked", "expired"])("%s session", (failure) => {
-    it.each(operations)("rejects $message.type", async ({ message, dispatch }) => {
-      const socket = await authenticatedSocket();
-      await send(socket, message);
-      expect(dispatch).toHaveBeenCalledOnce();
-      expect(socket.close).not.toHaveBeenCalled();
-      vi.clearAllMocks();
+    it.each(operations)(
+      "rejects $message.type",
+      async ({ message, dispatch }) => {
+        const socket = await authenticatedSocket();
+        await send(socket, message);
+        expect(dispatch).toHaveBeenCalledOnce();
+        expect(socket.close).not.toHaveBeenCalled();
+        vi.clearAllMocks();
 
-      mocks.getUserAndSession.mockResolvedValue(
-        failure === "revoked" ? {} : authentication(-1),
-      );
-      await send(socket, message);
+        mocks.getUserAndSession.mockResolvedValue(
+          failure === "revoked" ? {} : authentication(-1),
+        );
+        await send(socket, message);
 
-      expect(mocks.getUserAndSession).toHaveBeenCalledWith(
-        expect.objectContaining({ cookie }),
-      );
-      expectRejected(socket);
-    });
+        expect(mocks.getUserAndSession).toHaveBeenCalledWith(
+          expect.objectContaining({ cookie }),
+        );
+        expectRejected(socket);
+      },
+    );
   });
 
   it("outlives the unauthenticated timeout but closes at session expiry", async () => {
