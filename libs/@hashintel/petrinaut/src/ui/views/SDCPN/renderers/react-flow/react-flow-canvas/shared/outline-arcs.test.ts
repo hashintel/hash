@@ -1,6 +1,8 @@
+import { Position } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  fixedEndpoint,
   getOutlineArcPath,
   getOutlineAttachment,
   type OutlineNode,
@@ -92,14 +94,28 @@ describe("outline arc paths", () => {
   });
 
   it("ends an unsnapped preview at the pointer", () => {
-    const [path] = getOutlineArcPath(source, { x: 75, y: 200 });
+    const [path] = getOutlineArcPath(source, fixedEndpoint(75, 200));
     expect(path).toMatch(/ 75,200$/);
   });
 
-  it("starts a preview from a subnet port at the port", () => {
-    const [path] = getOutlineArcPath({ x: -200, y: 0 }, target);
-    expect(path).toMatch(/^M -200,0 C /);
-    expect(path).toMatch(/ 250,0$/);
+  it("leaves a subnet port along the side its handle sits on", () => {
+    const [path] = getOutlineArcPath(
+      fixedEndpoint(-200, 100, Position.Right),
+      target,
+    );
+    const [, firstX, firstY] =
+      path.match(/^M -200,100 C ([-\d.]+),([-\d.]+) /) ?? [];
+    expect(Number(firstX)).toBeGreaterThan(-200);
+    expect(Number(firstY)).toBe(100);
+  });
+
+  it("arrives at a subnet port from the side its handle sits on", () => {
+    const [path] = getOutlineArcPath(
+      source,
+      fixedEndpoint(300, 100, Position.Left),
+    );
+    const lastControlX = Number(path.match(/ ([-\d.]+),[-\d.]+ 300,100$/)?.[1]);
+    expect(lastControlX).toBeLessThan(300);
   });
 
   it.each([0, 1, 50, 100])(

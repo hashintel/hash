@@ -7,6 +7,7 @@ import {
   compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
+import { getOutlineArcPath } from "./shared/outline-arcs";
 import { useReactFlowElements } from "./use-react-flow-elements";
 
 import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
@@ -125,10 +126,14 @@ describe("arc rendering", () => {
         }),
       );
 
-      const path = result.current.edges.find((edge) => edge.id === "input")
-        ?.data?.outlinePath?.[0];
-      expect(path).toBeDefined();
-      const endpoint = path?.split(" ").at(-1)?.split(",").map(Number);
+      const data = result.current.edges.find(
+        (edge) => edge.id === "input",
+      )?.data;
+      if (!data?.sourceOutline || !data.targetOutline) {
+        throw new Error("an arc between nodes should carry both outlines");
+      }
+      const [path] = getOutlineArcPath(data.sourceOutline, data.targetOutline);
+      const endpoint = path.split(" ").at(-1)?.split(",").map(Number);
       expect(endpoint?.[0]).toBeCloseTo(
         transitionPosition.x - transitionSize.width / 2,
       );
@@ -138,20 +143,25 @@ describe("arc rendering", () => {
     },
   );
 
-  it("draws arcs between nodes along their outlines and leaves subnet port arcs to their handles", () => {
+  it("attaches arcs to node outlines and subnet port arcs to the port's handle", () => {
     const { result } = renderHook(() => useReactFlowElements(scene));
     const edges = new Map(result.current.edges.map((edge) => [edge.id, edge]));
 
-    expect(edges.get("input")?.data?.outlinePath).toBeDefined();
-    expect(edges.get("output")?.data?.outlinePath).toBeDefined();
+    for (const id of ["input", "output"]) {
+      expect(edges.get(id)?.data?.sourceOutline).not.toBeNull();
+      expect(edges.get(id)?.data?.targetOutline).not.toBeNull();
+      expect(edges.get(id)?.data?.hasReverseArc).toBe(true);
+    }
 
     const fromPort = edges.get("port-input");
     expect(fromPort?.sourceHandle).toBe("port-out-port");
-    expect(fromPort?.data?.outlinePath).toBeUndefined();
+    expect(fromPort?.data?.sourceOutline).toBeNull();
+    expect(fromPort?.data?.targetOutline).not.toBeNull();
 
     const intoPort = edges.get("port-output");
     expect(intoPort?.targetHandle).toBe("port-in-port");
-    expect(intoPort?.data?.outlinePath).toBeUndefined();
+    expect(intoPort?.data?.sourceOutline).not.toBeNull();
+    expect(intoPort?.data?.targetOutline).toBeNull();
   });
 
   it("recomputes attachments during node movement without mutating the scene", () => {
@@ -161,7 +171,7 @@ describe("arc rendering", () => {
       { initialProps: scene },
     );
     const previous = result.current.edges.find((edge) => edge.id === "input")
-      ?.data?.outlinePath;
+      ?.data?.targetOutline;
     rerender({
       ...scene,
       nodes: nodes.map((node) =>
@@ -172,7 +182,7 @@ describe("arc rendering", () => {
     });
     expect(
       result.current.edges.find((edge) => edge.id === "input")?.data
-        ?.outlinePath,
+        ?.targetOutline,
     ).not.toEqual(previous);
     expect(scene).toEqual(snapshot);
   });
@@ -214,7 +224,7 @@ describe("arc rendering", () => {
       if (edge.id === "input") {
         expect(edge).not.toBe(original);
         expect(edge.data?.focus).toBe("outgoing");
-        expect(edge.data?.outlinePath).toEqual(original?.data?.outlinePath);
+        expect(edge.data?.targetOutline).toEqual(original?.data?.targetOutline);
         expect(edge.markerEnd).not.toEqual(original?.markerEnd);
       } else {
         expect(edge).toBe(original);

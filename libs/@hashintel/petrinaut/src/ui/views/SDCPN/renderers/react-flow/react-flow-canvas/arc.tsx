@@ -11,6 +11,7 @@ import {
   arcHaloColor,
 } from "../../../styles/focus";
 import { arcFiringIsVisible } from "./firing-animation-visibility";
+import { fixedEndpoint, getOutlineArcPath } from "./shared/outline-arcs";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -243,48 +244,14 @@ function computeArcTickMarks(path: string): TickMark[] {
   return ticks;
 }
 
-/**
- * The path of an arc at a subnet port, from a handle on the right of its
- * source to a handle on the left of its target. Control point offsets are
- * proportional to the horizontal distance, so arcs stay tight for nearby
- * nodes and sweep wide for distant ones.
- */
-function getPortArcPath({
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-}: {
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-}): [path: string, labelX: number, labelY: number] {
-  const dx = targetX - sourceX;
-
-  // Control point offset scales with horizontal distance, with a minimum
-  const offset = Math.max(Math.abs(dx) * 0.7, 80);
-
-  const cp1x = sourceX + offset / 2;
-  const cp1y = sourceY;
-  const cp2x = targetX - offset;
-  const cp2y = targetY;
-
-  const path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
-
-  // Label at the midpoint of the cubic bezier: B(0.5) = (P0 + 3·CP1 + 3·CP2 + P3) / 8
-  const labelX = (sourceX + 3 * cp1x + 3 * cp2x + targetX) / 8;
-  const labelY = (sourceY + 3 * cp1y + 3 * cp2y + targetY) / 8;
-
-  return [path, labelX, labelY];
-}
-
 export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   id,
   sourceX,
   sourceY,
   targetX,
   targetY,
+  sourcePosition,
+  targetPosition,
   data,
   style,
   markerEnd,
@@ -303,8 +270,13 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   // Animate stroke width when firing delta changes (scaled by arc weight)
   useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
-  const [arcPath, labelX, labelY] =
-    data?.outlinePath ?? getPortArcPath({ sourceX, sourceY, targetX, targetY });
+  // An end at a subnet port has no outline: it starts at the port's handle
+  // and leaves along the side the handle sits on, as the arc's preview did.
+  const [arcPath, labelX, labelY] = getOutlineArcPath(
+    data?.sourceOutline ?? fixedEndpoint(sourceX, sourceY, sourcePosition),
+    data?.targetOutline ?? fixedEndpoint(targetX, targetY, targetPosition),
+    data?.hasReverseArc,
+  );
 
   const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
