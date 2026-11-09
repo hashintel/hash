@@ -5,6 +5,7 @@
  */
 
 export {
+  latestOffers,
   neverOffer,
   offerBounds,
   offersAnswers,
