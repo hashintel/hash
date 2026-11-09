@@ -235,7 +235,7 @@ Every event it emits carries `source: "local"`, and it has no method for
 injecting an external update. Two consequences:
 
 - To save, subscribe and persist `event.next` (the local-storage demo in
-  `apps/petrinaut-website` saves on every event; the HASH frontend embed
+  `apps/petrinaut-website` saves on every event; the HASH process editor
   deep-compares against the last saved snapshot to drive a dirty flag and an
   explicit save button).
 - To load different content, create a new handle and pass it to the component.
@@ -443,12 +443,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                                                                                   | Where                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
-| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
-| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-chrome-plugin.tsx`      |
+| Pattern                                                                                                                   | Where                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor.tsx`                                  |
+| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                                   |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                                           |
+| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor/process-petrinaut/top-bar-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an
 external store has shipped yet, which is part of why the contract still has

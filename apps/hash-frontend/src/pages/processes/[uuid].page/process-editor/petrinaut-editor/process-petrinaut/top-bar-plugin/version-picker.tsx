@@ -15,15 +15,14 @@ import {
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
-import { MenuItem } from "../../../../shared/ui/menu-item";
+import { MenuItem } from "../../../../../../../shared/ui/menu-item";
 
-import type { PetriNetRevision } from "./use-process-save-and-load/use-petri-net-revisions";
+import type { RevisionSummary } from "../../../petrinaut-editor";
 
 /**
- * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's preference
- *
- * The host renders client-side only (`[uuid].page.tsx` uses `dynamic` with `ssr: false`),
- * so there's no SSR/hydration mismatch risk from the runtime locale.
+ * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's
+ * preference. The process editor loads the editor client-side only (Petrinaut
+ * requires browser APIs), so there's no SSR/hydration mismatch risk.
  */
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: "2-digit",
@@ -76,33 +75,32 @@ const DraftBadge = () => (
   </Box>
 );
 
-export type VersionPickerProps = {
+type VersionPickerProps = {
   /**
-   * All saved revisions of the active entity, newest first. The version
-   * label is derived as `revisions.length - index` (so the entry at
-   * index 0 is "vN", the latest, and the last entry is "v1").
+   * Revision summaries from the host (newest first). The version label is
+   * derived as `revisions.length - index` (so index 0 is "vN", the latest).
    */
-  revisions: PetriNetRevision[];
+  revisions: RevisionSummary[];
   /**
-   * Decision-time of the revision currently loaded in the editor, or
-   * `null` if the active net is unsaved.
+   * Decision-time of the revision the editor is currently mirrored against,
+   * or `null` if the active net is unsaved or has no saved revisions yet.
    */
   loadedRevisionTime: string | null;
   /**
-   * Whether the editor state diverges from the loaded revision. Used to
-   * surface the "Draft" badge — the linear-edit model means a save while
-   * dirty creates a new top revision (vN+1).
+   * Whether the editor state diverges from the loaded revision. Drives the
+   * "Draft" badge — a save while dirty creates a new top revision (vN+1).
    */
   isDirty: boolean;
-  onLoadRevision: (revision: PetriNetRevision) => void;
+  onLoadRevision: (revision: RevisionSummary) => void;
 };
 
 /**
- * Top-bar control for browsing the server-side revision history of a persisted Petri net.
+ * Top-bar control for browsing the server-side revision history of a
+ * persisted Petri net.
  *
  * In-memory undo/redo is handled separately by Petrinaut's
- * `VersionHistoryButton` — these two histories intentionally don't share
- * a surface (keystroke-level deltas vs persisted snapshots).
+ * `VersionHistoryButton` — these two histories intentionally don't share a
+ * surface (keystroke-level deltas vs persisted snapshots).
  */
 export const VersionPicker = ({
   revisions,
