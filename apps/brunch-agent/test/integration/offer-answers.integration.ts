@@ -158,6 +158,22 @@ try {
     output: { status: "refused" },
   });
   assert.equal(refused, 2, "A refused closing commit leaves the turn open.");
+
+  const silentSteps = await modelCallsFor("Expiry is twelve months.", [
+    fauxAssistantMessage([commit("commit-silent", [entity("Expiry")])], {
+      stopReason: "toolUse",
+    }),
+    fauxAssistantMessage([offer("offer-silent")], { stopReason: "toolUse" }),
+    fauxAssistantMessage([fauxText("Noted.")]),
+  ]);
+  assert.partialDeepStrictEqual(await toolPart("commit-silent"), {
+    output: { status: "recorded" },
+  });
+  assert.equal(
+    silentSteps,
+    3,
+    "A commit and then an offer, each in its own step and with no reply, leave the turn open.",
+  );
   process.stdout.write("OFFER_ANSWERS_PASS\n");
 } finally {
   await application.stop();
