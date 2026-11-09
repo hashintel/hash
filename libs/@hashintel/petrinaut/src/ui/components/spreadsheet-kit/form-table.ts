@@ -417,3 +417,16 @@ export const cellSelectStyle = css({
     paddingY: "[0!]",
   },
 });
+
+/**
+ * A gutter button that also starts a row drag: the row's glyph gives way
+ * to a grip while the row is hovered or focused, and the cursor says the
+ * row can be picked up.
+ */
+export const dragHandleButtonStyle = css({
+  cursor: "grab",
+  "& [data-grip]": { display: "none" },
+  "&:is(tr:hover *, tr:focus-within *) [data-glyph]": { display: "none" },
+  "&:is(tr:hover *, tr:focus-within *) [data-grip]": { display: "flex" },
+  "&[data-dragging]": { cursor: "grabbing" },
+});

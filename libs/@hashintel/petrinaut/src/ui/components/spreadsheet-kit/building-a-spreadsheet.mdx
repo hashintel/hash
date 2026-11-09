@@ -25,6 +25,8 @@ Everything row-specific stays in the composing table.
 | `GutterCell`      | The inside of a gutter cell: the main button (focus selects the row, a pointer click selects first, Enter or the trailing `⋯` opens the menu, Delete deletes) plus the menu with its dismiss-refocus choreography. |
 | `GutterMenu`      | The keyboard-first pop-up itself — usually reached through `GutterCell`.                                                                                                                                           |
 | `PhantomLine`     | The quiet trailing add-line: a `+` gutter that creates the entry, plus whatever cells the table renders after it.                                                                                                  |
+| `TextCell`        | A text cell under the selection model: a second click or Enter opens its editor, Enter or leaving commits, Escape cancels. The owner holds the text and hears how the edit ended.                                  |
+| `ReorderableRows` | The table body whose `ReorderableRow`s move by a pointer drag on their gutter or by Alt with an arrow on any cell; the owner applies the move it is told about.                                                    |
 | `useRowSelection` | The selection model: `selectedRow` is the focused gutter's row, or the row whose menu is open. One menu at a time per table.                                                                                       |
 | `OptimizeToggle`  | The labelled pill the selection modes render; generic text-in, boolean-out.                                                                                                                                        |
 
@@ -110,6 +112,11 @@ The contract the composition keeps, in exchange for the kit's behaviour:
 - **Rows can be richer than `<tr>`s.** The token table renders count strips
   and shared-value lines between rows; the kit does not care, because the
   shell only owns the container and the `<table>`.
+- **Moving a row is the table's job.** `ReorderableRows` reports a drop as
+  `onMove(from, to)` and `rowMoveStep` reads Alt+arrow off a cell's key
+  event; the table applies both through its own move, with the same
+  function, so a drag and the shortcut can never disagree. Rows keyed by a
+  stable id keep the focused element on the row that moved.
 
 ## What not to add here
 

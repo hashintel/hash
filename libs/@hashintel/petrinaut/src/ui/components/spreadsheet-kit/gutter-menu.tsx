@@ -44,6 +44,12 @@ const destructiveItemStyle = css({
   color: "red.s100",
 });
 
+const disabledItemStyle = css({
+  color: "neutral.s70",
+  cursor: "default",
+  _hover: { backgroundColor: "[transparent]" },
+});
+
 const menuMarkStyle = css({
   width: "[14px]",
   fontFamily: "mono",
@@ -57,6 +63,8 @@ export interface GutterMenuItem {
   checked?: boolean;
   /** Renders the item red (Delete row). */
   destructive?: boolean;
+  /** Shown but not choosable; arrows skip it. */
+  disabled?: boolean;
 }
 
 export interface GutterMenuProps {
@@ -82,11 +90,17 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
   // The Popover focuses this when it opens; the initial item's ref fills it.
   const initialItemRef = useRef<HTMLElement | null>(null);
   const checkedIndex = items.findIndex((item) => item.checked);
-  const initialIndex = checkedIndex === -1 ? 0 : checkedIndex;
+  const initialIndex =
+    checkedIndex === -1
+      ? Math.max(
+          0,
+          items.findIndex((item) => !item.disabled),
+        )
+      : checkedIndex;
 
   const handleMenuKeyDown = (event: React.KeyboardEvent) => {
     const focusables = itemRefs.current.filter(
-      (item): item is HTMLButtonElement => item !== null,
+      (item): item is HTMLButtonElement => item !== null && !item.disabled,
     );
     const activeIndex = focusables.findIndex(
       (item) => item === document.activeElement,
@@ -150,9 +164,11 @@ export const GutterMenu: React.FC<GutterMenuProps> = ({
                   item.checked !== undefined ? item.checked : undefined
                 }
                 tabIndex={index === initialIndex ? 0 : -1}
+                disabled={item.disabled}
                 className={cx(
                   menuItemStyle,
                   item.destructive && destructiveItemStyle,
+                  item.disabled && disabledItemStyle,
                 )}
                 onClick={() => onSelect(item.id)}
               >

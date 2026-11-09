@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.spreadsheet-kit
- * @role The state-agnostic spreadsheet grammar the editor's tables compose: shell, gutter cells and menus, phantom add-lines, row selection
+ * @role The state-agnostic spreadsheet grammar the editor's tables compose: shell, gutter cells and menus, text cells, phantom add-lines, row selection and reordering
  *
  * The bordered table shell every spreadsheet renders into: the scroll
  * container that registers as a member of the enclosing worksheet stack,
@@ -39,6 +39,9 @@ export interface FormSpreadsheetProps {
   frame?: "regular" | "light";
   /** "raised" darkens the grid a step; "plain" (default) stays white. */
   tone?: "plain" | "raised";
+  /** The width below which the container scrolls instead of squeezing the
+   * columns; the form's tables keep the default. */
+  minWidth?: number;
   children: ReactNode;
 }
 
@@ -47,6 +50,7 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
   ariaLabel,
   frame = "regular",
   tone = "plain",
+  minWidth,
   children,
 }) => (
   <div
@@ -58,6 +62,8 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
     )}
     aria-label={ariaLabel}
   >
-    <table className={tableStyle}>{children}</table>
+    <table className={tableStyle} style={{ minWidth }}>
+      {children}
+    </table>
   </div>
 );

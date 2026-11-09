@@ -7112,6 +7112,9 @@ __metadata:
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
     "@ark-ui/react": "npm:5.38.1"
+    "@dnd-kit/core": "npm:6.3.1"
+    "@dnd-kit/sortable": "npm:7.0.2"
+    "@dnd-kit/utilities": "npm:3.2.2"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
