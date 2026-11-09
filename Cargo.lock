@@ -7057,6 +7057,7 @@ dependencies = [
  "hash-telemetry",
  "mimalloc",
  "simple-mermaid",
+ "tokio",
 ]
 
 [[package]]

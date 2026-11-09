@@ -102,13 +102,16 @@ export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
-export { CharacterCount } from "./util/CharacterCount/character-count";
+export { CharacterCount } from "./primitives/CharacterCount/character-count";
+export type {
+  Item,
+  ItemOrGroup,
+} from "./primitives/SelectableList/selectable-list";
+export { SelectableListSearch } from "./primitives/SelectableList/selectable-list-search";
 export { brandmarkScale } from "./util/color-scales";
 export {
   PortalContainerContext,
   usePortalContainerRef,
 } from "./util/portal-container-context";
-export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
-export { SelectableListSearch } from "./util/SelectableList/selectable-list-search";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";
