@@ -104,3 +104,28 @@ export const optionsFor = (question: OfferedQuestion): readonly string[] => {
 /** Whether an offer offers anything: at least one question isn't open. */
 export const offersAnswers = ({ questions }: OfferedQuestions) =>
   questions.some(({ kind }) => kind !== "open");
+
+const questionKey = (label: string) => label.trim().toLowerCase();
+
+/**
+ * One turn's offers as the person sees them, by position in `offers`. A
+ * question is known by its label, and one offered again keeps only its latest
+ * offer; an earlier offer left with nothing to answer is withdrawn.
+ */
+export const latestOffers = (
+  offers: readonly OfferedQuestions[],
+): (OfferedQuestions | undefined)[] =>
+  offers.map((offer, index) => {
+    const askedLater = new Set(
+      offers
+        .slice(index + 1)
+        .flatMap(({ questions }) =>
+          questions.map(({ label }) => questionKey(label)),
+        ),
+    );
+    const questions = offer.questions.filter(
+      ({ label }) => !askedLater.has(questionKey(label)),
+    );
+    if (questions.length === offer.questions.length) return offer;
+    return offersAnswers({ questions }) ? { questions } : undefined;
+  });
