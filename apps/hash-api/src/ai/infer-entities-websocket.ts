@@ -229,6 +229,7 @@ export const openInferEntitiesWebSocket = ({
         | { cookie: string; expiresAt: number; user: User }
         | undefined;
       let sessionExpiryTimeout: ReturnType<typeof setTimeout> | undefined;
+      let authenticationInProgress: Promise<User | undefined> | undefined;
 
       const closeUnauthenticated = () => {
         if (socket.readyState === socket.OPEN) {
@@ -263,38 +264,44 @@ export const openInferEntitiesWebSocket = ({
           return undefined;
         }
 
-        const { user, session } = await getUserAndSession({
-          context,
-          cookie,
-          logger,
-        }).catch(() => ({ user: undefined, session: undefined }));
-
-        const expiresAt = Date.parse(session?.expires_at ?? "");
-
-        if (
-          socket.readyState !== socket.OPEN ||
-          !user ||
-          !session?.active ||
-          !Number.isFinite(expiresAt) ||
-          expiresAt <= Date.now() ||
-          (authenticatedSession &&
-            (authenticatedSession.expiresAt <= Date.now() ||
-              authenticatedSession.user.accountId !== user.accountId))
-        ) {
-          return undefined;
+        // Serialize authentication to prevent concurrent updates
+        if (authenticationInProgress) {
+          return authenticationInProgress;
         }
 
-        // Only retain credentials after live validation, and never switch actors.
-        authenticatedSession = { cookie, expiresAt, user };
-        scheduleSessionExpiry();
-        return user;
+        const authPromise = (async () => {
+          const { user, session } = await getUserAndSession({
+            context,
+            cookie,
+            logger,
+          }).catch(() => ({ user: undefined, session: undefined }));
+
+          const expiresAt = Date.parse(session?.expires_at ?? "");
+
+          if (
+            socket.readyState !== socket.OPEN ||
+            !user ||
+            !session?.active ||
+            !Number.isFinite(expiresAt) ||
+            expiresAt <= Date.now() ||
+            (authenticatedSession &&
+              (authenticatedSession.expiresAt <= Date.now() ||
+                authenticatedSession.user.accountId !== user.accountId))
+          ) {
+            return undefined;
+          }
+
+          // Only retain credentials after live validation, and never switch actors.
+          authenticatedSession = { cookie, expiresAt, user };
+          scheduleSessionExpiry();
+          return user;
+        })();
+
+        authenticationInProgress = authPromise;
+        const result = await authPromise;
+        authenticationInProgress = undefined;
+        return result;
       };
-
-      const unauthenticatedTimeout = setTimeout(() => {
-        if (!authenticatedSession) {
-          closeUnauthenticated();
-        }
-      }, UNAUTHENTICATED_CONNECTION_TIMEOUT_MS);
 
       socket.once("close", () => {
         clearTimeout(unauthenticatedTimeout);
@@ -304,6 +311,12 @@ export const openInferEntitiesWebSocket = ({
       if (request.headers.cookie) {
         await authenticate(request.headers.cookie);
       }
+
+      const unauthenticatedTimeout = setTimeout(() => {
+        if (!authenticatedSession) {
+          closeUnauthenticated();
+        }
+      }, UNAUTHENTICATED_CONNECTION_TIMEOUT_MS);
 
       let messageCount = 0;
       let messageWindowStart = Date.now();
