@@ -50,7 +50,10 @@
 
 #![expect(clippy::float_arithmetic)]
 use alloc::collections::BinaryHeap;
-use core::{alloc::Allocator, cmp, mem};
+use core::{
+    alloc::{Allocator, AllocatorNightly},
+    cmp, mem,
+};
 
 use hashql_core::{
     graph::algorithms::{
@@ -219,7 +222,7 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
     global: &'ctx mut GlobalTransformState<'state>,
 }
 
-impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
+impl<'heap, A: Allocator + AllocatorNightly> InlineState<'_, '_, '_, 'heap, A> {
     /// Collect all callsites for aggressive inlining.
     ///
     /// Used for filter functions which bypass normal heuristics.

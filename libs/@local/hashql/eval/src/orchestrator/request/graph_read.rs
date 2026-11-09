@@ -18,7 +18,7 @@
 //! [`Tail`]: super::super::tail::Tail
 
 use core::{
-    alloc::{Allocator, AllocatorClone},
+    alloc::{Allocator, AllocatorClone, AllocatorNightly},
     pin::pin,
 };
 
@@ -179,7 +179,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         alloc: L,
     ) -> Result<bool, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
     {
         let residual = self.inner.context.execution.lookup(body).ok_or_else(|| {
             RuntimeError::Suspension(BridgeError::MissingExecutionResidual { body })
@@ -301,7 +301,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         alloc: L,
     ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
     {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
@@ -356,7 +356,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         alloc: L,
     ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
     {
         let decoder = Decoder::new(
             self.inner.context.env,
@@ -393,7 +393,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         alloc: L,
     ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
     {
         // Because postgres is our source of truth, it means that any graph read suspension must be
         // resolved by querying postgres first.

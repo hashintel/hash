@@ -21,7 +21,7 @@
 mod tests;
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::alloc::{Allocator, AllocatorNightly};
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, BinaryExpression, BinaryOperator, Expression, Function, PostgresType, UnaryExpression,
@@ -165,7 +165,7 @@ enum Frame<'ctx, 'heap> {
 /// Branch results are expected on `results` in the same order as `targets.values()`, with an
 /// optional "otherwise" result on top. This function drains those results and pushes a single
 /// [`Expression::CaseWhen`] back onto `results`.
-fn finish_switch_int<A: Allocator>(
+fn finish_switch_int<A: Allocator + AllocatorNightly>(
     results: &mut Vec<Expression, A>,
     discriminant: Expression,
     targets: &SwitchTargets<'_>,
@@ -821,7 +821,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         island: &IslandNode,
     ) -> Expression
     where
-        S: Clone,
+        S: Clone + AllocatorNightly,
     {
         debug_assert_eq!(island.target(), TargetId::Postgres);
 

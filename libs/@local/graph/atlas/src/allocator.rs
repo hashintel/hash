@@ -10,9 +10,8 @@ use core::{
     ptr,
     sync::atomic::{self, Atomic},
 };
-use std::alloc::Global;
 
-use ::alloc::sync::Arc;
+use ::alloc::{alloc::Global, sync::Arc};
 
 /// A reading handle onto one allocator's byte tally.
 ///

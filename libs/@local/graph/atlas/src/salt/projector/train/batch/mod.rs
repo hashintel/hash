@@ -19,8 +19,8 @@
 //! [`LocalScales`]) and the tensor buffers of [`Batch::input`] - consumed by the backend - stay
 //! global.
 
+use alloc::alloc::Global;
 use core::{alloc::Allocator, num::NonZero, ops::Range};
-use std::alloc::Global;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 use hashql_core::id::{Id, IdSlice};

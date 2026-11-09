@@ -409,3 +409,5 @@ unsafe impl alloc::Allocator for Heap {
         unsafe { self.inner.deallocate(ptr, layout) }
     }
 }
+
+impl alloc::AllocatorNightly for Heap {}
