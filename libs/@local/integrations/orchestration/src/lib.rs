@@ -10,21 +10,30 @@
 //! step, cancel the run, or fail it when the run function requests a different step than the one
 //! recorded. A step that failed before executes again no earlier than its retry delay allows.
 //!
+//! A backend implements [`Runs`], [`Worker`] and [`CoordinationStore`]. It executes a
+//! [`RunFunction`], which requests its steps through a [`StepContext`].
+//!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
 extern crate alloc;
 
+mod coordination;
 mod event;
 mod name;
 mod payload;
 mod policy;
+mod run;
+mod runs;
 mod state;
 
 pub use self::{
+    coordination::{CoordinationError, CoordinationStore, TokenBucket},
     event::{FailureKind, FunctionVersion, RunEvent, RunFailure, RunStart, StepFailure, StepIndex},
-    name::{AdmissionKey, FailureCode, InvalidName, StepName},
+    name::{AdmissionKey, BucketScope, FailureCode, InvalidName, RunId, StepName},
     payload::{Payload, PayloadError},
     policy::RetryPolicy,
+    run::{RunError, RunFunction, StepContext},
+    runs::{BackendError, CancelOutcome, RunStatus, Runs, StartError, Started, Worker},
     state::{InvalidTransition, RunPhase, RunState, StepDecision},
 };

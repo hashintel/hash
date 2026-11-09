@@ -52,7 +52,10 @@ pub enum FailureKind {
     Permanent,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Why a step failed. A step returns it as the context of its error report, whose messages go to
+/// logs.
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("the step failed with `{code}`")]
 pub struct StepFailure {
     pub kind: FailureKind,
     pub code: FailureCode,

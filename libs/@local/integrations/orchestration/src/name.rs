@@ -1,14 +1,14 @@
 use alloc::boxed::Box;
 use core::str::FromStr;
 
-/// The longest [`FailureCode`], and the longest segment of a [`StepName`] or [`AdmissionKey`], in
-/// bytes.
+/// The longest [`FailureCode`] or [`RunId`], and the longest segment of a [`StepName`],
+/// [`AdmissionKey`] or [`BucketScope`], in bytes.
 const MAX_NAME_BYTES: usize = 64;
 
-/// The longest [`StepName`] or [`AdmissionKey`], in bytes.
+/// The longest [`StepName`], [`AdmissionKey`] or [`BucketScope`], in bytes.
 const MAX_PATH_BYTES: usize = 255;
 
-/// Reports why a string is not a valid [`StepName`], [`AdmissionKey`] or [`FailureCode`].
+/// Reports why a string is not a valid name, such as a [`StepName`].
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum InvalidName {
     #[display("name is empty")]
@@ -70,61 +70,80 @@ fn parse_path(value: &str) -> Result<Box<str>, InvalidName> {
     Ok(value.into())
 }
 
-/// Names a step of a run, such as `capture` or `deliver/entities/17`.
-///
-/// A step name is one or more names separated by `/`, at most 255 bytes in total. Each name is
-/// lowercase ASCII letters, digits, `-` and `_`, starting with a letter or digit, in at most 64
-/// bytes. A run function must request the same step names, in the same order, each time it
-/// executes a run.
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
-)]
-#[as_ref(forward)]
-pub struct StepName(Box<str>);
+/// Declares a string newtype whose values `parse` checks.
+macro_rules! name_type {
+    ($(#[$meta:meta])* $name:ident, $parse:ident) => {
+        $(#[$meta])*
+        #[derive(
+            Debug,
+            Clone,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            derive_more::Display,
+            derive_more::AsRef,
+        )]
+        #[as_ref(forward)]
+        pub struct $name(Box<str>);
 
-impl FromStr for StepName {
-    type Err = InvalidName;
+        impl FromStr for $name {
+            type Err = InvalidName;
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        parse_path(value).map(Self)
-    }
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                $parse(value).map(Self)
+            }
+        }
+    };
 }
 
-/// Identifies the runs that must not be active at the same time.
-///
-/// An admission key follows the same rule as a [`StepName`].
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
-)]
-#[as_ref(forward)]
-pub struct AdmissionKey(Box<str>);
+name_type!(
+    /// Names a step of a run, such as `capture` or `deliver/entities/17`.
+    ///
+    /// A step name is one or more names separated by `/`, at most 255 bytes in total. Each name is
+    /// lowercase ASCII letters, digits, `-` and `_`, starting with a letter or digit, in at most
+    /// 64 bytes. A run function must request the same step names, in the same order, each time it
+    /// executes a run.
+    StepName,
+    parse_path
+);
 
-impl FromStr for AdmissionKey {
-    type Err = InvalidName;
+name_type!(
+    /// Identifies the runs that must not be active at the same time.
+    ///
+    /// An admission key follows the same rule as a [`StepName`].
+    AdmissionKey,
+    parse_path
+);
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        parse_path(value).map(Self)
-    }
-}
+name_type!(
+    /// Identifies why a step or a run failed, such as `graph-unavailable`.
+    ///
+    /// A failure code is stored with the run and printed in its failure, so it is a single name:
+    /// lowercase ASCII letters, digits, `-` and `_`, starting with a letter or digit, in at most
+    /// 64 bytes. Error messages can quote secrets or row values, so they go to logs.
+    FailureCode,
+    parse_name
+);
 
-/// Identifies why a step or a run failed, such as `graph-unavailable`.
-///
-/// A failure code is stored with the run and printed in its failure, so it is a single name:
-/// lowercase ASCII letters, digits, `-` and `_`, starting with a letter or digit, in at most 64
-/// bytes. Error messages can quote secrets or row values, so they go to logs.
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
-)]
-#[as_ref(forward)]
-pub struct FailureCode(Box<str>);
+name_type!(
+    /// Identifies a run. The caller chooses it, so starting the same run again attaches to it.
+    ///
+    /// A run ID is a single name, such as a UUID in lowercase.
+    RunId,
+    parse_name
+);
 
-impl FromStr for FailureCode {
-    type Err = InvalidName;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        parse_name(value).map(Self)
-    }
-}
+name_type!(
+    /// Identifies a token bucket in a [`CoordinationStore`], for example the bucket of one web.
+    ///
+    /// A bucket scope follows the same rule as a [`StepName`].
+    ///
+    /// [`CoordinationStore`]: crate::CoordinationStore
+    BucketScope,
+    parse_path
+);
 
 #[cfg(test)]
 mod tests {
