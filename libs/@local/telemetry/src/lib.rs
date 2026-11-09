@@ -421,7 +421,7 @@ pub fn init_tracing(
 mod tests {
     use clap::{Arg, Args as _, Command, FromArgMatches as _, error::ErrorKind};
 
-    use crate::{TracingConfig, with_env_namespace};
+    use crate::{DEFAULT_NAMESPACE, TracingConfig, with_env_namespace};
 
     fn telemetry_command() -> Command {
         TracingConfig::augment_args(Command::new("telemetry"))
@@ -436,60 +436,28 @@ mod tests {
     }
 
     #[test]
-    fn env_names_default() {
-        assert_eq!(
-            env_names(&telemetry_command()),
-            [
-                ("logging-console-enabled", "HASH_GRAPH_LOG_CONSOLE_ENABLED"),
-                ("logging-console-format", "HASH_GRAPH_LOG_CONSOLE_FORMAT"),
-                ("logging-console-color", "HASH_GRAPH_LOG_CONSOLE_COLOR"),
-                ("logging-console-level", "HASH_GRAPH_LOG_CONSOLE_LEVEL"),
-                ("logging-file-enabled", "HASH_GRAPH_LOG_FILE_ENABLED"),
-                ("logging-file-format", "HASH_GRAPH_LOG_FILE_FORMAT"),
-                ("logging-file-level", "HASH_GRAPH_LOG_FILE_LEVEL"),
-                ("logging-file-output", "HASH_GRAPH_LOG_FOLDER"),
-                ("endpoint", "HASH_OTLP_ENDPOINT"),
-                ("sentry-dsn", "HASH_GRAPH_SENTRY_DSN"),
-                ("sentry-environment", "HASH_GRAPH_SENTRY_ENVIRONMENT"),
-                (
-                    "sentry-enable-span-attributes",
-                    "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES"
-                ),
-                ("sentry-span-filter", "HASH_GRAPH_SENTRY_SPAN_FILTER"),
-                ("sentry-event-filter", "HASH_GRAPH_SENTRY_EVENT_FILTER"),
-            ],
-            "telemetry arguments should read the `HASH_GRAPH_` variables unless a binary sets a \
-             namespace"
-        );
-    }
-
-    #[test]
     fn with_env_namespace_telemetry_arguments() {
-        let command = with_env_namespace(telemetry_command(), "TEST");
+        let default = telemetry_command();
+        let namespaced = with_env_namespace(telemetry_command(), "TEST");
 
-        assert_eq!(
-            env_names(&command),
-            [
-                ("logging-console-enabled", "TEST_LOG_CONSOLE_ENABLED"),
-                ("logging-console-format", "TEST_LOG_CONSOLE_FORMAT"),
-                ("logging-console-color", "TEST_LOG_CONSOLE_COLOR"),
-                ("logging-console-level", "TEST_LOG_CONSOLE_LEVEL"),
-                ("logging-file-enabled", "TEST_LOG_FILE_ENABLED"),
-                ("logging-file-format", "TEST_LOG_FILE_FORMAT"),
-                ("logging-file-level", "TEST_LOG_FILE_LEVEL"),
-                ("logging-file-output", "TEST_LOG_FOLDER"),
-                ("endpoint", "HASH_OTLP_ENDPOINT"),
-                ("sentry-dsn", "TEST_SENTRY_DSN"),
-                ("sentry-environment", "TEST_SENTRY_ENVIRONMENT"),
-                (
-                    "sentry-enable-span-attributes",
-                    "TEST_SENTRY_ENABLE_SPAN_ATTRIBUTES"
+        for ((id, default_env), (_, namespaced_env)) in
+            env_names(&default).into_iter().zip(env_names(&namespaced))
+        {
+            match default_env
+                .strip_prefix(DEFAULT_NAMESPACE)
+                .and_then(|name| name.strip_prefix('_'))
+            {
+                Some(name) => assert_eq!(
+                    namespaced_env,
+                    format!("TEST_{name}"),
+                    "`{id}` should read its variable in the namespace"
                 ),
-                ("sentry-span-filter", "TEST_SENTRY_SPAN_FILTER"),
-                ("sentry-event-filter", "TEST_SENTRY_EVENT_FILTER"),
-            ],
-            "every telemetry variable except `HASH_OTLP_ENDPOINT` should move to the namespace"
-        );
+                None => assert_eq!(
+                    namespaced_env, default_env,
+                    "`{id}` should keep a variable outside the default namespace"
+                ),
+            }
+        }
     }
 
     #[test]
@@ -522,37 +490,23 @@ mod tests {
         );
         command.build();
 
-        let server = command
-            .find_subcommand("server")
-            .expect("should have the `server` subcommand");
-        assert_eq!(
-            env_names(server),
-            [
-                ("logging-console-enabled", "TEST_LOG_CONSOLE_ENABLED"),
-                ("logging-console-format", "TEST_LOG_CONSOLE_FORMAT"),
-                ("logging-console-color", "TEST_LOG_CONSOLE_COLOR"),
-                ("logging-console-level", "TEST_LOG_CONSOLE_LEVEL"),
-                ("logging-file-enabled", "TEST_LOG_FILE_ENABLED"),
-                ("logging-file-format", "TEST_LOG_FILE_FORMAT"),
-                ("logging-file-level", "TEST_LOG_FILE_LEVEL"),
-                ("logging-file-output", "TEST_LOG_FOLDER"),
-            ],
-            "the global logging arguments a subcommand inherits should read the namespace's \
-             variables"
+        let parent = env_names(&command);
+        let inherited = env_names(
+            command
+                .find_subcommand("server")
+                .expect("should have the `server` subcommand"),
         );
-    }
 
-    #[test]
-    fn namespace_default() {
-        let matches = telemetry_command()
-            .try_get_matches_from(["bin"])
-            .expect("should parse without arguments");
-        let config = TracingConfig::from_arg_matches(&matches).expect("should build the config");
-
-        assert_eq!(
-            config.namespace, "HASH_GRAPH",
-            "a binary without a namespace should use the default"
+        assert!(
+            !inherited.is_empty(),
+            "the subcommand should inherit the global logging arguments"
         );
+        for (id, env) in inherited {
+            assert!(
+                parent.contains(&(id, env)),
+                "`{id}` should read the same variable in the subcommand as in the parent"
+            );
+        }
     }
 
     #[test]

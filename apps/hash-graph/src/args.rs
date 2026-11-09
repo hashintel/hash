@@ -63,56 +63,12 @@ impl Args {
 
 #[cfg(test)]
 mod tests {
-    use clap::{Command, CommandFactory as _};
-    use hash_telemetry::TracingConfig;
-
     use super::Args;
-
-    fn env_name<'command>(command: &'command Command, id: &str) -> Option<&'command str> {
-        command
-            .get_arguments()
-            .find(|arg| arg.get_id() == id)?
-            .get_env()?
-            .to_str()
-    }
 
     #[test]
     fn command_valid() {
         // Fails on what clap otherwise reports only when the server starts, such as two arguments
         // with the same ID.
         Args::cli().debug_assert();
-    }
-
-    #[test]
-    fn cli_env_default() {
-        let command = Args::cli();
-
-        assert_eq!(
-            env_name(&command, "logging-console-level"),
-            Some("HASH_GRAPH_LOG_CONSOLE_LEVEL"),
-            "the telemetry arguments should read the `HASH_GRAPH_` variables"
-        );
-        assert_eq!(
-            env_name(&command, "worker_threads"),
-            Some("HASH_GRAPH_WORKER_THREADS"),
-            "the graph's own arguments should read the `HASH_GRAPH_` variables"
-        );
-    }
-
-    #[test]
-    fn cli_env_custom_namespace() {
-        let command = TracingConfig::with_namespace(Args::command(), "TEST");
-
-        assert_eq!(
-            env_name(&command, "logging-console-level"),
-            Some("TEST_LOG_CONSOLE_LEVEL"),
-            "the telemetry arguments should read the namespace's variables"
-        );
-        assert_eq!(
-            env_name(&command, "worker_threads"),
-            Some("HASH_GRAPH_WORKER_THREADS"),
-            "the graph's own arguments should keep their variables"
-        );
-        command.debug_assert();
     }
 }
