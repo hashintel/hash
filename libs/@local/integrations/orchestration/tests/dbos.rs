@@ -579,3 +579,133 @@ async fn token_bucket_serialises_concurrent_consumes() {
     backend.close().await;
     drop_schema(&postgres, &config.schema).await;
 }
+
+/// Two steps, of which the second waits until the test releases it. Counts how often the first
+/// step's body runs, which a replay must not add to.
+struct Resumable {
+    release: Notify,
+    first_runs: AtomicU32,
+}
+
+impl RunFunction for Resumable {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context
+            .run(step("first"), || async {
+                self.first_runs.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            })
+            .await?;
+        context
+            .run(step("wait"), || async {
+                self.release.notified().await;
+                Ok(())
+            })
+            .await
+    }
+}
+
+/// [`Resumable`] with its first step renamed, as a changed deployment would have it.
+struct Renamed;
+
+impl RunFunction for Renamed {
+    type Input = ();
+
+    const VERSION: FunctionVersion = Resumable::VERSION;
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context.run(step("primary"), || async { Ok(()) }).await?;
+        context.run(step("wait"), || async { Ok(()) }).await
+    }
+}
+
+/// Runs `function` on a worker until its first step is recorded, then shuts the worker down
+/// while the second step is executing, which leaves the run pending under this executor ID.
+async fn interrupt_after_first_step(
+    backend: &Arc<DbosBackend>,
+    function: Arc<Resumable>,
+    run: &RunId,
+) {
+    let (worker, shutdown) = spawn_worker(backend, function);
+    backend
+        .start(run.clone(), start(Resumable::VERSION, &()))
+        .await
+        .expect("should start the run");
+    wait_until(backend, run, |status| status.steps_recorded == 1).await;
+    stop_worker(worker, &shutdown).await;
+}
+
+#[tokio::test]
+async fn interrupted_run_resumes_on_the_next_worker() {
+    let config = config();
+    let postgres = postgres().await;
+    let backend = Arc::new(
+        DbosBackend::connect(config.clone())
+            .await
+            .expect("should connect"),
+    );
+    let function = Arc::new(Resumable {
+        release: Notify::new(),
+        first_runs: AtomicU32::new(0),
+    });
+    let run = run_id("run-1");
+    interrupt_after_first_step(&backend, Arc::clone(&function), &run).await;
+
+    function.release.notify_one();
+    let (worker, shutdown) = spawn_worker(&backend, Arc::clone(&function));
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Completed,
+            steps_recorded: 2
+        }
+    );
+    assert_eq!(
+        function.first_runs.load(Ordering::SeqCst),
+        1,
+        "the recorded first step should replay without running again"
+    );
+    stop_worker(worker, &shutdown).await;
+    backend.close().await;
+    drop_schema(&postgres, &config.schema).await;
+}
+
+#[tokio::test]
+async fn renamed_step_fails_the_resumed_run() {
+    let config = config();
+    let postgres = postgres().await;
+    let backend = Arc::new(
+        DbosBackend::connect(config.clone())
+            .await
+            .expect("should connect"),
+    );
+    let function = Arc::new(Resumable {
+        release: Notify::new(),
+        first_runs: AtomicU32::new(0),
+    });
+    let run = run_id("run-1");
+    interrupt_after_first_step(&backend, function, &run).await;
+
+    let (worker, shutdown) = spawn_worker(&backend, Arc::new(Renamed));
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Failed(RunFailure::NonDeterministic {
+                index: StepIndex::new(0),
+                recorded: step("first"),
+                requested: step("primary"),
+            }),
+            steps_recorded: 1
+        }
+    );
+    stop_worker(worker, &shutdown).await;
+    backend.close().await;
+    drop_schema(&postgres, &config.schema).await;
+}
