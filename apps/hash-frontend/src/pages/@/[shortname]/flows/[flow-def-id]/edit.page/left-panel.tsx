@@ -1,0 +1,176 @@
+import { useState } from "react";
+
+import { Button, SegmentedControl } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { AddTab } from "./left-panel/add-tab";
+import { TreeRow } from "./left-panel/shared/tree-row";
+import { getGroupIds, getStepsTree } from "./left-panel/steps-tree";
+import { CollapseButton } from "./shared/collapse-button";
+import {
+  countSteps,
+  getStepDisplay,
+  startDisplay,
+} from "./shared/step-display";
+
+import type { StepsTreeItem } from "./left-panel/steps-tree";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+
+type LeftPanelTab = "steps" | "add";
+
+const panel = css({
+  display: "flex",
+  flexDirection: "column",
+  flexShrink: "0",
+  width: "[248px]",
+  borderRightWidth: "1px",
+  borderRightStyle: "solid",
+  borderRightColor: "bd.subtle",
+});
+const tabs = css({ p: "2" });
+const stepsSection = css({
+  display: "flex",
+  flexDirection: "column",
+  p: "2",
+  overflowY: "auto",
+});
+const stepsHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  pl: "1",
+  pb: "1",
+});
+const stepCount = css({ textStyle: "xs", color: "fg.subtle" });
+
+const StepsTree = ({
+  tree,
+  depth,
+  selectedStepIds,
+  collapsedGroupIds,
+  onToggleGroup,
+  onStepClick,
+}: {
+  tree: StepsTreeItem[];
+  depth: number;
+  selectedStepIds: Set<string>;
+  collapsedGroupIds: Set<string>;
+  onToggleGroup: (stepId: string) => void;
+  onStepClick: (stepId: string) => void;
+}) =>
+  tree.map(({ step, children }) => {
+    const { title, description, icon, tone } = getStepDisplay(step);
+    const collapsed = collapsedGroupIds.has(step.stepId);
+
+    return (
+      <div key={step.stepId}>
+        <TreeRow
+          depth={depth}
+          icon={icon}
+          tone={tone}
+          label={description || title}
+          selected={selectedStepIds.has(step.stepId)}
+          emphasized={children !== null}
+          onClick={() => onStepClick(step.stepId)}
+          expander={
+            children && (
+              <CollapseButton
+                collapsed={collapsed}
+                onToggle={() => onToggleGroup(step.stepId)}
+              />
+            )
+          }
+          stepCount={children?.length}
+        />
+        {children && !collapsed && (
+          <StepsTree
+            tree={children}
+            depth={depth + 1}
+            selectedStepIds={selectedStepIds}
+            collapsedGroupIds={collapsedGroupIds}
+            onToggleGroup={onToggleGroup}
+            onStepClick={onStepClick}
+          />
+        )}
+      </div>
+    );
+  });
+
+/** The flow editor's left panel: the flow's steps, and the steps that can be added to it. */
+export const LeftPanel = ({
+  steps,
+  selectedStepIds,
+  onStepClick,
+  collapsedGroupIds,
+  onToggleGroup,
+  onCollapseAll,
+  onAddStep,
+}: {
+  steps: StepDefinition<string>[];
+  selectedStepIds: string[];
+  onStepClick: (stepId: string) => void;
+  /** Shared with the canvas, which collapses the same for-each boxes. */
+  collapsedGroupIds: Set<string>;
+  onToggleGroup: (stepId: string) => void;
+  onCollapseAll: (stepIds: string[]) => void;
+  /** Adds a step that runs the action, in view. */
+  onAddStep: (actionDefinitionId: string) => void;
+}) => {
+  const [tab, setTab] = useState<LeftPanelTab>("steps");
+
+  const tree = getStepsTree(steps);
+  const groupIds = getGroupIds(tree);
+
+  return (
+    <div className={panel}>
+      <div className={tabs}>
+        <SegmentedControl
+          size="md"
+          aria-label="Left panel"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: "steps", label: "Steps" },
+            { value: "add", label: "Add" },
+          ]}
+        />
+      </div>
+      {tab === "steps" ? (
+        <div className={stepsSection}>
+          <div className={stepsHeader}>
+            <p className={stepCount}>
+              {/* Start counts as a step, as the design shows. */}
+              {countSteps(steps.length + 1)}
+            </p>
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName="collapse"
+              tooltip="Collapse all"
+              disabled={groupIds.every((stepId) =>
+                collapsedGroupIds.has(stepId),
+              )}
+              onClick={() => onCollapseAll(groupIds)}
+            />
+          </div>
+          <TreeRow
+            depth={0}
+            icon={startDisplay.icon}
+            tone={startDisplay.tone}
+            label={startDisplay.description}
+          />
+          <StepsTree
+            tree={tree}
+            depth={0}
+            selectedStepIds={new Set(selectedStepIds)}
+            collapsedGroupIds={collapsedGroupIds}
+            onToggleGroup={onToggleGroup}
+            onStepClick={onStepClick}
+          />
+        </div>
+      ) : (
+        <AddTab onAddStep={onAddStep} />
+      )}
+    </div>
+  );
+};

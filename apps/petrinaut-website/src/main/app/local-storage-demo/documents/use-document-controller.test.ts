@@ -29,7 +29,6 @@ vi.mock("./local-storage/use-local-document-repository", () => ({
 }));
 
 beforeEach(() => {
-  vi.clearAllMocks();
   useLocal.mockReturnValue({
     repository: {
       records: [record],

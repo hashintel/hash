@@ -1,18 +1,20 @@
 import {
-  type Scope,
-  Chunk,
+  type Cause,
+  Context,
   Deferred,
   Duration,
   Effect,
+  Exit,
   Function,
   MutableHashMap,
+  MutableRef,
   Option,
   pipe,
   Queue,
+  type Scope,
   Sink,
   Stream,
 } from "effect";
-import { GenericTag } from "effect/Context";
 import { isUint8ArrayList, Uint8ArrayList } from "uint8arraylist";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -32,6 +34,7 @@ import * as Transaction from "./Transaction.js";
 import * as Transport from "./Transport.js";
 
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+import type { NonEmptyReadonlyArray } from "effect/Array";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 
@@ -55,12 +58,13 @@ interface ConnectionDuplex {
 
 export interface ConnectionConfig {
   /**
-   * The maximum duration to wait for a response before considering the transaction lagged.
-   * If a response is not received within this timeout, the transaction will be dropped.
+   * The maximum duration to wait for space in a transaction's response buffer before considering the transaction lagged.
+   *
+   * The connection delivers the responses of all its transactions one at a time, so while it waits, every other transaction waits too. Once the timeout expires, the connection drops the transaction, and reading it fails with {@link Transaction.TransactionLaggedError}.
    *
    * @defaultValue 200ms
    */
-  lagTimeout?: Duration.DurationInput;
+  lagTimeout?: Duration.Input;
 
   /**
    * The size of the number of buffered responses to keep in memory.
@@ -96,14 +100,23 @@ export interface Connection {
 }
 
 interface TransactionContext {
-  queue: Queue.Enqueue<WireResponse.Response>;
+  queue: Queue.Enqueue<
+    WireResponse.Response,
+    Transaction.TransactionError | Cause.Done
+  >;
   drop: Effect.Effect<void>;
+  fail: (error: Transaction.TransactionError) => Effect.Effect<void>;
 }
 
 interface ConnectionImpl extends Connection {
   readonly transactions: MutableHashMap.MutableHashMap<
     RequestId.RequestId,
     TransactionContext
+  >;
+
+  /** How the read task ended, once it has. */
+  readonly closed: MutableRef.MutableRef<
+    Option.Option<Exit.Exit<void, Transaction.TransactionError>>
   >;
 
   readonly duplex: ConnectionDuplex;
@@ -113,13 +126,13 @@ interface ConnectionImpl extends Connection {
 
 const ConnectionProto: Omit<
   ConnectionImpl,
-  "transactions" | "duplex" | "config"
+  "transactions" | "closed" | "duplex" | "config"
 > = {
   [TypeId]: TypeId,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always defined
-export const Connection = GenericTag<Connection>(TypeId.description!);
+export const Connection = Context.Service<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>
   Sink.forEach((response: WireResponse.Response) =>
@@ -136,21 +149,23 @@ const makeSink = (connection: ConnectionImpl) =>
 
       const lagTimeout = connection.config.lagTimeout ?? Duration.seconds(0.2);
 
-      const isOnline = yield* pipe(
+      const offered = yield* pipe(
         Queue.offer(transaction.value.queue, response),
-        Effect.timeout(lagTimeout),
-        Effect.catchTag("TimeoutException", (timeout) =>
-          Effect.gen(function* () {
-            yield* Effect.logWarning(
-              "transaction has lagged behind too far, dropping it",
-            ).pipe(Effect.annotateLogs({ timeout }));
-
-            yield* transaction.value.drop;
-          }),
-        ),
+        Effect.timeoutOption(lagTimeout),
       );
 
-      if (isOnline === false) {
+      if (Option.isNone(offered)) {
+        yield* Effect.logWarning(
+          "transaction has lagged behind too far, dropping it",
+        ).pipe(Effect.annotateLogs({ lagTimeout }));
+        yield* transaction.value.fail(
+          new Transaction.TransactionLaggedError({ id }),
+        );
+
+        return;
+      }
+
+      if (!offered.value) {
         yield* Effect.logWarning("transaction has been closed, dropping it");
         yield* transaction.value.drop;
 
@@ -169,6 +184,7 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   connection: ConnectionImpl,
   id: RequestId.RequestId,
   drop: Deferred.Deferred<void>,
+  close: (queue: TransactionContext["queue"]) => Effect.Effect<boolean>,
 ) {
   const transaction = MutableHashMap.get(connection.transactions, id);
 
@@ -179,7 +195,7 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   }
 
   MutableHashMap.remove(connection.transactions, id);
-  yield* transaction.value.queue.shutdown;
+  yield* close(transaction.value.queue);
 
   // call user defined drop function
   const dropImpl = yield* Deferred.poll(drop);
@@ -189,11 +205,56 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   }
 });
 
+const closeError = (
+  exit: Exit.Exit<void, Transaction.TransactionError>,
+  id: RequestId.RequestId,
+) =>
+  Option.getOrElse(
+    Exit.findErrorOption(exit),
+    (): Transaction.TransactionError =>
+      new Transaction.ConnectionClosedError({ id }),
+  );
+
+const closeTransactions = Effect.fn("closeTransactions")(function* (
+  connection: ConnectionImpl,
+  exit: Exit.Exit<void, Transaction.TransactionError>,
+) {
+  MutableRef.set(connection.closed, Option.some(exit));
+
+  for (const [id, transaction] of connection.transactions) {
+    yield* transaction.fail(closeError(exit, id));
+  }
+});
+
 const task = Effect.fn("task")(function* (connection: ConnectionImpl) {
   const sink = makeSink(connection);
 
-  // We don't need to monitor if the connection itself closes as that simply means that our stream would end.
-  yield* Stream.run(connection.duplex.read, sink);
+  // Once the read stream ends no response can arrive, so a transaction still waiting for one would wait forever.
+  yield* pipe(
+    Stream.run(connection.duplex.read, sink),
+    Effect.onExit((exit) => closeTransactions(connection, exit)),
+  );
+});
+
+/** @internal */
+export const makeFromDuplex = Effect.fn("makeFromDuplex")(function* (
+  duplex: ConnectionDuplex,
+  config: ConnectionConfig,
+) {
+  const self: ConnectionImpl = createProto(ConnectionProto, {
+    transactions: MutableHashMap.empty<
+      RequestId.RequestId,
+      TransactionContext
+    >(),
+    closed: MutableRef.make(Option.none()),
+    duplex,
+    config,
+  });
+
+  // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
+  yield* Effect.forkChild(task(self));
+
+  return self;
 });
 
 /** @internal */
@@ -223,7 +284,8 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
       stream,
       (cause) => new Transport.TransportError({ cause }),
     ),
-    Stream.mapConcat((list) => (isUint8ArrayList(list) ? list : [list])),
+    Stream.map((list) => (isUint8ArrayList(list) ? list : [list])),
+    Stream.flattenIterable,
     // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
     Stream.map((array) =>
       // take the underlying buffer and slice it to the correct view
@@ -236,11 +298,10 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   );
 
   const writeSink = pipe(
-    Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
+    Sink.forEachArray((chunk: NonEmptyReadonlyArray<Uint8Array>) =>
       Effect.gen(function* () {
         const shouldContinue = yield* Effect.try({
-          try: () =>
-            stream.send(Uint8ArrayList.fromUint8Arrays(Chunk.toArray(chunk))),
+          try: () => stream.send(Uint8ArrayList.fromUint8Arrays([...chunk])),
           catch: (cause) => new Transport.TransportError({ cause }),
         });
 
@@ -254,7 +315,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
         // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
         const buffer = MutableBuffer.makeWrite();
 
-        yield* WireRequest.encode(buffer, request);
+        yield* Effect.fromResult(WireRequest.encode(buffer, request));
 
         const array = MutableBuffer.take(buffer);
 
@@ -265,19 +326,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
 
   const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
 
-  const self: ConnectionImpl = createProto(ConnectionProto, {
-    transactions: MutableHashMap.empty<
-      RequestId.RequestId,
-      TransactionContext
-    >(),
-    duplex,
-    config,
-  });
-
-  // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
-  yield* Effect.fork(task(self));
-
-  return self;
+  return yield* makeFromDuplex(duplex, config);
 });
 
 // these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,
@@ -299,24 +348,41 @@ export const send = Function.dual<
 
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
     const deferredDrop = yield* Deferred.make<void>();
-    const drop = wrapDrop(impl, request.id, deferredDrop);
+    const drop = wrapDrop(impl, request.id, deferredDrop, Queue.end);
+    const fail = (error: Transaction.TransactionError) =>
+      wrapDrop(impl, request.id, deferredDrop, (transactionQueue) =>
+        Queue.fail(transactionQueue, error),
+      );
 
-    const queue = yield* Queue.bounded<WireResponse.Response>(
-      impl.config.responseBufferSize ?? 16,
-    );
+    const queue = yield* Queue.bounded<
+      WireResponse.Response,
+      Transaction.TransactionError | Cause.Done
+    >(impl.config.responseBufferSize ?? 16);
+
+    const closed = MutableRef.get(impl.closed);
+
+    if (Option.isSome(closed)) {
+      // the read task has ended, so no response can arrive
+      yield* Queue.fail(queue, closeError(closed.value, request.id));
+
+      return Transaction.makeUnchecked(request.id, queue, deferredDrop);
+    }
 
     const transactionContext: TransactionContext = {
       queue,
       drop,
+      fail,
     };
 
     MutableHashMap.set(impl.transactions, request.id, transactionContext);
 
-    yield* Effect.fork(
+    yield* Effect.forkChild(
       pipe(
         request, //
         Request.encode(),
         Stream.run(impl.duplex.write),
+        Effect.scoped,
+        Effect.catch(fail),
       ),
     );
 

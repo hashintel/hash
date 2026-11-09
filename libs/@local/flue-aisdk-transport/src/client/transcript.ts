@@ -146,15 +146,35 @@ export const snapshotToUiMessages = <Metadata>(
   const messages: UiHistoryMessage<Metadata>[] = [];
   const outcomes = outcomesBySubmission(snapshot.settlements ?? []);
   for (const message of snapshot.messages) {
+    const tagName = message.signal?.tagName;
+    if (
+      message.role === "system" &&
+      tagName !== undefined &&
+      options.userSignalTags?.has(tagName) === true
+    ) {
+      messages.push({
+        id: message.id,
+        role: "user",
+        parts: partsFrom(message, options),
+        metadata: undefined,
+      });
+      continue;
+    }
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
     const parts = partsFrom(message, options);
-    if (parts.length === 0) continue;
     const outcome =
       message.submissionId === undefined
         ? undefined
         : outcomes.get(message.submissionId);
+    // An empty response is kept only when it was stopped, so the stopped turn
+    // still shows its ending.
+    if (
+      parts.length === 0 &&
+      !(message.role === "assistant" && outcome === "aborted")
+    )
+      continue;
     messages.push({
       id: message.id,
       role: message.role,

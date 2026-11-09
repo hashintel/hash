@@ -4,7 +4,7 @@
  * stack, production keeps only the error's type/code.
  *
  * Content policy: never log prompts, tool arguments or results, request bodies,
- * principal keys or raw conversation IDs. Callers pass classification and
+ * owner keys or raw conversation IDs. Callers pass classification and
  * counts about external data, never the data.
  */
 
@@ -14,7 +14,7 @@ import { errorCode } from "./telemetry.ts";
 import type { FlueObservation, FlueObservationSubscriber } from "@flue/runtime";
 import type { LoggerConfig } from "@local/hash-backend-utils/logger";
 
-type DiagnosticStage =
+export type DiagnosticStage =
   | "flue.tool"
   | "flue.turn"
   | "flue.task"
@@ -26,8 +26,10 @@ type DiagnosticStage =
   | "why.explain"
   | "http.admission-body"
   | "provider.accounting"
+  | "provider.timeout"
   | "database.configuration"
-  | "database.operation";
+  | "database.operation"
+  | "model.configuration";
 
 /** Correlation and classification only; string values must never be content. */
 type DiagnosticFields = Record<string, string | number | boolean | undefined>;
@@ -172,7 +174,9 @@ const observedFailure = (
               ...fields,
               turnId: observation.turnId,
               purpose: observation.purpose,
+              provider: observation.request.providerId,
               requestedModel: observation.request.requestedModel,
+              responseModel: observation.response.responseModel,
               finishReason: observation.response.finishReason,
               durationMs: observation.durationMs,
             },

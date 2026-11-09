@@ -76,7 +76,6 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, "animate");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
 });
 
 const Properties = () => {

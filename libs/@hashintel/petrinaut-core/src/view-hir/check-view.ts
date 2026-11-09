@@ -1,12 +1,17 @@
 /**
  * Checks a lowered visualizer against its place: the elements, attributes
  * and style properties it draws are in the allowlists, their values are
- * text-like, literal values reference no remote URL, and the picture itself
+ * text-like, literal values load no resource, and the picture itself
  * is an element. Every expression is typed by the expression HIR's checker
  * under the `visualizer` surface, with the props and callback parameters
  * bound as the view tree introduces them.
  */
-import { formatHirType, HIR_TYPE_INT, HIR_TYPE_UNKNOWN } from "../hir/hir";
+import {
+  formatHirType,
+  HIR_TYPE_INT,
+  HIR_TYPE_REAL,
+  HIR_TYPE_UNKNOWN,
+} from "../hir/hir";
 import {
   createHirExpressionChecker,
   hirTokenRecordType,
@@ -17,9 +22,15 @@ import {
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_LEGACY_STYLE_PROPERTIES,
   VIEW_STYLE_PROPERTIES,
 } from "./view-elements";
 import { VIEW_FRAGMENT_TAG } from "./view-hir";
+import {
+  visualizerSvgTag,
+  visualizerSvgAttributes,
+  parseVisualizerSvgOptions,
+} from "./visualizer-svg";
 
 import type { HirDiagnostic, HirExpr, HirType } from "../hir/hir";
 import type { HirVisualizerContext } from "../hir/surface-context";
@@ -29,7 +40,7 @@ import type { ViewElement, ViewHir, ViewNode } from "./view-hir";
 type Env = ReadonlyMap<string, HirType>;
 
 /**
- * The component's props: `{ tokens, parameters }`. An uncoloured place
+ * The component's props include tokens, parameters, and viewport dimensions. An uncoloured place
  * carries black tokens with no attributes; its visualizer is never drawn,
  * so its tokens stay unknown.
  */
@@ -37,6 +48,8 @@ function propsType(context: HirVisualizerContext): HirType {
   return {
     kind: "record",
     fields: [
+      { name: "width", type: HIR_TYPE_REAL },
+      { name: "height", type: HIR_TYPE_REAL },
       {
         name: "tokens",
         type: {
@@ -72,10 +85,10 @@ function isWritable(type: HirType): boolean {
 class ViewChecker {
   constructor(private readonly expressions: HirExpressionChecker) {}
 
-  check(node: ViewNode, env: Env): void {
+  check(node: ViewNode, env: Env, root = true): void {
     switch (node.kind) {
       case "element":
-        this.checkElement(node, env);
+        this.checkElement(node, env, root);
         return;
       case "text":
       case "empty":
@@ -89,19 +102,20 @@ class ViewChecker {
             `An element can contain text, numbers and elements, not ${formatHirType(type)}.`,
           );
         }
-        this.checkLiteralValue(node.expr);
+        // Children are written as text, never read as CSS, so a literal
+        // child may say anything.
         return;
       }
       case "cond":
         // Conditions are judged by truthiness, as JavaScript does: the
         // expression checker admits any type on the visualizer surface.
         this.expressions.infer(node.condition, env);
-        this.check(node.thenBranch, env);
-        this.check(node.elseBranch, env);
+        this.check(node.thenBranch, env, root);
+        this.check(node.elseBranch, env, root);
         return;
       case "and":
         this.expressions.infer(node.condition, env);
-        this.check(node.body, env);
+        this.check(node.body, env, root);
         return;
       case "map": {
         const targetType = this.expressions.infer(node.target, env);
@@ -120,7 +134,7 @@ class ViewChecker {
         if (node.indexParam) {
           scoped.set(node.indexParam.name, HIR_TYPE_INT);
         }
-        this.check(node.body, scoped);
+        this.check(node.body, scoped, root);
         return;
       }
       case "let": {
@@ -131,20 +145,63 @@ class ViewChecker {
             this.expressions.infer(binding.value, scoped),
           );
         }
-        this.check(node.body, scoped);
+        this.check(node.body, scoped, root);
       }
     }
   }
 
   /**
    * An element may only use the allowlisted tags, attributes and style
-   * properties, and a literal value may not reference a remote URL. The
+   * properties, and a literal value may not load a resource. The
    * lowering already refused names outside the sets; this check guards
    * trees built elsewhere, and types the values. Dynamic values are checked
    * again by the renderer.
    */
-  private checkElement(node: ViewElement, env: Env): void {
-    if (node.tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(node.tag)) {
+  private checkElement(node: ViewElement, env: Env, root: boolean): void {
+    const isSvg = node.tag === visualizerSvgTag;
+    if (isSvg && !root) {
+      this.expressions.report(
+        node.tagSpan,
+        "hir:visualizer-return",
+        "Visualizer.Svg can only be the root, not a child.",
+      );
+    }
+    if (isSvg) {
+      const literals = new Map(
+        node.attributes.flatMap((attribute) =>
+          attribute.value.kind === "stringLit"
+            ? [[attribute.name, attribute.value.value]]
+            : [],
+        ),
+      );
+      const parsed = parseVisualizerSvgOptions(literals);
+      if (!parsed.ok) {
+        this.expressions.report(
+          node.attributes.find(
+            (attribute) => attribute.name === parsed.attribute,
+          )?.value.span ?? node.span,
+          "hir:element-attribute-value",
+          parsed.message,
+        );
+      } else if (
+        node.attributes.some((attribute) => attribute.name === "origin") &&
+        node.attributes.some((attribute) => attribute.name === "viewBox")
+      ) {
+        this.expressions.report(
+          node.span,
+          "hir:element-attribute-value",
+          "Use either origin or viewBox to define the coordinates.",
+        );
+      }
+    }
+    const allowedAttributes = isSvg
+      ? visualizerSvgAttributes
+      : VIEW_ELEMENT_ATTRIBUTES;
+    if (
+      !isSvg &&
+      node.tag !== VIEW_FRAGMENT_TAG &&
+      !VIEW_ELEMENT_TAGS.has(node.tag)
+    ) {
       this.expressions.report(
         node.tagSpan,
         "hir:unknown-element",
@@ -152,7 +209,7 @@ class ViewChecker {
       );
     }
     for (const attribute of node.attributes) {
-      if (!VIEW_ELEMENT_ATTRIBUTES.has(attribute.name)) {
+      if (!allowedAttributes.has(attribute.name)) {
         this.expressions.report(
           attribute.nameSpan,
           "hir:unknown-element-attribute",
@@ -162,7 +219,17 @@ class ViewChecker {
         );
       }
       const valueType = this.expressions.infer(attribute.value, env);
-      if (attribute.name === "style") {
+      if (
+        isSvg &&
+        valueType.kind !== "string" &&
+        valueType.kind !== "unknown"
+      ) {
+        this.expressions.report(
+          attribute.value.span,
+          "hir:element-attribute-value",
+          `\`${attribute.name}\` must be a string.`,
+        );
+      } else if (attribute.name === "style") {
         this.checkStyle(attribute.value, valueType);
       } else if (valueType.kind !== "null" && !isTextualHirType(valueType)) {
         this.expressions.report(
@@ -185,7 +252,7 @@ class ViewChecker {
       }
     }
     for (const child of node.children) {
-      this.check(child, env);
+      this.check(child, env, false);
     }
   }
 
@@ -198,14 +265,17 @@ class ViewChecker {
       this.expressions.report(
         value.span,
         "hir:element-attribute-value",
-        `\`style\` takes an object like \`{{ width: "100%" }}\`, got ${formatHirType(valueType)}.`,
+        `\`style\` takes an object like \`{{ backgroundColor: "white" }}\`, got ${formatHirType(valueType)}.`,
       );
       return;
     }
     const entries = value.kind === "recordLit" ? value.entries : [];
     for (const field of valueType.fields) {
       const entry = entries.find((candidate) => candidate.key === field.name);
-      if (!VIEW_STYLE_PROPERTIES.has(field.name)) {
+      if (
+        !VIEW_STYLE_PROPERTIES.has(field.name) &&
+        !VIEW_LEGACY_STYLE_PROPERTIES.has(field.name)
+      ) {
         this.expressions.report(
           entry?.keySpan ?? value.span,
           "hir:unknown-style-property",
@@ -225,26 +295,25 @@ class ViewChecker {
     }
   }
 
-  /** A literal string with a remote `url(...)` is reported where it is
+  /** A literal string that could load a resource is reported where it is
    * written; computed strings are checked when rendered. */
   private checkLiteralValue(value: HirExpr): void {
     if (value.kind === "stringLit" && !isSafeViewValue(value.value)) {
       this.expressions.report(
         value.span,
         "hir:unsafe-value",
-        "`url(...)` may only reference an element of this picture, like `url(#marker)`.",
+        "This value contains unsupported CSS or an external resource. Use supported styling functions and unquoted local references such as `url(#marker)`.",
       );
     }
   }
 
-  /** The picture must be an element (or nothing), whichever branch draws. */
+  /** Every return path must produce a single SVG viewport. */
   checkRoot(node: ViewNode): void {
     switch (node.kind) {
       case "element":
-      case "empty":
-        return;
+        if (node.tag === visualizerSvgTag || node.tag === "svg") return;
+        break;
       case "let":
-      case "and":
         this.checkRoot(node.body);
         return;
       case "cond":
@@ -254,12 +323,15 @@ class ViewChecker {
       case "text":
       case "expr":
       case "map":
-        this.expressions.report(
-          node.span,
-          "hir:visualizer-return",
-          "A visualizer must return an element such as `<svg>…</svg>`.",
-        );
+      case "and":
+      case "empty":
+        break;
     }
+    this.expressions.report(
+      node.span,
+      "hir:visualizer-return",
+      "A visualizer must return a single `<Visualizer.Svg>…</Visualizer.Svg>` element.",
+    );
   }
 }
 

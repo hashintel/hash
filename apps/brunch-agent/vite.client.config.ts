@@ -19,7 +19,7 @@ export default defineConfig({
     emptyOutDir: true,
     // Referenced by app.ts when serving the built ui; a hashed filename would
     // have to be looked up through the manifest for no gain at this size.
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",

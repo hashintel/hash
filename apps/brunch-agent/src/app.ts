@@ -1,5 +1,7 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
+// Installs telemetry before anything else evaluates; the named import below only reads its shutdown.
+// oxlint-disable-next-line import/no-duplicates
 import "./server/telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
@@ -10,7 +12,6 @@ import { Hono } from "hono";
 
 import {
   browserExecutedToolNames,
-  brunchEnv,
   brunchRoutes,
   brunchTools,
   netReaderToolNames,
@@ -24,6 +25,11 @@ import {
 } from "@local/flue-aisdk-transport/server";
 
 import { agents } from "./agents/index.ts";
+import { brunchEnv } from "./env.ts";
+import {
+  ChatModelConfigurationError,
+  verifyChatModel,
+} from "./server/chat-model-configuration.ts";
 import { healthHandler } from "./server/health.ts";
 import { assetHandler } from "./server/http/assets.ts";
 import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
@@ -33,7 +39,11 @@ import {
 } from "./server/http/cors.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
-import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import { createModelCallScope } from "./server/model-call-scope.ts";
+import {
+  chronologyLogMessage,
+  createTurnChronologyObserver,
+} from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
@@ -44,6 +54,8 @@ import {
   withBufferedToolAdmission,
 } from "./server/provider-admission.ts";
 import { diagnostics } from "./server/runtime-diagnostics.ts";
+import { shutdownBrunchTelemetry } from "./server/telemetry-bootstrap.ts";
+import { recordOperationalFailure } from "./server/telemetry.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -86,8 +98,7 @@ const liveToolBroadcasters = new Map(
 for (const { agent } of mountedAgents) {
   const turnChronologyObserver = createTurnChronologyObserver(
     agent.agentName,
-    (chronology) =>
-      logger.info("[brunch] flue.submission chronology", chronology),
+    (chronology) => logger.info(chronologyLogMessage, chronology),
   );
   instrument({
     key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),
@@ -99,6 +110,13 @@ for (const { agent } of mountedAgents) {
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
 const admissionScope = modelAdmissionScope;
+// Honoured only under `NODE_ENV=test`, so these stay out of `brunchEnv`.
+const modelStreamTimeoutEnv = {
+  cancellationMs: "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
+  firstEventMs: "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
+  idleMs: "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
+  reasoningStartMs: "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+} as const;
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -110,21 +128,30 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   return milliseconds;
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamIdleTimeoutMs,
+  modelStreamTimeoutEnv.idleMs,
   modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamFirstEventTimeoutMs,
+  modelStreamTimeoutEnv.firstEventMs,
   modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamReasoningStartTimeoutMs,
+  modelStreamTimeoutEnv.reasoningStartMs,
   modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
-  brunchEnv.modelStreamCancellationTimeoutMs,
+  modelStreamTimeoutEnv.cancellationMs,
   modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
+// The model call a provider stream belongs to, so its timeout line can be
+// joined to the submission's chronology line.
+const modelCallScope = createModelCallScope();
+instrument({
+  key: Symbol.for("brunch.model-call-scope"),
+  observe() {},
+  interceptor: modelCallScope.interceptor,
+  dispose() {},
+});
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
@@ -190,13 +217,57 @@ const registerAdmittedProvider = (provider: Provider) => {
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
+        onIdleTimeout: (timeout) =>
+          diagnostics.note("provider.timeout", {
+            ...modelCallScope.current(),
+            ...timeout,
+          }),
       },
     ),
   );
 };
-registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProviderWithAddedModels());
-registerAdmittedProvider(openrouterProviderWithAddedModels());
+const chatProviders = [
+  anthropicProvider(),
+  openaiProviderWithAddedModels(),
+  openrouterProviderWithAddedModels(),
+];
+for (const provider of chatProviders) registerAdmittedProvider(provider);
+
+// Production refuses to start without a usable chat model, as it does without
+// database configuration; otherwise every chat fails at its first model call.
+// A provider outage only warns, so it cannot keep replacement tasks down.
+if (process.env.NODE_ENV === "production") {
+  try {
+    const verification = await verifyChatModel(chatProviders);
+    if (!verification.verified) {
+      diagnostics.note("model.configuration", {
+        verified: false,
+        reason: verification.reason,
+      });
+    } else if (verification.shutdownDate) {
+      diagnostics.note("model.configuration", {
+        verified: true,
+        shutdownDate: verification.shutdownDate,
+      });
+    }
+  } catch (error) {
+    diagnostics.report("model.configuration", error);
+    // The process exits right after this, so flush the failure span first.
+    await recordOperationalFailure("model_configuration", error);
+    try {
+      await shutdownBrunchTelemetry();
+    } catch {
+      // The model configuration failure remains the authoritative startup cause.
+    }
+    // Node prints an uncaught error's message, stack and cause to stderr, and
+    // an error from other code may quote the credential it was handed.
+    throw error instanceof ChatModelConfigurationError
+      ? error
+      : new Error(
+          "Chat model verification failed; the model.configuration diagnostic records its type.",
+        );
+  }
+}
 
 const app = new Hono();
 

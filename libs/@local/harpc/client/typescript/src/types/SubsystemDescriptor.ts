@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,7 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
@@ -46,7 +45,6 @@ const SubsystemDescriptorProto: Omit<SubsystemDescriptor, "id" | "version"> = {
       Hash.hash(this[TypeId]),
       Hash.combine(Hash.hash(this.id)),
       Hash.combine(Hash.hash(this.version)),
-      Hash.cached(this),
     );
   },
 
@@ -78,20 +76,20 @@ export const make = (
 ): SubsystemDescriptor =>
   createProto(SubsystemDescriptorProto, { id, version });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, descriptor: SubsystemDescriptor) =>
   pipe(
     buffer,
     SubsystemId.encode(descriptor.id),
-    Either.andThen(Version.encode(descriptor.version)),
+    Result.andThen(Version.encode(descriptor.version)),
   ),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const id = yield* SubsystemId.decode(buffer);
     const version = yield* Version.decode(buffer);
 
@@ -103,7 +101,7 @@ export const isSubsystemDescriptor = (
   value: unknown,
 ): value is SubsystemDescriptor => Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(SubsystemId.arbitrary(fc), Version.arbitrary(fc))
-    .map(Function.tupled(make));
+export const arbitrary = Arbitrary.all([
+  SubsystemId.arbitrary,
+  Version.arbitrary,
+]).pipe(Arbitrary.map(Function.tupled(make)));

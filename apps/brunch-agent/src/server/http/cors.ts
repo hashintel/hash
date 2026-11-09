@@ -1,16 +1,19 @@
 import { cors } from "hono/cors";
 
-import { brunchEnv, brunchHeaders } from "@hashintel/brunch-agent";
+import { brunchHeaders } from "@hashintel/brunch-agent";
+
+import { brunchEnv } from "../../env.ts";
 
 import type { MiddlewareHandler } from "hono";
 
 const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
-  brunchHeaders.principal,
+  brunchHeaders.ownerKey,
   brunchHeaders.conversation,
 ];
 // No upstream package exports this complete set, so keep the browser-response list local.
+// hash-api's Brunch proxy (`apps/hash-api/src/brunch-agent/setup-brunch-agent-proxy.ts`) mirrors it by hand.
 const AGENT_CORS_RESPONSE_HEADERS = [
   "flue-error-ref",
   "Stream-Next-Offset",

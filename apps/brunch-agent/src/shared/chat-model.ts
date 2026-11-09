@@ -1,4 +1,4 @@
-import { brunchEnv } from "@hashintel/brunch-agent";
+import { brunchEnv } from "../env.ts";
 
 import type { ThinkingLevel } from "@flue/runtime";
 

@@ -1,7 +1,11 @@
 import * as v from "valibot";
 
 import { epistemicFields, resolveStatus } from "../shared/epistemics";
-import { vClaimReference, vEntityReference } from "../shared/references";
+import {
+  resolvesField,
+  vClaimReference,
+  vEntityReference,
+} from "../shared/references";
 
 export const vClaim = v.pipe(
   v.strictObject({
@@ -27,6 +31,7 @@ export const vClaim = v.pipe(
         ),
       ),
     ),
+    ...resolvesField,
   }),
   resolveStatus(),
   v.description(

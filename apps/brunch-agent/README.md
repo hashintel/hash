@@ -23,14 +23,22 @@ The launcher opens a dedicated Chrome window, pauses for recording readiness, th
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
-The mounted Flue URL `/agents/petrinaut/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
+The mounted Flue URL `/agents/petrinaut/:instanceId` requires the owner key and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
 Provider admission bounds a dispatch with no model event at 60 seconds and bounds both newly opened and active reasoning silence at 120 seconds. These phase-specific limits tolerate supported reasoning models that legitimately pause for tens of seconds: an observed valid continuation exceeded the former 15-second first-reasoning-delta limit, then its sole retry exceeded the former 10-second between-delta limit. On expiry Brunch cancels the invocation, requires cancellation acknowledgement within two seconds, and permits at most one retry only before any tool call completed; completed tool work is never replayed. Tests may shorten these bounds with `BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS`, and `BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS`; non-test deployments always use the production policy.
 
 Print a human-readable transcript of one conversation from that same Flue history (server already running):
 
 ```sh
-yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
+yarn workspace @apps/brunch-agent transcript -- --owner-key <key> --id <conversationId>
+```
+
+Read the provider telemetry back with `diagnose`. For each model request it shows the provider and model, the time until the response started, retries, failures and idle timeouts, and the request's span with the HTTP requests under it. It shows metadata only, never prompts or output. It reads Loki and Tempo through Grafana, by default the local stack's at `http://localhost:3001`. Locally, the server exports only when started with `HASH_OTLP_ENDPOINT=http://localhost:4317 yarn dev:brunch`. Another Grafana takes `--grafana <url>` with a token in `GRAFANA_TOKEN`; the token is only sent over HTTPS or to `localhost`. To read a saved server log or piped output instead, pass `--log <file>` or `--log -`; that has no spans. Unreadable lines, and reads cut off at Loki's or Tempo's limit, are reported on stderr so a short count is not taken for a complete one.
+
+```sh
+yarn workspace @apps/brunch-agent diagnose                      # settled submissions in the last hour
+yarn workspace @apps/brunch-agent diagnose --submission <id>    # one submission in detail
+yarn workspace @apps/brunch-agent diagnose --log dev-brunch-server.log --json
 ```
 
 ## Agents
@@ -55,6 +63,22 @@ VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/brunch-agent test:ma
 ```
 
 The transport-failure case starts with an unanswered ordinary composer turn. It reproduces the stale-panel failure at the persona helper's entrypoint; it does not claim that a sequence made exclusively of persona turns reaches that starting state.
+
+`test:manual:browser:experiment-results` runs a reviewed experiment through the real editor, sends its results to Brunch, and asks a follow-up in the same conversation. The fixture has seven waiting orders and three completed orders, with no transitions. Scripted mode checks the computed results, their delivery to the model, follow-up context, and that answering neither runs another experiment nor changes the net. It costs no model calls.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:experiment-results
+# Only with explicit model and spend approval; up to three conversation turns:
+BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 BRUNCH_CHAT_THINKING=medium yarn workspace @apps/brunch-agent test:manual:browser:experiment-results --live
+```
+
+Live mode uses the configured model, or Brunch's default, and retains the actual results, replies, history and screenshots in the printed temporary directory. Review the replies against the results: seven waiting, three completed, 30% completed, and no evidence of processing speed from a static snapshot. The live completion marker means evidence was recorded, not that explanation quality passed. Neither mode establishes retrieval of a saved experiment in a different conversation.
+
+`test:manual:browser:reliable-chat-endings` checks how a turn ends in the panel. A response that fails with an unanswered call leaves that call as a neutral **No result — response failed** row, which survives a reload. An empty reply after a tool step shows **No reply received** and leaves the composer ready. Stop removes a pending approval. After each case, a new message still gets a reply. It uses only synthetic model responses, so it costs no model calls, and it requires local macOS Chrome.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:reliable-chat-endings
+```
 
 ## Local Postgres
 
@@ -88,29 +112,27 @@ Build from the repository root:
 yarn workspace @apps/brunch-agent build:docker
 ```
 
-The image runs the generated `dist/server.mjs` under the repository-locked Node version as uid
-`60000`. It listens on `PORT`, set to `3002` in the image, exposes the cheap liveness probe `GET /health`,
-and requires the `BRUNCH_POSTGRES_*` variables plus `HASH_OTLP_ENDPOINT` whenever
-`NODE_ENV=production`. Flue connects and migrates its store before the server listens, so database
-configuration, connection, and migration failures prevent readiness. An unreachable collector does
-not: export failures surface as OpenTelemetry diagnostics on stderr. `/health` reports process
-liveness only; it does not query Postgres or Anthropic.
+The image runs the generated `dist/server.mjs` under the repository-locked Node version as uid `60000`. It listens on `PORT`, set to `3002` in the image, exposes the cheap liveness probe `GET /health`, and requires the `BRUNCH_POSTGRES_*` variables, `HASH_OTLP_ENDPOINT`, and the selected chat model's provider credential whenever `NODE_ENV=production`. Before listening, the server resolves the chat model and its credential and asks the provider for that model's metadata, a request that runs no inference. Flue then connects and migrates its store. An unknown model, a missing credential, a credential the provider rejects, a model the provider does not offer to that credential, and database configuration, connection, and migration failures all prevent readiness. A provider that is unreachable, rate-limited, failing, or that forbids the metadata request only logs a `model.configuration` warning with its reason, so a provider outage cannot keep replacement tasks down. The same warning reports a shutdown date the provider has announced for the model. The metadata request does not prove permission to generate, which a restricted OpenAI key can withhold. An unreachable collector does not prevent readiness: export failures surface as OpenTelemetry diagnostics on stderr. `/health` reports process liveness only; it does not query Postgres or the model provider.
 
-Production database configuration uses dedicated fields:
+Production configuration uses dedicated fields:
 
-| Variable                      | Required when | Purpose                                                                                                   |
-| ----------------------------- | ------------- | --------------------------------------------------------------------------------------------------------- |
-| `BRUNCH_POSTGRES_AUTH_MODE`   | Always        | `iam` or `password`                                                                                       |
-| `BRUNCH_POSTGRES_HOST`        | Always        | Exact RDS endpoint used for TLS and IAM signing                                                           |
-| `BRUNCH_POSTGRES_PORT`        | Always        | PostgreSQL port                                                                                           |
-| `BRUNCH_POSTGRES_DATABASE`    | Always        | Flue database                                                                                             |
-| `BRUNCH_POSTGRES_USER`        | Always        | PostgreSQL role                                                                                           |
-| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always        | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
-| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only      | Region used by the RDS signer; rejected in password mode                                                  |
-| `BRUNCH_POSTGRES_PASSWORD`    | Password only | Runtime-injected database password; rejected in IAM mode                                                  |
-| `HASH_OTLP_ENDPOINT`          | Always        | HASH OTLP/gRPC collector endpoint                                                                         |
-| `OTEL_SERVICE_NAME`           | Optional      | OTel service name; defaults to `Brunch Agent`                                                             |
-| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional      | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
+| Variable                      | Required when   | Purpose                                                                                                   |
+| ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| `BRUNCH_POSTGRES_AUTH_MODE`   | Always          | `iam` or `password`                                                                                       |
+| `BRUNCH_POSTGRES_HOST`        | Always          | Exact RDS endpoint used for TLS and IAM signing                                                           |
+| `BRUNCH_POSTGRES_PORT`        | Always          | PostgreSQL port                                                                                           |
+| `BRUNCH_POSTGRES_DATABASE`    | Always          | Flue database                                                                                             |
+| `BRUNCH_POSTGRES_USER`        | Always          | PostgreSQL role                                                                                           |
+| `BRUNCH_POSTGRES_TLS_CA_PATH` | Always          | Trusted RDS CA bundle; the image sets it to the bundled AWS global bundle, override only for another CA   |
+| `BRUNCH_POSTGRES_AWS_REGION`  | IAM only        | Region used by the RDS signer; rejected in password mode                                                  |
+| `BRUNCH_POSTGRES_PASSWORD`    | Password only   | Runtime-injected database password; rejected in IAM mode                                                  |
+| `HASH_OTLP_ENDPOINT`          | Always          | HASH OTLP/gRPC collector endpoint                                                                         |
+| `OPENAI_API_KEY`              | OpenAI model    | Credential for the default chat model (`petrinautAiModel`) or an `openai/...` override                    |
+| `ANTHROPIC_API_KEY`           | Anthropic model | Credential when `BRUNCH_CHAT_MODEL` selects an Anthropic model                                            |
+| `BRUNCH_CHAT_MODEL`           | Optional        | `provider/model` override; a bare id means Anthropic. Unset runs `petrinautAiModel`                       |
+| `BRUNCH_CHAT_THINKING`        | Optional        | Thinking level for an overriding model; the default model carries its own                                 |
+| `OTEL_SERVICE_NAME`           | Optional        | OTel service name; defaults to `Brunch Agent`                                                             |
+| `BRUNCH_CORS_ALLOWED_ORIGINS` | Optional        | Browser JavaScript allowlist for `/agents/*`: exact origins or `https://*.domain`; blank grants no access |
 
 `BRUNCH_CORS_ALLOWED_ORIGINS` is a comma-separated list of origins whose browser JavaScript may
 read cross-origin responses from `/agents/*`. An entry is either an exact origin or a wildcard for
@@ -149,7 +171,7 @@ registered agent route fits. Keep `GET /health` as a process-local /
 load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
 Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
 Releasing `/agents/*` to production browser ingress requires separate authentication,
-authorization, ingress, and rate/spend gates. CORS, caller-supplied principals, and conversation
+authorization, ingress, and rate/spend gates. CORS, caller-supplied owner keys, and conversation
 hashes are not authentication. Desired count remains one until same-conversation ownership
 across replicas is separately proven. The direct browser-result handoff is ephemeral in that single owner: its one-use issued-call capability and existing conversation ownership headers do not authenticate a user or route callbacks across replicas. A lost result after a possible document effect is unknown; Stop aborts an active wait, while silent browser disappearance is detected only after the renewable 25-second lease expires. Production release still requires the external ingress authentication, authorization, routing and spend gates described above.
 

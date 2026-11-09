@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { ResizeExample } from "../../../docs/blocks/resize-example";
 import { Stage } from "../../../docs/blocks/stage";
 import { Button } from "../Button/button";
 import { BreadCrumbs } from "./breadcrumbs";
@@ -265,18 +266,7 @@ into a single ellipsis menu, with no props needed. Drag the handle to watch
 crumbs move in and out of the menu.
 
 <Stage>
-  <div
-    style={{
-      width: 400,
-      minWidth: 80,
-      maxWidth: "100%",
-      resize: "horizontal",
-      overflow: "auto",
-      padding: 12,
-      border: "1px dashed #ccc",
-      borderRadius: 6,
-    }}
-  >
+  <ResizeExample data-harness width={400} minWidth={80}>
     <BreadCrumbs aria-label="Breadcrumb (resizable)">
       <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
       <BreadCrumbs.Item href="#graph">Knowledge graph</BreadCrumbs.Item>
@@ -285,7 +275,7 @@ crumbs move in and out of the menu.
       <BreadCrumbs.Item href="#properties">Properties</BreadCrumbs.Item>
       <BreadCrumbs.Item>Email address</BreadCrumbs.Item>
     </BreadCrumbs>
-  </div>
+  </ResizeExample>
 </Stage>
 
 ### Limiting visible crumbs

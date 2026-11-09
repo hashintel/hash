@@ -24,7 +24,7 @@ const coloured = (): SDCPN => ({
       colorId: "t1",
       dynamicsEnabled: true,
       differentialEquationId: "d1",
-      visualizerCode: "export default Visualization(() => <svg />);",
+      visualizerCode: "return <Visualizer.Svg />;",
       x: 0,
       y: 0,
     },

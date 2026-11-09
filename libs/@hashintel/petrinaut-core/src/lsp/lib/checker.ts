@@ -63,7 +63,11 @@ function collectItemDiagnostics(
 ): ts.Diagnostic[] {
   const semanticDiagnostics = server.getSemanticDiagnostics(filePath);
   const syntacticDiagnostics = server.getSyntacticDiagnostics(filePath);
-  const allDiagnostics = [...syntacticDiagnostics, ...semanticDiagnostics];
+  const allDiagnostics = [
+    ...syntacticDiagnostics,
+    ...semanticDiagnostics,
+    ...server.getDeprecationDiagnostics(filePath),
+  ];
 
   const hasTsError = allDiagnostics.some(
     (diagnostic) => diagnostic.category === TS_CATEGORY_ERROR,

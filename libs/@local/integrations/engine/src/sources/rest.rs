@@ -1,0 +1,788 @@
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
+use core::{pin::Pin, time::Duration};
+use std::{
+    fs::File,
+    io::{BufRead as _, BufReader, Seek as _, Write},
+    path::{Path, PathBuf},
+};
+
+use arrow_array::{ArrayRef, RecordBatch, StringArray};
+use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
+use hash_integrations_definition::{Pagination, PrimaryKey, RestAuth, RestSource};
+use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
+use reqwest::{
+    Client, Url,
+    header::{AUTHORIZATION, HeaderMap, HeaderName, HeaderValue},
+};
+use serde::Deserialize;
+use serde_json::Value;
+use tempfile::NamedTempFile;
+
+use super::{SourceError, http};
+use crate::SourceCapture;
+
+/// Pages fetched before a source without `maxPages` is treated as not terminating.
+///
+/// Reaching it is an error rather than a stop, so an endpoint that keeps issuing new pages cannot
+/// spool without bound or silently drop the rows beyond the ceiling.
+const PAGE_CEILING: u64 = 10_000;
+
+/// Distinct fields a source may produce before its responses are rejected.
+const MAX_COLUMNS: usize = 1_024;
+
+/// Spooled JSON buffered before a batch is written, and encoded Parquet buffered before its row
+/// group is flushed, as for SQL captures.
+const BUFFER_BYTES: usize = 8 * 1024 * 1024;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StoredToken {
+    #[serde(deserialize_with = "super::secrets::deserialize_secret")]
+    value: Pin<Box<Secret<str>>>,
+}
+
+pub(super) fn headers(
+    auth: Option<&RestAuth>,
+    secret: Option<&Secret<[u8]>>,
+) -> Result<HeaderMap, Report<SourceError>> {
+    let mut headers = HeaderMap::new();
+    if let Some(auth) = auth {
+        let token: StoredToken = serde_json::from_slice(
+            secret
+                .ok_or_else(|| Report::new(SourceError::Secret))?
+                .expose(),
+        )
+        .map_err(|_error| Report::new(SourceError::Secret))?;
+        if token.value.expose().is_empty() {
+            return Err(Report::new(SourceError::Secret));
+        }
+        let (name, value) = match auth {
+            RestAuth::Bearer { .. } => (AUTHORIZATION, format!("Bearer {}", token.value.expose())),
+            RestAuth::Header { name, .. } => (
+                HeaderName::from_bytes(name.as_bytes())
+                    .map_err(|_error| Report::new(SourceError::Configuration))?,
+                token.value.expose().to_owned(),
+            ),
+        };
+        if matches!(
+            name.as_str(),
+            "host" | "connection" | "content-length" | "transfer-encoding" | "proxy-authorization"
+        ) {
+            return Err(Report::new(SourceError::Configuration));
+        }
+        let mut value =
+            HeaderValue::from_str(&value).map_err(|_error| Report::new(SourceError::Secret))?;
+        value.set_sensitive(true);
+        headers.insert(name, value);
+    }
+    Ok(headers)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub(super) async fn capture(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+) -> Result<SourceCapture, Report<SourceError>> {
+    let client = http::client()?;
+    capture_with_client(endpoint, key, secret, target, &client).await
+}
+
+async fn capture_with_client(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+    client: &Client,
+) -> Result<SourceCapture, Report<SourceError>> {
+    capture_pages(endpoint, key, secret, target, client, PAGE_CEILING).await
+}
+
+/// Captures pages until the source ends, failing after `page_ceiling` pages without `maxPages`.
+async fn capture_pages(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+    client: &Client,
+    page_ceiling: u64,
+) -> Result<SourceCapture, Report<SourceError>> {
+    let origin =
+        Url::parse(&endpoint.url).map_err(|_error| Report::new(SourceError::Configuration))?;
+    let mut current = origin.clone();
+    let headers = headers(endpoint.auth.as_ref(), secret)?;
+    let directory = target.parent().unwrap_or_else(|| Path::new(".")).to_owned();
+    let columns: BTreeSet<String> = key.columns().iter().map(ToString::to_string).collect();
+    let mut spool = tokio::task::spawn_blocking(move || Spool::new(&directory, columns))
+        .await
+        .change_context(SourceError::Write)??;
+    let mut offset = 0_u64;
+    let mut page = 0_u64;
+    let mut seen = BTreeSet::new();
+    let mut previous: Option<Arc<Vec<Value>>> = None;
+    let mut pacing = http::Pacing::new(Duration::from_millis(endpoint.rate_limit_ms));
+    loop {
+        if endpoint.max_pages.is_none() && page >= page_ceiling {
+            return Err(Report::new(SourceError::Pagination).attach(format!(
+                "pagination did not end within {page_ceiling} pages; set `maxPages` to capture \
+                 fewer"
+            )));
+        }
+        let url = page_url(&current, endpoint, offset);
+        if !seen.insert(url.clone()) {
+            return Err(Report::new(SourceError::Pagination));
+        }
+        pacing.wait().await?;
+        let body = http::fetch(client, &url, &headers).await?;
+        let rows = extract(&body, endpoint.results_field.as_deref())
+            .and_then(Value::as_array)
+            .ok_or_else(|| Report::new(SourceError::Response))?;
+        let count =
+            u64::try_from(rows.len()).map_err(|_error| Report::new(SourceError::Response))?;
+        if count == 0 {
+            break;
+        }
+        // An endpoint that ignores the pagination parameters, such as one paging by `page` when
+        // offset pagination is configured, keeps returning the same rows under new URLs.
+        if previous
+            .as_deref()
+            .is_some_and(|previous| previous.as_slice() == rows.as_slice())
+        {
+            return Err(Report::new(SourceError::Pagination)
+                .attach("a page repeats the previous page's rows"));
+        }
+        let rows = Arc::new(rows.clone());
+        previous = Some(Arc::clone(&rows));
+        spool = tokio::task::spawn_blocking(move || {
+            spool.append(&rows)?;
+            Ok::<_, Report<SourceError>>(spool)
+        })
+        .await
+        .change_context(SourceError::Write)??;
+        page = page
+            .checked_add(1)
+            .ok_or_else(|| Report::new(SourceError::Pagination))?;
+        if endpoint
+            .max_pages
+            .is_some_and(|maximum| page >= maximum.get())
+        {
+            break;
+        }
+        match &endpoint.pagination {
+            Some(Pagination::NextLink { field }) => {
+                let Some(next) = extract(&body, Some(field)).filter(|value| !value.is_null())
+                else {
+                    break;
+                };
+                let next = next
+                    .as_str()
+                    .ok_or_else(|| Report::new(SourceError::Pagination))?;
+                if next.is_empty() {
+                    break;
+                }
+                current = url
+                    .join(next)
+                    .map_err(|_error| Report::new(SourceError::Pagination))?;
+                if current.origin() != origin.origin() {
+                    return Err(Report::new(SourceError::Destination));
+                }
+            }
+            Some(Pagination::Offset) if count >= endpoint.page_size.get() => {
+                offset = offset
+                    .checked_add(count)
+                    .ok_or_else(|| Report::new(SourceError::Pagination))?;
+            }
+            _ => break,
+        }
+    }
+    tokio::task::spawn_blocking(move || spool.publish(&target))
+        .await
+        .change_context(SourceError::Write)?
+}
+
+fn page_url(current: &Url, endpoint: &RestSource, offset: u64) -> Url {
+    let offset_pagination = matches!(endpoint.pagination, Some(Pagination::Offset));
+    let retained: Vec<_> = current
+        .query_pairs()
+        .filter(|(name, _)| {
+            !(endpoint.params.contains_key(name.as_ref())
+                || offset_pagination && matches!(name.as_ref(), "offset" | "limit"))
+        })
+        .map(|(name, value)| (name.into_owned(), value.into_owned()))
+        .collect();
+    let mut url = current.clone();
+    if !retained.is_empty() || !endpoint.params.is_empty() || offset_pagination {
+        let mut pairs = url.query_pairs_mut();
+        pairs
+            .clear()
+            .extend_pairs(retained)
+            .extend_pairs(&endpoint.params);
+        if offset_pagination {
+            pairs
+                .append_pair("offset", &offset.to_string())
+                .append_pair("limit", &endpoint.page_size.to_string());
+        }
+    }
+    url
+}
+
+fn extract<'body>(body: &'body Value, path: Option<&str>) -> Option<&'body Value> {
+    let mut value = body;
+    if let Some(path) = path {
+        for part in path.split('.') {
+            value = value.get(part)?;
+        }
+    }
+    Some(value)
+}
+
+struct Spool {
+    file: NamedTempFile,
+    columns: BTreeSet<String>,
+    /// Each column by its ASCII-lowercased name, to find case collisions without a scan.
+    folded: BTreeMap<String, String>,
+    rows: u64,
+}
+
+impl Spool {
+    fn new(directory: &Path, columns: BTreeSet<String>) -> Result<Self, Report<SourceError>> {
+        let folded = columns
+            .iter()
+            .map(|column| (column.to_ascii_lowercase(), column.clone()))
+            .collect();
+        Ok(Self {
+            file: NamedTempFile::new_in(directory).change_context(SourceError::Write)?,
+            columns,
+            folded,
+            rows: 0,
+        })
+    }
+
+    fn append(&mut self, rows: &[Value]) -> Result<(), Report<SourceError>> {
+        for row in rows {
+            if self.rows == 0 {
+                self.columns.clear();
+                self.folded.clear();
+            }
+            let object = row
+                .as_object()
+                .ok_or_else(|| Report::new(SourceError::Response))?;
+            if object.is_empty() {
+                return Err(Report::new(SourceError::Response));
+            }
+            let mut cells = BTreeMap::new();
+            for (column, value) in object {
+                if column.is_empty() || column.contains('\0') {
+                    return Err(Report::new(SourceError::Response));
+                }
+                match self.folded.get(&column.to_ascii_lowercase()) {
+                    Some(known) if known != column => {
+                        return Err(Report::new(SourceError::Response));
+                    }
+                    Some(_) => {}
+                    None => {
+                        if self.columns.len() >= MAX_COLUMNS {
+                            return Err(Report::new(SourceError::Response).attach(format!(
+                                "responses must not contain more than {MAX_COLUMNS} distinct \
+                                 fields"
+                            )));
+                        }
+                        self.folded
+                            .insert(column.to_ascii_lowercase(), column.clone());
+                        self.columns.insert(column.clone());
+                    }
+                }
+                cells.insert(
+                    column,
+                    match value {
+                        Value::Null => None,
+                        Value::String(value) => Some(value.clone()),
+                        value @ (Value::Bool(_)
+                        | Value::Number(_)
+                        | Value::Array(_)
+                        | Value::Object(_)) => Some(value.to_string()),
+                    },
+                );
+            }
+            serde_json::to_writer(self.file.as_file_mut(), &cells)
+                .change_context(SourceError::Write)?;
+            self.file
+                .write_all(b"\n")
+                .change_context(SourceError::Write)?;
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| Report::new(SourceError::Write))?;
+        }
+        Ok(())
+    }
+
+    fn batch(
+        &self,
+        rows: &[BTreeMap<String, Option<String>>],
+    ) -> Result<RecordBatch, Report<SourceError>> {
+        RecordBatch::try_from_iter_with_nullable(self.columns.iter().map(|column| {
+            let values = StringArray::from_iter(
+                rows.iter()
+                    .map(|row| row.get(column).and_then(Option::as_deref)),
+            );
+            (column, Arc::new(values) as ArrayRef, true)
+        }))
+        .change_context(SourceError::Write)
+    }
+
+    fn write_batch<W: Write + Send>(
+        &self,
+        writer: &mut ArrowWriter<W>,
+        rows: &[BTreeMap<String, Option<String>>],
+    ) -> Result<(), Report<SourceError>> {
+        writer
+            .write(&self.batch(rows)?)
+            .change_context(SourceError::Write)?;
+        if writer.in_progress_size() >= BUFFER_BYTES {
+            writer.flush().change_context(SourceError::Write)?;
+        }
+        Ok(())
+    }
+
+    fn publish(mut self, target: &Path) -> Result<SourceCapture, Report<SourceError>> {
+        let mut partial = SourceCapture::stage(target).change_context(SourceError::Write)?;
+        let schema = self.batch(&[])?.schema();
+        let properties = WriterProperties::builder()
+            .set_compression(Compression::SNAPPY)
+            .set_max_row_group_row_count(Some(64 * 1024))
+            .build();
+        let mut writer = ArrowWriter::try_new(partial.as_file_mut(), schema, Some(properties))
+            .change_context(SourceError::Write)?;
+        self.file
+            .as_file_mut()
+            .rewind()
+            .change_context(SourceError::Write)?;
+        let input: File = self.file.reopen().change_context(SourceError::Write)?;
+        let mut rows = Vec::with_capacity(1024);
+        let mut buffered = 0_usize;
+        for line in BufReader::new(input).lines() {
+            let line = line.change_context(SourceError::Write)?;
+            buffered = buffered.saturating_add(line.len());
+            rows.push(
+                serde_json::from_str(&line).map_err(|_error| Report::new(SourceError::Write))?,
+            );
+            if rows.len() == 1024 || buffered >= BUFFER_BYTES {
+                self.write_batch(&mut writer, &rows)?;
+                rows.clear();
+                buffered = 0;
+            }
+        }
+        if !rows.is_empty() {
+            self.write_batch(&mut writer, &rows)?;
+        }
+        writer.close().change_context(SourceError::Write)?;
+        SourceCapture::publish(partial, target, self.rows).change_context(SourceError::Write)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::collections::BTreeMap;
+    use std::fs;
+
+    use axum::{Json, Router, extract::Query, http::HeaderMap, routing::get};
+    use duckdb::types::Value;
+    use hash_crypto::Secret;
+    use hash_integrations_definition::{PrimaryKey, RestSource};
+    use rstest::rstest;
+    use serde_json::{Value as JsonValue, json};
+    use tempfile::TempDir;
+    use uuid::Uuid;
+
+    use super::{capture_pages, capture_with_client};
+    use crate::{
+        Workspace, WorkspaceConfig,
+        sources::{
+            SourceError,
+            tests::{public_client, server},
+        },
+    };
+
+    fn key() -> PrimaryKey {
+        PrimaryKey::new(["id".parse().expect("should parse the column")])
+            .expect("should build a key")
+    }
+
+    async fn page(
+        Query(query): Query<BTreeMap<String, String>>,
+        headers: HeaderMap,
+    ) -> Json<JsonValue> {
+        assert_eq!(
+            headers
+                .get("authorization")
+                .and_then(|value| value.to_str().ok()),
+            Some("Bearer sentinel"),
+            "should authenticate every page"
+        );
+        assert_eq!(
+            query.get("tenant").map(String::as_str),
+            Some("fixed"),
+            "should preserve configured parameters on every page"
+        );
+        if query.contains_key("offset") {
+            assert_eq!(
+                query.get("limit").map(String::as_str),
+                Some("1"),
+                "offset pagination should send the configured page size"
+            );
+        }
+        match (
+            query.get("page").map(String::as_str),
+            query.get("offset").map(String::as_str),
+        ) {
+            (None, None | Some("0")) => Json(json!({
+                "results": [{"id": 1, "nested": {"a": 2}}],
+                "next": "?page=2",
+            })),
+            (Some("2"), None) | (None, Some("1")) => Json(json!({
+                "results": [{"id": 2, "later": true, "nested": null}],
+            })),
+            (None, Some("2")) => Json(json!({"results": []})),
+            _ => panic!("unexpected pagination parameters: {query:?}"),
+        }
+    }
+
+    #[rstest]
+    #[case::next_link(json!({"type": "next-link", "field": "next"}))]
+    #[case::offset(json!({"type": "offset"}))]
+    #[tokio::test]
+    async fn pagination_late_columns_and_nulls(#[case] pagination: JsonValue) {
+        let expected = [
+            vec![
+                Value::Text("1".to_owned()),
+                Value::Null,
+                Value::Text("{\"a\":2}".to_owned()),
+            ],
+            vec![
+                Value::Text("2".to_owned()),
+                Value::Text("true".to_owned()),
+                Value::Null,
+            ],
+        ];
+        let router = Router::new().route("/items", get(page));
+        let server = server(router).await;
+        let (client, url) = public_client(&server);
+        let endpoint: RestSource = serde_json::from_value(json!({
+            "url": format!("{url}/items"),
+            "resultsField": "results",
+            "params": {"tenant": "fixed"},
+            "pagination": pagination,
+            "pageSize": 1,
+            "auth": {"type": "bearer", "secretEntityUuid": Uuid::new_v4()},
+        }))
+        .expect("should describe the endpoint");
+        let secret = Secret::from_vec(
+            serde_json::to_vec(&json!({"value": "sentinel"}))
+                .expect("should serialize the authentication token"),
+        );
+        let directory = TempDir::new().expect("should create output storage");
+        let capture = capture_with_client(
+            &endpoint,
+            &key(),
+            Some(&secret),
+            directory.path().join("rows.parquet"),
+            &client,
+        )
+        .await
+        .expect("should capture all pages");
+        assert_eq!(
+            capture.rows(),
+            u64::try_from(expected.len()).expect("the fixture row count should fit in u64"),
+            "should capture every fixture row"
+        );
+        let workspace = Workspace::open(
+            directory.path().join("run.duckdb"),
+            WorkspaceConfig::default(),
+        )
+        .await
+        .expect("should open the workspace");
+        workspace
+            .load_capture(capture, "raw".into())
+            .await
+            .expect("should load the capture");
+        let rows = workspace
+            .query(
+                "
+                    SELECT id, later, nested
+                    FROM raw
+                    ORDER BY id
+                    "
+                .into(),
+            )
+            .await
+            .expect("should read captured cells");
+        assert_eq!(
+            rows.iter().collect::<Vec<_>>(),
+            expected.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            "all captured rows should retain nested values, later columns, and nulls"
+        );
+        workspace.close().await.expect("should close the workspace");
+    }
+
+    #[tokio::test]
+    async fn pagination_cross_origin_removes_partial_capture() {
+        let server = server(Router::new().route(
+            "/",
+            get(|| async {
+                Json(json!({"results": [{"id": 1}], "next": "https://other.example/secret"}))
+            }),
+        ))
+        .await;
+        let (client, url) = public_client(&server);
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let target = directory.path().join("rows.parquet");
+        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+            .await
+            .expect_err("should reject a cross-origin next page");
+        assert!(
+            matches!(error.current_context(), SourceError::Destination),
+            "should report the blocked destination"
+        );
+        assert!(!target.exists(), "should publish only a complete capture");
+        assert_eq!(
+            fs::read_dir(directory.path())
+                .expect("should read output storage")
+                .count(),
+            0,
+            "should remove spooled rows on failure"
+        );
+    }
+
+    #[test]
+    fn empty_token() {
+        let auth =
+            serde_json::from_value(json!({"type": "bearer", "secretEntityUuid": Uuid::new_v4()}))
+                .expect("should describe bearer authentication");
+        let secret = Secret::from_vec(br#"{"value":""}"#.to_vec());
+        let error =
+            super::headers(Some(&auth), Some(&secret)).expect_err("should reject an empty token");
+        assert!(
+            matches!(error.current_context(), SourceError::Secret),
+            "should identify the invalid secret"
+        );
+    }
+
+    /// Pages forever, with distinct rows and a fresh cursor on every page.
+    async fn endless(Query(query): Query<BTreeMap<String, String>>) -> Json<JsonValue> {
+        let cursor: u64 = query
+            .get("cursor")
+            .map_or(0, |cursor| cursor.parse().expect("should parse the cursor"));
+        Json(json!({
+            "results": [{"id": cursor}],
+            "next": format!("?cursor={}", cursor + 1),
+        }))
+    }
+
+    #[tokio::test]
+    async fn pagination_rejects_ignored_offset() {
+        let server = server(
+            Router::new().route("/", get(|| async { Json(json!({"results": [{"id": 1}]})) })),
+        )
+        .await;
+        let (client, url) = public_client(&server);
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "offset"},
+            "pageSize": 1,
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let target = directory.path().join("rows.parquet");
+        let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
+            .await
+            .expect_err("should reject an endpoint that ignores the offset");
+        assert!(
+            matches!(error.current_context(), SourceError::Pagination),
+            "should report the repeated page"
+        );
+        assert!(!target.exists(), "should publish only a complete capture");
+    }
+
+    #[tokio::test]
+    async fn pagination_stops_at_the_page_ceiling() {
+        let server = server(Router::new().route("/", get(endless))).await;
+        let (client, url) = public_client(&server);
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let target = directory.path().join("rows.parquet");
+        let error = capture_pages(&endpoint, &key(), None, target.clone(), &client, 3)
+            .await
+            .expect_err("should reject pagination that does not end");
+        assert!(
+            matches!(error.current_context(), SourceError::Pagination),
+            "should report the unbounded pagination"
+        );
+        assert!(!target.exists(), "should publish only a complete capture");
+    }
+
+    #[tokio::test]
+    async fn pagination_honours_max_pages_beyond_the_ceiling() {
+        let server = server(Router::new().route("/", get(endless))).await;
+        let (client, url) = public_client(&server);
+        let ceiling = 3;
+        let max_pages = ceiling + 2;
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+            "maxPages": max_pages,
+        }))
+        .expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let capture = capture_pages(
+            &endpoint,
+            &key(),
+            None,
+            directory.path().join("rows.parquet"),
+            &client,
+            ceiling,
+        )
+        .await
+        .expect("should capture up to the configured page limit");
+        assert_eq!(
+            capture.rows(),
+            max_pages,
+            "should capture one row per configured page"
+        );
+    }
+
+    #[tokio::test]
+    async fn empty_response_preserves_key_schema() {
+        let server = server(Router::new().route("/", get(|| async { Json(json!([])) }))).await;
+        let (client, url) = public_client(&server);
+        let endpoint =
+            serde_json::from_value(json!({"url": url})).expect("should describe the endpoint");
+        let directory = TempDir::new().expect("should create output storage");
+        let capture = capture_with_client(
+            &endpoint,
+            &key(),
+            None,
+            directory.path().join("empty.parquet"),
+            &client,
+        )
+        .await
+        .expect("should capture an empty source");
+        let workspace = Workspace::open(
+            directory.path().join("run.duckdb"),
+            WorkspaceConfig::default(),
+        )
+        .await
+        .expect("should open the workspace");
+        workspace
+            .load_capture(capture, "empty".into())
+            .await
+            .expect("should load the empty schema");
+        let rows = workspace
+            .query(
+                "
+                    SELECT id
+                    FROM empty
+                    "
+                .into(),
+            )
+            .await
+            .expect("should preserve the key column");
+        assert_eq!(rows.iter().len(), 0, "should retain an empty source");
+        workspace.close().await.expect("should close the workspace");
+    }
+}
+
+#[cfg(test)]
+mod schema_tests {
+    use alloc::collections::BTreeSet;
+
+    use serde_json::json;
+    use tempfile::TempDir;
+
+    use super::Spool;
+    use crate::SourceError;
+
+    #[test]
+    fn rows_preserve_missing_key_columns() {
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool = Spool::new(directory.path(), BTreeSet::from(["id".to_owned()]))
+            .expect("should create the spool");
+        spool
+            .append(&[json!({"value": "first"})])
+            .expect("should spool a row");
+        assert!(
+            !spool.columns.contains("id"),
+            "a nonempty source should not synthesize a missing primary-key column"
+        );
+        let error = spool.append(&[json!({"VALUE": "second"})]).expect_err(
+            "should reject a case-insensitive column collision before DuckDB can rename it",
+        );
+        assert!(
+            matches!(error.current_context(), SourceError::Response),
+            "should identify an invalid response schema"
+        );
+    }
+
+    #[test]
+    fn publish_bounds_buffered_rows_by_size() {
+        use parquet::file::reader::{FileReader as _, SerializedFileReader};
+
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool = Spool::new(directory.path(), BTreeSet::from(["id".to_owned()]))
+            .expect("should create the spool");
+        // Incompressible values, so the encoded row group grows with the spooled bytes.
+        let value: String = core::iter::repeat_with(|| uuid::Uuid::new_v4().simple().to_string())
+            .take(160 * 1024)
+            .collect();
+        for id in 0..3 {
+            spool
+                .append(&[json!({"id": id, "value": value})])
+                .expect("should spool a large row");
+        }
+        let target = directory.path().join("rows.parquet");
+        spool.publish(&target).expect("should publish the rows");
+        let reader = SerializedFileReader::new(
+            std::fs::File::open(&target).expect("should open the published capture"),
+        )
+        .expect("should read the Parquet metadata");
+        assert!(
+            reader.metadata().num_row_groups() > 1,
+            "should flush row groups by size rather than buffering every large row"
+        );
+    }
+
+    #[test]
+    fn rows_reject_too_many_columns() {
+        let directory = TempDir::new().expect("should create spool storage");
+        let mut spool =
+            Spool::new(directory.path(), BTreeSet::new()).expect("should create the spool");
+        let row = (0..=super::MAX_COLUMNS)
+            .map(|index| (format!("column{index}"), json!(index)))
+            .collect();
+        let error = spool
+            .append(&[serde_json::Value::Object(row)])
+            .expect_err("should reject a response with too many distinct fields");
+        assert!(
+            matches!(error.current_context(), SourceError::Response),
+            "should identify an invalid response schema"
+        );
+    }
+}

@@ -13,7 +13,9 @@
  * honoured, an accidental clash is reported.
  */
 
-import { brunchEnv, brunchRoutes } from "@hashintel/brunch-agent";
+import { brunchRoutes } from "@hashintel/brunch-agent";
+
+import { brunchEnv } from "../../env.ts";
 
 const listenPort = (variable: string, fallback: number): number => {
   const requested = Number(process.env[variable]);

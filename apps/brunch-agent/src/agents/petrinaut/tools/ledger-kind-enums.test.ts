@@ -545,16 +545,29 @@ test("a claim that only renders under an entity is refused without one", async (
     });
 });
 
-test("only a recorded commit that sets endTurn ends the turn", async () => {
-  const terminates = async (entries: unknown, endTurn?: boolean) => {
+test("only a recorded commit that sets endTurn in a turn that has replied ends the turn", async () => {
+  const terminates = async (
+    entries: unknown,
+    endTurn?: boolean,
+    reply = "Noted.",
+    refusedFirst = false,
+  ) => {
     const batch = toBatch(entries);
+    const refused = { ...commitPart("commit-0", batch), state: "output-error" };
     const history: LedgerHistory = {
       messages: [
         { id: "turn-1", role: "user", parts: [] },
         {
           id: "response-1",
           role: "assistant",
-          parts: [commitPart("commit-1", batch)],
+          // One message per turn: a repair follows its refused call.
+          parts: refusedFirst
+            ? [
+                { type: "text", text: reply },
+                refused,
+                commitPart("commit-1", batch),
+              ]
+            : [{ type: "text", text: reply }, commitPart("commit-1", batch)],
         },
       ],
     };
@@ -596,6 +609,10 @@ test("only a recorded commit that sets endTurn ends the turn", async () => {
   expect(await terminates(entity)).toBe(false);
   expect(await terminates(entity, false)).toBe(false);
   expect(await terminates(unanchored, true)).toBe(false);
+  expect(await terminates(entity, true, "")).toBe(false);
+  expect(await terminates(entity, true, " \n")).toBe(false);
+  expect(await terminates(entity, true, "Noted.", true)).toBe(true);
+  expect(await terminates(entity, true, "", true)).toBe(false);
 });
 
 test("an entity update keeps the turn the entity was created in", () => {
@@ -1104,6 +1121,92 @@ test("an obligation stays owed until a reflection discharges it", async () => {
   ).not.toContain("Checks still owed");
 });
 
+test("a restriction's operator, window and unknown timing reach the map in its claims", async () => {
+  // The FE-1844 contract's examples, from the pharma and data-centre cases.
+  const restrictions = toBatch([
+    ["entity/create", { name: "Usable setpoint range", kind: "limit" }],
+    [
+      "claim/create",
+      {
+        text: "Supply-air setpoint stays between 21.5 and 24 °C.",
+        entities: ["$0"],
+      },
+    ],
+    ["entity/create", { name: "2–8 °C labelled range", kind: "threshold" }],
+    [
+      "claim/create",
+      {
+        text: "Every logger reading stays between 2 and 8 °C throughout the shipment.",
+        entities: ["$2"],
+      },
+    ],
+    ["entity/create", { name: "54-hour SLA", kind: "target" }],
+    [
+      "claim/create",
+      {
+        text: "Proof of delivery is accepted within 54 hours of signed pickup.",
+        entities: ["$4"],
+      },
+    ],
+    ["entity/create", { name: "Quarantine hold", kind: "threshold" }],
+    [
+      "claim/create",
+      {
+        text: "A quarantined shipment stays quarantined until QA decides; QA need not decide within the run.",
+        entities: ["$6"],
+      },
+    ],
+    ["entity/create", { name: "30 °C inlet limit", kind: "threshold" }],
+    [
+      "claim/create",
+      { text: "Rack inlet stays at or below 30 °C.", entities: ["$8"] },
+    ],
+    [
+      "claim/create",
+      {
+        text: "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.",
+        entities: ["$8"],
+        origin: "inferred",
+        status: "open",
+      },
+    ],
+    ["entity/create", { name: "Generator load shed", kind: "threshold" }],
+    [
+      "claim/create",
+      {
+        text: "Within 5 minutes of each utility loss, IT load falls below 9.5 MW.",
+        entities: ["$11"],
+      },
+    ],
+  ]);
+  expect(await runCommit([], restrictions)).toMatchObject({
+    status: "recorded",
+    openQuestions: 1,
+  });
+  const map = renderLedgerMarkdown(
+    projectLedger(foldCommits(settledHistory([restrictions])).state),
+  );
+  const section = (heading: string) =>
+    map.split(`### ${heading}`)[1]?.split(/\n#{2,3} /)[0] ?? "";
+  expect(section("Limits")).toContain(
+    "Supply-air setpoint stays between 21.5 and 24 °C. \u2014 stated \u00b7 confirmed `c1`",
+  );
+  expect(section("Targets")).toContain(
+    "Proof of delivery is accepted within 54 hours of signed pickup.",
+  );
+  const thresholds = section("Thresholds");
+  for (const text of [
+    "Every logger reading stays between 2 and 8 °C throughout the shipment.",
+    "A quarantined shipment stays quarantined until QA decides; QA need not decide within the run.",
+    "Within 5 minutes of each utility loss, IT load falls below 9.5 MW.",
+    "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one. \u2014 inferred \u00b7 open `c6`",
+  ])
+    expect(thresholds).toContain(text);
+  expect(map.split("## Open questions")[1]).toContain(
+    "When the 30 °C limit must hold: unasked",
+  );
+});
+
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
 const flueParameters = (schema: v.GenericSchema) => {
   const { $schema: _schema, ...parameters } = toJsonSchema(schema, {
@@ -1125,6 +1228,23 @@ test("each entity kind's description opens with its stage", () => {
     expect(v.getDescription(option)?.toLowerCase()).toMatch(
       new RegExp(`^${entityKindStages[option.literal]}: `),
     );
+});
+
+test("a restriction's kind asks when it must hold, and leaves unstated timing open", () => {
+  const described = (kind: string) => {
+    const option = vEntityKind.options.find(({ literal }) => literal === kind);
+    return option === undefined ? "" : (v.getDescription(option) ?? "");
+  };
+  for (const kind of ["threshold", "target"]) {
+    expect(described(kind), kind).toMatch(/when it must (hold|be reached)/);
+    expect(described(kind), kind).toMatch(/an open claim says so/);
+    expect(described(kind), kind).toMatch(
+      /a figure for the whole run, such as an average or a total, has no 'when'/,
+    );
+  }
+  for (const operator of [/throughout the run/, /within .+ of /, /until /])
+    expect(described("threshold")).toMatch(operator);
+  expect(described("horizon")).toMatch(/"always" or "never"/);
 });
 
 test("Flue's tool schema carries entity kind, origin and status descriptions", () => {
@@ -1359,6 +1479,40 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       expect(claim.origin).toBe("stated");
       expect(claim.status).toBe("confirmed");
     }
+  }, 120_000);
+
+  test("records when a restriction must hold, with its window's starting event", async () => {
+    const recorded = await append(
+      "Every logger has to stay between 2 and 8 °C; a shipment must never record outside that range. And proof of delivery has to be accepted within 54 hours of signed pickup.",
+    );
+    expect(recorded.entities.map(({ kind }) => kind)).toEqual(
+      expect.arrayContaining(["threshold"]),
+    );
+    const texts = recorded.claims.map(({ text }) => text).join("\n");
+    expect(texts).toMatch(/throughout|never|at all times|every reading/i);
+    expect(texts).toMatch(/54 hours of (the )?signed pickup/i);
+  }, 120_000);
+
+  // Recording the unknown timing as an open claim comes from the system
+  // prompt, which this harness does not load; `probe:turn` exercises it.
+  test("does not supply always for a bound given without its timing", async () => {
+    const recorded = await append(
+      "30 °C rack inlet is the incident limit we plan against.",
+    );
+    const limits = recorded.entries.flatMap(([route, payload], index) =>
+      route === "entity/create" && payload.kind === "threshold"
+        ? [`$${index}`]
+        : [],
+    );
+    expect(limits).not.toHaveLength(0);
+    const about = recorded.claims.filter((claim) =>
+      claim.entities.some((reference) => limits.includes(reference)),
+    );
+    expect(about).not.toHaveLength(0);
+    for (const claim of about.filter(({ status }) => status !== "open"))
+      expect(claim.text).not.toMatch(
+        /throughout|always|at all times|every reading|any reading|never/i,
+      );
   }, 120_000);
 
   test("pencils in an undecided resource without treating it as confirmed", async () => {

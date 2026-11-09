@@ -18,7 +18,7 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self, PublicApiConfig,
+        self, CorsConfig, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -50,7 +50,7 @@ use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::{Client as PostgresClient, NoTls};
+use tokio_postgres::Client as PostgresClient;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 use uuid::Uuid;
@@ -449,6 +449,9 @@ pub struct ServerConfig {
     pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
+    pub cors: CorsConfig,
+
+    #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
 
     /// Shared secret internal services present to act on behalf of an actor.
@@ -734,6 +737,7 @@ where
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
+        cors: config.cors,
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
@@ -767,7 +771,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.db_pool_config,
-        NoTls,
         PostgresStoreSettings {
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,

@@ -699,6 +699,28 @@ mod tests {
         .await;
     }
 
+    #[tokio::test]
+    async fn array_length() {
+        ensure_validation::<DataType, _>(
+            json!({
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/array/v/1",
+              "title": "Number List",
+              "description": "A list of two to five numbers",
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1" }],
+              "type": "array",
+              "abstract": false,
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 5,
+            }),
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
+
     #[test]
     fn additional_properties() {
         // The error is suboptimal, but most importantly, it does error.

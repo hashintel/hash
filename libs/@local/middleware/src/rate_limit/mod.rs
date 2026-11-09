@@ -322,15 +322,15 @@ impl RateLimitMetrics {
 
 /// What the `RateLimit-Policy` field tells a client.
 const RATELIMIT_POLICY_DESCRIPTION: &str =
-    "The budgets the request was checked against, one item each, as \
-     draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at \
-     once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` \
-     seconds stay within its sustained rate.";
+    "The budgets the request was checked against, one list item each, in the format of \
+     draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at \
+     once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at \
+     most `q` requests every `w` seconds stays within a budget's sustained rate.";
 
 /// What the `RateLimit` field tells a client.
-const RATELIMIT_DESCRIPTION: &str = "The requests each budget in `RateLimit-Policy` has left \
-                                     after this request, as its `r`. A crossed budget reports \
-                                     `r=0`.";
+const RATELIMIT_DESCRIPTION: &str = "For each budget in `RateLimit-Policy`, the number of \
+                                     requests it has left after this request, as `r`. An \
+                                     exhausted budget reports `r=0`.";
 
 /// The request exceeded its rate-limit budget.
 #[derive(Debug, Clone, derive_more::Display, serde::Serialize, schemars::JsonSchema)]
@@ -346,7 +346,10 @@ pub struct TooManyRequests {
 
 impl ProblemVariant for TooManyRequests {
     const HEADERS: &'static [Header] = &[
-        Header::new::<NonZero<u64>>("Retry-After", "Whole seconds before retrying the request."),
+        Header::new::<NonZero<u64>>(
+            "Retry-After",
+            "The number of whole seconds to wait before retrying the request.",
+        ),
         Header::new::<String>("RateLimit-Policy", RATELIMIT_POLICY_DESCRIPTION),
         Header::new::<String>("RateLimit", RATELIMIT_DESCRIPTION),
     ];

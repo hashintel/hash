@@ -27,7 +27,7 @@ use hash_graph_postgres_store::store::{
     postgres::connection::{ConnectionError, SERVER_TARGET},
 };
 use hash_graph_store::pool::StorePool as _;
-use tokio_postgres::{NoTls, error::SqlState};
+use tokio_postgres::error::SqlState;
 use tracing::{Event, Level, Subscriber, subscriber};
 use tracing_subscriber::{filter::LevelFilter, layer::Context, prelude::*};
 
@@ -299,7 +299,6 @@ async fn pool_replaces_terminated_connection() {
         &DatabasePoolConfig {
             max_connections: NonZero::<usize>::MIN,
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("the pool should be built");
@@ -367,7 +366,6 @@ async fn pool_reports_unreachable_database() {
     let pool = PostgresStorePool::new(
         &unreachable,
         &DatabasePoolConfig::default(),
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("the pool should be built without connecting");

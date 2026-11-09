@@ -118,6 +118,7 @@ export default defineConfig({
    */
   contentDirectory: "apps/petrinaut-docs/content",
   outputDirectory: "apps/petrinaut-docs/bundle",
+  slidesDirectory: "apps/petrinaut-docs/slides",
   cacheDirectory: "node_modules/.cache/archinaut",
   sourceUrlPrefix: resolveSourceUrlPrefix(process.env),
   site: {
@@ -126,6 +127,7 @@ export default defineConfig({
       "How the Petrinaut packages fit together — generated from annotations in the source.",
     url: "https://docs.petrinaut.org",
     logo: "apps/petrinaut-docs/assets/petrinaut-helmet.png",
+    slideLogoScale: 1.8,
     favicon: "apps/petrinaut-docs/assets/favicon.ico",
   },
 });

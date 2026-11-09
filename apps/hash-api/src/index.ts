@@ -3,10 +3,16 @@ import { promisify } from "node:util";
 
 import KeyvRedis from "@keyv/redis";
 import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
 import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Layer,
+  Logger,
+  ManagedRuntime,
+  References,
+} from "effect";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
@@ -37,6 +43,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   getHashClientTypeFromRequest,
   getUserAgentFromRequest,
@@ -65,6 +72,10 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
+import {
+  getBrunchAgentOrigin,
+  setupBrunchAgentProxy,
+} from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
@@ -606,7 +617,7 @@ const main = async () => {
 
   app.use(express.static("public"));
 
-  const jsonParser = bodyParser.json({
+  const jsonParser = express.json({
     // default is 100kb
     limit: "16mb",
   });
@@ -797,6 +808,12 @@ const main = async () => {
 
   setupAnalysisHandler(app, keyv);
 
+  setupBrunchAgentProxy(app, {
+    logger,
+    origin: getBrunchAgentOrigin(),
+    publicOrigin: apiOrigin,
+  });
+
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
 
@@ -816,7 +833,7 @@ const main = async () => {
         RequestIdProducer.layer,
         JsonDecoder.layer,
         JsonEncoder.layer,
-        Logger.pretty,
+        Logger.layer([Logger.consolePretty(), Logger.tracerLogger]),
       ),
     );
 
@@ -858,7 +875,7 @@ const main = async () => {
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
         if (typeof textQueryParam !== "string") {
-          return yield* new RuntimeException(
+          return yield* new Cause.IllegalArgumentError(
             "text query parameter is required",
           );
         }
@@ -871,7 +888,7 @@ const main = async () => {
             Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
-        Logger.withMinimumLogLevel(LogLevel.Trace),
+        Effect.provideService(References.MinimumLogLevel, "Trace"),
       );
 
       runtime.runCallback(effect, {

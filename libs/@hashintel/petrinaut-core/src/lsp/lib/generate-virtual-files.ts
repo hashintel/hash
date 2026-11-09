@@ -1,3 +1,5 @@
+import ts from "@typescript/typescript6";
+
 import { getArcEndpoint } from "../../arc-endpoints";
 import {
   createArcPlaceResolver,
@@ -8,6 +10,7 @@ import {
 } from "../../extensions";
 import {
   AMBIENT_INPUT_NAMES,
+  buildLambdaContext,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -159,6 +162,18 @@ function dualFormCodeFile(options: {
  * Scope separator for component instance place names
  */
 const SCOPE_SEPARATOR = "::";
+
+/**
+ * The part of `input.<Place>` every input place has, declared once in the
+ * lambda and kernel definition files.
+ */
+const INPUT_COUNT_TYPE_DECLARATION = [
+  `/** An input place of this transition, named so editor messages say which. */`,
+  `type InputCount<_Place extends string> = {`,
+  `  /** How many tokens the place holds when the transition is evaluated, including the ones this firing would consume. */`,
+  `  readonly count: number;`,
+  `};`,
+].join("\n");
 
 /**
  * Gets the display name for a place referenced by an arc, using scoped names for component ports.
@@ -329,6 +344,7 @@ export function generateVirtualFiles(
         surface: "dynamics",
         modulePrefixLines: [
           `import type { Dynamics } from "${deDefsPath}";`,
+          `/** @deprecated Write the function body directly; tokens and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
@@ -363,41 +379,38 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
-    // resolveArcPlace handles both regular place arcs and componentPort arcs.
+    // Build the input type from the same context the HIR checks against:
+    // one property per input-arc place. A place that delivers tokens is a
+    // tuple of the arc's weight plus `.count`; any other (uncoloured, or
+    // joined by an inhibitor arc) exposes `.count` alone.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
+    const lambdaContext = buildLambdaContext(sdcpn, transition, extensions);
+    const inputBindings = new Map(
+      lambdaContext.inputPlaces.map((binding) => [binding.name, binding]),
+    );
 
-    for (const arc of transition.inputArcs) {
-      // Inhibitor arcs never deliver tokens to the transition, so they should
-      // not contribute to the input type. Read arcs do deliver tokens and are
-      // typed like standard input arcs.
-      if (arc.type === "inhibitor") {
+    for (const { name } of lambdaContext.inputCounts) {
+      const binding = inputBindings.get(name);
+      if (!binding) {
+        inputTypeProperties.push(`  "${name}": InputCount<"${name}">;`);
         continue;
       }
-      const place = resolveArcPlace(arc);
-      if (!extensions.colors || !place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
+      const sanitizedColorId = sanitizeColorId(binding.colorId);
       const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
+        colorId: binding.colorId,
       });
       // Only add import if not already present (multiple arcs may share the same color)
       const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
       if (!inputTypeImports.includes(importStatement)) {
         inputTypeImports.push(importStatement);
       }
-      const tokenTuple = Array.from({ length: arc.weight })
+      const tokenTuple = Array.from({ length: binding.tokenCount })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
-      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
+      inputTypeProperties.push(
+        `  "${name}": [${tokenTuple}] & InputCount<"${name}">;`,
+      );
     }
 
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
@@ -467,6 +480,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
         ].join("\n"),
@@ -480,6 +494,7 @@ export function generateVirtualFiles(
           surface: "lambda",
           modulePrefixLines: [
             `import type { Lambda } from "${lambdaDefsPath}";`,
+            `/** @deprecated Write the function body directly; input and parameters are already available. Remove export default Lambda(...) and keep its body. */`,
             `declare const Lambda: Lambda;`,
           ],
           bodyImportLines: [`import type { Input } from "${lambdaDefsPath}";`],
@@ -498,6 +513,7 @@ export function generateVirtualFiles(
           ...allImports,
           ``,
           ...outputTokenTypeAliases.values(),
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
@@ -512,6 +528,7 @@ export function generateVirtualFiles(
           surface: "kernel",
           modulePrefixLines: [
             `import type { TransitionKernel } from "${kernelDefsPath}";`,
+            `/** @deprecated Write the function body directly; input and parameters are already available. Remove export default TransitionKernel(...) and keep its body. */`,
             `declare const TransitionKernel: TransitionKernel;`,
           ],
           bodyImportLines: [
@@ -532,7 +549,7 @@ export function generateVirtualFiles(
  * Generates the virtual files of the visualizer language service: the
  * parameters and colour types the SDCPN service also has, and for every
  * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
- * over the place's token type and a `code.jsx` holding the user's module.
+ * over the place's token type and a `code.jsx` holding the user's code.
  *
  * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
  * types are inferred and any annotation is an error, and the injected
@@ -580,8 +597,9 @@ export function generateVisualizerVirtualFiles(
           : "",
         ``,
         `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
-        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters };`,
-        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement | null;`,
+        `export type Visualizer = { Svg: (props: import("${VISUALIZER_JSX_PACKAGE}/jsx-runtime").VisualizerSvgProps) => ReactElement };`,
+        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters; width: number; height: number };`,
+        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
         `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
       ].join("\n"),
     });
@@ -591,16 +609,42 @@ export function generateVisualizerVirtualFiles(
     // or export-less file a module, so its `Visualization` binding never
     // collides with another place's in the script scope.
     const defsModule = defsPath.replace(/\.d\.ts$/u, "");
-    files.set(getItemFilePath("place-visualizer-code", { placeId: place.id }), {
-      prefix: [
-        `export {};`,
-        `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
-        `  /** @type {unknown} */ (undefined)`,
-        `);`,
-        ``,
-      ].join("\n"),
-      content: place.visualizerCode,
-    });
+    const ambientPrefix = [
+      `const Visualizer = /** @type {import("${defsModule}").Visualizer} */ (/** @type {unknown} */ (undefined));`,
+      `/** @type {number} */ const width = 0;`,
+      `/** @type {number} */ const height = 0;`,
+    ];
+    files.set(
+      getItemFilePath("place-visualizer-code", { placeId: place.id }),
+      applyFormWrapper({
+        content: place.visualizerCode,
+        formWrappers: {
+          scriptKind: ts.ScriptKind.TSX,
+          module: {
+            suffix: "",
+            prefix: [
+              `export {};`,
+              ...ambientPrefix,
+              `/** @deprecated Write the function body directly; tokens, parameters, width and height are already available. Remove export default Visualization(...) and keep its body. */`,
+              `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+              `  /** @type {unknown} */ (undefined)`,
+              `);`,
+              ``,
+            ].join("\n"),
+          },
+          body: {
+            prefix: [
+              `export {};`,
+              ...ambientPrefix,
+              `/** @type {import("${defsModule}").VisualizerComponent} */`,
+              `const __visualizer = ({ tokens, parameters }) => {`,
+              ``,
+            ].join("\n"),
+            suffix: `\nreturn /** @type {never} */ (undefined);\n};`,
+          },
+        },
+      }),
+    );
   }
 
   return files;

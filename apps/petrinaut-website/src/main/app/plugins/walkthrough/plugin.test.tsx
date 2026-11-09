@@ -9,7 +9,7 @@ import { walkthroughPlugin } from "./plugin";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

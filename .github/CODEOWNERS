@@ -1,8 +1,31 @@
-# Rust
-*.rs @hashintel/rust
-Cargo.toml @hashintel/rust
-/libs/@local/hashql/ @hashintel/backend-rust
-/libs/@local/harpc/ @hashintel/backend-rust
+# Rust workspace
+/Cargo.toml @hashintel/rust
+/Cargo.lock @hashintel/rust
+/rust-toolchain.toml @hashintel/rust
+/.cargo/ @hashintel/rust
+/.clippy.toml @hashintel/rust
+/.rustfmt.toml @hashintel/rust
+
+# Rust crates without an area team
+/libs/error-stack/ @hashintel/error-stack
+/libs/darwin-kperf/ @hashintel/darwin-kperf
+/libs/problematic/rust/ @hashintel/rust
+/libs/@blockprotocol/type-system/ @hashintel/graph
+/libs/@local/codec/rust/ @hashintel/rust
+/libs/@local/codegen/ @hashintel/rust
+/libs/@local/config/ @hashintel/rust
+/libs/@local/crypto/ @hashintel/rust
+/libs/@local/durable-kernel/ @hashintel/rust
+/libs/@local/middleware/ @hashintel/rust
+/libs/@local/repo-chores/rust/ @hashintel/rust
+/libs/@local/status/rust/ @hashintel/rust
+/libs/@local/telemetry/ @hashintel/rust
+/libs/@local/temporal-client/ @hashintel/rust
+/libs/@local/typst-railroad/ @hashintel/rust
+
+# HashQL and HaRPC
+/libs/@local/hashql/ @hashintel/hashql
+/libs/@local/harpc/ @hashintel/harpc
 
 # Design system
 /apps/hashdotdesign/ @hashintel/design-system
@@ -17,13 +40,18 @@ Cargo.toml @hashintel/rust
 /apps/hash-api/ @hashintel/backend-ts
 /apps/hash-ai-worker-ts/ @hashintel/backend-ts
 /apps/hash-integration-worker/ @hashintel/backend-ts
-/apps/hash-graph/ @hashintel/backend-rust
-/libs/@local/graph/ @hashintel/backend-rust
+/apps/hash-graph/ @hashintel/graph
+/libs/@local/graph/ @hashintel/graph
+/tests/graph/ @hashintel/graph
 /libs/@local/graph/*/typescript/ @hashintel/backend-ts
 
 # Database migrations
-/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
-/libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
+/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/graph
+/libs/@local/graph/migrations/graph-migrations/ @hashintel/graph
+
+# Integrations
+/apps/hash-integrations/ @hashintel/integrations
+/libs/@local/integrations/ @hashintel/integrations
 
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins

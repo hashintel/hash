@@ -120,9 +120,9 @@ export type ViewNode =
 /** A lowered visualizer: the unit that crosses the worker boundary. */
 export type ViewHir = {
   viewVersion: 1;
-  /** The props parameter, `({ tokens, parameters })`, when declared. */
+  /** The props binding; synthetic for a bare body, optional in a legacy module. */
   props: ViewNamedSpan | null;
   body: ViewNode;
-  /** Span of the whole component function in the source text. */
+  /** Span of the body or legacy component function in the source text. */
   span: Span;
 };

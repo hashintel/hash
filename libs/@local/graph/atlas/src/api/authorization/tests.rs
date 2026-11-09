@@ -26,7 +26,6 @@ use hash_graph_postgres_store::store::{
     PostgresStoreSettings,
 };
 use tokio::time::timeout;
-use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, ActorType};
@@ -139,7 +138,6 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabasePoolConfig {
                 max_connections: nz!(1),
             },
-            NoTls,
             PostgresStoreSettings::default(),
         )
         .expect("an unconnected pool should construct without reaching a database"),

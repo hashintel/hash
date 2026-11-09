@@ -49,7 +49,7 @@ fst                       = { workspace = true, public = true }
 futures                   = { workspace = true }
 hannoy                    = { workspace = true }
 hash-graph-authorization  = { workspace = true }
-hash-graph-postgres-store = { workspace = true, public = true }
+hash-graph-postgres-store = { workspace = true, public = true, features = ["clap"] }
 hash-graph-store          = { workspace = true, features = ["postgres"] }
 hash-temporal-client      = { workspace = true, public = true }
 hashbrown                 = { workspace = true }

@@ -75,7 +75,7 @@ Content-Type: application/json
     });
 %}
 
-### Fetch an unresolvable URL
+### Fetch a URL which is not a predefined type
 POST http://localhost:4455/fetch-ontology-types
 Content-Type: application/json
 
@@ -85,10 +85,29 @@ Content-Type: application/json
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 500, "Expected 500 for an unresolvable URL");
+        client.assert(response.status === 500, "Expected 500 for a URL which is not a predefined type");
     });
     client.test("body", function() {
-        client.assert(response.body.Network !== undefined, "Expected a `Network` fetcher error");
+        client.assert(response.body.NotPredefined !== undefined, "Expected a `NotPredefined` fetcher error");
+    });
+%}
+
+### Fetch a Block Protocol URL which is not bundled
+# Only the bundled types are served, so a Block Protocol type outside that set is rejected instead of
+# being fetched over the network.
+POST http://localhost:4455/fetch-ontology-types
+Content-Type: application/json
+
+[
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2"
+]
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 500, "Expected 500 for a type which is not bundled");
+    });
+    client.test("body", function() {
+        client.assert(response.body.NotPredefined !== undefined, "Expected a `NotPredefined` fetcher error");
     });
 %}
 

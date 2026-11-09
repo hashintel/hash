@@ -69,6 +69,54 @@ const SUBSET_CODES = new Set([
 const SUBSET_NOTE =
   " Petrinaut compiles a restricted TypeScript subset — rewrite using `const` bindings, conditionals (`?:` or guard `if`s), `.map(...)` and `Math.*`.";
 
+/**
+ * `.length` reads that have a standard replacement:
+ *
+ * - on a transition input (`input.<Place>.length`), the arc weight, a
+ *   constant: write the number, or read `.count` for the place's tokens;
+ * - on a metric's place tokens (`state.places.<Place>.tokens.length`), the
+ *   place's token count: read `state.places.<Place>.count`.
+ */
+function collectDeprecatedLengths(
+  fn: HirFunction,
+  types: HirTypecheckResult["types"],
+): HirDiagnostic[] {
+  const diagnostics: HirDiagnostic[] = [];
+  walkHir(fn.body, (expr) => {
+    if (expr.kind !== "length") {
+      return;
+    }
+    const targetType = types.get(expr.target.id);
+    if (targetType?.kind !== "array") {
+      return;
+    }
+    if (targetType.inputPlace && targetType.length !== undefined) {
+      diagnostics.push({
+        code: "hir:deprecated-length",
+        severity: "hint",
+        message: `\`.length\` is deprecated on a transition input: it is the arc weight, always ${targetType.length}. Write ${targetType.length}, or read \`.count\` for how many tokens the place holds.`,
+        span: expr.span,
+      });
+      return;
+    }
+    const { target } = expr;
+    if (
+      fn.surface === "metric" &&
+      target.kind === "fieldAccess" &&
+      target.field === "tokens" &&
+      target.target.kind === "fieldAccess"
+    ) {
+      diagnostics.push({
+        code: "hir:deprecated-length",
+        severity: "hint",
+        message: `\`.tokens.length\` is deprecated: read \`state.places.${target.target.field}.count\` instead.`,
+        span: expr.span,
+      });
+    }
+  });
+  return diagnostics;
+}
+
 function collectMathRandomSpans(fn: HirFunction): Span[] {
   const spans: Span[] = [];
   walkHir(fn.body, (expr) => {
@@ -175,6 +223,9 @@ export function lintHirUserCode(
       });
     }
   }
+
+  // --- Deprecated syntax ---------------------------------------------------
+  diagnostics.push(...collectDeprecatedLengths(fn, typecheck.types));
 
   // --- Shared distribution draws -------------------------------------------
   for (const nodeId of analysis.distributionDag.sharedSampleNodeIds) {

@@ -583,6 +583,7 @@ function createCompiledTransition({
     kernelFn,
     placeBases: new Int32Array(coloredInputArcCount),
     indices: new Int32Array(expectedSlotCount),
+    inputCounts: new Float64Array(transition.inputArcs.length),
     kernelStaging,
     kernelStagingViews,
   };

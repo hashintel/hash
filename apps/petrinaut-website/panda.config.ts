@@ -1,7 +1,15 @@
+import { createRequire } from "node:module";
+
 import { defineConfig, type Preset } from "@pandacss/dev";
 
-import { scopedThemeConfig } from "@hashintel/ds-components/preset";
+import {
+  resolvePandaBuildInfoPath,
+  scopedThemeConfig,
+} from "@hashintel/ds-components/preset";
 import { petrinautPandaPreset } from "@hashintel/petrinaut/panda-preset";
+
+/** Panda evaluates this config through CJS, so `__filename` is available here. */
+const require = createRequire(__filename);
 
 const scopedConfig = scopedThemeConfig(".petrinaut-root");
 
@@ -18,15 +26,23 @@ const scopedConfig = scopedThemeConfig(".petrinaut-root");
 const checkedPetrinautPandaPreset: Preset = petrinautPandaPreset as Preset;
 
 /**
- * Extracts utility classes from the website's own source. The petrinaut library
- * ships a prebuilt `@hashintel/petrinaut/styles.css` covering its components;
- * this config emits a supplementary stylesheet for any `css()` calls in this
- * app. Layer order matches the library so utilities cascade together.
+ * Extracts utility classes from the website's own source and from Brunch's
+ * client (`@hashintel/brunch-agent/ui`, through the build info it ships). The
+ * petrinaut library ships a prebuilt `@hashintel/petrinaut/styles.css`
+ * covering its components; this config emits a supplementary stylesheet for
+ * any `css()` calls in this app and in Brunch's. Layer order matches the
+ * library so utilities cascade together.
  */
 export default defineConfig({
   ...scopedConfig,
   presets: [...scopedConfig.presets, checkedPetrinautPandaPreset],
-  include: ["./src/**/*.{ts,tsx,js,jsx}"],
+  include: [
+    "./src/**/*.{ts,tsx,js,jsx}",
+    resolvePandaBuildInfoPath(
+      "@hashintel/brunch-agent/panda.buildinfo.json",
+      require.resolve,
+    ),
+  ],
   exclude: [],
   polyfill: true,
   importMap: "@hashintel/ds-helpers",

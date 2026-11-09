@@ -535,7 +535,12 @@ export type ActionStepCheck = (params: {
   step: ActionStepDefinition<string>;
   /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
   getInputKind: (inputName: string) => PayloadKind | null;
-  report: (inputName: string, message: string) => void;
+  /** Reports a problem with an input, or with the part of its source at `pathInSource`, e.g. `["payload", "value", "limit"]`. */
+  report: (
+    inputName: string,
+    message: string,
+    pathInSource?: (string | number)[],
+  ) => void;
 }) => void;
 
 /**
@@ -616,11 +621,21 @@ export type StepInputSource =
   /** A fixed value, the same in every run. */
   | { kind: "constant"; payload: ConstantPayload };
 
+type StepDefinitionBase = {
+  stepId: string;
+  /** Where an editor shows the step. Nothing that runs or compiles a flow reads it. */
+  position?: { x: number; y: number };
+  /**
+   * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
+   * inputs. A skipped step counts as finished.
+   */
+  runAfter?: { stepId: string }[];
+};
+
 export type ActionStepDefinition<
   ActionDefinitionId extends string = FlowActionDefinitionId,
-> = {
+> = StepDefinitionBase & {
   kind: "action";
-  stepId: string;
   /**
    * The id of an action definition. A definition from outside the codebase may name an action that doesn't
    * exist: `validateFlowDefinition` reports it.
@@ -640,9 +655,8 @@ export type ActionStepDefinition<
  */
 export type ForEachStepDefinition<
   ActionDefinitionId extends string = FlowActionDefinitionId,
-> = {
+> = StepDefinitionBase & {
   kind: "for-each";
-  stepId: string;
   description: string;
   /** The array whose items each run the nested steps once. */
   over: StepInputSource;

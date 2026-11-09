@@ -1,8 +1,11 @@
 /**
  * Registers a running plugin's declared commands in the ambient command
  * registry, under `pluginCommandId(manifest.id, key)`, while its host is
- * mounted and each command's `when` holds. A no-op without a registry.
+ * mounted and each command's `when` holds. Declared shortcuts also work
+ * without a registry.
  */
+
+import { useEffect, useEffectEvent } from "react";
 
 import { useCommand } from "../../react/commands/command-registry";
 import { pluginCommandId } from "./define-petrinaut-plugin";
@@ -13,6 +16,35 @@ import type {
   PluginCommand,
   PluginCommandSpec,
 } from "./define-petrinaut-plugin";
+
+const matchesShortcut = (event: KeyboardEvent, shortcut: string) => {
+  const parts = shortcut
+    .toLowerCase()
+    .split("+")
+    .map((part) => part.trim());
+  const key = parts.pop();
+  const modifiers = new Set(parts);
+  if (
+    !key ||
+    modifiers.size !== parts.length ||
+    parts.some(
+      (part) => !["mod", "ctrl", "meta", "alt", "shift"].includes(part),
+    ) ||
+    (modifiers.has("mod") && (modifiers.has("ctrl") || modifiers.has("meta")))
+  )
+    return false;
+
+  const primaryMatches = modifiers.has("mod")
+    ? event.metaKey !== event.ctrlKey
+    : event.metaKey === modifiers.has("meta") &&
+      event.ctrlKey === modifiers.has("ctrl");
+  return (
+    primaryMatches &&
+    event.altKey === modifiers.has("alt") &&
+    event.shiftKey === modifiers.has("shift") &&
+    event.key.toLowerCase() === (key === "space" ? " " : key)
+  );
+};
 
 const PluginCommandRegistration = ({
   id,
@@ -27,6 +59,8 @@ const PluginCommandRegistration = ({
   /** What the hook returned for this key in its latest render, if anything. */
   command: PluginCommand | undefined;
 }) => {
+  const active = command !== undefined && command.when !== false;
+  const shortcut = spec.shortcut;
   useCommand(
     {
       id,
@@ -36,8 +70,38 @@ const PluginCommandRegistration = ({
       shortcut: spec.shortcut,
       run: () => command?.run(),
     },
-    { when: command !== undefined && command.when !== false },
+    { when: active },
   );
+
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      !active ||
+      !shortcut ||
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.repeat ||
+      !matchesShortcut(event, shortcut)
+    )
+      return;
+    if (
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      event.target instanceof HTMLElement &&
+      (event.target.isContentEditable ||
+        event.target.closest(
+          'input, textarea, select, [contenteditable="true"], [contenteditable=""]',
+        ))
+    )
+      return;
+    event.preventDefault();
+    command.run();
+  });
+  useEffect(() => {
+    if (!active || !shortcut) return;
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [active, shortcut]);
 
   return null;
 };

@@ -2,13 +2,13 @@ import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { useLoopSelection } from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list";
+import { loopSelectionKeyDown } from "../../primitives/SelectableList/selectable-list-util";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type MenuItem } from "../Menu/menu";
 import { collectSelectedIds } from "../Menu/menu-util";
 import { type Position } from "../Tooltip/tooltip";
@@ -34,7 +34,6 @@ export const RightClickMenu = ({
   children: React.ReactNode;
 }) => {
   const portalContainerRef = usePortalContainerRef();
-  const handleLoopKeyDown = useLoopSelection(items);
   const selected = useMemo(() => collectSelectedIds(items), [items]);
 
   if (items.length === 0) {
@@ -57,7 +56,7 @@ export const RightClickMenu = ({
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
                 className={parkedPopperPositioner}
-                onKeyDownCapture={(event) => handleLoopKeyDown(event, menu)}
+                onKeyDownCapture={(event) => loopSelectionKeyDown(event, menu)}
               >
                 <SelectableList
                   items={items}

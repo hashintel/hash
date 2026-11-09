@@ -4,17 +4,35 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
  */
 
-import {
-  apiOrigin,
-  frontendUrl,
-} from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
     .map(([key, values]) => `${key} ${values.join(" ")}`)
     .join("; ");
 
-export const buildCspHeader = (nonce: string): string => {
+/**
+ * Whether `pathname` is the process editor (`/processes/<uuid>` or
+ * `/processes/draft`, with an optional trailing slash), the one route whose
+ * policy lets Petrinaut evaluate strings and load its `data:` fonts.
+ *
+ * The policy belongs to the document, not the route, so a client-side
+ * navigation keeps it. The process editor therefore reloads the document
+ * both on arriving from another route and on leaving for one.
+ */
+export const isProcessEditorPath = (pathname: string): boolean =>
+  /^\/processes\/[^/]+\/?$/.test(pathname);
+
+export const buildCspHeader = ({
+  nonce,
+  pathname,
+}: {
+  nonce: string;
+  /** The request's pathname, which decides the route-specific allowances. */
+  pathname: string;
+}): string => {
+  const isProcessEditor = isProcessEditorPath(pathname);
+
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
 
@@ -25,7 +43,13 @@ export const buildCspHeader = (nonce: string): string => {
       // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
       "'wasm-unsafe-eval'",
       // Next.js dev mode uses eval() for Fast Refresh / HMR.
-      ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
+      // Petrinaut, rendered in the process editor, compiles its programs and
+      // evaluates the ad-hoc form's constant values with `new Function`.
+      // @todo Run Petrinaut without 'unsafe-eval' and drop this allowance:
+      //   https://linear.app/hash/issue/FE-2142
+      ...(process.env.NODE_ENV === "development" || isProcessEditor
+        ? ["'unsafe-eval'"]
+        : []),
       // Google Identity Services (OAuth sign-in)
       "https://accounts.google.com",
       // Google Picker API (Google Sheets integration)
@@ -53,7 +77,17 @@ export const buildCspHeader = (nonce: string): string => {
       ...(process.env.NODE_ENV === "development" ? ["http:"] : []),
     ],
 
-    "font-src": ["'self'"],
+    "font-src": [
+      "'self'",
+      // Petrinaut, rendered in the process editor, ships its fonts as data: URLs.
+      // Development allows them everywhere, as it does string evaluation:
+      // there the editor never reloads into its own policy, because
+      // evaluation already works, so a document that arrived from another
+      // route would otherwise render Petrinaut without its fonts.
+      ...(process.env.NODE_ENV === "development" || isProcessEditor
+        ? ["data:"]
+        : []),
+    ],
 
     "connect-src": [
       "'self'",
@@ -97,79 +131,6 @@ export const buildCspHeader = (nonce: string): string => {
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
-  };
-
-  return buildDirectiveString(directives);
-};
-
-/**
- * Stricter CSP for the Petrinaut embed route (`/processes/<uuid>/embed`).
- *
- * The embed route is loaded into a sandboxed null-origin iframe so user-
- * provided code (place visualizers, metric/scenario expressions) can be
- * compiled with `new Function()` without endangering the parent HASH origin.
- *
- * Key differences vs the default CSP:
- * - `script-src` includes `'unsafe-eval'` so Babel + `new Function()` work.
- *   Unlike the rest of the app it uses `'unsafe-inline'` rather than a nonce:
- *   the embed's security boundary is the opaque-origin sandbox, not its CSP —
- *   it deliberately executes arbitrary user code via `'unsafe-eval'`, so
- *   nonce-gating its inline framework scripts buys nothing here
- *   (and a nonce would disable it: @see https://www.w3.org/TR/CSP3/#allow-all-inline).
- * - `connect-src` is `'self'` only — from the opaque-origin sandbox this is
- *   effectively no network reach. Persistence requests round-trip through
- *   the host via postMessage instead.
- * - `frame-ancestors` — only the HASH frontend may embed this route. Spelled
- *   out via {@link frontendUrl} for the same opaque-origin reason as the asset
- *   directives (`'self'` alone matches no ancestor here).
- * - `worker-src` allows `blob:` because Monaco / petrinaut spawn workers
- *   from blob URLs.
- */
-export const buildEmbedCspHeader = (): string => {
-  const directives: Record<string, string[]> = {
-    "default-src": ["'none'"],
-
-    "script-src": [
-      // The embed's opaque origin makes `'self'` match nothing; reference the
-      // real origin so Next.js chunks load.
-      frontendUrl,
-      "'self'",
-      // Isolation here is the opaque-origin sandbox, not the CSP, and the
-      // route already runs arbitrary user code via `'unsafe-eval'`, so a
-      // script nonce adds nothing. `'unsafe-inline'` (with the nonce
-      // deliberately omitted, since a nonce would disable it).
-      "'unsafe-inline'",
-      "'wasm-unsafe-eval'",
-      // The whole point of the embed route: user-provided code is compiled
-      // with `new Function()`, which requires `'unsafe-eval'`. Contained to
-      // the null-origin iframe.
-      "'unsafe-eval'",
-    ],
-
-    "style-src": [
-      frontendUrl,
-      "'self'",
-      // Required for Emotion/MUI CSS-in-JS inline style injection.
-      "'unsafe-inline'",
-    ],
-
-    "img-src": [frontendUrl, "'self'", "data:", "blob:"],
-
-    "font-src": [frontendUrl, "'self'", "data:"],
-
-    // Effectively no real reach from the opaque-origin sandbox — see the
-    // `connect-src` note in this function's doc comment.
-    "connect-src": ["'self'"],
-
-    "worker-src": [frontendUrl, "'self'", "blob:"],
-
-    "frame-src": ["'none'"],
-
-    "frame-ancestors": [frontendUrl, "'self'"],
-
-    "object-src": ["'none'"],
-    "base-uri": ["'none'"],
-    "form-action": ["'none'"],
   };
 
   return buildDirectiveString(directives);

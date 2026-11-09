@@ -1,4 +1,4 @@
-import { Suspense, use } from "react";
+import { Suspense, use, useDeferredValue } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -16,9 +16,13 @@ import {
 } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { renderVisualizerHir } from "../../lib/render-visualizer-hir";
+import {
+  renderVisualizerHir,
+  type VisualizerSize,
+} from "../../lib/render-visualizer-hir";
 import { useVisualizerHir } from "../../lib/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
+import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
 
@@ -38,6 +42,7 @@ const visualizerErrorStyle = css({
 interface PlaceStateVisualizationProps {
   place: Place;
   placeType: Color | null;
+  size: VisualizerSize;
 }
 
 /**
@@ -85,7 +90,8 @@ const VisualizerPicture: React.FC<{
   place: Place;
   placeType: Color;
   code: string;
-}> = ({ place, placeType, code }) => {
+  size: VisualizerSize;
+}> = ({ place, placeType, code, size }) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { parameterValues } = use(SimulationContext);
   const defaultParameterValues = useDefaultParameterValues();
@@ -106,6 +112,7 @@ const VisualizerPicture: React.FC<{
     hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
+    size,
   );
 };
 
@@ -115,8 +122,9 @@ const VisualizerPicture: React.FC<{
  */
 export const PlaceStateVisualization: React.FC<
   PlaceStateVisualizationProps
-> = ({ place, placeType }) => {
-  if (!place.visualizerCode) {
+> = ({ place, placeType, size }) => {
+  const code = useDeferredValue(place.visualizerCode);
+  if (!code) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
@@ -125,14 +133,18 @@ export const PlaceStateVisualization: React.FC<
   }
 
   return (
-    <VisualizerErrorBoundary>
-      <Suspense fallback={null}>
-        <VisualizerPicture
-          place={place}
-          placeType={placeType}
-          code={place.visualizerCode}
-        />
+    <>
+      <Suspense fallback={<VisualizerLoading />}>
+        <VisualizerErrorBoundary resetKey={code}>
+          <VisualizerPicture
+            place={place}
+            placeType={placeType}
+            code={code}
+            size={size}
+          />
+        </VisualizerErrorBoundary>
       </Suspense>
-    </VisualizerErrorBoundary>
+      {code !== place.visualizerCode && <VisualizerLoading />}
+    </>
   );
 };

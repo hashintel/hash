@@ -698,8 +698,13 @@ describe("PetrinautPluginsProvider", () => {
     });
     expect(commandRuns).toEqual(["toggle 0", "toggle 1", "clear"]);
 
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(commandRuns).toEqual(["toggle 0", "toggle 1", "clear", "toggle 2"]);
+
     act(() => screen.getByRole("button", { name: "switch off" }).click());
     expect(registered()).toEqual([]);
+    expect(fireEvent.keyDown(window, { key: "k", metaKey: true })).toBe(true);
+    expect(commandRuns).toHaveLength(4);
   });
 
   it("skips a button's command while `when` withholds it", () => {

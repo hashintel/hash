@@ -20,7 +20,6 @@ use hash_graph_postgres_store::store::{
 use hash_middleware::authentication::Challenge;
 use http::Request;
 use serde_json::Value;
-use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 
 pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
@@ -79,7 +78,6 @@ fn unconnected_store() -> PostgresStorePool {
             "graph-api-test".to_owned(),
         ),
         &DatabasePoolConfig::default(),
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("the pool should be built without connecting")

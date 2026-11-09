@@ -27,6 +27,9 @@ export type FlowDefinitionDiagnosticCode =
   | "duplicateStepId"
   | "duplicateInputName"
   | "duplicateOutputName"
+  | "unnamedInput"
+  /** A flow output, or a for-each step's `collect.as`, with no name. */
+  | "unnamedOutput"
   | "unknownAction"
   | "unknownInput"
   | "missingInput"
@@ -158,20 +161,26 @@ export const validateFlowDefinition = (
     diagnostics.push({ severity, code, message, path });
   };
 
-  const reportDuplicateNames = (
+  const reportNameProblems = (
     items: { name: string }[],
-    code: "duplicateInputName" | "duplicateOutputName",
     collection: "inputs" | "outputs",
   ) => {
+    const noun = collection === "inputs" ? "input" : "output";
     const seen = new Set<string>();
 
     for (const [index, { name }] of items.entries()) {
-      if (seen.has(name)) {
+      if (name === "") {
         report(
-          code,
-          `The flow has more than one ${
-            collection === "inputs" ? "input" : "output"
-          } named "${name}"`,
+          collection === "inputs" ? "unnamedInput" : "unnamedOutput",
+          `A flow ${noun} has no name`,
+          [collection, index, "name"],
+        );
+      } else if (seen.has(name)) {
+        report(
+          collection === "inputs"
+            ? "duplicateInputName"
+            : "duplicateOutputName",
+          `The flow has more than one ${noun} named "${name}"`,
           [collection, index, "name"],
         );
       }
@@ -180,12 +189,8 @@ export const validateFlowDefinition = (
     }
   };
 
-  reportDuplicateNames(flowDefinition.inputs, "duplicateInputName", "inputs");
-  reportDuplicateNames(
-    flowDefinition.outputs,
-    "duplicateOutputName",
-    "outputs",
-  );
+  reportNameProblems(flowDefinition.inputs, "inputs");
+  reportNameProblems(flowDefinition.outputs, "outputs");
 
   const stepsById = new Map<string, StepEntry>();
 
@@ -494,6 +499,14 @@ export const validateFlowDefinition = (
       addDependency(step.stepId, child.stepId);
     }
 
+    if (step.collect.as === "") {
+      report(
+        "unnamedOutput",
+        `The output for-each step "${step.stepId}" collects into has no name`,
+        [...entry.path, "collect", "as"],
+      );
+    }
+
     const collected = getCollectedStep(step);
     const collectPath = [...entry.path, "collect"];
 
@@ -633,7 +646,7 @@ export const validateFlowDefinition = (
         report(
           "missingInput",
           `Required input "${actionInput.name}" of action "${step.actionDefinitionId}" is not connected`,
-          [...entry.path, "inputs"],
+          [...entry.path, "inputs", actionInput.name],
         );
       }
     }
@@ -641,8 +654,13 @@ export const validateFlowDefinition = (
     actionDefinition.check?.({
       step,
       getInputKind: (inputName) => shapes.getInputKind(step.stepId, inputName),
-      report: (inputName, message) =>
-        report("invalidInput", message, [...entry.path, "inputs", inputName]),
+      report: (inputName, message, pathInSource = []) =>
+        report("invalidInput", message, [
+          ...entry.path,
+          "inputs",
+          inputName,
+          ...pathInSource,
+        ]),
     });
   };
 
@@ -660,6 +678,31 @@ export const validateFlowDefinition = (
   for (const entry of entries) {
     if (entry.step.kind === "action") {
       checkActionStep(entry, entry.step);
+    }
+  }
+
+  for (const { step, path, scope } of entries) {
+    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+      const runAfterPath = [...path, "runAfter", index, "stepId"];
+      const before = stepsById.get(stepId);
+
+      if (!before) {
+        report("unknownStep", `There is no step "${stepId}"`, runAfterPath);
+      } else if (stepId === step.stepId) {
+        report(
+          "selfReference",
+          `Step "${stepId}" cannot run after itself`,
+          runAfterPath,
+        );
+      } else if (!isInScope(before.scope, scope)) {
+        report(
+          "stepNotInScope",
+          `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
+          runAfterPath,
+        );
+      } else {
+        addDependency(step.stepId, stepId);
+      }
     }
   }
 
@@ -711,6 +754,34 @@ export const getValidFlowDefinition = ({
     ? /* Every action id was checked against `actionDefinitions`. */
       (flowDefinition as FlowDefinition)
     : null;
+
+/**
+ * Which of a step's outputs a run has when it finishes, and so can be flow outputs: e.g. a for-each step's collected
+ * output, but not an output of a step inside it. Each is checked as a flow output of the definition, so this and the
+ * validator agree on what one can be.
+ */
+export const getOutputsAvailableToFlow = (
+  flowDefinition: FlowDefinition<string>,
+  stepId: string,
+  outputNames: string[],
+): string[] => {
+  const { diagnostics } = validateFlowDefinition({
+    ...flowDefinition,
+    outputs: outputNames.map((outputName) => ({
+      name: outputName,
+      stepId,
+      outputName,
+    })),
+  });
+
+  const unavailable = new Set(
+    diagnostics.flatMap(({ path: [collection, index] }) =>
+      collection === "outputs" && typeof index === "number" ? [index] : [],
+    ),
+  );
+
+  return outputNames.filter((_outputName, index) => !unavailable.has(index));
+};
 
 /**
  * The id of the innermost step a path into a definition goes through, if it goes through one with an id: e.g. the

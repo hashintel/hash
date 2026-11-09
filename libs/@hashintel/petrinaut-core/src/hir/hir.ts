@@ -48,8 +48,8 @@ export type HirNodeId = number;
  *   *body* ending in `return <record keyed by place name>`, with the same
  *   ambient bindings.
  *
- * `visualizer` — a place visualizer: the module
- *   `export default Visualization(({ tokens, parameters }) => <jsx/>)`,
+ * `visualizer` — a place visualizer: a function body returning Visualizer.Svg with
+ *   ambient `tokens` and `parameters` (legacy `Visualization(...)` also works),
  *   JavaScript with JSX, lowered to the view HIR over the place's tokens;
  *   only its expressions are HIR.
  *
@@ -77,12 +77,18 @@ export type HirType =
   | {
       kind: "record";
       fields: { name: string; type: HirType }[];
+      /** A transition input that delivers no token values: its one field
+       * is `count`, the live token count of its place. */
+      inputPlace?: true;
     }
   | {
       kind: "array";
       element: HirType;
       /** Statically-known length (e.g. arc-weight token tuples). */
       length?: number;
+      /** A transition input's token tuple, which also exposes `.count`: the
+       * live token count of its place. */
+      inputPlace?: true;
     }
   /** A 128-bit identifier attribute (surfaced to user code as `bigint`). */
   | { kind: "uuid" }

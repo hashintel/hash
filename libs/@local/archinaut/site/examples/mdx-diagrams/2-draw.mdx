@@ -1,0 +1,28 @@
+---
+title: Lines draw, then flow
+align: center
+notes:
+  default: >-
+    draw-n shows a part by drawing its lines from start to end, arrowhead
+    last. flow-n runs dashes along its lines on that step alone.
+  byStep:
+    1: The first connection carries draw-1.
+    2: The second, draw-2.
+    3: The third, draw-3.
+    4: All three carry flow-4, so dashes run along them on step 4.
+---
+
+## Lines draw, then flow
+
+```d2 The same pipeline, its connections drawn one by one and then flowing
+direction: right
+
+source: Slide files
+compile: Compile
+bundle: Bundle
+serve: Serve
+
+source -> compile: {class: [draw-1; flow-4]}
+compile -> bundle: {class: [draw-2; flow-4]}
+bundle -> serve: {class: [draw-3; flow-4]}
+```

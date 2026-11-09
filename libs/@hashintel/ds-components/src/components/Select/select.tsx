@@ -13,26 +13,31 @@ import {
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { resolveAutoFocusProps } from "../../util/form-shared";
-import { hasCommandModifier } from "../../util/keyboard";
-import { OverflowRow } from "../../util/OverflowRow/overflow-row";
-import { parkedPopperPositioner } from "../../util/popper-positioner";
-import { usePortalContainerRef } from "../../util/portal-container-context";
-import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
+import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
+import { hasMultiItemSuffix } from "../../primitives/SelectableList/has-multi-item-suffix";
 import {
   SelectableList,
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
-import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
-import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
-import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
+} from "../../primitives/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../primitives/SelectableList/selectable-list-multi-suffix";
+import { SelectableListSearch } from "../../primitives/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../primitives/SelectableList/selectable-list-search.recipe";
+import { SelectableListSelectionSummary } from "../../primitives/SelectableList/selectable-list-selection-summary";
 import {
+  type CollapsibleExpansion,
+  type CollapsibleFolder,
+  type NotCollapsible,
+  collectSelectedAncestorIds,
+  flattenVisibleItems,
   getItemId,
   getVisibleTabbables,
-  isCustomItem,
-} from "../../util/SelectableList/selectable-list-util";
+  useCollapsibleExpansion,
+} from "../../primitives/SelectableList/selectable-list-util";
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -46,7 +51,7 @@ import type {
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
-export type SelectItem<TValue extends string = string> = {
+type SelectItemBase<TValue extends string> = {
   /** Identifies the option; reported to `onChange` when selected */
   value: TValue;
   /** The option's visible label — shown in the trigger while selected, and matched by search and typeahead */
@@ -54,6 +59,10 @@ export type SelectItem<TValue extends string = string> = {
   /** Prevents selecting the option */
   disabled?: boolean;
 };
+
+export type SelectItem<TValue extends string = string> =
+  SelectItemBase<TValue> &
+    (NotCollapsible | CollapsibleFolder<SelectItem<TValue>>);
 
 // Docs-only markers: render nothing, exist so react-docgen can surface the
 // `items` entry shapes in the docs prop tables.
@@ -68,7 +77,7 @@ export const SelectGroupDoc = (_props: {
 }): null => null;
 
 export type MultiSelectItem<TValue extends string = string> =
-  SelectItem<TValue> & {
+  SelectItemBase<TValue> & {
     /** Optional content aligned to the right of the item in the dropdown */
     suffix?: React.ReactNode;
     /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
@@ -77,7 +86,8 @@ export type MultiSelectItem<TValue extends string = string> =
     // to `checkbox`; selectedTone: the indicator's tone (checkbox fill, tick
     // or highlight color), defaulting to `neutral`. Named after the list
     // `Item` fields they map onto, matching MultiComboboxItem.
-  } & Pick<Item, "selectedStyle" | "selectedTone">;
+  } & Pick<Item, "selectedStyle" | "selectedTone"> &
+    (NotCollapsible | CollapsibleFolder<MultiSelectItem<TValue>>);
 
 export const MultiSelectItemDoc = (_props: MultiSelectItem): null => null;
 
@@ -255,6 +265,34 @@ function renderPrefix(
   );
 }
 
+/**
+ * Flattens groups and collapsible folders into the depth-first list of every
+ * option, folders included and regardless of their expansion state.
+ */
+function flattenSelectOptions<TItem extends SelectItem<string>>(
+  items: ReadonlyArray<ItemOrGroup<TItem>>,
+): TItem[] {
+  const result: TItem[] = [];
+  const visitItem = (item: TItem) => {
+    result.push(item);
+    if (item.subItems) {
+      for (const child of item.subItems as ReadonlyArray<TItem>) {
+        visitItem(child);
+      }
+    }
+  };
+  for (const entry of items) {
+    if ("items" in entry) {
+      for (const item of entry.items) {
+        visitItem(item);
+      }
+    } else {
+      visitItem(entry);
+    }
+  }
+  return result;
+}
+
 function findSelectItem<TValue extends string>(
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
   value: TValue | null | undefined,
@@ -262,17 +300,7 @@ function findSelectItem<TValue extends string>(
   if (value == null) {
     return undefined;
   }
-  for (const entry of items) {
-    if ("items" in entry) {
-      const found = entry.items.find((it) => it.value === value);
-      if (found) {
-        return found;
-      }
-    } else if (entry.value === value) {
-      return entry;
-    }
-  }
-  return undefined;
+  return flattenSelectOptions(items).find((it) => it.value === value);
 }
 
 function mapToMenuItems<TValue extends string>(
@@ -284,6 +312,8 @@ function mapToMenuItems<TValue extends string>(
     selectableValues: ReadonlySet<string> | undefined;
     /** Sets the selection to just the given value — backs the per-item "Only" button */
     selectOnly: (value: TValue) => void;
+    /** Whether the option set contains collapsible folders — a single select then marks its selection with a trailing radio, keeping the leading chevron column clean */
+    hasCollapsibleFolders: boolean;
   },
 ): Array<ItemOrGroup<Item>> {
   const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode =>
@@ -296,19 +326,41 @@ function mapToMenuItems<TValue extends string>(
         onSelectOnly={() => options.selectOnly(it.value)}
       />
     ) : undefined;
-  const toItem = (it: MultiSelectItem<TValue>): Item => ({
-    id: it.value,
-    text: renderItem(it.value),
-    disabled:
+  const toItem = (it: MultiSelectItem<TValue>): Item => {
+    const disabled =
       it.disabled ||
       (options.selectableValues !== undefined &&
-        !options.selectableValues.has(it.value)),
-    selectedStyle: options.multiple ? (it.selectedStyle ?? "checkbox") : "tick",
-    selectedTone: it.selectedTone,
-    suffix: toSuffix(it),
-    subItems: undefined,
-    onClick: () => {},
-  });
+        !options.selectableValues.has(it.value));
+    const selectedStyle = options.multiple
+      ? (it.selectedStyle ?? "checkbox")
+      : options.hasCollapsibleFolders
+        ? ("radio" as const)
+        : ("tick" as const);
+    // An option with subItems is a collapsible folder — a selectable option
+    // like any other; only its chevron button toggles expansion.
+    if (it.subItems) {
+      return {
+        id: it.value,
+        text: renderItem(it.value),
+        disabled,
+        selectedStyle,
+        selectedTone: it.selectedTone,
+        suffix: toSuffix(it),
+        collapsible: true,
+        subItems: it.subItems.map(toItem),
+      };
+    }
+    return {
+      id: it.value,
+      text: renderItem(it.value),
+      disabled,
+      selectedStyle,
+      selectedTone: it.selectedTone,
+      suffix: toSuffix(it),
+      subItems: undefined,
+      onClick: () => {},
+    };
+  };
   return items.map((entry) =>
     "items" in entry
       ? { id: entry.id, label: entry.label, items: entry.items.map(toItem) }
@@ -376,19 +428,6 @@ const SearchHighlightSync = ({
 
   return null;
 };
-
-/** Flattens groups and drops custom rows (e.g. the empty-search note), which must not enter the collection as selectable options */
-function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
-  const flat: Item[] = [];
-  for (const entry of items) {
-    if ("items" in entry) {
-      flat.push(...entry.items);
-    } else if (!isCustomItem(entry)) {
-      flat.push(entry);
-    }
-  }
-  return flat;
-}
 
 export const Select = <TValue extends string>({
   placeholder,
@@ -476,6 +515,23 @@ export const Select = <TValue extends string>({
     return [...orphans, ...items];
   }, [items, orphans, loading]);
 
+  // The collapsible options' values (those with subItems), wherever they
+  // nest — the set held open while searching, and the rows
+  // ArrowRight/ArrowLeft can toggle.
+  const folderValues = useMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        flattenSelectOptions(effectiveItems)
+          .filter((it) => it.subItems !== undefined)
+          .map((it) => it.value),
+      ),
+    [effectiveItems],
+  );
+  // Expansion state lives late in the component (it derives from the mapped
+  // list items), while the keyboard handlers below close over it — the ref
+  // bridges the ordering.
+  const expansionRef = useRef<CollapsibleExpansion | null>(null);
+
   // A multi select's Escape reverts the selection to its state at dropdown
   // open (per-toggle onChange commits are treated as a cancellable session).
   // Ark dismisses on Escape from a native document-capture listener — before
@@ -534,7 +590,43 @@ export const Select = <TValue extends string>({
     return true;
   };
 
+  // ArrowRight expands and ArrowLeft collapses the highlighted collapsible
+  // option — activation (Enter, Space, click) selects it, so the horizontal
+  // arrows carry the keyboard toggle. Skipped for keys owned by the search
+  // field's caret, and while searching (every folder is held open then).
+  const handleCollapsibleArrowKeyDown = (event: React.KeyboardEvent) => {
+    const api = selectApiRef.current;
+    const expansion = expansionRef.current;
+    if (!api?.open || !expansion || hasCaretModifier(event)) {
+      return;
+    }
+    const { target } = event;
+    if (
+      target instanceof Element &&
+      target.closest("[data-selectable-list-custom]")
+    ) {
+      return;
+    }
+    if (showSearch && search.trim() !== "") {
+      return;
+    }
+    const highlighted = api.highlightedValue;
+    if (highlighted === null || !folderValues.has(highlighted)) {
+      return;
+    }
+    const isExpanded = expansion.expandedIds.has(highlighted);
+    if (event.key === "ArrowRight" ? isExpanded : !isExpanded) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    expansion.onToggle(highlighted);
+  };
+
   const [highlightNavigated, setHighlightNavigated] = useState(false);
+  // Reactive mirror of the machine's open state, for the dropdown freeze
+  // below — `isOpenRef` serves the event handlers, not renders.
+  const [isOpen, setIsOpen] = useState(!!defaultOpen);
 
   // Tab while open moves through the dropdown's own tabbables (search field,
   // custom rows, footer buttons) and past the edge closes the dropdown,
@@ -630,13 +722,14 @@ export const Select = <TValue extends string>({
     let spaceToggled = false;
     if (event.key === "Tab") {
       handleTabKeyDown(event);
-    } else if (
-      (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
-      !selectApiRef.current?.open
-    ) {
-      // zag changes a closed select's selection on Left/Right — swallow the
-      // key before it reaches the trigger so the selection stays put.
-      event.stopPropagation();
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      if (selectApiRef.current?.open) {
+        handleCollapsibleArrowKeyDown(event);
+      } else {
+        // zag changes a closed select's selection on Left/Right — swallow the
+        // key before it reaches the trigger so the selection stays put.
+        event.stopPropagation();
+      }
     } else if (event.key === " " && showSearch) {
       spaceToggled = handleSearchSpaceKeyDown(event);
     }
@@ -681,15 +774,30 @@ export const Select = <TValue extends string>({
       const label = it.text.toLowerCase();
       return searchTerms.every((term) => label.includes(term));
     };
+    // A matching folder keeps its whole subtree; otherwise it stays visible
+    // only while a descendant matches, trimmed to the matching ones.
+    const filterItems = (
+      entries: ReadonlyArray<MultiSelectItem<TValue>>,
+    ): Array<MultiSelectItem<TValue>> =>
+      entries.flatMap((it): Array<MultiSelectItem<TValue>> => {
+        if (it.subItems) {
+          if (matches(it)) {
+            return [it];
+          }
+          const children = filterItems(it.subItems);
+          return children.length > 0 ? [{ ...it, subItems: children }] : [];
+        }
+        return matches(it) ? [it] : [];
+      });
     const filtered: Array<ItemOrGroup<MultiSelectItem<TValue>>> = [];
     for (const entry of effectiveItems) {
       if ("items" in entry) {
-        const children = entry.items.filter(matches);
+        const children = filterItems(entry.items);
         if (children.length > 0) {
           filtered.push({ ...entry, items: children });
         }
-      } else if (matches(entry)) {
-        filtered.push(entry);
+      } else {
+        filtered.push(...filterItems([entry]));
       }
     }
     return filtered;
@@ -702,39 +810,22 @@ export const Select = <TValue extends string>({
     [renderItem, effectiveItems],
   );
 
-  // Every option's value, disabled options included — the total behind the
-  // selection summary and the `summary` overflow row.
-  const optionValues = useMemo<TValue[]>(() => {
-    const values: TValue[] = [];
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          values.push(it.value);
-        }
-      } else {
-        values.push(entry.value);
-      }
-    }
-    return values;
-  }, [effectiveItems]);
+  // Every option's value, disabled options and collapsible folders included
+  // (folders are selectable options too) — the total behind the selection
+  // summary and the `summary` overflow row.
+  const optionValues = useMemo<TValue[]>(
+    () => flattenSelectOptions(effectiveItems).map((it) => it.value),
+    [effectiveItems],
+  );
 
   // The value set "Select all" sets: the current selection plus every enabled
-  // option. Disabled options are skipped, and nothing already selected (e.g.
-  // a disabled orphan) is dropped.
+  // option, wherever it nests. Disabled options are skipped, and nothing
+  // already selected (e.g. a disabled orphan) is dropped.
   const selectAllValues = useMemo<TValue[]>(() => {
     const values = new Set<TValue>(selectedValues);
-    const addEnabled = (it: MultiSelectItem<TValue>) => {
+    for (const it of flattenSelectOptions(effectiveItems)) {
       if (!it.disabled) {
         values.add(it.value);
-      }
-    };
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          addEnabled(it);
-        }
-      } else {
-        addEnabled(entry);
       }
     }
     return [...values];
@@ -799,23 +890,23 @@ export const Select = <TValue extends string>({
 
   // The first search match the highlight can land on — must apply the same
   // effective-disabled rule as the collection (explicit `disabled` plus rows
-  // disabled by `maxItems`), or Enter would target an unselectable row
+  // disabled by `maxItems`), or Enter would target an unselectable row. The
+  // visible tree also keeps non-matching rows for context (a matching row's
+  // folder ancestors, a matching folder's children), which must not take the
+  // highlight — Enter targets the first actual match.
   const firstVisibleValue = useMemo<TValue | undefined>(() => {
-    const isEnabled = (it: MultiSelectItem<TValue>) =>
-      !it.disabled &&
-      (selectableAtMaxSet === undefined || selectableAtMaxSet.has(it.value));
-    for (const entry of visibleItems) {
-      if ("items" in entry) {
-        const first = entry.items.find(isEnabled);
-        if (first) {
-          return first.value;
-        }
-      } else if (isEnabled(entry)) {
-        return entry.value;
+    const isEnabledMatch = (it: MultiSelectItem<TValue>) => {
+      if (
+        it.disabled ||
+        (selectableAtMaxSet !== undefined && !selectableAtMaxSet.has(it.value))
+      ) {
+        return false;
       }
-    }
-    return undefined;
-  }, [visibleItems, selectableAtMaxSet]);
+      const label = it.text.toLowerCase();
+      return searchTerms.every((term) => label.includes(term));
+    };
+    return flattenSelectOptions(visibleItems).find(isEnabledMatch)?.value;
+  }, [visibleItems, selectableAtMaxSet, searchTerms]);
 
   const selectOnly = useCallback(
     (val: TValue) => {
@@ -876,6 +967,7 @@ export const Select = <TValue extends string>({
         multiple: !!multiple,
         selectableValues: selectableAtMaxSet,
         selectOnly,
+        hasCollapsibleFolders: folderValues.size > 0,
       },
     );
     const searching = searchTerms.length > 0;
@@ -899,23 +991,72 @@ export const Select = <TValue extends string>({
     multiple,
     selectableAtMaxSet,
     selectOnly,
+    folderValues,
     showSearch,
     searchTerms,
     resolvedEmptyState,
   ]);
+  // Expansion state of collapsible folders. Ancestors of the selection start
+  // expanded (and re-expand on open, below) so the selection is visible.
+  // While searching, every folder on the way to a match must be open for the
+  // match to be reachable, so the user's expansion state is overridden (and
+  // resumes when the search clears).
+  const expansion = useCollapsibleExpansion(
+    menuItems,
+    new Set<string>(selectedValues),
+  );
+  useEffect(() => {
+    expansionRef.current = expansion;
+  });
+  const effectiveExpansion = useMemo<CollapsibleExpansion>(
+    () =>
+      searchTerms.length > 0
+        ? // Toggling is a no-op while every folder is held open: on screen
+          // nothing would change, but the write would silently flip the
+          // underlying state, surprising once the search clears.
+          { expandedIds: folderValues, onToggle: () => {} }
+        : expansion,
+    [searchTerms, folderValues, expansion],
+  );
+
+  // The dropdown exits over an animation (see the selectable-list recipe),
+  // and closing is also what resets the search — re-filtering on that reset
+  // would resize the list mid-exit, and dropping the all-folders-open search
+  // override would collapse the folders the rows still paint. While open the
+  // dropdown renders live values, mirrored here render-adjusted; a closed
+  // (exiting) dropdown keeps rendering the last open ones, the search
+  // field's text included.
+  const [displayedDropdown, setDisplayedDropdown] = useState({
+    menuItems,
+    search,
+    expansion: effectiveExpansion,
+  });
+  if (
+    isOpen &&
+    (displayedDropdown.menuItems !== menuItems ||
+      displayedDropdown.search !== search ||
+      displayedDropdown.expansion !== effectiveExpansion)
+  ) {
+    setDisplayedDropdown({ menuItems, search, expansion: effectiveExpansion });
+  }
+
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
-    for (const entry of effectiveItems) {
-      if ("items" in entry) {
-        for (const it of entry.items) {
-          valueToText.set(it.value, it.text);
-        }
-      } else {
-        valueToText.set(entry.value, entry.text);
-      }
+    for (const it of flattenSelectOptions(effectiveItems)) {
+      valueToText.set(it.value, it.text);
     }
     return createListCollection<Item>({
-      items: flattenItems(menuItems),
+      // Open: the rows currently rendered, in visual order — folders count
+      // (they are highlightable, and Enter toggles them), collapsed children
+      // and custom rows don't, keeping arrow navigation on what is on
+      // screen. Closed: every option, collapsed children included — the
+      // closed trigger's typeahead must reach them, and the hidden select
+      // renders its form options from the collection, which must cover the
+      // selection wherever it hides.
+      items: flattenVisibleItems(
+        menuItems,
+        isOpen ? effectiveExpansion.expandedIds : folderValues,
+      ),
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
         const id = getItemId(item);
@@ -923,7 +1064,7 @@ export const Select = <TValue extends string>({
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems]);
+  }, [menuItems, effectiveItems, effectiveExpansion, isOpen, folderValues]);
 
   const classes = selectRecipe({
     variant,
@@ -989,11 +1130,17 @@ export const Select = <TValue extends string>({
       }}
       onOpenChange={({ open }) => {
         isOpenRef.current = open;
+        setIsOpen(open);
         if (open) {
           escapedRef.current = false;
           valueAtOpenRef.current = selectedValues;
           lastKeyWasListNavRef.current = false;
           setHighlightNavigated(false);
+          // Reveal the selection: its collapsed ancestors open with the
+          // dropdown, so the selected options are visible from the start.
+          expansion.expand?.(
+            collectSelectedAncestorIds(menuItems, new Set(selectedValues)),
+          );
         } else {
           if (multiple && escapedRef.current) {
             escapedRef.current = false;
@@ -1141,15 +1288,16 @@ export const Select = <TValue extends string>({
           <SelectableList
             as="Select"
             className={classes.list}
-            items={menuItems}
+            items={displayedDropdown.menuItems}
             selected={selectedValues}
             size={size}
+            expansion={displayedDropdown.expansion}
             highlightNavigated={highlightNavigated}
             emptyState={resolvedEmptyState}
             header={
               showSearch ? (
                 <SelectableListSearch
-                  value={search}
+                  value={displayedDropdown.search}
                   onChange={handleSearchChange}
                   aria-label="Search options"
                 />

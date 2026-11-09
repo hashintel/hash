@@ -10,27 +10,21 @@ export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${
     type.name
   }".
-// It receives the current tokens and parameters.
-export default Visualization(({ tokens, parameters }) => {
-  return <svg viewBox="0 0 800 600">
-    {tokens.map(({ ${type.elements
-      .map((el) => el.name)
-      .join(", ")} }, index) => (
-      // Example: simple circle for each token
-      <circle />
-    ))}
-  </svg>
-});`;
+// \`tokens\` and \`parameters\` hold the model state. \`width\` and \`height\` track the window.
+const columns = Math.max(1, Math.floor(width / 40));
+return <Visualizer.Svg>
+  {tokens.map((_token, index) => (
+    // Example: simple circle for each token
+    <circle key={index} cx={20 + (index % columns) * 40} cy={20 + Math.floor(index / columns) * 40} r={14} fill="#2563eb" />
+  ))}
+</Visualizer.Svg>;`;
 }
 
 export const DEFAULT_VISUALIZER_CODE = `// This function defines how to visualize the tokens in the place.
-// It receives the current tokens and parameters.
-export default Visualization(({ tokens, parameters }) => {
-  // Example: simple console log visualization
-  return <svg>
-    <circle cx="50" cy="50" r="40" stroke="black" strokeWidth="3" fill="red" />
-  </svg>
-});`;
+// \`tokens\` and \`parameters\` hold the model state. \`width\` and \`height\` track the window.
+return <Visualizer.Svg origin="center">
+  <circle r={Math.min(width, height) * 0.4} stroke="black" strokeWidth="3" fill="red" />
+</Visualizer.Svg>;`;
 
 export function generateDefaultDifferentialEquationCode(type: Color): string {
   const realElements = type.elements.filter(
@@ -69,14 +63,15 @@ export const generateDefaultLambdaCode = (
 ): string => `/**
 * This code controls when the transition will fire,
 * once enabled by sufficient tokens in its input places.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 */
 
 // input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
-// of the token's type.
+// of the token's type. input.PlaceA.count is how many tokens
+// PlaceA holds, for typed and untyped places alike.
 
 // When defining a predicate check,
 // return a boolean (true = enabled, false = disabled).
@@ -98,15 +93,16 @@ export function generateDefaultTransitionKernelCode(
 ): string {
   return `/**
 * This code defines the kernel for the transition.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */
 
 // input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
-// of the token's type.
+// of the token's type. input.PlaceA.count is how many tokens
+// PlaceA holds, for typed and untyped places alike.
 
 // Return an object with output place names as keys
 return {
@@ -129,8 +125,8 @@ return {
 
 export const DEFAULT_TRANSITION_KERNEL_CODE = `/**
 * This code defines the kernel for the transition.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */
 

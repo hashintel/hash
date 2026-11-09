@@ -33,7 +33,7 @@ const edges = [
   [3, 7],
 ] as const;
 
-export const projectCube = (degrees: number) => {
+const projectVertices = (degrees: number) => {
   const yaw = (degrees * Math.PI) / 180;
   const pitch = -Math.PI / 7;
   const rotate = ([horizontal, vertical, depth]: Point3): Point3 => {
@@ -49,6 +49,11 @@ export const projectCube = (degrees: number) => {
     const [horizontal, vertical] = rotate(vertex);
     return `${(12 + horizontal * 5.8).toFixed(3)} ${(12 + vertical * 5.8).toFixed(3)}`;
   });
+  return { projected, visibleFaces };
+};
+
+export const projectCube = (degrees: number) => {
+  const { projected, visibleFaces } = projectVertices(degrees);
   return edges.map(([start, end], index) => ({
     index,
     path: `M${projected[start]}L${projected[end]}`,
@@ -58,8 +63,26 @@ export const projectCube = (degrees: number) => {
   }));
 };
 
+export const projectCubeFaces = (degrees: number) => {
+  const { projected, visibleFaces } = projectVertices(degrees);
+  return faces.map((face, index) => ({
+    index,
+    path: `M${face.vertices.map((vertex) => projected[vertex]).join("L")}Z`,
+    visible: visibleFaces.includes(face),
+    opacity: face.normal[1] !== 0 ? 0.45 : face.normal[0] !== 0 ? 0.8 : 1,
+  }));
+};
+
 export const paintCube = (root: Element, angle: number) => {
   root.setAttribute("data-cube-angle", String(angle));
+  const surfaces = root.querySelectorAll<SVGPathElement>("[data-cube-face]");
+  if (surfaces.length > 0) {
+    for (const face of projectCubeFaces(angle)) {
+      const surface = surfaces[face.index];
+      surface?.setAttribute("d", face.path);
+      surface?.setAttribute("visibility", face.visible ? "visible" : "hidden");
+    }
+  }
   const paths = root.querySelectorAll<SVGPathElement>("[data-cube-edge]");
   for (const edge of projectCube(angle)) {
     const path = paths[edge.index];

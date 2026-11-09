@@ -13,6 +13,7 @@ const lambdaContext: HirLambdaContext = {
   parameters: [],
   inputPlaces: [],
   inputSlots: [],
+  inputCounts: [],
   lambdaType: "stochastic",
 };
 
@@ -21,6 +22,7 @@ const kernelContext: HirKernelContext = {
   parameters: [],
   inputPlaces: [],
   inputSlots: [],
+  inputCounts: [],
   outputPlaces: [],
   outputSlots: [],
   stochasticity: true,

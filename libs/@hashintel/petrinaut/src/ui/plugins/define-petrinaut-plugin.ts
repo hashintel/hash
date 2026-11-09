@@ -72,7 +72,7 @@ export interface PluginCommandSpec {
   readonly category?: string;
   /** Extra search terms beyond the label. */
   readonly keywords?: readonly string[];
-  /** The chord to display, e.g. `mod+k`. Display only: the plugin binds the keys. */
+  /** The chord to bind and display, e.g. `mod+k`; `mod` accepts Command or Control. */
   readonly shortcut?: string;
 }
 

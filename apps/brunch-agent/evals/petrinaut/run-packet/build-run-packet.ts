@@ -1,12 +1,15 @@
 import { brunchTools, petrinautUserMessageText } from "@hashintel/brunch-agent";
 
 import {
+  requestedModelOf,
+  turnErrorOf,
+  type LoggedSubmissionChronology,
+} from "../../../src/server/telemetry-readback.ts";
+import {
   type ToolCategory,
   toolCategories,
   toolCategoryOf,
 } from "./tool-categories.ts";
-
-import type { LoggedSubmissionChronology } from "./parse-chronology-log.ts";
 
 /** One conversation-stream event, with its parsed timestamp. */
 export interface StreamEvent {
@@ -136,6 +139,22 @@ export interface CategoryTotals {
   readonly argumentChars: number;
 }
 
+/**
+ * One model request from the server-log chronology, including the failed
+ * requests and compactions that leave no step in the conversation stream.
+ */
+export interface PacketModelRequest {
+  readonly turnId: string;
+  readonly purpose: string;
+  /** `provider/model` as requested; null when the chronology predates both. */
+  readonly model: string | null;
+  readonly timeToFirstEventMs: number | null;
+  /** The failed request this one retried. */
+  readonly retryOf: string | null;
+  /** The failure's type, and its code where that differs; null when it did not fail. */
+  readonly error: string | null;
+}
+
 export interface PacketExchange {
   readonly index: number;
   readonly submissionId: string;
@@ -153,6 +172,8 @@ export interface PacketExchange {
   readonly toolPhaseMs: number;
   readonly otherMs: number | null;
   readonly steps: readonly PacketStep[];
+  /** Null without this exchange's server-log chronology. */
+  readonly modelRequests: readonly PacketModelRequest[] | null;
   readonly categories: Readonly<Record<ToolCategory, CategoryTotals>>;
   readonly skillActivations: readonly string[];
   /** Activations of a skill already activated earlier in the run, and whether a compaction came between. */
@@ -190,7 +211,7 @@ export interface Distribution {
 }
 
 export interface RunPacket {
-  readonly version: 2;
+  readonly version: 3;
   readonly label: string;
   readonly metadata: RunMetadata | null;
   readonly sources: {
@@ -204,6 +225,8 @@ export interface RunPacket {
    */
   readonly summary: {
     readonly exchanges: number;
+    /** Exchanges whose chronology line was kept; argument-streaming and model-request totals cover only these. */
+    readonly exchangesWithChronology: number;
     readonly incomplete: {
       /** Exchanges with no settlement, left out of the time sums. */
       readonly unsettledExchanges: number;
@@ -240,6 +263,14 @@ export interface RunPacket {
     readonly ledgerRefused: number;
     readonly ledgerArgumentChars: number;
     readonly longToolCalls: number;
+    /** Null without a server-log chronology. */
+    readonly modelRequests: {
+      readonly total: number;
+      readonly byModel: Readonly<Record<string, number>>;
+      readonly retries: number;
+      readonly failed: number;
+      readonly errors: Readonly<Record<string, number>>;
+    } | null;
     readonly usage: Usage;
   };
   readonly finalLedger: FinalLedgerSummary | null;
@@ -554,10 +585,11 @@ const buildExchange = (
       (turn?.toolCalls ?? []).map((call) => [call.toolCallId, call]),
     );
     // Chronology offsets count from the turn's start; packet offsets from the step's request.
+    const turnStartedAt = turn?.startedAt ?? null;
     const turnStartOffsetMs =
-      turn?.startedAt === undefined
+      turnStartedAt === null
         ? null
-        : Date.parse(turn.startedAt) - step.requestStartAt;
+        : Date.parse(turnStartedAt) - step.requestStartAt;
     const streamedCalls = step.toolCalls.flatMap((call) => {
       const streamed = deltas.get(call.toolCallId);
       return streamed === undefined ? [] : [streamed];
@@ -714,6 +746,16 @@ const buildExchange = (
     toolPhaseMs,
     otherMs: wallMs === null ? null : wallMs - modelMs - toolPhaseMs,
     steps: packetSteps,
+    modelRequests: chronology
+      ? chronology.turns.map((turn) => ({
+          turnId: turn.turnId,
+          purpose: turn.purpose,
+          model: requestedModelOf(turn),
+          timeToFirstEventMs: turn.timeToFirstEventMs,
+          retryOf: turn.retryOf,
+          error: turnErrorOf(turn),
+        }))
+      : null,
     categories,
     skillActivations,
     skillResourceReads,
@@ -803,14 +845,25 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
   const totalSettled = (pick: (exchange: (typeof settled)[number]) => number) =>
     settled.reduce((sum, exchange) => sum + pick(exchange), 0);
   const hasChronology = input.chronology.size > 0;
+  const modelRequests = exchanges.flatMap(
+    (exchange) => exchange.modelRequests ?? [],
+  );
+  const countBy = (keys: readonly string[]) => {
+    const counts: Record<string, number> = {};
+    for (const key of keys) counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  };
 
   return {
-    version: 2,
+    version: 3,
     label: input.label,
     metadata: input.metadata,
     sources: { chronology: hasChronology, skipped: input.skipped },
     summary: {
       exchanges: exchanges.length,
+      exchangesWithChronology: exchanges.filter(
+        (exchange) => exchange.modelRequests !== null,
+      ).length,
       incomplete: {
         unsettledExchanges: exchanges.length - settled.length,
         cutOffMessages: steps.filter((step) => step.cutOffIn === "message")
@@ -862,6 +915,23 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
       ledgerRefused: total((exchange) => exchange.ledger.refused),
       ledgerArgumentChars: total((exchange) => exchange.ledger.argumentChars),
       longToolCalls: total((exchange) => exchange.longToolCalls.length),
+      modelRequests: hasChronology
+        ? {
+            total: modelRequests.length,
+            byModel: countBy(
+              modelRequests.map((request) => request.model ?? "unknown"),
+            ),
+            retries: modelRequests.filter((request) => request.retryOf !== null)
+              .length,
+            failed: modelRequests.filter((request) => request.error !== null)
+              .length,
+            errors: countBy(
+              modelRequests.flatMap((request) =>
+                request.error === null ? [] : [request.error],
+              ),
+            ),
+          }
+        : null,
       usage: exchanges.reduce(
         (sum, exchange) => addUsage(sum, exchange.usage),
         zeroUsage,

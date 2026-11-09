@@ -31,7 +31,6 @@ export const writePersonaBrief = async (input: {
   readonly helper: string;
   readonly objective: string | undefined;
   readonly opening: string;
-  readonly reply: string;
   readonly pack: string;
 }) => {
   const system = await readFile(systemPath, "utf8");
@@ -46,12 +45,10 @@ export const writePersonaBrief = async (input: {
       ...(input.objective === undefined
         ? []
         : ["## What you're after today", input.objective]),
-      "## Conversation so far",
-      "Your first message below has already been sent; do not repeat it. Reply to what Brunch said, then carry on one message at a time.",
-      "### Opening (sent as you)",
+      "## Starting the conversation",
+      `Nothing has been sent yet. Start with \`${input.helper} open\`: it sends your opening message, below, exactly as written, and prints it with Brunch's reply. Run it once. Then reply to what Brunch said with \`say\`, one message at a time.`,
+      "### Your opening message",
       input.opening,
-      "### Brunch's reply",
-      input.reply,
       "## Situation pack",
       input.pack,
     ].join("\n\n") + "\n",
@@ -71,8 +68,8 @@ export const writePersonaResumeBrief = async (input: {
     path,
     [
       "# Persona resume notice",
-      `This resumes an interrupted conversation. Read the original brief at ${join(input.run, "persona-brief.md")} for who you are and your situation pack; this notice supersedes its "Conversation so far" section and its command paths.`,
-      `Run \`${input.helper} transcript\` first to catch up on the whole conversation. The last message you sent WAS received. Do not resend it or repeat the opening.`,
+      `This resumes an interrupted conversation. Read the original brief at ${join(input.run, "persona-brief.md")} for who you are and your situation pack; this notice supersedes its "Starting the conversation" section and its command paths.`,
+      `Run \`${input.helper} transcript\` first to catch up on the whole conversation. The last message you sent WAS received. Do not resend it, and do not run \`open\`: the conversation is already open.`,
       `Brunch's last turn settled as: ${input.settlement}. Its work so far was kept.`,
       "If that turn was interrupted, ask Brunch in your own words to pick up where it left off. Otherwise reply to what it last said. Keep this notice private.",
       personaCommandGuide(input.helper),

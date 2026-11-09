@@ -23,7 +23,7 @@ import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
-import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { FloatingResizeHandles } from "../../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
 import { CodeEditorThemePicker } from "./user-settings-dialog/code-editor-theme-picker";
 import { PluginsSection } from "./user-settings-dialog/plugins-section";

@@ -2,16 +2,21 @@
  * Manual witness for the Ledger tab and experiment timing: the built
  * website's Brunch panel in real Chrome against the built Brunch app, with
  * scripted OpenAI responses only. Each case reports PASS, FAIL or a measured duration, and
- * every case runs even when an earlier one fails.
+ * every case runs even when an earlier one fails. Name cases as arguments
+ * (`ledger-tab.ts ledgerReviewControls`) to run only those; the final line
+ * then names the subset rather than claiming the whole witness.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import {
+  type AssistantMessage,
   fauxAssistantMessage,
   fauxText,
   type JsonObject,
 } from "@earendil-works/pi-ai";
+import { type Page } from "@playwright/test";
 
 import { netCalls } from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
@@ -23,9 +28,10 @@ import {
   toolCall,
 } from "./browser-fixture.ts";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-prepareWitnessProcess("browser-witness-ledger-tab");
+const output = prepareWitnessProcess("browser-witness-ledger-tab");
 const faux = installFauxOpenai();
 
 const app = await loadBuiltBrunchApplication();
@@ -46,9 +52,8 @@ const savedDocument = (id: string, sdcpn: SDCPN) => ({
   },
 });
 
-/** A recorded Ledger commit reaches the panel's Ledger tab. */
-const ledgerTabShowsCommit = async () => {
-  const page = await fixture.openAssistant();
+/** Asks Brunch to record the reservoir and its overflow claim, and checks the commit was recorded. */
+const recordReservoir = async (page: Page) => {
   faux.setResponses([
     toolCall(
       "ledger_commit",
@@ -96,11 +101,1009 @@ const ledgerTabShowsCommit = async () => {
     "recorded",
     "the commit itself must be recorded",
   );
+  return client;
+};
+
+/**
+ * Each record occurrence the Ledger marks as changed by the latest turn, in
+ * document order: address, change, and the marker word its style shows.
+ */
+const latestTurnMarks = (page: Page) =>
+  page
+    .locator('section[aria-label="Ledger"] [data-ledger-change]')
+    .evaluateAll((elements) =>
+      elements.map((element) =>
+        [
+          element.getAttribute("data-ledger-address"),
+          element.getAttribute("data-ledger-change"),
+          getComputedStyle(element, "::before").content,
+        ].join(" "),
+      ),
+    );
+
+/** Polls the marks until they equal `expected`; returns the last observed either way. */
+const marksSettleOn = async (
+  page: Page,
+  expected: string[],
+  deadline = Date.now() + 15_000,
+): Promise<string[]> => {
+  const marks = await latestTurnMarks(page);
+  if (
+    JSON.stringify(marks) === JSON.stringify(expected) ||
+    Date.now() >= deadline
+  )
+    return marks;
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return marksSettleOn(page, expected, deadline);
+};
+
+/** A recorded Ledger commit reaches the panel's Ledger tab. */
+const ledgerTabShowsCommit = async () => {
+  const page = await fixture.openAssistant();
+  await recordReservoir(page);
   await page.getByRole("tab", { name: "Ledger" }).click();
   await page
     .getByText("Hillcrest service reservoir", { exact: true })
     .first()
     .waitFor({ timeout: 10_000 });
+};
+
+/**
+ * The Ledger is a review surface: Chat owns the message composer and Voice
+ * launch, while the Ledger keeps Stop for running work and its explicit
+ * comment controls, and switching tabs keeps the draft. Observations print
+ * before the assertions, so a failing run still records what the panel showed.
+ */
+const ledgerReviewControls = async () => {
+  const page = await fixture.openAssistant();
+  page.setDefaultTimeout(15_000);
+  const chatTab = page.getByRole("tab", { name: "Chat" });
+  const ledgerTab = page.getByRole("tab", { name: "Ledger" });
+  const composer = page.getByRole("textbox", {
+    name: "Message AI assistant",
+    exact: true,
+  });
+  const stop = page.getByRole("button", {
+    name: "Stop AI response",
+    exact: true,
+  });
+  const voiceLaunch = page.getByRole("button", {
+    name: "Start voice mode",
+    exact: true,
+  });
+  const visibleCount = async (locator: ReturnType<Page["getByRole"]>) => {
+    let visible = 0;
+    for (const element of await locator.all())
+      if (await element.isVisible()) visible += 1;
+    return visible;
+  };
+  const controls = async () => ({
+    composer: await visibleCount(composer),
+    stop: await visibleCount(stop),
+    voiceLaunch: await visibleCount(voiceLaunch),
+  });
+  // The Ledger's footer row, which holds host controls and Stop.
+  const reviewFooter = page.locator("div[data-review]:has(> form)");
+  const observed: Record<string, unknown> = {};
+  try {
+    await recordReservoir(page);
+    observed.chatIdle = await controls();
+
+    // A running turn, held open until Stop aborts it or the case releases it.
+    let release: (() => void) | undefined;
+    let providerAborted = false;
+    faux.setResponses([
+      (_context, options) =>
+        new Promise<AssistantMessage>((resolve) => {
+          const finish = () =>
+            resolve(fauxAssistantMessage([fauxText("Held reply finished.")]));
+          release = finish;
+          options?.signal?.addEventListener("abort", () => {
+            providerAborted = true;
+            finish();
+          });
+          setTimeout(finish, 60_000).unref();
+        }),
+    ]);
+    await fixture.send(page, "Look at the reservoir again.");
+    await stop.waitFor();
+    observed.chatBusy = await controls();
+    await ledgerTab.click();
+    await page
+      .getByText("Hillcrest service reservoir", { exact: true })
+      .first()
+      .waitFor();
+    observed.ledgerBusy = await controls();
+    await page.screenshot({ path: join(output, "ledger-busy.png") });
+    observed.ledgerBusyTabSelected =
+      await ledgerTab.getAttribute("aria-selected");
+    const ledgerStopVisible = (await visibleCount(stop)) === 1;
+    if (ledgerStopVisible) {
+      await stop.click();
+      await stop.waitFor({ state: "hidden" });
+    }
+    observed.ledgerStopped = {
+      ...(await controls()),
+      providerAborted,
+      stillOnLedger: await ledgerTab.getAttribute("aria-selected"),
+    };
+    release?.();
+
+    // A turn that changes the Ledger, so the comment turn below has marks to clear.
+    await chatTab.click();
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump.")]),
+    ]);
+    await fixture.ask(
+      page,
+      "A booster pump fills it.",
+      "Recorded the pump.",
+      60_000,
+    );
+
+    // An unsent draft survives Chat → Ledger → Chat.
+    await composer.fill("Unsent draft about pumps");
+    await ledgerTab.click();
+    observed.marksBeforeComment = await marksSettleOn(page, ['e2 added "New"']);
+    observed.ledgerIdleWithDraft = {
+      ...(await controls()),
+      // With no comments, hint or running work, the review tab has no footer.
+      emptyFooterVisible: await reviewFooter.isVisible(),
+    };
+
+    // An explicit Ledger comment, sent from the Ledger's own control.
+    await page.evaluate(() => {
+      const ledger = document.querySelector('section[aria-label="Ledger"]');
+      if (!ledger) throw new Error("No Ledger section");
+      const walker = document.createTreeWalker(ledger, NodeFilter.SHOW_TEXT);
+      let claim: Node | null = walker.nextNode();
+      while (claim && !claim.textContent?.includes("overflowed three times"))
+        claim = walker.nextNode();
+      if (!claim)
+        throw new Error(
+          `No overflow claim on the Ledger: ${ledger.textContent}`,
+        );
+      const range = document.createRange();
+      range.selectNodeContents(claim);
+      const selection = document.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    const form = page.getByRole("dialog", { name: "Comment on the Ledger" });
+    await form
+      .getByRole("textbox", { name: "Comment" })
+      .fill("Was that three separate nights?");
+    await form.getByRole("button", { name: "Add comment" }).click();
+    const commentsBar = page.getByRole("group", { name: "Ledger comments" });
+    await commentsBar.waitFor();
+    observed.commentsBar = await commentsBar.textContent();
+    observed.commentsFooterVisible = await reviewFooter.isVisible();
+    await page.screenshot({ path: join(output, "ledger-comments.png") });
+    const commentReply = "Noted your comment on the overflow claim.";
+    faux.setResponses([fauxAssistantMessage([fauxText(commentReply)])]);
+    await commentsBar.getByRole("button", { name: "Send" }).click();
+    await commentsBar.waitFor({ state: "hidden", timeout: 30_000 });
+    observed.afterCommentSend = {
+      ...(await controls()),
+      stillOnLedger: await ledgerTab.getAttribute("aria-selected"),
+    };
+    // The comment batch opens a turn that commits nothing, so once Brunch
+    // has replied to it the Ledger marks nothing.
+    await page
+      .getByText(commentReply, { exact: true })
+      .waitFor({ state: "attached" });
+    observed.marksAfterCommentTurn = await marksSettleOn(page, []);
+    observed.recordsAfterCommentTurn = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .count();
+
+    await chatTab.click();
+    await page.getByText(commentReply, { exact: true }).waitFor();
+    observed.chatAfterComment = {
+      ...(await controls()),
+      draft: await composer.inputValue(),
+    };
+    // Keyboard: arrow keys move between the tabs and select them.
+    await chatTab.focus();
+    await page.keyboard.press("ArrowRight");
+    observed.keyboard = {
+      ledgerSelected: await ledgerTab.getAttribute("aria-selected"),
+      ledgerFocused: await ledgerTab.evaluate(
+        (element) => element === document.activeElement,
+      ),
+      ...(await controls()),
+    };
+    await page.keyboard.press("ArrowLeft");
+    observed.keyboardBack = {
+      chatSelected: await chatTab.getAttribute("aria-selected"),
+      draft: await composer.inputValue(),
+    };
+  } finally {
+    process.stdout.write(`OBSERVED ${JSON.stringify(observed)}\n`);
+    await page.close();
+  }
+
+  assert.deepEqual(observed.chatIdle, { composer: 1, stop: 0, voiceLaunch: 0 });
+  assert.deepEqual(observed.chatBusy, { composer: 1, stop: 1, voiceLaunch: 0 });
+  assert.deepEqual(observed.ledgerBusy, {
+    composer: 0,
+    stop: 1,
+    voiceLaunch: 0,
+  });
+  assert.equal(observed.ledgerBusyTabSelected, "true");
+  assert.deepEqual(observed.ledgerStopped, {
+    composer: 0,
+    stop: 0,
+    voiceLaunch: 0,
+    providerAborted: true,
+    stillOnLedger: "true",
+  });
+  assert.deepEqual(observed.ledgerIdleWithDraft, {
+    composer: 0,
+    stop: 0,
+    voiceLaunch: 0,
+    emptyFooterVisible: false,
+  });
+  assert.deepEqual(observed.marksBeforeComment, ['e2 added "New"']);
+  assert.deepEqual(observed.marksAfterCommentTurn, []);
+  assert.notEqual(observed.recordsAfterCommentTurn, 0);
+  assert.match(String(observed.commentsBar), /1 comment on the Ledger/u);
+  assert.equal(observed.commentsFooterVisible, true);
+  assert.deepEqual(observed.afterCommentSend, {
+    composer: 0,
+    stop: 0,
+    voiceLaunch: 0,
+    stillOnLedger: "true",
+  });
+  assert.deepEqual(observed.chatAfterComment, {
+    composer: 1,
+    stop: 0,
+    voiceLaunch: 0,
+    draft: "Unsent draft about pumps",
+  });
+  assert.deepEqual(observed.keyboard, {
+    ledgerSelected: "true",
+    ledgerFocused: true,
+    composer: 0,
+    stop: 0,
+    voiceLaunch: 0,
+  });
+  assert.deepEqual(observed.keyboardBack, {
+    chatSelected: "true",
+    draft: "Unsent draft about pumps",
+  });
+};
+
+/** A provider response held until the case releases it, so the turn keeps running. */
+const heldResponse = (message: AssistantMessage) => {
+  let release: () => void = () => {};
+  const respond = () =>
+    new Promise<AssistantMessage>((resolve) => {
+      release = () => resolve(message);
+      setTimeout(release, 60_000).unref();
+    });
+  return { respond, release: () => release() };
+};
+
+/**
+ * Waits until no finite animation or transition runs, such as the tab pill's,
+ * and reports the selected tab with its box, so a screenshot shows settled tabs.
+ */
+const tabsSettled = async (page: Page) => {
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
+  );
+  return page
+    .locator('[data-style-variant="pill"] [role="tab"][aria-selected="true"]')
+    .evaluate((tab) => {
+      const box = tab.getBoundingClientRect();
+      return {
+        selected: tab.textContent,
+        pill: getComputedStyle(tab).backgroundColor,
+        box: [box.x, box.y, box.width, box.height].map(Math.round),
+      };
+    });
+};
+
+/**
+ * The Ledger marks the entries the latest turn added or changed: across its
+ * accepted commits while the response runs, not a refused call, the same after
+ * tab switches and a reload, and none once a turn changes nothing. Marker
+ * words stay out of a comment's quote. Observations print before the
+ * assertions, so a failing run still records what the Ledger showed.
+ */
+const ledgerLatestTurnHighlights = async () => {
+  const page = await fixture.openAssistant();
+  page.setDefaultTimeout(15_000);
+  const chatTab = () => page.getByRole("tab", { name: "Chat" });
+  const ledgerTab = () => page.getByRole("tab", { name: "Ledger" });
+  const stop = () =>
+    page.getByRole("button", { name: "Stop AI response", exact: true });
+  const observed: Record<string, unknown> = {};
+  const turnTwoRunning = ['c2 updated "Updated"', 'e2 added "New"'];
+  const turnTwoDone = [
+    'e2 added "New"',
+    'e1 updated "Updated"',
+    'c2 updated "Updated"',
+  ];
+  try {
+    await recordReservoir(page);
+    await ledgerTab().click();
+    observed.turnOne = await marksSettleOn(page, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    await chatTab().click();
+
+    // Turn two replaces the overflow claim and adds a pump, has a call
+    // refused, then holds its response open before moving the reservoir out
+    // of scope.
+    const held = heldResponse(
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/update/e1",
+              {
+                name: "Hillcrest service reservoir",
+                kind: "resource",
+                origin: "stated",
+                status: "out-of-scope",
+              },
+            ],
+          ],
+        },
+        "commit-4",
+      ),
+    );
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "claim/create",
+              {
+                text: "Hillcrest overflowed four times this summer.",
+                entities: ["e1"],
+                origin: "stated",
+                status: "confirmed",
+                supersedes: ["c1"],
+              },
+            ],
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-2",
+      ),
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/update/e9",
+              {
+                name: "Nowhere",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "commit-3",
+      ),
+      held.respond,
+      fauxAssistantMessage([fauxText("Moved the reservoir out of scope.")]),
+    ]);
+    await fixture.send(
+      page,
+      "It overflowed four times; a booster pump fills it.",
+    );
+    await stop().waitFor();
+    await ledgerTab().click();
+    observed.turnTwoRunning = await marksSettleOn(page, turnTwoRunning);
+    observed.turnTwoRunningStop = await stop().isVisible();
+    observed.turnTwoRunningTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-running.png"),
+    });
+    await chatTab().click();
+    await ledgerTab().click();
+    observed.turnTwoRunningAfterTabs = await latestTurnMarks(page);
+
+    held.release();
+    await page
+      .getByText("Moved the reservoir out of scope.", { exact: true })
+      .waitFor({ state: "attached" });
+    observed.turnTwoDone = await marksSettleOn(page, turnTwoDone);
+    // The superseded claim stays as context under its replacement, unmarked.
+    observed.supersededMark = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address="c1"]')
+      .evaluateAll((elements) =>
+        elements.map(
+          (element) =>
+            `${element.textContent} ${element.getAttribute("data-ledger-change")}`,
+        ),
+      );
+    observed.markedEntryAria = await page
+      .locator(
+        'section[aria-label="Ledger"] li:has(> [data-ledger-address="e2"])',
+      )
+      .ariaSnapshot();
+    observed.turnTwoDoneTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-done.png"),
+    });
+
+    // A comment's quote carries the record's words, not its marker.
+    await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address="e2"]')
+      .first()
+      .evaluate((record) => {
+        const range = document.createRange();
+        range.selectNodeContents(record);
+        const selection = document.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      });
+    observed.selectedText = await page.evaluate(() =>
+      document.getSelection()?.toString(),
+    );
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    const form = page.getByRole("dialog", { name: "Comment on the Ledger" });
+    observed.commentQuote = await form.locator("blockquote").textContent();
+    await form.getByRole("button", { name: "Cancel" }).click();
+
+    // The same history after a reload marks the same entries. The fixture
+    // serves files only, so the document's route gets the site's index page
+    // as a deployed host's fallback would.
+    await page.route(
+      (url) => url.pathname.startsWith("/local/"),
+      async (route) =>
+        route.fulfill({
+          response: await route.fetch({ url: `${fixture.origin}/` }),
+        }),
+    );
+    await page.reload();
+    const skipTour = page.getByRole("button", { name: "Skip tour" });
+    if (await skipTour.isVisible().catch(() => false)) await skipTour.click();
+    const showAssistant = page.getByRole("button", {
+      name: "Show AI assistant",
+      exact: true,
+    });
+    await ledgerTab().or(showAssistant).first().waitFor();
+    if (await showAssistant.isVisible()) await showAssistant.click();
+    await ledgerTab().click();
+    observed.afterReload = await marksSettleOn(page, turnTwoDone);
+
+    // Turn three clears the marks as it opens and changes nothing.
+    await chatTab().click();
+    const quiet = heldResponse(
+      fauxAssistantMessage([fauxText("Glad to help.")]),
+    );
+    faux.setResponses([quiet.respond]);
+    await fixture.send(page, "Thanks, that is all for now.");
+    await stop().waitFor();
+    await ledgerTab().click();
+    observed.turnThreeRunning = await marksSettleOn(page, []);
+    observed.turnThreeRecords = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .evaluateAll((elements) => [
+        ...new Set(
+          elements.map((element) =>
+            element.getAttribute("data-ledger-address"),
+          ),
+        ),
+      ]);
+    observed.turnThreeRunningTabs = await tabsSettled(page);
+    await page.screenshot({
+      path: join(output, "ledger-latest-turn-cleared.png"),
+    });
+    quiet.release();
+    await stop().waitFor({ state: "hidden" });
+    observed.turnThreeDone = await latestTurnMarks(page);
+  } finally {
+    process.stdout.write(`OBSERVED ${JSON.stringify(observed)}\n`);
+    await page.close();
+  }
+
+  assert.deepEqual(observed.turnOne, ['e1 added "New"', 'c1 added "New"']);
+  assert.deepEqual(observed.turnTwoRunning, turnTwoRunning);
+  assert.equal(observed.turnTwoRunningStop, true);
+  assert.deepEqual(observed.turnTwoRunningAfterTabs, turnTwoRunning);
+  assert.deepEqual(observed.turnTwoDone, turnTwoDone);
+  assert.deepEqual(observed.supersededMark, [
+    "Hillcrest overflowed three times this summer. — superseded null",
+  ]);
+  assert.deepEqual(observed.afterReload, turnTwoDone);
+  // The marker word reaches the accessibility tree, ahead of the record.
+  assert.equal(
+    observed.markedEntryAria,
+    "- listitem:\n  - text: New\n  - strong: Booster pump\n  - text: — stated · confirmed",
+  );
+  assert.equal(observed.selectedText, "Booster pump — stated · confirmed");
+  assert.equal(observed.commentQuote, "“Booster pump — stated · confirmed”");
+  assert.deepEqual(observed.turnThreeRunning, []);
+  assert.deepEqual(observed.turnThreeRecords, ["e2", "e1", "c2", "c1"]);
+  assert.deepEqual(observed.turnThreeDone, []);
+};
+
+/** Submission intent clears old marks before admission, and refusal does not restore them. */
+const ledgerSubmissionClearsHighlights = async () => {
+  const page = await fixture.openAssistant();
+  const observed: Record<string, unknown> = {};
+  let release = () => {};
+  const admissionGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let holdNext = true;
+  let refuseNext = false;
+  try {
+    await recordReservoir(page);
+    const ledgerTab = page.getByRole("tab", { name: "Ledger" });
+    const chatTab = page.getByRole("tab", { name: "Chat" });
+    const composer = page.getByRole("textbox", {
+      name: "Message AI assistant",
+      exact: true,
+    });
+    const stop = page.getByRole("button", {
+      name: "Stop AI response",
+      exact: true,
+    });
+    await ledgerTab.click();
+    observed.beforeSubmission = await marksSettleOn(page, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    assert.deepEqual(observed.beforeSubmission, [
+      'e1 added "New"',
+      'c1 added "New"',
+    ]);
+    await page.route("**/agents/**", async (route) => {
+      if (route.request().method() === "POST") {
+        if (holdNext) {
+          holdNext = false;
+          await admissionGate;
+        } else if (refuseNext) {
+          refuseNext = false;
+          await route.fulfill({
+            status: 403,
+            contentType: "application/json",
+            body: JSON.stringify({ error: "Witness admission refused" }),
+          });
+          return;
+        }
+      }
+      await route.fallback();
+    });
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "intent-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump after admission.")]),
+    ]);
+    await chatTab.click();
+    await composer.fill("A booster pump fills it.");
+    const submitted = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname.startsWith("/agents/"),
+      { timeout: 10_000 },
+    );
+    await composer.press("Enter");
+    await submitted;
+    await ledgerTab.click();
+    observed.pendingAdmission = await latestTurnMarks(page);
+    observed.pendingStopVisible = await stop.isVisible();
+    assert.deepEqual(observed.pendingAdmission, []);
+    assert.equal(observed.pendingStopVisible, true);
+    release();
+    await chatTab.click();
+    await page
+      .getByText("Recorded the pump after admission.", { exact: true })
+      .waitFor();
+    await ledgerTab.click();
+    observed.afterAdmission = await marksSettleOn(page, ['e2 added "New"']);
+    assert.deepEqual(observed.afterAdmission, ['e2 added "New"']);
+
+    // Refusal leaves the canonical turn unchanged, but does not undo the user's intent.
+    refuseNext = true;
+    await chatTab.click();
+    await composer.fill("A submission the server will refuse.");
+    const refused = page.waitForResponse(
+      (response) =>
+        response.status() === 403 &&
+        new URL(response.url()).pathname.startsWith("/agents/"),
+      { timeout: 10_000 },
+    );
+    await composer.press("Enter");
+    await refused;
+    await stop.waitFor({ state: "hidden" });
+    await ledgerTab.click();
+    observed.afterRefusal = await latestTurnMarks(page);
+    observed.recordsAfterRefusal = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .count();
+    assert.deepEqual(observed.afterRefusal, []);
+    assert.equal(observed.recordsAfterRefusal, 3);
+    await chatTab.click();
+    await ledgerTab.click();
+    assert.deepEqual(await latestTurnMarks(page), []);
+  } finally {
+    release();
+    process.stdout.write(
+      `OBSERVED ledgerSubmissionClearsHighlights ${JSON.stringify(observed)}\n`,
+    );
+    await page.close();
+  }
+};
+
+/** Old history arriving after submission is not itself a new turn. */
+const ledgerHighlightsAfterHydration = async (
+  admission: "refused" | "accepted" | "accepted-then-refused",
+) => {
+  const page = await fixture.openAssistant();
+  page.setDefaultTimeout(15_000);
+  const observed: Record<string, unknown> = { admission };
+  let releaseHistory = () => {};
+  const historyGate = new Promise<void>((resolve) => {
+    releaseHistory = resolve;
+  });
+  let heldReads = 0;
+  let refuseNext = admission === "refused";
+  try {
+    const client = await recordReservoir(page);
+    // Match the deployed host's SPA fallback when reloading the saved document.
+    await page.route(
+      (url) => url.pathname.startsWith("/local/"),
+      async (route) =>
+        route.fulfill({
+          response: await route.fetch({ url: `${fixture.origin}/` }),
+        }),
+    );
+    await page.route("**/agents/**", async (route) => {
+      if (
+        route.request().method() === "GET" &&
+        new URL(route.request().url()).searchParams.get("view") === "history"
+      ) {
+        heldReads += 1;
+        await historyGate;
+      } else if (route.request().method() === "POST" && refuseNext) {
+        refuseNext = false;
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Witness admission refused" }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+    await page.reload();
+    const chatTab = page.getByRole("tab", { name: "Chat", exact: true });
+    const ledgerTab = page.getByRole("tab", { name: "Ledger", exact: true });
+    const showAssistant = page.getByRole("button", {
+      name: "Show AI assistant",
+      exact: true,
+    });
+    await chatTab.or(showAssistant).first().waitFor();
+    if (await showAssistant.isVisible()) await showAssistant.click();
+    await chatTab.click();
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "hydration-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump from the new turn.")]),
+    ]);
+    const composer = page.getByRole("textbox", {
+      name: "Message AI assistant",
+      exact: true,
+    });
+    await composer.fill("A booster pump fills the reservoir.");
+    const response = page.waitForResponse(
+      (received) =>
+        received.request().method() === "POST" &&
+        new URL(received.url()).pathname.startsWith("/agents/"),
+      { timeout: 10_000 },
+    );
+    await composer.press("Enter");
+    const received = await response;
+    observed.heldReads = heldReads;
+    assert(heldReads > 0, "history must still be held when submission settles");
+    if (admission === "refused") {
+      assert.equal(received.status(), 403);
+      await page
+        .getByRole("button", { name: "Stop AI response", exact: true })
+        .waitFor({ state: "hidden" });
+    } else {
+      assert(received.ok());
+      // The node client is not held by the browser's GET gate. Make the first
+      // hydrated snapshot include the newly accepted turn, not only the old one.
+      await client.wait((await received.json()) as AgentSendResult, {
+        signal: AbortSignal.timeout(30_000),
+      });
+    }
+    if (admission === "accepted-then-refused") {
+      // The response stream can finish while initial history is still delayed.
+      // A newer intent must supersede the previous receipt, even before hydration.
+      await page
+        .getByText("Recorded the pump from the new turn.", { exact: true })
+        .waitFor();
+      refuseNext = true;
+      await composer.fill("A later submission the server will refuse.");
+      const refused = page.waitForResponse(
+        (response) =>
+          response.status() === 403 && response.url().includes("/agents/"),
+      );
+      await composer.press("Enter");
+      await refused;
+      await page
+        .getByRole("button", { name: "Stop AI response", exact: true })
+        .waitFor({ state: "hidden" });
+    }
+    await ledgerTab.click();
+    observed.beforeHydration = await latestTurnMarks(page);
+    assert.deepEqual(observed.beforeHydration, []);
+    releaseHistory();
+    await page
+      .getByText(
+        admission === "refused"
+          ? "Hillcrest service reservoir"
+          : "Booster pump",
+        { exact: true },
+      )
+      .first()
+      .waitFor();
+    const expected = admission === "accepted" ? ['e2 added "New"'] : [];
+    observed.afterHydration = await marksSettleOn(page, expected);
+    assert.deepEqual(observed.afterHydration, expected);
+    observed.recordCount = await page
+      .locator('section[aria-label="Ledger"] [data-ledger-address]')
+      .count();
+    assert(
+      Number(observed.recordCount) > 0,
+      "dismissal must not hide the Ledger",
+    );
+    if (admission === "refused") {
+      // Another client can open the next turn; it need not be admitted by this
+      // panel's tracker to restore highlighting after the refused local send.
+      const external = await client.send({
+        message: { kind: "user", body: "A booster pump fills the reservoir." },
+      });
+      await client.wait(external, { signal: AbortSignal.timeout(30_000) });
+      observed.afterExternalTurn = await marksSettleOn(page, [
+        'e2 added "New"',
+      ]);
+      assert.deepEqual(observed.afterExternalTurn, ['e2 added "New"']);
+    }
+  } finally {
+    releaseHistory();
+    process.stdout.write(
+      `OBSERVED ledgerHighlightsAfterHydration ${JSON.stringify(observed)}\n`,
+    );
+    await page.close();
+  }
+};
+
+const ledgerRefusalBeforeHydration = () =>
+  ledgerHighlightsAfterHydration("refused");
+const ledgerAdmissionBeforeHydration = () =>
+  ledgerHighlightsAfterHydration("accepted");
+const ledgerLaterRefusalBeforeHydration = () =>
+  ledgerHighlightsAfterHydration("accepted-then-refused");
+
+/** Rechecking a lost acknowledgement must not dismiss the already-observed turn. */
+const ledgerRetryPreservesHighlights = async () => {
+  const page = await fixture.openAssistant();
+  page.setDefaultTimeout(15_000);
+  const observed: Record<string, unknown> = {};
+  try {
+    const client = await recordReservoir(page);
+    await page.getByRole("tab", { name: "Ledger", exact: true }).click();
+    await page
+      .getByText("Hillcrest service reservoir", { exact: true })
+      .first()
+      .waitFor();
+    await page.evaluate(() => {
+      const ledger = document.querySelector('section[aria-label="Ledger"]');
+      if (!ledger) throw new Error("No Ledger section");
+      const walker = document.createTreeWalker(ledger, NodeFilter.SHOW_TEXT);
+      let selected = walker.nextNode();
+      while (
+        selected &&
+        !selected.textContent?.includes("overflowed three times")
+      )
+        selected = walker.nextNode();
+      if (!selected) throw new Error("No overflow claim to comment on");
+      const range = document.createRange();
+      range.selectNodeContents(selected);
+      const selection = document.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Comment on the Ledger" });
+    await dialog
+      .getByRole("textbox", { name: "Comment" })
+      .fill("Add the booster pump.");
+    await dialog.getByRole("button", { name: "Add comment" }).click();
+    let loseAcknowledgement = true;
+    const deliveries: string[] = [];
+    await page.route("**/agents/**", async (route) => {
+      if (route.request().method() === "POST") {
+        deliveries.push(route.request().postData() ?? "");
+        if (loseAcknowledgement) {
+          loseAcknowledgement = false;
+          const response = await route.fetch({ maxRetries: 0 });
+          assert(response.ok(), "the server must admit the original delivery");
+          await route.abort("failed");
+          return;
+        }
+      }
+      await route.fallback();
+    });
+    faux.setResponses([
+      toolCall(
+        "ledger_commit",
+        {
+          entries: [
+            [
+              "entity/create",
+              {
+                name: "Booster pump",
+                kind: "resource",
+                origin: "stated",
+                status: "confirmed",
+              },
+            ],
+          ],
+        },
+        "retry-pump",
+      ),
+      fauxAssistantMessage([fauxText("Recorded the pump from your comment.")]),
+    ]);
+    const commentsBar = page.getByRole("group", { name: "Ledger comments" });
+    await commentsBar
+      .getByRole("button", { name: "Send", exact: true })
+      .click();
+    await commentsBar.getByText(/Delivery unconfirmed/u).waitFor();
+    await page.getByText("Booster pump", { exact: true }).first().waitFor();
+    observed.beforeRetry = await marksSettleOn(page, ['e2 added "New"']);
+    assert.deepEqual(observed.beforeRetry, ['e2 added "New"']);
+    const before = await client.history();
+    // Keyboard activation remains available if the admission-error toast
+    // overlaps the footer. This uses the same visible recovery control.
+    const retry = commentsBar.getByRole("button", {
+      name: "Retry",
+      exact: true,
+    });
+    await retry.focus();
+    await retry.press("Enter");
+    await commentsBar.waitFor({ state: "hidden" });
+    observed.afterRetry = await marksSettleOn(page, ['e2 added "New"']);
+    const after = await client.history();
+    observed.sameHistory =
+      JSON.stringify(before.messages) === JSON.stringify(after.messages);
+    observed.sameDelivery =
+      deliveries.length === 2 && deliveries[0] === deliveries[1];
+    assert.equal(observed.sameDelivery, true);
+    assert.equal(observed.sameHistory, true);
+    assert.deepEqual(observed.afterRetry, ['e2 added "New"']);
+  } finally {
+    process.stdout.write(
+      `OBSERVED ledgerRetryPreservesHighlights ${JSON.stringify(observed)}\n`,
+    );
+    await page.close();
+  }
+};
+
+/** A threshold's stated timing and its still-unknown timing both reach the Ledger tab. */
+const ledgerTabShowsRestrictionTiming = async () => {
+  const page = await fixture.openAssistant();
+  const stated = "Rack inlet stays at or below 30 °C throughout the incident.";
+  const unknown =
+    "When the 30 °C limit must hold: unasked, whether any reading above it counts or only a sustained one.";
+  faux.setResponses([
+    toolCall(
+      "ledger_commit",
+      {
+        entries: [
+          ["entity/create", { name: "30 °C inlet limit", kind: "threshold" }],
+          ["claim/create", { text: stated, entities: ["$0"] }],
+          [
+            "claim/create",
+            {
+              text: unknown,
+              entities: ["$0"],
+              origin: "inferred",
+              status: "open",
+            },
+          ],
+        ],
+      },
+      "commit-timing",
+    ),
+    fauxAssistantMessage([fauxText("Recorded the inlet limit.")]),
+  ]);
+  await fixture.ask(
+    page,
+    "30 °C rack inlet is the incident limit we plan against.",
+    "Recorded the inlet limit.",
+    60_000,
+  );
+  await page.getByRole("tab", { name: "Ledger" }).click();
+  const ledger = page.getByTestId("brunch-ledger-document");
+  await ledger.getByText(stated).waitFor({ timeout: 10_000 });
+  await ledger
+    .getByRole("heading", { name: "Open questions" })
+    .waitFor({ timeout: 10_000 });
+  assert.equal(
+    await ledger.getByText(unknown).count(),
+    2,
+    "the unknown timing shows under the threshold and under Open questions",
+  );
 };
 
 const baseRequest = {
@@ -217,9 +1220,28 @@ const experimentTimings = async () => {
   }
 };
 
+const witnesses = [
+  ledgerTabShowsCommit,
+  ledgerTabShowsRestrictionTiming,
+  ledgerReviewControls,
+  ledgerLatestTurnHighlights,
+  ledgerSubmissionClearsHighlights,
+  ledgerRefusalBeforeHydration,
+  ledgerAdmissionBeforeHydration,
+  ledgerLaterRefusalBeforeHydration,
+  ledgerRetryPreservesHighlights,
+  experimentTimings,
+];
+const selected = process.argv.slice(2);
+const unknown = selected.filter(
+  (name) => !witnesses.some((witness) => witness.name === name),
+);
+assert.deepEqual(unknown, [], "Unknown witness case");
 const failures: string[] = [];
 try {
-  for (const witness of [ledgerTabShowsCommit, experimentTimings]) {
+  for (const witness of selected.length === 0
+    ? witnesses
+    : witnesses.filter(({ name }) => selected.includes(name))) {
     try {
       // oxlint-disable-next-line eslint/no-await-in-loop -- The cases share one scripted response queue.
       await witness();
@@ -232,8 +1254,13 @@ try {
   process.stdout.write(
     `${JSON.stringify({ errors: fixture.errors, blocked: fixture.blocked })}\n`,
   );
+  process.stdout.write(`OUTPUT ${output}\n`);
   assert.deepEqual(failures, []);
-  process.stdout.write("BROWSER_WITNESS_MANUAL_PASS\n");
+  process.stdout.write(
+    selected.length === 0
+      ? "BROWSER_WITNESS_MANUAL_PASS\n"
+      : `BROWSER_WITNESS_SELECTED_PASS ${selected.join(" ")}\n`,
+  );
 } finally {
   try {
     await fixture.close();

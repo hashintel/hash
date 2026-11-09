@@ -1,5 +1,7 @@
-import { createOpenAIRealtimeCallHandler } from "../../src/server/voice/openai-realtime-call.js";
-import { reportVoiceDiagnostic } from "../../src/voice-diagnostics.js";
+import {
+  createOpenAIRealtimeCallHandler,
+  reportVoiceDiagnostic,
+} from "@hashintel/brunch-agent/server";
 
 declare const process: {
   env: Record<string, string | undefined>;

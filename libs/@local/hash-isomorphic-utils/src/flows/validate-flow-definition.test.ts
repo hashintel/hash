@@ -3,13 +3,15 @@ import { describe, expect, it } from "vitest";
 import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import {
   addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
+  getOutputsAvailableToFlow,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
-import type { FlowDefinition } from "./types.js";
+import type { EntityQuery, FlowDefinition } from "./types.js";
 
 const baseDefinition = {
   name: "Test",
@@ -150,12 +152,12 @@ describe("validateFlowDefinition", () => {
       {
         severity: "error",
         code: "missingInput",
-        path: ["steps", 1, "inputs"],
+        path: ["steps", 1, "inputs", "airportIcao"],
       },
       {
         severity: "error",
         code: "missingInput",
-        path: ["steps", 1, "inputs"],
+        path: ["steps", 1, "inputs", "date"],
       },
       {
         severity: "error",
@@ -281,6 +283,85 @@ describe("validateFlowDefinition", () => {
         ],
       }),
     ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          { ...answerStep("a"), runAfter: [{ stepId: "b" }] },
+          { ...answerStep("b"), runAfter: [{ stepId: "a" }] },
+        ],
+      }),
+    ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+  });
+
+  it("reports unnamed inputs and outputs, without rejecting the definition", () => {
+    const result = validateFlowDefinition({
+      ...baseDefinition,
+      inputs: [
+        { name: "", payloadKind: "Text", array: false, required: true },
+        { name: "", payloadKind: "Text", array: false, required: true },
+      ],
+      steps: [
+        answerStep("answer", {
+          question: { kind: "flow-input", inputName: "" },
+        }),
+      ],
+      outputs: [{ name: "", stepId: "answer", outputName: "answer" }],
+    });
+
+    expect(result.flowDefinition).not.toBeNull();
+    expect(
+      result.diagnostics.map(({ code, path }) => ({ code, path })),
+    ).toEqual([
+      { code: "unnamedInput", path: ["inputs", 0, "name"] },
+      { code: "unnamedInput", path: ["inputs", 1, "name"] },
+      { code: "unnamedOutput", path: ["outputs", 0, "name"] },
+    ]);
+  });
+
+  it("accepts steps that run after others, and keeps their positions", () => {
+    const flowDefinition = {
+      ...baseDefinition,
+      steps: [
+        { ...answerStep("first"), position: { x: 0, y: 0 } },
+        {
+          ...answerStep("second"),
+          position: { x: 240, y: -80.5 },
+          runAfter: [{ stepId: "first" }],
+        },
+      ],
+    };
+
+    const result = validateFlowDefinition(flowDefinition);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.flowDefinition).toEqual(flowDefinition);
+  });
+
+  it("reports a step run after that doesn't exist, or is the step itself", () => {
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          {
+            ...answerStep("answer"),
+            runAfter: [{ stepId: "missing" }, { stepId: "answer" }],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        severity: "error",
+        code: "unknownStep",
+        path: ["steps", 0, "runAfter", 0, "stepId"],
+      },
+      {
+        severity: "error",
+        code: "selfReference",
+        path: ["steps", 0, "runAfter", 1, "stepId"],
+      },
+    ]);
   });
 
   describe("for-each steps", () => {
@@ -326,6 +407,44 @@ describe("validateFlowDefinition", () => {
 
     it("accepts a valid for-each step", () => {
       expect(diagnosticsOf(forEachDefinition({}))).toEqual([]);
+    });
+
+    it("reports a collected output with no name yet", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            collect: { stepId: "answer", outputName: "explanation", as: "" },
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "unnamedOutput",
+          path: ["steps", 1, "collect", "as"],
+        },
+      ]);
+    });
+
+    it("only lets steps inside a for-each step run after steps inside it", () => {
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            after: [
+              {
+                ...answerStep("afterAnswer"),
+                runAfter: [{ stepId: "answer" }],
+              },
+              { ...answerStep("afterEach"), runAfter: [{ stepId: "each" }] },
+            ],
+          }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "stepNotInScope",
+          path: ["steps", 2, "runAfter", 0, "stepId"],
+        },
+      ]);
     });
 
     it("rejects iterating over a singular value", () => {
@@ -1125,7 +1244,7 @@ describe("validateFlowDefinition", () => {
           code: "missingInput",
           message:
             'Required input "propertyPatches" of action "updateEntity" is not connected',
-          path: ["steps", 0, "inputs"],
+          path: ["steps", 0, "inputs", "propertyPatches"],
         },
       ]);
     });
@@ -1359,6 +1478,57 @@ describe("validateFlowDefinition", () => {
       },
     );
   });
+
+  describe("queries of queryEntities steps", () => {
+    const queryEntitiesDefinition = (query?: EntityQuery) => ({
+      ...baseDefinition,
+      inputs: [],
+      steps: [
+        {
+          kind: "action",
+          stepId: "find",
+          actionDefinitionId: "queryEntities",
+          description: "",
+          inputs: query
+            ? {
+                query: {
+                  kind: "constant",
+                  payload: { kind: "EntityQuery", value: query },
+                },
+              }
+            : {},
+        },
+      ],
+    });
+
+    it("accepts a step without a query, which matches every entity by default", () => {
+      expect(diagnosticsOf(queryEntitiesDefinition())).toEqual([]);
+    });
+
+    it.each([1, maxEntitiesPerStep])("accepts a limit of %s", (limit) => {
+      expect(
+        diagnosticsOf(queryEntitiesDefinition({ filter: { all: [] }, limit })),
+      ).toEqual([]);
+    });
+
+    it.each([0, maxEntitiesPerStep + 1])(
+      "rejects a limit of %s at the limit",
+      (limit) => {
+        expect(
+          validateFlowDefinition(
+            queryEntitiesDefinition({ filter: { all: [] }, limit }),
+          ).diagnostics,
+        ).toEqual([
+          {
+            severity: "error",
+            code: "invalidInput",
+            message: "The limit must be a whole number from 1 to 100,000.",
+            path: ["steps", 0, "inputs", "query", "payload", "value", "limit"],
+          },
+        ]);
+      },
+    );
+  });
 });
 
 describe("addStepIdsToDiagnostics", () => {
@@ -1403,5 +1573,87 @@ describe("addStepIdsToDiagnostics", () => {
         { code: "unusedFlowInput", stepId: undefined },
       ]),
     );
+  });
+});
+
+describe("getOutputsAvailableToFlow", () => {
+  /** `first`, then `each`, a for-each step over `questions` with `answer` inside it, collected as `explanations`. */
+  const flowDefinition: FlowDefinition<string> = {
+    ...baseDefinition,
+    inputs: [
+      ...baseDefinition.inputs,
+      { name: "questions", payloadKind: "Text", array: true, required: true },
+    ],
+    steps: [
+      {
+        kind: "action",
+        stepId: "first",
+        actionDefinitionId: "answerQuestion",
+        description: "",
+        inputs: { question: { kind: "flow-input", inputName: "question" } },
+      },
+      {
+        kind: "for-each",
+        stepId: "each",
+        description: "",
+        over: { kind: "flow-input", inputName: "questions" },
+        collect: {
+          stepId: "answer",
+          outputName: "explanation",
+          as: "explanations",
+        },
+        steps: [
+          {
+            kind: "action",
+            stepId: "answer",
+            actionDefinitionId: "answerQuestion",
+            description: "",
+            inputs: { question: { kind: "item" } },
+          },
+        ],
+      },
+    ],
+  };
+
+  it("offers the outputs a run has when it finishes: a for-each step's collected output, not those inside it", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", ["explanation"]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "each", [
+        "explanation",
+        "explanations",
+      ]),
+    ).toEqual(["explanations"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "answer", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("leaves out an output the step doesn't have, and every output of a step that isn't there", () => {
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "first", [
+        "explanation",
+        "missing",
+      ]),
+    ).toEqual(["explanation"]);
+    expect(
+      getOutputsAvailableToFlow(flowDefinition, "gone", ["explanation"]),
+    ).toEqual([]);
+  });
+
+  it("offers an output whose name a flow output already has, as marking it numbers the name", () => {
+    expect(
+      getOutputsAvailableToFlow(
+        {
+          ...flowDefinition,
+          outputs: [
+            { name: "explanation", stepId: "each", outputName: "explanations" },
+          ],
+        },
+        "first",
+        ["explanation"],
+      ),
+    ).toEqual(["explanation"]);
   });
 });

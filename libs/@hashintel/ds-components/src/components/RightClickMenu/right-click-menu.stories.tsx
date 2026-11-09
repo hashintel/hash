@@ -3,12 +3,12 @@ import { useMemo } from "react";
 import {
   type Item,
   type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
+} from "../../primitives/SelectableList/selectable-list";
+import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
 import {
   defaultSelected,
   groupedItems,
-} from "../../util/SelectableList/selectable-list.fixtures";
+} from "../../primitives/SelectableList/selectable-list.fixtures";
 import { type MenuItem } from "../Menu/menu";
 import { RightClickMenu } from "./right-click-menu";
 
@@ -47,12 +47,12 @@ function withSelectedFlags(entry: ItemOrGroup<Item>): ItemOrGroup<MenuItem> {
     };
   }
   if ("custom" in entry) {
-    return entry;
+    return entry as MenuItem;
   }
   return {
     ...entry,
     selected: defaultSelected.includes(getItemId(entry)),
-  };
+  } as MenuItem;
 }
 
 const DefaultDemo = (args: RightClickMenuProps) => {

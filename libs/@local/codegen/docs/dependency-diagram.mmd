@@ -18,79 +18,83 @@ graph TD
     6[<a href="../hash_graph_authentication/index.html">hash-graph-authentication</a>]
     7[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
     8[<a href="../hash_graph_embeddings/index.html">hash-graph-embeddings</a>]
-    9[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    10[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    11[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    12[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
-    13[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    14[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    15[<a href="../harpc_client/index.html">harpc-client</a>]
-    16[<a href="../harpc_net/index.html">harpc-net</a>]
-    17[<a href="../harpc_server/index.html">harpc-server</a>]
-    18[<a href="../harpc_system/index.html">harpc-system</a>]
-    19[<a href="../harpc_tower/index.html">harpc-tower</a>]
-    20[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    21[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    22[<a href="../hashql_core/index.html">hashql-core</a>]
-    23[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    24[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    25[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    26[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    27[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
-    28[<a href="../hash_integrations_engine/index.html">hash-integrations-engine</a>]
-    29[<a href="../hash_middleware/index.html">hash-middleware</a>]
-    30[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    31[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    32[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    33[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    9[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    10[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    11[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    12[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    13[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    14[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    15[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    16[<a href="../harpc_client/index.html">harpc-client</a>]
+    17[<a href="../harpc_net/index.html">harpc-net</a>]
+    18[<a href="../harpc_server/index.html">harpc-server</a>]
+    19[<a href="../harpc_system/index.html">harpc-system</a>]
+    20[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    21[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    22[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    23[<a href="../hashql_core/index.html">hashql-core</a>]
+    24[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    25[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    26[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    27[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    28[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
+    29[<a href="../hash_integrations_engine/index.html">hash-integrations-engine</a>]
+    30[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    31[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    32[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    33[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    34[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     0 --> 5
-    1 --> 11
-    1 -.-> 33
+    1 --> 12
+    1 -.-> 34
     2 -.-> 3
-    4 --> 12
-    4 --> 17
-    4 --> 23
-    4 --> 26
-    5 --> 9
-    5 --> 22
-    6 --> 10
-    6 -.-> 29
-    6 --> 29
+    4 --> 13
+    4 --> 18
+    4 --> 24
+    4 --> 27
+    5 --> 10
+    5 --> 23
+    6 --> 11
+    6 -.-> 30
+    6 --> 30
     7 --> 1
-    8 --> 13
-    9 -.-> 6
-    9 --> 8
-    9 -.-> 9
-    9 --> 14
-    10 --> 7
-    10 --> 13
-    10 --> 30
-    11 --> 2
-    12 --> 10
-    13 -.-> 33
-    14 -.-> 33
-    15 --> 18
-    16 --> 2
-    17 -.-> 1
-    17 -.-> 15
-    18 --> 19
-    19 -.-> 16
-    19 --> 16
-    20 -.-> 21
-    21 --> 23
-    21 --> 26
-    22 --> 2
-    23 --> 9
-    23 --> 25
-    24 -.-> 21
-    25 --> 24
-    26 --> 20
-    26 --> 22
-    27 --> 1
-    28 --> 27
-    29 --> 1
+    8 --> 14
+    9 --> 10
+    10 -.-> 6
+    10 --> 8
+    10 -.-> 10
+    10 --> 15
+    11 --> 7
+    11 --> 14
+    11 --> 31
+    12 --> 2
+    13 --> 11
+    14 -.-> 34
+    15 -.-> 34
+    16 --> 19
+    17 --> 2
+    18 -.-> 1
+    18 -.-> 16
+    19 --> 20
+    20 -.-> 17
+    20 --> 17
+    21 -.-> 22
+    22 --> 24
+    22 --> 27
+    23 --> 2
+    24 --> 10
+    24 --> 26
+    25 -.-> 22
+    26 --> 25
+    27 --> 21
+    27 --> 23
+    28 --> 1
+    29 --> 11
+    29 --> 28
+    29 --> 30
     30 --> 1
-    31 -.-> 4
-    32 -.-> 9
-    33 --> 10
+    31 --> 1
+    32 -.-> 4
+    33 -.-> 10
+    34 --> 11

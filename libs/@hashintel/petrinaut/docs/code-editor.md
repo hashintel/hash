@@ -9,9 +9,9 @@ Select a place, transition, or differential equation in the canvas or left sideb
 - **Firing Time** contains a transition’s predicate or stochastic rate.
 - **Transition Results** contains a transition’s output function.
 - **Differential Equation** contains the equation’s properties and code.
-- **Visualizer** contains a place’s visualization code and preview.
+- **Visualizer** contains a place’s visualization code. Focusing the editor opens a temporary preview on the Canvas.
 
-The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **View equation** below its assigned differential equation opens that equation’s properties and code.
+The item’s menu in the left sidebar opens its code directly. A Canvas visualizer’s **Edit visualizer code** button opens and focuses its expanded code section. For a place with dynamics, **View equation** below its assigned differential equation opens that equation’s properties and code.
 
 Every code section, the Visualizer included, is checked as you type: type errors are underlined and listed in the Diagnostics tab, completion suggests the names in scope, and pointing at a name shows its type.
 
@@ -29,7 +29,7 @@ Returning restores keyboard focus to **Fill panel**, or to the section header if
 
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
-Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
+Changes apply automatically to the model. Simulation modes keep model functions read-only, but visualizer code remains editable during a run because it only changes the picture. Read-only files keep all code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
 
 The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.
 

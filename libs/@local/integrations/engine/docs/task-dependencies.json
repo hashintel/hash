@@ -2,7 +2,11 @@
   "package": "hash-integrations-engine",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
     "hash-integrations-definition",
+    "hash-middleware",
     "type-system"
   ],
   "tasks": {

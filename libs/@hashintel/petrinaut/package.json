@@ -71,7 +71,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@ark-ui/react": "5.38.1",
@@ -87,7 +87,6 @@
     "@tanstack/react-form": "1.29.0",
     "@xyflow/react": "12.10.1",
     "fuzzysort": "3.1.0",
-    "lodash-es": "4.18.1",
     "monaco-editor": "0.55.1",
     "react-resizable-panels": "4.6.5",
     "uplot": "1.6.32",
@@ -102,7 +101,6 @@
     "@testing-library/dom": "10.4.1",
     "@testing-library/react": "16.3.2",
     "@tsconfig/bases": "catalog:",
-    "@types/lodash-es": "4.17.12",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@types/use-sync-external-store": "0.0.6",
@@ -114,7 +112,7 @@
     "oxlint-tsgolint": "7.0.2003",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "rolldown": "1.2.6",
+    "rolldown": "catalog:",
     "rolldown-plugin-dts": "0.28.3",
     "storybook": "10.6.2",
     "typescript": "catalog:",

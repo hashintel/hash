@@ -109,6 +109,7 @@ describe("analyzeCompilation", () => {
       deploymentPipelineSDCPN: true,
       probabilisticSatellitesSDCPN: true,
       sirModel: true,
+      sirMassActionModel: true,
       cafeQueue: true,
       dronePatrol: true,
       supplyChainWithDisruption: true,
@@ -322,6 +323,10 @@ describe("analyzeCompilation", () => {
         metric__average_orbital_speed: "gpu-ready",
       },
       sirModel: { metric__infected_fraction: "gpu-ready" },
+      sirMassActionModel: {
+        metric__infected: "gpu-ready",
+        metric__attack_rate: "gpu-ready",
+      },
       cafeQueue: {},
       dronePatrol: {},
       supplyChainWithDisruption: {

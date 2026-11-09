@@ -94,6 +94,9 @@
     "@deck.gl/layers": "9.3.6",
     "@deck.gl/react": "9.3.6",
     "@deck.gl/widgets": "9.3.6",
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "7.0.2",
+    "@dnd-kit/utilities": "3.2.2",
     "@hashintel/ds-helpers": "workspace:^",
     "@loaders.gl/core": "4.4.3",
     "@luma.gl/core": "9.3.6",
@@ -129,7 +132,6 @@
     "@types/react-dom": "19.2.3",
     "@typescript/typescript6": "catalog:",
     "@vitejs/plugin-react": "6.1.1",
-    "@vitest/browser-playwright": "4.1.11",
     "case-anything": "3.1.0",
     "esbuild-plugin-svgr": "3.1.1",
     "eslint": "9.39.4",
@@ -156,7 +158,6 @@
     "vite": "catalog:",
     "vite-plugin-svgr": "5.2.0",
     "vitest": "catalog:",
-    "vitest-browser-react": "^2.0.2",
     "zod": "4.6.7"
   },
   "peerDependencies": {

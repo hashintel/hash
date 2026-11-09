@@ -13,6 +13,17 @@ declare module "*/content/site.json" {
   const site: Pick<
     import("../../src/config").SiteConfig,
     "title" | "description" | "url"
-  >;
+  > & {
+    /** Absolute path of the instance's decks, or null. */
+    slides: string | null;
+    /** The site logo's height in a slide's corner, as a ratio of the corner's. */
+    slideLogoScale: number;
+  };
   export default site;
+}
+
+/** The decks the `archinaut-decks` plugin lists from the slides directory. */
+declare module "virtual:archinaut-decks" {
+  const decks: import("./slides/decks").DeckSummary[];
+  export default decks;
 }
