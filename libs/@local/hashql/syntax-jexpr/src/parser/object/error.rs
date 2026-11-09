@@ -339,7 +339,7 @@ pub(crate) fn unknown_key(
     key: impl AsRef<str>,
     expected: &[&'static str],
 ) -> ObjectDiagnostic {
-    // The key comes from the input, and a raw control character in it would reach the terminal.
+    // labels are not escaped by annotate-snippets, but are user-controlled via the `key` input.
     let key = key.as_ref().escape_debug();
 
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
