@@ -1,5 +1,7 @@
 import { Struct } from "effect";
+import { remarkMdxMermaid } from "fumadocs-core/mdx-plugins";
 import { loader } from "fumadocs-core/source";
+import { applyMdxPreset } from "fumadocs-mdx/config";
 import { defineDocs } from "fumadocs-mdx/macro";
 import { createElement } from "react";
 
@@ -9,10 +11,13 @@ import type * as Location from "../../src/Location.js";
 import type * as PageTree from "fumadocs-core/page-tree";
 import type { ReactNode } from "react";
 
-// The hand-written pages. The macro resolves `dir` against the working
-// directory, which is `preview/`. A host compiles them with its own MDX
-// options, so the preview keeps fumadocs' defaults.
-const docs = defineDocs({ dir: "../content" });
+// The macro resolves `dir` against `preview/`. Collection options replace the defaults, so the preset keeps headings, code tabs and highlighting alongside Mermaid.
+const docs = defineDocs({
+  dir: "../content",
+  docs: {
+    mdxOptions: applyMdxPreset({ remarkPlugins: [remarkMdxMermaid] }),
+  },
+});
 
 /** The directory the reference's pages go in. */
 const dir = "reference";

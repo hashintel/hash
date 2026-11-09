@@ -4,6 +4,7 @@ import defaultMdxComponents from "@fumadocs/base-ui/mdx";
 import { Struct } from "effect";
 
 import { MdxCallout } from "./mdx-callout.js";
+import { Mermaid } from "./mermaid.js";
 import { Result } from "./result.js";
 import { SideBySide } from "./side-by-side.js";
 
@@ -12,6 +13,7 @@ export const components = Struct.assign(defaultMdxComponents, {
   Accordion,
   Accordions,
   Callout: MdxCallout,
+  Mermaid,
   Result,
   SideBySide,
   Tab,
