@@ -37,18 +37,18 @@ import {
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
+import {
+  cellButtonStyle,
+  cellErrorUnderlineStyle,
+  dependencyHighlightStyle,
+} from "../spreadsheet-kit/form-table";
+import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
 import {
   AdHocFormContext,
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
-import {
-  cellButtonStyle,
-  cellErrorUnderlineStyle,
-  dependencyHighlightStyle,
-} from "./spreadsheet/form-table";
-import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { stepAdHocValue } from "./step-value";
 import { ComputedExpression } from "./value-editor/computed-expression";
 

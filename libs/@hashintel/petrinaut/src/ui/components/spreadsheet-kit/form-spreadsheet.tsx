@@ -1,14 +1,14 @@
 /**
- * @layerRoot ui.adhoc-form.spreadsheet
- * @role The state-agnostic spreadsheet grammar the form's tables compose: shell, gutter cells and menus, phantom add-lines, row selection
+ * @layerRoot ui.spreadsheet-kit
+ * @role The state-agnostic spreadsheet grammar the editor's tables compose: shell, gutter cells and menus, phantom add-lines, row selection
  *
- * The bordered table shell every form spreadsheet renders into: the scroll
+ * The bordered table shell every spreadsheet renders into: the scroll
  * container that registers as a member of the enclosing worksheet stack,
- * and the table with the form's fixed layout. The rows inside stay the
- * owning table's business.
+ * and the table with the fixed layout. The rows inside stay the owning
+ * table's business.
  *
- * Nothing in this folder knows `AdHocScenarioState` — that is what keeps
- * the tables thin and the grammar reusable.
+ * Nothing in this folder knows the ad-hoc form's state or the net — that is
+ * what keeps the tables thin and the grammar reusable.
  */
 
 import { css, cx } from "@hashintel/ds-helpers/css";

@@ -14,7 +14,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   CheckIcon,
   useExperimentalIconPackEnabled,
-} from "../../../experimental-icons";
+} from "../../experimental-icons";
 
 const menuStyle = css({
   display: "flex",

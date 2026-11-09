@@ -26,7 +26,7 @@ import {
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
-import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
@@ -39,10 +39,10 @@ import {
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-} from "./spreadsheet/form-table";
-import { GutterCell } from "./spreadsheet/gutter-cell";
-import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
-import { PhantomLine } from "./spreadsheet/phantom-line";
+} from "../spreadsheet-kit/form-table";
+import { GutterCell } from "../spreadsheet-kit/gutter-cell";
+import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
+import { PhantomLine } from "../spreadsheet-kit/phantom-line";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
