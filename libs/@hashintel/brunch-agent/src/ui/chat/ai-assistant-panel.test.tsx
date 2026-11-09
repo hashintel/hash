@@ -13,6 +13,7 @@ import {
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -31,6 +32,7 @@ import {
   NotificationsProvider,
 } from "@hashintel/petrinaut/react";
 
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
@@ -54,6 +56,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { PetrinautAiAssistant } from "./petrinaut";
+import type { FlueClient } from "@flue/sdk";
 import type { AddNotificationInput } from "@hashintel/petrinaut/ui/plugin";
 import type { UIMessageChunk } from "ai";
 
@@ -4128,6 +4131,78 @@ describe("AiAssistantPanel composer submissions", () => {
     await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
     expect(run).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("leaves Save to its in-band admission path while still running other automatic tools", async () => {
+    const save = vi.fn(() => ({ saved: true }));
+    const hostAutomatic = vi.fn(() => ({ done: true }));
+    const admit = vi.fn(async () => ({ admitted: true }) as const);
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/hash/instance",
+      } as FlueClient),
+      ownerKey: "owner",
+      binding: { conversationId: "conversation", documentId: "net" },
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      admit,
+      acceptsRevision: () => true,
+    });
+    expect(calls.has(brunchTools.saveHashNet)).toBe(true);
+    expect(calls.has("hostAutomatic")).toBe(false);
+    const run = vi.fn(calls.run);
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([...textChunks("reply", "Done.")]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        // These calls reach the ready-state panel only as message parts.
+        messages: [
+          {
+            id: "ready-turn",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: brunchTools.saveHashNet,
+                toolCallId: "save-call",
+                state: "input-available",
+                input: { documentId: "web~net" },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "hostAutomatic",
+                toolCallId: "automatic-call",
+                state: "input-available",
+                input: {},
+              },
+            ],
+          },
+        ],
+        automaticTools: [
+          {
+            toolName: brunchTools.saveHashNet,
+            inputParser: { parse: (raw: unknown) => raw },
+            outputParser: { parse: (raw: unknown) => raw },
+            execute: save,
+          },
+          {
+            toolName: "hostAutomatic",
+            inputParser: { parse: (raw: unknown) => raw },
+            outputParser: { parse: (raw: unknown) => raw },
+            execute: hostAutomatic,
+          },
+        ],
+        inBandBrowserTools: { has: calls.has, run },
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await waitFor(() => expect(hostAutomatic).toHaveBeenCalledOnce());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(save).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(admit).not.toHaveBeenCalled();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {

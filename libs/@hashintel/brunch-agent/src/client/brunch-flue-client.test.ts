@@ -129,6 +129,7 @@ test("every Brunch request, the live-tool stream included, goes through the host
     binding,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
     fetch: hostFetch,
   });

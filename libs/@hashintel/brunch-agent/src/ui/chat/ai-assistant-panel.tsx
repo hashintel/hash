@@ -1790,6 +1790,14 @@ const ConversationAiAssistantPanel = ({
           aiAssistant.automaticTools,
         );
         if (!isStatic && !isAutomaticDynamic) continue;
+        // A tool the in-band path owns runs only there, behind its admission
+        // check; running it here as well would bypass consent.
+        if (
+          aiAssistant.inBandBrowserTools?.has(
+            isAutomaticDynamic ? part.toolName : getStaticToolName(part),
+          )
+        )
+          continue;
 
         const toolCall = isAutomaticDynamic
           ? {
@@ -1891,6 +1899,7 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.automaticTools,
     aiAssistant.followMessages,
+    aiAssistant.inBandBrowserTools,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,
