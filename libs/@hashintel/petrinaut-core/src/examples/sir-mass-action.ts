@@ -144,8 +144,10 @@ export const sirMassActionModel: { title: string; petriNetDefinition: SDCPN } =
           ],
           outputArcs: [{ placeId: "place__infected", weight: 2 }],
           lambdaType: "stochastic",
-          lambdaCode: `// Mass action: the rate constant times the token counts of the inputs.
-return parameters.beta * input.Susceptible.count * input.Infected.count;`,
+          lambdaCode: `// Mass action: beta times both input counts.
+const susceptible = input.Susceptible.count;
+const infected = input.Infected.count;
+return parameters.beta * susceptible * infected;`,
           transitionKernelCode: "",
           x: -10 * GRID_SIZE,
           y: 5 * GRID_SIZE,
@@ -160,7 +162,7 @@ return parameters.beta * input.Susceptible.count * input.Infected.count;`,
           ],
           outputArcs: [{ placeId: "place__recovered", weight: 1 }],
           lambdaType: "stochastic",
-          lambdaCode: `// Mass action: the rate constant times the number of infected.
+          lambdaCode: `// Mass action: gamma times the infected count.
 return parameters.gamma * input.Infected.count;`,
           transitionKernelCode: "",
           x: 6 * GRID_SIZE,
