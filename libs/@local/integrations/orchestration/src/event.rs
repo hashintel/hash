@@ -1,5 +1,6 @@
 use core::num::NonZero;
 
+use serde::{Deserialize, Serialize};
 use time::UtcDateTime;
 
 use crate::{AdmissionKey, FailureCode, Payload, RetryPolicy, StepName};
@@ -46,7 +47,8 @@ pub struct RunStart {
 }
 
 /// Whether a failed step can succeed when it is attempted again.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum FailureKind {
     Retryable,
     Permanent,

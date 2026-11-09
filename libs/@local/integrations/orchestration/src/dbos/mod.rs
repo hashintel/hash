@@ -16,6 +16,15 @@ use error_stack::{Report, ResultExt as _};
 
 use crate::BackendError;
 
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the step context and the run reads that use the stored formats come next"
+    )
+)]
+mod stored;
+
 /// The DBOS application every process registers as.
 const APP_NAME: &str = "hash-integrations";
 
