@@ -3,13 +3,7 @@
 [
   "let",
   "id",
-  [
-    "fn",
-    { "#tuple": [] },
-    { "#struct": { "f": "_" } },
-    "_",
-    "f"
-  ],
+  ["fn", { "#tuple": [] }, { "#struct": { "f": "_" } }, "_", "f"],
   ["id", "::graph::head::entities"]
   //~^ ERROR `::graph::head::entities` cannot be used as a value
 ]

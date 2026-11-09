@@ -14,11 +14,6 @@
     "let",
     "r1",
     ["apply", { "#literal": 1 }, { "#literal": 2 }, "<="],
-    [
-      "let",
-      "r2",
-      ["apply", { "#literal": 3 }, { "#literal": 4 }, "<="],
-      "r2"
-    ]
+    ["let", "r2", ["apply", { "#literal": 3 }, { "#literal": 4 }, "<="], "r2"]
   ]
 ]
