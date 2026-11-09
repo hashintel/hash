@@ -64,6 +64,15 @@ describe("offer_answers input", () => {
     expect(zOfferAnswersInput.safeParse(input).success).toBe(false);
   });
 
+  test("tells a model that offers only open questions not to call the tool", () => {
+    const result = zOfferAnswersInput.safeParse({
+      questions: [{ kind: "open", label: "Walk me through it" }],
+    });
+    expect(result.error?.issues.map(({ message }) => message)).toEqual([
+      expect.stringContaining("don't call offer_answers"),
+    ]);
+  });
+
   test("exports a JSON Schema with every question kind", () => {
     const jsonSchema = zOfferAnswersInput["~standard"].jsonSchema.input({
       target: "draft-2020-12",
