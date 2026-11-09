@@ -19,6 +19,7 @@ extern crate alloc;
 mod byte_size;
 mod capture;
 mod entity_id;
+mod graph;
 mod pipeline;
 mod progress;
 mod sources;
@@ -30,6 +31,10 @@ pub use self::{
     byte_size::ByteSize,
     capture::{CaptureError, SourceCapture},
     entity_id::derive_entity_id,
+    graph::{
+        Archive, EntityUpsert, GraphOperation, LinkEndpoint, LinkUpsert, OperationKind,
+        integration_provenance,
+    },
     pipeline::{
         AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
         TableAssertions,
