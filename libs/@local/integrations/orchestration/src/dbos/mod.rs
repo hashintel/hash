@@ -16,6 +16,7 @@ use dbos::{
 use error_stack::{Report, ResultExt as _};
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
 use crate::{
     BackendError, FunctionVersion, RunError, RunFunction, Worker,
@@ -51,6 +52,10 @@ pub struct DbosConfig {
     pub database_url: String,
     /// The schema DBOS keeps its tables in.
     pub schema: String,
+    /// Names this process among the workers sharing the database. DBOS resumes the runs a
+    /// process left unfinished when a process with the same ID launches, so a deployment gives
+    /// each worker slot a stable ID. `None` takes a new ID per process.
+    pub executor_id: Option<String>,
     /// How many runs execute at once across every worker. `None` sets no limit.
     pub queue_concurrency: Option<u32>,
 }
@@ -62,6 +67,7 @@ impl DbosConfig {
         Self {
             database_url: database_url.into(),
             schema: String::from(sysdb::DEFAULT_SCHEMA),
+            executor_id: None,
             queue_concurrency: None,
         }
     }
@@ -74,6 +80,7 @@ impl DbosConfig {
 /// DBOS instance of its own, built by [`Worker::work`].
 pub struct DbosBackend {
     config: DbosConfig,
+    executor_id: String,
     client: Client,
     postgres: tokio_postgres::Client,
     /// The token bucket statement, with the schema filled in.
@@ -131,6 +138,10 @@ impl DbosBackend {
 
         Ok(Self {
             consume: coordination::consume(&config.schema),
+            executor_id: config
+                .executor_id
+                .clone()
+                .unwrap_or_else(|| Uuid::new_v4().to_string()),
             config,
             client,
             postgres,
@@ -144,7 +155,8 @@ impl DbosBackend {
 }
 
 impl Worker for DbosBackend {
-    /// A DBOS instance for `F::VERSION`, launched with the run workflow registered on it.
+    /// A DBOS instance for `F::VERSION`, launched with the run workflow registered on it. Its
+    /// launch resumes the runs a previous process under this executor ID left unfinished.
     #[tracing::instrument(skip_all, fields(version = %F::VERSION))]
     fn work<F: RunFunction + 'static>(
         &self,
@@ -155,6 +167,7 @@ impl Worker for DbosBackend {
             let mut config = dbos::Config::new(APP_NAME, self.config.database_url.clone());
             config.schema = self.config.schema.clone();
             config.app_version = Some(app_version(F::VERSION));
+            config.executor_id = Some(self.executor_id.clone());
 
             let dbos = DBOS::new(config);
             dbos.register_workflow(WORKFLOW, move |start: RunStartStored| {
