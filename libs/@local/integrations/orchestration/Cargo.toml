@@ -22,8 +22,10 @@ tokio-util = { workspace = true, public = true }
 
 # Private third-party dependencies
 backon         = { workspace = true }
+dbos           = { workspace = true, optional = true }
 derive_more    = { workspace = true, features = ["as_ref", "display", "error"] }
 simple-mermaid = { workspace = true }
+tracing        = { workspace = true, optional = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -31,6 +33,16 @@ proptest          = { workspace = true, features = ["attr-macro", "std"] }
 proptest-derive   = { workspace = true }
 rstest            = { workspace = true }
 time              = { workspace = true, features = ["macros"] }
+tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio-postgres    = { workspace = true, features = ["runtime"] }
+uuid              = { workspace = true, features = ["std", "v4"] }
+
+[features]
+dbos = ["dep:dbos", "dep:tracing"]
 
 [lints]
 workspace = true
+
+[[test]]
+name              = "dbos"
+required-features = ["dbos"]

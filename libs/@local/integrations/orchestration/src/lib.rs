@@ -11,7 +11,8 @@
 //! recorded. A step that failed before executes again no earlier than its retry delay allows.
 //!
 //! A backend implements [`Runs`], [`Worker`] and [`CoordinationStore`]. It executes a
-//! [`RunFunction`], which requests its steps through a [`StepContext`].
+//! [`RunFunction`], which requests its steps through a [`StepContext`]. The `dbos` feature adds
+//! the backend on DBOS, in [`dbos`].
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
@@ -19,6 +20,8 @@
 extern crate alloc;
 
 mod coordination;
+#[cfg(feature = "dbos")]
+pub mod dbos;
 mod event;
 mod name;
 mod payload;
