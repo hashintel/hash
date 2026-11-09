@@ -46,7 +46,7 @@ Choose a move for the active gap, ask, see what changed, then choose again.
 - **choose** for Contrast, Trade outcomes, or a choice of representation: two to four alternatives worded as the USER would answer, differing on the point at issue. They remain your readings; say so in the reply as before.
 - **values** for quantities the USER holds, one field each with its unit. Never offer candidate numbers as options: that invents them.
 
-Everything else is `open`: Walk a case, Ask about the last time, Ask for the basis, Run a premortem, Ask what else judges it, and any question about the purpose. Options there lead an answer the USER has not given and suppress one that fits none of them, such as "all three, really". When more than one alternative could hold at once, ask it open. In the opening battery, offer answers only for the appetite, as a `choose` among the levels Quick, Standard, Thorough and Deep.
+Everything else is `open`: Walk a case, Ask about the last time, Ask for the basis, Run a premortem, Ask what else judges it, and any question about the purpose. Options there lead an answer the USER has not given and suppress one that fits none of them, such as "all three, really". When more than one alternative could hold at once, ask it open. In the opening battery, offer answers only for the appetite, as a `choose` among the levels Quick, Standard, Thorough and Deep. These limits hold when the USER asks for options to pick from: offer them where this section allows, and ask the rest open.
 
 List every question the reply asks, in its order, the open ones included. Label each as a heading for its answer, such as "Quarantined shipment"; for an open one, name what to write there, such as "Recent order, start to finish".
 
