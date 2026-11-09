@@ -31,6 +31,8 @@ export const followSubmission = async (
   submission: Submission,
   options: ProjectionOptions,
   context: Context,
+  /** Called once when the stream ends, however it ends: settled, cancelled, or its Harness closed. */
+  onEnd?: () => void,
 ): Promise<ReadableStream<UIMessageChunk>> => {
   const record = await submission.status(context);
   // From the input on, so a long transcript does not push the anchor out of the first window.
@@ -41,6 +43,12 @@ export const followSubmission = async (
       : undefined,
   );
   let ended = false;
+  let reported = false;
+  const reportEnd = () => {
+    if (reported) return;
+    reported = true;
+    onEnd?.();
+  };
 
   return new ReadableStream<UIMessageChunk>({
     start: async (controller) => {
@@ -49,6 +57,7 @@ export const followSubmission = async (
         ended = true;
         controller.close();
         void watch.stop();
+        reportEnd();
       };
       const projector = createViewProjector(options, (chunk) => {
         if (!ended) controller.enqueue(chunk);
@@ -62,7 +71,12 @@ export const followSubmission = async (
         if (projector.isFinished()) end();
       };
 
-      await accept(watch.value);
+      try {
+        await accept(watch.value);
+      } catch (error) {
+        reportEnd();
+        throw error;
+      }
       if (ended) return;
       // Durable serializes the listener and folds commits made while it runs.
       watch.start(async (call) => {
@@ -72,6 +86,7 @@ export const followSubmission = async (
     },
     cancel: async () => {
       ended = true;
+      reportEnd();
       await watch.stop();
     },
   });
