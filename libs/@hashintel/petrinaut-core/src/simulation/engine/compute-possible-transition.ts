@@ -5,6 +5,7 @@ import {
 } from "../frames/internal-frame";
 import {
   executeBufferKernel,
+  fillInputCounts,
   fillPlaceBases,
   fillTokenIndices,
 } from "./buffer-transition";
@@ -158,6 +159,8 @@ export function computePossibleTransition(
     );
   }
 
+  fillInputCounts(transition.inputCounts, inputPlaces);
+
   for (const tokenCombinationIndices of tokensCombinations) {
     if (!fillTokenIndices(transition.indices, tokenCombinationIndices)) {
       throw new SDCPNItemError(
@@ -174,6 +177,7 @@ export function computePossibleTransition(
         tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        transition.inputCounts,
       );
     } catch (err) {
       throw new SDCPNItemError(

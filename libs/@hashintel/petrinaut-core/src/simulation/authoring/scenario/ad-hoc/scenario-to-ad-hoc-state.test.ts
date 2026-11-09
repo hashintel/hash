@@ -6,6 +6,7 @@ import {
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
@@ -375,6 +376,7 @@ const EXAMPLES: Example[] = [
   dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  sirMassActionModel,
   sirModel,
   supplyChainProfit,
   supplyChainWithDisruption,
@@ -444,7 +446,7 @@ describe("adHocStateFromScenario over the core examples", () => {
   it("stores every example scenario in the editable ad-hoc format", () => {
     expect(exampleScenarios("per_place")).toHaveLength(0);
     expect(exampleScenarios("code")).toHaveLength(0);
-    expect(exampleScenarios("adhoc")).toHaveLength(24);
+    expect(exampleScenarios("adhoc")).toHaveLength(26);
   });
 
   it.each(exampleScenarios("adhoc"))(

@@ -11,7 +11,7 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 **Demonstrates:**
 
 - **Stochastic firing rates** controlled by [global parameters](petri-net-extensions.md#global-parameters) (`infection_rate`, `recovery_rate`).
-- **Arc weight > 1** -- the Infection transition consumes 1 Susceptible + 1 Infected and produces 2 Infected tokens, modelling the S+I -> 2I mass-action dynamics.
+- **Arc weight > 1** -- the Infection transition consumes 1 Susceptible + 1 Infected and produces 2 Infected tokens, modelling the S+I -> 2I reaction. Its rate is a constant, so infection does not speed up or slow down with the population; the [SIR Mass-Action Model](#sir-mass-action-model) makes the rates follow the token counts.
 - Simple parameter-driven lambdas: `parameters.infection_rate` and `parameters.recovery_rate`.
 - An **Infected fraction** [metric](simulation.md) plotting the share of the population currently infected.
 - Four **scenarios** spanning the epidemic threshold: _Seasonal Flu_ (R₀ ≈ 1.9), _High Virulence Outbreak_ (R₀ ≈ 12), _Contained Outbreak_ (R₀ < 1, dies out), and _Pandemic Wave_ (large population, R₀ ≈ 5).
@@ -23,6 +23,21 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 **Key concepts:** [stochastic firing](petri-net-extensions.md#stochastic-rate), [parameters](petri-net-extensions.md#global-parameters), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
+
+## SIR Mass-Action Model
+
+The SIR model with mass-action kinetics, as reaction networks define it: each transition fires at a rate constant times the token counts of its input places.
+
+**Demonstrates:**
+
+- **Rates that read token counts** -- Infection (`S + I -> 2I`) fires at `parameters.beta * input.Susceptible.count * input.Infected.count`, and Recovery (`I -> R`) at `parameters.gamma * input.Infected.count`. Infection slows as susceptibles run out, and the wave grows only while `beta * S / gamma > 1` (see [Reading input places](petri-net-extensions.md#reading-input-places)).
+- **Rate constants as parameters** -- `beta` per susceptible-infected pair and `gamma` per infected individual, so `R₀ = beta * N / gamma` for a population of `N`.
+- Two **scenarios** on either side of the epidemic threshold: _Outbreak_ (R₀ = 3 in a village of 100) and _Below threshold_ (R₀ = 0.8, the outbreak fades out).
+- Two **metrics**: **Infected** and **Attack rate** (share of the population infected so far).
+
+**Suggested initial state:** pick _Outbreak_, set the time step to 0.01 or less in Simulation Settings, and press Play. Compare with _Below threshold_, where the few initial cases recover before the disease spreads.
+
+**Key concepts:** [reading input places](petri-net-extensions.md#reading-input-places), [mass-action rates](useful-patterns.md#mass-action-and-population-dependent-rates), [stochastic firing](petri-net-extensions.md#stochastic-rate), [scenarios](scenarios.md).
 
 ## Vaccination Campaign
 

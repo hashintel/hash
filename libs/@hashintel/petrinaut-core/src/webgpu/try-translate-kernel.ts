@@ -17,6 +17,7 @@
  */
 import { buildKernelContext } from "../hir/surface-context";
 import { resolveNetParameterValues } from "../parameter-values";
+import { tokenSlotsValue } from "./compile-net-shader/token-layout";
 import { WgslBailError, WgslEmitter } from "./emit-wgsl";
 
 import type { PetrinautExtensionSettings } from "../extensions";
@@ -65,27 +66,22 @@ export function tryTranslateKernel({
     const env = new Map<string, WgslValue>();
     const tokensParam = hir.params[0];
     if (tokensParam) {
-      // One entry per input slot, each a tuple of the arc's weight. Attribute
-      // reads resolve to a constant: the probe is about translatability, and a
-      // misspelled attribute is already a typecheck error upstream.
-      env.set(tokensParam.name, {
-        kind: "record",
-        fields: new Map(
-          context.inputSlots.map((slot) => [
-            slot.name,
-            {
-              kind: "array" as const,
-              elements: Array.from(
-                { length: slot.tokenCount },
-                (): WgslValue => ({
-                  kind: "token",
-                  read: () => ({ kind: "f32", code: "0.0" }),
-                }),
-              ),
-            },
-          ]),
+      // Attribute and count reads resolve to a constant: the probe is about
+      // translatability, and a misspelled attribute is already a typecheck
+      // error upstream.
+      const placeholder = (): WgslValue => ({ kind: "f32", code: "0.0" });
+      env.set(
+        tokensParam.name,
+        tokenSlotsValue(
+          new Map(
+            context.inputSlots.map((slot) => [
+              slot.name,
+              Array.from({ length: slot.tokenCount }, () => placeholder),
+            ]),
+          ),
+          new Map(context.inputCounts.map(({ name }) => [name, "0.0"])),
         ),
-      });
+      );
     }
 
     emitter.emit(hir.body, env);

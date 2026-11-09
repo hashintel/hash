@@ -179,7 +179,7 @@ describe("compileHirArtifacts", () => {
         "kernel": {
           "inputSlotCount": 1,
           "outputByteCount": 24,
-          "source": "(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink) => {
+          "source": "(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink, inputCounts) => {
         outF64[0] = (f64[(placeBases[0] + indices[0] * 24) >> 3] + __params["bump"]);
         outU8[16] = (false) ? 1 : 0;
         outU64[1] = BigInt(__pool.intern("done"));
@@ -187,7 +187,7 @@ describe("compileHirArtifacts", () => {
         },
         "lambda": {
           "inputSlotCount": 1,
-          "source": "(f64, u64, u8, placeBases, indices) => {
+          "source": "(f64, u64, u8, placeBases, indices, inputCounts) => {
         return ((u8[placeBases[0] + indices[0] * 24 + 16] !== 0) && (f64[(placeBases[0] + indices[0] * 24) >> 3] >= __params["threshold"]));
       }",
         },
@@ -239,9 +239,16 @@ describe("compileHirArtifacts", () => {
       { x: 4, active: false, status: "queued" },
     ]) {
       const views = packToken(token, pool);
-      expect(buffer(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-        reference({ Source: [token] }, parameters),
-      );
+      expect(
+        buffer(
+          views.f64,
+          views.u64,
+          views.u8,
+          placeBases,
+          indices,
+          new Float64Array(1),
+        ),
+      ).toBe(reference({ Source: [token] }, parameters));
     }
   });
 });

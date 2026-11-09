@@ -63,14 +63,15 @@ export const generateDefaultLambdaCode = (
 ): string => `/**
 * This code controls when the transition will fire,
 * once enabled by sufficient tokens in its input places.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 */
 
 // input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
-// of the token's type.
+// of the token's type. input.PlaceA.count is how many tokens
+// PlaceA holds, for typed and untyped places alike.
 
 // When defining a predicate check,
 // return a boolean (true = enabled, false = disabled).
@@ -92,15 +93,16 @@ export function generateDefaultTransitionKernelCode(
 ): string {
   return `/**
 * This code defines the kernel for the transition.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */
 
 // input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
-// of the token's type.
+// of the token's type. input.PlaceA.count is how many tokens
+// PlaceA holds, for typed and untyped places alike.
 
 // Return an object with output place names as keys
 return {
@@ -123,8 +125,8 @@ return {
 
 export const DEFAULT_TRANSITION_KERNEL_CODE = `/**
 * This code defines the kernel for the transition.
-* \`input\` holds tokens from coloured standard/read input places
-* keyed by place name, and \`parameters\` any global parameters defined.
+* \`input\` holds each input place keyed by place name, and
+* \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */
 

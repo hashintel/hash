@@ -33,6 +33,8 @@ import type {
 } from "./hir";
 import type {
   HirFunctionContext,
+  HirKernelContext,
+  HirLambdaContext,
   HirSurfaceContext,
   HirTokenElementInfo,
 } from "./surface-context";
@@ -112,6 +114,53 @@ export function hirTokenRecordType(elements: HirTokenElementInfo[]): HirType {
   };
 }
 
+/**
+ * The type of a lambda's or kernel's `input`: one field per input-arc place.
+ * A place that delivers tokens is a tuple of the arc's weight that also
+ * exposes `.count`; any other (uncoloured, or joined by an inhibitor arc)
+ * exposes `.count` alone.
+ */
+function transitionInputType(
+  context: HirLambdaContext | HirKernelContext,
+): HirType {
+  const bindings = new Map(
+    context.inputPlaces.map((place) => [place.name, place]),
+  );
+  return {
+    kind: "record",
+    fields: context.inputCounts.map(({ name }) => {
+      const binding = bindings.get(name);
+      return {
+        name,
+        type: binding
+          ? {
+              kind: "array",
+              element: hirTokenRecordType(binding.elements),
+              length: binding.tokenCount,
+              inputPlace: true,
+            }
+          : {
+              kind: "record",
+              fields: [{ name: "count", type: HIR_TYPE_INT }],
+              inputPlace: true,
+            },
+      };
+    }),
+  };
+}
+
+/** Why a count-only input cannot be indexed, naming it when the source does. */
+function countOnlyInputMessage(target: HirExpr): string {
+  const subject =
+    target.kind === "fieldAccess" ? `\`${target.field}\`` : "This place";
+  return `${subject} delivers no token values to the transition: it is uncoloured, or joined by an inhibitor arc. Read \`.count\` for how many tokens it holds.`;
+}
+
+/** A transition input that exposes `.count` and nothing else. */
+function isCountOnlyInput(type: HirType): boolean {
+  return type.kind === "record" && type.inputPlace === true;
+}
+
 function isNumeric(type: HirType): boolean {
   return type.kind === "real" || type.kind === "int" || type.kind === "unknown";
 }
@@ -155,6 +204,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
         kind: "array",
         element: joinTypes(left.element, right.element),
         length: left.length === right.length ? left.length : undefined,
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     if (left.kind === "record" && right.kind === "record") {
@@ -173,6 +223,7 @@ function joinTypes(left: HirType, right: HirType): HirType {
           name: field.name,
           type: joinTypes(field.type, rightByName.get(field.name)!),
         })),
+        ...(left.inputPlace && right.inputPlace ? { inputPlace: true } : {}),
       };
     }
     return left;
@@ -242,17 +293,7 @@ class Typechecker {
         return { kind: "array", element: hirTokenRecordType(context.elements) };
       case "lambda":
       case "kernel":
-        return {
-          kind: "record",
-          fields: context.inputPlaces.map((place) => ({
-            name: place.name,
-            type: {
-              kind: "array",
-              element: hirTokenRecordType(place.elements),
-              length: place.tokenCount,
-            } satisfies HirType,
-          })),
-        };
+        return transitionInputType(context);
       case "scenario-expression":
       case "scenario-code":
         // Scenario functions have no declared parameters — `parameters` and
@@ -417,6 +458,13 @@ class Typechecker {
       }
       case "fieldAccess": {
         const targetType = this.infer(expr.target, env);
+        if (
+          targetType.kind === "array" &&
+          targetType.inputPlace &&
+          expr.field === "count"
+        ) {
+          return HIR_TYPE_INT;
+        }
         if (targetType.kind === "record") {
           const field = targetType.fields.find(
             (candidate) => candidate.name === expr.field,
@@ -466,7 +514,13 @@ class Typechecker {
           }
           return targetType.element;
         }
-        if (targetType.kind !== "unknown") {
+        if (isCountOnlyInput(targetType)) {
+          this.report(
+            expr.span,
+            "hir:count-only-input",
+            countOnlyInputMessage(expr.target),
+          );
+        } else if (targetType.kind !== "unknown") {
           this.report(
             expr.span,
             "hir:invalid-index",
@@ -477,7 +531,13 @@ class Typechecker {
       }
       case "length": {
         const targetType = this.infer(expr.target, env);
-        if (
+        if (isCountOnlyInput(targetType)) {
+          this.report(
+            expr.span,
+            "hir:count-only-input",
+            countOnlyInputMessage(expr.target),
+          );
+        } else if (
           targetType.kind !== "array" &&
           targetType.kind !== "string" &&
           targetType.kind !== "unknown"

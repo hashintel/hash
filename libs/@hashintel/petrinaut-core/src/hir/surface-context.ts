@@ -21,6 +21,11 @@
  * `input` object keeps the LAST arc's tokens (object key overwrite) —
  * both the merged `inputPlaces` bindings and name-based slot resolution
  * follow that rule.
+ *
+ * `inputCounts` is wider than the slots: every input arc, of any type and
+ * any colour, makes its place's live token count readable as
+ * `input.<name>.count`. Counts are passed per arc, in `transition.inputArcs`
+ * order, which matches the engine's `CompiledTransition.inputPlaces`.
  */
 import { getArcEndpoint } from "../arc-endpoints";
 import {
@@ -75,6 +80,18 @@ export type HirPlaceBinding = {
 };
 
 /**
+ * A place an input arc connects to the transition, readable as
+ * `input.<name>.count` (see module doc).
+ */
+export type HirInputPlaceCount = {
+  /** Display name, the key in `input` (last arc wins for duplicates). */
+  name: string;
+  /** Index of that arc in `transition.inputArcs`: the engine passes the
+   * place's count at this position of the `inputCounts` argument. */
+  arcIndex: number;
+};
+
+/**
  * One arc's worth of token slots in the buffer ABI (see module doc).
  * `slotStart` is the index of the arc's first token slot.
  */
@@ -99,6 +116,8 @@ export type HirLambdaContext = {
   inputPlaces: HirPlaceBinding[];
   /** Buffer-ABI input slot layout (see module doc). */
   inputSlots: HirArcSlot[];
+  /** Every input-arc place, for `input.<name>.count` (see module doc). */
+  inputCounts: HirInputPlaceCount[];
   lambdaType: "predicate" | "stochastic";
 };
 
@@ -108,6 +127,8 @@ export type HirKernelContext = {
   inputPlaces: HirPlaceBinding[];
   /** Buffer-ABI input slot layout (see module doc). */
   inputSlots: HirArcSlot[];
+  /** Every input-arc place, for `input.<name>.count` (see module doc). */
+  inputCounts: HirInputPlaceCount[];
   outputPlaces: HirPlaceBinding[];
   /** Buffer-ABI output slot layout: colored output arcs in arc order. */
   outputSlots: HirArcSlot[];
@@ -315,6 +336,32 @@ function collectArcs(
   return { bindings: [...bindings.values()], slots };
 }
 
+/**
+ * Every place an input arc connects to the transition, by display name (last
+ * arc wins), with the index of that arc. Inhibitor arcs and uncoloured places
+ * count too: their tokens are not delivered, but their count is readable.
+ */
+function collectInputCounts(
+  arcs: InputArc[],
+  sdcpn: SDCPN,
+  net: HirNetScope,
+  extensions: PetrinautExtensionSettings,
+): HirInputPlaceCount[] {
+  const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
+    componentPortsEnabled: extensions.subnets,
+  });
+  const byName = new Map<string, HirInputPlaceCount>();
+  for (const [arcIndex, arc] of arcs.entries()) {
+    if (!resolveArcPlace(arc)) {
+      continue;
+    }
+    const name = getArcPlaceDisplayName(arc, sdcpn, net);
+    byName.delete(name);
+    byName.set(name, { name, arcIndex });
+  }
+  return [...byName.values()];
+}
+
 function collectColors(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
@@ -406,6 +453,12 @@ export function buildLambdaContext(
     parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
     inputPlaces: bindings,
     inputSlots: slots,
+    inputCounts: collectInputCounts(
+      transition.inputArcs,
+      sdcpn,
+      net,
+      extensions,
+    ),
     lambdaType: getEffectiveTransitionLambdaType(transition, availability),
   };
 }
@@ -537,6 +590,12 @@ export function buildKernelContext(
     parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
     inputPlaces: inputs.bindings,
     inputSlots: inputs.slots,
+    inputCounts: collectInputCounts(
+      transition.inputArcs,
+      sdcpn,
+      net,
+      extensions,
+    ),
     outputPlaces: outputs.bindings,
     outputSlots: outputs.slots,
     stochasticity: extensions.stochasticity,

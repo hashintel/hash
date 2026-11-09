@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                                         |
 | ------------ | -------------------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the AI assistant.                                 |
+| **General**  | Animations, panel loading, the AI assistant, and browser FPS.                    |
 | **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.                  |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.                  |
@@ -39,6 +39,25 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 ### AI assistant
 
 Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Whether a switch keeps the other assistant's conversation depends on that assistant. The choice is saved. The arrow beside the assistant icon in the panel's title bar and **Use … as the AI assistant** in the Command Palette change it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
+
+### Browser FPS
+
+Turn on **Show FPS counter** under **General → Browser FPS**, run **Toggle browser
+FPS** from the Command Palette, or press **⌘⇧F** on Mac or **Ctrl⇧F** on Windows
+and Linux. The small dark counter starts hidden; its visibility is saved across
+nets. Drag its header to move it, or focus the header and use arrow keys. Hold
+**Shift** for larger steps. Closing it stops sampling and resets its position.
+
+The number counts browser animation callbacks per second. The square chart keeps
+24 samples, with the newest on the right. Each sample covers at least 250 ms,
+so the history usually spans about six seconds. Each square represents about
+10 FPS, up to six squares; the number can exceed 60 on faster displays. Columns
+are green from 50 FPS, amber from 30, and red below 30.
+
+A browser stall appears in the next sample. Hidden tabs pause sampling and start
+fresh when shown again. FPS does not measure painted frames or identify which
+part of the page caused a delay. **Plugins → Browser FPS** disables the counter
+and its command and shortcut.
 
 ## Viewport
 
