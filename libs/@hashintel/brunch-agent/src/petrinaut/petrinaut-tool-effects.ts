@@ -96,6 +96,7 @@ export const petrinautToolEffects = {
   removeFusion: removal("fusion"),
   addFusionMember: mutation("fusion"),
   removeFusionMember: removal("fusion"),
+  setImplementation: mutation("subnet"),
   deleteItemsByIds: removal(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),

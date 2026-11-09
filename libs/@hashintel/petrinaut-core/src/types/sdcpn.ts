@@ -417,6 +417,11 @@ export type ComponentInstance = {
    * Keys are parameter IDs from the referenced subnet; values are expressions.
    */
   parameterValues: Record<ID, string>;
+  /**
+   * For an instance of an interface: the subnet that runs in its place.
+   * Absent, the document's default implementation for the interface applies.
+   */
+  implementation?: ID;
   // UI positioning
   x: number;
   y: number;
@@ -429,6 +434,17 @@ export type Subnet = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
+  /**
+   * A signature: ports, types and parameters with no transition or instance.
+   * An instance of it runs the implementation bound to it, the instance's
+   * own choice or the document's default.
+   */
+  interface?: true;
+  /**
+   * The interfaces this subnet implements. For each, it has a port of the
+   * same name and token type and a parameter of each variable name.
+   */
+  implements?: ID[];
   places: Place[];
   transitions: Transition[];
   types: Color[];
@@ -454,6 +470,11 @@ export type SDCPN = {
   componentInstances?: ComponentInstance[];
   /** Fusions among the root net's places and its instances' ports. */
   fusions?: Fusion[];
+  /**
+   * The subnet that runs for instances of each interface, unless an instance
+   * chooses its own. Keyed by interface id.
+   */
+  implementations?: Record<ID, ID>;
 };
 
 export type MinimalNetMetadata = {

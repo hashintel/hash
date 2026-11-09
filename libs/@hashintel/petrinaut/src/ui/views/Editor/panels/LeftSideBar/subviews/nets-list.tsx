@@ -2,7 +2,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -13,6 +13,7 @@ import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
+import { SubnetOptionsPopover } from "./subnet-options-popover";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -157,6 +158,13 @@ export const NetNavigationList: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   const cancellingRef = useRef(false);
   const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const [optionsAnchor, setOptionsAnchor] = useState<{
+    subnetId: string;
+    element: Element;
+  } | null>(null);
+  const optionsSubnet = optionsAnchor
+    ? (subnets ?? []).find(({ id }) => id === optionsAnchor.subnetId)
+    : undefined;
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
@@ -173,8 +181,9 @@ export const NetNavigationList: React.FC<{
     attach,
   } = useFocusStops({
     stops,
-    // Column 0 is the row, column 1 its delete button.
-    columnCount: 2,
+    // Column 0 is the row, column 1 its options button, column 2 its
+    // delete button.
+    columnCount: 3,
     focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
   });
 
@@ -294,9 +303,13 @@ export const NetNavigationList: React.FC<{
         Root
       </div>
       {(subnets ?? []).map((subnet) => {
-        const actionTarget: FocusStopTarget = {
+        const optionsTarget: FocusStopTarget = {
           stopId: subnet.id,
           column: 1,
+        };
+        const actionTarget: FocusStopTarget = {
+          stopId: subnet.id,
+          column: 2,
         };
         return (
           <div
@@ -319,7 +332,10 @@ export const NetNavigationList: React.FC<{
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
           >
             <span className={iconStyle}>
-              <Icon name="diagramNested" size="xs" />
+              <Icon
+                name={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}
+                size="xs"
+              />
             </span>
             {editingId === subnet.id ? (
               <input
@@ -337,6 +353,28 @@ export const NetNavigationList: React.FC<{
               />
             ) : (
               <span className={nameStyle}>{subnet.name}</span>
+            )}
+            {mutationActionsVisible && editingId !== subnet.id && (
+              <RowActionCell
+                registerButton={registerTarget(optionsTarget)}
+                onArrowKeyDown={onStopsKeyDown(optionsTarget)}
+                onButtonFocus={() => onFocusTarget(optionsTarget)}
+              >
+                <Button
+                  aria-label="Subnet options"
+                  size="xs"
+                  variant="ghost"
+                  iconName="gear"
+                  tooltip="Interface and implementations"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOptionsAnchor({
+                      subnetId: subnet.id,
+                      element: e.currentTarget,
+                    });
+                  }}
+                />
+              </RowActionCell>
             )}
             {mutationActionsVisible && editingId !== subnet.id && (
               <RowActionCell
@@ -364,6 +402,13 @@ export const NetNavigationList: React.FC<{
           </div>
         );
       })}
+      {optionsAnchor && optionsSubnet && (
+        <SubnetOptionsPopover
+          subnet={optionsSubnet}
+          anchor={optionsAnchor.element}
+          onClose={() => setOptionsAnchor(null)}
+        />
+      )}
     </div>
   );
 };

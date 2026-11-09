@@ -74,8 +74,10 @@ direction. It decides three things.
   direction is `in`, and as a consumer unless it is `out`. The warning and
   the note described under "What members must agree on" are worked out from
   that.
-- **Interfaces, later**: a component's ports with their directions and token
-  types are its signature, which the interfaces proposal builds on.
+- **Interfaces**: a component's ports with their directions and token types
+  are its signature, which an
+  [interface](doc:core.composition/interfaces-and-fusions) holds its
+  implementations to.
 
 What two ports can and cannot be joined:
 
@@ -165,7 +167,9 @@ its fusion is called.
   the CPU engine.
 - **Clipboard**: copying instances copies no fusion. Fusions among copied
   instances could come along.
-- **Interfaces**: binding an instance to an interface, and choosing
-  an implementation per scenario, is the next proposal.
+- **Interfaces** are in, with the implementation chosen per instance or by
+  the document's default; a choice per scenario and implementations a host
+  provides are the next layers, in
+  [Interfaces, injection and the three fusions](doc:core.composition/interfaces-and-fusions).
 - **Layout**: fusion links are edges for auto-layout, so fused nodes land
   near each other, but a port's side is not yet a layout constraint.

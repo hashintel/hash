@@ -182,8 +182,9 @@ const countOf = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 /**
- * The problems with the net's composition, its fusions and its ports.
- * Clicking one opens the net it is in and selects the fusion or the port.
+ * The problems with the net's composition: its fusions, its ports and its
+ * interfaces. Clicking one opens the net it is in and selects the fusion,
+ * the port or the instance.
  */
 const CompositionDiagnostics = ({
   problems,
@@ -205,11 +206,18 @@ const CompositionDiagnostics = ({
 
   const reveal = (problem: CompositionProblem) => {
     setActiveSubnetId(problem.subnetId);
-    selectItem(
-      problem.kind === "fusion"
-        ? { type: "fusion", id: problem.fusionId }
-        : { type: "place", id: problem.placeId },
-    );
+    switch (problem.kind) {
+      case "fusion":
+        selectItem({ type: "fusion", id: problem.fusionId });
+        return;
+      case "port":
+        selectItem({ type: "place", id: problem.placeId });
+        return;
+      case "interface":
+        if (problem.instanceId !== undefined) {
+          selectItem({ type: "componentInstance", id: problem.instanceId });
+        }
+    }
   };
 
   return (

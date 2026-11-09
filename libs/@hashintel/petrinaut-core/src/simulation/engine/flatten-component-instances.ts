@@ -4,6 +4,12 @@ import {
   type FusionGroup,
 } from "../../composition/apply-fusions";
 import { fusionAnchor, fusionMemberIssues } from "../../composition/fusions";
+import {
+  describeUnboundInstance,
+  mapInterfaceParameters,
+  mapInterfacePorts,
+  resolveImplementation,
+} from "../../composition/interfaces";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import { scopedId, scopeSeparator } from "./scoped-id";
@@ -132,6 +138,68 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
   );
 
 /**
+ * The subnet an instance declares, the one that runs for it, and the running
+ * subnet's ids for the declared one's ports and parameters: identities for a
+ * component, the name-matched ports and parameters of the bound
+ * implementation for an instance of an interface.
+ */
+type RunningSubnet = {
+  declared: Subnet;
+  running: Subnet;
+  portId: (declaredPortId: ID) => ID;
+  parameterId: (declaredParameterId: ID) => ID;
+};
+
+const resolveRunningSubnet = (
+  ctx: FlattenContext,
+  instance: ComponentInstance,
+): RunningSubnet => {
+  const binding = resolveImplementation(ctx.source, instance);
+  if (binding === null) {
+    throw new Error(
+      `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
+    );
+  }
+  if (binding.kind === "unbound") {
+    throw new Error(
+      `Component instance \`${instance.name}\` has no implementation to run: ${describeUnboundInstance(ctx.source, binding, instance.name)}`,
+    );
+  }
+  if (binding.kind === "component") {
+    const identity = (id: ID): ID => id;
+    return {
+      declared: binding.subnet,
+      running: binding.subnet,
+      portId: identity,
+      parameterId: identity,
+    };
+  }
+  const ports = mapInterfacePorts(binding.interface, binding.implementation);
+  const parameters = mapInterfaceParameters(
+    binding.interface,
+    binding.implementation,
+  );
+  return {
+    declared: binding.interface,
+    running: binding.implementation,
+    portId: (declaredPortId) => {
+      const target = ports.get(declaredPortId);
+      if (target === undefined) {
+        const port = binding.interface.places.find(
+          ({ id }) => id === declaredPortId,
+        );
+        throw new Error(
+          `Implementation \`${binding.implementation.name}\` of interface \`${binding.interface.name}\` has no port named \`${port?.name ?? declaredPortId}\`.`,
+        );
+      }
+      return target;
+    },
+    parameterId: (declaredParameterId) =>
+      parameters.get(declaredParameterId) ?? declaredParameterId,
+  };
+};
+
+/**
  * The flat place behind a port of one of `net`'s instances, for the arc or
  * the fusion `referrer` names. Throws when the instance, its subnet or the
  * port does not exist.
@@ -158,17 +226,14 @@ const flatPortPlace = ({
     );
   }
 
-  const subnet = ctx.source.subnets?.find(({ id }) => id === instance.subnetId);
-  if (!subnet) {
-    throw new Error(
-      `${referrer} references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
-    );
-  }
+  const { declared, portId } = resolveRunningSubnet(ctx, instance);
 
-  const port = subnet.places.find((place) => place.id === endpoint.portPlaceId);
+  const port = declared.places.find(
+    (place) => place.id === endpoint.portPlaceId,
+  );
   if (!port) {
     throw new Error(
-      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
+      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${declared.name}\`.`,
     );
   }
   if (!port.isPort) {
@@ -180,7 +245,7 @@ const flatPortPlace = ({
   return {
     instance,
     port,
-    placeId: scopedId([...path, instance.id], endpoint.portPlaceId),
+    placeId: scopedId([...path, instance.id], portId(endpoint.portPlaceId)),
   };
 };
 
@@ -372,31 +437,32 @@ const flattenNet = ({
   }
 
   for (const instance of net.componentInstances ?? []) {
-    const subnet = ctx.source.subnets?.find(
-      ({ id }) => id === instance.subnetId,
-    );
-    if (!subnet) {
-      throw new Error(
-        `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
-      );
-    }
-    if (activeSubnetIds.includes(instance.subnetId)) {
+    const { running, parameterId } = resolveRunningSubnet(ctx, instance);
+    if (activeSubnetIds.includes(running.id)) {
       throw new Error(
         `Component subnet cycle detected: ${[
           ...activeSubnetIds,
-          instance.subnetId,
+          running.id,
         ].join(" -> ")}.`,
       );
     }
+    // The instance's values are keyed by the declared subnet's parameter ids;
+    // the running subnet's parameters of the same variable names take them.
+    const runningParameterValues = Object.fromEntries(
+      Object.entries(instance.parameterValues).map(([id, value]) => [
+        parameterId(id),
+        value,
+      ]),
+    );
     flattenNet({
       ctx,
-      net: subnet,
+      net: running,
       path: [...path, instance.id],
-      activeSubnetIds: [...activeSubnetIds, instance.subnetId],
+      activeSubnetIds: [...activeSubnetIds, running.id],
       parameterValues: ctx.parametersEnabled
         ? deriveInstanceParameterValues(
-            subnet.parameters,
-            instance.parameterValues,
+            running.parameters,
+            runningParameterValues,
           )
         : {},
     });

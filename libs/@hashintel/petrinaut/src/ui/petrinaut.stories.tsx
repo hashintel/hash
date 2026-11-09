@@ -738,6 +738,154 @@ export const PlaceFusion: Story = {
   ),
 };
 
+/** The stage as a signature alone: two ports, no transition. */
+const stageInterface: NonNullable<SDCPN["subnets"]>[number] = {
+  id: "stage_interface",
+  name: "Stage",
+  interface: true,
+  places: [
+    place("iface_in", "In", 80, 160, { isPort: true, portDirection: "in" }),
+    place("iface_out", "Out", 440, 160, { isPort: true, portDirection: "out" }),
+  ],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+/**
+ * An implementation of the stage: one Process transition between its ports,
+ * or two with a half-done place between them for the slow variant.
+ */
+const stageImplementation = (
+  id: string,
+  name: string,
+  steps: 1 | 2,
+): NonNullable<SDCPN["subnets"]>[number] => {
+  const stochastic = {
+    lambdaType: "stochastic" as const,
+    lambdaCode: generateDefaultLambdaCode("stochastic"),
+    transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
+    y: 160,
+  };
+  return {
+    id,
+    name,
+    implements: ["stage_interface"],
+    places: [
+      place(`${id}_in`, "In", 80, 160, { isPort: true, portDirection: "in" }),
+      ...(steps === 2 ? [place(`${id}_half`, "Half done", 440, 160)] : []),
+      place(`${id}_out`, "Out", steps === 2 ? 800 : 440, 160, {
+        isPort: true,
+        portDirection: "out",
+      }),
+    ],
+    transitions:
+      steps === 1
+        ? [
+            {
+              id: `${id}_process`,
+              name: "Process",
+              inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+              x: 260,
+              ...stochastic,
+            },
+          ]
+        : [
+            {
+              id: `${id}_prepare`,
+              name: "Prepare",
+              inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+              outputArcs: [{ placeId: `${id}_half`, weight: 1 }],
+              x: 260,
+              ...stochastic,
+            },
+            {
+              id: `${id}_finish`,
+              name: "Finish",
+              inputArcs: [
+                { placeId: `${id}_half`, weight: 1, type: "standard" },
+              ],
+              outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+              x: 620,
+              ...stochastic,
+            },
+          ],
+    types: [],
+    differentialEquations: [],
+    parameters: [],
+  };
+};
+
+/**
+ * The fused line wired against the Stage interface: the document runs the
+ * fast stage by default, and the drill chooses the slow one for itself.
+ */
+const interfacedLineNet: SDCPN = {
+  ...fusedLineNet,
+  subnets: [
+    stageInterface,
+    stageImplementation("fast_stage", "Fast stage", 1),
+    stageImplementation("slow_stage", "Slow stage", 2),
+  ],
+  implementations: { stage_interface: "fast_stage" },
+  componentInstances: [
+    {
+      id: "cutter",
+      name: "Cutter",
+      subnetId: "stage_interface",
+      parameterValues: {},
+      x: 310,
+      y: 220,
+    },
+    {
+      id: "drill",
+      name: "Drill",
+      subnetId: "stage_interface",
+      implementation: "slow_stage",
+      parameterValues: {},
+      x: 730,
+      y: 220,
+    },
+  ],
+  fusions: [
+    {
+      id: "fuse_parts",
+      members: [
+        { kind: "place", placeId: "parts" },
+        port("cutter", "iface_in"),
+      ],
+    },
+    {
+      id: "fuse_buffer",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("cutter", "iface_out"),
+        port("drill", "iface_in"),
+      ],
+    },
+    {
+      id: "fuse_finished",
+      members: [
+        { kind: "place", placeId: "finished" },
+        port("drill", "iface_out"),
+      ],
+    },
+  ],
+};
+
+export const Interfaces: Story = {
+  name: "Interfaces",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={interfacedLineNet}
+      initialTitle="Interfaced line"
+    />
+  ),
+};
+
 export const SubnetsWithoutColors: Story = {
   name: "Subnets — without colours",
   render: () => (

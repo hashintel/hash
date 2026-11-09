@@ -432,6 +432,10 @@ export const componentInstanceSchema = z
       description:
         "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
     }),
+    implementation: idSchema.optional().meta({
+      description:
+        "For an instance of an interface: the ID of the implementing subnet to run. Omit to run the document's default implementation for the interface.",
+    }),
     x: z.number().meta({
       description: "Horizontal canvas position.",
     }),
@@ -500,6 +504,14 @@ export const subnetSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
+    interface: z.literal(true).optional().meta({
+      description:
+        "When true, the subnet is an interface: a signature of ports, types and parameters with no transitions. Instances of it run the implementation bound to them.",
+    }),
+    implements: z.array(idSchema).optional().meta({
+      description:
+        "IDs of the interface subnets this subnet implements: it has a port of the same name and token type for each of theirs, and a parameter of each variable name.",
+    }),
     places: z.array(placeSchema).meta({
       description: "Places local to this subnet.",
     }),

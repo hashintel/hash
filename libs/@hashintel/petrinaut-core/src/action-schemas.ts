@@ -578,6 +578,20 @@ export const mutationActionInputSchemas = {
       description:
         "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
     }),
+  setImplementation: z
+    .strictObject({
+      interfaceId: idSchema.meta({
+        description: "The interface subnet's ID.",
+      }),
+      subnetId: idSchema.nullable().meta({
+        description:
+          "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default.",
+      }),
+    })
+    .meta({
+      description:
+        "Set or clear the document's default implementation for an interface.",
+    }),
   deleteItemsByIds: z
     .strictObject({
       items: z.array(itemTypeAndIdSchema).meta({

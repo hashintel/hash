@@ -265,6 +265,46 @@ describe("serializeSDCPN", () => {
     expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
   });
 
+  it("writes an interface flag, an implements list and the document's bindings in their places", () => {
+    const sdcpn = parseFixture();
+    const iface = sdcpn.subnets![0]!;
+
+    const text = serializeSDCPN({
+      petriNetDefinition: {
+        ...sdcpn,
+        subnets: [
+          { ...iface, interface: true },
+          { ...iface, id: "fast", name: "Fast", implements: [iface.id] },
+        ],
+        implementations: { [iface.id]: "fast" },
+      },
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(text) as {
+      implementations: Record<string, string>;
+      subnets: Record<string, unknown>[];
+    };
+
+    const keys = Object.keys(document);
+    expect(keys.indexOf("implementations")).toBe(keys.indexOf("subnets") + 1);
+    expect(document.implementations).toEqual({ [iface.id]: "fast" });
+    expect(Object.keys(document.subnets[0]!).slice(0, 5)).toEqual([
+      "id",
+      "name",
+      "description",
+      "metadata",
+      "interface",
+    ]);
+    expect(Object.keys(document.subnets[1]!).slice(0, 5)).toEqual([
+      "id",
+      "name",
+      "description",
+      "metadata",
+      "implements",
+    ]);
+  });
+
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {
     const result = parseSDCPNDocument("places: [");
     expect(result.ok).toBe(false);

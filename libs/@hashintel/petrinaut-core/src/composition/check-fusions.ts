@@ -389,19 +389,3 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
       ];
     }),
   );
-
-export type CompositionProblem =
-  | ({ kind: "fusion" } & FusionProblem)
-  | ({ kind: "port" } & PortProblem);
-
-/** Every problem with the document's composition: its fusions and its ports. */
-export const checkComposition = (sdcpn: SDCPN): CompositionProblem[] => [
-  ...checkFusions(sdcpn).map((problem): CompositionProblem => ({
-    kind: "fusion",
-    ...problem,
-  })),
-  ...checkPorts(sdcpn).map((problem): CompositionProblem => ({
-    kind: "port",
-    ...problem,
-  })),
-];

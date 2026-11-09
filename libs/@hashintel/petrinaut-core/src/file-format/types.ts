@@ -178,6 +178,8 @@ const subnetSchema = z.object({
   name: z.string(),
   description: descriptionSchema,
   metadata: metadataSchema,
+  interface: z.literal(true).optional(),
+  implements: z.array(z.string()).optional(),
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
   types: z.array(colorSchema).default([]),
@@ -200,6 +202,7 @@ export const sdcpnSchema = z.object({
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
   fusions: z.array(fusionSchema).optional(),
+  implementations: z.record(z.string(), z.string()).optional(),
 });
 
 const fileMetaSchema = z.object({
