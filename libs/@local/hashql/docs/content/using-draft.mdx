@@ -92,7 +92,7 @@ Advanced users can override the default prelude declarations using the [`Draft.w
 
 ## Detour: Using HashQL logic and TypeScript logic together
 
-You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`][draft-program] is executed on the server. This allows us to model concepts such as macros and build-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust). Here, build time means when our TypeScript code calls `Draft.program`, not when TypeScript itself is compiled.
+You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`][draft-program] is executed on the server. This allows us to model concepts such as macros and construction-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust).
 
 Suppose we want to make incrementing the revision optional. There are two ways to do this:
 
@@ -110,9 +110,9 @@ const maybeIncrement = Draft.program(
 );
 ```
 
-Both branch callbacks run during construction to build their expressions. The server later evaluates `enabled` and selects one of the HashQL branches.
+Just like normal HashQL programs, each branch given is evaluated during construction of the HashQL program, and the selection of the branch taken is done on the server.
 
-This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. Sometimes, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where build-time conditionals come in.
+This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. This is the preferred approach, but sometimes, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where construction-time conditionals come in.
 
 ```ts
 const buildProgram = (enabled: boolean) =>
@@ -127,7 +127,7 @@ const buildProgram = (enabled: boolean) =>
   });
 ```
 
-Both approaches produce the same result for matching input values, but they make the choice at different times. The first sends a conditional to the server. The second chooses which expression to construct before sending it. We can reuse our serialisation pipeline as a helper to compare the outputs:
+What is different here is that the conditional is absent from the output that is ultimately sent to the server, and depends on the value of `enabled` supplied by the caller. Let's define our serialisation pipeline we used earlier as a helper and compare the outputs of the two approaches:
 
 ```ts
 import type { Type } from "@local/hashql";
@@ -152,7 +152,7 @@ console.log(compile(buildProgram(true)));
 // => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
 
-The conditional logic inside `Draft.program` changes the compiled output sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
+We can see that the conditional logic inside `Draft.program` changes the actual program sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
 
 The reason is simple: each program goes through a compilation step on the server. If a query remains unchanged, its compilation artefacts can be cached and reused. Keeping the decision as an input lets different calls reuse one compiled program. Making the decision during construction produces separate programs for the different configurations.
 
