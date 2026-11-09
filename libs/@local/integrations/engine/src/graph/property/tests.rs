@@ -122,6 +122,12 @@ fn boolean(#[case] value: Value, #[case] expected: bool) {
 #[case::truncated(Coercion::Integer, text("12.9"), number("12"))]
 #[case::truncated_negative(Coercion::Integer, text("-3,7"), number("-3"))]
 #[case::double(Coercion::Integer, Value::Double(8.5), number("8"))]
+#[case::beyond_f64_integers(
+    Coercion::Integer,
+    text("9007199254740993.7"),
+    number("9007199254740993")
+)]
+#[case::scientific_integer(Coercion::Integer, text("1.25e2"), number("125"))]
 #[case::year(Coercion::Year, text("1998"), number("1998"))]
 #[case::trim(Coercion::Trim, text("  DC-3 "), string("DC-3"))]
 fn numbers_and_text(

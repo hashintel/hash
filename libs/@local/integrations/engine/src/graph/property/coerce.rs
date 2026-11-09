@@ -135,33 +135,12 @@ pub(super) fn number(value: &Value) -> Option<Real> {
     parse_number(&decimal_text(value)?)
 }
 
-/// Reads a number as [`number`] does and drops its fraction.
+/// Reads a number as [`number`] does and drops its fraction, rounding toward zero.
 fn integer(value: &Value) -> Option<Real> {
-    let text = if matches!(
-        value,
-        Value::Float(_) | Value::Double(_) | Value::Decimal(_)
-    ) {
-        value::text(value)?.into_owned()
-    } else if let Some(integer) = value::as_number(value) {
-        return Some(integer);
-    } else {
-        decimal_text(value)?
-    };
-    if let Ok(integer) = text.parse::<i64>() {
-        return Some(Real::from(integer));
-    }
-    let float = text
-        .parse::<f64>()
-        .ok()
-        .filter(|float| float.is_finite())?
-        .trunc();
-    // Beyond 2^53 a float no longer holds every integer, and such amounts are not whole numbers
-    // that a source wrote.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "checked to lie within the range where every integer is exact"
-    )]
-    (float.abs() < 9_007_199_254_740_992.0).then(|| Real::from(float as i64))
+    // `Real` writes a plain decimal, never an exponent, so the whole part is the text before the
+    // point, exactly at any size.
+    let number = number(value)?.to_string();
+    number.split('.').next()?.parse().ok()
 }
 
 /// The text of `value` with a decimal comma replaced by a dot.
