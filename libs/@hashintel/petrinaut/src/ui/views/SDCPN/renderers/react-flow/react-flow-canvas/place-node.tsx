@@ -11,6 +11,7 @@ import {
   nodeCardStyle,
 } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
+import { portPlaceLabel, PortPins } from "./port-pin";
 
 import type { PlaceNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
@@ -64,7 +65,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   // change reaches the editor's own selection.
   const focus = selected ? "focused" : data.focus;
 
-  const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
+  const kind = data.port === null ? "Place" : portPlaceLabel(data.port);
+  const subtitle = data.dynamicsEnabled ? `${kind} (Dynamics)` : kind;
 
   const typeColorBorder = placeBorderColor(data.typeColor);
 
@@ -95,9 +97,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         title={data.label}
         subtitle={subtitle}
         badge={
-          tokenLabel !== null ? (
-            <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
-          ) : undefined
+          <>
+            {tokenLabel !== null ? (
+              <div className={tokenCountBadgeStyle}>{tokenLabel}</div>
+            ) : null}
+            {data.port === null ? null : (
+              <PortPins direction={data.port} typeColor={data.typeColor} />
+            )}
+          </>
         }
         isConnectable={isConnectable}
       />
