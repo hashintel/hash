@@ -72,7 +72,7 @@ export const offerBounds = {
  * would put guesses in the person's mouth, or break up their account.
  */
 export const neverOffer = [
-  "a question about what the user wants, decides or is trying to achieve",
+  "a question about the user's purpose: what they want the model to help them decide, answer or achieve",
   "an open or narrative question",
 ] as const;
 
@@ -81,7 +81,7 @@ export const offerText = {
   questions:
     "Every question your reply asks, in the reply's order, including the open ones.",
   label:
-    'A short name for the question, such as "Quarantined shipment". It heads the question\'s line when several answers are sent together.',
+    'A short name for the question, such as "Quarantined shipment". It heads the question\'s answer on screen and in the sent text; for an open question, name what to write, such as "Recent order, start to finish".',
   options: "The alternatives, each worded as the user would answer.",
   fields: "The values the user supplies, one field each.",
   fieldLabel: 'What the value is, such as "Lower reorder point".',
