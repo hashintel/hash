@@ -40,7 +40,7 @@ Choose a move for the active gap, ask, see what changed, then choose again.
 
 ## Offering quick answers
 
-`offer_answers` puts buttons and fields beneath your reply for the questions it asks. It never replaces asking, and the USER can always answer in their own words. Offer only where the answer is one of a few you can name without leading:
+`offer_answers` puts buttons and fields beneath your reply for the questions it asks. It never replaces asking: the reply still names each option, so the question stands without the buttons, and the USER can always answer in their own words. Offer only where the answer is one of a few you can name without leading:
 
 - **confirm** for Propose for correction, a read-back, or a supported default put for acceptance. A click on "Yes" is still acceptance, not their evidence.
 - **choose** for Contrast, Trade outcomes, or a choice of representation: two to four alternatives worded as the USER would answer, differing on the point at issue. They remain your readings; say so in the reply as before.
