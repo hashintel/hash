@@ -5,12 +5,7 @@ import type { KeyboardEvent, PointerEvent } from "react";
 export const useCounterDrag = () => {
   const panelRef = useRef<HTMLElement>(null);
   const [position, setPosition] = useState({ left: 16, bottom: 16 });
-  const [bounds, setBounds] = useState({
-    width: 0,
-    height: 0,
-    panelWidth: 0,
-    panelHeight: 0,
-  });
+  const [maxPosition, setMaxPosition] = useState({ left: 16, bottom: 16 });
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{
     pointerId: number;
@@ -25,20 +20,10 @@ export const useCounterDrag = () => {
     const parent = panel?.offsetParent;
     if (!panel || !(parent instanceof HTMLElement)) return;
     const measure = () => {
-      const next = {
-        width: parent.clientWidth,
-        height: parent.clientHeight,
-        panelWidth: panel.offsetWidth,
-        panelHeight: panel.offsetHeight,
-      };
-      setBounds((previous) =>
-        previous.width === next.width &&
-        previous.height === next.height &&
-        previous.panelWidth === next.panelWidth &&
-        previous.panelHeight === next.panelHeight
-          ? previous
-          : next,
-      );
+      setMaxPosition({
+        left: parent.clientWidth - panel.offsetWidth - 16,
+        bottom: parent.clientHeight - panel.offsetHeight - 64,
+      });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -48,20 +33,16 @@ export const useCounterDrag = () => {
   }, []);
 
   const clamp = (left: number, bottom: number) => ({
-    left: Math.min(
-      Math.max(16, bounds.width - bounds.panelWidth - 16),
-      Math.max(16, left),
-    ),
-    bottom: Math.min(
-      Math.max(16, bounds.height - bounds.panelHeight - 64),
-      Math.max(16, bottom),
-    ),
+    left: Math.max(16, Math.min(maxPosition.left, left)),
+    bottom: Math.max(16, Math.min(maxPosition.bottom, bottom)),
   });
   const visiblePosition = clamp(position.left, position.bottom);
   const endDrag = (event: PointerEvent<HTMLButtonElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   return {
@@ -71,17 +52,11 @@ export const useCounterDrag = () => {
     handleProps: {
       onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
         if (event.button !== 0 || dragRef.current) return;
-        const panel = panelRef.current;
-        const parent = panel?.offsetParent;
-        if (!panel || !(parent instanceof HTMLElement)) return;
-        const rect = panel.getBoundingClientRect();
-        const parentRect = parent.getBoundingClientRect();
         dragRef.current = {
+          ...visiblePosition,
           pointerId: event.pointerId,
           x: event.clientX,
           y: event.clientY,
-          left: rect.left - parentRect.left,
-          bottom: parentRect.bottom - rect.bottom,
         };
         event.currentTarget.setPointerCapture(event.pointerId);
       },
@@ -94,12 +69,7 @@ export const useCounterDrag = () => {
         setDragging(true);
         setPosition(clamp(drag.left + deltaX, drag.bottom - deltaY));
       },
-      onPointerUp: (event: PointerEvent<HTMLButtonElement>) => {
-        if (dragRef.current?.pointerId !== event.pointerId) return;
-        if (event.currentTarget.hasPointerCapture(event.pointerId))
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        endDrag(event);
-      },
+      onPointerUp: endDrag,
       onPointerCancel: endDrag,
       onLostPointerCapture: endDrag,
       onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {

@@ -1,5 +1,11 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { useCounterDrag } from "./use-counter-drag";
@@ -19,10 +25,19 @@ const View = () => {
   );
 };
 
+let editorWidth: number;
+let editorHeight: number;
+let resize: () => void;
+
 beforeEach(() => {
+  editorWidth = 1000;
+  editorHeight = 800;
   vi.stubGlobal(
     "ResizeObserver",
     class {
+      constructor(callback: () => void) {
+        resize = callback;
+      }
       observe() {}
       disconnect() {}
     },
@@ -44,28 +59,16 @@ beforeEach(() => {
   );
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(
     function getClientWidth(this: HTMLElement) {
-      return this.hasAttribute("data-editor") ? 1000 : 0;
+      return this.hasAttribute("data-editor") ? editorWidth : 0;
     },
   );
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(
     function getClientHeight(this: HTMLElement) {
-      return this.hasAttribute("data-editor") ? 800 : 0;
+      return this.hasAttribute("data-editor") ? editorHeight : 0;
     },
   );
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(204);
   vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(95);
-  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
-    function getBounds(this: HTMLElement) {
-      return this.hasAttribute("data-editor")
-        ? new DOMRect(0, 0, 1000, 800)
-        : new DOMRect(
-            Number.parseFloat(this.style.left),
-            800 - Number.parseFloat(this.style.bottom) - 95,
-            204,
-            95,
-          );
-    },
-  );
 });
 
 afterEach(() => {
@@ -97,12 +100,28 @@ it("uses the positioned editor bounds through a display-contents wrapper", () =>
     clientY: -1000,
   });
   fireEvent.pointerUp(handle, { pointerId: 1 });
-  fireEvent.click(handle, { detail: 1 });
   const panel = screen.getByRole("region");
   expect(panel.style.left).toBe("780px");
   expect(panel.style.bottom).toBe("641px");
   fireEvent.keyDown(handle, { key: "ArrowLeft" });
   expect(panel.style.left).toBe("770px");
+
+  editorWidth = 600;
+  editorHeight = 400;
+  act(() => resize());
+  expect(panel.style.left).toBe("380px");
+  expect(panel.style.bottom).toBe("241px");
+  fireEvent.keyDown(handle, { key: "ArrowLeft" });
+  expect(panel.style.left).toBe("370px");
+  fireEvent.pointerDown(handle, {
+    pointerId: 2,
+    button: 0,
+    clientX: 400,
+    clientY: 100,
+  });
+  fireEvent.pointerMove(handle, { pointerId: 2, clientX: 390, clientY: 120 });
+  expect(panel.style.left).toBe("360px");
+  expect(panel.style.bottom).toBe("221px");
 });
 
 it("ignores small pointer movements and releases cancelled drags", () => {
@@ -115,7 +134,6 @@ it("ignores small pointer movements and releases cancelled drags", () => {
   });
   fireEvent.pointerMove(handle, { pointerId: 1, clientX: 52, clientY: 720 });
   fireEvent.pointerUp(handle, { pointerId: 1 });
-  fireEvent.click(handle, { detail: 1 });
   expect(screen.getByRole("region").style.left).toBe("16px");
   fireEvent.pointerDown(handle, {
     pointerId: 2,

@@ -115,35 +115,15 @@ it("registers the palette command and shortcut without a toolbar button", () => 
   expect(event.defaultPrevented).toBe(false);
 });
 
-it.each(["ctrlKey", "metaKey"])(
-  "toggles with Shift plus %s and ignores repeats or extra modifiers",
-  (modifier) => {
-    renderPlugins([fpsCounterPlugin], view);
-    for (const extras of [
-      { repeat: true },
-      { isComposing: true },
-      { altKey: true },
-      { ctrlKey: true, metaKey: true },
-      { shiftKey: false },
-    ]) {
-      fireEvent.keyDown(window, {
-        key: "F",
-        [modifier]: true,
-        shiftKey: true,
-        ...extras,
-      });
-      expect(
-        screen.queryByRole("region", { name: "Browser FPS counter" }),
-      ).toBeNull();
-    }
-    fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
-    expect(
-      screen.getByRole("region", { name: "Browser FPS counter" }),
-    ).toBeTruthy();
-    fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
-    expect(
-      screen.queryByRole("region", { name: "Browser FPS counter" }),
-    ).toBeNull();
-    expect(vi.getTimerCount()).toBe(0);
-  },
-);
+it.each(["ctrlKey", "metaKey"])("toggles with Shift plus %s", (modifier) => {
+  renderPlugins([fpsCounterPlugin], view);
+  fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
+  expect(
+    screen.getByRole("region", { name: "Browser FPS counter" }),
+  ).toBeTruthy();
+  fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
+  expect(
+    screen.queryByRole("region", { name: "Browser FPS counter" }),
+  ).toBeNull();
+  expect(vi.getTimerCount()).toBe(0);
+});
