@@ -64,7 +64,7 @@ The HashQL SDK aims to be as user-friendly as possible and supports both explici
 
 Importantly, the expression is not yet a standalone [`Program`]. It can be used within other HashQL programs as a reusable fragment. Calling [`Program.program`] turns the expression into a [`Program`], which can then be compiled into the underlying J-Expr JSON representation using [`Program.compile`]. This function also returns a [`Result`], containing either the serialised JSON or a compilation failure.
 
-To serialise our expression, we use [`Result.map`] for [`Program.program`] because it returns a plain value. [`Program.compile`] returns another [`Result`], so we use [`Result.flatMap`] for that step. We finish with [`Result.getOrThrow`] to return the JSON string or throw if construction or serialisation failed. In an Effect workflow, we can instead use [`Effect.fromResult`] to handle the result as a typed effect.
+To serialise our expression, we use [`Result.map`] for [`Program.program`] because it returns a plain value. [`Program.compile`] returns another [`Result`], so we use [`Result.flatMap`] for that step. We finish with [`Result.getOrThrow`] to return the JSON string or throw an error if construction or serialisation failed. In an Effect workflow, we can instead use [`Effect.fromResult`] to handle the result as a typed effect.
 
 ```ts title="Serialize the program" data-example="serialize"
 const serialized = pipe(
@@ -110,9 +110,9 @@ const maybeIncrement = Draft.program(
 );
 ```
 
-Just like normal HashQL programs, each branch given is evaluated during construction of the HashQL program, and the selection of the branch taken is done on the server.
+Both branch callbacks run during construction to build their HashQL expressions. The server later evaluates `enabled` and selects one of the branches.
 
-This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. This is the preferred approach, but sometimes, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where construction-time conditionals come in.
+This approach is self-contained: the program declares both inputs it needs. However, the caller must supply both inputs on every call. This is the preferred approach, but occasionally, we want to make this decision when constructing the expression instead. We can do this by moving the conditional out of the HashQL program and into the TypeScript construction logic. This is where construction-time conditionals come in.
 
 ```ts
 const buildProgram = (enabled: boolean) =>
@@ -127,7 +127,7 @@ const buildProgram = (enabled: boolean) =>
   });
 ```
 
-What is different here is that the conditional is absent from the output that is ultimately sent to the server, and depends on the value of `enabled` supplied by the caller. Let's define our serialisation pipeline we used earlier as a helper and compare the outputs of the two approaches:
+Here, the conditional is absent from the output sent to the server. Instead, the generated expression depends on the value of `enabled` supplied by the caller during construction. Let's turn our earlier serialisation pipeline into a helper and compare the outputs of the two approaches:
 
 ```ts
 import type { Type } from "@local/hashql";
@@ -152,7 +152,7 @@ console.log(compile(buildProgram(true)));
 // => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
 
-We can see that the conditional logic inside `Draft.program` changes the actual program sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
+We can see that the conditional logic inside `Draft.program` changes the program sent to the server. As a rule of thumb, express as much logic as possible in HashQL. Use TypeScript control flow during construction when HashQL does not yet support the construct you need or when you need to make decisions based on configuration-time values.
 
 The reason is simple: each program goes through a compilation step on the server. If a query remains unchanged, its compilation artefacts can be cached and reused. Keeping the decision as an input lets different calls reuse one compiled program. Making the decision during construction produces separate programs for the different configurations.
 
@@ -174,9 +174,9 @@ The helper takes the same kind of expression as `revision` and constructs an add
 
 ## Assemble a task summary
 
-For our task summary program, we need to express structured values, rather than just rely on a single integer. To make use of that we use [structs], which are similar to records in TypeScript. Our tasks should have a title, a revision and two flags: `blocked` and `done`.
+For our task summary program, we need to express structured values rather than just a single integer. To facilitate this, we use [structs], which are similar to records in TypeScript. Our tasks should have a title, a revision and two flags: `blocked` and `done`.
 
-We can construct this struct type with [`Program.Structural.type`], or inside of [`Draft.program`] using [`$.type`]:
+We can construct this struct type with [`Program.Structural.type`] or, inside [`Draft.program`], with [`$.type`]:
 
 ```ts
 const taskType = Program.Structural.type({
@@ -187,16 +187,16 @@ const taskType = Program.Structural.type({
 }).pipe(Result.getOrThrow);
 ```
 
-The constructor returns a [`Result`], with a [`ProgramError.Construction`]. This error can happen when the identifier chosen for a field is not a valid HashQL identifier. For the purposes of our program we then [`Result.getOrThrow`] to unwrap the error. It is in general acceptable to do this for constant type expressions, but otherwise [`effect`] programs should make use of e.g. [`Effect.fromResult`] to handle errors.
+The constructor returns a [`Result`] that contains a [`ProgramError.Construction`] if construction fails. This can happen when a field name is not a valid HashQL identifier. For this example, we use [`Result.getOrThrow`] to unwrap the successful result or throw an error. This is generally acceptable for constant type expressions, but [effect] programs should otherwise use utilities such as [`Effect.fromResult`] to handle errors.
 
-The result is that `taskType` is now a [`TypeExpression`] (not an [`Expression`]!), which describes the struct type.
+The resulting `taskType` is a [`TypeExpression`], not an [`Expression`]: it describes the struct type.
 
 <Callout>
   Inputs also support [shorthand type definitions][structural-definitions], as
   we used for `revision` above.
 </Callout>
 
-We then use this type and pass it to the `task` input of `summarizeTask`. This does two changes: callers that consume this expression must now provide that shape, and the handle will now have the type that `taskType` described. Let's use it in our example:
+We then use this type to define the `task` input of `summarizeTask`. This has two effects: callers must supply a value with the specified shape, and the input handle has the type described by `taskType`. Let's use it in our example:
 
 ```ts
 const summarizeTask = Draft.program({ task: taskType }, ($, { task }) => {
@@ -219,15 +219,15 @@ console.log(compile(summarizeTask));
 
 </details>
 
-[`Program.Structural.struct`] is the way that we create a struct value from the field expressions that we provide. HashQL operates in three "universes": modules, types, and values. Where [`Program.Structural.Type`] is the type version of the struct constructor, [`Program.Structural.struct`] is the value version. You can then use normal JavaScript field notation on these struct values to access their fields, which in turn returns an expression handle.
+[`Program.Structural.struct`] creates a struct value from the field expressions we provide. HashQL operates in three “universes”: modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`Program.Structural.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
 
 <Callout>
 
-You are currently unable to destructure via the `..rest` operator, e.g. `const {...rest} = task` will break.
+Object rest destructuring is currently unsupported. For example, `const {...rest} = task` will not work.
 
 </Callout>
 
-Now that we have a more structured way to access task fields, as well as construct algebraic data types (ADTs), we can extend our program, let's say that we introduce a new field `attention` that depends on the task's flags. We want blocked, unfinished tasks to receive the label `"review"`, and every other task to receive `"clear"`:
+Now that we can access task fields and construct algebraic data types (ADTs), we can extend our program. Let's introduce a new field, `attention`, that depends on the task's flags. We want blocked, unfinished tasks to receive the label `"review"` and all other tasks to receive `"clear"`:
 
 ```ts title="Choose a label from the task's fields" data-example="summary-attention"
 const summarizeTaskWithAttention = Draft.program(
@@ -259,11 +259,11 @@ console.log(compile(summarizeTaskWithAttention));
 
 </details>
 
-To be able to increase the readability aspect, `$` does not only offer access to the modules, or the prelude, but also provides a set of helper functions for common operations. You can still use the full HashQL API from [`Program`], but the [`Draft.Context`] has a lot of helper functions made available for convenience, and enables you to write more readable HashQL programs through e.g. fluid predicate composition.
+To improve readability, `$` provides not only access to modules and the prelude but also helper functions for common operations. You can still use the full HashQL API through [`Program`], but the helpers available through [`Draft.Context`] make it easier to write readable programs—for example, through fluent predicate composition.
 
-In our example `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. The interesting part is that it doesn't return just a `Boolean` value, but instead returns a [`Program.Operators.Boolean`], this means that you can create a chain of predicates using `.and`, `.or` and `.not`.
+In our example, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. Rather than returning a plain `Boolean` value, it returns a [`Program.Operators.Boolean`], allowing us to compose predicates using `.and`, `.or` and `.not`.
 
-As said prior, you are not constrained by the SDK to just use the helper functions, an alternative way to write the same condition would be:
+As mentioned earlier, the SDK does not restrict us to helper functions. An alternative way to write the same condition is:
 
 ```ts title="Function calls and fluent predicates" data-example="predicate-comparison"
 const { eq } = $.prelude();
@@ -271,13 +271,15 @@ const viaPrelude = $.and(eq(task.blocked, true), $.not(task.done));
 const viaHelper = $.eq(task.blocked, true).and($.not(task.done));
 ```
 
-At the end of the callback, both forms produce identical HashQL calls, `$` is simply a convenience wrapper that you can use to write more pleasant to read and maintain HashQL code. Use of `$` is considered idiomatic for the TypeScript SDK, and therefore recommended over the prelude imports, which is why we're going to continue using it in our examples.
+Both forms generate identical HashQL calls. `$` is simply a convenience wrapper that makes HashQL code easier to read and maintain. Using `$` is considered idiomatic in the TypeScript SDK and is therefore recommended over calling the corresponding functions through prelude imports. We'll continue using it in our examples.
 
-It's important to make the distinction, that this function that we have created does currently not interact with the graph at all. To do so, we use graph effects, which are explained in more depth under the [writing a query] chapter.
+Importantly, the program we have created does not yet interact with the graph. To do that, we use graph effects, which are explained in more detail in the [writing a query] chapter.
 
 ## Naming parts of a program
 
-Just like with control-flow which differentiates between runtime and construction-time, variables in a [`Draft`] differentiate between the two as well. What's important to keep in mind is that HashQL does no interpolation of the function definition, no integration into the bundling, etc. It is just using builders, and that also means that your conventional `const attention =` as in our example above is not part of the HashQL program itself. It is just a regular JavaScript variable that holds an expression handle. Any time that the variable is mentioned we don't mention the variable, but instead insert the expression that it stands for.
+Just as control flow distinguishes between runtime and construction time, we also need to distinguish between TypeScript variables and HashQL bindings in a [`Draft`]. HashQL does not inspect our function's source code or integrate with the bundler; it simply uses builders to construct expressions.
+
+This means that a declaration such as `const attention =` in our earlier example is not part of the HashQL program itself. It creates a regular JavaScript variable that holds an expression handle. Each time we use that handle, we insert the expression it represents rather than a reference to the JavaScript variable.
 
 Let's see how that works in a smaller example:
 
@@ -295,9 +297,11 @@ console.log(compile(repeatedRevision));
 // => {"#struct":{"nextRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],"auditRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]}}
 ```
 
-As you can see, the expression is inserted twice, this is often good enough, as it makes it easy to have expressions "travel around", but there are sometimes cases where this is insufficient. For example when we have a computation that is very complex, that is shared across multiple parts of the program, or mentioned multiple times. HashQL supports the notion of `let` bindings (similar to `const` due to their immutability), which allows you to define a named expression.
+As we can see, the expression is inserted twice. This is often sufficient and makes it easy to pass expressions around. However, it can be undesirable when a complex computation is shared across multiple parts of a program or referenced repeatedly.
 
-Let's try it:
+HashQL supports `let` bindings, which allow us to name expressions. These bindings are immutable, making them similar to JavaScript's `const` declarations.
+
+Let's try one:
 
 ```ts title="Reuse a HashQL binding" data-example="named-expression"
 const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
@@ -313,15 +317,15 @@ console.log(compile(namedRevision));
 // => ["::kernel::special_form::let","nextRevision",["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],{"#struct":{"nextRevision":"nextRevision","auditRevision":"nextRevision"}}]
 ```
 
-You can see here that our `let` binding was actually inserted, and then referenced. This is how HashQL supports reuse of complex expressions across multiple parts of the program.
+Here, the generated program contains a `let` binding followed by references to that binding. This is how HashQL supports the reuse of complex expressions across multiple parts of a program.
 
 <Callout>
 
-It is convention to name the binding the same as the `const` variable it is assigned to.
+By convention, give the binding the same name as the `const` variable to which its handle is assigned.
 
 </Callout>
 
-Anything that is mentioned _after_ the `let` binding is able to reference it naturally. What is important to note is that HashQL has the notion of shadowing (indeed due to it's immutable nature it is very common), but there is no inherent link between the binding name and the `const` variable it is assigned to. This means that it is very possible in a [`Draft`] program to create something like this:
+Expressions constructed after a `let` binding can reference it within its scope. HashQL also supports shadowing, which is common given its immutable nature. However, there is no inherent link between a HashQL binding's name and the JavaScript variable holding its handle. This means we can write the following in a [`Draft`] program:
 
 ```ts title="Reuse a HashQL binding" data-example="named-expression"
 const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
@@ -335,9 +339,81 @@ const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
 });
 ```
 
-This will compile, but the type of `nextRevision` inside the struct we expect to be `Integer`, even though the one in scope (assigned to `nextRevision2`) is a `String`. This will not compile on the server, but is something that we can detect on the client. This is one of the reasons why HashQL returns a [`Result`] on construction: this is a construction time error and results in a [`ProgramError.Construction`] error. This is also why we recommend that the name of the binding is the same as the name of the variable in scope: this makes it easier to reason about the type of the binding and will lead to a compile error in TypeScript.
+This code passes TypeScript's checks, but the `nextRevision` handle used in the struct is expected to represent an `Integer`, while the HashQL binding now in scope—whose handle is assigned to `nextRevision2`—represents a `String`.
 
-## Scoping of HashQL bindings
+The resulting HashQL program would fail to compile on the server, but the SDK can detect this mismatch on the client during construction. This is one reason HashQL returns a [`Result`]: the mismatch produces a [`ProgramError.Construction`] error.
+
+It is also why we recommend giving each binding the same name as the JavaScript variable holding its handle. This makes the code easier to reason about and, in this example, would expose the conflicting declarations as a TypeScript compile-time error.
+
+## Scope Management
+
+The use of closures for branches or filters may seem a bit odd, but there is a reason behind it. It is a signal for scope management. Each closure takes a `$` argument (indeed internally it is just the same as the outer `$`) and create a new scope. Each `let` that is created inside of that closure cannot travel more up than the function scope, this means that:
+
+```ts title="Declare a name inside a branch" data-example="branch-context"
+const branchAttention = Draft.program({ review: Boolean }, ($, { review }) =>
+  $.if(review, {
+    then: () => $.let("label", "review"),
+    else: () => $.literal("clear"),
+  }),
+);
+
+console.log(compile(branchAttention));
+// => ["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],["::kernel::special_form::let","label",{"#literal":"review"},"label"],{"#literal":"clear"}]
+```
+
+will never bring the `let` outside of the `then` branch, reason being that it makes def-before-use trivial and also uninuitive.
+
+### Construction-time macros
+
+It is often useful to define common behaviour that can be shared and re-used across a task, there are multiple ways to achieve this, first is bind a closure, then invoke it, which is the HashQL way.
+
+<Callout>
+
+This is currently tracked as part of BE-XXXX, and user defined closure construction is not yet supported.
+
+</Callout>
+
+The other way is through the use of construction-time macros, which are a way to create expressions outside of [`Draft.program`][draft-program] and reuse them across expressions. We can also combine these, for example we can have a macro which creates a closure, which is then in turn used inside of code to share common behaviour.
+
+Let's define a simple macro for the expression that determined if a task is blocked:
+
+```ts title="Extract the review rule" data-example="expression-helper"
+const taskInputs = { task: taskType };
+type Task = Draft.Body.Handles<typeof taskInputs>["task"];
+
+const needsReviewFor = (task: Task) =>
+  Program.Operators.eq(task.blocked, true).and(
+    Program.Operators.not(task.done),
+  );
+```
+
+We can use [`Draft.Body.Handles`] here to take our inputs, and then extract the actual type from it that will be available, this then allows us to have a type-safe way to use the call the expression.
+
+<Callout>
+
+The HashQL type-system modelled inside of TypeScript is deliberately conservative and does not implement the full subtyping regime present inside of HashQL, use [`Expression.assume`] to work around this, and to cast an expression. This will not weaken the type safety, as the server still type-checks every program before execution.
+
+</Callout>
+
+### Passing a context
+
+What if a construction-time macro needs to use the construction context `$`? To be able to do this, we can utilitze another help: [`Draft.Body.Context`], specifically for our example an encapsulation of `attention` would look like this:
+
+```ts title="Extract a helper that declares a binding" data-example="context-helper"
+type TaskContext = Draft.Body.Context<
+  Program.Prelude.Builtin,
+  Draft.Body.Requirements<typeof taskInputs>
+>;
+
+const attentionFor = ($: TaskContext, task: Task) =>
+  $.let(
+    "attention",
+    $.if(needsReviewFor(task), {
+      then: () => $.literal("review"),
+      else: () => $.literal("clear"),
+    }),
+  );
+```
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
@@ -369,42 +445,6 @@ This will compile, but the type of `nextRevision` inside the struct we expect to
 [draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
 
 ---
-
-## Keep declarations in their intended scope
-
-Our attention label uses two branch callbacks. So far, each has returned a literal, but a branch can also contain declarations. The branch callback receives its own context so we can put those declarations inside that branch.
-
-For a small example, let's take the review decision as an input and declare a label only in the `then` branch:
-
-```ts title="Declare a name inside a branch" data-example="branch-context"
-const branchAttention = Draft.program({ review: Boolean }, ($, { review }) =>
-  $.if(review, {
-    then: (branch) => branch.let("label", "review"),
-    else: () => $.literal("clear"),
-  }),
-);
-
-console.log(compile(branchAttention));
-// => ["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],["::kernel::special_form::let","label",{"#literal":"review"},"label"],{"#literal":"clear"}]
-```
-
-The generated `let` is inside the `then` expression. It is not enough for the JavaScript call to be written inside the branch callback: we must use the context of the HashQL body where the declaration belongs. Compare that with calling the captured outer `$`:
-
-```ts title="Declare through the outer context" data-example="outer-context"
-const outerAttention = Draft.program({ review: Boolean }, ($, { review }) =>
-  $.if(review, {
-    then: () => $.let("label", "review"),
-    else: () => $.literal("clear"),
-  }),
-);
-
-console.log(compile(outerAttention));
-// => ["::kernel::special_form::let","label",{"#literal":"review"},["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],"label",{"#literal":"clear"}]]
-```
-
-This time, the `let` wraps the entire conditional. Both branch callbacks run during construction, as we saw in the detour, and this callback records its declaration in the outer context. The two examples deliberately put the name in different scopes. Use the branch's context when its declarations should stay inside that branch.
-
-The outer `$.literal` in the `else` branch is fine: it constructs an expression without declaring a name. The context choice matters for declarations such as `$.let`, `$.type`, `$.newtype` and `$.import`, not for every helper accessed through `$`.
 
 ## Extract a helper with the types it needs
 
