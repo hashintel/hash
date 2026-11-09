@@ -58,13 +58,13 @@ const built = Draft.program(revisionInputs, ($, { revision }) => {
 
 You can also inline the input definitions directly into the `program` call. In this example, we define them separately, and the closure receives the corresponding inputs as its second argument: an object keyed by field name. We destructure this object to access `revision` within the closure.
 
-The HashQL SDK tries to be a user-friendly as possible, and supports both explicit types, as well as common JavaScript type constructors, for example in our example `BigInt` maps to `Types.Integer`, which could be used instead.
+The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, `BigInt` maps to `Types.Integer`, which we could use instead.
 
-The closure is immediately evaluated, and does not propagate panics, instead it catches them and returns a [`Result`] value, which can be used to handle errors, there are other legitimate reasons the program may fail construction, which all have individual well-typed reasons, such as [being used out of stream], or [todo].
+The closure is evaluated immediately. Rather than propagating panics, [`program`][draft-program] catches them and returns a [`Result`] value that we can use to handle errors. Program construction can also fail for other reasons, each represented by a distinct, well-typed error, such as [being used out of stream] or [todo].
 
-The prelude is the set of symbols, such as [`add`], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Draft`] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server on execution, and overriding it will almost certainly lead to unexpected behaviour.
+The prelude is the set of symbols, such as [`add`], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Draft`] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server during execution, and overriding it will almost certainly lead to unexpected behaviour.
 
-To be able to use the compiled program, one must first make sure that the program is well-formed, users of [`effect`] should use the necessary facilities, such as [`Effect.fromResult`], to handle the [`Result`] value appropriately, outside of effect, one can use [`Result.getOrThrow`] to throw an error if the program is not well-formed.
+Before using the compiled program, we must ensure that the program is well-formed. Users of [effect] should handle the [`Result`] value using the appropriate utilities, such as [`Effect.fromResult`]. Outside effect, we can use [`Result.getOrThrow`] to throw an error if the program is not well-formed.
 
 ```ts title="Serialize the program" data-example="serialize"
 const serialized = pipe(
@@ -75,7 +75,7 @@ const serialized = pipe(
 );
 ```
 
-The output is an `Expression`, which can be used in other HashQL operations, and records the inputs and output type, this allows for natural composition of multiple HashQL fragments. A finished `Expression` can then be turned into a `Program` using the [`Program.program`] function. This `Program` itself does not do much, except signal that the program is well-formed and ready to be executed, but does not guarantee syntactic correctness. `Program.compile` then turns the `Program` into `J-Expr` JSON, which can then be sent to the server.
+The value produced by successful construction is an `Expression`. It can be used in other HashQL operations and records the input and output types, allowing multiple HashQL fragments to be composed naturally. A finished `Expression` can then be turned into a `Program` using the [`Program.program`] function. This `Program` serves primarily to signal that the program is well-formed and ready to be executed; it does not guarantee syntactic correctness. `Program.compile` then turns the `Program` into J-Expr JSON, which can be sent to the server.
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
