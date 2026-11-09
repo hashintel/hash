@@ -39,9 +39,9 @@ import { program } from "@local/hashql/Draft";
 
 The primary entry point for building a J-Expr program is the [`program`][draft-program] function. It takes two arguments: a definition of the program's inputs and a closure that constructs the program. We define the input names and types here, then supply their values when we send the program to the server for execution.
 
-The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and handles representing the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often—hence the short name.
+The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and an object containing handles that represent the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often—hence the short name.
 
-Suppose we want to build a simple program that increments a task's revision number. We'll define the inputs first, then construct the program using a closure:
+Suppose we want to build a simple program that increments a task's revision number. The prelude provides `add`, the HashQL equivalent of the `+` operator. We'll define the inputs first, then construct the program using a closure:
 
 ```ts title="revision.ts" data-example="revision"
 import { Program } from "@local/hashql";
@@ -56,15 +56,13 @@ const built = Draft.program(revisionInputs, ($, { revision }) => {
 });
 ```
 
-You can also inline the input definitions directly into the `program` call. In this example, we define them separately, and the closure receives the corresponding handles as its second argument: an object keyed by field name. We destructure this object to access `revision` within the closure. Here, `revision` represents the program's input, not its value. That value will be supplied when the resulting HashQL program runs.
+You can also inline the input definitions directly into the `program` call. In this example, we define them separately for clarity. The closure receives a handle for each declared input in its second argument, an object keyed by input name. We destructure this object to access `revision` within the closure. Importantly, `revision`, like any input handle, does not hold a value supplied during program construction. Instead, it acts as a proxy for a value supplied when the program runs on the server.
 
 The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, `BigInt` maps to [`Program.Prelude.builtin.types.Integer`][builtin-prelude], which we could use instead.
 
-The closure is evaluated immediately. Rather than propagating exceptions, [`program`][draft-program] catches them and returns a [`Result`] value that we can use to handle errors. Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures share the [`ProgramError.Construction`] error type, with a distinct, typed reason for each case.
+[`Draft.program`][draft-program] evaluates the closure immediately and returns a [`Result`]. A result has two variants: [`Success`] (also known as `Ok`) and [`Failure`] (also known as `Err`), representing the outcome of the evaluation. For [`Draft.program`], a successful result contains an [`Expression`], while a failed result contains a construction failure.
 
-The prelude is the set of symbols, such as [`add`][builtin-prelude], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Program.Prelude`][builtin-prelude] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server during execution. The supplied declarations must match the corresponding server definitions, or the SDK may accept a call that the server rejects.
-
-The value produced by successful construction is an [`Expression`]. It can be used in other HashQL operations and records the input and output types, allowing multiple HashQL fragments to be composed naturally. Once we've finished composing expressions, [`Program.program`] wraps the root expression as a complete [`Program`]. [`Program.compile`] then serialises it to J-Expr JSON, reporting construction or serialisation failures through its [`Result`].
+Importantly, the expression is not yet a standalone [`Program`]. It can be used within other HashQL programs as a reusable fragment. Calling [`Program.program`] turns the expression into a [`Program`], which can then be compiled into the underlying J-Expr JSON representation using [`Program.compile`]. This function also returns a [`Result`], containing either the serialised JSON or a compilation failure.
 
 To serialise our expression, we use [`Result.map`] for [`Program.program`] because it returns a plain value. [`Program.compile`] returns another [`Result`], so we use [`Result.flatMap`] for that step. We finish with [`Result.getOrThrow`] to return the JSON string or throw if construction or serialisation failed. In an Effect workflow, we can instead use [`Effect.fromResult`] to handle the result as a typed effect.
 
@@ -79,6 +77,18 @@ const serialized = pipe(
 console.log(serialized);
 // => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
+
+### Handle construction failures
+
+[`program`][draft-program] catches exceptions raised during program construction rather than propagating them, returning a [`Result`] value to the caller. In this respect, it is similar to [`Result.try`]. This allows it to bridge naturally between [effect] and native JavaScript with minimal friction.
+
+Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures are also returned explicitly through a [`Result`] value rather than thrown as exceptions. Each construction failure is represented by a distinct, well-typed case in [`ProgramError.Construction`], allowing for structured error handling.
+
+### Choose declarations from the prelude
+
+The prelude is a set of symbols, such as [`add`][builtin-prelude], that are automatically imported and available in every J-Expr program. It is controlled by the server, not the program itself, and therefore does not change between invocations. The full list of prelude symbols is available in the [`Program.Prelude`][builtin-prelude] reference.
+
+Advanced users can override the default prelude declarations using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server during execution. The supplied declarations must match the corresponding server definitions, or the SDK may accept a call that the server rejects.
 
 ## Detour: Using HashQL logic and TypeScript logic together
 
@@ -164,21 +174,25 @@ The helper takes the same kind of expression as `revision` and constructs an add
 
 ## Assemble a task summary
 
-For our task summary program, we need to express structured values rather than just a single integer. Our tasks should have a title, a revision and two flags: `blocked` and `done`. We can model this in the HashQL SDK using the [`Program.Structural.struct`] function, which creates a HashQL struct type definition. Its keys must be valid HashQL identifiers, and its values must be field expressions: either `String`, `Number`, `BigInt`, `Boolean` or another HashQL type expression.
+For our task summary program, we need to express structured values rather than just a single integer. Our tasks should have a title, a revision and two flags: `blocked` and `done`. We can construct this struct type with [`Program.Structural.type`]:
 
 ```ts
-const task = Program.Structural.struct({
+const taskType = Program.Structural.type({
   title: String,
   revision: BigInt,
   blocked: Boolean,
   done: Boolean,
-});
+}).pipe(Result.getOrThrow);
 ```
 
-Let's build on our previous program to return the task's title and next revision.
+The constructor returns a [`Result`], which we unwrap with [`Result.getOrThrow`]. `taskType` is now a type expression describing the struct, not task data.
+
+(Inputs also support [shorthand type definitions][structural-definitions], as we used for `revision` above.)
+
+Passing this type as the `task` input tells Draft to expect a struct with these fields. Let's use that input to return the task's title and next revision:
 
 ```ts
-const updateTask = Draft.program({ task }, ($, { task }) => {
+const summarizeTask = Draft.program({ task: taskType }, ($, { task }) => {
   const { add } = $.prelude();
 
   return Program.Structural.struct({
@@ -188,34 +202,65 @@ const updateTask = Draft.program({ task }, ($, { task }) => {
 });
 ```
 
-<Callout>You cannot destructure the fields of the `task` parameter.</Callout>
+<details>
+<summary>Generated J-Expr</summary>
 
-A language that can only construct values isn't very useful, so let's combine some of the functionality described in the [introduction to HashQL] with one of our helpers: `eq`.
+```ts
+console.log(compile(summarizeTask));
+// => {"#struct":{"title":["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"title"],"nextRevision":["::core::math::add",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"revision"],{"#literal":1}]}}
+```
+
+</details>
+
+[`Program.Structural.struct`] constructs a struct value from its field expressions. This is the other side of our input definition: `taskType` describes the shape we expect, while `struct` constructs the value our program returns. Reading `task.title` and `task.revision` constructs field access within that program.
+
+<Callout>You can destructure named fields, for example `const { title, revision } = task`. They are still expression handles, not the task's runtime values.</Callout>
+
+Now let's use the task's flags to decide whether it needs review. We want blocked, unfinished tasks to receive the label `"review"`, and every other task to receive `"clear"`:
 
 ```ts title="Choose a label from the task's fields" data-example="summary-attention"
-const built = Draft.program(inputs, ($, { task }) => {
-  const { add } = $.prelude();
-  const needsReview = $.eq(task.blocked, true).and($.not(task.done));
-  const attention = $.if(needsReview, {
-    then: () => $.literal("review"),
-    else: () => $.literal("clear"),
-  });
+const summarizeTaskWithAttention = Draft.program(
+  { task: taskType },
+  ($, { task }) => {
+    const { add } = $.prelude();
+    const needsReview = $.eq(task.blocked, true).and($.not(task.done));
+    const attention = $.if(needsReview, {
+      then: () => $.literal("review"),
+      else: () => $.literal("clear"),
+    });
 
-  return Program.Structural.struct({
-    title: task.title,
-    nextRevision: add(task.revision, 1n),
-    attention,
-  });
-});
+    return Program.Structural.struct({
+      title: task.title,
+      nextRevision: add(task.revision, 1n),
+      attention,
+    });
+  },
+);
 ```
 
-In addition to providing access to the prelude, `$` offers several constructors and helpers, documented in [`Draft.Context`]. In particular, it gives us access to `$.eq`, which maps to the HashQL function `::core::cmp::eq` and compares two values for equality. You can also call this function directly from the prelude, but the `$` version is more convenient and should be preferred because it enables fluent chaining and composition of HashQL boolean expressions.
+<details>
+<summary>Generated J-Expr</summary>
 
 ```ts
-// Function call vs. fluent comparison.
+console.log(compile(summarizeTaskWithAttention));
+// => {"#struct":{"title":["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"title"],"nextRevision":["::core::math::add",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"revision"],{"#literal":1}],"attention":["::kernel::special_form::if",["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"blocked"],{"#literal":true}],["::core::bool::not",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"done"]]],{"#literal":"review"},{"#literal":"clear"}]}}
 ```
 
-Our example combines these helpers to choose a value based on the task's fields. If the task is blocked and not completed, we set `attention` to `"review"`; otherwise, we set it to `"clear"`.
+</details>
+
+In addition to providing access to the prelude, `$` offers several constructors and helpers, documented in [`Draft.Context`]. In particular, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. You can also call equality directly from the prelude. The difference is in what the SDK gives us back: the prelude call returns an ordinary Boolean expression, while `$.eq` returns a predicate with fluent methods such as `.and`, `.or` and `.not`.
+
+Inside the callback, we could construct our condition either way:
+
+```ts title="Function calls and fluent predicates" data-example="predicate-comparison"
+const { eq } = $.prelude();
+const viaPrelude = $.and(eq(task.blocked, true), $.not(task.done));
+const viaHelper = $.eq(task.blocked, true).and($.not(task.done));
+```
+
+Both forms produce the same HashQL calls. The helper form lets us continue composing the predicate directly, so we'll use it in our examples. The helper also requires matching operand types, whereas the prelude's equality declaration permits different types.
+
+Our summary still only describes a result. It returns the task's title, a proposed next revision and the chosen attention label. It doesn't update the task stored in the graph.
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
@@ -234,70 +279,105 @@ Our example combines these helpers to choose a value based on the task's fields.
 [`Result.flatMap`]: https://effect.website/docs/v4/api/effect/Result#flatMap
 [`Result.getOrThrow`]: https://effect.website/docs/v4/api/effect/Result#getOrThrow
 [`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
+[`Program.Structural.type`]: /docs/hashql/reference/hashql/Program/Structural#type
+[structural-definitions]: /docs/hashql/reference/hashql/Program/Structural#Definition
+[`Program.Structural.struct`]: /docs/hashql/reference/hashql/Program/Structural#struct
+[`Program.Structural`]: /docs/hashql/reference/hashql/Program/Structural
+[`Program.Expression`]: /docs/hashql/reference/hashql/Program/Expression
+[`Program.Operators`]: /docs/hashql/reference/hashql/Program/Operators
+[`Draft.Context`]: /docs/hashql/reference/hashql/Draft/Context#Context
+[`Draft.Body.Handles`]: /docs/hashql/reference/hashql/Draft/Body#Handles
+[`Draft.Body.Context`]: /docs/hashql/reference/hashql/Draft/Body#Context
+[`Draft.Body.Requirements`]: /docs/hashql/reference/hashql/Draft/Body#Requirements
+[draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
 
 ---
 
-## Assemble a task summary
+## Give a reused expression a HashQL name
 
-Let's give the program a task with a title, a revision and two flags. The summary should propose its next revision and mark blocked, unfinished tasks for review. Keep the imports and serialization block, but replace the revision schema and program with these:
+Our TypeScript variables have names, but those names haven't appeared in the generated HashQL. For example, `const attention` holds the conditional expression itself. Using that handle in two fields would put the conditional's syntax in both places.
 
-```ts title="Describe the task input" data-example="setup"
-const inputs = {
-  task: {
-    title: String,
-    revision: BigInt,
-    blocked: Boolean,
-    done: Boolean,
-  },
-};
-```
+Let's see this with the smaller revision expression first. Suppose we need the next revision in two fields of a result:
 
-The nested record describes a struct. The callback now receives a `task` handle whose fields TypeScript knows. Reading `task.title` constructs field access, and reading `task.revision` gives us the Integer expression we need for addition.
-
-First, return just the title and proposed revision:
-
-```ts title="Build the summary" data-example="summary"
-const built = Draft.program(inputs, ($, { task }) => {
-  const { add } = $.prelude();
+```ts title="Reuse an expression" data-example="repeated-expression"
+const repeatedRevision = Draft.program(revisionInputs, ($, { revision }) => {
+  const nextRevision = $.prelude().add(revision, 1n);
 
   return Program.Structural.struct({
-    title: task.title,
-    nextRevision: add(task.revision, 1n),
+    nextRevision,
+    auditRevision: nextRevision,
   });
 });
+
+console.log(compile(repeatedRevision));
+// => {"#struct":{"nextRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],"auditRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]}}
 ```
 
-[`Program.Structural.struct`](/docs/hashql/reference/hashql/Program/Structural#struct) combines the field expressions into a struct expression. Its argument is a JavaScript record of handles. The result is a handle for the HashQL struct that the program will return.
+The addition appears twice. `nextRevision` is a TypeScript name for a handle, not a HashQL declaration. To give the expression a name in the generated program, we use [`$.let`][draft-let]:
 
-Now add the review label. Replace the callback with this version:
+```ts title="Reuse a HashQL binding" data-example="named-expression"
+const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
+  const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
 
-```ts title="Choose a label from the task's fields" data-example="summary-attention"
-const built = Draft.program(inputs, ($, { task }) => {
-  const { add } = $.prelude();
-  const needsReview = $.eq(task.blocked, true).and($.not(task.done));
-  const attention = $.if(needsReview, {
-    then: () => $.literal("review"),
+  return Program.Structural.struct({
+    nextRevision,
+    auditRevision: nextRevision,
+  });
+});
+
+console.log(compile(namedRevision));
+// => ["::kernel::special_form::let","nextRevision",["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],{"#struct":{"nextRevision":"nextRevision","auditRevision":"nextRevision"}}]
+```
+
+Now the addition appears once, as the initializer of a HashQL `let`. The two fields refer to its name. `$.let` records the declaration in the context and returns a handle referring to that binding. When our callback returns, Draft wraps the result in the declarations we made, in their call order.
+
+We don't need a HashQL binding for every TypeScript variable. A local variable is enough when we only want to organise construction. Use `$.let` when the generated program should contain a named binding. A declaration is still emitted if we discard its returned handle, whereas constructing an expression and discarding it doesn't add that expression to the program.
+
+## Keep declarations in their intended scope
+
+Our attention label uses two branch callbacks. So far, each has returned a literal, but a branch can also contain declarations. The branch callback receives its own context so we can put those declarations inside that branch.
+
+For a small example, let's take the review decision as an input and declare a label only in the `then` branch:
+
+```ts title="Declare a name inside a branch" data-example="branch-context"
+const branchAttention = Draft.program({ review: Boolean }, ($, { review }) =>
+  $.if(review, {
+    then: (branch) => branch.let("label", "review"),
     else: () => $.literal("clear"),
-  });
+  }),
+);
 
-  return Program.Structural.struct({
-    title: task.title,
-    nextRevision: add(task.revision, 1n),
-    attention,
-  });
-});
+console.log(compile(branchAttention));
+// => ["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],["::kernel::special_form::let","label",{"#literal":"review"},"label"],{"#literal":"clear"}]
 ```
 
-`needsReview` combines two predicates. `attention` uses that Boolean expression to construct a HashQL `if`. For a blocked, unfinished task at revision `4`, the described result keeps its title, proposes revision `5` and sets `attention` to `"review"`. It returns a summary rather than updating the task.
+The generated `let` is inside the `then` expression. It is not enough for the JavaScript call to be written inside the branch callback: we must use the context of the HashQL body where the declaration belongs. Compare that with calling the captured outer `$`:
 
-Both branch callbacks run during construction, so Draft can build both branches. HashQL evaluates only the selected branch when the program executes. Keep network requests, logging and other host-side work outside these callbacks unless you intend them to happen during construction. A JavaScript `if (task.blocked)` would test the handle object, not the task's Boolean field.
+```ts title="Declare through the outer context" data-example="outer-context"
+const outerAttention = Draft.program({ review: Boolean }, ($, { review }) =>
+  $.if(review, {
+    then: () => $.let("label", "review"),
+    else: () => $.literal("clear"),
+  }),
+);
 
-## Extract reusable construction
+console.log(compile(outerAttention));
+// => ["::kernel::special_form::let","label",{"#literal":"review"},["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],"label",{"#literal":"clear"}]]
+```
 
-The review rule is useful beyond this one callback. We can extract it into an ordinary TypeScript helper. Add this after `inputs`, before the program:
+This time, the `let` wraps the entire conditional. Both branch callbacks run during construction, as we saw in the detour, and this callback records its declaration in the outer context. The two examples deliberately put the name in different scopes. Use the branch's context when its declarations should stay inside that branch.
 
-```ts title="Reuse the review predicate" data-example="expression-helper"
-type Task = Draft.Body.Handles<typeof inputs>["task"];
+The outer `$.literal` in the `else` branch is fine: it constructs an expression without declaring a name. The context choice matters for declarations such as `$.let`, `$.type`, `$.newtype` and `$.import`, not for every helper accessed through `$`.
+
+## Extract a helper with the types it needs
+
+The review rule is useful beyond one summary. We already know that a TypeScript helper can construct a reusable expression. This time, the helper needs access to the task's fields, so we also need a type for its argument.
+
+We can derive that type from our input definition with [`Draft.Body.Handles`]:
+
+```ts title="Extract the review rule" data-example="expression-helper"
+const taskInputs = { task: taskType };
+type Task = Draft.Body.Handles<typeof taskInputs>["task"];
 
 const needsReviewFor = (task: Task) =>
   Program.Operators.eq(task.blocked, true).and(
@@ -305,254 +385,69 @@ const needsReviewFor = (task: Task) =>
   );
 ```
 
-[`Draft.Body.Handles`](/docs/hashql/reference/hashql/Draft/Body#Handles) derives the handle type from our schema. That keeps the helper's `task` consistent with the callback's `task`, including its required input. The helper needs only expressions, so it uses [`Program.Operators`](/docs/hashql/reference/hashql/Program/Operators) without taking a context.
+`Task` is the type of our input handle, not a TypeScript object containing task data. Deriving it from `taskInputs` keeps the helper's fields in step with the program's input definition. It also retains the requirement for an input named `task`.
 
-Inside the callback, replace the inline predicate with `const needsReview = needsReviewFor(task)`. The generated program stays the same. The helper runs in TypeScript each time we call it and returns the expression it constructed.
+The helper doesn't need a context because it only combines expressions. [`Program.Operators`] provides the same predicate constructors we used through `$`, including their fluent methods. These operations are **combinators**: they take expressions and return another expression. The helper can therefore work with just the task handle, without accepting a `$` it doesn't use.
 
-We can also reuse the conditional label. This helper uses `$.if` to construct scoped branches, so it takes the caller's context:
+### Pass a context when the helper declares a name
 
-```ts title="Reuse the conditional label" data-example="context-helper"
+Suppose we want to extract construction of the attention label too, this time giving the label a HashQL binding. The helper needs a context for that declaration. [`Draft.Body.Context`] describes the context a program callback receives:
+
+```ts title="Extract a helper that declares a binding" data-example="context-helper"
 type TaskContext = Draft.Body.Context<
   Program.Prelude.Builtin,
-  Draft.Body.Requirements<typeof inputs>
+  Draft.Body.Requirements<typeof taskInputs>
 >;
 
 const attentionFor = ($: TaskContext, task: Task) =>
-  $.if(needsReviewFor(task), {
-    then: () => $.literal("review"),
-    else: () => $.literal("clear"),
+  $.let(
+    "attention",
+    $.if(needsReviewFor(task), {
+      then: () => $.literal("review"),
+      else: () => $.literal("clear"),
+    }),
+  );
+```
+
+The first type argument describes the prelude, and the second describes the inputs the program permits. [`Draft.Body.Requirements`] derives those input requirements from our schema. This helper uses the same prelude and input schema as our task programs.
+
+Calling a TypeScript helper doesn't create a new HashQL scope. `attentionFor` puts its binding in the context we pass to it and returns a reference to that binding. If we call it inside a branch and want the declaration to stay there, we pass that branch's context, just as we did with `branch.let`.
+
+We can now assemble our summary using the extracted helpers:
+
+```ts title="Build the summary from reusable pieces" data-example="reusable-summary"
+const reusableSummary = Draft.program(taskInputs, ($, { task }) => {
+  const attention = attentionFor($, task);
+
+  return Program.Structural.struct({
+    title: task.title,
+    nextRevision: $.prelude().add(task.revision, 1n),
+    attention,
   });
-```
-
-[`Draft.Body.Context`](/docs/hashql/reference/hashql/Draft/Body#Context) describes the `$` that our program receives. Its parameters retain the prelude and the input requirements. These helpers deliberately share one schema. A general helper can parameterize those relationships, but should preserve them rather than erase them to an unrestricted context or untyped expression. The program checks that expressions emitted through `$` fit its declared inputs.
-
-With both helpers in place, we can build different summaries from the same pieces. Replace the program with this factory, leaving the helpers above it:
-
-```ts title="Choose the summary's fields" data-example="host-configuration"
-const buildSummary = (includeRevision: boolean) =>
-  Draft.program(inputs, ($, { task }) => {
-    const fields = {
-      title: task.title,
-      attention: attentionFor($, task),
-    };
-
-    if (includeRevision) {
-      return Program.Structural.struct({
-        ...fields,
-        nextRevision: $.prelude().add(task.revision, 1n),
-      });
-    }
-
-    return Program.Structural.struct(fields);
-  });
-
-const built = buildSummary(true);
-```
-
-The two kinds of choice now work together. `includeRevision` determines the output fields during construction. The generated HashQL still contains the conditional that chooses `attention` from the task's fields at execution time.
-
-These helpers reuse construction. They don't declare callable HashQL functions inside the generated program. For that, Draft needs [typed HashQL function construction](https://linear.app/hash/issue/BE-1015), which is not implemented yet.
-
-### What the input schema promises
-
-Our schema describes the names and types the program expects. It doesn't contain task data or parse incoming JavaScript values. `String`, `BigInt` and `Boolean` are type definitions here.
-
-The returned expression's TypeScript type retains every declared schema entry as a requirement, including entries the callback doesn't use. [`Draft.Body.Requirements`](/docs/hashql/reference/hashql/Draft/Body#Requirements) describes that record. Use an empty schema, `{}`, for a program built entirely from constants and declarations that require no inputs.
-
-## Decide where a binding belongs
-
-So far, our TypeScript variables have held expressions. They haven't declared HashQL bindings. That distinction matters when we reuse a handle: reusing an expression inserts its syntax at each use, while reusing a binding inserts references to its name.
-
-To see the difference, return to the first revision example. Replace its program with:
-
-```ts title="Give the addition a HashQL name" data-example="query-binding"
-const built = Draft.program(revisionInputs, ($, { revision }) => {
-  const { add } = $.prelude();
-  const nextRevision = $.let("nextRevision", add(revision, 1n));
-  return nextRevision;
 });
 ```
 
-The same serialization block now produces:
+<details>
+<summary>Generated J-Expr</summary>
 
-```json title="Generated J-Expr with a binding" data-output="query-binding"
-[
-  "::kernel::special_form::let",
-  "nextRevision",
-  [
-    "::core::math::add",
-    ["::kernel::special_form::input", "revision", "::kernel::type::Integer"],
-    { "#literal": 1 }
-  ],
-  "nextRevision"
-]
+```ts
+console.log(compile(reusableSummary));
+// => ["::kernel::special_form::let","attention",["::kernel::special_form::if",["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"blocked"],{"#literal":true}],["::core::bool::not",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"done"]]],{"#literal":"review"},{"#literal":"clear"}],{"#struct":{"title":["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"title"],"nextRevision":["::core::math::add",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","revision":"::kernel::type::Integer","blocked":"::kernel::type::Boolean","done":"::kernel::type::Boolean"}}],"revision"],{"#literal":1}],"attention":"attention"}}]
 ```
 
-The addition is the initializer of a `let`, and the body refers to `nextRevision`. Replacing the declaration with `const nextRevision = add(revision, 1n)` would give us the first example's output again: just the addition, with no HashQL binding.
+</details>
 
-The context places declarations around the returned expression in call order. This applies to `$.let`, `$.type`, `$.newtype` and `$.import`, including declarations whose returned handles we never use. Constructing an expression and then discarding its handle adds nothing by itself.
+The generated program binds `attention` before constructing the summary. It contains the comparison and conditional, not calls to `needsReviewFor` or `attentionFor`. Those two functions organise our TypeScript construction code, just like the earlier `increment` helper.
 
-### Use the context of the body you mean
+## Take these pieces into a query
 
-A helper that declares a binding needs to know where that binding belongs. Nested branch callbacks receive their own context for this purpose. Here is a small, separate program using the same imports:
+We can now construct expressions, give them names in the intended scope, and extract helpers whose types retain their input requirements. [Writing a HashQL query](/docs/hashql/writing-a-query) applies these tools to graph data. A query filter receives its own construction context, so a helper that declares names follows the same rule there as it does inside a branch.
 
-```ts title="Keep a declaration inside its branch" data-example="branch-context"
-const built = Draft.program({ review: Boolean }, ($, { review }) =>
-  $.if(review, {
-    then: (branch) => {
-      const label = branch.let("label", "review");
-      return label;
-    },
-    else: () => $.literal("clear"),
-  }),
-);
-```
+The reference covers construction tools we haven't needed for this summary:
 
-Its output puts the `let` inside the `then` branch's body:
+- [`Program.Structural`] describes tuple, list and dictionary construction alongside structs. Arrays in structural shorthand describe tuples, while lists and dictionaries use explicit constructors.
+- [`Program.Expression`] describes typed field projection and indexing. Use `$project` when a field name collides with a handle operation, such as a struct field named `$index`.
+- [`Draft.withPrelude`] supplies a different set of SDK declarations. It replaces the built-in prelude for that constructor, not the definitions on the server. Reusing a built-in declaration under a different property name changes how TypeScript accesses it, not the HashQL function it calls.
+- [`Draft.Context`] also provides `$.type` for a structural alias and `$.newtype` for a nominal type and its constructor. These declarations belong to the context where we make them, just like `$.let`.
 
-```json title="Generated J-Expr with a branch-local binding" data-output="branch-context"
-[
-  "::kernel::special_form::if",
-  ["::kernel::special_form::input", "review", "::kernel::type::Boolean"],
-  ["::kernel::special_form::let", "label", { "#literal": "review" }, "label"],
-  { "#literal": "clear" }
-]
-```
-
-Calling the captured outer `$.let` instead would place the declaration outside the conditional. JavaScript nesting alone doesn't decide the HashQL scope: the context we call does. The same rule applies to declarations inside [query filters](/docs/hashql/troubleshooting#a-declaration-inside-my-filter-is-in-the-wrong-scope).
-
-The `else` callback can use `$.literal` from the outer context because it only constructs a literal expression. There is no declaration to place. When passing a context into a helper that declares names, pass the branch or filter context if its declarations should stay there.
-
-## Choose a composition style
-
-The summary used context helpers to build its predicate. We used standalone operators when extracting that predicate into a helper. A **combinator** takes expressions and constructs another expression, so this work doesn't inherently need a declaration context. These three alternatives build the same predicate inside the task callback:
-
-```ts title="Context helpers" tab="Context" tab-group="draft-composition" data-example="context-composition"
-const needsReview = $.eq(task.blocked, true).and($.not(task.done));
-```
-
-```ts title="Standalone chaining" tab="Fluent" tab-group="draft-composition" data-example="fluent-composition"
-const { Operators } = Program;
-const needsReview = Operators.eq(task.blocked, true).and(
-  Operators.not(task.done),
-);
-```
-
-```ts title="Data-last composition" tab="Pipe" tab-group="draft-composition" data-example="pipe-composition"
-const { Operators } = Program;
-const needsReview = pipe(
-  task.blocked,
-  Operators.eq(true),
-  Operators.and(Operators.not(task.done)),
-);
-```
-
-Choose the context form when already working with `$`, or the standalone form when a helper only needs expressions. A pipe can make a longer sequence of transformations easier to read. All three forms retain the operands' input requirements. `pipe` runs these TypeScript functions during construction, as the direct calls do.
-
-### Why some Boolean expressions have fluent methods
-
-Both `$.prelude().eq(task.blocked, true)` and `$.eq(task.blocked, true)` emit a call to HashQL equality. The prelude's `eq` returns an ordinary Boolean expression. The operator builder returns a Boolean expression with `.and`, `.or` and `.not` methods. It also requires matching operand descriptors, while the current prelude declaration allows different descriptors.
-
-Binding a predicate with `$.let` produces an ordinary Boolean reference too. To continue composing it, use a standalone operator. This can replace the predicate declaration in the task summary:
-
-```ts title="Compose a bound predicate" data-example="bound-predicate"
-const blocked = $.let("blocked", $.prelude().eq(task.blocked, true));
-const needsReview = Program.Operators.and(blocked, $.not(task.done));
-```
-
-The fluent methods belong to the builder that supplies them, not to every expression whose HashQL type is Boolean.
-
-## Share library declarations
-
-We started with `add` from the built-in prelude. That prelude also includes primitive types, `List`, `Dict`, UUID-related declarations and equality. It is a small set of typed declarations. [Generated standard-library declarations](https://linear.app/hash/issue/BE-1013) will provide broader coverage.
-
-The prelude exposes modules as well. Inside the task callback, these expressions address the same addition function:
-
-```ts title="Use the prelude or its math module" data-example="prelude-views"
-const throughPrelude = $.prelude().add(task.revision, 1n);
-const throughModule = $.modules().math.add(task.revision, 1n);
-```
-
-An SDK module is a handle for a HashQL module. To emit a HashQL import, use [`$.import`](/docs/hashql/reference/hashql/Draft/Context#Context.import). For example, this can replace the prelude lookup in the task summary:
-
-```ts title="Import addition under a local name" data-example="module-import"
-const { sum } = $.import($.modules().math, { add: "sum" });
-const add = sum;
-```
-
-The emitted import names the function `sum`. The TypeScript variable `add` lets the rest of our callback continue using its existing spelling. Neither operation renames the original function: `$.prelude()` still has `add`. Omit the selection to import all exports, or pass a name array to select exports without renaming them.
-
-### Give several programs the same prelude
-
-[`Draft.withPrelude`](/docs/hashql/reference/hashql/Draft#withPrelude) creates a program constructor with your chosen declarations. This separate example reuses the existing addition handle under the host-side name `incrementBy`:
-
-```ts title="Choose a small prelude" data-example="custom-prelude"
-const { program: reviewProgram } = Draft.withPrelude({
-  values: { incrementBy: Program.Prelude.builtin.values.add },
-});
-
-const customBuilt = reviewProgram({ revision: BigInt }, ($, { revision }) => {
-  const { incrementBy } = $.prelude();
-  return incrementBy(revision, 1n);
-});
-```
-
-`incrementBy` still refers to `::core::math::add`. The property name chooses how our TypeScript code accesses the handle. No import or new HashQL function is emitted.
-
-The custom prelude **replaces** the built-in one. Its `$.prelude()` has `incrementBy`, not the usual `add`, `Uuid` or `Integer` entries. The context still provides `$.let`, `$.literal` and its other construction operations. `withPrelude` copies the supplied export records when called, so changing those records later doesn't change the constructor.
-
-For declarations not already in the built-in prelude, [`Program.Module.define`](/docs/hashql/reference/hashql/Program/Module#define) describes a module's exports and paths. The SDK trusts those signatures. The functions themselves must exist where the declarations say they do: describing them neither implements them nor validates their server-side definitions.
-
-## Work with typed accessors
-
-The task examples use `task.title` to construct field access. An [expression handle](/docs/hashql/reference/hashql/Program/Expression#Expression) carries the HashQL type it represents and the inputs it requires. That type determines which projections, indexing operations and function calls TypeScript offers.
-
-Inside the task callback, these two forms construct the same access:
-
-```ts title="Project the same field two ways" data-example="accessors"
-const title = task.title;
-const explicitTitle = task.$project("title");
-```
-
-`$project` is useful when a field's name collides with a handle operation, such as a real struct field named `$index`. Tuple handles similarly support fixed positions and `$project`.
-
-Lists and dictionaries use `$index` for a computed position or key. This separate program looks up a title at an Integer position:
-
-```ts title="Construct a list lookup" data-example="indexing"
-const indexed = Draft.program(
-  { titles: Program.Prelude.builtin.types.List(String), position: BigInt },
-  (_, { titles, position }) => titles.$index(position),
-);
-```
-
-<Callout title="An index can be absent">
-  HashQL's language-level result is an Option. The current SDK describes the
-  result with a nullable descriptor instead. This example demonstrates lookup
-  construction only, not how to consume its result. The [language
-  introduction](/docs/hashql/intro#looking-up-an-element-with-index) explains
-  the intended semantics.
-</Callout>
-
-When a descriptor cannot establish an access, `$projectUnsafe` and `$indexUnsafe` return expressions with an unknown descriptor and leave validity to the HashQL compiler. [`Program.Expression.assume`](/docs/hashql/reference/hashql/Program/Expression#assume) can supply an assumed descriptor, but it doesn't validate the value or emit a HashQL `as` assertion. Prefer the typed accessors when the structure is known.
-
-## Declare types in a constructed body
-
-The context can declare types alongside values. This separate program gives a task title a nominal `TaskTitle` type and returns a value made by its constructor:
-
-```ts title="Declare and construct a nominal type" data-example="nominal-type"
-const named = Draft.program({}, ($) => {
-  const TaskTitle = $.newtype("TaskTitle", String);
-  const title = $.let("title", TaskTitle("Update the API reference"));
-  return title;
-});
-```
-
-`TaskTitle` is one handle with two roles: a type expression and a callable constructor. `$.type` instead declares a structural alias and returns its type expression. As with value bindings, the context determines where these declarations belong.
-
-`Program.Structural` constructs struct, tuple, list and dictionary values. A plain JavaScript record is not itself an expression that today's `$.let` accepts. Use the structural constructor first, as we did when returning the task summary.
-
-## Take the construction tools into a query
-
-[Writing a HashQL query](/docs/hashql/writing-a-query) applies these tools to a graph. `$.query.entities(axis)` starts a query builder, `.filter(...)` constructs a predicate with a fresh context, and `.collect()` describes a list result. The same expression, scope and input relationships apply there.
-
-Use the [API reference](/docs/hashql/reference/hashql/Draft) for individual signatures and [troubleshooting](/docs/hashql/troubleshooting) when construction or execution fails.
+For construction errors and scope mistakes, [troubleshooting](/docs/hashql/troubleshooting) gives examples of the failure and its correction.
