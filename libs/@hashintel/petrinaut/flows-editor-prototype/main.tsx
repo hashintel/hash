@@ -21,7 +21,7 @@ import { findScreen } from "./src/screens";
 import { findScreenState } from "./src/states";
 import { initDsColours } from "./src/figma-colours";
 import { initPalette } from "./src/status-colors";
-import { thinIcons } from "./src/thin-icons";
+import { iconPackTake } from "./src/icon-take";
 
 const params = new URLSearchParams(location.search);
 
@@ -195,7 +195,7 @@ initDsColours();
 initPalette();
 holder.flowsPrototypeRoot ??= createRoot(document.getElementById("root")!);
 holder.flowsPrototypeRoot.render(
-  <IconProvider icons={thinIcons}>
+  <IconProvider icons={iconPackTake}>
     <Root />
   </IconProvider>,
 );
