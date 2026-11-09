@@ -131,13 +131,14 @@ const panelStyle = css({
 /**
  * DS size takes (inbox `value-field-size`, `panel-label-size`), off by default:
  * - `?fieldsize=28`: value fields at DS sm 28, the size Figma and code share, as the panel's buttons and Add filter are.
- * - `?labelsize=12|14`: field labels on the DS xs or sm type step instead of 13 px.
+ * - `?labelsize=12|14`: field labels on the DS xs or sm type step instead of 13 px; `13` keeps 13 px and brings the
+ *   filter builder's "Where" (14 px today) down to match.
  * The sizes live in `ui.tsx` and `fields.tsx`; the takes override them from the panel root so those files stay as they are.
  */
 const sizeQuery = new URLSearchParams(globalThis.location.search);
 const fieldSizeTake = sizeQuery.get("fieldsize") === "28" ? "28" : undefined;
 const labelSizeTake = ((value) =>
-  value === "12" || value === "14" ? value : undefined)(
+  value === "12" || value === "13" || value === "14" ? value : undefined)(
   sizeQuery.get("labelsize"),
 );
 
@@ -151,6 +152,11 @@ const sizeTakeStyle = css({
   },
   "&[data-labelsize='12'] .fs_\\[13px\\]": { fontSize: "xs" },
   "&[data-labelsize='14'] .fs_\\[13px\\]": { fontSize: "sm" },
+  // Labels that draw their own size (the filter builder's "Where", 14 px today) follow every take; 13 shows today's
+  // labels with Where brought down to match them.
+  "&[data-labelsize='12'] [data-field-label]": { fontSize: "xs" },
+  "&[data-labelsize='13'] [data-field-label]": { fontSize: "[13px]" },
+  "&[data-labelsize='14'] [data-field-label]": { fontSize: "sm" },
 });
 
 /** The panel's content, inside Petrinaut's thin overlay scrollbar (no native scrollbars). */

@@ -1287,7 +1287,9 @@ const Joiner = ({
         }
       />
     ) : (
-      <span className={whereStyle}>Where</span>
+      <span className={whereStyle} data-field-label="">
+        Where
+      </span>
     )}
   </span>
 );
