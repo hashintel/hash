@@ -5,11 +5,13 @@ description: Build HashQL programs from reusable TypeScript expressions, helpers
 
 How do we author HashQL programs in TypeScript? The HashQL SDK provides three layers of abstraction, each building on the previous one. The higher-level APIs help us catch errors before our programs reach the server.
 
-```mermaid
-graph LR
-  jexpr[J-Expr] --> program[Program]
-  program --> draft[Draft]
-```
+<Mermaid
+  graph="
+graph LR;
+    jexpr[J-Expr] --> program[Program]
+    program --> draft[Draft]
+"
+/>
 
 J-Expr is the transport syntax used between the SDK and the server. The [`J-Expr`] API builds expressions in this syntax without checking their HashQL types. [`Program`] builds on J-Expr with a purely functional interface over a typed expression tree. [`Draft`] provides a more convenient imperative interface for constructing programs from those expressions.
 
@@ -37,9 +39,9 @@ import { program } from "@local/hashql/Draft";
 
 The primary entry point for building a J-Expr program is the [`program`][draft-program] function. It takes two arguments: a definition of the program's inputs (the external context, which must be supplied with every call to the server) and a closure that constructs the program.
 
-The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often --- hence the short name.
+The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often—hence the short name.
 
-Suppose we want to build a simple program that increments a revision number of a task. We'll define the inputs first, then construct the program using a closure:
+Suppose we want to build a simple program that increments a task's revision number. We'll define the inputs first, then construct the program using a closure:
 
 ```ts title="revision.ts" data-example="revision"
 import { Program } from "@local/hashql";
@@ -54,7 +56,9 @@ const built = Draft.program(revisionInputs, ($, { revision }) => {
 });
 ```
 
-You can also inline the inputs directly into the `program` call, but you can already see some of the described behaviour in the closure. We first defined the inputs, and then our closure receives as the second argument those inputs as an object keyed by field name, which can then be used to access the value inside of the closure.
+You can also inline the input definitions directly into the `program` call. In this example, we define them separately, and the closure receives the corresponding inputs as its second argument: an object keyed by field name. We destructure this object to access `revision` within the closure.
+
+The prelude is the set of symbols, such as [`add`], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Draft`] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server on execution, and overriding it will almost certainly lead to unexpected behaviour.
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
