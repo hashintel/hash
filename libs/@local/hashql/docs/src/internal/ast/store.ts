@@ -100,6 +100,8 @@ export interface Store extends Names.Names {
   readonly entrypoint: (name: string, id: AST.Declaration.Interned) => void;
 
   readonly nodes: () => IterableIterator<AST.Node.Node>;
+  /** Each identity a symbol names. Every node the package declares under a name has one, and so does each item outside the package that a name reaches. */
+  readonly targets: () => IterableIterator<AST.Target.Interned>;
   readonly finish: () => Store;
 }
 
@@ -449,6 +451,10 @@ export const make = (): Store => {
         }
       }
     },
+    targets: () =>
+      // SAFETY: only `reserveSymbol` maps a symbol, and it reserves a target for it.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Symbols name targets alone.
+      symbols.byId.keys() as IterableIterator<AST.Target.Interned>,
     finish: () => {
       if (pending.count !== 0) {
         throw new Error(`AST has ${pending.count} incomplete identities`);

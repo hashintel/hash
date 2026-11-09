@@ -341,6 +341,7 @@ const whereDeclared =
     const pieces = Titles.traitPieces({
       trait: value,
       declaration: Output.href(output)(value.origin),
+      external: Option.isSome(Output.external(output)(value.origin)),
     });
     const children = Array.map(
       pieces,

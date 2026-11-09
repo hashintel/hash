@@ -1,5 +1,5 @@
+import { expect, layer } from "@effect/vitest";
 import { Array, Effect, Option, Result, pipe } from "effect";
-import { beforeAll, describe, expect, test } from "vitest";
 
 import * as Page from "../src/Page.js";
 import * as Reference from "./fixtures/reference.js";
@@ -35,10 +35,6 @@ export function identity<T>(value: T): T;
 export namespace Empty { export { choose as Alias }; }
 `;
 
-let loaded: Reference.Reference | null = null;
-const reference = (): Reference.Reference =>
-  Option.fromNullishOr(loaded).pipe(Option.getOrThrow);
-
 /** Every element below `node`, depth first. */
 const elementsOf = (node: Nodes): readonly Element[] => {
   let below: readonly Element[] = [];
@@ -53,9 +49,12 @@ const elementsOf = (node: Nodes): readonly Element[] => {
   return below;
 };
 
-const hastOf = (file: string): readonly Element[] =>
+const hastOf = (
+  reference: Reference.Reference,
+  file: string,
+): readonly Element[] =>
   pipe(
-    Page.toHast(Reference.page(reference(), file)),
+    Page.toHast(Reference.page(reference, file)),
     Result.getOrThrow,
     elementsOf,
   );
@@ -78,9 +77,12 @@ const textOf = (node: Nodes): string => {
 };
 
 /** The names of every row of `file` that the HAST marks deprecated. */
-const deprecatedRows = (file: string): readonly Properties[string][] =>
+const deprecatedRows = (
+  reference: Reference.Reference,
+  file: string,
+): readonly Properties[string][] =>
   pipe(
-    hastOf(file),
+    hastOf(reference, file),
     Array.filter(
       ({ tagName, properties }) =>
         tagName === "api-row" && properties["deprecated"] === true,
@@ -97,11 +99,12 @@ const elementChildren = (element: Element): readonly Element[] =>
 
 /** The name and the slot of each `api-hierarchy` element directly inside a `parent` element of `file`. */
 const hierarchiesIn = (
+  reference: Reference.Reference,
   file: string,
   parent: string,
 ): readonly (readonly Properties[string][])[] =>
   pipe(
-    hastOf(file),
+    hastOf(reference, file),
     Array.filter(({ tagName }) => tagName === parent),
     Array.flatMap(elementChildren),
     Array.filter(({ tagName }) => tagName === "api-hierarchy"),
@@ -112,9 +115,9 @@ const hierarchiesIn = (
   );
 
 /** The `api-export` element of the export `name` on the module page. */
-const exportOf = (name: string): Element =>
+const exportOf = (reference: Reference.Reference, name: string): Element =>
   pipe(
-    hastOf("pkg/index.html"),
+    hastOf(reference, "pkg/index.html"),
     Array.findFirst(
       (element) =>
         element.tagName === "api-export" &&
@@ -124,17 +127,23 @@ const exportOf = (name: string): Element =>
   );
 
 /** The overloads each declaration of the export `name` names. */
-const signatureOverloads = (name: string): readonly Properties[string][] =>
+const signatureOverloads = (
+  reference: Reference.Reference,
+  name: string,
+): readonly Properties[string][] =>
   pipe(
-    exportOf(name),
+    exportOf(reference, name),
     elementsOf,
     Array.filter(({ tagName }) => tagName === "api-signature"),
     Array.map((element) => propertyOf(element, "overloads")),
   );
 
 /** The parts of the export `name` in the order the page writes them, a comment's by its sections. */
-const partsOf = (name: string): readonly string[] =>
-  Array.flatMap(elementChildren(exportOf(name)), (element) => {
+const partsOf = (
+  reference: Reference.Reference,
+  name: string,
+): readonly string[] =>
+  Array.flatMap(elementChildren(exportOf(reference, name)), (element) => {
     if (element.tagName !== "api-comment") {
       return [element.tagName];
     }
@@ -160,153 +169,254 @@ const effectLinks = (
     Array.map((element) => [textOf(element), propertyOf(element, "dataKind")]),
   );
 
-describe("page", () => {
-  beforeAll(async () => {
-    loaded = await Reference.success({
-      source,
-      other: 'export { choose as alias } from "./index.js";',
-      configuration: "render-tsdoc.json",
-    });
-  });
+/** The one page of the reference the `names` tests share. */
+const namesPage = (reference: Reference.Reference): Reference.Written =>
+  Reference.page(reference, "pkg.html");
 
-  test("markdown", async () => {
-    expect.hasAssertions();
-    await Promise.all(
-      Array.map(reference().pages, async ({ file, markdown }) =>
-        expect(markdown).toMatchFileSnapshot(
-          // A page's directories join its name, since the repository ignores every directory called `pkg`, and the extension keeps the Markdown formatter away from the bytes the writer produced.
-          `fixtures/rendered/${file.replaceAll("/", "__")}.txt`,
+layer(
+  Reference.layer({
+    source,
+    other: 'export { choose as alias } from "./index.js";',
+    configuration: "render-tsdoc.json",
+  }),
+  { excludeTestServices: true },
+)("page", (it) => {
+  it.effect(
+    "markdown",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      yield* Effect.forEach(
+        reference.pages,
+        ({ file, markdown }) =>
+          Effect.promise(() =>
+            expect(markdown).toMatchFileSnapshot(
+              // A page's directories join its name, since the repository ignores every directory called `pkg`, and the extension keeps the Markdown formatter away from the bytes the writer produced.
+              `fixtures/rendered/${file.replaceAll("/", "__")}.txt`,
+            ),
+          ),
+        { concurrency: "unbounded" },
+      );
+    }),
+  );
+
+  it.effect(
+    "module_description",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect(
+        Page.description(Reference.page(reference, "pkg/index.html")),
+      ).toBe("Module with code and Value.");
+    }),
+  );
+
+  it.effect(
+    "hast_elements",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const names = Array.dedupe(
+        Array.map(
+          hastOf(reference, "pkg/index.html"),
+          ({ tagName }) => tagName,
         ),
-      ),
-    );
-  });
+      );
+      expect(names).toStrictEqual(
+        expect.arrayContaining([
+          "api-export",
+          "api-signatures",
+          "api-signature",
+          "api-index",
+          "api-row",
+          "api-members",
+          "api-parameters",
+          "api-returns",
+          "api-throws",
+          "api-example",
+          "api-related",
+          "api-namespace",
+        ]),
+      );
+    }),
+  );
 
-  test("module_description", () => {
-    expect.hasAssertions();
-    expect(
-      Page.description(Reference.page(reference(), "pkg/index.html")),
-    ).toBe("Module with code and Value.");
-  });
+  it.effect(
+    "hast_deprecation",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect(deprecatedRows(reference, "pkg/index.html")).toStrictEqual([
+        '["old"]',
+      ]);
+    }),
+  );
 
-  test("hast_elements", () => {
-    expect.hasAssertions();
-    const names = Array.dedupe(
-      Array.map(hastOf("pkg/index.html"), ({ tagName }) => tagName),
-    );
-    expect(names).toStrictEqual(
-      expect.arrayContaining([
-        "api-export",
+  it.effect(
+    "print_failure",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Reference.run({
+          source: "export declare const value: string;",
+          print: () => Effect.succeed("export const = ;"),
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: { _tag: "PrintError", reason: { _tag: "InvalidSyntax" } },
+      });
+    }),
+  );
+
+  it.effect(
+    "external_meanings",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const option = "https://effect.website/docs/v4/api/effect/Option";
+      const result = yield* Reference.success({
+        source: `import type * as Option from "effect/Option";
+/**
+ * A value.
+ *
+ * @example
+ * \`\`\`ts
+ * import * as Option from "effect/Option";
+ * type Some = Option.Option.Value<Option.Option<number>>;
+ * \`\`\`
+ */
+export declare const value: Option.Option.Value<Option.Option<string>>;`,
+      });
+      expect(
+        pipe(
+          Page.toHast(Reference.page(result, "pkg.html")),
+          Result.getOrThrow,
+          elementsOf,
+          Array.filter(
+            (element) =>
+              element.tagName === "a" &&
+              String(propertyOf(element, "href")).startsWith(
+                "https://effect.website/",
+              ),
+          ),
+          Array.map((element) => [
+            textOf(element),
+            propertyOf(element, "href"),
+          ]),
+        ),
+      ).toStrictEqual([
+        // The module, the namespace and its member, then the module and the type that shares the namespace's name.
+        ["Option", option],
+        ["Option", `${option}#Option-namespace`],
+        ["Value", `${option}#Option-namespace`],
+        ["Option", option],
+        ["Option", `${option}#Option-type`],
+        // The example's import names the module, and its type reads the same names the same way.
+        ["Option", option],
+        ["Option", option],
+        ["Option", `${option}#Option-namespace`],
+        ["Value", `${option}#Option-namespace`],
+        ["Option", option],
+        ["Option", `${option}#Option-type`],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "hierarchy_element",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const hierarchy = Array.findFirst(
+        hastOf(reference, "pkg/index.html"),
+        ({ tagName }) => tagName === "api-hierarchy",
+      ).pipe(Option.getOrThrow);
+      expect([
+        propertyOf(hierarchy, "name"),
+        Array.dedupe(
+          Array.map(elementsOf(hierarchy).slice(1), ({ tagName }) => tagName),
+        ),
+      ]).toStrictEqual([
+        "Derived",
+        ["api-hierarchy-node", "api-hierarchy-edge"],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "page_lead",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect(
+        Array.map(["index.html", "traits.html"], (file) => {
+          const [first] = hastOf(reference, file);
+
+          return [
+            first?.tagName,
+            Option.getOrUndefined(
+              Option.map(Option.fromUndefinedOr(first), textOf),
+            ),
+          ];
+        }),
+      ).toStrictEqual([
+        [
+          "api-description",
+          "Package entrypoints and the traits of their types.",
+        ],
+        [
+          "api-description",
+          "Shared interfaces and the types that implement them.",
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "hierarchy_slot",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect([
+        hierarchiesIn(reference, "pkg/index.html", "api-signatures"),
+        hierarchiesIn(reference, "traits.html", "api-trait"),
+      ]).toStrictEqual([[["Derived", "title"]], [["Trait", "header"]]]);
+    }),
+  );
+
+  it.effect(
+    "signature_overloads",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect([
+        signatureOverloads(reference, "choose"),
+        signatureOverloads(reference, "identity"),
+      ]).toStrictEqual([[[1], [2]], [undefined]]);
+    }),
+  );
+
+  it.effect(
+    "export_order",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      expect(partsOf(reference, "identity")).toStrictEqual([
+        "api-description",
         "api-signatures",
-        "api-signature",
-        "api-index",
-        "api-row",
-        "api-members",
+        "api-type-parameters",
         "api-parameters",
         "api-returns",
         "api-throws",
+        "api-remarks",
         "api-example",
-        "api-related",
-        "api-namespace",
-      ]),
-    );
-  });
+        "api-see",
+      ]);
+    }),
+  );
 
-  test("hast_deprecation", () => {
-    expect.hasAssertions();
-    expect(deprecatedRows("pkg/index.html")).toStrictEqual(['["old"]']);
-  });
-
-  test("print_failure", async () => {
-    expect.hasAssertions();
-    await expect(
-      Reference.run({
-        source: "export declare const value: string;",
-        print: () => Effect.succeed("export const = ;"),
-      }),
-    ).resolves.toMatchObject({
-      _tag: "Failure",
-      failure: { _tag: "PrintError", reason: { _tag: "InvalidSyntax" } },
-    });
-  });
-
-  test("hierarchy_element", () => {
-    expect.hasAssertions();
-    const hierarchy = Array.findFirst(
-      hastOf("pkg/index.html"),
-      ({ tagName }) => tagName === "api-hierarchy",
-    ).pipe(Option.getOrThrow);
-    expect([
-      propertyOf(hierarchy, "name"),
-      Array.dedupe(
-        Array.map(elementsOf(hierarchy).slice(1), ({ tagName }) => tagName),
-      ),
-    ]).toStrictEqual(["Derived", ["api-hierarchy-node", "api-hierarchy-edge"]]);
-  });
-
-  test("page_lead", () => {
-    expect.hasAssertions();
-    expect(
-      Array.map(["index.html", "traits.html"], (file) => {
-        const [first] = hastOf(file);
-
-        return [
-          first?.tagName,
-          Option.getOrUndefined(
-            Option.map(Option.fromUndefinedOr(first), textOf),
-          ),
-        ];
-      }),
-    ).toStrictEqual([
-      ["api-description", "Package entrypoints and the traits of their types."],
-      [
-        "api-description",
-        "Shared interfaces and the types that implement them.",
-      ],
-    ]);
-  });
-
-  test("hierarchy_slot", () => {
-    expect.hasAssertions();
-    expect([
-      hierarchiesIn("pkg/index.html", "api-signatures"),
-      hierarchiesIn("traits.html", "api-trait"),
-    ]).toStrictEqual([[["Derived", "title"]], [["Trait", "header"]]]);
-  });
-
-  test("signature_overloads", () => {
-    expect.hasAssertions();
-    expect([
-      signatureOverloads("choose"),
-      signatureOverloads("identity"),
-    ]).toStrictEqual([[[1], [2]], [undefined]]);
-  });
-
-  test("export_order", () => {
-    expect.hasAssertions();
-    expect(partsOf("identity")).toStrictEqual([
-      "api-description",
-      "api-signatures",
-      "api-type-parameters",
-      "api-parameters",
-      "api-returns",
-      "api-throws",
-      "api-remarks",
-      "api-example",
-      "api-see",
-    ]);
-  });
-
-  describe("names", () => {
-    let names: Reference.Reference | null = null;
-    const page = (): Reference.Written =>
-      Reference.page(
-        Option.fromNullishOr(names).pipe(Option.getOrThrow),
-        "pkg.html",
-      );
-
-    beforeAll(async () => {
-      names = await Reference.success({
-        source: `declare const value: number;
+  it.layer(
+    Reference.layer({
+      source: `declare const value: number;
 declare const tick: number;
 declare const spaced: number;
 export { value as 'a"<&>', tick as "a\`b", spaced as "odd name" };
@@ -320,111 +430,122 @@ export interface Box { 'b"<&>': string }
  * \`\`\`
  */
 export declare function run(input: \`x\${string}\`): void;`,
-      });
-    });
+    }),
+  )("names", (it) => {
+    it.effect(
+      "escaped_anchors",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const { markdown } = namesPage(reference);
+        expect([
+          markdown.includes('<a id="a&quot;&lt;&amp;&gt;"></a>'),
+          markdown.includes('<a id="Box.b&quot;&lt;&amp;&gt;"></a>'),
+        ]).toStrictEqual([true, true]);
+      }),
+    );
 
-    test("escaped_anchors", () => {
-      expect.hasAssertions();
-      const { markdown } = page();
-      expect([
-        markdown.includes('<a id="a&quot;&lt;&amp;&gt;"></a>'),
-        markdown.includes('<a id="Box.b&quot;&lt;&amp;&gt;"></a>'),
-      ]).toStrictEqual([true, true]);
-    });
+    it.effect(
+      "code_with_backticks",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const { markdown } = namesPage(reference);
+        expect([
+          markdown.includes("[``a`b``](#a%60b)"),
+          /`` input: `x\$\{string\}` ``/u.test(markdown),
+        ]).toStrictEqual([true, true]);
+      }),
+    );
 
-    test("code_with_backticks", () => {
-      expect.hasAssertions();
-      const { markdown } = page();
-      expect([
-        markdown.includes("[``a`b``](#a%60b)"),
-        /`` input: `x\$\{string\}` ``/u.test(markdown),
-      ]).toStrictEqual([true, true]);
-    });
+    it.effect(
+      "spaced_names",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        // A host's hast-to-jsx joins an array property with spaces, so the page writes a list of names as JSON.
+        expect(
+          pipe(
+            Page.toHast(namesPage(reference)),
+            Result.getOrThrow,
+            elementsOf,
+            Array.filter(({ properties }) =>
+              String(properties["names"]).includes("odd"),
+            ),
+            Array.map(({ tagName, properties }) => [
+              tagName,
+              properties["names"],
+            ]),
+          ),
+        ).toStrictEqual([
+          ["api-row", '["odd name"]'],
+          ["api-export", '["odd name"]'],
+        ]);
+      }),
+    );
 
-    test("spaced_names", () => {
-      expect.hasAssertions();
-      // A host's hast-to-jsx joins an array property with spaces, so the page writes a list of names as JSON.
-      expect(
-        pipe(
-          Page.toHast(page()),
+    it.effect(
+      "prose_fence",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const fence = pipe(
+          Page.toHast(namesPage(reference)),
           Result.getOrThrow,
           elementsOf,
-          Array.filter(({ properties }) =>
-            String(properties["names"]).includes("odd"),
-          ),
-          Array.map(({ tagName, properties }) => [
-            tagName,
-            properties["names"],
-          ]),
-        ),
-      ).toStrictEqual([
-        ["api-row", '["odd name"]'],
-        ["api-export", '["odd name"]'],
-      ]);
-    });
-
-    test("prose_fence", () => {
-      expect.hasAssertions();
-      const fence = pipe(
-        Page.toHast(page()),
-        Result.getOrThrow,
-        elementsOf,
-        Array.filter(({ tagName }) => tagName === "api-code"),
-        Array.findFirst((element) => textOf(element).includes('run("x1")')),
-        Option.getOrThrow,
-      );
-      expect([propertyOf(fence, "lang"), textOf(fence)]).toStrictEqual([
-        "ts",
-        'run("x1");\n',
-      ]);
-    });
+          Array.filter(({ tagName }) => tagName === "api-code"),
+          Array.findFirst((element) => textOf(element).includes('run("x1")')),
+          Option.getOrThrow,
+        );
+        expect([propertyOf(fence, "lang"), textOf(fence)]).toStrictEqual([
+          "ts",
+          'run("x1");\n',
+        ]);
+      }),
+    );
   });
 
-  describe("external", () => {
-    let external: Reference.Reference | null = null;
-
-    beforeAll(async () => {
-      external = await Reference.success({
-        source: `import type { Equal } from "effect/Equal";
+  it.layer(
+    Reference.layer({
+      source: `import type { Equal } from "effect/Equal";
 /** A model. */ export interface Model extends Equal {}`,
-      });
-    });
+    }),
+  )("external", (it) => {
+    it.effect(
+      "external_link_kind",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        expect(
+          effectLinks(Reference.page(reference, "pkg.html")),
+        ).toStrictEqual([["Equal", "interface"]]);
+      }),
+    );
 
-    test("external_link_kind", () => {
-      expect.hasAssertions();
-      expect(
-        effectLinks(
-          Reference.page(
-            Option.fromNullishOr(external).pipe(Option.getOrThrow),
-            "pkg.html",
+    it.effect(
+      "trait_sentence",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const traits = Reference.page(reference, "traits.html");
+        expect([
+          Array.filter(traits.markdown.split("\n"), (line) =>
+            line.startsWith("Declared"),
           ),
-        ),
-      ).toStrictEqual([["Equal", "interface"]]);
-    });
-
-    test("trait_sentence", () => {
-      expect.hasAssertions();
-      const traits = Reference.page(
-        Option.fromNullishOr(external).pipe(Option.getOrThrow),
-        "traits.html",
-      );
-      expect([
-        Array.filter(traits.markdown.split("\n"), (line) =>
-          line.startsWith("Declared"),
-        ),
-        effectLinks(traits),
-      ]).toStrictEqual([
-        [
-          "Declared as [`Equal.Equal`](https://effect.website/docs/v4/api/effect/Equal#Equal). Effect explains it in [its guide](https://effect.website/docs/trait/equal/).",
-          "Declared as [`Hash.Hash`](https://effect.website/docs/v4/api/effect/Hash#Hash). Effect explains it in [its guide](https://effect.website/docs/trait/hash/).",
-        ],
-        [
-          ["Equal.Equal", "interface"],
-          ["its guide", undefined],
-          ["Hash.Hash", "interface"],
-          ["its guide", undefined],
-        ],
-      ]);
-    });
+          effectLinks(traits),
+        ]).toStrictEqual([
+          [
+            "Declared as [`Equal.Equal`](https://effect.website/docs/v4/api/effect/Equal#Equal). Effect explains it in [its guide](https://effect.website/docs/trait/equal/).",
+            "Declared as [`Hash.Hash`](https://effect.website/docs/v4/api/effect/Hash#Hash). Effect explains it in [its guide](https://effect.website/docs/trait/hash/).",
+          ],
+          [
+            ["Equal.Equal", "interface"],
+            ["its guide", undefined],
+            ["Hash.Hash", "interface"],
+            ["its guide", undefined],
+          ],
+        ]);
+      }),
+    );
   });
 });
