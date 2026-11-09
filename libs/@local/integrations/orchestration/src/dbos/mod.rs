@@ -10,21 +10,21 @@ use alloc::{format, string::String, sync::Arc};
 use core::future::Future;
 
 use dbos::{
-    Client, ClientConfig, DBOS, DuplicationPolicy, Enqueue, EnqueueOptions, QueueConflict,
-    QueueOptions,
+    Client, ClientConfig, DBOS, QueueConflict, QueueOptions,
     sysdb::{self, SystemDatabase as _, postgres},
 };
 use error_stack::{Report, ResultExt as _};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    BackendError, FunctionVersion, RunError, RunFunction, RunId, RunStart, StartError, Worker,
+    BackendError, FunctionVersion, RunError, RunFunction, Worker,
     dbos::{
         step::DbosStepContext,
         stored::{RunFailureStored, RunStartStored},
     },
 };
 
+mod runs;
 mod step;
 mod stored;
 
@@ -67,8 +67,8 @@ impl DbosConfig {
 
 /// The backend on DBOS.
 ///
-/// It holds a DBOS client, which starts, reads and cancels runs without a worker. A worker is a
-/// DBOS instance of its own, built by [`Worker::work`].
+/// It holds a DBOS client, through which [`Runs`](crate::Runs) starts, reads and cancels runs
+/// without a worker. A worker is a DBOS instance of its own, built by [`Worker::work`].
 pub struct DbosBackend {
     config: DbosConfig,
     client: Client,
@@ -111,43 +111,6 @@ impl DbosBackend {
             .change_context(BackendError)?;
 
         Ok(Self { config, client })
-    }
-
-    /// Starts a run: enqueues it under the ID `run` with its admission key as the deduplication ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StartError::AlreadyActive`] if another run is active under the same admission key.
-    /// - [`StartError::Backend`] if the backend could not record the start.
-    #[tracing::instrument(skip_all, fields(run = %run))]
-    pub async fn start(&self, run: RunId, start: RunStart) -> Result<(), Report<StartError>> {
-        let version = app_version(start.version);
-        let stored = RunStartStored::from(start);
-        let handle = self
-            .client
-            .enqueue_with::<_, (), RunFailureStored>(
-                WORKFLOW,
-                &stored,
-                EnqueueOptions {
-                    workflow_id: Some(run.as_ref()),
-                    app_version: Some(&version),
-                    ..EnqueueOptions::on(Enqueue {
-                        deduplication_id: Some(&stored.admission),
-                        duplication_policy: DuplicationPolicy::ReturnExisting,
-                        ..Enqueue::new(QUEUE)
-                    })
-                },
-            )
-            .await
-            .change_context(StartError::Backend)?;
-
-        let active = handle.workflow_id();
-        if active == run.as_ref() {
-            return Ok(());
-        }
-        Err(Report::new(StartError::AlreadyActive {
-            active: active.parse().change_context(StartError::Backend)?,
-        }))
     }
 
     /// Closes the connection to the system database.
