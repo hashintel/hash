@@ -1,13 +1,15 @@
 /**
- * Icon set and menu shadow takes for the DS call (9 Nov). Defaults unchanged.
+ * Icon set and menu shadow takes for the DS call (9 Nov). The icon default is unchanged (thinIcons); the Figma DS
+ * menu is the default since 9 Nov.
  *
  * - `?icons=ds`: the HASH set (`hashIconPack`, @hashintel/ds-icons) at its default weight 400, a 2-unit stroke on
  *   its 24 grid that scales with the icon (1.33 px at 16 px, 1 px at 12 px).
  * - `?icons=ds-thin`: the HASH set held at an absolute 1.25 px stroke, today's weight, for a fair comparison.
  * - `?icons=fa`: no provider, so the DS falls back to its own Font Awesome SVGs.
- * - `?menushadow=figma`: menus get the Figma DS Menu: `shadow-lg` (0 10 15 -3 and 0 4 6 -4, black 10 %), a 1 px
+ * - Default (`?menushadow=figma`): menus get the Figma DS Menu: `shadow-lg` (0 10 15 -3 and 0 4 6 -4, black 10 %), a 1 px
  *   border-subtle hairline (13 %) and radius 10. The shadow is already Figma's inside `.petrinaut-root`, whose
- *   preset defines `--shadows-lg`; today's menus differ only in radius (8) and the Select's border (20 %).
+ *   preset defines `--shadows-lg`; this adds radius 10 and the Select's 13 % border (was 8 and 20 %).
+ * - `?menushadow=today`: the menus from before 9 Nov (radius 8, Select border 20 %).
  * - `?menushadow=stub`: the ds-components Park UI `lg` stub, for reference.
  */
 import { hashIconPack } from "@hashintel/ds-icons";
@@ -71,7 +73,10 @@ if (params.get("menushadow") === "stub") {
   );
 }
 
-if (params.get("menushadow") === "figma") {
+const menuShadowTake = params.get("menushadow");
+
+// The Figma DS Menu is the default (picked 9 Nov, inbox menu-shadow: "figma ds is the source of truth").
+if (menuShadowTake !== "today" && menuShadowTake !== "stub") {
   injectSheet(
     "flows-menu-shadow-figma",
     `[data-menu-surface],
