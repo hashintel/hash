@@ -1,15 +1,28 @@
 import { useStore, type ConnectionLineComponent } from "@xyflow/react";
 import { useId } from "react";
 
-import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
+import {
+  fixedEndpoint,
+  getOutlineArcPath,
+  getOutlineNode,
+} from "./shared/outline-arcs";
 
 import type { NodeType } from "./react-flow-types";
 
+/**
+ * The arc being drawn, along the path it will take once created: from the
+ * source node's outline, or the port it was dragged from, to the pointer, and
+ * to the target's outline or port once the target is valid.
+ */
 export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   fromNode,
+  fromX,
+  fromY,
+  fromPosition,
   toNode,
   toX,
   toY,
+  toPosition,
   connectionStatus,
   connectionLineStyle,
 }) => {
@@ -21,16 +34,13 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
         (edge) => edge.source === toNode.id && edge.target === fromNode.id,
       ),
   );
-  const source = getOutlineNode(fromNode.data);
-  const target =
-    connectionStatus === "valid" && toNode ? getOutlineNode(toNode.data) : null;
-  if (!source) {
-    return null;
-  }
+  const sourceOutline = getOutlineNode(fromNode.data);
+  const snapped = connectionStatus === "valid" && toNode !== null;
+  const targetOutline = snapped ? getOutlineNode(toNode.data) : null;
   const [path] = getOutlineArcPath(
-    source,
-    target ?? { x: toX, y: toY },
-    target !== null && hasReverseArc,
+    sourceOutline ?? fixedEndpoint(fromX, fromY, fromPosition),
+    targetOutline ?? fixedEndpoint(toX, toY, snapped ? toPosition : undefined),
+    snapped && hasReverseArc,
   );
   return (
     <>

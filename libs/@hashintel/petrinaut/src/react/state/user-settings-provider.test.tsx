@@ -23,69 +23,16 @@ beforeEach(() => {
   }
 });
 
-const ArcConnectionsProbe = ({
-  name = "Automatic arcs",
-}: {
-  name?: string;
-}) => {
-  const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
-    use(UserSettingsContext);
+const CompactNodesProbe = ({ name }: { name: string }) => {
+  const { compactNodes, setCompactNodes } = use(UserSettingsContext);
   return (
-    <button
-      type="button"
-      onClick={() =>
-        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
-      }
-    >
-      {name}: {enableAutomaticArcConnections ? "on" : "off"}
+    <button type="button" onClick={() => setCompactNodes(!compactNodes)}>
+      {name}: {compactNodes ? "on" : "off"}
     </button>
   );
 };
 
 describe("UserSettingsProvider", () => {
-  it("defaults automatic arcs off for saved preferences from before the experiment", () => {
-    localStorage.setItem(
-      "petrinaut:user-settings",
-      JSON.stringify({ compactNodes: false }),
-    );
-    render(
-      <UserSettingsProvider>
-        <ArcConnectionsProbe />
-      </UserSettingsProvider>,
-    );
-    expect(
-      screen.getByRole("button", { name: "Automatic arcs: off" }),
-    ).toBeTruthy();
-  });
-
-  it("persists automatic arcs independently of the saved arc style", () => {
-    localStorage.setItem(
-      "petrinaut:user-settings",
-      JSON.stringify({ arcRendering: "smoothstep" }),
-    );
-    const first = render(
-      <UserSettingsProvider>
-        <ArcConnectionsProbe />
-      </UserSettingsProvider>,
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Automatic arcs: off" }),
-    );
-    first.unmount();
-    render(
-      <UserSettingsProvider>
-        <ArcConnectionsProbe />
-      </UserSettingsProvider>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Automatic arcs: on" }));
-    expect(
-      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
-    ).toMatchObject({
-      enableAutomaticArcConnections: false,
-      arcRendering: "smoothstep",
-    });
-  });
-
   it.each([false, true])(
     "drops retired flags from saved settings (legacy value=%s)",
     (enabled) => {
@@ -103,6 +50,8 @@ describe("UserSettingsProvider", () => {
             enableInBrowserOptimization: enabled,
             computeBackend: "webgpu",
             showWalkthroughOnInit: enabled,
+            enableAutomaticArcConnections: enabled,
+            arcRendering: "smoothstep",
             showAnimations: false,
           }),
         ],
@@ -129,6 +78,8 @@ describe("UserSettingsProvider", () => {
           "enableInBrowserOptimization",
           "computeBackend",
           "showWalkthroughOnInit",
+          "enableAutomaticArcConnections",
+          "arcRendering",
         ]) {
           expect(key in persisted).toBe(false);
         }
@@ -207,9 +158,9 @@ describe("UserSettingsProvider", () => {
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <ArcConnectionsProbe name="host" />
+        <CompactNodesProbe name="host" />
         <UserSettingsProvider>
-          <ArcConnectionsProbe name="editor" />
+          <CompactNodesProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );

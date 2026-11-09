@@ -15,7 +15,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 | Section      | Settings                                                                             |
 | ------------ | ------------------------------------------------------------------------------------ |
 | **General**  | Animations, panel loading, the code editor theme, the AI assistant, and browser FPS. |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection.                 |
+| **Viewport** | Minimap, Petricon, compact nodes, hover highlight, grid snapping, and selection.     |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.                      |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.                      |
 
@@ -167,22 +167,6 @@ When enabled (the default), resting the pointer on a node highlights its [neighb
 Dragging a node starts the highlight immediately, without waiting for the pointer to stop, and keeps it active until you drop the node.
 
 Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
-
-### Automatic arc connections
-
-Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
-
-This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the setting off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
-
-### Arcs rendering
-
-Choose how arcs are drawn between nodes:
-
-| Style               | Description                                                 |
-| ------------------- | ----------------------------------------------------------- |
-| **Square**          | Right-angle paths (smoothstep routing).                     |
-| **Bezier**          | Smooth curved paths.                                        |
-| **Adaptive Bezier** | Curved paths that adjust based on node positions. (Default) |
 
 ### Snap to grid
 

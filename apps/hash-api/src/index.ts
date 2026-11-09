@@ -98,6 +98,7 @@ import {
 import {
   isDevEnv,
   isProdEnv,
+  isStagingEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
@@ -419,9 +420,10 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if (isProdEnv && !isSelfHostedInstance) {
+  if ((isProdEnv || isStagingEnv) && !isSelfHostedInstance) {
     /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     * Hosted production and staging sit behind Cloudflare, so take the client
+     * IP from the Cloudflare-set header.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
@@ -709,7 +711,7 @@ const main = async () => {
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in hosted production and staging).
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
