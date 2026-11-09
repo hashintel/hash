@@ -2,10 +2,10 @@ use alloc::vec::Vec;
 use core::num::NonZero;
 
 use error_stack::Report;
+use time::UtcDateTime;
 
 use crate::{
     FailureKind, Payload, RunEvent, RunFailure, RunStart, StepFailure, StepIndex, StepName,
-    Timestamp,
 };
 
 /// Reports an event or a step request that cannot follow the events recorded for a run.
@@ -50,7 +50,7 @@ pub enum StepDecision<'state> {
     /// Execute the step, no earlier than `not_before` when it is set. Attempts count from one.
     Execute {
         attempt: NonZero<u32>,
-        not_before: Option<Timestamp>,
+        not_before: Option<UtcDateTime>,
     },
     /// A cancel was requested. Record [`RunEvent::Cancelled`].
     Cancel,
@@ -68,7 +68,7 @@ struct RecordedStep {
 struct Retry {
     name: StepName,
     failures: NonZero<u32>,
-    not_before: Timestamp,
+    not_before: UtcDateTime,
 }
 
 /// The state of a run, built by applying its [`RunEvent`]s in order to its [`RunStart`].
@@ -263,7 +263,13 @@ impl RunState {
         Ok(())
     }
 
-    fn fail_step(&mut self, index: StepIndex, name: StepName, failure: StepFailure, at: Timestamp) {
+    fn fail_step(
+        &mut self,
+        index: StepIndex,
+        name: StepName,
+        failure: StepFailure,
+        at: UtcDateTime,
+    ) {
         let failures = self.retry.take().map_or(NonZero::<u32>::MIN, |retry| {
             retry.failures.saturating_add(1)
         });
@@ -278,10 +284,12 @@ impl RunState {
             return;
         }
 
+        let delay = time::Duration::try_from(self.start.policy.delay(failures))
+            .unwrap_or(time::Duration::MAX);
         self.retry = Some(Retry {
             name,
             failures,
-            not_before: at.saturating_add(self.start.policy.delay(failures)),
+            not_before: at.saturating_add(delay),
         });
         self.phase = RunPhase::Running;
     }

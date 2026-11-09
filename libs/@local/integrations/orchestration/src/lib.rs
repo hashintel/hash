@@ -20,7 +20,6 @@ mod name;
 mod payload;
 mod policy;
 mod state;
-mod timestamp;
 
 pub use self::{
     event::{FailureKind, FunctionVersion, RunEvent, RunFailure, RunStart, StepFailure, StepIndex},
@@ -28,5 +27,4 @@ pub use self::{
     payload::{Payload, PayloadError},
     policy::RetryPolicy,
     state::{InvalidTransition, RunPhase, RunState, StepDecision},
-    timestamp::Timestamp,
 };

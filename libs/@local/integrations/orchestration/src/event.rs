@@ -1,6 +1,8 @@
 use core::num::NonZero;
 
-use crate::{AdmissionKey, FailureCode, Payload, RetryPolicy, StepName, Timestamp};
+use time::UtcDateTime;
+
+use crate::{AdmissionKey, FailureCode, Payload, RetryPolicy, StepName};
 
 /// The position of a step in a run, starting at zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
@@ -90,7 +92,7 @@ pub enum RunEvent {
         index: StepIndex,
         name: StepName,
         failure: StepFailure,
-        at: Timestamp,
+        at: UtcDateTime,
     },
     CancelRequested,
     Completed,
