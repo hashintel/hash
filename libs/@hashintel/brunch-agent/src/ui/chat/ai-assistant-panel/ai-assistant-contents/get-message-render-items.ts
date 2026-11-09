@@ -181,14 +181,14 @@ export const getMessageRenderItems = (
     } else if (part.type === "tool-createExperiment") {
       turn.cards.push({ type: "experiment", key: part.toolCallId, part });
     } else if (
-      part.type === "dynamic-tool" &&
-      part.toolName === brunchTools.offerAnswers
+      isToolPart(part) &&
+      getToolName(part) === brunchTools.offerAnswers
     ) {
       const offer = zOfferAnswersInput.safeParse(part.input);
       if (offer.success)
         turn.cards.push({
           type: "answers",
-          key: part.toolCallId,
+          key: part.toolCallId ?? key,
           offer: offer.data,
         });
     } else if (isToolPart(part)) {

@@ -149,48 +149,58 @@ describe("conversation turn structure", () => {
     ]);
   });
 
-  test("turns offered answers into one card, outside the work fold", () => {
-    const offer = {
-      questions: [
-        {
-          kind: "choose",
-          label: "Quarantined shipment",
-          options: ["Stays counted as open", "Drops out until released"],
-        },
-      ],
-    };
-    const offerPart = (toolCallId: string, input: unknown) =>
-      ({
-        type: "dynamic-tool",
-        toolName: "offer_answers",
-        toolCallId,
-        state: "output-available",
-        input,
-        output: { offered: 1 },
-      }) as const;
-    const turn = getMessageRenderItems({
-      id: "turn",
-      role: "assistant",
-      parts: [
-        { type: "text", text: "Does it stay counted as open?" },
-        offerPart("offer-1", offer),
-        offerPart("offer-malformed", { questions: [{ kind: "open" }] }),
-        {
-          type: "dynamic-tool",
-          toolName: "ledger_commit",
-          toolCallId: "commit-1",
+  // The browser transport projects server tools as `tool-<name>` parts; only
+  // dynamic client tools arrive as `dynamic-tool`.
+  test.each([
+    ["a server tool part", { type: "tool-offer_answers" }],
+    [
+      "a dynamic tool part",
+      { type: "dynamic-tool", toolName: "offer_answers" },
+    ],
+  ] as const)(
+    "turns offered answers in %s into one card, outside the work fold",
+    (_shape, identity) => {
+      const offer = {
+        questions: [
+          {
+            kind: "choose",
+            label: "Quarantined shipment",
+            options: ["Stays counted as open", "Drops out until released"],
+          },
+        ],
+      };
+      const offerPart = (toolCallId: string, input: unknown) =>
+        ({
+          ...identity,
+          toolCallId,
           state: "output-available",
-          input: { entries: [], endTurn: true },
-          output: { status: "recorded" },
-        },
-      ],
-    });
-    expect(turn.cards).toEqual([{ type: "answers", key: "offer-1", offer }]);
-    expect(turn.work.tools.map((tool) => tool.id)).toEqual(["commit-1"]);
-    expect(turn.answers.map((answer) => answer.part.text)).toEqual([
-      "Does it stay counted as open?",
-    ]);
-  });
+          input,
+          output: { offered: 1 },
+        }) as unknown as PetrinautAiMessage["parts"][number];
+      const turn = getMessageRenderItems({
+        id: "turn",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Does it stay counted as open?" },
+          offerPart("offer-1", offer),
+          offerPart("offer-malformed", { questions: [{ kind: "open" }] }),
+          {
+            type: "dynamic-tool",
+            toolName: "ledger_commit",
+            toolCallId: "commit-1",
+            state: "output-available",
+            input: { entries: [], endTurn: true },
+            output: { status: "recorded" },
+          },
+        ],
+      });
+      expect(turn.cards).toEqual([{ type: "answers", key: "offer-1", offer }]);
+      expect(turn.work.tools.map((tool) => tool.id)).toEqual(["commit-1"]);
+      expect(turn.answers.map((answer) => answer.part.text)).toEqual([
+        "Does it stay counted as open?",
+      ]);
+    },
+  );
 
   test("accepts optional mediation data without rendering unknown data", () => {
     const turn = getMessageRenderItems({
