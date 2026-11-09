@@ -270,6 +270,54 @@ export const hashPetrinautTools = {
       targetSubnetId: schemas.updateArcWeight.shape.targetSubnetId,
     },
     check: (input, context) => {
+      const {
+        transitionId,
+        arcDirection,
+        placeId,
+        endpoint,
+        newPlaceId,
+        newEndpoint,
+        type,
+        weight,
+        targetSubnetId,
+      } = input;
+      const current = { transitionId, placeId, endpoint, targetSubnetId };
+      // Validate the requested operation at the advertised schema boundary,
+      // retaining the canonical endpoint rules without inventing a no-op policy.
+      const parsed =
+        newPlaceId !== undefined || newEndpoint !== undefined
+          ? schemas.updateArcPlace.safeParse({
+              transitionId,
+              arcDirection,
+              oldPlaceId: placeId,
+              oldEndpoint: endpoint,
+              newPlaceId,
+              newEndpoint,
+              targetSubnetId,
+            })
+          : weight !== undefined
+            ? schemas.updateArcWeight.safeParse({
+                ...current,
+                arcDirection,
+                weight,
+              })
+            : type !== undefined
+              ? schemas.updateArcType.safeParse({ ...current, type })
+              : undefined;
+      if (parsed && !parsed.success) {
+        for (const issue of parsed.error.issues) {
+          context.addIssue({
+            ...issue,
+            path: issue.path.map((part) =>
+              part === "oldEndpoint"
+                ? "endpoint"
+                : part === "oldPlaceId"
+                  ? "placeId"
+                  : part,
+            ),
+          });
+        }
+      }
       if (input.arcDirection === "output" && input.type !== undefined) {
         context.addIssue({
           code: "custom",

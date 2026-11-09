@@ -48,7 +48,103 @@ test("a merged update makes the canonical calls its input names, its failable st
   ).toEqual([]);
 });
 
+test.each([
+  { weight: 2 },
+  { type: "inhibitor" },
+  { newPlaceId: "buffer" },
+  {
+    placeId: "queue",
+    endpoint: { kind: "place", placeId: "queue" },
+    weight: 2,
+  },
+  {
+    placeId: "queue",
+    endpoint: { kind: "place", placeId: "queue" },
+    newPlaceId: "buffer",
+  },
+  {
+    placeId: "queue",
+    newPlaceId: "buffer",
+    newEndpoint: { kind: "place", placeId: "buffer" },
+  },
+])(
+  "petrinaut_update_arc rejects ambiguous or missing endpoints before execution: %j",
+  (change) => {
+    expect(
+      hashPetrinautTools.petrinaut_update_arc.zInput.safeParse({
+        editor_id: hashProcessEditorId,
+        transitionId: "serve",
+        arcDirection: "input",
+        ...change,
+      }).success,
+    ).toBe(false);
+  },
+);
+
+test.each([
+  { placeId: "queue", weight: 2 },
+  { endpoint: { kind: "place", placeId: "queue" }, type: "inhibitor" },
+  {
+    endpoint: {
+      kind: "componentPort",
+      componentInstanceId: "worker",
+      portPlaceId: "inbox",
+    },
+    weight: 2,
+    targetSubnetId: "pipeline",
+  },
+  {
+    placeId: "queue",
+    newEndpoint: {
+      kind: "componentPort",
+      componentInstanceId: "worker",
+      portPlaceId: "inbox",
+    },
+    weight: 2,
+  },
+  { placeId: "queue", newPlaceId: "queue", weight: 2 },
+])(
+  "petrinaut_update_arc accepts canonical endpoints and requested changes: %j",
+  (change) => {
+    const input = {
+      editor_id: hashProcessEditorId,
+      transitionId: "serve",
+      arcDirection: "input",
+      ...change,
+    };
+    expect(
+      hashPetrinautTools.petrinaut_update_arc.zInput.safeParse(input).success,
+    ).toBe(true);
+    expect(
+      hashPetrinautTools.petrinaut_update_arc.parseCall(input).calls.length,
+    ).toBeGreaterThan(0);
+  },
+);
+
+test("petrinaut_update_arc preserves calls requesting no change", () => {
+  const input = {
+    editor_id: hashProcessEditorId,
+    transitionId: "serve",
+    arcDirection: "input",
+  };
+  expect(
+    hashPetrinautTools.petrinaut_update_arc.zInput.safeParse(input).success,
+  ).toBe(true);
+  expect(
+    hashPetrinautTools.petrinaut_update_arc.parseCall(input).calls,
+  ).toEqual([]);
+});
+
 test("petrinaut_update_arc rejects an input-arc type on an output arc", () => {
+  expect(
+    hashPetrinautTools.petrinaut_update_arc.zInput.safeParse({
+      editor_id: hashProcessEditorId,
+      transitionId: "serve",
+      arcDirection: "output",
+      placeId: "queue",
+      type: "inhibitor",
+    }).success,
+  ).toBe(false);
   expect(() =>
     hashPetrinautTools.petrinaut_update_arc.parseCall({
       editor_id: hashProcessEditorId,

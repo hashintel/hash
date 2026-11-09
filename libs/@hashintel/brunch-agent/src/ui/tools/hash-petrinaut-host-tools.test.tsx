@@ -262,35 +262,38 @@ test("a call naming an editor the page doesn't show fails as started and leaves 
   ]);
 });
 
-test("a merged arc update retargets and reweights the arc in one call, with one revision before and one after", async () => {
-  const { before, definition, revision, result } = await (
-    await runIssuedCall(
-      "petrinaut_update_arc",
-      {
-        editor_id: hashProcessEditorId,
-        transitionId: "serve",
-        arcDirection: "input",
-        placeId: "queue",
-        newPlaceId: "buffer",
-        weight: 3,
-      },
-      { initial: servedNet },
-    )
-  ).outcome();
-  expect(definition.transitions[0]?.inputArcs).toEqual([
-    { placeId: toPetrinautId("buffer"), weight: 3, type: "standard" },
-  ]);
-  expect(result?.output).toMatchObject({ applied: true });
-  const metadata = result?.metadata as ClientToolResultMetadata | undefined;
-  expect(metadata?.documentRevision).toEqual({
-    before,
-    after: revision,
-  });
-  expect(revision).not.toBe(before);
-  expect(metadata?.readBack?.transitions[0]?.inputArcs).toEqual([
-    { placeId: toPetrinautId("buffer"), weight: 3, type: "standard" },
-  ]);
-});
+test.each(["buffer", "queue"])(
+  "a merged arc update retargets to %s and reweights the arc in one call, with one revision before and one after",
+  async (newPlaceId) => {
+    const { before, definition, revision, result } = await (
+      await runIssuedCall(
+        "petrinaut_update_arc",
+        {
+          editor_id: hashProcessEditorId,
+          transitionId: "serve",
+          arcDirection: "input",
+          placeId: "queue",
+          newPlaceId,
+          weight: 3,
+        },
+        { initial: servedNet },
+      )
+    ).outcome();
+    expect(definition.transitions[0]?.inputArcs).toEqual([
+      { placeId: toPetrinautId(newPlaceId), weight: 3, type: "standard" },
+    ]);
+    expect(result?.output).toMatchObject({ applied: true });
+    const metadata = result?.metadata as ClientToolResultMetadata | undefined;
+    expect(metadata?.documentRevision).toEqual({
+      before,
+      after: revision,
+    });
+    expect(revision).not.toBe(before);
+    expect(metadata?.readBack?.transitions[0]?.inputArcs).toEqual([
+      { placeId: toPetrinautId(newPlaceId), weight: 3, type: "standard" },
+    ]);
+  },
+);
 
 test("a merged arc update whose retarget fails changes nothing, its reweight included", async () => {
   const { before, definition, definitionBefore, revision, failure } = await (
