@@ -72,9 +72,9 @@ describe("what an offer must offer", () => {
     ).toBe(true);
   });
 
-  test("never offers on purpose, decision, open or narrative questions", () => {
+  test("never offers on the user's purpose, or on open or narrative questions", () => {
     expect(neverOffer).toEqual([
-      expect.stringContaining("wants, decides or is trying to achieve"),
+      expect.stringContaining("the user's purpose"),
       expect.stringContaining("open or narrative"),
     ]);
   });
