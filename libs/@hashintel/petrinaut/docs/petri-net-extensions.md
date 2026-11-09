@@ -10,7 +10,7 @@ By default, places hold **untyped tokens** -- they only track a count. Tokens ar
 
 To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
 
-Each dimension has one of five value types, chosen with the dropdown next to the dimension's name:
+Each dimension has one of five value types, chosen in the **Type** column of the **Dimensions** table:
 
 - **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
 - **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
@@ -25,7 +25,7 @@ Integer, Boolean, UUID, and String dimensions are **discrete**: their values onl
 1. Open the **Token Types** group in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
-4. Add dimensions, giving each a name and a value type.
+4. Add dimensions in the **Dimensions** table: click **Add a dimension…** on its last line, type the name (it becomes an identifier such as `position_x`), press Enter, then pick the type. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder. The `⋯` menu on a row's number removes it; a type keeps at least one dimension.
 
 <img width="1707" height="1058" alt="token-type" src="https://github.com/user-attachments/assets/eb88fbc9-828e-4f12-842a-968fa86b2038" />
 

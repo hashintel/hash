@@ -430,3 +430,23 @@ export const dragHandleButtonStyle = css({
   "&:is(tr:hover *, tr:focus-within *) [data-grip]": { display: "flex" },
   "&[data-dragging]": { cursor: "grabbing" },
 });
+
+/**
+ * A column header that is a label ("Name", "Tokens") rather than an
+ * identifier: small caps on the header band, quiet next to the cells.
+ */
+export const labelHeaderStyle = css({
+  backgroundColor: "neutral.s15",
+  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
+  borderRight: "[1px solid {colors.neutral.a05}]",
+  height: "[24px]",
+  paddingX: "2",
+  textAlign: "left",
+  fontSize: "[10px]",
+  fontWeight: "medium",
+  letterSpacing: "[0.4px]",
+  textTransform: "uppercase",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
+  _last: { borderRight: "none" },
+});
