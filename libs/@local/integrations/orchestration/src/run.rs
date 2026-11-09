@@ -25,7 +25,7 @@ pub enum RunError {
 /// inside the run, so any process can execute any run.
 pub trait RunFunction: Send + Sync {
     /// The input of a run. It is plain data, recorded when the run starts.
-    type Input: Serialize + DeserializeOwned + Send;
+    type Input: Serialize + DeserializeOwned + Send + 'static;
 
     /// The version a run is pinned to. A worker executes only runs started with its function's
     /// version.
