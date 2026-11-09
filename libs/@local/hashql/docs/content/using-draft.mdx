@@ -3,6 +3,28 @@ title: Using the TypeScript SDK
 description: Build HashQL programs from reusable TypeScript expressions, helpers and configuration.
 ---
 
+How do we author HashQL programs in TypeScript? The HashQL SDK provides three layers of abstraction, each building on the previous one. The higher-level APIs help us catch errors before our programs reach the server.
+
+<Mermaid
+  chart="
+graph LR
+  jexpr[J-Expr] --> program[Program]
+  program --> draft[Draft]
+"
+/>
+
+J-Expr is the transport syntax used between the SDK and the server. The [`JExpr`] API builds expressions in this syntax without checking their HashQL types. [`Program`] builds on J-Expr with a purely functional interface over a typed expression tree. [`Draft`] provides a more convenient imperative interface for constructing programs from those expressions.
+
+The distinction between [`Program`] and [`Draft`] is analogous to writing Redux reducers with and without Immer. Without Immer, reducers explicitly construct the next state without mutating the previous one, often using spread syntax to copy the affected objects. Immer gives us a mutable representation of that state, called a _draft_, and records our changes to produce the next immutable state. HashQL's [`Draft`] follows the same idea: we write declarations in order, and it assembles the expression tree for us. That's where the name comes from.
+
+The lower-level [`Program`] and [`JExpr`] APIs are considered unstable, so we'll focus on [`Draft`] for program construction. We'll still use [`Program`]'s expression helpers and serialization where needed.
+
+[`JExpr`]: /docs/hashql/reference/hashql/JExpr
+[`Program`]: /docs/hashql/reference/hashql/Program
+[`Draft`]: /docs/hashql/reference/hashql/Draft
+
+---
+
 Writing a HashQL program in TypeScript gives us another language to work with while we build it. We can extract repeated construction into a helper, choose which fields a query returns, or share library declarations across several programs. The [language introduction](/docs/hashql/intro) explains what the resulting HashQL means. Here, we'll use the SDK to assemble and reuse those programs.
 
 The SDK's [`Draft`](/docs/hashql/reference/hashql/Draft) API gives each program a construction context, conventionally called `$`. It keeps track of declarations and their scope while we work with expressions. [`Program`](/docs/hashql/reference/hashql/Program) provides the expression-building tools underneath Draft, as well as serialization. We'll use both as we build a task summary, starting with just its revision number.
