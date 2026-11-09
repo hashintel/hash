@@ -7,15 +7,13 @@ import {
   composeAnswers,
   coversTurn,
   fillDraft,
-  type QuestionAnswer,
-} from "../../../../conversation/question-kinds/answers";
-import {
   type OfferedQuestion,
   type OfferedQuestions,
   offersAnswers,
   optionsFor,
+  type QuestionAnswer,
   questionKinds,
-} from "../../../../conversation/question-kinds/kinds";
+} from "../../../../conversation/question-kinds";
 
 const cardStyle = css({
   display: "flex",

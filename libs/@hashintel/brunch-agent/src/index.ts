@@ -15,16 +15,12 @@ export {
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";
-export {
-  zOfferAnswersInput,
-  type OfferAnswersInput,
-} from "./conversation/offer-answers";
+export { zOfferAnswersInput } from "./conversation/offer-answers";
 export {
   neverOffer,
   questionKinds,
-  type OfferedQuestion,
   type OfferedQuestions,
-} from "./conversation/question-kinds/kinds";
+} from "./conversation/question-kinds";
 export * from "./client-tools";
 export {
   hashEntityReadDefaultTraversalDepth,

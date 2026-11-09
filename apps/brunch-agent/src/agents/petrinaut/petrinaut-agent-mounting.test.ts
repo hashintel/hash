@@ -10,11 +10,11 @@ import {
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { offerAnswersToolDescription } from "../../shared/offer-answers.ts";
 import {
   commitToolDescription,
   compileToolDescription,
 } from "../shared/ledger-tools.ts";
+import { offerAnswersToolDescription } from "../shared/offer-answers.ts";
 import { queryBasisToolDescription } from "../shared/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({

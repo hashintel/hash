@@ -7006,7 +7006,6 @@ describe("AiAssistantPanel composer submissions", () => {
       ...textChunks(`${id}-text`, "Does it stay counted as open?"),
       {
         type: "tool-input-available",
-        dynamic: true,
         providerExecuted: true,
         toolCallId: id,
         toolName: brunchTools.offerAnswers,
@@ -7022,7 +7021,6 @@ describe("AiAssistantPanel composer submissions", () => {
       },
       {
         type: "tool-output-available",
-        dynamic: true,
         providerExecuted: true,
         toolCallId: id,
         output: { offered: 1 },
