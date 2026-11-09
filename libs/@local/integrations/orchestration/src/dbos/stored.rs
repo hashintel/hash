@@ -1,9 +1,20 @@
 //! The stored formats of the DBOS backend.
 //!
 //! DBOS records a workflow's input and a step's or workflow's error as JSON, and hands them back
-//! to a replay or a status read. A crate type that holds a name is stored through a type of the
-//! same name with a `Stored` suffix, which holds the name as a string. A test pins each format,
-//! since a change to it changes what every recorded run holds.
+//! to a replay or a status read. This module hands DBOS exactly three values, each with a type of
+//! its own:
+//!
+//! | DBOS stores | In | As |
+//! | --- | --- | --- |
+//! | The workflow's input | `workflow_status.inputs` | [`RunStartStored`] |
+//! | A failed attempt's error | `operation_outputs.error` | [`StepFailureStored`], inside `dbos::Error` |
+//! | A failed workflow's error | `workflow_status.error` | [`RunFailureStored`], inside `dbos::Error` |
+//!
+//! A crate type that holds a name is stored through a type of the same name with a `Stored`
+//! suffix, which holds the name as a string. A crate type of plain data, such as [`RetryPolicy`]
+//! or [`FailureKind`], is stored as a field of one of these. A step's output is the integration's
+//! own type, which DBOS stores as it is. A test pins each format, since a change to it changes
+//! what every recorded run holds.
 
 use alloc::string::String;
 use core::num::NonZero;
