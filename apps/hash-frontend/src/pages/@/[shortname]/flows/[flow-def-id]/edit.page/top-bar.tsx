@@ -37,6 +37,8 @@ const titleGroup = css({
   alignItems: "center",
   gap: "2",
   minWidth: "0",
+  /* Stops short of the view switch, which is centred over the bar. */
+  maxWidth: "[calc(50% - 5rem)]",
 });
 const viewSwitch = css({
   position: "absolute",

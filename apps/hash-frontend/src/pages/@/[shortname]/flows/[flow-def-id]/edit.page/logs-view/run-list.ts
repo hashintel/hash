@@ -98,19 +98,6 @@ export const defaultRunSort: RunSort = {
   direction: "DESCENDING",
 };
 
-/**
- * The direction a column sorts in when it's picked: times and durations newest or longest first, statuses those that
- * need a look first, and text A to Z.
- */
-export const initialSortDirections: Record<RunSortKey, SortDirection> = {
-  id: "ASCENDING",
-  status: "ASCENDING",
-  started: "DESCENDING",
-  ended: "DESCENDING",
-  duration: "DESCENDING",
-  web: "ASCENDING",
-};
-
 const compareInAscendingOrder = (
   key: RunSortKey,
   a: RunRow,

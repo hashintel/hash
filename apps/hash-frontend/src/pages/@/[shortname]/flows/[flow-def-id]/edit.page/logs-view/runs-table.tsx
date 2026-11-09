@@ -10,7 +10,6 @@ import {
   defaultRunSort,
   filterRuns,
   getRunDuration,
-  initialSortDirections,
   isInTab,
   sortRuns,
 } from "./run-list";
@@ -21,7 +20,7 @@ import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
 import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
 import type { RunTab } from "./run-state";
 import type { RunFilterProperty } from "./runs-table/run-filters";
-import type { Sorter } from "@hashintel/ds-components";
+import type { SortDirection, Sorter } from "@hashintel/ds-components";
 
 const tabs: { id: RunTab; label: string }[] = [
   { id: "all", label: "All" },
@@ -30,17 +29,42 @@ const tabs: { id: RunTab; label: string }[] = [
   { id: "failed", label: "Failed" },
 ];
 
-/** The table's columns, in order, each also a choice in Sort. */
-const columns: (Sorter<RunSortKey> & { align?: "right" })[] = [
-  { name: "ID", sortKey: "id" },
-  { name: "Status", sortKey: "status", sortIcon: "generic" },
-  { name: "Started", sortKey: "started", sortIcon: "numeric" },
-  { name: "Ended", sortKey: "ended", sortIcon: "numeric" },
-  { name: "Web", sortKey: "web" },
+type Column = Sorter<RunSortKey> & {
+  /** The direction the column sorts in when picked, in its header or in Sort. */
+  defaultDirection: SortDirection;
+  align?: "right";
+};
+
+/**
+ * The table's columns, in order, each also a choice in Sort. Times and durations start newest or longest first,
+ * statuses with those that need a look, and text A to Z.
+ */
+const columns: Column[] = [
+  { name: "ID", sortKey: "id", defaultDirection: "ASCENDING" },
+  {
+    name: "Status",
+    sortKey: "status",
+    sortIcon: "generic",
+    defaultDirection: "ASCENDING",
+  },
+  {
+    name: "Started",
+    sortKey: "started",
+    sortIcon: "numeric",
+    defaultDirection: "DESCENDING",
+  },
+  {
+    name: "Ended",
+    sortKey: "ended",
+    sortIcon: "numeric",
+    defaultDirection: "DESCENDING",
+  },
+  { name: "Web", sortKey: "web", defaultDirection: "ASCENDING" },
   {
     name: "Duration",
     sortKey: "duration",
     sortIcon: "numeric",
+    defaultDirection: "DESCENDING",
     align: "right",
   },
 ];
@@ -101,7 +125,7 @@ const SortHeader = ({
   sort,
   onSort,
 }: {
-  column: (typeof columns)[number];
+  column: Column;
   sort: RunSort;
   onSort: (sort: RunSort) => void;
 }) => {
@@ -124,7 +148,7 @@ const SortHeader = ({
               ? ascending
                 ? "DESCENDING"
                 : "ASCENDING"
-              : initialSortDirections[column.sortKey],
+              : column.defaultDirection,
           })
         }
       >
@@ -247,7 +271,18 @@ export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
                 className={runPath ? openableRow : undefined}
                 onClick={
                   runPath
-                    ? () => {
+                    ? (event) => {
+                        /* A click with a modifier is left to the ID's link, which opens a new tab; one that ends
+                           selecting text isn't a click on the row. */
+                        if (
+                          event.metaKey ||
+                          event.ctrlKey ||
+                          event.shiftKey ||
+                          window.getSelection()?.toString()
+                        ) {
+                          return;
+                        }
+
                         void router.push(runPath);
                       }
                     : undefined

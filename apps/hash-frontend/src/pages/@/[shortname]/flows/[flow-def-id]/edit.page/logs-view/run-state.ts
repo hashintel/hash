@@ -14,6 +14,10 @@ export type RunState =
 
 export type RunTab = "all" | "running" | "completed" | "failed";
 
+/*
+ * The older runs table (`pages/shared/flow-tables/flow-run-status.ts`) maps the same statuses more coarsely, with no
+ * "needs review" and unknown ones as errored. The two should merge once that table is replaced.
+ */
 const stateOfStatus: Record<FlowRunStatus, RunState> = {
   [FlowRunStatus.Running]: "running",
   /* The run carries on in a fresh execution with the same parameters, so it's still going. */
