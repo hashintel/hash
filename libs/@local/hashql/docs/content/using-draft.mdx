@@ -15,7 +15,7 @@ graph LR
 
 J-Expr is the transport syntax used between the SDK and the server. The [`J-Expr`] API builds expressions in this syntax without checking their HashQL types. [`Program`] builds on J-Expr with a purely functional interface over a typed expression tree. [`Draft`] provides a more convenient imperative interface for constructing programs from those expressions.
 
-The distinction between [`Program`] and [`Draft`] is analogous to writing Redux reducers with and without Immer. Without Immer, reducers explicitly construct the next state without mutating the previous one, often using spread syntax to copy the affected objects. Immer gives us a mutable representation of that state, called a _draft_, and records our changes to produce the next immutable state. HashQL's [`Draft`] follows the same idea: we write declarations in order, and it assembles the expression tree for us. That's where the name comes from.
+The distinction between [`Program`] and [`Draft`] is analogous to writing [Redux] reducers with and without [Immer]. Without [Immer], reducers explicitly construct the next state without mutating the previous one, often using spread syntax to copy the affected objects. [Immer] gives us a mutable representation of that state, called a _draft_, and records our changes to produce the next immutable state. HashQL's [`Draft`] follows the same idea: we write declarations in order, and it assembles the expression tree for us. That's where the name comes from.
 
 The lower-level [`Program`] and [`J-Expr`] APIs are considered unstable, so we'll focus on [`Draft`] for program construction. We'll still use [`Program`]'s expression helpers and serialisation where needed.
 
@@ -222,8 +222,9 @@ console.log(compile(summarizeTask));
 [`Program.Structural.struct`] is the way that we create a struct value from the field expressions that we provide. HashQL operates in three "universes": modules, types, and values. Where [`Program.Structural.Type`] is the type version of the struct constructor, [`Program.Structural.struct`] is the value version. You can then use normal JavaScript field notation on these struct values to access their fields, which in turn returns an expression handle.
 
 <Callout>
-  You cannot destructure named fields from expression handles. `const {...rest}{" "}
-  = task` will not work.
+
+You are currently unable to destructure via the `..rest` operator, e.g. `const {...rest} = task` will break.
+
 </Callout>
 
 Now that we have a more structured way to access task fields, as well as construct algebraic data types (ADTs), we can extend our program, let's say that we introduce a new field `attention` that depends on the task's flags. We want blocked, unfinished tasks to receive the label `"review"`, and every other task to receive `"clear"`:
@@ -272,7 +273,71 @@ const viaHelper = $.eq(task.blocked, true).and($.not(task.done));
 
 At the end of the callback, both forms produce identical HashQL calls, `$` is simply a convenience wrapper that you can use to write more pleasant to read and maintain HashQL code. Use of `$` is considered idiomatic for the TypeScript SDK, and therefore recommended over the prelude imports, which is why we're going to continue using it in our examples.
 
-Now what's important to know is that our summary still only describes a result, it is nothing more than a fancy function that is sent to the server to do some computation, and then returns the result. It doesn't update the task stored in the graph.
+It's important to make the distinction, that this function that we have created does currently not interact with the graph at all. To do so, we use graph effects, which are explained in more depth under the [writing a query] chapter.
+
+## Naming parts of a program
+
+Just like with control-flow which differentiates between runtime and construction-time, variables in a [`Draft`] differentiate between the two as well. What's important to keep in mind is that HashQL does no interpolation of the function definition, no integration into the bundling, etc. It is just using builders, and that also means that your conventional `const attention =` as in our example above is not part of the HashQL program itself. It is just a regular JavaScript variable that holds an expression handle. Any time that the variable is mentioned we don't mention the variable, but instead insert the expression that it stands for.
+
+Let's see how that works in a smaller example:
+
+```ts title="Reuse an expression" data-example="repeated-expression"
+const repeatedRevision = Draft.program(revisionInputs, ($, { revision }) => {
+  const nextRevision = $.prelude().add(revision, 1n);
+
+  return Program.Structural.struct({
+    nextRevision,
+    auditRevision: nextRevision,
+  });
+});
+
+console.log(compile(repeatedRevision));
+// => {"#struct":{"nextRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],"auditRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]}}
+```
+
+As you can see, the expression is inserted twice, this is often good enough, as it makes it easy to have expressions "travel around", but there are sometimes cases where this is insufficient. For example when we have a computation that is very complex, that is shared across multiple parts of the program, or mentioned multiple times. HashQL supports the notion of `let` bindings (similar to `const` due to their immutability), which allows you to define a named expression.
+
+Let's try it:
+
+```ts title="Reuse a HashQL binding" data-example="named-expression"
+const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
+  const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
+
+  return Program.Structural.struct({
+    nextRevision,
+    auditRevision: nextRevision,
+  });
+});
+
+console.log(compile(namedRevision));
+// => ["::kernel::special_form::let","nextRevision",["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],{"#struct":{"nextRevision":"nextRevision","auditRevision":"nextRevision"}}]
+```
+
+You can see here that our `let` binding was actually inserted, and then referenced. This is how HashQL supports reuse of complex expressions across multiple parts of the program.
+
+<Callout>
+
+It is convention to name the binding the same as the `const` variable it is assigned to.
+
+</Callout>
+
+Anything that is mentioned _after_ the `let` binding is able to reference it naturally. What is important to note is that HashQL has the notion of shadowing (indeed due to it's immutable nature it is very common), but there is no inherent link between the binding name and the `const` variable it is assigned to. This means that it is very possible in a [`Draft`] program to create something like this:
+
+```ts title="Reuse a HashQL binding" data-example="named-expression"
+const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
+  const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
+  const nextRevision2 = $.let("nextRevision", "foo");
+
+  return Program.Structural.struct({
+    nextRevision,
+    auditRevision: nextRevision,
+  });
+});
+```
+
+This will compile, but the type of `nextRevision` inside the struct we expect to be `Integer`, even though the one in scope (assigned to `nextRevision2`) is a `String`. This will not compile on the server, but is something that we can detect on the client. This is one of the reasons why HashQL returns a [`Result`] on construction: this is a construction time error and results in a [`ProgramError.Construction`] error. This is also why we recommend that the name of the binding is the same as the name of the variable in scope: this makes it easier to reason about the type of the binding and will lead to a compile error in TypeScript.
+
+## Scoping of HashQL bindings
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
@@ -304,46 +369,6 @@ Now what's important to know is that our summary still only describes a result, 
 [draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
 
 ---
-
-## Give a reused expression a HashQL name
-
-Our TypeScript variables have names, but those names haven't appeared in the generated HashQL. For example, `const attention` holds the conditional expression itself. Using that handle in two fields would put the conditional's syntax in both places.
-
-Let's see this with the smaller revision expression first. Suppose we need the next revision in two fields of a result:
-
-```ts title="Reuse an expression" data-example="repeated-expression"
-const repeatedRevision = Draft.program(revisionInputs, ($, { revision }) => {
-  const nextRevision = $.prelude().add(revision, 1n);
-
-  return Program.Structural.struct({
-    nextRevision,
-    auditRevision: nextRevision,
-  });
-});
-
-console.log(compile(repeatedRevision));
-// => {"#struct":{"nextRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],"auditRevision":["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]}}
-```
-
-The addition appears twice. `nextRevision` is a TypeScript name for a handle, not a HashQL declaration. To give the expression a name in the generated program, we use [`$.let`][draft-let]:
-
-```ts title="Reuse a HashQL binding" data-example="named-expression"
-const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
-  const nextRevision = $.let("nextRevision", $.prelude().add(revision, 1n));
-
-  return Program.Structural.struct({
-    nextRevision,
-    auditRevision: nextRevision,
-  });
-});
-
-console.log(compile(namedRevision));
-// => ["::kernel::special_form::let","nextRevision",["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}],{"#struct":{"nextRevision":"nextRevision","auditRevision":"nextRevision"}}]
-```
-
-Now the addition appears once, as the initializer of a HashQL `let`. The two fields refer to its name. `$.let` records the declaration in the context and returns a handle referring to that binding. When our callback returns, Draft wraps the result in the declarations we made, in their call order.
-
-We don't need a HashQL binding for every TypeScript variable. A local variable is enough when we only want to organise construction. Use `$.let` when the generated program should contain a named binding. A declaration is still emitted if we discard its returned handle, whereas constructing an expression and discarding it doesn't add that expression to the program.
 
 ## Keep declarations in their intended scope
 
