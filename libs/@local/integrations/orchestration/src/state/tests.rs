@@ -3,15 +3,14 @@ use core::{num::NonZero, time::Duration};
 
 use pretty_assertions::assert_eq;
 use rstest::rstest;
-use time::macros::utc_datetime;
+use time::{UtcDateTime, macros::utc_datetime};
 
 use crate::{
     FailureCode, FailureKind, FunctionVersion, InvalidTransition, Payload, RetryPolicy, RunEvent,
     RunFailure, RunPhase, RunStart, RunState, StepDecision, StepFailure, StepIndex, StepName,
-    Timestamp,
 };
 
-const T0: Timestamp = Timestamp::new(utc_datetime!(2026-11-09 12:00));
+const T0: UtcDateTime = utc_datetime!(2026-11-09 12:00);
 
 fn name(value: &str) -> StepName {
     value.parse().expect("should be a valid step name")
@@ -51,7 +50,7 @@ fn completed(index: u32, step: &str) -> RunEvent {
     }
 }
 
-fn failed(index: u32, step: &str, kind: FailureKind, at: Timestamp) -> RunEvent {
+fn failed(index: u32, step: &str, kind: FailureKind, at: UtcDateTime) -> RunEvent {
     RunEvent::StepFailed {
         index: StepIndex::new(index),
         name: name(step),
@@ -108,7 +107,7 @@ fn decide_renamed_step(#[case] event: RunEvent) {
 #[test]
 fn step_failure_retries_until_max_attempts() {
     let mut state = run();
-    let retry_at = T0.saturating_add(Duration::from_secs(30));
+    let retry_at = T0 + Duration::from_secs(30);
     apply(
         &mut state,
         [failed(0, "capture", FailureKind::Retryable, T0)],

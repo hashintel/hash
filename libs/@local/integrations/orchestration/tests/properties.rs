@@ -9,7 +9,6 @@ use core::{num::NonZero, time::Duration};
 use hash_integrations_orchestration::{
     FailureCode, FailureKind, FunctionVersion, InvalidTransition, Payload, RetryPolicy, RunEvent,
     RunFailure, RunPhase, RunStart, RunState, StepDecision, StepFailure, StepIndex, StepName,
-    Timestamp,
 };
 use proptest::{
     arbitrary::any,
@@ -18,9 +17,9 @@ use proptest::{
     strategy::{Just, Strategy},
 };
 use proptest_derive::Arbitrary;
-use time::macros::utc_datetime;
+use time::{UtcDateTime, macros::utc_datetime};
 
-const T0: Timestamp = Timestamp::new(utc_datetime!(2026-11-09 12:00));
+const T0: UtcDateTime = utc_datetime!(2026-11-09 12:00);
 
 const STEPS: [&str; 3] = ["capture", "plan", "deliver"];
 
@@ -94,7 +93,7 @@ fn output(index: StepIndex) -> Payload {
 #[derive(Debug, PartialEq)]
 enum Decision {
     Replay(Payload),
-    Execute(u32, Option<Timestamp>),
+    Execute(u32, Option<UtcDateTime>),
     Cancel,
     Fail(RunFailure),
     Rejected(InvalidTransition),
@@ -118,7 +117,7 @@ impl Decision {
 struct Retry {
     name: StepName,
     failures: u32,
-    not_before: Timestamp,
+    not_before: UtcDateTime,
 }
 
 /// Recomputes a run from the full list of its accepted events.
@@ -147,7 +146,7 @@ impl Model {
     }
 
     /// The failures of the next step, recorded after the last completed step.
-    fn failures(&self) -> Vec<(&StepName, &StepFailure, Timestamp)> {
+    fn failures(&self) -> Vec<(&StepName, &StepFailure, UtcDateTime)> {
         let last_completion = self
             .events
             .iter()
@@ -194,7 +193,7 @@ impl Model {
         Some(Retry {
             name: (*name).clone(),
             failures: count.get(),
-            not_before: at.saturating_add(self.policy.delay(count)),
+            not_before: *at + self.policy.delay(count),
         })
     }
 
@@ -358,7 +357,7 @@ fn run_state_matches_model(
                 continue;
             }
             Action::Advance { seconds } => {
-                now = now.saturating_add(Duration::from_secs(seconds.into()));
+                now += Duration::from_secs(seconds.into());
                 continue;
             }
             Action::Complete { index, step } => {
