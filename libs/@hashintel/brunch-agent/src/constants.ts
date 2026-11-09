@@ -47,6 +47,7 @@ export const brunchTools = {
   ledgerQuery: "ledger_query",
   /** The HASH agent's basis query, the same tool as `queryBasis`. */
   ledgerQueryBasis: "ledger_query_basis",
+  offerAnswers: "offer_answers",
   ping: "ping",
   /** The Petrinaut agent's basis query; the HASH agent's is `ledgerQueryBasis`. */
   queryBasis: "query_basis",

@@ -450,12 +450,14 @@ export const AiAssistantContents = ({
     onInteractiveToolSubmit,
     onSelectToolTarget,
     onRetryMessage,
+    onSendAnswer: onSendPrompt,
   });
   useEffect(() => {
     handlersRef.current = {
       onInteractiveToolSubmit,
       onSelectToolTarget,
       onRetryMessage,
+      onSendAnswer: onSendPrompt,
     };
   });
   const showHostActions =

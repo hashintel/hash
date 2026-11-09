@@ -1,5 +1,6 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
+import { createOfferAnswersTool } from "../../shared/offer-answers.ts";
 import { interviewBudgetInstruction } from "../shared/interview-budget-instruction.ts";
 import { createLedgerTools } from "../shared/ledger-tools.ts";
 import { createQueryBasisTool } from "../shared/query-basis.ts";
@@ -40,6 +41,7 @@ export const useGuidance = (
   useSkill(modelling);
   useSkill(petrinaut);
   for (const tool of createLedgerTools(readHistory)) useTool(tool);
+  useTool(createOfferAnswersTool(readHistory));
   return {
     system: system.trim(),
     createQueryBasisTool,
