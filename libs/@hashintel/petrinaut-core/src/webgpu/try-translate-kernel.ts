@@ -17,6 +17,7 @@
  */
 import { buildKernelContext } from "../hir/surface-context";
 import { resolveNetParameterValues } from "../parameter-values";
+import { tokenSlotsValue } from "./compile-net-shader/token-layout";
 import { WgslBailError, WgslEmitter } from "./emit-wgsl";
 
 import type { PetrinautExtensionSettings } from "../extensions";
@@ -65,28 +66,22 @@ export function tryTranslateKernel({
     const env = new Map<string, WgslValue>();
     const tokensParam = hir.params[0];
     if (tokensParam) {
-      // One entry per input place: a tuple of the arc's weight for a slot,
-      // `.count` alone otherwise. Attribute and count reads resolve to a
-      // constant: the probe is about translatability, and a misspelled
-      // attribute is already a typecheck error upstream.
-      const placeholderCount: WgslValue = { kind: "f32", code: "0.0" };
-      const fields = new Map<string, WgslValue>(
-        context.inputCounts.map(({ name }) => [
-          name,
-          { kind: "record", fields: new Map([["count", placeholderCount]]) },
-        ]),
+      // Attribute and count reads resolve to a constant: the probe is about
+      // translatability, and a misspelled attribute is already a typecheck
+      // error upstream.
+      const placeholder = (): WgslValue => ({ kind: "f32", code: "0.0" });
+      env.set(
+        tokensParam.name,
+        tokenSlotsValue(
+          new Map(
+            context.inputSlots.map((slot) => [
+              slot.name,
+              Array.from({ length: slot.tokenCount }, () => placeholder),
+            ]),
+          ),
+          new Map(context.inputCounts.map(({ name }) => [name, "0.0"])),
+        ),
       );
-      for (const slot of context.inputSlots) {
-        fields.set(slot.name, {
-          kind: "array",
-          elements: Array.from({ length: slot.tokenCount }, (): WgslValue => ({
-            kind: "token",
-            read: () => ({ kind: "f32", code: "0.0" }),
-          })),
-          count: placeholderCount,
-        });
-      }
-      env.set(tokensParam.name, { kind: "record", fields });
     }
 
     emitter.emit(hir.body, env);

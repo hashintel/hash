@@ -164,11 +164,6 @@ function dualFormCodeFile(options: {
 const SCOPE_SEPARATOR = "::";
 
 /**
- * Gets the display name for a place referenced by an arc, using scoped names for component ports.
- * For component port arcs: returns "InstanceName::PlaceName"
- * For regular place arcs: returns the place name as-is
- */
-/**
  * The part of `input.<Place>` every input place has, declared once in the
  * lambda and kernel definition files.
  */
@@ -180,6 +175,11 @@ const INPUT_COUNT_TYPE_DECLARATION = [
   `};`,
 ].join("\n");
 
+/**
+ * Gets the display name for a place referenced by an arc, using scoped names for component ports.
+ * For component port arcs: returns "InstanceName::PlaceName"
+ * For regular place arcs: returns the place name as-is
+ */
 function getPlaceDisplayNameForArc(
   arc: InputArc | OutputArc,
   sdcpn: SDCPN,

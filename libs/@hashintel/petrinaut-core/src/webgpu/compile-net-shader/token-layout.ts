@@ -160,23 +160,19 @@ export const tokenSlotsValue = (
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>,
   inputCounts: ReadonlyMap<string, string> = new Map(),
 ): WgslValue => {
-  const countValue = (name: string): WgslValue | undefined => {
-    const code = inputCounts.get(name);
-    return code === undefined ? undefined : { kind: "f32", code };
-  };
   const fields = new Map<string, WgslValue>();
-  for (const [name] of inputCounts) {
+  for (const [name, code] of inputCounts) {
     fields.set(name, {
       kind: "record",
-      fields: new Map([["count", countValue(name)!]]),
+      fields: new Map([["count", { kind: "f32", code }]]),
     });
   }
   for (const [slotName, readers] of tokenSlots) {
-    const count = countValue(slotName);
+    const code = inputCounts.get(slotName);
     fields.set(slotName, {
       kind: "array",
       elements: readers.map((read): WgslValue => ({ kind: "token", read })),
-      ...(count ? { count } : {}),
+      ...(code === undefined ? {} : { count: { kind: "f32", code } }),
     });
   }
   return { kind: "record", fields };

@@ -111,9 +111,8 @@ type Value =
   | { kind: "uuidSentinel"; mode: "generate" | "from"; code: string }
   /** The lambda/kernel input object. */
   | { kind: "inputRecord" }
-  /** A whole input arc slot's token tuple. `countArc` indexes the
-   * `inputCounts` argument for `.count`. */
-  | { kind: "tokens"; slot: HirArcSlot; countArc: number }
+  /** A whole input arc slot's token tuple; `countCode` reads its `.count`. */
+  | { kind: "tokens"; slot: HirArcSlot; countCode: string }
   /** One token; `baseCode` is a JS expression for its float base offset. */
   | { kind: "token"; baseCode: string; elements: HirTokenElementInfo[] }
   | { kind: "record"; fields: Map<string, Value> }
@@ -212,11 +211,9 @@ class BufferEmitter {
 
   /** `inputCounts[...]` read for an input place, or null when no input arc
    * connects a place of that name. */
-  private inputCountCode(name: string): { arc: number; code: string } | null {
+  private inputCountCode(name: string): string | null {
     const entry = this.inputCounts.find((candidate) => candidate.name === name);
-    return entry
-      ? { arc: entry.arcIndex, code: `inputCounts[${entry.arcIndex}]` }
-      : null;
+    return entry ? `inputCounts[${entry.arcIndex}]` : null;
   }
 
   /** Registers (on first reference) and returns the metric place ref for a
@@ -413,23 +410,21 @@ class BufferEmitter {
         const target = this.eval(expr.target, env);
         if (target.kind === "inputRecord") {
           const slot = this.slotForPlace(expr.field);
-          const count = this.inputCountCode(expr.field);
-          if (slot && count) {
-            return { kind: "tokens", slot, countArc: count.arc };
+          const countCode = this.inputCountCode(expr.field);
+          if (countCode === null) {
+            throw new BailError();
           }
-          if (count) {
-            // A place that delivers no token values exposes `.count` alone.
-            return {
-              kind: "record",
-              fields: new Map([
-                ["count", { kind: "scalar", code: count.code }],
-              ]),
-            };
+          if (slot) {
+            return { kind: "tokens", slot, countCode };
           }
-          throw new BailError();
+          // A place that delivers no token values exposes `.count` alone.
+          return {
+            kind: "record",
+            fields: new Map([["count", { kind: "scalar", code: countCode }]]),
+          };
         }
         if (target.kind === "tokens" && expr.field === "count") {
-          return { kind: "scalar", code: `inputCounts[${target.countArc}]` };
+          return { kind: "scalar", code: target.countCode };
         }
         if (target.kind === "metricState") {
           if (expr.field !== "places") {

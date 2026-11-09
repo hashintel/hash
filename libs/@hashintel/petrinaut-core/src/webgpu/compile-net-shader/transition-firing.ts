@@ -20,6 +20,10 @@ import {
 
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { HirFunction } from "../../hir/hir";
+import type {
+  HirInputPlaceCount,
+  HirLambdaContext,
+} from "../../hir/surface-context";
 import type { SDCPN } from "../../types/sdcpn";
 import type { GpuNetProfile } from "../eligibility";
 import type { WgslParameterValue, WgslValue } from "../emit-wgsl";
@@ -78,16 +82,11 @@ export type TransitionFiring = {
  */
 const inputCountReads = (
   transition: Transition,
-  sdcpn: SDCPN,
-  extensions: PetrinautExtensionSettings | undefined,
+  inputCounts: readonly HirInputPlaceCount[],
   placeIndexById: ReadonlyMap<string, number>,
 ): Map<string, string> => {
   const reads = new Map<string, string>();
-  for (const { name, arcIndex } of buildLambdaContext(
-    sdcpn,
-    transition,
-    extensions,
-  ).inputCounts) {
+  for (const { name, arcIndex } of inputCounts) {
     const arc = transition.inputArcs[arcIndex];
     const placeId = arc ? getArcEndpointPlaceId(arc) : null;
     const placeIndex =
@@ -109,10 +108,9 @@ const inputCountReads = (
  */
 const lambdaSlotName = (
   transition: Transition,
-  sdcpn: SDCPN,
-  extensions: PetrinautExtensionSettings | undefined,
+  lambdaContext: HirLambdaContext,
 ): string => {
-  const slot = buildLambdaContext(sdcpn, transition, extensions).inputSlots[0];
+  const slot = lambdaContext.inputSlots[0];
   if (slot === undefined) {
     throw new WgslBailError(
       `transition \`${transition.name}\` has no lambda input slot for its typed arc`,
@@ -135,6 +133,7 @@ export const planTransitionFiring = (options: {
   extensions: PetrinautExtensionSettings | undefined;
 }): TransitionFiring => {
   const { transition, inputs, sdcpn, profile, layout, extensions } = options;
+  const lambdaContext = buildLambdaContext(sdcpn, transition, extensions);
 
   const guards: string[] = inputs.map(({ arc, placeIndex }) =>
     arc.type === "inhibitor"
@@ -181,7 +180,7 @@ export const planTransitionFiring = (options: {
   const selectionTokenSlots = new Map<string, readonly TokenReader[]>();
   if (typedInput !== undefined) {
     const place = profile.places[typedInput.placeIndex]!;
-    const slotName = lambdaSlotName(transition, sdcpn, extensions);
+    const slotName = lambdaSlotName(transition, lambdaContext);
     const discreteTypes =
       options.discreteTypesByPlaceId.get(place.id) ?? new Map();
     const readersOver = (indexVars: readonly string[]) =>
@@ -211,8 +210,7 @@ export const planTransitionFiring = (options: {
     selectionTokenSlots,
     inputCounts: inputCountReads(
       transition,
-      sdcpn,
-      extensions,
+      lambdaContext.inputCounts,
       options.placeIndexById,
     ),
   };
