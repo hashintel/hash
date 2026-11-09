@@ -6,8 +6,8 @@ description: Build HashQL programs from reusable TypeScript expressions, helpers
 How do we author HashQL programs in TypeScript? The HashQL SDK provides three layers of abstraction, each building on the previous one. The higher-level APIs help us catch errors before our programs reach the server.
 
 <Mermaid
-  graph="
-graph LR;
+  chart="
+graph LR
     jexpr[J-Expr] --> program[Program]
     program --> draft[Draft]
 "
@@ -37,9 +37,9 @@ import { program } from "@local/hashql/Draft";
 
 ## Building our first J-Expr program
 
-The primary entry point for building a J-Expr program is the [`program`][draft-program] function. It takes two arguments: a definition of the program's inputs (the external context, which must be supplied with every call to the server) and a closure that constructs the program.
+The primary entry point for building a J-Expr program is the [`program`][draft-program] function. It takes two arguments: a definition of the program's inputs and a closure that constructs the program. We define the input names and types here, then supply their values when we send the program to the server for execution.
 
-The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often—hence the short name.
+The closure itself takes two arguments: the [construction context][draft-context] (conventionally called `$`) and handles representing the program inputs. Any behaviour outside [`Program`], such as scope management, is handled through `$`. Expect to use it often—hence the short name.
 
 Suppose we want to build a simple program that increments a task's revision number. We'll define the inputs first, then construct the program using a closure:
 
@@ -56,15 +56,17 @@ const built = Draft.program(revisionInputs, ($, { revision }) => {
 });
 ```
 
-You can also inline the input definitions directly into the `program` call. In this example, we define them separately, and the closure receives the corresponding inputs as its second argument: an object keyed by field name. We destructure this object to access `revision` within the closure.
+You can also inline the input definitions directly into the `program` call. In this example, we define them separately, and the closure receives the corresponding handles as its second argument: an object keyed by field name. We destructure this object to access `revision` within the closure. Here, `revision` represents the program's input, not its value. That value will be supplied when the resulting HashQL program runs.
 
-The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, `BigInt` maps to `Types.Integer`, which we could use instead.
+The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, `BigInt` maps to [`Program.Prelude.builtin.types.Integer`][builtin-prelude], which we could use instead.
 
-The closure is evaluated immediately. Rather than propagating panics, [`program`][draft-program] catches them and returns a [`Result`] value that we can use to handle errors. Program construction can also fail for other reasons, each represented by a distinct, well-typed error, such as [being used out of stream] or [todo].
+The closure is evaluated immediately. Rather than propagating exceptions, [`program`][draft-program] catches them and returns a [`Result`] value that we can use to handle errors. Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures share the [`ProgramError.Construction`] error type, with a distinct, typed reason for each case.
 
-The prelude is the set of symbols, such as [`add`], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Draft`] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server during execution, and overriding it will almost certainly lead to unexpected behaviour.
+The prelude is the set of symbols, such as [`add`][builtin-prelude], that are automatically imported and available in every J-Expr program. The full list of prelude symbols is available in the [`Program.Prelude`][builtin-prelude] reference. Advanced users can also override the default prelude using the [`Draft.withPrelude`] function. Note, however, that this function **does not** modify the prelude loaded by the server during execution. The supplied declarations must match the corresponding server definitions, or the SDK may accept a call that the server rejects.
 
-Before using the compiled program, we must ensure that the program is well-formed. Users of [effect] should handle the [`Result`] value using the appropriate utilities, such as [`Effect.fromResult`]. Outside effect, we can use [`Result.getOrThrow`] to throw an error if the program is not well-formed.
+The value produced by successful construction is an [`Expression`]. It can be used in other HashQL operations and records the input and output types, allowing multiple HashQL fragments to be composed naturally. Once we've finished composing expressions, [`Program.program`] wraps the root expression as a complete [`Program`]. [`Program.compile`] then serialises it to J-Expr JSON, reporting construction or serialisation failures through its [`Result`].
+
+To serialise our expression, we use [`Result.map`] for [`Program.program`] because it returns a plain value. [`Program.compile`] returns another [`Result`], so we use [`Result.flatMap`] for that step. We finish with [`Result.getOrThrow`] to return the JSON string or throw if construction or serialisation failed. In an Effect workflow, we can instead use [`Effect.fromResult`] to handle the result as a typed effect.
 
 ```ts title="Serialize the program" data-example="serialize"
 const serialized = pipe(
@@ -73,16 +75,28 @@ const serialized = pipe(
   Result.flatMap(Program.compile),
   Result.getOrThrow,
 );
-```
 
-The value produced by successful construction is an `Expression`. It can be used in other HashQL operations and records the input and output types, allowing multiple HashQL fragments to be composed naturally. A finished `Expression` can then be turned into a `Program` using the [`Program.program`] function. This `Program` serves primarily to signal that the program is well-formed and ready to be executed; it does not guarantee syntactic correctness. `Program.compile` then turns the `Program` into J-Expr JSON, which can be sent to the server.
+console.log(serialized);
+// => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
+```
 
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
 [`Draft`]: /docs/hashql/reference/hashql/Draft
+[`Expression`]: /docs/hashql/reference/hashql/Program/Expression#Expression
+[`Program.program`]: /docs/hashql/reference/hashql/Program#program
+[`Program.compile`]: /docs/hashql/reference/hashql/Program#compile
+[`ProgramError.Construction`]: /docs/hashql/reference/hashql/Program/ProgramError#Construction
+[`Draft.withPrelude`]: /docs/hashql/reference/hashql/Draft#withPrelude
+[builtin-prelude]: /docs/hashql/reference/hashql/Program/Prelude#builtin
 [draft-program]: /docs/hashql/reference/hashql/Draft#program
 [draft-context]: /docs/hashql/reference/hashql/Draft/Context#Context
 [effect]: https://effect.website
+[`Result`]: https://effect.website/docs/v4/api/effect/Result
+[`Result.map`]: https://effect.website/docs/v4/api/effect/Result#map
+[`Result.flatMap`]: https://effect.website/docs/v4/api/effect/Result#flatMap
+[`Result.getOrThrow`]: https://effect.website/docs/v4/api/effect/Result#getOrThrow
+[`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
 
 ---
 
