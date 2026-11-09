@@ -45,6 +45,32 @@ fn app_version(version: FunctionVersion) -> String {
     format!("v{version}")
 }
 
+/// What the backend was doing with DBOS when a call failed.
+///
+/// A trait method reports its trait's error, with one of these under it and DBOS's own error
+/// under that.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum DbosError {
+    #[display("could not migrate DBOS's schema")]
+    Migrate,
+    #[display("could not connect the DBOS client")]
+    ConnectClient,
+    #[display("could not register the run queue")]
+    RegisterQueue,
+    #[display("could not set up the token bucket table")]
+    Buckets,
+    #[display("could not launch the worker")]
+    Launch,
+    #[display("could not enqueue the run")]
+    Enqueue,
+    #[display("could not read the run")]
+    Read,
+    #[display("the run's record is not one this backend wrote")]
+    Recorded,
+    #[display("could not cancel the run")]
+    Cancel,
+}
+
 /// Where the DBOS backend keeps its runs.
 #[derive(Debug, Clone)]
 pub struct DbosConfig {
@@ -94,9 +120,12 @@ impl DbosBackend {
     ///
     /// # Errors
     ///
-    /// Returns [`BackendError`] if the database is unreachable or any of these cannot be done.
+    /// - [`DbosError::Migrate`] if the schema cannot be created or migrated.
+    /// - [`DbosError::ConnectClient`] if the DBOS client cannot connect.
+    /// - [`DbosError::RegisterQueue`] if the run queue cannot be registered.
+    /// - [`DbosError::Buckets`] if the token bucket connection or table cannot be set up.
     #[tracing::instrument(skip_all, fields(schema = %config.schema))]
-    pub async fn connect(config: DbosConfig) -> Result<Self, Report<BackendError>> {
+    pub async fn connect(config: DbosConfig) -> Result<Self, Report<DbosError>> {
         migrate(&config).await?;
 
         let mut client_config = ClientConfig::new(config.database_url.clone());
@@ -104,13 +133,13 @@ impl DbosBackend {
         client_config.schema = config.schema.clone();
         let client = Client::connect(client_config)
             .await
-            .change_context(BackendError)?;
+            .change_context(DbosError::ConnectClient)?;
 
         let concurrency = config
             .queue_concurrency
             .map(i32::try_from)
             .transpose()
-            .change_context(BackendError)?;
+            .change_context(DbosError::RegisterQueue)?;
         client
             .register_queue(
                 QUEUE,
@@ -121,11 +150,11 @@ impl DbosBackend {
                 QueueConflict::NeverUpdate,
             )
             .await
-            .change_context(BackendError)?;
+            .change_context(DbosError::RegisterQueue)?;
 
         let (postgres, connection) = tokio_postgres::connect(&config.database_url, NoTls)
             .await
-            .change_context(BackendError)?;
+            .change_context(DbosError::Buckets)?;
         tokio::spawn(async move {
             if let Err(error) = connection.await {
                 tracing::error!(error = %error, "the token bucket connection closed");
@@ -134,7 +163,7 @@ impl DbosBackend {
         postgres
             .batch_execute(&coordination::create_table(&config.schema))
             .await
-            .change_context(BackendError)?;
+            .change_context(DbosError::Buckets)?;
 
         Ok(Self {
             consume: coordination::consume(&config.schema),
@@ -164,22 +193,32 @@ impl Worker for DbosBackend {
         shutdown: CancellationToken,
     ) -> impl Future<Output = Result<(), Report<BackendError>>> + Send {
         async move {
-            let mut config = dbos::Config::new(APP_NAME, self.config.database_url.clone());
-            config.schema = self.config.schema.clone();
-            config.app_version = Some(app_version(F::VERSION));
-            config.executor_id = Some(self.executor_id.clone());
-
-            let dbos = DBOS::new(config);
-            dbos.register_workflow(WORKFLOW, move |start: RunStartStored| {
-                run_workflow(Arc::clone(&function), start)
-            })
-            .change_context(BackendError)?;
-            dbos.launch().await.change_context(BackendError)?;
-
+            let dbos = self.launch(function).await.change_context(BackendError)?;
             shutdown.cancelled().await;
             dbos.shutdown().await;
             Ok(())
         }
+    }
+}
+
+impl DbosBackend {
+    /// Launches a DBOS instance for `F::VERSION` with the run workflow registered on it.
+    async fn launch<F: RunFunction + 'static>(
+        &self,
+        function: Arc<F>,
+    ) -> Result<DBOS, Report<DbosError>> {
+        let mut config = dbos::Config::new(APP_NAME, self.config.database_url.clone());
+        config.schema = self.config.schema.clone();
+        config.app_version = Some(app_version(F::VERSION));
+        config.executor_id = Some(self.executor_id.clone());
+
+        let dbos = DBOS::new(config);
+        dbos.register_workflow(WORKFLOW, move |start: RunStartStored| {
+            run_workflow(Arc::clone(&function), start)
+        })
+        .change_context(DbosError::Launch)?;
+        dbos.launch().await.change_context(DbosError::Launch)?;
+        Ok(dbos)
     }
 }
 
@@ -215,7 +254,7 @@ async fn run_workflow<F: RunFunction>(
 ///
 /// A DBOS client only verifies the schema, so this opens a system database connection with
 /// migration on, as a launching worker does, and closes it again.
-async fn migrate(config: &DbosConfig) -> Result<(), Report<BackendError>> {
+async fn migrate(config: &DbosConfig) -> Result<(), Report<DbosError>> {
     let database = postgres::PostgresSystemDatabase::connect(&postgres::Config {
         max_connections: 1,
         use_listen_notify: false,
@@ -228,7 +267,7 @@ async fn migrate(config: &DbosConfig) -> Result<(), Report<BackendError>> {
         ..postgres::Config::new(&config.database_url)
     })
     .await
-    .change_context(BackendError)?;
+    .change_context(DbosError::Migrate)?;
     database.close().await;
     Ok(())
 }

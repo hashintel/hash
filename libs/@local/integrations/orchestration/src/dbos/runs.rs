@@ -1,4 +1,7 @@
 //! [`Runs`] on the DBOS client: starting, reading and cancelling runs without a worker.
+//!
+//! Each DBOS call sits in a helper that reports a [`DbosError`], and each trait method converts
+//! that once into its trait's error.
 
 use alloc::vec;
 
@@ -11,7 +14,7 @@ use error_stack::{Report, ResultExt as _};
 use crate::{
     BackendError, RunFailure, RunId, RunPhase, RunStart, RunStatus, Runs, StartError,
     dbos::{
-        DbosBackend, QUEUE, WORKFLOW, app_version,
+        DbosBackend, DbosError, QUEUE, WORKFLOW, app_version,
         stored::{RunFailureStored, RunStartStored},
     },
 };
@@ -29,24 +32,64 @@ impl Runs for DbosBackend {
             .await
             .change_context(StartError::Backend)?
         {
-            let existing: RunStartStored =
-                serde_json::from_str(record.input.as_deref().unwrap_or_default())
-                    .change_context(StartError::Backend)?;
-            return if existing == stored {
+            return if stored_start(&record).change_context(StartError::Backend)? == stored {
                 Ok(())
             } else {
                 Err(Report::new(StartError::StartMismatch))
             };
         }
 
+        let active = self
+            .enqueue(&run, &stored, &version)
+            .await
+            .change_context(StartError::Backend)?;
+        if active == run {
+            Ok(())
+        } else {
+            Err(Report::new(StartError::AlreadyActive { active }))
+        }
+    }
+
+    async fn status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<BackendError>> {
+        self.read_status(run).await.change_context(BackendError)
+    }
+
+    /// Cancelling marks the run cancelled at once, and its next step does not start.
+    async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
+        self.cancel_run(run).await.change_context(BackendError)
+    }
+}
+
+impl DbosBackend {
+    /// Reads the run's workflow row, or `None` if no run has this ID.
+    async fn record(&self, run: &RunId) -> Result<Option<WorkflowRecord>, Report<DbosError>> {
+        let filter = WorkflowFilter {
+            workflow_ids: vec![run.as_ref()],
+            ..WorkflowFilter::default()
+        };
+        self.client
+            .list_workflows(&filter)
+            .await
+            .map(|mut records| records.pop())
+            .change_context(DbosError::Read)
+    }
+
+    /// Enqueues the run and returns the ID of the run holding its admission key: `run` itself,
+    /// or the run that was already active under the key.
+    async fn enqueue(
+        &self,
+        run: &RunId,
+        stored: &RunStartStored,
+        version: &str,
+    ) -> Result<RunId, Report<DbosError>> {
         let handle = self
             .client
             .enqueue_with::<_, (), RunFailureStored>(
                 WORKFLOW,
-                &stored,
+                stored,
                 EnqueueOptions {
                     workflow_id: Some(run.as_ref()),
-                    app_version: Some(&version),
+                    app_version: Some(version),
                     ..EnqueueOptions::on(Enqueue {
                         deduplication_id: Some(&stored.admission),
                         duplication_policy: DuplicationPolicy::ReturnExisting,
@@ -55,26 +98,22 @@ impl Runs for DbosBackend {
                 },
             )
             .await
-            .change_context(StartError::Backend)?;
-
-        let active = handle.workflow_id();
-        if active == run.as_ref() {
-            return Ok(());
-        }
-        Err(Report::new(StartError::AlreadyActive {
-            active: active.parse().change_context(StartError::Backend)?,
-        }))
+            .change_context(DbosError::Enqueue)?;
+        handle
+            .workflow_id()
+            .parse()
+            .change_context(DbosError::Recorded)
     }
 
-    async fn status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<BackendError>> {
-        let Some(record) = self.record(run).await.change_context(BackendError)? else {
+    async fn read_status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<DbosError>> {
+        let Some(record) = self.record(run).await? else {
             return Ok(None);
         };
         let steps = self
             .client
             .list_workflow_steps(run.as_ref())
             .await
-            .change_context(BackendError)?;
+            .change_context(DbosError::Read)?;
         let completed = steps.iter().filter(|step| step.output.is_some()).count();
 
         Ok(Some(RunStatus {
@@ -83,24 +122,18 @@ impl Runs for DbosBackend {
         }))
     }
 
-    /// Cancelling marks the run cancelled at once, and its next step does not start.
-    async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
+    async fn cancel_run(&self, run: &RunId) -> Result<(), Report<DbosError>> {
         match self.client.cancel(run.as_ref()).await {
             Ok(()) | Err(dbos::Error::WorkflowNotFound { .. }) => Ok(()),
-            Err(error) => Err(Report::new(error).change_context(BackendError)),
+            Err(error) => Err(Report::new(error).change_context(DbosError::Cancel)),
         }
     }
 }
 
-impl DbosBackend {
-    /// Reads the run's workflow row, or `None` if no run has this ID.
-    async fn record(&self, run: &RunId) -> dbos::Result<Option<WorkflowRecord>> {
-        let filter = WorkflowFilter {
-            workflow_ids: vec![run.as_ref()],
-            ..WorkflowFilter::default()
-        };
-        Ok(self.client.list_workflows(&filter).await?.pop())
-    }
+/// Decodes the start a run was recorded with.
+fn stored_start(record: &WorkflowRecord) -> Result<RunStartStored, Report<DbosError>> {
+    serde_json::from_str(record.input.as_deref().unwrap_or_default())
+        .change_context(DbosError::Recorded)
 }
 
 /// The phase of a run, from its workflow row's status and error and whether any step has been
@@ -108,12 +141,12 @@ impl DbosBackend {
 ///
 /// # Errors
 ///
-/// Returns [`BackendError`] if a failed run's recorded error is not one this backend wrote.
+/// Returns [`DbosError::Recorded`] if a failed run's recorded error is not one this backend wrote.
 fn phase(
     status: WorkflowStatus,
     error: Option<&str>,
     has_steps: bool,
-) -> Result<RunPhase, Report<BackendError>> {
+) -> Result<RunPhase, Report<DbosError>> {
     Ok(match status {
         WorkflowStatus::Enqueued | WorkflowStatus::Delayed => RunPhase::Pending,
         WorkflowStatus::Pending if !has_steps => RunPhase::Pending,
@@ -135,14 +168,15 @@ fn phase(
     clippy::wildcard_enum_match_arm,
     reason = "`dbos::Error` is non-exhaustive"
 )]
-fn run_failure(error: Option<&str>) -> Result<RunFailure, Report<BackendError>> {
-    let error =
-        error.ok_or_else(|| Report::new(BackendError).attach("the failed run records no error"))?;
+fn run_failure(error: Option<&str>) -> Result<RunFailure, Report<DbosError>> {
+    let error = error.ok_or_else(|| {
+        Report::new(DbosError::Recorded).attach("the failed run records no error")
+    })?;
     match serde_json::from_str::<dbos::Error<RunFailureStored>>(error)
-        .change_context(BackendError)?
+        .change_context(DbosError::Recorded)?
     {
         dbos::Error::Application(failure) => {
-            RunFailure::try_from(failure).change_context(BackendError)
+            RunFailure::try_from(failure).change_context(DbosError::Recorded)
         }
         _ => Ok(backend_failure("backend-error")),
     }
@@ -163,8 +197,8 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        BackendError, RunFailure, RunPhase, StepIndex,
-        dbos::{runs::phase, stored::RunFailureStored},
+        RunFailure, RunPhase, StepIndex,
+        dbos::{DbosError, runs::phase, stored::RunFailureStored},
     };
 
     #[rstest]
@@ -226,6 +260,6 @@ mod tests {
         let report = phase(WorkflowStatus::Error, None, true)
             .expect_err("a failed run without a recorded error should be rejected");
 
-        assert_eq!(*report.current_context(), BackendError);
+        assert!(matches!(report.current_context(), DbosError::Recorded));
     }
 }
