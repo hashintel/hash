@@ -589,7 +589,7 @@ const Library = () => {
       <TextInput
         value={search}
         onChange={setSearch}
-        placeholder="Search steps"
+        placeholder="Search"
         size="sm"
         prefix={{ iconName: "search", variant: "subtle" }}
       />

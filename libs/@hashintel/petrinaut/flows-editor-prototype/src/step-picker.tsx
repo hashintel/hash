@@ -178,7 +178,7 @@ const SearchField = ({
   value,
   onChange,
   onKeyDown,
-  placeholder = "Search steps",
+  placeholder = "Search",
   size,
   boxed,
   autoFocus,
