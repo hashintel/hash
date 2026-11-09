@@ -1247,7 +1247,13 @@ const valueColumnFooterStyle = css({
  * part of one long filter, not as an input label (26 Oct sync: Ciarán, Dora; uppercase, the team's own logic words).
  * A group is all-and or all-or, so a pick switches the joiner of every row in the group.
  */
-const whereStyle = css({ color: "neutral.fg.muted" });
+/** "Where" reads as one of the panel's field labels: same 13 px, regular weight, muted colour (Aakarsh, 9 Nov). */
+const whereStyle = css({
+  color: "neutral.fg.muted",
+  fontSize: "[13px]",
+  lineHeight: "[16px]",
+  fontWeight: "normal",
+});
 
 /** The AND / OR menu is 208 px wide in Figma (J2.10). */
 const joinerMenuStyle = css({
