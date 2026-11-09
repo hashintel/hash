@@ -1,0 +1,310 @@
+---
+source: libs/@local/integrations/engine/src/graph/plan/tests.rs
+expression: render(&plan)
+---
+UpsertEntity a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918
+{
+  "archive": {
+    "archived": true,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918",
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  },
+  "create": {
+    "draft": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "entityUuid": "468da978-f2fd-52d7-ad32-e319a155c918",
+    "properties": {
+      "value": {
+        "https://example.com/@demo/types/property-type/empty-mass/": {
+          "metadata": {
+            "dataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1"
+          },
+          "value": 8030.0
+        },
+        "https://example.com/@demo/types/property-type/first-flight/": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "1935-12-17"
+        },
+        "https://example.com/@demo/types/property-type/model/": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "DC-3"
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true,
+    "webId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2"
+  },
+  "kind": "upsert",
+  "patch": {
+    "archived": false,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918",
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "properties": [
+      {
+        "op": "add",
+        "path": [
+          "https://example.com/@demo/types/property-type/empty-mass/"
+        ],
+        "property": {
+          "metadata": {
+            "dataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1"
+          },
+          "value": 8030.0
+        }
+      },
+      {
+        "op": "add",
+        "path": [
+          "https://example.com/@demo/types/property-type/first-flight/"
+        ],
+        "property": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "1935-12-17"
+        }
+      },
+      {
+        "op": "add",
+        "path": [
+          "https://example.com/@demo/types/property-type/model/"
+        ],
+        "property": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "DC-3"
+        }
+      }
+    ],
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  }
+}
+
+UpsertEntity a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309
+{
+  "archive": {
+    "archived": true,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309",
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  },
+  "create": {
+    "draft": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "entityUuid": "5a1b641c-1583-51f0-909e-51d204835309",
+    "properties": {
+      "value": {
+        "https://example.com/@demo/types/property-type/model/": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "Ju 52"
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true,
+    "webId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2"
+  },
+  "kind": "upsert",
+  "patch": {
+    "archived": false,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309",
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "properties": [
+      {
+        "op": "add",
+        "path": [
+          "https://example.com/@demo/types/property-type/model/"
+        ],
+        "property": {
+          "metadata": {
+            "dataTypeId": null
+          },
+          "value": "Ju 52"
+        }
+      }
+    ],
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  }
+}
+
+UpsertLink a2c8e6c7-485d-4b54-a248-53c9b9b014a2~b16436f1-2384-575c-b2d3-e5606539d19e
+{
+  "archive": {
+    "archived": true,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~b16436f1-2384-575c-b2d3-e5606539d19e",
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  },
+  "create": {
+    "draft": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/based-at/v/1"
+    ],
+    "entityUuid": "b16436f1-2384-575c-b2d3-e5606539d19e",
+    "linkData": {
+      "leftEntityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918",
+      "rightEntityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+    },
+    "properties": {
+      "value": {}
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true,
+    "webId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2"
+  },
+  "kind": "upsert",
+  "patch": {
+    "archived": false,
+    "entityId": "a2c8e6c7-485d-4b54-a248-53c9b9b014a2~b16436f1-2384-575c-b2d3-e5606539d19e",
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/based-at/v/1"
+    ],
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "loadedAt": "2026-11-06T12:00:00.000000000Z",
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    }
+  }
+}
+
+issues:
+  `a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309` is written without a property: could not convert the value of `https://example.com/@demo/types/property-type/first-flight/v/1`: the value cannot be read as a date
+  row 2 has no `TAIL` to identify its record
+  row 1 has no `HOME_BASE` to identify its record
+  row 2 has no `TAIL` to identify its record

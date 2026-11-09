@@ -109,6 +109,14 @@ impl SinkRow<'_> {
             .unwrap_or(&Value::Null)
     }
 
+    /// The text of `column` as the source wrote it, or `None` if it is missing, blank or has no
+    /// text form.
+    ///
+    /// The text is not trimmed, as it identifies a record across runs.
+    pub(in crate::graph) fn text(&self, column: &ColumnName) -> Option<Cow<'_, str>> {
+        self.value(column).and_then(value::text)
+    }
+
     /// The value of `column`, or `None` if it is missing, null or blank text.
     fn value(&self, column: &ColumnName) -> Option<&Value> {
         Some(self.get(column)).filter(|value| !is_blank(value))
