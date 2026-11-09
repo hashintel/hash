@@ -620,7 +620,12 @@ test("a long property description is cut short in the legend; a short one is sho
   const text = hashEntityReadForModel({
     ...read([person]),
     propertyTypes: [
-      { baseUrl: property("email"), propertyTypeId: `${property("email")}v/1`, title: "Email", description: long },
+      {
+        baseUrl: property("email"),
+        propertyTypeId: `${property("email")}v/1`,
+        title: "Email",
+        description: long,
+      },
       {
         baseUrl: displayName,
         propertyTypeId: `${displayName}v/1`,
