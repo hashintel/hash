@@ -80,7 +80,7 @@ console.log(serialized);
 // => ["::core::math::add",["::kernel::special_form::input","revision","::kernel::type::Integer"],{"#literal":1}]
 ```
 
-## Using HashQL logic and TypeScript logic together
+## Detour: Using HashQL logic and TypeScript logic together
 
 You can mix HashQL logic and TypeScript logic in the same program, but only the HashQL expression ultimately returned from [`Draft.program`][draft-program] is executed on the server. This allows us to model concepts such as macros and build-time functions or conditionals (similar to `#ifdef` in C/C++ or feature flags in Rust). Here, build time means when our TypeScript code calls `Draft.program`, not when TypeScript itself is compiled.
 
@@ -162,6 +162,61 @@ console.log(compile(incrementTwice));
 
 The helper takes the same kind of expression as `revision` and constructs an addition each time we call it. Calling it twice produces two nested HashQL additions. Remember that the TypeScript helper runs only during construction, so the server receives those additions rather than a call to `increment`.
 
+## Assemble a task summary
+
+For our task summary program, we need to express structured values rather than just a single integer. Our tasks should have a title, a revision and two flags: `blocked` and `done`. We can model this in the HashQL SDK using the [`Program.Structural.struct`] function, which creates a HashQL struct type definition. Its keys must be valid HashQL identifiers, and its values must be field expressions: either `String`, `Number`, `BigInt`, `Boolean` or another HashQL type expression.
+
+```ts
+const task = Program.Structural.struct({
+  title: String,
+  revision: BigInt,
+  blocked: Boolean,
+  done: Boolean,
+});
+```
+
+Let's build on our previous program to return the task's title and next revision.
+
+```ts
+const updateTask = Draft.program({ task }, ($, { task }) => {
+  const { add } = $.prelude();
+
+  return Program.Structural.struct({
+    title: task.title,
+    nextRevision: add(task.revision, 1n),
+  });
+});
+```
+
+<Callout>You cannot destructure the fields of the `task` parameter.</Callout>
+
+A language that can only construct values isn't very useful, so let's combine some of the functionality described in the [introduction to HashQL] with one of our helpers: `eq`.
+
+```ts title="Choose a label from the task's fields" data-example="summary-attention"
+const built = Draft.program(inputs, ($, { task }) => {
+  const { add } = $.prelude();
+  const needsReview = $.eq(task.blocked, true).and($.not(task.done));
+  const attention = $.if(needsReview, {
+    then: () => $.literal("review"),
+    else: () => $.literal("clear"),
+  });
+
+  return Program.Structural.struct({
+    title: task.title,
+    nextRevision: add(task.revision, 1n),
+    attention,
+  });
+});
+```
+
+In addition to providing access to the prelude, `$` offers several constructors and helpers, documented in [`Draft.Context`]. In particular, it gives us access to `$.eq`, which maps to the HashQL function `::core::cmp::eq` and compares two values for equality. You can also call this function directly from the prelude, but the `$` version is more convenient and should be preferred because it enables fluent chaining and composition of HashQL boolean expressions.
+
+```ts
+// Function call vs. fluent comparison.
+```
+
+Our example combines these helpers to choose a value based on the task's fields. If the task is blocked and not completed, we set `attention` to `"review"`; otherwise, we set it to `"clear"`.
+
 [`J-Expr`]: /docs/hashql/reference/hashql/JExpr
 [`Program`]: /docs/hashql/reference/hashql/Program
 [`Draft`]: /docs/hashql/reference/hashql/Draft
@@ -181,33 +236,6 @@ The helper takes the same kind of expression as `revision` and constructs an add
 [`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
 
 ---
-
-## Choose which program to build
-
-Now suppose our application sometimes wants the current revision and sometimes the next one. We can make that choice in TypeScript. Keep the imports and `revisionInputs`, and replace `built` with:
-
-```ts title="Make a program factory" data-example="revision-factory"
-const buildRevision = (advance: boolean) =>
-  Draft.program(revisionInputs, ($, { revision }) => {
-    if (advance) {
-      return $.prelude().add(revision, 1n);
-    }
-
-    return revision;
-  });
-
-const built = buildRevision(false);
-```
-
-Using the same serialization block, `buildRevision(true)` produces the addition above. `buildRevision(false)` produces only the input reference:
-
-```json title="Generated J-Expr when advance is false" data-output="revision-current"
-["::kernel::special_form::input", "revision", "::kernel::type::Integer"]
-```
-
-There is no HashQL conditional in either output. The JavaScript `if` chose which expression to construct. This is **host configuration**: a value our TypeScript code knows while it builds the program. An input, by contrast, is a value the generated program receives when it runs.
-
-What if the choice depends on the task itself? Then the conditional belongs in HashQL, which is what we'll build next.
 
 ## Assemble a task summary
 
