@@ -20,6 +20,7 @@ time       = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+backon         = { workspace = true }
 derive_more    = { workspace = true, features = ["as_ref", "display", "error"] }
 simple-mermaid = { workspace = true }
 
