@@ -138,7 +138,7 @@ Pass the sorters as `items` and control the selection with `value`/`onChange`. S
 
 ### Direction availability
 
-Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"` or `"descending"` for one-way fields, or `"none"` for fields like relevance where direction is meaningless — those rows render no direction icon or toggle.
+Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"` or `"descending"` for one-way fields, or `"none"` for fields like relevance where direction is meaningless — those rows render no direction icon or toggle. A two-way sorter starts ascending when picked; set `defaultDirection: "DESCENDING"` on fields like dates where the newest should come first.
 
 <Stage>
   <SortDemoState data-harness>
