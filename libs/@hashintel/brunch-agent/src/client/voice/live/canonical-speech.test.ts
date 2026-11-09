@@ -261,6 +261,48 @@ describe("canonical speech selection", () => {
     ).toBeUndefined();
   });
 
+  test("offered answers change nothing Voice says", () => {
+    const reply = {
+      type: "text" as const,
+      text: "Does a quarantined shipment stay counted as open?",
+      state: "done" as const,
+    };
+    const commit = {
+      type: "dynamic-tool" as const,
+      toolCallId: "commit-1",
+      toolName: "ledger_commit",
+      state: "output-available" as const,
+      input: { entries: [], endTurn: true },
+      output: { status: "recorded" },
+    };
+    const offer = {
+      type: "dynamic-tool" as const,
+      toolCallId: "offer-1",
+      toolName: "offer_answers",
+      state: "output-available" as const,
+      input: {
+        questions: [
+          {
+            kind: "choose",
+            label: "Quarantined shipment",
+            options: ["Stays counted as open", "Drops out until released"],
+          },
+        ],
+      },
+      output: { offered: 1 },
+    };
+    const speechOf = (parts: PetrinautAiMessage["parts"]) =>
+      selectCanonicalSpeech([
+        { id: "assistant-asks", role: "assistant", parts },
+      ]);
+
+    const withOffer = speechOf([reply, offer, commit]);
+    expect(withOffer).toEqual(speechOf([reply, commit]));
+    expect(withOffer.segments.map((segment) => segment.text)).toEqual([
+      reply.text,
+    ]);
+  });
+
   test("keeps finalized-turn identity stable across hydration", () => {
     const live = selectCanonicalSpeech([
       {
