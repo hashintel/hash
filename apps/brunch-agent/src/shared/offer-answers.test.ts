@@ -89,3 +89,26 @@ test("ends the batch only beside a closing commit in its own response", async ()
       .terminate,
   ).toBe(false);
 });
+
+test("never ends a turn the closing commit would not end", async () => {
+  const reply = { type: "text", text: "Does it stay counted as open?" };
+  const settled = (status: "recorded" | "refused") => ({
+    ...commitPart({ endTurn: true }),
+    state: "output-available",
+    output: { status },
+  });
+  // One message spans the turn's steps: a commit that closed nothing because
+  // the turn had not replied must not let a later offer end it unanswered.
+  expect(
+    (await runWith([commitPart({ endTurn: true }), offerPart])).terminate,
+  ).toBe(false);
+  expect((await runWith([settled("recorded"), offerPart])).terminate).toBe(
+    false,
+  );
+  expect(
+    (await runWith([reply, settled("refused"), offerPart])).terminate,
+  ).toBe(false);
+  expect(
+    (await runWith([reply, settled("recorded"), offerPart])).terminate,
+  ).toBe(true);
+});
