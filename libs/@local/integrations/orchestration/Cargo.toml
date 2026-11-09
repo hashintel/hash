@@ -33,7 +33,7 @@ proptest          = { workspace = true, features = ["attr-macro", "std"] }
 proptest-derive   = { workspace = true }
 rstest            = { workspace = true }
 time              = { workspace = true, features = ["macros"] }
-tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio             = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tokio-postgres    = { workspace = true, features = ["runtime"] }
 uuid              = { workspace = true, features = ["std", "v4"] }
 
