@@ -6,33 +6,34 @@ import {
   offersAnswers,
   offerText,
   questionKinds,
-} from "./question-kinds/kinds";
+} from "./question-kinds";
 
-const text = (maxLength: number) => z.string().trim().min(1).max(maxLength);
-const label = text(offerBounds.maxLabelLength).describe(offerText.label);
+const zTextWith = (maxLength: number) =>
+  z.string().trim().min(1).max(maxLength);
+const zLabel = zTextWith(offerBounds.maxLabelLength).describe(offerText.label);
 const { choose, values } = questionKinds;
 
 const zOfferedQuestion = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("confirm"), label }),
+  z.strictObject({ kind: z.literal("confirm"), label: zLabel }),
   z.strictObject({
     kind: z.literal("choose"),
-    label,
+    label: zLabel,
     options: z
-      .array(text(choose.bounds.maxLength))
+      .array(zTextWith(choose.bounds.maxLength))
       .min(choose.bounds.min)
       .max(choose.bounds.max)
       .describe(offerText.options),
   }),
   z.strictObject({
     kind: z.literal("values"),
-    label,
+    label: zLabel,
     fields: z
       .array(
         z.strictObject({
-          label: text(values.bounds.maxLabelLength).describe(
+          label: zTextWith(values.bounds.maxLabelLength).describe(
             offerText.fieldLabel,
           ),
-          unit: text(values.bounds.maxUnitLength)
+          unit: zTextWith(values.bounds.maxUnitLength)
             .optional()
             .describe(offerText.unit),
         }),
@@ -41,7 +42,7 @@ const zOfferedQuestion = z.discriminatedUnion("kind", [
       .max(values.bounds.max)
       .describe(offerText.fields),
   }),
-  z.strictObject({ kind: z.literal("open"), label }),
+  z.strictObject({ kind: z.literal("open"), label: zLabel }),
 ]);
 
 /** The wire form of `OfferedQuestions`, as the model sends it. */
@@ -56,5 +57,3 @@ export const zOfferAnswersInput = z.strictObject({
     })
     .describe(offerText.questions),
 }) satisfies z.ZodType<OfferedQuestions>;
-
-export type OfferAnswersInput = z.output<typeof zOfferAnswersInput>;

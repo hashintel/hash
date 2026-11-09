@@ -1,12 +1,12 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import { createOfferAnswersTool } from "../../shared/offer-answers.ts";
 import { interviewBudgetInstruction } from "./interview-budget-instruction.ts";
 import system from "./prompts/system.md?raw";
 import eliciting from "./skills/eliciting/SKILL.md";
 import modelling from "./skills/modelling/SKILL.md";
 import petrinaut from "./skills/petrinaut/SKILL.md";
 import { createLedgerTools } from "./tools/ledger.ts";
+import { createOfferAnswersTool } from "./tools/offer-answers.ts";
 import { createQueryBasisTool } from "./tools/query-basis.ts";
 import { wordsInstruction } from "./words-instruction.ts";
 

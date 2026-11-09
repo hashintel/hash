@@ -171,7 +171,7 @@ type BrunchMessageProps = Omit<TranscriptProps, "messages"> & {
   canRetry: boolean;
   latestAnswer: boolean;
   /** The latest response, settled, in Chat: the only place an offer shows. */
-  offersAnswers: boolean;
+  answerOffersShown: boolean;
 };
 
 /**
@@ -200,7 +200,7 @@ const BrunchMessage = memo(
     stopped,
     canRetry,
     latestAnswer,
-    offersAnswers,
+    answerOffersShown,
   }: BrunchMessageProps) => {
     const { notifications } = useAiAssistantEditorApi();
 
@@ -365,7 +365,7 @@ const BrunchMessage = memo(
         {role === "assistant" && !voice && writtenAnswer}
         {cards.map((item) =>
           item.type === "answers" ? (
-            offersAnswers &&
+            answerOffersShown &&
             !wasStopped && (
               <AnswerOfferCard
                 key={item.key}
@@ -515,7 +515,7 @@ export const BrunchTranscript = ({
             busy && index === responseIndex && message.role === "assistant"
           }
           stopped={stopped && index === responseIndex}
-          offersAnswers={!busy && !voice && index === responseIndex}
+          answerOffersShown={!busy && !voice && index === responseIndex}
         />
       ))}
       {busy && responseRole !== "assistant" && (

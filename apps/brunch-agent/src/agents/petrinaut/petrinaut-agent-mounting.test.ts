@@ -10,7 +10,6 @@ import {
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { offerAnswersToolDescription } from "../../shared/offer-answers.ts";
 import {
   assertBrowserExecutedToolConformance,
   assertPetrinautToolCatalogueConformance,
@@ -21,6 +20,7 @@ import {
   commitToolDescription,
   compileToolDescription,
 } from "./tools/ledger.ts";
+import { offerAnswersToolDescription } from "./tools/offer-answers.ts";
 import { queryBasisToolDescription } from "./tools/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({

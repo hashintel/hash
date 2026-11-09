@@ -1,6 +1,6 @@
 import {
   brunchTools,
-  type OfferAnswersInput,
+  type OfferedQuestions,
   zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 import {
@@ -47,7 +47,7 @@ export type MessageRenderItems = {
   cards: (
     | { type: "experiment"; key: string; part: ExperimentToolPart }
     | { type: "tool"; key: string; tool: ToolRenderItem }
-    | { type: "answers"; key: string; offer: OfferAnswersInput }
+    | { type: "answers"; key: string; offer: OfferedQuestions }
   )[];
   brief?: VoiceBrief;
   voiceAgentReply?: VoiceAgentLine;

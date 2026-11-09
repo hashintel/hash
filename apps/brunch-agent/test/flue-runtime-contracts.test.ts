@@ -35,8 +35,8 @@ import {
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { createOfferAnswersTool } from "../src/agents/petrinaut/tools/offer-answers.ts";
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
-import { createOfferAnswersTool } from "../src/shared/offer-answers.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
 import { browserResultEnvelope } from "../src/shared/petrinaut-tools/petrinaut-construction.ts";
 
