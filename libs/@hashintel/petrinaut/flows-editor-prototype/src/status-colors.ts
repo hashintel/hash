@@ -869,7 +869,17 @@ const groupTileColor = (icon: string) => {
 };
 
 /** A tile's background and icon colour, as inline style. `ghost` for the editor's ghost trigger nodes. */
-export const tileColor = (icon: string, ghost = false) =>
+/**
+ * `?tileshape=circle` (inbox tile-circles, 9 Nov sync): every step icon tile is a circle instead of a rounded square,
+ * in the Steps tree, canvas cards, menus, the panel header and Used in. Read from the URL only; unset is today's square.
+ */
+export const circleTiles =
+  new URLSearchParams(globalThis.location.search).get("tileshape") === "circle";
+
+const shaped = (style: CSSProperties): CSSProperties =>
+  circleTiles ? { ...style, borderRadius: "9999px" } : style;
+
+const tileColorOf = (icon: string, ghost = false): CSSProperties =>
   ghost
     ? {
         backgroundColor: flowsVar("ghost-tile-bg"),
@@ -884,10 +894,13 @@ export const tileColor = (icon: string, ghost = false) =>
  * The right panel's header tile (H4, decided 5 Nov): the step's group hue at the canvas tiles' equal steps, in the
  * editor and the run view alike, so it skips the run view's neutral tiles. Icons outside a group stay neutral.
  */
+export const tileColor = (icon: string, ghost = false): CSSProperties =>
+  shaped(tileColorOf(icon, ghost));
+
 export const panelTileColor = (icon: string): CSSProperties => {
   const group = groupHues.find((entry) => entry.icons.includes(icon))?.group;
   const steps = (group ? paletteSwatch(group) : null) ?? equalSteps.neutral!;
-  return { backgroundColor: tokenVar(steps.tile), color: tokenVar(steps.icon) };
+  return shaped({ backgroundColor: tokenVar(steps.tile), color: tokenVar(steps.icon) });
 };
 
 /**
@@ -944,7 +957,10 @@ const quieterTree: Record<string, (hue: string) => CSSProperties> = {
   }),
 };
 
-export const treeTileColor = (icon: string) => {
+export const treeTileColor = (icon: string): CSSProperties =>
+  shaped(treeTileColorOf(icon));
+
+const treeTileColorOf = (icon: string): CSSProperties => {
   const take = new URLSearchParams(globalThis.location.search).get("treetiles");
   const hue = groupHues.find((entry) => entry.icons.includes(icon))?.hue;
   const quieter = take ? quieterTree[take] : undefined;
