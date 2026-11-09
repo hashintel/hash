@@ -96,7 +96,7 @@ Differential equations define how token data evolves continuously over time. The
 
 1. Create a differential equation in the **Differential Equations** group (left sidebar).
 2. Give it a name, associate it with a **type** (the equation applies to tokens of that type) and choose how many **Tokens** it couples (one, usually).
-3. Select a place of that type and add the equation in its **Dynamics** section with the **+** button. The switch in the section header runs or pauses the place's dynamics. The arrow on each row opens that equation's properties and code.
+3. Select a place of that type and add the equation from the **Add an equation…** line of its **Dynamics** section. The switch in the section header runs or pauses the place's dynamics. Click a listed equation to open its properties and code.
 
 **Function body:**
 
@@ -127,7 +127,7 @@ Switching the number of tokens replaces the starting template; code you have edi
 
 ### Composing equations
 
-A place can run several equations at once: its **Dynamics** section lists them in order, added with the **+** button, reordered with the arrows and removed with the trash icon. Each step, every listed equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it, and changing a place's type clears its list.
+A place can run several equations at once: its **Dynamics** section lists them in a table, in order. **Add an equation…** on the last line offers the type's equations not listed yet. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder; the `⋯` menu on a row's number opens or removes the equation, and **Delete** on the number removes it too. Each step, every listed equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it, and changing a place's type clears its list.
 
 The [GPU backend](experiments.md#compute-backend) integrates one equation over one token per place; a net that composes several, or couples several tokens, runs on the CPU, and the backend names the place.
 

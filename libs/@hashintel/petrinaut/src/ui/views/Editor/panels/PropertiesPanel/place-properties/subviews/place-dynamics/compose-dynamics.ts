@@ -24,24 +24,36 @@ export const removeTerm = (
   terms.filter((_term, termIndex) => termIndex !== index);
 
 /**
- * The list with the term at `index` swapped one position up (`-1`) or down
- * (`1`); the same list when the move would leave the list.
+ * The list with the term at `from` moved to `to`, the other terms keeping
+ * their order; the same list when either position is outside it.
  */
 export const moveTerm = (
   terms: readonly PlaceDynamicsTerm[],
-  index: number,
-  direction: -1 | 1,
+  from: number,
+  to: number,
 ): PlaceDynamicsTerm[] => {
-  const target = index + direction;
-  const term = terms[index];
-  const other = terms[target];
-  if (term === undefined || other === undefined) {
+  const term = terms[from];
+  if (term === undefined || to < 0 || to >= terms.length) {
     return [...terms];
   }
   const moved = [...terms];
-  moved[index] = other;
-  moved[target] = term;
+  moved.splice(from, 1);
+  moved.splice(to, 0, term);
   return moved;
+};
+
+/**
+ * A stable key per term. The editor adds an equation once, but a file may
+ * repeat one; a repeat is keyed by how many times its equation already
+ * appeared above it.
+ */
+export const termKeys = (terms: readonly PlaceDynamicsTerm[]): string[] => {
+  const occurrences = new Map<string, number>();
+  return terms.map((term) => {
+    const seen = occurrences.get(term.differentialEquationId) ?? 0;
+    occurrences.set(term.differentialEquationId, seen + 1);
+    return `${term.differentialEquationId}#${seen}`;
+  });
 };
 
 /**

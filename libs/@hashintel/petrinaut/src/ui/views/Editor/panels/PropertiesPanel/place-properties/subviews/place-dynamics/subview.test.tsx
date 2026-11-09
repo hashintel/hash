@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ActiveNetContext } from "../../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { selectedRowCellStyle } from "../../../../../../../components/spreadsheet-kit/form-table";
 import { PlacePropertiesProvider } from "../../context";
 import { placeDynamicsSubView } from "./subview";
 
@@ -62,11 +63,13 @@ const Content = placeDynamicsSubView.component;
 
 const Harness = ({
   place: startingPlace = initialPlace,
+  equations: netEquations = equations,
   readOnly = false,
   selectItem = vi.fn(),
   onPlace,
 }: {
   place?: Place;
+  equations?: DifferentialEquation[];
   readOnly?: boolean;
   selectItem?: (item: SelectionItem) => void;
   onPlace?: (place: Place) => void;
@@ -84,7 +87,7 @@ const Harness = ({
           activeNet: {
             ...activeNetDefaults.activeNet,
             types: [satellite],
-            differentialEquations: equations,
+            differentialEquations: netEquations,
           },
         }}
       >
@@ -105,10 +108,17 @@ const Harness = ({
   );
 };
 
+/** The composed equations' names, top to bottom. */
 const listedNames = () =>
   screen
-    .getAllByRole("listitem")
-    .map((item) => item.querySelector("span")?.textContent);
+    .getAllByRole("button", { name: /^Open (Orbit|Pull|Drag)$/ })
+    .map((cell) => cell.textContent);
+
+const gutter = (row: number) =>
+  screen.getByRole("button", { name: `Equation ${row} actions` });
+
+const listedIds = (place: Place | undefined) =>
+  place?.dynamics?.map((term) => term.differentialEquationId);
 
 // The design-system Toggle labels its root, so its hidden input is the one
 // unnamed checkbox in this harness.
@@ -122,7 +132,30 @@ describe("Dynamics subview", () => {
     expect(screen.getByText("2 tokens")).toBeDefined();
   });
 
-  it("reorders, removes and opens a term", () => {
+  it("moves a row with Alt and an arrow, focus travelling with it", () => {
+    let latest: Place | undefined;
+    render(
+      <Harness
+        onPlace={(place) => {
+          latest = place;
+        }}
+      />,
+    );
+    const first = gutter(1);
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowDown", altKey: true });
+    expect(listedNames()).toEqual(["Pull", "Orbit"]);
+    expect(listedIds(latest)).toEqual(["pull", "orbit"]);
+    expect(document.activeElement).toBe(first);
+    expect(first.getAttribute("aria-label")).toBe("Equation 2 actions");
+    // The row highlight follows the moved row.
+    expect(first.closest("td")?.className).toContain(selectedRowCellStyle);
+    expect(gutter(1).closest("td")?.className).not.toContain(
+      selectedRowCellStyle,
+    );
+  });
+
+  it("opens an equation from its name and removes one from the gutter", () => {
     const selectItem = vi.fn();
     let latest: Place | undefined;
     render(
@@ -133,27 +166,16 @@ describe("Dynamics subview", () => {
         }}
       />,
     );
-
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Move Orbit up" })
-        .disabled,
-    ).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Move Orbit down" }));
-    expect(listedNames()).toEqual(["Pull", "Orbit"]);
-    expect(latest?.dynamics).toEqual([
-      { differentialEquationId: "pull" },
-      { differentialEquationId: "orbit" },
-    ]);
-
-    fireEvent.click(screen.getByRole("button", { name: "View Pull" }));
+    // A keyboard click carries no pointer detail and activates at once.
+    fireEvent.click(screen.getByRole("button", { name: "Open Pull" }));
     expect(selectItem).toHaveBeenLastCalledWith({
       type: "differentialEquation",
       id: "pull",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Orbit" }));
+    fireEvent.keyDown(gutter(1), { key: "Delete" });
     expect(listedNames()).toEqual(["Pull"]);
-    expect(latest?.dynamics).toEqual([{ differentialEquationId: "pull" }]);
+    expect(listedIds(latest)).toEqual(["pull"]);
   });
 
   it("shows whether the place's dynamics run from the header switch", () => {
@@ -170,25 +192,34 @@ describe("Dynamics subview", () => {
     expect(listedNames()).toEqual(["Orbit", "Pull"]);
   });
 
-  it("offers the colour's equations that are not composed yet", async () => {
-    // Selecting an entry is the design-system menu's job, which jsdom cannot
-    // drive; what the entry does is `addTerm`, tested with the transitions.
-    render(<Harness place={{ ...initialPlace, dynamics: [] }} />);
-    expect(screen.getByText(/No equations yet/)).toBeDefined();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add equation" }));
-    await screen.findByRole("menuitem", { name: "Orbit · 1 token" });
-    expect(
-      screen.getByRole("menuitem", { name: "Pull · 2 tokens" }),
-    ).toBeDefined();
+  it("adds one of the colour's remaining equations from the trailing line", async () => {
+    let latest: Place | undefined;
+    render(
+      <Harness
+        place={{
+          ...initialPlace,
+          dynamics: [{ differentialEquationId: "orbit" }],
+        }}
+        onPlace={(place) => {
+          latest = place;
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add an equation" }));
+    await screen.findByRole("menuitem", { name: "Pull · 2 tokens" });
     expect(
       screen.getByRole("menuitem", { name: "Drag · 1 token" }),
     ).toBeDefined();
-    // The other colour's equation is not offered.
+    // Composed and other-colour equations are not offered.
+    expect(screen.queryByRole("menuitem", { name: /Orbit/ })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /Rock/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Drag · 1 token" }));
+    expect(listedIds(latest)).toEqual(["orbit", "drag"]);
+    expect(listedNames()).toEqual(["Orbit", "Drag"]);
   });
 
-  it("disables adding once every equation of the colour is composed", () => {
+  it("drops the trailing line once every equation of the colour is composed", () => {
     render(
       <Harness
         place={{
@@ -202,39 +233,58 @@ describe("Dynamics subview", () => {
       />,
     );
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Add equation" })
-        .disabled,
-    ).toBe(true);
+      screen.queryByRole("button", { name: "Add an equation" }),
+    ).toBeNull();
+    expect(listedNames()).toEqual(["Orbit", "Pull", "Drag"]);
   });
 
   it("asks for a type before any equation", () => {
     render(
       <Harness place={{ ...initialPlace, colorId: null, dynamics: [] }} />,
     );
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "Add equation" })
-        .disabled,
-    ).toBe(true);
     expect(dynamicsSwitch().disabled).toBe(true);
     expect(screen.getByText(/Select a token type/)).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: "Add an equation" }),
+    ).toBeNull();
   });
 
-  it("keeps every control read-only", () => {
-    render(<Harness readOnly />);
-    for (const name of [
-      "Add equation",
-      "Move Orbit down",
-      "Remove Orbit",
-      "Remove Pull",
-    ]) {
-      expect(
-        screen.getByRole<HTMLButtonElement>("button", { name }).disabled,
-      ).toBe(true);
-    }
+  it("points at the sidebar when the type has no equations", () => {
+    render(
+      <Harness
+        place={{ ...initialPlace, dynamics: [] }}
+        equations={[equations[3]!]}
+      />,
+    );
+    expect(screen.getByText(/has no equations yet/)).toBeDefined();
+  });
+
+  it("keeps the list read-only while still opening equations", () => {
+    const selectItem = vi.fn();
+    let latest: Place | undefined;
+    render(
+      <Harness
+        readOnly
+        selectItem={selectItem}
+        onPlace={(place) => {
+          latest = place;
+        }}
+      />,
+    );
     expect(dynamicsSwitch().disabled).toBe(true);
     expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: "View Orbit" })
-        .disabled,
-    ).toBe(false);
+      screen.queryByRole("button", { name: "Add an equation" }),
+    ).toBeNull();
+
+    const first = gutter(1);
+    fireEvent.keyDown(first, { key: "Delete" });
+    fireEvent.keyDown(first, { key: "ArrowDown", altKey: true });
+    expect(listedIds(latest)).toEqual(["orbit", "pull"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Orbit" }));
+    expect(selectItem).toHaveBeenLastCalledWith({
+      type: "differentialEquation",
+      id: "orbit",
+    });
   });
 });

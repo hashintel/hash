@@ -7,6 +7,7 @@ import {
   moveTerm,
   placeTypeChange,
   removeTerm,
+  termKeys,
 } from "./compose-dynamics";
 
 import type {
@@ -32,11 +33,19 @@ describe("compose-dynamics", () => {
     expect(removeTerm(terms, 1)).toEqual([terms[0], terms[2]]);
   });
 
-  it("swaps a term with its neighbour and refuses to leave the list", () => {
-    expect(moveTerm(terms, 1, -1)).toEqual([terms[1], terms[0], terms[2]]);
-    expect(moveTerm(terms, 1, 1)).toEqual([terms[0], terms[2], terms[1]]);
+  it("moves a term to a position and refuses to leave the list", () => {
+    expect(moveTerm(terms, 1, 0)).toEqual([terms[1], terms[0], terms[2]]);
+    expect(moveTerm(terms, 0, 2)).toEqual([terms[1], terms[2], terms[0]]);
     expect(moveTerm(terms, 0, -1)).toEqual(terms);
-    expect(moveTerm(terms, 2, 1)).toEqual(terms);
+    expect(moveTerm(terms, 2, 3)).toEqual(terms);
+  });
+
+  it("keys a repeated equation by its occurrence", () => {
+    expect(termKeys([terms[0]!, terms[1]!, terms[0]!])).toEqual([
+      "pull#0",
+      "drag#0",
+      "pull#1",
+    ]);
   });
 
   it("offers the colour's equations the place does not compose yet", () => {
