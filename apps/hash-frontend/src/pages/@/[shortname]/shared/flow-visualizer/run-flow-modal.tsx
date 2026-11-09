@@ -390,8 +390,12 @@ export const RunFlowModal = ({
           )}
 
           {inputs.map((inputDefinition) => {
+            /*
+             * Left out rather than thrown on, as the modal renders on the page of every run of the flow, which the
+             * editor can start with inputs this form can't take, e.g. an entity. A required one keeps Run disabled.
+             */
             if (!isSupportedPayloadKind(inputDefinition.payloadKind)) {
-              throw new Error("Unsupported input kind");
+              return null;
             }
 
             if (
