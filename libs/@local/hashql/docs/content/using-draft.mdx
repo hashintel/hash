@@ -345,9 +345,9 @@ The resulting HashQL program would fail to compile on the server, but the SDK ca
 
 It is also why we recommend giving each binding the same name as the JavaScript variable holding its handle. This makes the code easier to reason about and, in this example, would expose the conflicting declarations as a TypeScript compile-time error.
 
-## Scope Management
+## Scope management
 
-The use of closures for branches or filters may seem a bit odd, but there is a reason behind it. It is a signal for scope management. Each closure takes a `$` argument (indeed internally it is just the same as the outer `$`) and create a new scope. Each `let` that is created inside of that closure cannot travel more up than the function scope, this means that:
+Using closures for branches or filters may seem a little unusual, but they serve a purpose: they mark scope boundaries. Each closure takes a `$` argument (internally, this is the same object as the outer `$`) and creates a new scope. Any `let` binding created inside the closure remains within that scope. For example:
 
 ```ts title="Declare a name inside a branch" data-example="branch-context"
 const branchAttention = Draft.program({ review: Boolean }, ($, { review }) =>
@@ -361,21 +361,21 @@ console.log(compile(branchAttention));
 // => ["::kernel::special_form::if",["::kernel::special_form::input","review","::kernel::type::Boolean"],["::kernel::special_form::let","label",{"#literal":"review"},"label"],{"#literal":"clear"}]
 ```
 
-will never bring the `let` outside of the `then` branch, reason being that it makes def-before-use trivial and also uninuitive.
+The `let` binding remains inside the `then` branch; it is never moved outside it. This keeps the rules for definition before use straightforward.
 
 ### Construction-time macros
 
-It is often useful to define common behaviour that can be shared and re-used across a task, there are multiple ways to achieve this, first is bind a closure, then invoke it, which is the HashQL way.
+It is often useful to define common behaviour that can be shared and reused across a task. There are several ways to achieve this. One is to bind a closure and then invoke it within HashQL.
 
 <Callout>
 
-This is currently tracked as part of BE-XXXX, and user defined closure construction is not yet supported.
+User-defined closure construction is not yet supported. This is tracked in BE-XXXX.
 
 </Callout>
 
-The other way is through the use of construction-time macros, which are a way to create expressions outside of [`Draft.program`][draft-program] and reuse them across expressions. We can also combine these, for example we can have a macro which creates a closure, which is then in turn used inside of code to share common behaviour.
+Another approach is to use construction-time macros: helpers that construct expressions outside [`Draft.program`][draft-program] and can be reused across programs. These approaches can also be combined. For example, a macro could construct a HashQL closure that is then invoked within a program to share common behaviour.
 
-Let's define a simple macro for the expression that determined if a task is blocked:
+Let's define a simple macro for the expression that determines whether a task needs review:
 
 ```ts title="Extract the review rule" data-example="expression-helper"
 const taskInputs = { task: taskType };
@@ -387,17 +387,17 @@ const needsReviewFor = (task: Task) =>
   );
 ```
 
-We can use [`Draft.Body.Handles`] here to take our inputs, and then extract the actual type from it that will be available, this then allows us to have a type-safe way to use the call the expression.
+Here, [`Draft.Body.Handles`] derives the handle types from our input definitions. We then extract the type of the `task` handle, allowing us to pass it to the helper in a type-safe way.
 
 <Callout>
 
-The HashQL type-system modelled inside of TypeScript is deliberately conservative and does not implement the full subtyping regime present inside of HashQL, use [`Expression.assume`] to work around this, and to cast an expression. This will not weaken the type safety, as the server still type-checks every program before execution.
+The HashQL type system modelled in TypeScript is deliberately conservative and does not implement all of HashQL's subtyping rules. Where necessary, use [`Expression.assume`] to cast an expression. The server still type-checks every program before execution.
 
 </Callout>
 
 ### Passing a context
 
-What if a construction-time macro needs to use the construction context `$`? To be able to do this, we can utilitze another help: [`Draft.Body.Context`], specifically for our example an encapsulation of `attention` would look like this:
+What if a construction-time macro needs access to the construction context, `$`? We can use another helper type: [`Draft.Body.Context`]. In our example, a helper that constructs and binds the `attention` expression would look like this:
 
 ```ts title="Extract a helper that declares a binding" data-example="context-helper"
 type TaskContext = Draft.Body.Context<
@@ -414,81 +414,6 @@ const attentionFor = ($: TaskContext, task: Task) =>
     }),
   );
 ```
-
-[`J-Expr`]: /docs/hashql/reference/hashql/JExpr
-[`Program`]: /docs/hashql/reference/hashql/Program
-[`Draft`]: /docs/hashql/reference/hashql/Draft
-[`Expression`]: /docs/hashql/reference/hashql/Program/Expression#Expression
-[`Program.program`]: /docs/hashql/reference/hashql/Program#program
-[`Program.compile`]: /docs/hashql/reference/hashql/Program#compile
-[`ProgramError.Construction`]: /docs/hashql/reference/hashql/Program/ProgramError#Construction
-[`Draft.withPrelude`]: /docs/hashql/reference/hashql/Draft#withPrelude
-[builtin-prelude]: /docs/hashql/reference/hashql/Program/Prelude#builtin
-[draft-program]: /docs/hashql/reference/hashql/Draft#program
-[draft-context]: /docs/hashql/reference/hashql/Draft/Context#Context
-[effect]: https://effect.website
-[`Result`]: https://effect.website/docs/v4/api/effect/Result
-[`Result.map`]: https://effect.website/docs/v4/api/effect/Result#map
-[`Result.flatMap`]: https://effect.website/docs/v4/api/effect/Result#flatMap
-[`Result.getOrThrow`]: https://effect.website/docs/v4/api/effect/Result#getOrThrow
-[`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
-[`Program.Structural.type`]: /docs/hashql/reference/hashql/Program/Structural#type
-[structural-definitions]: /docs/hashql/reference/hashql/Program/Structural#Definition
-[`Program.Structural.struct`]: /docs/hashql/reference/hashql/Program/Structural#struct
-[`Program.Structural`]: /docs/hashql/reference/hashql/Program/Structural
-[`Program.Expression`]: /docs/hashql/reference/hashql/Program/Expression
-[`Program.Operators`]: /docs/hashql/reference/hashql/Program/Operators
-[`Draft.Context`]: /docs/hashql/reference/hashql/Draft/Context#Context
-[`Draft.Body.Handles`]: /docs/hashql/reference/hashql/Draft/Body#Handles
-[`Draft.Body.Context`]: /docs/hashql/reference/hashql/Draft/Body#Context
-[`Draft.Body.Requirements`]: /docs/hashql/reference/hashql/Draft/Body#Requirements
-[draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
-
----
-
-## Extract a helper with the types it needs
-
-The review rule is useful beyond one summary. We already know that a TypeScript helper can construct a reusable expression. This time, the helper needs access to the task's fields, so we also need a type for its argument.
-
-We can derive that type from our input definition with [`Draft.Body.Handles`]:
-
-```ts title="Extract the review rule" data-example="expression-helper"
-const taskInputs = { task: taskType };
-type Task = Draft.Body.Handles<typeof taskInputs>["task"];
-
-const needsReviewFor = (task: Task) =>
-  Program.Operators.eq(task.blocked, true).and(
-    Program.Operators.not(task.done),
-  );
-```
-
-`Task` is the type of our input handle, not a TypeScript object containing task data. Deriving it from `taskInputs` keeps the helper's fields in step with the program's input definition. It also retains the requirement for an input named `task`.
-
-The helper doesn't need a context because it only combines expressions. [`Program.Operators`] provides the same predicate constructors we used through `$`, including their fluent methods. These operations are **combinators**: they take expressions and return another expression. The helper can therefore work with just the task handle, without accepting a `$` it doesn't use.
-
-### Pass a context when the helper declares a name
-
-Suppose we want to extract construction of the attention label too, this time giving the label a HashQL binding. The helper needs a context for that declaration. [`Draft.Body.Context`] describes the context a program callback receives:
-
-```ts title="Extract a helper that declares a binding" data-example="context-helper"
-type TaskContext = Draft.Body.Context<
-  Program.Prelude.Builtin,
-  Draft.Body.Requirements<typeof taskInputs>
->;
-
-const attentionFor = ($: TaskContext, task: Task) =>
-  $.let(
-    "attention",
-    $.if(needsReviewFor(task), {
-      then: () => $.literal("review"),
-      else: () => $.literal("clear"),
-    }),
-  );
-```
-
-The first type argument describes the prelude, and the second describes the inputs the program permits. [`Draft.Body.Requirements`] derives those input requirements from our schema. This helper uses the same prelude and input schema as our task programs.
-
-Calling a TypeScript helper doesn't create a new HashQL scope. `attentionFor` puts its binding in the context we pass to it and returns a reference to that binding. If we call it inside a branch and want the declaration to stay there, we pass that branch's context, just as we did with `branch.let`.
 
 We can now assemble our summary using the extracted helpers:
 
@@ -514,17 +439,47 @@ console.log(compile(reusableSummary));
 
 </details>
 
-The generated program binds `attention` before constructing the summary. It contains the comparison and conditional, not calls to `needsReviewFor` or `attentionFor`. Those two functions organise our TypeScript construction code, just like the earlier `increment` helper.
+Although the output is dense, we can see that `attention` is bound before the summary is constructed. Construction-time macros let us organise our code and share common logic without serialising intermediate fragments or giving up type safety. Neat!
 
-## Take these pieces into a query
+## Querying the graph
 
-We can now construct expressions, give them names in the intended scope, and extract helpers whose types retain their input requirements. [Writing a HashQL query](/docs/hashql/writing-a-query) applies these tools to graph data. A query filter receives its own construction context, so a helper that declares names follows the same rule there as it does inside a branch.
+You now know how the Draft API works and how to use it, but we haven't yet covered how to construct a query for the graph. To learn more, see the [Writing a HashQL query](/docs/hashql/writing-a-query) guide.
 
-The reference covers construction tools we haven't needed for this summary:
+The reference guide covers features we haven't explored in detail here:
 
-- [`Program.Structural`] describes tuple, list and dictionary construction alongside structs. Arrays in structural shorthand describe tuples, while lists and dictionaries use explicit constructors.
-- [`Program.Expression`] describes typed field projection and indexing. Use `$project` when a field name collides with a handle operation, such as a struct field named `$index`.
-- [`Draft.withPrelude`] supplies a different set of SDK declarations. It replaces the built-in prelude for that constructor, not the definitions on the server. Reusing a built-in declaration under a different property name changes how TypeScript accesses it, not the HashQL function it calls.
-- [`Draft.Context`] also provides `$.type` for a structural alias and `$.newtype` for a nominal type and its constructor. These declarations belong to the context where we make them, just like `$.let`.
+- [`Program.Structural`]: constructing algebraic data types, such as tuples, lists, dictionaries and structs, using shorthand syntax where possible.
+- [`Program.Expression`]: typed field projection and indexing. Use `$project` when a field name collides with an existing name.
+- [`Draft.withPrelude`]: overriding the default prelude declarations with your own.
+- [`Draft.Context`]: additional operators, along with `$.type` and `$.newtype` for constructing custom types. These follow the same scope rules as `let`.
 
-For construction errors and scope mistakes, [troubleshooting](/docs/hashql/troubleshooting) gives examples of the failure and its correction.
+For construction issues and common mistakes, see the [troubleshooting guide].
+
+[`J-Expr`]: /docs/hashql/reference/hashql/JExpr
+[`Program`]: /docs/hashql/reference/hashql/Program
+[`Draft`]: /docs/hashql/reference/hashql/Draft
+[`Expression`]: /docs/hashql/reference/hashql/Program/Expression#Expression
+[`Program.program`]: /docs/hashql/reference/hashql/Program#program
+[`Program.compile`]: /docs/hashql/reference/hashql/Program#compile
+[`ProgramError.Construction`]: /docs/hashql/reference/hashql/Program/ProgramError#Construction
+[`Draft.withPrelude`]: /docs/hashql/reference/hashql/Draft#withPrelude
+[builtin-prelude]: /docs/hashql/reference/hashql/Program/Prelude#builtin
+[draft-program]: /docs/hashql/reference/hashql/Draft#program
+[draft-context]: /docs/hashql/reference/hashql/Draft/Context#Context
+[effect]: https://effect.website
+[`Result`]: https://effect.website/docs/v4/api/effect/Result
+[`Result.map`]: https://effect.website/docs/v4/api/effect/Result#map
+[`Result.flatMap`]: https://effect.website/docs/v4/api/effect/Result#flatMap
+[`Result.getOrThrow`]: https://effect.website/docs/v4/api/effect/Result#getOrThrow
+[`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
+[`Program.Structural.type`]: /docs/hashql/reference/hashql/Program/Structural#type
+[structural-definitions]: /docs/hashql/reference/hashql/Program/Structural#Definition
+[`Program.Structural.struct`]: /docs/hashql/reference/hashql/Program/Structural#struct
+[`Program.Structural`]: /docs/hashql/reference/hashql/Program/Structural
+[`Program.Expression`]: /docs/hashql/reference/hashql/Program/Expression
+[`Expression.assume`]: /docs/hashql/reference/hashql/Program/Expression#assume
+[`Program.Operators`]: /docs/hashql/reference/hashql/Program/Operators
+[`Draft.Context`]: /docs/hashql/reference/hashql/Draft/Context#Context
+[`Draft.Body.Handles`]: /docs/hashql/reference/hashql/Draft/Body#Handles
+[`Draft.Body.Context`]: /docs/hashql/reference/hashql/Draft/Body#Context
+[`Draft.Body.Requirements`]: /docs/hashql/reference/hashql/Draft/Body#Requirements
+[draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
