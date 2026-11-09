@@ -1,4 +1,9 @@
 import {
+  brunchTools,
+  type OfferAnswersInput,
+  zOfferAnswersInput,
+} from "@hashintel/brunch-agent";
+import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   readPetrinautDocToolName,
@@ -42,6 +47,7 @@ export type MessageRenderItems = {
   cards: (
     | { type: "experiment"; key: string; part: ExperimentToolPart }
     | { type: "tool"; key: string; tool: ToolRenderItem }
+    | { type: "answers"; key: string; offer: OfferAnswersInput }
   )[];
   brief?: VoiceBrief;
   voiceAgentReply?: VoiceAgentLine;
@@ -174,6 +180,17 @@ export const getMessageRenderItems = (
       turn.work.reasoning.push({ key, part });
     } else if (part.type === "tool-createExperiment") {
       turn.cards.push({ type: "experiment", key: part.toolCallId, part });
+    } else if (
+      part.type === "dynamic-tool" &&
+      part.toolName === brunchTools.offerAnswers
+    ) {
+      const offer = zOfferAnswersInput.safeParse(part.input);
+      if (offer.success)
+        turn.cards.push({
+          type: "answers",
+          key: part.toolCallId,
+          offer: offer.data,
+        });
     } else if (isToolPart(part)) {
       if (hiddenToolNames.has(getToolName(part))) return;
       const tool = toToolRenderItem(

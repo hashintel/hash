@@ -31,6 +31,7 @@ export const brunchTools = {
   draftPetrinautExperiment: "draft_petrinaut_experiment",
   ledgerCommit: "ledger_commit",
   ledgerCompile: "ledger_compile",
+  offerAnswers: "offer_answers",
   ping: "ping",
   queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",

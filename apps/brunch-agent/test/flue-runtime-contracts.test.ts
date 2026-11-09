@@ -31,10 +31,12 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   brunchTools,
   draftPetrinautExperimentInputSchema,
+  zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
+import { createOfferAnswersTool } from "../src/shared/offer-answers.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
 import { browserResultEnvelope } from "../src/shared/petrinaut-tools/petrinaut-construction.ts";
 
@@ -235,6 +237,7 @@ function NativeContractAgent() {
       }),
     }),
   );
+  useTool(createOfferAnswersTool(async () => ({ messages: [] })));
   useTool(pendingValidationTool);
   useTool(boundedRunTool);
   useTool(
@@ -563,6 +566,11 @@ describe("native tool schemas through the Flue/Pi tool loop", () => {
     expect(declared("referenced_input")).toEqual(referencedDeclaration);
     expect(declared(brunchTools.draftPetrinautExperiment)).toEqual(
       draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    expect(declared(brunchTools.offerAnswers)).toEqual(
+      zOfferAnswersInput["~standard"].jsonSchema.input({
         target: "draft-2020-12",
       }),
     );

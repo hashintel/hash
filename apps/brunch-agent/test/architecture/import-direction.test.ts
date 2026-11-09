@@ -14,6 +14,7 @@ import { describe, expect, test } from "vitest";
 const repoRoot = fileURLToPath(new URL("../../../..", import.meta.url));
 const appRoot = "apps/brunch-agent";
 const libraryRoot = "libs/@hashintel/brunch-agent";
+const questionKindsRoot = `${libraryRoot}/src/conversation/question-kinds/`;
 
 const librarySourceRoots = ["src", "test"]
   .map((directory) => `${libraryRoot}/${directory}`)
@@ -122,6 +123,19 @@ const isFlueRuntime = (modulePath: string): boolean =>
 const isAppModule = (modulePath: string): boolean =>
   modulePath.startsWith("apps/") || modulePath.startsWith("@apps/");
 
+const isPackage = (modulePath: string, name: string): boolean =>
+  modulePath === name ||
+  modulePath.startsWith(`${name}/`) ||
+  modulePath.includes(`/node_modules/${name}/`) ||
+  modulePath.startsWith(`node_modules/${name}/`);
+
+/** The question kinds are policy that the UI, the wire schema and the tool description all derive from. */
+const isOutsideQuestionKinds = (modulePath: string): boolean =>
+  modulePath.startsWith(`${libraryRoot}/src/ui/`) ||
+  modulePath.startsWith(`${libraryRoot}/src/ui.ts`) ||
+  modulePath.startsWith(`${libraryRoot}/src/conversation/offer-answers`) ||
+  ["zod", "react", "ai", "@flue"].some((name) => isPackage(modulePath, name));
+
 const isInternalSpecifier = (modulePath: string): boolean =>
   modulePath.startsWith(".") ||
   modulePath === "@hashintel/brunch-agent" ||
@@ -151,6 +165,12 @@ const violationsFrom = (edges: readonly ImportEdge[]): string[] =>
       someTarget(edge, isFlueRuntime)
     ) {
       reasons.push("browser-safe library imports the Flue runtime");
+    }
+    if (
+      edge.source.startsWith(questionKindsRoot) &&
+      someTarget(edge, isOutsideQuestionKinds)
+    ) {
+      reasons.push("question-kinds domain imports UI, wire or framework code");
     }
     if (isSourceModule(edge.source) && someTarget(edge, isTestModule)) {
       reasons.push("production source imports test code");
@@ -232,9 +252,44 @@ describe("Brunch import direction", () => {
         true,
       ),
     },
-  ])("classifies '$rule'", ({ edge, rule }) => {
+    ...(
+      [
+        ["zod", "node_modules/zod/index.js"],
+        ["react", "node_modules/react/index.js"],
+        ["ai", "node_modules/ai/dist/index.mjs"],
+        [
+          "../offer-answers",
+          `${libraryRoot}/src/conversation/offer-answers.ts`,
+        ],
+        [
+          "../../ui/chat/ai-assistant-panel",
+          `${libraryRoot}/src/ui/chat/ai-assistant-panel.tsx`,
+        ],
+      ] satisfies [string, string][]
+    ).map(([module, resolved]) => ({
+      rule: "question-kinds domain imports UI, wire or framework code",
+      edge: importEdge(`${questionKindsRoot}kinds.ts`, module, resolved),
+    })),
+  ])("classifies '$rule' ($edge.dependency.module)", ({ edge, rule }) => {
     expect(violationsFrom([edge])).toEqual([
       expect.stringContaining(`${rule}:`),
+    ]);
+  });
+
+  test("classifies the question-kinds domain importing Flue under both rules", () => {
+    expect(
+      violationsFrom([
+        importEdge(
+          `${questionKindsRoot}answers.ts`,
+          "@flue/runtime",
+          "node_modules/@flue/runtime/dist/index.mjs",
+        ),
+      ]),
+    ).toEqual([
+      expect.stringContaining("browser-safe library imports the Flue runtime:"),
+      expect.stringContaining(
+        "question-kinds domain imports UI, wire or framework code:",
+      ),
     ]);
   });
 

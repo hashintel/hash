@@ -1,5 +1,6 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
+import { createOfferAnswersTool } from "../../shared/offer-answers.ts";
 import { interviewBudgetInstruction } from "./interview-budget-instruction.ts";
 import system from "./prompts/system.md?raw";
 import eliciting from "./skills/eliciting/SKILL.md";
@@ -40,6 +41,7 @@ export const useGuidance = (
   useSkill(modelling);
   useSkill(petrinaut);
   for (const tool of createLedgerTools(readHistory)) useTool(tool);
+  useTool(createOfferAnswersTool(readHistory));
   return {
     system: system.trim(),
     createQueryBasisTool,

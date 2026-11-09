@@ -10,6 +10,7 @@ import {
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { offerAnswersToolDescription } from "../../shared/offer-answers.ts";
 import {
   assertBrowserExecutedToolConformance,
   assertPetrinautToolCatalogueConformance,
@@ -99,6 +100,7 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
     expect.arrayContaining([
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
+      brunchTools.offerAnswers,
       brunchTools.queryBasis,
       brunchTools.ping,
       "readNetOutline",
@@ -119,6 +121,9 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
     queryBasisToolDescription,
   );
+  expect(mounted.descriptions.get(brunchTools.offerAnswers)).toBe(
+    offerAnswersToolDescription,
+  );
 });
 
 test("a conversation without initial data mounts the guidance and Ledger without browser tools", async () => {
@@ -129,6 +134,7 @@ test("a conversation without initial data mounts the guidance and Ledger without
     [
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
+      brunchTools.offerAnswers,
       brunchTools.ping,
     ].sort(),
   );
@@ -241,6 +247,14 @@ test("the Brunch catalogue classifies every canonical tool", () => {
   expect(brunchToolCatalogue.map(({ name }) => name)).toContain(
     brunchTools.draftPetrinautExperiment,
   );
+  expect(
+    brunchToolCatalogue.find(({ name }) => name === brunchTools.offerAnswers),
+  ).toEqual({
+    name: brunchTools.offerAnswers,
+    definitionOwner: "brunch-app",
+    executionOwner: "brunch-app",
+    capability: "answer-offer",
+  });
   expect(() =>
     assertPetrinautToolCatalogueConformance([
       ...canonicalNames,

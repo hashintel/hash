@@ -13,6 +13,7 @@ import {
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
+import { brunchTools, foldCommits } from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -6441,6 +6442,114 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(requestMessages[1]?.at(-1)?.id).not.toBe(
       requestMessages[0]?.[0]?.id,
     );
+  });
+
+  test("a clicked answer is the message typing it sends, and the Ledger reads the same turn", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const offering = (id: string): UIMessageChunk[] => [
+      ...textChunks(`${id}-text`, "Does it stay counted as open?"),
+      {
+        type: "tool-input-available",
+        dynamic: true,
+        providerExecuted: true,
+        toolCallId: id,
+        toolName: brunchTools.offerAnswers,
+        input: {
+          questions: [
+            {
+              kind: "choose",
+              label: "Quarantined shipment",
+              options: ["Stays counted as open", "Drops out until released"],
+            },
+          ],
+        },
+      },
+      {
+        type: "tool-output-available",
+        dynamic: true,
+        providerExecuted: true,
+        toolCallId: id,
+        output: { offered: 1 },
+      },
+      { type: "finish-step" },
+    ];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(offering(`offer-${requestMessages.length}`)),
+        );
+      }),
+    };
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "We quarantine Flowbind on arrival.",
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Drops out until released" }),
+    );
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+    await screen.findByRole("button", { name: "Drops out until released" });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+      { target: { value: "Drops out until released" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(requestMessages).toHaveLength(3));
+
+    const clicked = requestMessages[1]?.at(-1);
+    const typed = requestMessages[2]?.at(-1);
+    expect(clicked).toEqual({
+      id: expect.any(String) as string,
+      role: "user",
+      parts: [{ type: "text", text: "Drops out until released" }],
+    });
+    expect({ ...clicked, id: undefined }).toEqual({ ...typed, id: undefined });
+
+    const turnOf = (message: PetrinautAiMessage | undefined) =>
+      foldCommits({
+        messages: [
+          ...(message ? [message] : []),
+          {
+            id: `commit-after-${message?.id}`,
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: brunchTools.ledgerCommit,
+                toolCallId: `commit-${message?.id}`,
+                state: "output-available",
+                input: {
+                  entries: [
+                    [
+                      "entity/create",
+                      {
+                        name: "Flowbind",
+                        kind: "resource",
+                        origin: "stated",
+                        status: "confirmed",
+                      },
+                    ],
+                  ],
+                },
+                output: {
+                  status: "recorded",
+                  commitId: `commit-${message?.id}`,
+                  revision: 1,
+                  ids: ["e1"],
+                },
+              },
+            ],
+          },
+        ],
+      }).state.turns;
+    expect(turnOf(clicked)).toEqual([
+      { id: clicked?.id, excerpt: "Drops out until released" },
+    ]);
+    expect(turnOf(typed)).toEqual([
+      { id: typed?.id, excerpt: "Drops out until released" },
+    ]);
   });
 
   test("can force a separate message while an interactive tool is pending", async () => {

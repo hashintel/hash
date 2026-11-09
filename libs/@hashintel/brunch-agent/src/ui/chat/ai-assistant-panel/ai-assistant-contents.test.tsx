@@ -5739,3 +5739,100 @@ describe("interactive ending", () => {
     expect(screen.getByText("Waiting for your decision")).not.toBeNull();
   });
 });
+
+describe("offered answers", () => {
+  const asking: PetrinautAiMessage = {
+    id: "asking",
+    role: "assistant",
+    parts: [
+      {
+        type: "text",
+        text: "When a shipment is quarantined, does it stay counted as open?",
+      },
+      {
+        type: "dynamic-tool",
+        toolName: "offer_answers",
+        toolCallId: "offer-1",
+        state: "output-available",
+        input: {
+          questions: [
+            {
+              kind: "choose",
+              label: "Quarantined shipment",
+              options: ["Stays counted as open", "Drops out until released"],
+            },
+          ],
+        },
+        output: { offered: 1 },
+      },
+      {
+        type: "dynamic-tool",
+        toolName: "ledger_commit",
+        toolCallId: "commit-1",
+        state: "output-available",
+        input: { entries: [], endTurn: true },
+        output: { status: "recorded" },
+      },
+    ],
+  };
+  const opening: PetrinautAiMessage = {
+    id: "opening",
+    role: "user",
+    parts: [{ type: "text", text: "We quarantine Flowbind on arrival." }],
+  };
+  const renderOffer = (
+    props: Partial<Parameters<typeof AiAssistantContents>[0]> = {},
+  ) => {
+    const onSendPrompt = vi.fn<(prompt: string) => void>();
+    const view = render(
+      <AiAssistantContents
+        input=""
+        messages={[opening, asking]}
+        onInputChange={noop}
+        onSendPrompt={onSendPrompt}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="ready"
+        {...props}
+      />,
+    );
+    return { ...view, onSendPrompt };
+  };
+  const card = () =>
+    screen.queryByRole("group", { name: "Quarantined shipment" });
+
+  test("shows beneath the latest reply and sends a click as the next message", () => {
+    const { onSendPrompt } = renderOffer();
+    expect(card()).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Drops out until released" }),
+    );
+    expect(onSendPrompt).toHaveBeenCalledExactlyOnceWith(
+      "Drops out until released",
+    );
+  });
+
+  test.each([
+    ["while Brunch is busy", { status: "streaming" as const }],
+    ["after the turn was stopped", { stopped: true }],
+    ["in Voice mode", { inputMode: "voice" as const }],
+    [
+      "once the person has answered",
+      {
+        messages: [
+          opening,
+          asking,
+          {
+            id: "answered",
+            role: "user" as const,
+            parts: [{ type: "text" as const, text: "It drops out." }],
+          },
+        ],
+      },
+    ],
+  ])("hides %s", (_name, props) => {
+    renderOffer(props);
+    expect(card()).toBeNull();
+  });
+});

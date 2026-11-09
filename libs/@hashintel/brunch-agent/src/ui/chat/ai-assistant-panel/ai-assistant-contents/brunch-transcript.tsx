@@ -6,6 +6,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 
 import { useAiAssistantEditorApi } from "../editor-api";
+import { AnswerOfferCard } from "./answer-offer-card";
 import {
   BrunchWorkFold,
   BrunchWorkPending,
@@ -169,6 +170,8 @@ type BrunchMessageProps = Omit<TranscriptProps, "messages"> & {
   active: boolean;
   canRetry: boolean;
   latestAnswer: boolean;
+  /** The latest response, settled, in Chat: the only place an offer shows. */
+  offersAnswers: boolean;
 };
 
 /**
@@ -197,6 +200,7 @@ const BrunchMessage = memo(
     stopped,
     canRetry,
     latestAnswer,
+    offersAnswers,
   }: BrunchMessageProps) => {
     const { notifications } = useAiAssistantEditorApi();
 
@@ -360,7 +364,16 @@ const BrunchMessage = memo(
         )}
         {role === "assistant" && !voice && writtenAnswer}
         {cards.map((item) =>
-          item.type === "experiment" ? (
+          item.type === "answers" ? (
+            offersAnswers &&
+            !wasStopped && (
+              <AnswerOfferCard
+                key={item.key}
+                offer={item.offer}
+                onSend={(text) => handlersRef.current.onSendAnswer?.(text)}
+              />
+            )
+          ) : item.type === "experiment" ? (
             <ExperimentCard
               key={item.key}
               part={item.part}
@@ -501,6 +514,7 @@ export const BrunchTranscript = ({
             busy && index === responseIndex && message.role === "assistant"
           }
           stopped={stopped && index === responseIndex}
+          offersAnswers={!busy && !voice && index === responseIndex}
         />
       ))}
       {busy && responseRole !== "assistant" && (

@@ -14,6 +14,7 @@ export type ToolExecutionOwner = "flue" | "brunch-app" | "petrinaut-website";
 export type ToolCapabilityClass =
   | "substrate"
   | "ledger"
+  | "answer-offer"
   | PetrinautToolCapability
   | "petrinaut-experiment-draft"
   | "explanation"
@@ -102,6 +103,12 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
     definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "ledger",
+  },
+  {
+    name: brunchTools.offerAnswers,
+    definitionOwner: "brunch-app",
+    executionOwner: "brunch-app",
+    capability: "answer-offer",
   },
   {
     name: brunchTools.queryBasis,
