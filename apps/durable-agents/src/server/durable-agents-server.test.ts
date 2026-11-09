@@ -2,8 +2,19 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai/models";
-import { fauxProvider } from "@earendil-works/pi-ai/providers/faux";
-import { createRegistry, MemoryStorage } from "@earendil-works/pi-durable";
+import {
+  fauxProvider,
+  type FauxResponseStep,
+} from "@earendil-works/pi-ai/providers/faux";
+import {
+  createRegistry,
+  defineExtension,
+  defineTool,
+  type Extension,
+  LiveDoc,
+  MemoryStorage,
+} from "@earendil-works/pi-durable";
+import { obj } from "@earendil-works/pi-schema";
 import {
   type ChatTransport,
   DefaultChatTransport,
@@ -16,11 +27,15 @@ import { afterEach, expect, test } from "vitest";
 import { fauxAssistantMessage, fauxToolCall } from "../../test/scripted-model";
 import {
   browserCallExtension,
+  BrowserCallsDoc,
   browserToolName,
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
-import { createDurableAgentsServer } from "./durable-agents-server";
+import {
+  createDurableAgentsServer,
+  type DurableAgentsServerLimits,
+} from "./durable-agents-server";
 
 import type { OwnedStorage } from "./conversation-storage";
 
@@ -38,32 +53,63 @@ afterEach(async () => {
 });
 
 /** Every conversation in memory: one process, which always owns what it opened. */
-const memoryStorage = async (): Promise<OwnedStorage> =>
-  Object.assign(new MemoryStorage(), { isOwner: async () => true });
+const memoryConversations = () => {
+  const stores = new Map<string, OwnedStorage>();
+  return {
+    openStorage: async (conversationId: string): Promise<OwnedStorage> => {
+      const existing = stores.get(conversationId);
+      if (existing !== undefined) return existing;
+      const storage = Object.assign(new MemoryStorage(), {
+        isOwner: async () => true,
+      });
+      stores.set(conversationId, storage);
+      return storage;
+    },
+    storageExists: async (conversationId: string) => stores.has(conversationId),
+    stores,
+  };
+};
+
+/** The model calls `setNetTitle`, then answers. */
+const browserToolTurn = (): FauxResponseStep[] => [
+  fauxAssistantMessage(
+    fauxToolCall(browserToolName, { title }, { id: toolCallId }),
+    { stopReason: "toolUse" },
+  ),
+  fauxAssistantMessage(answer),
+];
+
+type ChatOptions = {
+  readonly responses?: FauxResponseStep[];
+  readonly limits?: Partial<DurableAgentsServerLimits>;
+  /** Installed beside the browser-call extension. */
+  readonly extensions?: readonly Extension[];
+};
 
 /**
  * A server whose model calls `setNetTitle`, then answers, streamed slowly
  * enough to show partials, and AI SDK's own client, calling it in-process.
  */
-const openChat = () => {
+const openChat = ({
+  responses = browserToolTurn(),
+  limits,
+  extensions = [],
+}: ChatOptions = {}) => {
   const faux = fauxProvider({
     tokensPerSecond: 300,
     tokenSize: { min: 3, max: 5 },
   });
-  faux.setResponses([
-    fauxAssistantMessage(
-      fauxToolCall(browserToolName, { title }, { id: toolCallId }),
-      { stopReason: "toolUse" },
-    ),
-    fauxAssistantMessage(answer),
-  ]);
+  faux.setResponses(responses);
   const models = createModels();
   models.setProvider(faux.provider);
+  const storage = memoryConversations();
   const server = createDurableAgentsServer({
-    openStorage: memoryStorage,
+    openStorage: storage.openStorage,
+    storageExists: storage.storageExists,
     createRegistry: () => {
       const registry = createRegistry();
       registry.install(browserCallExtension);
+      for (const extension of extensions) registry.install(extension);
       return registry;
     },
     models,
@@ -72,6 +118,7 @@ const openChat = () => {
     },
     settings: { progress: { partialIntervalMs: 5, outputIntervalMs: 5 } },
     clientToolNames: new Set([browserToolName]),
+    limits,
     context,
   });
   servers.push(server);
@@ -83,7 +130,7 @@ const openChat = () => {
         init,
       ),
   });
-  return { server, transport, faux };
+  return { server, transport, faux, storage };
 };
 
 const userMessage: UIMessage = {
@@ -92,12 +139,15 @@ const userMessage: UIMessage = {
   parts: [{ type: "text", text: "Call the net Laundry line." }],
 };
 
-const send = (transport: ChatTransport<UIMessage>) =>
+const send = (
+  transport: ChatTransport<UIMessage>,
+  { id = chatId, message = userMessage } = {},
+) =>
   transport.sendMessages({
     trigger: "submit-message",
-    chatId,
+    chatId: id,
     messageId: undefined,
-    messages: [userMessage],
+    messages: [message],
     abortSignal: undefined,
   });
 
@@ -115,34 +165,55 @@ const recorder = (stream: ReadableStream<UIMessageChunk>) => {
       if (predicate(value)) return value;
     }
   };
-  return { chunks, until, drain: () => until(() => false) };
+  return {
+    chunks,
+    until,
+    drain: () => until(() => false),
+    cancel: () => reader.cancel(),
+  };
+};
+
+/** The conversation, which the test knows exists. */
+const openConversation = async (
+  server: ReturnType<typeof openChat>["server"],
+  id = chatId,
+) => {
+  const conversation = await server.conversations.acquire(id);
+  if (conversation === undefined) throw new Error(`No conversation ${id}.`);
+  return conversation;
+};
+
+/** Claim the call as the panel does after `onToolCall`, retrying until it is issued. */
+const claimAsBrowser = async (
+  server: ReturnType<typeof openChat>["server"],
+) => {
+  for (;;) {
+    // The tool task issues the call after the assistant entry commits; Brunch's panel retries its 404 too.
+    // eslint-disable-next-line no-await-in-loop
+    const { harness, root } = await openConversation(server);
+    // eslint-disable-next-line no-await-in-loop
+    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
+    if (claim !== undefined) return { harness, root, claim };
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(5);
+  }
 };
 
 /** What the panel's in-band browser call does after `onToolCall`, by direct host calls. */
 const actAsBrowser = async (server: ReturnType<typeof openChat>["server"]) => {
-  for (;;) {
-    // The tool task issues the call after the assistant entry commits; Brunch's panel retries its 404 too.
-    // eslint-disable-next-line no-await-in-loop
-    const { harness, root } = await server.conversations.acquire(chatId);
-    // eslint-disable-next-line no-await-in-loop
-    const claim = await claimBrowserCall(harness, root.id, toolCallId, context);
-    if (claim !== undefined) {
-      return finishBrowserCall(
-        harness,
-        {
-          conversationId: root.id,
-          toolCallId,
-          toolName: claim.toolName,
-          capability: claim.capability,
-          canonicalInput: claim.input,
-          output: browserOutput,
-        },
-        context,
-      );
-    }
-    // eslint-disable-next-line no-await-in-loop
-    await sleep(5);
-  }
+  const { harness, root, claim } = await claimAsBrowser(server);
+  return finishBrowserCall(
+    harness,
+    {
+      conversationId: root.id,
+      toolCallId,
+      toolName: claim.toolName,
+      capability: claim.capability,
+      canonicalInput: claim.input,
+      output: browserOutput,
+    },
+    context,
+  );
 };
 
 /** Consecutive text deltas folded, so the sequence does not depend on stream timing. */
@@ -394,7 +465,7 @@ test("re-sending a user message follows its first run instead of starting anothe
   expect(startMessageId(late.chunks)).toBe(startMessageId(first.chunks));
 
   expect(faux.state.callCount).toBe(2);
-  const { root } = await server.conversations.acquire(chatId);
+  const { root } = await openConversation(server);
   const entries = await root.entries(
     { order: "ascending" },
     100,
@@ -404,4 +475,184 @@ test("re-sending a user message follows its first run instead of starting anothe
   expect(
     entries.items.filter((entry) => entry.model?.[0]?.role === "user"),
   ).toHaveLength(1);
+});
+
+/** Poll `probe` until it returns a value other than `undefined`, or fail after `timeoutMs`. */
+const eventually = async <T>(
+  probe: () => Promise<T | undefined>,
+  timeoutMs = 5_000,
+): Promise<T> => {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    // Each probe depends on time passing since the one before.
+    // eslint-disable-next-line no-await-in-loop
+    const value = await probe();
+    if (value !== undefined) return value;
+    if (Date.now() > deadline) throw new Error("Timed out waiting.");
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(10);
+  }
+};
+
+const liveOf = async (
+  server: ReturnType<typeof openChat>["server"],
+  id = chatId,
+) => {
+  const { harness, root } = await openConversation(server, id);
+  return harness.snapshot(LiveDoc, root.id, context);
+};
+
+test("routes other than POST /chat find an unknown conversation absent and create nothing", async () => {
+  const { server, storage } = openChat();
+  const unknown = "never-posted";
+  const stream = await server.app.request(`${origin}/chat/${unknown}/stream`);
+  expect(stream.status).toBe(404);
+  const abort = await server.app.request(`${origin}/chat/${unknown}/abort`, {
+    method: "POST",
+  });
+  expect(abort.status).toBe(404);
+  expect(await server.conversations.acquire(unknown)).toBeUndefined();
+  expect(storage.stores.has(unknown)).toBe(false);
+});
+
+/** A server tool that answers at once: what a model calls round after round. */
+const pingTool = defineTool({
+  name: "ping",
+  description: "Answers pong.",
+  parameters: obj({}),
+  execute: async () => ({ output: [{ type: "text", text: "pong" }] }),
+});
+
+test("a run that keeps calling tools fails visibly at the 25-round default", async () => {
+  const rounds = 25;
+  const { server, transport, faux } = openChat({
+    responses: Array.from({ length: rounds + 5 }, (_, round) =>
+      fauxAssistantMessage(fauxToolCall("ping", {}, { id: `ping-${round}` }), {
+        stopReason: "toolUse",
+      }),
+    ),
+    extensions: [defineExtension({ name: "ping", tools: [pingTool] })],
+  });
+  const stream = recorder(await send(transport));
+  await stream.drain();
+
+  expect(faux.state.callCount).toBe(rounds);
+  const last = stream.chunks.at(-1);
+  expect(last?.type).toBe("error");
+  expect(last?.type === "error" ? last.errorText : undefined).toContain(
+    `${rounds} turns`,
+  );
+  expect(
+    stream.chunks.filter(({ type }) => type === "tool-output-available"),
+  ).toHaveLength(rounds);
+  const live = await liveOf(server);
+  expect(live?.run).toBeUndefined();
+  expect(live?.runFailure?.reason).toBe("turn_limit");
+});
+
+test("model requests beyond the slot limit wait for a slot, then all complete", async () => {
+  const limit = 2;
+  const conversations = 5;
+  let active = 0;
+  let peak = 0;
+  /** A response the provider takes a while over, counting requests in flight at the provider. */
+  const slowAnswer: FauxResponseStep = async () => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await sleep(40);
+    active -= 1;
+    return fauxAssistantMessage("Answered.");
+  };
+  const { server, transport, faux } = openChat({
+    responses: Array.from({ length: conversations }, () => slowAnswer),
+    limits: { maxConcurrentRequests: limit },
+  });
+
+  const streams = await Promise.all(
+    Array.from({ length: conversations }, async (_, index) =>
+      recorder(
+        await send(transport, {
+          id: `chat-slots-${index}`,
+          message: { ...userMessage, id: `user-slots-${index}` },
+        }),
+      ),
+    ),
+  );
+  // Submitted, not refused: the requests past the limit wait.
+  await eventually(async () =>
+    server.requestSlots.state().waiting === conversations - limit
+      ? true
+      : undefined,
+  );
+  await Promise.all(streams.map((stream) => stream.drain()));
+
+  for (const stream of streams)
+    expect(stream.chunks.at(-1)).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
+  expect(faux.state.callCount).toBe(conversations);
+  expect(peak).toBe(limit);
+  expect(server.requestSlots.state()).toEqual({ inFlight: 0, waiting: 0 });
+});
+
+const abandonedTurnMs = 150;
+
+test("an unwatched turn whose call nobody claimed is aborted after the timeout", async () => {
+  const { server, transport } = openChat({ limits: { abandonedTurnMs } });
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+  await stream.cancel();
+
+  const live = await eventually(async () => {
+    const current = await liveOf(server);
+    return current?.run === undefined ? current : undefined;
+  });
+  expect(live.runFailure?.reason).toBe("aborted");
+  const { harness, root } = await openConversation(server);
+  const calls = await harness.snapshot(BrowserCallsDoc, root.id, context);
+  expect(calls?.calls[toolCallId]?.status).toBe("stopped");
+});
+
+test("a claimed browser call keeps an unwatched turn alive", async () => {
+  const { server, transport } = openChat({ limits: { abandonedTurnMs } });
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+  const { harness, root, claim } = await claimAsBrowser(server);
+  await stream.cancel();
+
+  await sleep(abandonedTurnMs * 4);
+  expect((await liveOf(server))?.run).toBeDefined();
+
+  // The browser answers long after the timeout; the turn completes.
+  const reattached = recorder((await transport.reconnectToStream({ chatId }))!);
+  await finishBrowserCall(
+    harness,
+    {
+      conversationId: root.id,
+      toolCallId,
+      toolName: claim.toolName,
+      capability: claim.capability,
+      canonicalInput: claim.input,
+      output: browserOutput,
+    },
+    context,
+  );
+  await reattached.drain();
+  expect(reattached.chunks.at(-1)).toEqual({
+    type: "finish",
+    finishReason: "stop",
+  });
+});
+
+test("a watched turn outlives the timeout", async () => {
+  const { server, transport } = openChat({ limits: { abandonedTurnMs } });
+  const stream = recorder(await send(transport));
+  await stream.until(({ type }) => type === "tool-input-available");
+
+  await sleep(abandonedTurnMs * 4);
+  expect((await liveOf(server))?.run).toBeDefined();
+  await actAsBrowser(server);
+  await stream.drain();
+  await expectFlueTurn(stream.chunks);
 });
