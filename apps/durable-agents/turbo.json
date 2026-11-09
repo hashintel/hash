@@ -54,6 +54,20 @@
         "POSTGRES_PASSWORD"
       ]
     },
+    "probe:load": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": [
+        "BRUNCH_POSTGRES_HOST",
+        "BRUNCH_POSTGRES_PORT",
+        "BRUNCH_POSTGRES_USER",
+        "BRUNCH_POSTGRES_PASSWORD",
+        "BRUNCH_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
     "probe:ownership-unit": {
       "dependsOn": ["^build"],
       "cache": false,
