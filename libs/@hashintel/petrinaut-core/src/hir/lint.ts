@@ -90,7 +90,7 @@ function collectDeprecatedLengths(
     if (targetType?.kind !== "array") {
       return;
     }
-    if (targetType.placeCount && targetType.length !== undefined) {
+    if (targetType.inputPlace && targetType.length !== undefined) {
       diagnostics.push({
         code: "hir:deprecated-length",
         severity: "hint",

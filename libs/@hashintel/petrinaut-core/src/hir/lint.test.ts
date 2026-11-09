@@ -433,6 +433,20 @@ describe("input place counts", () => {
     expect(diagnostic?.message).toContain("`Gate`");
   });
 
+  it("keeps a token with a `count` attribute an ordinary record", () => {
+    const countAttributeBinding = {
+      ...poolBinding,
+      elements: [{ name: "count", type: "real" as const }],
+    };
+    expect(
+      codes(`return input.Pool[0][0] ? 1 : 0;`, {
+        ...lambdaContext,
+        inputPlaces: [countAttributeBinding],
+        inputSlots: [{ ...countAttributeBinding, slotStart: 0 }],
+      }),
+    ).toContainEqual(["hir:invalid-index", "error"]);
+  });
+
   it("records count reads without making the lambda token-dependent", () => {
     const { analysis } = lintHirUserCode(
       `return input.Pool.count * input.Gate.count;`,

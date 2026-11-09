@@ -77,6 +77,9 @@ export type HirType =
   | {
       kind: "record";
       fields: { name: string; type: HirType }[];
+      /** A transition input that delivers no token values: its one field
+       * is `count`, the live token count of its place. */
+      inputPlace?: true;
     }
   | {
       kind: "array";
@@ -85,7 +88,7 @@ export type HirType =
       length?: number;
       /** A transition input's token tuple, which also exposes `.count`: the
        * live token count of its place. */
-      placeCount?: true;
+      inputPlace?: true;
     }
   /** A 128-bit identifier attribute (surfaced to user code as `bigint`). */
   | { kind: "uuid" }

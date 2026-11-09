@@ -137,9 +137,13 @@ function transitionInputType(
               kind: "array",
               element: hirTokenRecordType(binding.elements),
               length: binding.tokenCount,
-              placeCount: true,
+              inputPlace: true,
             }
-          : { kind: "record", fields: [{ name: "count", type: HIR_TYPE_INT }] },
+          : {
+              kind: "record",
+              fields: [{ name: "count", type: HIR_TYPE_INT }],
+              inputPlace: true,
+            },
       };
     }),
   };
@@ -154,11 +158,7 @@ function countOnlyInputMessage(target: HirExpr): string {
 
 /** A transition input that exposes `.count` and nothing else. */
 function isCountOnlyInput(type: HirType): boolean {
-  return (
-    type.kind === "record" &&
-    type.fields.length === 1 &&
-    type.fields[0]!.name === "count"
-  );
+  return type.kind === "record" && type.inputPlace === true;
 }
 
 function isNumeric(type: HirType): boolean {
@@ -458,7 +458,7 @@ class Typechecker {
         const targetType = this.infer(expr.target, env);
         if (
           targetType.kind === "array" &&
-          targetType.placeCount &&
+          targetType.inputPlace &&
           expr.field === "count"
         ) {
           return HIR_TYPE_INT;
