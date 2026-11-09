@@ -27,6 +27,7 @@ import {
   fusionHolds,
   nextFusionName,
 } from "./composition/fusions";
+import { implementsInterface, isInterface } from "./composition/interfaces";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -51,6 +52,7 @@ import type {
   ComponentInstance,
   Fusion,
   FusionMember,
+  ID,
   InputArc,
   OutputArc,
   SDCPN,
@@ -515,6 +517,45 @@ const assertEndpointReferences = (
   }
 };
 
+/**
+ * Drops every reference to a removed subnet as an interface or as an
+ * implementation: `implements` lists, instances' own choices, and the
+ * document's defaults.
+ */
+const removeImplementationReferences = (sdcpn: SDCPN, subnetId: ID): void => {
+  for (const subnet of sdcpn.subnets ?? []) {
+    if (subnet.implements?.includes(subnetId)) {
+      const remaining = subnet.implements.filter((id) => id !== subnetId);
+      if (remaining.length > 0) {
+        subnet.implements = remaining;
+      } else {
+        delete subnet.implements;
+      }
+    }
+  }
+  for (const net of getAllMutableNets(sdcpn)) {
+    for (const instance of net.componentInstances ?? []) {
+      if (instance.implementation === subnetId) {
+        delete instance.implementation;
+      }
+    }
+  }
+  if (sdcpn.implementations) {
+    const document = sdcpn;
+    const remaining = Object.fromEntries(
+      Object.entries(sdcpn.implementations).filter(
+        ([interfaceId, implementationId]) =>
+          interfaceId !== subnetId && implementationId !== subnetId,
+      ),
+    );
+    if (Object.keys(remaining).length === 0) {
+      delete document.implementations;
+    } else {
+      document.implementations = remaining;
+    }
+  }
+};
+
 const assertComponentInstanceReferences = (
   sdcpn: SDCPN,
   instance: ComponentInstance,
@@ -524,6 +565,22 @@ const assertComponentInstanceReferences = (
     throw new Error(
       `Component instance \`${instance.name}\` references subnet ID \`${instance.subnetId}\` which does not exist.`,
     );
+  }
+
+  if (instance.implementation !== undefined) {
+    const implementation = sdcpn.subnets?.find(
+      ({ id }) => id === instance.implementation,
+    );
+    if (!implementation) {
+      throw new Error(
+        `Component instance \`${instance.name}\` names implementation ID \`${instance.implementation}\` which does not exist.`,
+      );
+    }
+    if (!implementsInterface(implementation, subnet.id)) {
+      throw new Error(
+        `Component instance \`${instance.name}\` names \`${implementation.name}\` as its implementation, but it does not implement \`${subnet.name}\`.`,
+      );
+    }
   }
 
   const subnetParameterIds = new Set(subnet.parameters.map(({ id }) => id));
@@ -1310,6 +1367,20 @@ export function createPetrinautActions(
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
             Object.assign(subnet, parsed.update);
+            // An absent flag or list is the field's unset state, so clearing
+            // one deletes it rather than storing `undefined`.
+            if (
+              "interface" in parsed.update &&
+              parsed.update.interface === undefined
+            ) {
+              delete subnet.interface;
+            }
+            if (
+              "implements" in parsed.update &&
+              parsed.update.implements === undefined
+            ) {
+              delete subnet.implements;
+            }
             // Without its fusions, which an update leaves alone: a loaded
             // document can hold one the mutations refuse, for the checks to
             // report.
@@ -1330,9 +1401,55 @@ export function createPetrinautActions(
           if (subnet.id === subnetId) {
             subnets.splice(index, 1);
             removeComponentInstancesReferencingSubnet(sdcpn, subnetId);
+            removeImplementationReferences(sdcpn, subnetId);
             break;
           }
         }
+      });
+    },
+    setImplementation(input) {
+      const parsed = mutationActionInputSchemas.setImplementation.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        const document = sdcpn;
+        const iface = sdcpn.subnets?.find(
+          ({ id }) => id === parsed.interfaceId,
+        );
+        if (!iface) {
+          throw new Error(
+            `Subnet ID \`${parsed.interfaceId}\` does not exist.`,
+          );
+        }
+        if (!isInterface(iface)) {
+          throw new Error(`Subnet \`${iface.name}\` is not an interface.`);
+        }
+        if (parsed.subnetId === null) {
+          const remaining = Object.fromEntries(
+            Object.entries(document.implementations ?? {}).filter(
+              ([interfaceId]) => interfaceId !== parsed.interfaceId,
+            ),
+          );
+          if (Object.keys(remaining).length === 0) {
+            delete document.implementations;
+          } else {
+            document.implementations = remaining;
+          }
+          return;
+        }
+        const implementation = sdcpn.subnets?.find(
+          ({ id }) => id === parsed.subnetId,
+        );
+        if (!implementation) {
+          throw new Error(`Subnet ID \`${parsed.subnetId}\` does not exist.`);
+        }
+        if (!implementsInterface(implementation, iface.id)) {
+          throw new Error(
+            `Subnet \`${implementation.name}\` does not implement \`${iface.name}\`.`,
+          );
+        }
+        document.implementations = {
+          ...document.implementations,
+          [parsed.interfaceId]: parsed.subnetId,
+        };
       });
     },
     addComponentInstance(input) {
@@ -1362,6 +1479,12 @@ export function createPetrinautActions(
               removeReferencesToComponentInstance(net, instance.id);
             }
             Object.assign(instance, parsed.update);
+            if (
+              "implementation" in parsed.update &&
+              parsed.update.implementation === undefined
+            ) {
+              delete instance.implementation;
+            }
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
             break;

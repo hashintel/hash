@@ -1,14 +1,23 @@
+import { use } from "react";
+
 import {
   Button,
   Form,
   Icon,
+  Select,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { validateEntityName } from "@hashintel/petrinaut-core";
+import {
+  describeUnboundInstance,
+  implementationsOf,
+  resolveImplementation,
+  validateEntityName,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { PropertyValue } from "../../../../../../components/property-value";
@@ -54,6 +63,45 @@ const ComponentInstanceMainContent: React.FC = () => {
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
+  const { petriNetDefinition } = use(SDCPNContext);
+
+  const subnetName = (subnetId: string | undefined) =>
+    (petriNetDefinition.subnets ?? []).find(
+      (candidate) => candidate.id === subnetId,
+    )?.name;
+  const binding = resolveImplementation(petriNetDefinition, instance);
+  const bindingDescription =
+    binding === null || binding.kind === "component"
+      ? null
+      : binding.kind === "bound"
+        ? binding.chosenBy === "instance"
+          ? `Runs ${binding.implementation.name}, chosen for this instance.`
+          : `Runs ${binding.implementation.name}, the document's default.`
+        : describeUnboundInstance(petriNetDefinition, binding, instance.name);
+  const documentDefaultName = subnetName(
+    subnet?.interface === true
+      ? petriNetDefinition.implementations?.[subnet.id]
+      : undefined,
+  );
+  const implementationItems =
+    subnet?.interface === true
+      ? implementationsOf(petriNetDefinition, subnet.id).map(
+          (implementation) => ({
+            value: implementation.id,
+            text: implementation.name,
+          }),
+        )
+      : [];
+  const chosenOutsideItems =
+    instance.implementation !== undefined &&
+    !implementationItems.some(({ value }) => value === instance.implementation)
+      ? [
+          {
+            value: instance.implementation,
+            text: subnetName(instance.implementation) ?? "Unknown subnet",
+          },
+        ]
+      : [];
 
   const nameField = useDraftField({
     sourceId: instance.id,
@@ -123,6 +171,50 @@ const ComponentInstanceMainContent: React.FC = () => {
             {subnet?.name ?? "The referenced subnet no longer exists."}
           </div>
         </Form.Field>
+
+        {subnet?.interface === true && (
+          <Form.Field
+            label="Implementation"
+            size="sm"
+            descriptionBottom={
+              bindingDescription === null ? undefined : (
+                <span className={hintTextStyle}>{bindingDescription}</span>
+              )
+            }
+          >
+            <Tooltip
+              content={readOnlyTooltip ?? ""}
+              disableTooltip={!isDisabled}
+            >
+              <Select
+                aria-label="Implementation"
+                required
+                size="sm"
+                value={instance.implementation ?? "default"}
+                disabled={isDisabled}
+                onChange={(value) =>
+                  updateComponentInstance({
+                    instanceId: instance.id,
+                    update: {
+                      implementation: value === "default" ? undefined : value,
+                    },
+                  })
+                }
+                items={[
+                  {
+                    value: "default",
+                    text:
+                      documentDefaultName === undefined
+                        ? "Document default (none)"
+                        : `Document default (${documentDefaultName})`,
+                  },
+                  ...implementationItems,
+                  ...chosenOutsideItems,
+                ]}
+              />
+            </Tooltip>
+          </Form.Field>
+        )}
       </Form.Section>
 
       {subnetParameters.length > 0 && (

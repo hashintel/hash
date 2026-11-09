@@ -81,19 +81,34 @@ export {
   resolveFusionMember,
 } from "./composition/fusions";
 export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
-export {
-  checkComposition,
-  checkFusion,
-  fusionCheckPass,
-} from "./composition/check-fusions";
+export { checkFusion, fusionCheckPass } from "./composition/check-fusions";
 export type {
-  CompositionProblem,
   FusionCheckPass,
   FusionProblem,
   FusionProblemCode,
   ProblemSeverity,
 } from "./composition/check-fusions";
 export type { PortProblem } from "./composition/check-ports";
+export { checkComposition } from "./composition/check-composition";
+export type { CompositionProblem } from "./composition/check-composition";
+export { checkInterfaces } from "./composition/check-interfaces";
+export type {
+  InterfaceProblem,
+  InterfaceProblemCode,
+} from "./composition/check-interfaces";
+export {
+  describeUnboundInstance,
+  implementationsOf,
+  implementsInterface,
+  isInterface,
+  mapInterfaceParameters,
+  mapInterfacePorts,
+  resolveImplementation,
+} from "./composition/interfaces";
+export type {
+  ImplementationBinding,
+  UnboundReason,
+} from "./composition/interfaces";
 export {
   describePortDirection,
   effectivePortDirection,

@@ -467,6 +467,14 @@ const cloneSubnet = (
     next.metadata = { ...subnet.metadata };
   }
 
+  if (subnet.interface) {
+    next.interface = true;
+  }
+
+  if (subnet.implements) {
+    next.implements = [...subnet.implements];
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
@@ -566,11 +574,16 @@ export const sanitizeSDCPNForExtensions = (
     next.fusions = cloneFusions(sdcpn.fusions);
   }
 
+  if (sdcpn.implementations) {
+    next.implementations = { ...sdcpn.implementations };
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
+    delete next.implementations;
   }
 
   return next;
