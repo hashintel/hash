@@ -9,8 +9,8 @@ use serde_json::value::RawValue;
 pub enum PayloadError {
     #[display("could not encode the payload")]
     Encode,
-    #[display("could not decode the payload")]
-    Decode,
+    #[display("could not decode the payload at line {line}, column {column}")]
+    Decode { line: usize, column: usize },
 }
 
 /// A run's input or a step's output, encoded as JSON.
@@ -34,11 +34,19 @@ impl Payload {
             .change_context(PayloadError::Encode)
     }
 
+    /// The error keeps only the position where decoding failed, since the JSON error quotes the
+    /// payload's values.
+    ///
     /// # Errors
     ///
     /// Returns [`PayloadError::Decode`] if the payload is not a `T`.
     pub fn decode<T: DeserializeOwned>(&self) -> Result<T, Report<PayloadError>> {
-        serde_json::from_str(self.0.get()).change_context(PayloadError::Decode)
+        serde_json::from_str(self.0.get()).map_err(|error| {
+            Report::new(PayloadError::Decode {
+                line: error.line(),
+                column: error.column(),
+            })
+        })
     }
 }
 
@@ -60,7 +68,7 @@ impl fmt::Debug for Payload {
 mod tests {
     use alloc::format;
 
-    use crate::Payload;
+    use crate::{Payload, PayloadError};
 
     #[test]
     fn payload_debug() {
@@ -69,6 +77,26 @@ mod tests {
             format!("{payload:?}"),
             "Payload(11 bytes)",
             "debug output should not include the JSON"
+        );
+    }
+
+    #[test]
+    fn payload_decode_error() {
+        let payload = Payload::encode(&"row value").expect("should encode a string");
+        let report = payload
+            .decode::<u32>()
+            .expect_err("a string should not decode as a number");
+
+        assert_eq!(
+            *report.current_context(),
+            PayloadError::Decode {
+                line: 1,
+                column: 11
+            }
+        );
+        assert!(
+            !format!("{report:?}").contains("row value"),
+            "the error should not include the payload's values"
         );
     }
 }
