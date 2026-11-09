@@ -16,7 +16,7 @@
  * - Turn 3, when at least three requests remain, asks for a Ledger commit.
  *
  * Requests are counted by `count-provider-requests.ts`, preloaded into the
- * server process: one ledger line per HTTP request to the provider API (Anthropic or OpenRouter),
+ * server process: one ledger line per HTTP request to the provider API (Anthropic, OpenAI or OpenRouter),
  * refusing any beyond the budget. The driver also aborts a turn the moment
  * the budget is spent. Afterwards it stops the server, reads the stored
  * conversation and drops the conversation's schema.
