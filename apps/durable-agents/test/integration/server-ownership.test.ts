@@ -22,6 +22,7 @@ import {
 import {
   conversationSchema,
   type OpenConversationStorage,
+  postgresConversationExists,
   postgresConversationStorage,
 } from "../../src/server/conversation-storage";
 import { createDurableAgentsServer } from "../../src/server/durable-agents-server";
@@ -54,6 +55,7 @@ const startInstance = (responses: FauxResponseStep[]) => {
   const { models, model, state } = scriptedModel(responses);
   const server = createDurableAgentsServer({
     openStorage,
+    storageExists: postgresConversationExists(pool),
     createRegistry: () => {
       const registry = createRegistry();
       registry.install(browserCallExtension);
@@ -196,6 +198,7 @@ test("conversations get their own schemas, and an instance that lost one reopens
       for (;;) {
         // eslint-disable-next-line no-await-in-loop
         const open = await instanceA.server.conversations.acquire(first);
+        if (open === undefined) throw new Error("No conversation.");
         const { harness, root } = open;
         // eslint-disable-next-line no-await-in-loop
         const claim = await claimBrowserCall(

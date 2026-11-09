@@ -2,8 +2,10 @@
  * Serve a fetch handler (a Hono app's `fetch`) on Node's `http`. The app
  * declares no Node adapter package, and its requests are small JSON bodies,
  * so a request body is read whole; a response body streams, chunk by chunk,
- * and a client that disconnects cancels it.
+ * no faster than the client reads it, and a client that disconnects cancels
+ * it.
  */
+import { once } from "node:events";
 import {
   createServer,
   type IncomingMessage,
@@ -58,6 +60,9 @@ const writeResponse = async (
     return;
   }
   const reader = response.body.getReader();
+  const closed = new Promise<void>((resolve) => {
+    outgoing.once("close", resolve);
+  });
   outgoing.on("close", () => {
     if (!outgoing.writableFinished) void reader.cancel().catch(() => {});
   });
@@ -66,7 +71,13 @@ const writeResponse = async (
     // eslint-disable-next-line no-await-in-loop
     const { done, value } = await reader.read();
     if (done) break;
-    outgoing.write(value);
+    // A full buffer waits for the client to drain it, so a slow client
+    // holds the stream back instead of the server buffering for it.
+    if (!outgoing.write(value) && !outgoing.destroyed) {
+      // eslint-disable-next-line no-await-in-loop
+      await Promise.race([once(outgoing, "drain"), closed]);
+    }
+    if (outgoing.destroyed) return;
   }
   outgoing.end();
 };

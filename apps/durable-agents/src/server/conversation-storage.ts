@@ -19,6 +19,11 @@ export type OpenConversationStorage = (
   conversationId: string,
 ) => Promise<OwnedStorage>;
 
+/** Whether a conversation's storage exists, creating nothing. */
+export type ConversationStorageExists = (
+  conversationId: string,
+) => Promise<boolean>;
+
 /**
  * The Postgres schema of a conversation: a fixed prefix and a hash of its
  * id, so any id gives a plain lowercase identifier within Postgres's 63
@@ -32,3 +37,13 @@ export const postgresConversationStorage =
   (pool: Pool): OpenConversationStorage =>
   (conversationId) =>
     openPostgresStorage({ pool, schema: conversationSchema(conversationId) });
+
+/** Whether a conversation's schema exists: one catalog read, without creating it. */
+export const postgresConversationExists =
+  (pool: Pool): ConversationStorageExists =>
+  async (conversationId) =>
+    (
+      await pool.query("SELECT 1 FROM pg_namespace WHERE nspname = $1", [
+        conversationSchema(conversationId),
+      ])
+    ).rowCount === 1;

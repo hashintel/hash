@@ -11,9 +11,13 @@
  *
  * A chat request carries its browser's document binding beside the messages
  * (`body: { binding }` on the transport, Brunch's `BrowserContext["binding"]`).
- * The conversation is bound to it on its first request that sends one, before
- * the submission, so the calls its turn issues are claimable by that binding;
- * a different binding later is refused with 409.
+ * Only a request with a valid binding creates a conversation, bound to it
+ * before the submission, so the calls its turn issues are claimable by that
+ * binding; a malformed binding is refused with 400, a different binding
+ * later with 409, and a request without one leaves its conversation as it
+ * is (and creates none: 404).
+ *
+ * Limits come from the environment (`limitsFromEnvironment`) unless given.
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -36,12 +40,17 @@ import {
 } from "../browser-call/browser-call";
 import { createBrowserCallRouter } from "../browser-call/browser-call-router";
 import { petrinautBrowserTools } from "../browser-call/petrinaut-browser-tools";
-import { postgresConversationStorage } from "./conversation-storage";
+import {
+  postgresConversationStorage,
+  postgresConversationExists,
+} from "./conversation-storage";
 import {
   type ChatRefusal,
   createDurableAgentsServer,
+  type DurableAgentsServerLimits,
   type OpenConversation,
 } from "./durable-agents-server";
+import { limitsFromEnvironment } from "./start-durable-agents-server/limits-from-environment";
 import { serveNode } from "./start-durable-agents-server/serve-node";
 
 import type { Pool } from "pg";
@@ -59,6 +68,8 @@ export type StartDurableAgentsServerOptions = {
   /** The model a new conversation's agent starts with. */
   readonly model: ModelRef;
   readonly settings?: HarnessOptions["settings"];
+  /** Any of the limits, over the environment's (`limitsFromEnvironment`). */
+  readonly limits?: Partial<DurableAgentsServerLimits>;
 };
 
 /** A chat body's `binding`: absent leaves the conversation as it is. */
@@ -74,6 +85,25 @@ const bindingOf = (
     : "invalid";
 };
 
+const malformedBinding: ChatRefusal = {
+  status: 400,
+  error: "Expected a Brunch document binding.",
+};
+
+/** A new conversation needs the binding its browser calls are issued to. */
+const admitNewConversation = (
+  body: Readonly<Record<string, unknown>>,
+): ChatRefusal | undefined => {
+  const binding = bindingOf(body);
+  if (binding === "invalid") return malformedBinding;
+  if (binding === undefined)
+    return {
+      status: 404,
+      error: "Unknown conversation; a document binding creates one.",
+    };
+  return undefined;
+};
+
 /** Bind an unbound conversation to the request's binding; refuse a different one. */
 const admitBinding = async (
   { harness, root }: OpenConversation,
@@ -81,8 +111,7 @@ const admitBinding = async (
 ): Promise<ChatRefusal | undefined> => {
   const binding = bindingOf(body);
   if (binding === undefined) return undefined;
-  if (binding === "invalid")
-    return { status: 400, error: "Expected a Brunch document binding." };
+  if (binding === "invalid") return malformedBinding;
   const bound = await harness.commit(async (tx) => {
     const current = (await tx.doc(BrowserBindingDoc, root.id)).binding;
     if (current === null) {
@@ -105,6 +134,7 @@ export const startDurableAgentsServer = async (
   const { agent, extensions } = createPetrinautAgent();
   const server = createDurableAgentsServer({
     openStorage: postgresConversationStorage(options.pool),
+    storageExists: postgresConversationExists(options.pool),
     createRegistry: () => {
       const registry = createRegistry();
       for (const extension of extensions) registry.install(extension);
@@ -114,13 +144,15 @@ export const startDurableAgentsServer = async (
     agent: { ...agent, model: options.model },
     settings: options.settings,
     clientToolNames: new Set(petrinautBrowserTools.map(({ name }) => name)),
+    admitNewConversation,
     admitChat: admitBinding,
+    limits: { ...limitsFromEnvironment(process.env), ...options.limits },
   });
   server.app.route(
     browserCallsPrefix,
     createBrowserCallRouter({
       resolveHarness: async (conversationId) =>
-        (await server.conversations.acquire(conversationId)).harness,
+        (await server.conversations.acquire(conversationId))?.harness,
     }),
   );
   const listener = await serveNode(server.app.fetch, {
