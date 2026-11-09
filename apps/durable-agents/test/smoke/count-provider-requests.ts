@@ -16,7 +16,11 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 
 const ledger = process.env.SMOKE_REQUEST_LEDGER;
 const budget = Number(process.env.SMOKE_REQUEST_BUDGET ?? 0);
-const providerHosts = new Set(["api.anthropic.com", "openrouter.ai"]);
+const providerHosts = new Set([
+  "api.anthropic.com",
+  "api.openai.com",
+  "openrouter.ai",
+]);
 
 const record = (path: string, entry: Record<string, unknown>) =>
   appendFileSync(
