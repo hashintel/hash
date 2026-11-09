@@ -13,6 +13,7 @@ import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+import type { WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -228,6 +229,7 @@ const LeaveFlowDialog = ({
  */
 export const TopBar = ({
   editorKey,
+  webId,
   editorState,
   onRename,
   saveStatus,
@@ -243,6 +245,8 @@ export const TopBar = ({
    * The rest of the bar keeps its state, e.g. the leave confirmation for a leave that the reload interrupted.
    */
   editorKey: number;
+  /** The web the flow is in. */
+  webId: WebId;
   editorState: FlowEditorState;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
@@ -302,6 +306,7 @@ export const TopBar = ({
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
         <RunFlow
           key={editorKey}
+          webId={webId}
           editorState={editorState}
           saveRefusedReason={saveRefusedReason}
           onRun={onRun}

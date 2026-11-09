@@ -13,6 +13,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { getFlowInputLabel, getKindLabel } from "../shared/value-display";
+import { EntityInput } from "./run-flow/entity-input";
 import {
   getFlowInputValues,
   getInitialFormValues,
@@ -20,6 +21,7 @@ import {
 } from "./run-flow/run-form";
 
 import type { RunFormValue, RunFormValues } from "./run-flow/run-form";
+import type { WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowInputDefinition,
@@ -30,11 +32,13 @@ const dialogText = css({ textStyle: "sm", color: "fg.body" });
 const dialogBody = css({ display: "flex", flexDirection: "column", gap: "4" });
 
 const InputControl = ({
+  webId,
   value,
   required,
   invalid,
   onChange,
 }: {
+  webId: WebId;
   value: RunFormValue;
   required: boolean;
   invalid: boolean;
@@ -79,15 +83,27 @@ const InputControl = ({
           onChange={(date) => onChange({ kind: "Date", value: date })}
         />
       );
+    case "EntityId":
+      return (
+        <EntityInput
+          webId={webId}
+          value={value}
+          required={required}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      );
   }
 };
 
 const InputField = ({
+  webId,
   input,
   value,
   missing,
   onChange,
 }: {
+  webId: WebId;
   input: FlowInputDefinition;
   /** Absent for an input the form can't take. */
   value: RunFormValue | undefined;
@@ -104,6 +120,7 @@ const InputField = ({
   >
     {value ? (
       <InputControl
+        webId={webId}
         value={value}
         required={input.required}
         invalid={missing}
@@ -118,12 +135,14 @@ const InputField = ({
 );
 
 const RunFlowDialog = ({
+  webId,
   name,
   inputs,
   saveRefusedReason,
   onRun,
   onClose,
 }: {
+  webId: WebId;
   name: string;
   inputs: FlowInputDefinition[];
   saveRefusedReason: string | null;
@@ -188,6 +207,7 @@ const RunFlowDialog = ({
               {inputs.map((input) => (
                 <InputField
                   key={input.name}
+                  webId={webId}
                   input={input}
                   value={values[input.name]}
                   missing={
@@ -226,10 +246,13 @@ const RunFlowDialog = ({
  * Runs the flow: a button that opens a form for the flow's inputs, disabled while the flow can't be run, saying why.
  */
 export const RunFlow = ({
+  webId,
   editorState,
   saveRefusedReason,
   onRun,
 }: {
+  /** The web the flow is in, which the run is in too, and whose entities the form offers. */
+  webId: WebId;
   editorState: FlowEditorState;
   /**
    * Why the API refused the latest edits, if it did. A prop rather than part of the error `onRun` throws, as the save
@@ -259,6 +282,7 @@ export const RunFlow = ({
       </Button>
       {dialogOpen && (
         <RunFlowDialog
+          webId={webId}
           name={editorState.flowDefinition.name}
           inputs={editorState.flowDefinition.inputs}
           saveRefusedReason={saveRefusedReason}
