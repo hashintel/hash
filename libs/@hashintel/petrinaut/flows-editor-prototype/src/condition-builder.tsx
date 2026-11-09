@@ -401,10 +401,17 @@ const filterFitStyle = css({
   "&[class] > [data-part='input-slot'] button > [data-part='trigger']": {
     paddingInline: "[0]",
   },
-  "&[class] > :last-child": {
-    borderStartEndRadius: "[0]",
-    borderEndEndRadius: "[0]",
-  },
+  // The DS Filter draws its outline on the segments and clips them with the root's radius, so the root and its last
+  // segment square off together, and only while the ⋮ shows; otherwise the clip cuts the square border's corners.
+  "[data-condition-row]:is(:hover, :focus-within) &[class], [data-condition-row]:has([aria-label='Condition options'][aria-expanded=true]) &[class]":
+    {
+      borderStartEndRadius: "[0]",
+      borderEndEndRadius: "[0]",
+      "& > :last-child": {
+        borderStartEndRadius: "[0]",
+        borderEndEndRadius: "[0]",
+      },
+    },
 });
 
 /** The ⋮ as the chip's last segment: the chip's hairline on three sides, its divider on the left. */
