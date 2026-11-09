@@ -29,7 +29,7 @@ export const meta = {
 
 export const sorters = [
   { name: "Name", sortKey: "name" },
-  { name: "Created at", sortKey: "createdAt" },
+  { name: "Created at", sortKey: "createdAt", defaultDirection: "DESCENDING" },
   { name: "Entity count", sortKey: "entityCount", sortIcon: "numeric" },
   { name: "Priority", sortKey: "priority", sortIcon: "generic" },
   { name: "Relevance", sortKey: "relevance", directionsAvailable: "none" },
@@ -360,6 +360,7 @@ The shape of `items` entries — one sortable field each.
   of={SorterDoc}
   defaults={{
     directionsAvailable: '"both"',
+    defaultDirection: "first of directionsAvailable",
     sortIcon: '"alphabetical"',
   }}
 />
