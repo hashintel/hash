@@ -65,7 +65,7 @@ fn failure_kind() -> impl Strategy<Value = FailureKind> {
 }
 
 fn policy() -> impl Strategy<Value = RetryPolicy> {
-    (1..=4_u32, 0..=60_u64, 0..=300_u64, 1..=3_u32).prop_map(
+    (1..=4_u32, 0..=60_u64, 0..=300_u64, 1..=3_u16).prop_map(
         |(max_attempts, initial_delay, max_delay, multiplier)| RetryPolicy {
             max_attempts: NonZero::new(max_attempts).expect("the range should exclude zero"),
             initial_delay: Duration::from_secs(initial_delay),
