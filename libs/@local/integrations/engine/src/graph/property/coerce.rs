@@ -54,18 +54,19 @@ const OFFSET: &[BorrowedFormatItem<'static>] =
 /// A value read from the start of some text, and the text after it.
 struct Prefix<'text, T> {
     value: T,
-    rest: &'text [u8],
+    rest: &'text str,
 }
 
 fn prefix<'text, T: TryFrom<Parsed>>(
-    text: &'text [u8],
+    text: &'text str,
     format: &[BorrowedFormatItem<'_>],
 ) -> Option<Prefix<'text, T>> {
     let mut parsed = Parsed::new();
-    let rest = parsed.parse_items(text, format).ok()?;
+    let rest = parsed.parse_items(text.as_bytes(), format).ok()?;
     Some(Prefix {
         value: T::try_from(parsed).ok()?,
-        rest,
+        // Formats read ASCII only, so the rest starts on a character boundary.
+        rest: text.get(text.len() - rest.len()..)?,
     })
 }
 
@@ -75,7 +76,7 @@ fn prefix<'text, T: TryFrom<Parsed>>(
 /// are rejected.
 fn date(value: &Value) -> Option<String> {
     let text = value::text(value)?;
-    let text = text.trim().as_bytes();
+    let text = text.trim();
     let date = prefix::<Date>(text, ISO_DATE)
         .or_else(|| {
             DATES
@@ -98,9 +99,9 @@ fn time(value: &Value) -> Option<String> {
     }
     let clock = [CLOCK, PACKED_CLOCK]
         .into_iter()
-        .find_map(|format| prefix::<Time>(text.as_bytes(), format))?;
+        .find_map(|format| prefix::<Time>(text, format))?;
     let offset = match clock.rest {
-        [] | [b'Z' | b'z'] => UtcOffset::UTC,
+        "" | "Z" | "z" => UtcOffset::UTC,
         rest => {
             prefix(rest, OFFSET)
                 .filter(|offset| offset.rest.is_empty())?

@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use std::collections::HashMap;
 
 use duckdb::types::{TimeUnit, Value};
@@ -75,11 +74,9 @@ impl TryFrom<&Value> for ColumnValue {
             | Value::Decimal(_) => {
                 PropertyValue::Number(as_number(value).ok_or(UnsupportedValue::NonFiniteNumber)?)
             }
-            Value::Date32(_) | Value::Timestamp(..) | Value::Time64(..) => PropertyValue::String(
-                text(value)
-                    .ok_or(UnsupportedValue::DateTimeOutOfRange)?
-                    .into_owned(),
-            ),
+            Value::Date32(_) | Value::Timestamp(..) | Value::Time64(..) => {
+                PropertyValue::String(text(value).ok_or(UnsupportedValue::DateTimeOutOfRange)?)
+            }
             Value::List(values) | Value::Array(values) => {
                 PropertyValue::Array(values.iter().map(convert).collect::<Result<_, _>>()?)
             }
@@ -94,7 +91,7 @@ impl TryFrom<&Value> for ColumnValue {
                     .iter()
                     .map(|(key, value)| {
                         let key = text(key).ok_or(UnsupportedValue::NonTextMapKey)?;
-                        Ok((key.into_owned(), convert(value)?))
+                        Ok((key, convert(value)?))
                     })
                     .collect::<Result<HashMap<_, _>, _>>()?,
             ),
@@ -152,34 +149,34 @@ pub(super) fn finite(number: Real) -> Option<Real> {
 /// Renders a row value as text for a conversion to read, or `None` if it is null or has no text
 /// form.
 ///
-/// Numbers render as JavaScript renders them, so `1.0` reads as `1`. Dates, times and timestamps
-/// render in ISO 8601.
-pub(super) fn text(value: &Value) -> Option<Cow<'_, str>> {
+/// Numbers render in their shortest form, so `1.0` reads as `1`. Dates, times and timestamps render
+/// in ISO 8601.
+pub(super) fn text(value: &Value) -> Option<String> {
     Some(match value {
-        Value::Text(text) | Value::Enum(text) => Cow::Borrowed(text.as_str()),
-        Value::Boolean(flag) => Cow::Borrowed(if *flag { "true" } else { "false" }),
-        Value::TinyInt(number) => Cow::Owned(number.to_string()),
-        Value::SmallInt(number) => Cow::Owned(number.to_string()),
-        Value::Int(number) => Cow::Owned(number.to_string()),
-        Value::BigInt(number) => Cow::Owned(number.to_string()),
-        Value::HugeInt(number) => Cow::Owned(number.to_string()),
-        Value::UTinyInt(number) => Cow::Owned(number.to_string()),
-        Value::USmallInt(number) => Cow::Owned(number.to_string()),
-        Value::UInt(number) => Cow::Owned(number.to_string()),
-        Value::UBigInt(number) => Cow::Owned(number.to_string()),
-        Value::UHugeInt(number) => Cow::Owned(number.to_string()),
-        Value::Float(number) => Cow::Owned(float_text(f64::from(*number))?),
-        Value::Double(number) => Cow::Owned(float_text(*number)?),
+        Value::Text(text) | Value::Enum(text) => text.clone(),
+        Value::Boolean(flag) => flag.to_string(),
+        Value::TinyInt(number) => number.to_string(),
+        Value::SmallInt(number) => number.to_string(),
+        Value::Int(number) => number.to_string(),
+        Value::BigInt(number) => number.to_string(),
+        Value::HugeInt(number) => number.to_string(),
+        Value::UTinyInt(number) => number.to_string(),
+        Value::USmallInt(number) => number.to_string(),
+        Value::UInt(number) => number.to_string(),
+        Value::UBigInt(number) => number.to_string(),
+        Value::UHugeInt(number) => number.to_string(),
+        Value::Float(number) => float_text(f64::from(*number))?,
+        Value::Double(number) => float_text(*number)?,
         // `Real` drops the zeros the column's scale pads with, so `8030.00` reads as `8030`.
-        Value::Decimal(_) => Cow::Owned(as_number(value)?.to_string()),
-        Value::Date32(days) => Cow::Owned(date(*days)?.to_string()),
-        Value::Timestamp(unit, value) => Cow::Owned(
+        Value::Decimal(_) => as_number(value)?.to_string(),
+        Value::Date32(days) => date(*days)?.to_string(),
+        Value::Timestamp(unit, value) => {
             OffsetDateTime::from_unix_timestamp_nanos(i128::from(unit.to_micros(*value)) * 1_000)
                 .ok()?
                 .format(&Rfc3339)
-                .ok()?,
-        ),
-        Value::Time64(unit, value) => Cow::Owned(time_of_day(*unit, *value)?),
+                .ok()?
+        }
+        Value::Time64(unit, value) => time_of_day(*unit, *value)?,
         Value::Union(value) => return text(value),
         Value::Null
         | Value::Blob(_)

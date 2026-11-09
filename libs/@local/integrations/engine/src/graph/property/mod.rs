@@ -14,7 +14,7 @@ mod coerce;
 mod tests;
 mod value;
 
-use alloc::{borrow::Cow, collections::BTreeMap};
+use alloc::collections::BTreeMap;
 use std::collections::HashMap;
 
 use duckdb::types::Value;
@@ -245,7 +245,7 @@ struct Unconverted {
 impl Unconverted {
     fn new(value: &Value, reason: impl Into<FailureReason>) -> Self {
         Self {
-            value: value::text(value).map(Cow::into_owned),
+            value: value::text(value),
             reason: reason.into(),
         }
     }
