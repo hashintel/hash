@@ -13,6 +13,7 @@ import {
 } from "../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
 import { BottomBarCollapseContext } from "./collapse-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CursorModeDropdown } from "./cursor-mode-dropdown";
@@ -23,9 +24,6 @@ import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
-
-/** Gap between the bar and whatever is below it, canvas or bottom panel. */
-const BOTTOM_BAR_GAP = 24;
 
 const glassPanelStyle = css({
   padding: "1",

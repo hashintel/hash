@@ -185,6 +185,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 
 The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
 
+When a panel opens or resizes, the canvas glides just far enough to keep the selection in view. Selecting a single item elsewhere, such as in the Entities tree, Search or Diagnostics, brings it into view the same way. Panning or zooming yourself stops the glide.
+
 Hold **Shift** and drag to draw a selection box in either mode. Hold **Cmd** (Ctrl on Windows/Linux) and click a node to add it to the selection, or click a selected node to remove it. A selection box drawn with Cmd held adds the nodes inside it to the selection instead of replacing it. Both work with Shift held as well, whichever key you press first.
 
 With a selection, you can:

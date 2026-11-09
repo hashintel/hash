@@ -1,20 +1,13 @@
 /**
  * Viewport arithmetic shared by every renderer: fitting the net into the
- * container and keeping selected nodes visible when panels open.
+ * container and bringing a selection into the part the panels leave visible.
  */
 
-import {
-  getBoundsOfCenteredBoxes,
-  getMinZoomForBounds,
-  ZOOM_PADDING,
-} from "@hashintel/petrinaut-core";
+import { getMinZoomForBounds, ZOOM_PADDING } from "@hashintel/petrinaut-core";
 
 import type { CanvasViewport } from "./canvas-renderer";
-import type { CanvasNode } from "./canvas-scene";
 import type { Rect, Size } from "@hashintel/petrinaut-core";
 
-/** The part of the scene a viewport shows, in scene coordinates. */
-export type VisibleSceneRect = Rect & { zoom: number };
 export type CanvasViewportInsets = {
   readonly left?: number;
   readonly right?: number;
@@ -86,66 +79,113 @@ export const getInitialViewport = (
   );
 };
 
-// returns the amount offscreen as a positive integer for each direction
-const getOffscreenAmount = (bounds: Rect, viewport: Rect) => ({
-  left: Math.max(viewport.x - bounds.x, 0),
-  right: Math.max(bounds.x + bounds.width - (viewport.x + viewport.width), 0),
-  top: Math.max(viewport.y - bounds.y, 0),
-  bottom: Math.max(
-    bounds.y + bounds.height - (viewport.y + viewport.height),
-    0,
-  ),
+/**
+ * The part of the container the canvas can be seen through, in screen
+ * pixels: the container less the panels covering its edges and a margin.
+ */
+const visibleArea = (
+  container: Size,
+  insets: CanvasViewportInsets,
+  margin: number,
+) => ({
+  left: (insets.left ?? 0) + margin,
+  top: (insets.top ?? 0) + margin,
+  right: container.width - (insets.right ?? 0) - margin,
+  bottom: container.height - (insets.bottom ?? 0) - margin,
 });
 
-const isOffscreen = (bounds: Rect, viewport: Rect) => {
-  const { left, right, top, bottom } = getOffscreenAmount(bounds, viewport);
-  return left > 0 || right > 0 || top > 0 || bottom > 0;
-};
-
-const canFitInViewport = (bounds: Rect, viewport: Rect) =>
-  bounds.width < viewport.width && bounds.height < viewport.height;
-
-/**
- * The scene-space translation that brings `nodes` back into `viewport`, or
- * undefined when they are already visible or too large to fit. To recenter an
- * arc, pass the nodes it connects: arcs have no stored geometry.
- */
-export const recenterToFitViewport = (
-  viewport: Rect,
-  nodes: Pick<CanvasNode, "position" | "width" | "height">[],
-) => {
-  const bounds = getBoundsOfCenteredBoxes(nodes);
-  if (!bounds) return;
-  if (!isOffscreen(bounds, viewport)) return;
-  if (!canFitInViewport(bounds, viewport)) return;
-
-  const { left, right, top, bottom } = getOffscreenAmount(bounds, viewport);
-  return { x: left > 0 ? left * -1 : right, y: top > 0 ? top * -1 : bottom };
-};
-
-/**
- * The scene rectangle visible through the viewport once the given overlay
- * insets (panels covering the canvas edges, in pixels) are removed.
- */
-export const getViewportRect = (
-  canvasSize: Size,
+/** Whether a scene point shows through the uncovered part of the container. */
+export const isScenePointInView = (
+  point: { x: number; y: number },
   viewport: CanvasViewport,
-  overlays: { left?: number; right?: number; top?: number; bottom?: number } = {
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-): VisibleSceneRect => {
-  return {
-    width:
-      (canvasSize.width - (overlays.left ?? 0) - (overlays.right ?? 0)) /
-      viewport.zoom,
-    height:
-      (canvasSize.height - (overlays.top ?? 0) - (overlays.bottom ?? 0)) /
-      viewport.zoom,
-    x: (-viewport.x + (overlays.left ?? 0)) / viewport.zoom,
-    y: (-viewport.y + (overlays.top ?? 0)) / viewport.zoom,
-    zoom: viewport.zoom,
-  };
+  container: Size,
+  insets: CanvasViewportInsets,
+): boolean => {
+  const area = visibleArea(container, insets, 0);
+  const screenX = point.x * viewport.zoom + viewport.x;
+  const screenY = point.y * viewport.zoom + viewport.y;
+  return (
+    screenX >= area.left &&
+    screenX <= area.right &&
+    screenY >= area.top &&
+    screenY <= area.bottom
+  );
+};
+
+/**
+ * The viewport that brings `bounds`, in scene coordinates, inside the part of
+ * the container the panels leave uncovered, keeping `margin` pixels clear.
+ *
+ * It pans as little as it can, so a node half under a panel slides just far
+ * enough out. Bounds too large for the area are centred in it and, when
+ * `zoomOut` allows, zoomed out to fit, never below `minZoom`; otherwise they
+ * are left alone. Null when the bounds are already in view.
+ */
+export const revealBounds = ({
+  bounds,
+  viewport,
+  container,
+  insets,
+  margin,
+  minZoom,
+  zoomOut,
+}: {
+  bounds: Rect;
+  viewport: CanvasViewport;
+  container: Size;
+  insets: CanvasViewportInsets;
+  margin: number;
+  minZoom: number;
+  zoomOut: boolean;
+}): CanvasViewport | null => {
+  const area = visibleArea(container, insets, margin);
+  const areaWidth = area.right - area.left;
+  const areaHeight = area.bottom - area.top;
+  if (areaWidth <= 0 || areaHeight <= 0) {
+    return null;
+  }
+
+  const fits =
+    bounds.width * viewport.zoom <= areaWidth &&
+    bounds.height * viewport.zoom <= areaHeight;
+
+  if (!fits) {
+    if (!zoomOut) {
+      return null;
+    }
+    const zoom = Math.max(
+      minZoom,
+      Math.min(
+        viewport.zoom,
+        areaWidth / Math.max(bounds.width, 1),
+        areaHeight / Math.max(bounds.height, 1),
+      ),
+    );
+    return {
+      zoom,
+      x: area.left + areaWidth / 2 - (bounds.x + bounds.width / 2) * zoom,
+      y: area.top + areaHeight / 2 - (bounds.y + bounds.height / 2) * zoom,
+    };
+  }
+
+  const left = bounds.x * viewport.zoom + viewport.x;
+  const top = bounds.y * viewport.zoom + viewport.y;
+  const right = left + bounds.width * viewport.zoom;
+  const bottom = top + bounds.height * viewport.zoom;
+  const dx =
+    left < area.left
+      ? area.left - left
+      : right > area.right
+        ? area.right - right
+        : 0;
+  const dy =
+    top < area.top
+      ? area.top - top
+      : bottom > area.bottom
+        ? area.bottom - bottom
+        : 0;
+
+  return dx === 0 && dy === 0
+    ? null
+    : { x: viewport.x + dx, y: viewport.y + dy, zoom: viewport.zoom };
 };

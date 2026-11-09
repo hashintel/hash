@@ -1,4 +1,4 @@
-import { useReactFlow, type ReactFlowInstance } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -9,6 +9,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useLatest } from "../../../../../../react/hooks/use-latest";
+import {
+  createViewportAnimator,
+  type ViewportAnimator,
+} from "../../../camera/viewport-animator";
 import { fitViewportToBounds, MAX_FIT_ZOOM } from "../../../canvas-viewport";
 
 import type {
@@ -18,52 +22,56 @@ import type {
 import type { CanvasViewportInsets } from "../../../canvas-viewport";
 import type { ArcEdgeType, NodeType } from "./react-flow-types";
 
-const viewportAnimationMs = 200;
 const frameRequestTimeoutMs = 1_500;
 
-const fitScene = async ({
-  bounds,
-  containerSize,
-  insets,
-  reactFlow,
-}: {
+type FrameState = {
   bounds: Rect | null;
   containerSize: Size;
   insets: CanvasViewportInsets;
-  reactFlow: ReactFlowInstance<NodeType, ArcEdgeType>;
-}): Promise<FrameSceneResult> => {
+};
+
+const fitScene = async (
+  { bounds, containerSize, insets }: FrameState,
+  camera: ViewportAnimator,
+): Promise<FrameSceneResult> => {
   if (!bounds || bounds.width === 0 || bounds.height === 0) {
     return "empty";
   }
-  const viewport = fitViewportToBounds(
-    bounds,
-    containerSize,
-    getMinZoomForBounds(bounds, containerSize),
-    MAX_FIT_ZOOM,
-    ZOOM_PADDING,
-    insets,
+  await camera.animateTo(
+    fitViewportToBounds(
+      bounds,
+      containerSize,
+      getMinZoomForBounds(bounds, containerSize),
+      MAX_FIT_ZOOM,
+      ZOOM_PADDING,
+      insets,
+    ),
   );
-  await reactFlow.setViewport(viewport, { duration: 250 });
   return "framed";
 };
 
-/** The canvas controller over React Flow's own viewport API. */
+/**
+ * The canvas controller over React Flow's viewport. Every programmatic move
+ * goes through one spring camera, so moves that overlap retarget each other
+ * instead of fighting, and a user gesture stops it via `camera.cancel`.
+ */
 export const useReactFlowController = ({
   bounds,
   containerSize,
   insets,
-}: {
-  bounds: Rect | null;
-  containerSize: Size;
-  insets: CanvasViewportInsets;
-}): CanvasController => {
+  animated,
+}: FrameState & {
+  /** Whether programmatic moves ease; off, they jump. */
+  animated: boolean;
+}): { controller: CanvasController; camera: ViewportAnimator } => {
   const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
   const [frameRequestGeneration, setFrameRequestGeneration] = useState(0);
-  const frameStateRef = useLatest({
+  const latestRef = useLatest({
     bounds,
     containerSize,
     insets,
     reactFlow,
+    animated,
   });
   const pendingFrameRequestsRef = useRef<
     {
@@ -72,19 +80,46 @@ export const useReactFlowController = ({
     }[]
   >([]);
 
+  // Created on first use, from inside the closures below, so render never
+  // reads the ref the camera reads.
+  const [camera] = useState<ViewportAnimator>(() => {
+    let animator: ViewportAnimator | null = null;
+    const get = () => {
+      if (!animator) {
+        animator = createViewportAnimator({
+          read: () => latestRef.current.reactFlow.getViewport(),
+          write: (viewport) => {
+            void latestRef.current.reactFlow.setViewport(viewport);
+          },
+          animated: () =>
+            latestRef.current.animated &&
+            !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        });
+      }
+      return animator;
+    };
+    return {
+      animateTo: (target) => get().animateTo(target),
+      cancel: () => animator?.cancel(),
+      isAnimating: () => animator?.isAnimating() ?? false,
+    };
+  });
+
+  useEffect(() => () => camera.cancel(), [camera]);
+
   useEffect(() => {
     if (pendingFrameRequestsRef.current.length === 0) {
       return;
     }
     const requests = pendingFrameRequestsRef.current;
     pendingFrameRequestsRef.current = [];
-    void fitScene(frameStateRef.current).then((result) => {
+    void fitScene(latestRef.current, camera).then((result) => {
       for (const request of requests) {
         clearTimeout(request.timeout);
         request.resolve(result);
       }
     });
-  }, [frameRequestGeneration, frameStateRef]);
+  }, [frameRequestGeneration, latestRef, camera]);
 
   useEffect(
     () => () => {
@@ -98,20 +133,24 @@ export const useReactFlowController = ({
   );
 
   const [controller] = useState<CanvasController>(() => ({
-    getViewport: () => frameStateRef.current.reactFlow.getViewport(),
+    getViewport: () => latestRef.current.reactFlow.getViewport(),
     setViewport: (viewport, options) => {
-      void frameStateRef.current.reactFlow.setViewport(
-        viewport,
-        options?.animate ? { duration: viewportAnimationMs } : undefined,
-      );
+      if (options?.animate) {
+        void camera.animateTo(viewport);
+        return;
+      }
+      camera.cancel();
+      void latestRef.current.reactFlow.setViewport(viewport);
     },
     zoomIn: () => {
-      void frameStateRef.current.reactFlow.zoomIn();
+      camera.cancel();
+      void latestRef.current.reactFlow.zoomIn();
     },
     zoomOut: () => {
-      void frameStateRef.current.reactFlow.zoomOut();
+      camera.cancel();
+      void latestRef.current.reactFlow.zoomOut();
     },
-    fitView: () => fitScene(frameStateRef.current),
+    fitView: () => fitScene(latestRef.current, camera),
     frameSceneAfterRender: () =>
       new Promise<FrameSceneResult>((resolve) => {
         const request = {
@@ -128,10 +167,10 @@ export const useReactFlowController = ({
         setFrameRequestGeneration((generation) => generation + 1);
       }),
     screenToScene: (point) =>
-      frameStateRef.current.reactFlow.screenToFlowPosition(point),
+      latestRef.current.reactFlow.screenToFlowPosition(point),
     sceneToScreen: (point) =>
-      frameStateRef.current.reactFlow.flowToScreenPosition(point),
+      latestRef.current.reactFlow.flowToScreenPosition(point),
   }));
 
-  return controller;
+  return { controller, camera };
 };

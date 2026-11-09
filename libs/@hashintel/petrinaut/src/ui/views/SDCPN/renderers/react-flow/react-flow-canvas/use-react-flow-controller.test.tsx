@@ -30,6 +30,7 @@ const defaultProps = {
   bounds: { x: 0, y: 0, width: 100, height: 100 },
   containerSize: { width: 1000, height: 600 },
   insets: { left: 100, right: 300, bottom: 100 },
+  animated: false,
 };
 
 describe("useReactFlowController", () => {
@@ -50,7 +51,8 @@ describe("useReactFlowController", () => {
 
     let resultPromise: Promise<unknown> | undefined;
     await act(async () => {
-      resultPromise = rendered.result.current.frameSceneAfterRender();
+      resultPromise =
+        rendered.result.current.controller.frameSceneAfterRender();
       rendered.rerender({
         bounds: { x: 400, y: 200, width: 200, height: 100 },
       });
@@ -72,13 +74,13 @@ describe("useReactFlowController", () => {
         }),
       { initialProps: { bounds: defaultProps.bounds } },
     );
-    const registeredController = rendered.result.current;
+    const registeredController = rendered.result.current.controller;
 
     rendered.rerender({
       bounds: { x: 700, y: 300, width: 250, height: 150 },
     });
 
-    expect(rendered.result.current).toBe(registeredController);
+    expect(rendered.result.current.controller).toBe(registeredController);
     await act(async () => {
       await registeredController.fitView();
     });
@@ -93,20 +95,24 @@ describe("useReactFlowController", () => {
         bounds: null,
       }),
     );
-    await expect(result.current.fitView()).resolves.toBe("empty");
+    await expect(result.current.controller.fitView()).resolves.toBe("empty");
     expect(setViewport).not.toHaveBeenCalled();
   });
 
-  it("bounds an unresolved renderer move", async () => {
+  it("bounds a move whose frames never come, as in a hidden tab", async () => {
     vi.useFakeTimers();
-    setViewport.mockReturnValue(new Promise<boolean>(() => {}));
-    const { result } = renderHook(() => useReactFlowController(defaultProps));
+    vi.stubGlobal("requestAnimationFrame", () => 0);
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const { result } = renderHook(() =>
+      useReactFlowController({ ...defaultProps, animated: true }),
+    );
 
-    const frame = result.current.frameSceneAfterRender();
+    const frame = result.current.controller.frameSceneAfterRender();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_500);
     });
     await expect(frame).resolves.toBe("timed-out");
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 });

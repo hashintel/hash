@@ -3,82 +3,82 @@ import { describe, expect, it } from "vitest";
 import {
   fitViewportToBounds,
   getInitialViewport,
+  isScenePointInView,
   MAX_FIT_ZOOM,
-  recenterToFitViewport,
+  revealBounds,
 } from "./canvas-viewport";
 
-/** Nodes are positioned by their centre point. */
-const makeNode = (
-  centerX: number,
-  centerY: number,
-  width: number,
-  height: number,
-) => ({
-  position: { x: centerX, y: centerY },
-  width,
-  height,
+const canvasSize = { width: 1000, height: 600 };
+const insets = { left: 200, right: 300, bottom: 100 };
+const atOrigin = { x: 0, y: 0, zoom: 1 };
+
+describe("revealBounds", () => {
+  const reveal = (bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) =>
+    revealBounds({
+      bounds,
+      viewport: atOrigin,
+      container: canvasSize,
+      insets,
+      margin: 20,
+      minZoom: 0.1,
+      zoomOut: true,
+    });
+
+  it("leaves bounds that already show alone", () => {
+    expect(reveal({ x: 300, y: 100, width: 100, height: 80 })).toBeNull();
+  });
+
+  it("pans a node under the right panel just far enough out", () => {
+    // The visible area ends at 1000 - 300 - 20 = 680.
+    expect(reveal({ x: 650, y: 100, width: 100, height: 80 })).toEqual({
+      x: -70,
+      y: 0,
+      zoom: 1,
+    });
+  });
+
+  it("pans a node under the left panel and the bottom panel", () => {
+    expect(reveal({ x: 100, y: 450, width: 100, height: 80 })).toEqual({
+      x: 120,
+      y: -50,
+      zoom: 1,
+    });
+  });
+
+  it("zooms out to fit bounds larger than the visible area", () => {
+    const result = reveal({ x: 0, y: 0, width: 1000, height: 200 });
+    // The visible area is 460 wide: the zoom fits 1000 scene pixels in it.
+    expect(result?.zoom).toBeCloseTo(0.46);
+  });
+
+  it("leaves bounds too large to fit alone unless it may zoom out", () => {
+    expect(
+      revealBounds({
+        bounds: { x: 0, y: 0, width: 1000, height: 200 },
+        viewport: atOrigin,
+        container: canvasSize,
+        insets,
+        margin: 20,
+        minZoom: 0.1,
+        zoomOut: false,
+      }),
+    ).toBeNull();
+  });
 });
 
-const viewport = { x: 0, y: 0, width: 500, height: 400 };
-
-describe("recenterToFitViewport", () => {
-  it("returns undefined when nodes are fully inside viewport", () => {
-    const nodes = [makeNode(100, 90, 100, 80)];
-    expect(recenterToFitViewport(viewport, nodes)).toBeUndefined();
-  });
-
-  it("returns undefined when there are no nodes", () => {
-    expect(recenterToFitViewport(viewport, [])).toBeUndefined();
-  });
-
-  it("returns adjustment when nodes overflow to the right", () => {
-    const nodes = [makeNode(500, 90, 100, 80)];
-    // Node right edge is 550, viewport right is 500 → overflow right by 50
-    const result = recenterToFitViewport(viewport, nodes);
-    expect(result).toBeDefined();
-    expect(result!.x).toBe(50);
-    expect(result!.y).toBe(0);
-  });
-
-  it("returns adjustment when nodes overflow to the left", () => {
-    const nodes = [makeNode(-20, 90, 20, 80)];
-    // Node left edge is -30, viewport left is 0 → overflow left by 30
-    const result = recenterToFitViewport(viewport, nodes);
-    expect(result).toBeDefined();
-    expect(result!.x).toBe(-30);
-    expect(result!.y).toBe(0);
-  });
-
-  it("returns adjustment when nodes overflow the bottom", () => {
-    const nodes = [makeNode(90, 400, 80, 100)];
-    // Node bottom edge is 450, viewport bottom is 400 → overflow bottom by 50
-    const result = recenterToFitViewport(viewport, nodes);
-    expect(result).toBeDefined();
-    expect(result!.x).toBe(0);
-    expect(result!.y).toBe(50);
-  });
-
-  it("returns adjustment when nodes overflow the top", () => {
-    const nodes = [makeNode(90, -30, 80, 20)];
-    // Node top edge is -40, viewport top is 0 → overflow top by 40
-    const result = recenterToFitViewport(viewport, nodes);
-    expect(result).toBeDefined();
-    expect(result!.x).toBe(0);
-    expect(result!.y).toBe(-40);
-  });
-
-  it("returns adjustment for diagonal overflow (right + bottom)", () => {
-    const nodes = [makeNode(470, 380, 100, 100)];
-    // Right overflow: 520-500=20, Bottom overflow: 430-400=30
-    const result = recenterToFitViewport(viewport, nodes);
-    expect(result).toBeDefined();
-    expect(result!.x).toBe(20);
-    expect(result!.y).toBe(30);
-  });
-
-  it("returns undefined when the nodes cannot fit in the viewport", () => {
-    const nodes = [makeNode(0, 0, 100, 100), makeNode(1000, 1000, 100, 100)];
-    expect(recenterToFitViewport(viewport, nodes)).toBeUndefined();
+describe("isScenePointInView", () => {
+  it("counts a point under a panel as out of view", () => {
+    expect(
+      isScenePointInView({ x: 100, y: 100 }, atOrigin, canvasSize, insets),
+    ).toBe(false);
+    expect(
+      isScenePointInView({ x: 400, y: 100 }, atOrigin, canvasSize, insets),
+    ).toBe(true);
   });
 });
 
