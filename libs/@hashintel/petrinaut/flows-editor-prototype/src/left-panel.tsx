@@ -630,9 +630,7 @@ const Library = () => {
                     </span>
                     <span className={labelStyle}>{category}</span>
                     <span className={countStyle}>
-                      {entries.length === 1
-                        ? "1 step"
-                        : `${entries.length} steps`}
+                      {entries.length}
                     </span>
                   </button>
                   {expanded
