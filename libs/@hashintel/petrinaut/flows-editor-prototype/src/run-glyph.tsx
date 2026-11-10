@@ -920,13 +920,19 @@ export const RunBar = ({
  *   lost" among the ports on the right); needs review pings.
  * p4 · By the title: the glyph inline after the step name, still; the bar's shimmer is the only motion.
  */
-export type CardMarkTake = "default" | "p1" | "p2" | "p3" | "p4";
+export type CardMarkTake = "bar" | "default" | "p1" | "p2" | "p3" | "p4";
 
+/**
+ * Bar only is the default (inbox status-colour-steps, Aakarsh 10 Nov, provisional): no status icon on the card, the
+ * bottom bar carries the state. `?cardmark=mark` brings back the 12 px glyph described above; p1–p4 as before.
+ */
 export const cardMarkTake: CardMarkTake = (() => {
   const value = new URLSearchParams(globalThis.location.search).get("cardmark");
   return value === "p1" || value === "p2" || value === "p3" || value === "p4"
     ? value
-    : "default";
+    : value === "mark"
+      ? "default"
+      : "bar";
 })();
 
 const cardMarkStates = new Set<StepState>([
@@ -998,6 +1004,7 @@ export const CardMark = ({
   const partlyFailed =
     state === "doneWithFailures" && (progress?.failed ?? 0) > 0;
   if (
+    cardMarkTake === "bar" ||
     !cardMarkStates.has(state) ||
     (state === "doneWithFailures" && !partlyFailed)
   ) {

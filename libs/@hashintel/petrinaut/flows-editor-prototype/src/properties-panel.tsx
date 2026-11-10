@@ -137,10 +137,13 @@ const panelStyle = css({
  */
 const sizeQuery = new URLSearchParams(globalThis.location.search);
 const fieldSizeTake = sizeQuery.get("fieldsize") === "28" ? "28" : undefined;
+// 14 is the default (inbox panel-label-size, decided 9 Nov); `?labelsize=old` is the 13 px labels from before.
 const labelSizeTake = ((value) =>
-  value === "12" || value === "13" || value === "14" ? value : undefined)(
-  sizeQuery.get("labelsize"),
-);
+  value === "old"
+    ? undefined
+    : value === "12" || value === "13"
+      ? value
+      : "14")(sizeQuery.get("labelsize"));
 
 const sizeTakeStyle = css({
   // Hand-built triggers (`selectTriggerStyle`) and list fields (`listFieldStyle`) at 32 px; the DS Select, lifted to 32

@@ -18,7 +18,8 @@ export type HighlightLook = "ring" | "dim" | "both";
 
 export const highlightLook = (query: URLSearchParams): HighlightLook => {
   const look = query.get("highlightlook");
-  return look === "dim" || look === "both" ? look : "ring";
+  // Both is the default (inbox canvas-highlight, decided 10 Nov); `?highlightlook=ring|dim` shows one alone.
+  return look === "dim" || look === "ring" ? look : "both";
 };
 
 export type Highlight = { ids: string[]; look: HighlightLook };

@@ -43,7 +43,8 @@ export const triggerNoneLayout: "popover" | "toast" | "banner" =
       : "popover";
 export const triggerDistinctTake = takeOf("triggerdistinct", 5);
 export const triggerScaleTake = takeOf("triggerscale", 4);
-export const triggerPanelAtScale = query.get("triggerscale") === "panel";
+/** The panel as drawn is the default (inbox triggers-panel-scale, approved 10 Nov); `?triggerscale=old` is P3·B. */
+export const triggerPanelAtScale = query.get("triggerscale") !== "old";
 export const triggerStateOff = query.get("triggerstate") === "off";
 
 export type TriggerCount = "small" | "100" | "1000";

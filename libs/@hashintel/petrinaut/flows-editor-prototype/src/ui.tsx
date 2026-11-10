@@ -528,7 +528,8 @@ export const panelKindTake = (() => {
   const value = new URLSearchParams(globalThis.location.search).get(
     "panelkind",
   );
-  return value === "k2" || value === "k3" || value === "k4" ? value : "k1";
+  // k3 is the default (inbox panel-header-kind, decided 10 Nov); `?panelkind=k1` is the old "Action · description".
+  return value === "k1" || value === "k2" || value === "k4" ? value : "k3";
 })();
 
 /** The P-a group an icon's tile takes its hue from (Documents, Entities, Messages, People, Flow control). */

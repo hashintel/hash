@@ -86,8 +86,10 @@ export const useStructureUsedIn = (): StructureUsedIn | null => {
 export type RestUsedIn = "r1" | "r2" | "r3";
 
 export const useRestUsedIn = (): RestUsedIn | null => {
+  // r1 is the default: the label "Used in" and, opened, S1 + U1a (decided 10 Nov; at rest still open).
+  // `?usedin=t1` (or any other usedin take) leaves it.
   const value = useLocation().query.get("usedin");
-  return value === "r1" || value === "r2" || value === "r3" ? value : null;
+  return value === "r2" || value === "r3" ? value : value === "r1" || value === null ? "r1" : null;
 };
 
 /** The one "used here" icon: an outbound arrow; ?usedicon=pipe tries the input pipe instead. */
