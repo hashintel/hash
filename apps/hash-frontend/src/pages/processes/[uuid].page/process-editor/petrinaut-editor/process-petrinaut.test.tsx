@@ -9,14 +9,27 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 
 import { ProcessPetrinaut } from "./process-petrinaut";
 
-import type { SaveNetForAgent } from "./brunch-hash-save";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { SaveHashNetForAgent } from "@hashintel/brunch-agent";
 import type {
   BrunchAssistantHost,
   ReadBrunchDocumentSaveState,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
+
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
 
 const observed = vi.hoisted(() => ({
   /** The plugins each editor render got. */
@@ -59,7 +72,10 @@ vi.mock("@hashintel/petrinaut", () => ({
   },
 }));
 
-vi.mock("@hashintel/brunch-agent/ui", () => ({
+vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
+  createHashPetrinautSaveTool: (
+    await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
+  ).createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
   useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
@@ -120,7 +136,7 @@ const readSaveState: ReadBrunchDocumentSaveState = () => ({
   lastSavedTime: null,
   refusal: null,
 });
-const saveNetForAgent: SaveNetForAgent = () =>
+const saveNetForAgent: SaveHashNetForAgent = () =>
   Promise.reject(new Error("These tests never save"));
 
 const renderEditor = (props: {

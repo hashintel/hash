@@ -79,5 +79,10 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";
+export {
+  zHashNetSaveInput,
+  type HashNetSaveOutcome,
+  type SaveHashNetForAgent,
+} from "./petrinaut/hash-net-save";
 export * from "./petrinaut/interview-budget-levels";
 export * from "./shared/voice-settings";

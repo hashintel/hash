@@ -30,20 +30,20 @@ import {
   claimBrowserCall,
   failBrowserCall,
   settleBrowserCall,
-} from "../../shared/conversation/browser-call-rendezvous.ts";
-import { hashSaveUnconfirmedNote } from "./tools/hash-save.ts";
+} from "../../../shared/conversation/browser-call-rendezvous.ts";
+import { hashSaveUnconfirmedNote } from "./save-net.ts";
 
 // Only the Flue build packages skills; the save doesn't depend on their content.
-vi.mock("./skills/eliciting/SKILL.md", () => ({
+vi.mock("../skills/eliciting/SKILL.md", () => ({
   default: { name: "eliciting", description: "Eliciting.", instructions: "." },
 }));
-vi.mock("./skills/modelling/SKILL.md", () => ({
+vi.mock("../skills/modelling/SKILL.md", () => ({
   default: { name: "modelling", description: "Modelling.", instructions: "." },
 }));
-vi.mock("./skills/petrinaut/SKILL.md", () => ({
+vi.mock("../skills/petrinaut/SKILL.md", () => ({
   default: { name: "petrinaut", description: "Petrinaut.", instructions: "." },
 }));
-vi.mock("./skills/hash-graph/SKILL.md", () => ({
+vi.mock("../skills/hash-graph/SKILL.md", () => ({
   default: {
     name: "hash-graph",
     description: "HASH graph.",
@@ -78,7 +78,7 @@ let stopRuntime: () => Promise<void> = async () => {};
 beforeAll(async () => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
   vi.stubEnv("BRUNCH_CHAT_THINKING", "");
-  const { HashAgent } = await import("./agent.ts");
+  const { HashAgent } = await import("../agent.ts");
   hashAgent = HashAgent;
   const flue = await start({ agents: [HashAgent], providers: [faux.provider] });
   stopRuntime = () => flue.stop();

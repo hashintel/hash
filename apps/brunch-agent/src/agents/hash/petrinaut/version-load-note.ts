@@ -69,7 +69,7 @@ const withNote = (
  * entries alone: a Save never sets a load, and a host that sends none gets
  * the wrapped projection unchanged.
  */
-export const withVersionLoadNotes =
+export const withPetrinautVersionLoadNotes =
   (projection: ContextProjection): ContextProjection =>
   (entries) => {
     const projected = projection(entries);

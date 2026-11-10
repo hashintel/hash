@@ -12,6 +12,7 @@ import {
 } from "@testing-library/react";
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
@@ -39,6 +40,7 @@ import {
   getVoiceToolCallIds,
   safelyAddToolOutput,
 } from "./ai-assistant-panel";
+import { definePetrinautAiAutomaticTool } from "./ai-automatic-tool";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
@@ -6983,7 +6985,7 @@ describe("AiAssistantPanel host interactive tools", () => {
                     dynamic: true,
                     toolCallId: "automatic-call-1",
                     toolName: "hostAutomatic",
-                    input: { value: 2 },
+                    input: { value: "2" },
                   },
                 ]
               : [
@@ -7000,8 +7002,20 @@ describe("AiAssistantPanel host interactive tools", () => {
         );
       }),
     };
-    const execute = vi.fn(({ input }: { input: unknown }) => ({
-      doubled: (input as { value: number }).value * 2,
+    const inputParser = {
+      parse: vi.fn((raw: unknown) =>
+        z.object({ value: z.string().transform(Number) }).parse(raw),
+      ),
+    };
+    const outputParser = {
+      parse: vi.fn((raw: unknown) =>
+        z
+          .object({ doubled: z.number().transform((value) => value + 1) })
+          .parse(raw),
+      ),
+    };
+    const execute = vi.fn(async ({ input }: { input: { value: number } }) => ({
+      doubled: input.value * 2,
     }));
     const handle = createJsonDocHandle({
       id: "automatic-tool-test",
@@ -7009,6 +7023,12 @@ describe("AiAssistantPanel host interactive tools", () => {
     });
     const instance = createPetrinaut({ document: handle });
     const api = createTestEditorApi(instance, { title: "Automatic tool test" });
+    const automaticTool = definePetrinautAiAutomaticTool({
+      toolName: "hostAutomatic",
+      inputParser,
+      outputParser,
+      execute,
+    });
 
     try {
       render(
@@ -7017,18 +7037,7 @@ describe("AiAssistantPanel host interactive tools", () => {
             api={api}
             aiAssistant={{
               documentHandle: handle,
-              automaticTools: [
-                {
-                  toolName: "hostAutomatic",
-                  inputParser: {
-                    parse: (raw: unknown) => raw as { value: number },
-                  },
-                  outputParser: {
-                    parse: (raw: unknown) => raw as { doubled: number },
-                  },
-                  execute,
-                },
-              ],
+              automaticTools: [automaticTool],
               transport,
             }}
             initialMessage="Run the automatic tool"
@@ -7041,6 +7050,10 @@ describe("AiAssistantPanel host interactive tools", () => {
         expect(transport.sendMessages).toHaveBeenCalledTimes(2),
       );
       await screen.findByText("Automatic result received.");
+      expect(inputParser.parse).toHaveBeenCalledExactlyOnceWith({ value: "2" });
+      expect(outputParser.parse).toHaveBeenCalledExactlyOnceWith({
+        doubled: 4,
+      });
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
         // The plugin's refusal-aware edits and the host-bound handle replace
@@ -7057,7 +7070,7 @@ describe("AiAssistantPanel host interactive tools", () => {
           toolCallId: "automatic-call-1",
           toolName: "hostAutomatic",
           state: "output-available",
-          output: { doubled: 4 },
+          output: { doubled: 5 },
         }),
       );
     } finally {
@@ -7197,16 +7210,12 @@ describe("AiAssistantPanel host interactive tools", () => {
             aiAssistant={{
               documentHandle: handle,
               automaticTools: [
-                {
+                definePetrinautAiAutomaticTool({
                   toolName: "hostAutomatic",
-                  inputParser: {
-                    parse: (raw: unknown) => raw as { value: number },
-                  },
-                  outputParser: {
-                    parse: (raw: unknown) => raw as { doubled: number },
-                  },
+                  inputParser: z.object({ value: z.number() }),
+                  outputParser: z.object({ doubled: z.number() }),
                   execute,
-                },
+                }),
               ],
               transport,
             }}

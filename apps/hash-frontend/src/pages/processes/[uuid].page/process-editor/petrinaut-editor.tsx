@@ -36,11 +36,11 @@ import {
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
 
-import type {
-  HashSaveOutcome,
-  SaveNetForAgent,
-} from "./petrinaut-editor/brunch-hash-save";
 import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  HashNetSaveOutcome,
+  SaveHashNetForAgent,
+} from "@hashintel/brunch-agent";
 import type {
   ReadBrunchDocumentSaveState,
   VersionLoad,
@@ -214,7 +214,7 @@ type AgentSaveInFlight = {
    * compared with the committed snapshot by identity.
    */
   snapshot: NonNullable<SavedSnapshot> | null;
-  settle: (outcome: HashSaveOutcome) => void;
+  settle: (outcome: HashNetSaveOutcome) => void;
 };
 
 const abandonErrors = {
@@ -549,14 +549,14 @@ export const PetrinautEditor = ({
    * editor abandons it when another load commits or the editor closes first.
    * Aborting rejects it without cancelling a save already submitted.
    */
-  const saveNetForAgent = useCallback<SaveNetForAgent>(
+  const saveNetForAgent = useCallback<SaveHashNetForAgent>(
     (documentId, signal) => {
       if (signal.aborted) {
         return Promise.reject(abortReasonOf(signal));
       }
       const { refusal } = readAgentSaveState(documentId);
       if (refusal !== null) {
-        return Promise.resolve<HashSaveOutcome>({
+        return Promise.resolve<HashNetSaveOutcome>({
           applied: false,
           reason: refusal,
         });
@@ -565,7 +565,7 @@ export const PetrinautEditor = ({
       if (!sessionHandle) {
         return Promise.reject(new Error("The editor did not start the save."));
       }
-      return new Promise<HashSaveOutcome>((resolve, reject) => {
+      return new Promise<HashNetSaveOutcome>((resolve, reject) => {
         /** Ends listening for the abort once the save settles. */
         const listening = new AbortController();
         const inFlight: AgentSaveInFlight = {

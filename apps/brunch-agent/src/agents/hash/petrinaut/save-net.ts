@@ -81,7 +81,7 @@ const notStartedFailures: ReadonlySet<string> = new Set([
 ]);
 
 /** The save of the bound net, executed by whatever `execute` reaches HASH through. */
-export const createHashSaveTool = (
+export const createHashPetrinautSaveTool = (
   execute: BrowserToolExecutor,
   documentId: string,
 ) =>

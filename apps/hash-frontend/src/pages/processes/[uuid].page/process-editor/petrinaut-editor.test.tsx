@@ -28,6 +28,19 @@ import type * as PetrinautCore from "@hashintel/petrinaut-core";
  * What each render gave the editor and Brunch's hook, so the two can be
  * compared. Hoisted with the mocks that write to it.
  */
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
+
 const observed = vi.hoisted(() => ({
   petrinautHandles: [] as PetrinautDocHandle[],
   /** The top bar (Save, version picker) each editor render saw. */
@@ -97,9 +110,12 @@ vi.mock("@hashintel/petrinaut", async () => {
   };
 });
 
-vi.mock("@hashintel/brunch-agent/ui", async () => {
+vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => {
   const { ErrorTrackerContext } = await import("@hashintel/petrinaut");
   return {
+    createHashPetrinautSaveTool: (
+      await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
+    ).createHashPetrinautSaveTool,
     BrunchAssistantContext: brunchHostContext,
     brunchPlugin: brunchPluginMarker,
     // Mirrors the hook's contract: its runner's `documentHandle` is the

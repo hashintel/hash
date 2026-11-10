@@ -8,11 +8,15 @@ import {
   useState,
 } from "react";
 
-import { brunchRoutes } from "@hashintel/brunch-agent";
+import {
+  brunchRoutes,
+  type SaveHashNetForAgent,
+} from "@hashintel/brunch-agent";
 import {
   BrunchAssistantContext,
   type BrunchOpenDocument,
   brunchPlugin,
+  createHashPetrinautSaveTool,
   type PetrinautAiAssistant,
   type PetrinautAiAutomaticTool,
   type ReadBrunchDocumentSaveState,
@@ -27,7 +31,6 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
-import { createHashSaveTool, type SaveNetForAgent } from "./brunch-hash-save";
 import { useBrunchHashHostTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
@@ -204,7 +207,7 @@ export const ProcessPetrinaut = ({
   /** What the editor's Save would do now, read for the agent's save card. Stable for the handle. */
   readSaveState: ReadBrunchDocumentSaveState;
   /** Runs the editor's Save for the agent. Stable for the handle. */
-  saveNetForAgent: SaveNetForAgent;
+  saveNetForAgent: SaveHashNetForAgent;
   /** The latest load of another saved version of the open net, while the open net builds on it. */
   versionLoad: VersionLoad | undefined;
   /** The user may not edit or save this net. */
@@ -215,7 +218,7 @@ export const ProcessPetrinaut = ({
   const ownerKey = useBrunchOwnerKey();
   const graphReads = useBrunchHashHostTools();
   const hostTools = useMemo(
-    () => [...graphReads, createHashSaveTool(saveNetForAgent)],
+    () => [...graphReads, createHashPetrinautSaveTool(saveNetForAgent)],
     [graphReads, saveNetForAgent],
   );
   const [brunchAssistant, setBrunchAssistant] =

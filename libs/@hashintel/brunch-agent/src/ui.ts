@@ -8,12 +8,13 @@
  */
 
 export * from "./ui/chat/ai-assistant-panel";
-export type * from "./ui/chat/ai-automatic-tool";
+export * from "./ui/chat/ai-automatic-tool";
 export * from "./ui/chat/petrinaut";
 export * from "./ui/editor-api-plugin";
 export * from "./ui/interview-budget/interview-budget-control";
 export * from "./ui/tools/brunch-petrinaut-tools";
 export * from "./ui/tools/brunch-tool-presentation";
+export { createHashPetrinautSaveTool } from "./ui/tools/hash-petrinaut-save";
 export * from "./ui/tools/shared/document-revision";
 export * from "./ui/use-brunch-assistant";
 export * from "./ui/voice/session/voice-interview-control";

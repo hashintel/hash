@@ -42,9 +42,9 @@ import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
+import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
+import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
-import { createHashSaveTool } from "./tools/hash-save.ts";
-import { withVersionLoadNotes } from "./version-load-note.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
@@ -82,7 +82,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
   // A turn sent after the user loaded another saved version tells the model
   // which one, once, where it happened.
   useContextProjection(
-    withVersionLoadNotes(
+    withPetrinautVersionLoadNotes(
       createBrunchContextProjection({
         observe: (entries) => netViewTracker.observe(id, entries),
       }),
@@ -148,7 +148,10 @@ export const HashAgent = ({ id }: AgentProps): string => {
       useTool(read);
     // A document change: issued against the model's last view of the net.
     useTool(
-      createHashSaveTool(executeBrowserTool, initialData.binding.documentId),
+      createHashPetrinautSaveTool(
+        executeBrowserTool,
+        initialData.binding.documentId,
+      ),
     );
   }
   useTool(ping);

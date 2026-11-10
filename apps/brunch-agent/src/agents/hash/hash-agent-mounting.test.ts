@@ -20,12 +20,12 @@ import {
 } from "../petrinaut/tools/ledger.ts";
 import { queryBasisToolDescription } from "../petrinaut/tools/query-basis.ts";
 import { hashEvidencedDescription } from "./guidance.ts";
+import { hashSaveDescription } from "./petrinaut/save-net.ts";
 import {
   hashEntityReadDescription,
   hashEntityTypeReadDescription,
   hashWebReadDescription,
 } from "./tools/hash-graph-reads.ts";
-import { hashSaveDescription } from "./tools/hash-save.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,

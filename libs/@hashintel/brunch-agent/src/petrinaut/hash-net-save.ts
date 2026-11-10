@@ -1,20 +1,16 @@
 import * as z from "zod";
 
-import { brunchTools } from "@hashintel/brunch-agent";
-
-import type { PetrinautAiAutomaticTool } from "@hashintel/brunch-agent/ui";
-
 /**
  * The input Brunch's HASH agent issues for its save. The agent's schema is
  * the authority and has already validated it; this only narrows it.
  */
-const zHashSaveInput = z.object({ documentId: z.string() });
+export const zHashNetSaveInput = z.object({ documentId: z.string() });
 
 /**
  * What an agent's save settles with: the result of the editor's save it
  * started, or, when it started none, why not.
  */
-export type HashSaveOutcome =
+export type HashNetSaveOutcome =
   | {
       saved: true;
       /** The saved version's time. */
@@ -31,18 +27,7 @@ export type HashSaveOutcome =
  * and settles with its result. Rejects, settling nothing, when `signal`
  * aborts first.
  */
-export type SaveNetForAgent = (
+export type SaveHashNetForAgent = (
   documentId: string,
   signal: AbortSignal,
-) => Promise<HashSaveOutcome>;
-
-/** Brunch's HASH save, run in the page through the editor's own Save. */
-export const createHashSaveTool = (
-  save: SaveNetForAgent,
-): PetrinautAiAutomaticTool => ({
-  toolName: brunchTools.saveHashNet,
-  inputParser: zHashSaveInput,
-  outputParser: { parse: (value) => value },
-  execute: ({ input, signal }) =>
-    save(zHashSaveInput.parse(input).documentId, signal),
-});
+) => Promise<HashNetSaveOutcome>;

@@ -289,7 +289,23 @@ vi.mock(
   () => ({ topBarPlugin: { id: "top-bar" } }),
 );
 
-vi.mock("@hashintel/brunch-agent/ui", () => ({
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
+
+vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
+  createHashPetrinautSaveTool: (
+    await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
+  ).createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
   useBrunchAssistant: (input: BrunchInput) => {
