@@ -293,22 +293,97 @@ const briefing = Draft.program({ axis: axes }, ($, { axis }) => {
   const { BaseUrl, OntologyTypeVersion, VersionedUrl } = $.import(
     $.modules().graph.modules.types.modules.ontology,
   );
-  const taskType = VersionedUrl({
-    base_url: BaseUrl(Url("https://example.com/types/entity-type/task/")),
-    version: OntologyTypeVersion("1"),
-  });
 
   return $.query
     .entities(axis)
     .filter("vertex", ($, vertex) =>
-      $.eq(vertex.metadata.entity_type_ids, [taskType]),
+      $.eq(
+        vertex.metadata.entity_type_ids,
+        Program.Structural.list(VersionedUrl, [
+          VersionedUrl({
+            base_url: BaseUrl(
+              Url("https://example.com/types/entity-type/task/"),
+            ),
+            version: OntologyTypeVersion("1"),
+          }),
+        ]),
+      ),
     )
     .collect();
 });
 ```
 
 <details>
-<summary>J-Expr</summary>
+<summary>Generated J-Expr</summary>
+
+```json
+[
+  "::kernel::special_form::use",
+  "::graph::types::ontology",
+  "*",
+  [
+    "::graph::tail::collect",
+    [
+      "::graph::body::filter",
+      [
+        "::graph::head::entities",
+        [
+          "::kernel::special_form::input",
+          "axis",
+          "::graph::temporal::QueryTemporalAxes"
+        ]
+      ],
+      [
+        "::kernel::special_form::fn",
+        {
+          "#tuple": []
+        },
+        {
+          "#struct": {
+            "vertex": "_"
+          }
+        },
+        "_",
+        [
+          "::core::cmp::eq",
+          [
+            "::kernel::special_form::access",
+            ["::kernel::special_form::access", "vertex", "metadata"],
+            "entity_type_ids"
+          ],
+          {
+            "#list": [
+              [
+                "VersionedUrl",
+                {
+                  "#struct": {
+                    "base_url": [
+                      "BaseUrl",
+                      [
+                        "::core::url::Url",
+                        {
+                          "#literal": "https://example.com/types/entity-type/task/"
+                        }
+                      ]
+                    ],
+                    "version": [
+                      "OntologyTypeVersion",
+                      {
+                        "#literal": "1"
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "#type": "::kernel::type::List<VersionedUrl>"
+          }
+        ]
+      ]
+    ]
+  ]
+]
+```
 
 </details>
 
@@ -332,14 +407,17 @@ const briefing = Draft.program(
     return $.query
       .entities(axis)
       .filter("vertex", ($, vertex) =>
-        $.eq(vertex.metadata.entity_type_ids, [
-          VersionedUrl({
-            base_url: BaseUrl(
-              Url("https://example.com/types/entity-type/task/"),
-            ),
-            version: OntologyTypeVersion("1"),
-          }),
-        ]),
+        $.eq(
+          vertex.metadata.entity_type_ids,
+          Program.Structural.list(VersionedUrl, [
+            VersionedUrl({
+              base_url: BaseUrl(
+                Url("https://example.com/types/entity-type/task/"),
+              ),
+              version: OntologyTypeVersion("1"),
+            }),
+          ]),
+        ),
       )
       .filter("task", ($, task) =>
         $.eq(
@@ -364,15 +442,19 @@ The [new polymorphic type core][polymorphic-core], [ontology schema imports][ont
 
 </Callout>
 
----
+When we supply a `release` of `"Meridian"` when running the query, T-105 is no longer included in the results, in the case that we supply a `release` of `"Northstar"` only T-105 is returned. This allows us to select a subset of tasks without changing the program we send.
 
-With `release` supplied as `"Meridian"`, T-105 drops out. The remaining tasks are T-101 through T-104. Supplying `"Northstar"` instead selects only T-105, without changing the program we send.
-
-[`filter`][query-filter] introduces a closure over each vertex. In Draft, `"task"` names that closure's parameter. The callback receives a construction context and a handle for the parameter, then constructs a Boolean expression with `$.eq`. Draft invokes the callback while building the program. The generated HashQL closure is what tests each task when the query runs.
+[`filter`][query-filter] is a body which runs a closure over every vertex in the current draft. Similar to `let`, the name of the closure's parameter is the first argument, with the closure following. This allows us to make it easier to make debugging easier. It is convention that the name for the variable is the same as the one chosen for the closure, and be by default `vertex`. Each closure tests if the vertex satisfies the filter's condition, if it does, it is included in the results; otherwise it is excluded.
 
 ### Name the properties with construction-time macros
 
-What we already see here is that using full URLs for properties is quite unwieldy. Adding status and assignment checks would make our query harder to read. We can use the [construction-time macro support](/docs/hashql/sdk/typescript/using-draft#construction-time-macros) from the SDK guide to give those accesses names:
+Now that is _a lot_ of code to write, especially the names of properties that are common with semtype, we can make this easier, by creating a set of helper functions through [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's first define a helper function to create a [`VersionedUrl`]:
+
+```ts title="VersionedUrl helper" data-example="fields"
+const versionedUrl = ($, baseUrl: string, version: string) => todo();
+```
+
+Let's go one step further because nothing is evaluated in the library itself, we are only building a program to execute after all, we can actually create a reusable helper functions to make the traversal paths for the properties more readable as well:
 
 ```ts title="Task property macros" data-example="fields"
 const taskFields = (
@@ -393,25 +475,25 @@ const taskFields = (
 });
 ```
 
-Add this helper before `briefing`. It takes a handle for a Task entity and returns a TypeScript object containing handles for its properties. Calling `taskFields(task).release` constructs the same property lookup as writing the URL directly. The helper runs while building the program, so the server receives the constructed lookup rather than a call to `taskFields`.
-
-The URLs now have one home, while the helper names make our question easier to read. The Task filter stays in the query.
-
-We can also name the constructed type URL `taskType`. Keep the inputs and imports in `briefing`, and replace its returned query with this declaration and return:
+Let's add both `taskFields` and `taskType` before `briefing`, and modify it so that it is more readable:
 
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="release-macro"
-const taskType = VersionedUrl({
-  base_url: BaseUrl(Url("https://example.com/types/entity-type/task/")),
-  version: OntologyTypeVersion("1"),
-});
-
-return $.query
-  .entities(axis)
-  .filter("vertex", ($, vertex) =>
-    $.eq(vertex.metadata.entity_type_ids, [taskType]),
-  )
-  .filter("task", ($, task) => $.eq(taskFields(task).release, release))
-  .collect();
+const briefing = Draft.program(
+  { axis: axes, release: String },
+  ($, { axis, release }) =>
+    $.query
+      .entities(axis)
+      .filter("vertex", ($, vertex) =>
+        $.eq(
+          vertex.metadata.entity_type_ids,
+          Program.Structural.list(VersionedUrl, [
+            versionedUrl($, "https://example.com/types/entity-type/task/", "1"),
+          ]),
+        ),
+      )
+      .filter("task", ($, task) => $.eq(taskFields(task).release, release))
+      .collect(),
+);
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
@@ -433,15 +515,63 @@ head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
 
-This is the same distinction between TypeScript logic and HashQL logic that we explored in the SDK guide. Writing `taskFields(task).release === release` would compare two expression handles in JavaScript. `$.eq` constructs the comparison we want the graph query to perform.
+This is exactly what makes the TypeScript SDK so powerful, we're able to write queries in such a way that we benefit from both HashQL as well as TypeScript where we need it. Supplementing them where it makes sense.
+
+## Keep the unfinished work
+
+Now that we have the right release, and have cleaned up our filter, we now need to actually collect the tasks. Let's look back at what we tried to achieve:
+
+- tasks that have been released
+- tasks that are blocked
+- tasks that are unassigned
+
+We can do this quite easily by using composition. Let's first create our query, and then use it to augment with the filters we need.
 
 <Callout>
 
-In the functional and reference tabs, `taskType` stands for the same constructed `VersionedUrl`, and `task.release`, `task.status` and `task.assigned` abbreviate the property-URL accesses above. They aren't built-in fields on every HASH entity. These tabs describe the query without choosing a syntax for the fictional lookup function. `eq` and `ne` are the core comparison functions.
+This sends the same query three times, this is not ideal, H-XXX tracks the use of additional tails, which would allow for reduction operations, and would make this instead a single query.
 
 </Callout>
 
-## Keep the unfinished work
+```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="briefing"
+const releaseTasks = $.let(
+  "releaseTasks",
+  $.query
+    .entities(axis)
+    .filter("vertex", ($, vertex) =>
+      $.eq(
+        vertex.metadata.entity_type_ids,
+        Program.Structural.list(VersionedUrl, [taskType]),
+      ),
+    )
+    .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
+);
+
+const unfinished = $.let(
+  "unfinished",
+  $.query(releaseTasks).filter("task", ($, task) =>
+    $.ne(taskFields(task).status, "done"),
+  ),
+);
+
+return Program.Structural.struct({
+  unfinished: $.query(unfinished).collect(),
+  blocked: $.query(unfinished)
+    .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))
+    .collect(),
+  unassigned: $.query(unfinished)
+    .filter("task", ($, task) => $.isFalse(taskFields(task).assigned))
+    .collect(),
+});
+```
+
+and that's it! We now get three lists, `unfinished`, `blocked` and `unassigned`, each containing the tasks that match the corresponding filter.
+
+## Taking the query further
+
+So where do we go from here? Right now these are the capabilities of the language, in the future you will be able to also filter by relationships, summarize, and use more query heads. A shiny future awaits us!
+
+---
 
 We have the right release, but T-104 is already done. Keep the `taskType` declaration and add another filter to the returned query, keeping tasks whose status isn't `"done"`:
 
@@ -449,7 +579,10 @@ We have the right release, but T-104 is already done. Keep the `taskType` declar
 return $.query
   .entities(axis)
   .filter("vertex", ($, vertex) =>
-    $.eq(vertex.metadata.entity_type_ids, [taskType]),
+    $.eq(
+      vertex.metadata.entity_type_ids,
+      Program.Structural.list(VersionedUrl, [taskType]),
+    ),
   )
   .filter("task", ($, task) => $.eq(taskFields(task).release, release))
   .filter("task", ($, task) => $.ne(taskFields(task).status, "done"))
@@ -497,7 +630,10 @@ const releaseTasks = $.let(
   $.query
     .entities(axis)
     .filter("vertex", ($, vertex) =>
-      $.eq(vertex.metadata.entity_type_ids, [taskType]),
+      $.eq(
+        vertex.metadata.entity_type_ids,
+        Program.Structural.list(VersionedUrl, [taskType]),
+      ),
     )
     .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
 );
