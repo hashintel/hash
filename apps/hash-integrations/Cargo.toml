@@ -13,10 +13,11 @@ authors.workspace = true
 # Public third-party dependencies
 
 # Private workspace dependencies
-error-stack                  = { workspace = true }
-hash-integrations-definition = { workspace = true }
-hash-telemetry               = { workspace = true, features = ["clap"] }
-type-system                  = { workspace = true }
+error-stack                     = { workspace = true }
+hash-integrations-definition    = { workspace = true }
+hash-integrations-orchestration = { workspace = true }
+hash-telemetry                  = { workspace = true, features = ["clap"] }
+type-system                     = { workspace = true }
 
 # Private third-party dependencies
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
@@ -25,9 +26,7 @@ derive_more    = { workspace = true, features = ["display", "error"] }
 mimalloc       = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 simple-mermaid = { workspace = true }
-
-[dev-dependencies]
-uuid = { workspace = true }
+uuid           = { workspace = true, features = ["v5"] }
 
 [lints]
 workspace = true

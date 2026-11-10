@@ -20,26 +20,29 @@ graph TD
     8[<a href="../harpc_types/index.html">harpc-types</a>]
     9[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
     10[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
-    11[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
-    12[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    13[<a href="../error_stack/index.html">error-stack</a>]
-    14[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    11[<a href="../hash_integrations_orchestration/index.html">hash-integrations-orchestration</a>]
+    12[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    14[<a href="../error_stack/index.html">error-stack</a>]
+    15[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 10
     0 --> 11
+    0 --> 12
     1 --> 6
-    1 -.-> 14
+    1 -.-> 15
     2 -.-> 3
     2 --> 9
     4 --> 1
     5 --> 4
     5 --> 7
-    5 --> 12
+    5 --> 13
     6 --> 2
-    7 -.-> 14
+    7 -.-> 15
     9 -.-> 8
     9 --> 8
-    9 --> 13
+    9 --> 14
     10 --> 1
-    11 --> 13
-    12 --> 1
-    14 --> 5
+    11 --> 14
+    12 --> 14
+    13 --> 1
+    15 --> 5
