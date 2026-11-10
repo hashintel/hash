@@ -284,13 +284,73 @@ Currently, the only supported body operation is [`filter`][query-filter].
 
 </Callout>
 
----
-
 ## Ask about one release
 
-The first query selects too much: we're reviewing Meridian, not Northstar. We need a predicate that compares each task's release with the release we're interested in.
+Now that we have our data, let's narrow the result, because currently it returns all the entities in the selected graph view, but we're only really interested in tasks.
 
-Before writing that predicate, we need to describe the properties it reads. The table uses short labels such as `release`, but HASH identifies properties by their base URLs. Our example schema uses `https://example.com/types/property-type/release/` for the release name, with corresponding URLs for `status` and `assigned`.
+```ts title="release-briefing.ts" data-example="filter"
+const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
+  $.query
+    .entities(axis)
+    .filter("vertex", (vertex) =>
+      $.eq(vertex.entityTypeIds, [
+        VersionedUrl("https://example.com/types/entity-type/task/v/1"),
+      ]),
+    )
+    .collect(),
+);
+```
+
+<details>
+  <summary>J-Expr</summary>
+
+</details>
+
+<Callout>
+
+HashQL currently has no concept of iteration, therefore cannot model a "contains" operator, this is currently a temporary limitation that is going to be addressed in a future release. The current filter precludes any inheritance or multi-type entities.
+
+</Callout>
+
+This now selects all the tasks, but we still have an issue: we're reviewing Meridian, not Northstar. So let's add a predicate that makes sure that the review is for the release we're interested in:
+
+```ts title="release-briefing.ts" data-example="filter"
+const briefing = Draft.program(
+  { axis: axes, release: String },
+  ($, { axis, release }) =>
+    $.query
+      .entities(axis)
+      .filter("vertex", (vertex) =>
+        $.eq(vertex.entityTypeIds, [
+          VersionedUrl("https://example.com/types/entity-type/task/v/1"),
+        ]),
+      )
+      .filter("vertex", (vertex) =>
+        $.eq(
+          vertex.properties.$traverse(
+            "https://example.com/types/property-type/release/",
+          ),
+          release,
+        ),
+      )
+      .collect(),
+);
+```
+
+<details>
+  <summary>J-Expr</summary>
+
+</details>
+
+We just added a new input, this is important and speaks to what we talked about in [Introduction to the TypeScript SDK], we are trying to not use constants, and instead configuration through inputs, because that helps us to create reusable queries that can be easily parameterized and cached.
+
+<Callout>
+
+The `$traverse` operator is currently not implemented, its support is tracked inside of H-XXX, traversal is untyped, and therefore suboptimal, H-XXX tracks a new polymorphic type core, which is able to narrow types, which would allow the first filter to narrow the type, such that the second filter would have the `Task` type instead of `?` and therefore be able to just access via `.` property access, and get proper types.
+
+</Callout>
+
+---
 
 ### Set up the example
 
