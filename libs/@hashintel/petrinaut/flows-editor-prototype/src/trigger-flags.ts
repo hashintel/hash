@@ -13,6 +13,8 @@
  *   as the title, 2 a rail with a trailing count ("Event"), 3 the kind then "N on · M paused", 4 one Triggers node
  *   with three number rows. `?triggerscale=panel`: the read-only Triggers panel at 1,000.
  * - `?triggernone=1..2`: no trigger can start the flow. 1 a quiet warning under the ghosts, 2 a warning on Publish.
+ *   `?triggernone=2t` lays the Publish warning out as the Figma DS Toast (warning); `?triggernone=2b` puts the code DS
+ *   Banner (warning, outline) inside the popover. Both are for the team: the DS has no anchored warning popover.
  * - `?triggerdistinct=1..5` (Dora, 5 Nov): trigger nodes told apart from steps, on Take 1's column. 1 a dashed
  *   outline, 2 no card, 3 a pill, 4 a lighter tone with a "Trigger" eyebrow, 5 a dotted wire into Start.
  */
@@ -27,7 +29,18 @@ const takeOf = (name: string, max: number): number | null => {
 
 export const triggerGhostTake = takeOf("triggerghost", 4);
 export const triggerFiredTake = takeOf("triggerfired", 4);
-export const triggerNoneTake = takeOf("triggernone", 2);
+const triggerNoneRaw = query.get("triggernone");
+export const triggerNoneTake =
+  triggerNoneRaw === "2t" || triggerNoneRaw === "2b"
+    ? 2
+    : takeOf("triggernone", 2);
+/** How the Publish warning (`?triggernone=2`) is laid out. */
+export const triggerNoneLayout: "popover" | "toast" | "banner" =
+  triggerNoneRaw === "2t"
+    ? "toast"
+    : triggerNoneRaw === "2b"
+      ? "banner"
+      : "popover";
 export const triggerDistinctTake = takeOf("triggerdistinct", 5);
 export const triggerScaleTake = takeOf("triggerscale", 4);
 export const triggerPanelAtScale = query.get("triggerscale") === "panel";
