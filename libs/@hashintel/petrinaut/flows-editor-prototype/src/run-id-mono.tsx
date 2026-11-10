@@ -111,9 +111,13 @@ export const runIdCopyTake = (): RunIdCopyTake | null => {
   const value = new URLSearchParams(globalThis.location.search).get(
     "runidcopy",
   );
+  // Picked H2 (Aakarsh, 10 Nov 16:15): the icon shows only when the ID is hovered. ?runidcopy=today keeps the old IDs.
+  if (value === "today") {
+    return null;
+  }
   return value === "h1" || value === "h2" || value === "h4" || value === "h1t"
     ? value
-    : null;
+    : "h2";
 };
 
 const hoverWrapStyle = css({
