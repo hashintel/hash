@@ -17,10 +17,8 @@ export type BrowserToolExecutor = (call: {
 
 /** The browser's output goes to the model; the envelope and its metadata stay host-only. */
 export const browserResultEnvelope = (result: BrowserToolResult) =>
-  JSON.parse(
-    JSON.stringify({
-      brunchBrowserResult: true,
-      output: result.output,
-      ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
-    } satisfies BrowserToolEnvelope),
-  ) as BrowserToolEnvelope & JsonValue;
+  ({
+    brunchBrowserResult: true,
+    output: result.output,
+    ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
+  }) satisfies BrowserToolEnvelope & JsonValue;

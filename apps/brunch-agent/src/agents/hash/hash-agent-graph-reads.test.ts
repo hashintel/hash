@@ -21,6 +21,7 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import {
   type BrowserCallClaim,
+  type ClientToolResult,
   browserNetToolNames,
   brunchTools,
   canonicalContent,
@@ -364,7 +365,7 @@ test("a read the page fails reaches the model as a tool error that left the docu
 const readOnce = async (
   toolName: string,
   input: Parameters<typeof fauxToolCall>[1],
-  output: unknown,
+  output: ClientToolResult["output"],
 ): Promise<{
   claim: BrowserCallClaim;
   declared: string[];

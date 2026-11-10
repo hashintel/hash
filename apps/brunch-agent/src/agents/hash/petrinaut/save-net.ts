@@ -5,7 +5,7 @@
  * module never reaches HASH.
  */
 
-import { defineTool } from "@flue/runtime";
+import { defineTool, type JsonValue } from "@flue/runtime";
 import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
@@ -57,7 +57,7 @@ const vNotStarted = v.object({
 });
 
 /** What the model is shown of a settled save. */
-export const hashSaveForModel = (output: unknown) => {
+export const hashSaveForModel = (output: unknown): JsonValue => {
   const saved = v.safeParse(vSaved, output);
   if (saved.success) return saved.output;
   const unconfirmed = v.safeParse(vUnconfirmed, output);

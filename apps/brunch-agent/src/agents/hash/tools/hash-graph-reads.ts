@@ -213,7 +213,7 @@ const runHashRead = async (
     readonly toolCallId: string;
     readonly signal?: AbortSignal;
   },
-  forModel: (output: unknown) => unknown,
+  forModel: (output: unknown) => string,
 ) => {
   const result = await execute(call);
   return {
