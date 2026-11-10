@@ -8,18 +8,20 @@ import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/va
 import { findStep } from "./shared/find-step";
 import { getNameLabel } from "./shared/name-label";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
-import { getStepDisplay, startDisplay } from "./shared/step-display";
+import {
+  getActionDefinition,
+  getStepDisplay,
+  startDisplay,
+} from "./shared/step-display";
 import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
-import {
-  getActionDefinition,
-  getNewFlowInput,
-} from "./step-panel/input-sources";
+import { getNewFlowInput } from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
 import { UsedByField } from "./step-panel/used-by-field";
 
+import type { FlowValue } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -33,7 +35,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = ReturnType<typeof indexValueUses>;
+type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
 
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
@@ -299,10 +301,11 @@ export const StepPanel = ({
     editor.subscribe,
     editor.getState,
   );
-  const stepsUsing = useMemo(
-    () => indexValueUses(flowDefinition.steps),
-    [flowDefinition.steps],
-  );
+  const stepsUsing = useMemo<StepsUsing>(() => {
+    const usesOf = indexValueUses(flowDefinition.steps);
+
+    return (value) => usesOf(value).map(({ step }) => step);
+  }, [flowDefinition.steps]);
 
   if ("start" in subject) {
     return (

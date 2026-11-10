@@ -1,19 +1,9 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getBarSegments } from "./step-states";
+import { getBarSegments, stepStateLabels } from "./step-states";
 
 import type { ItemState, StepRunMark, StepState } from "./step-states";
 import type { ReactNode } from "react";
-
-const stepStateLabels: Record<StepState, string> = {
-  notReached: "Not reached",
-  running: "Running",
-  needsReview: "Needs review",
-  done: "Done",
-  doneWithFailures: "Done with failures",
-  failed: "Failed",
-  skipped: "Skipped",
-};
 
 const glyphColors: Record<StepState, string> = {
   notReached: css({ color: "bd.strong" }),

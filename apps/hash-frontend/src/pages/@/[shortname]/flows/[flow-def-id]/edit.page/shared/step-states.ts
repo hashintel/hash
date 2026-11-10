@@ -16,6 +16,16 @@ export type StepState =
   | "failed"
   | "skipped";
 
+export const stepStateLabels: Record<StepState, string> = {
+  notReached: "Not reached",
+  running: "Running",
+  needsReview: "Needs review",
+  done: "Done",
+  doneWithFailures: "Done with failures",
+  failed: "Failed",
+  skipped: "Skipped",
+};
+
 /** The state of one item of a for-each step, or of a step inside one for one item. */
 export type ItemState = Exclude<StepState, "doneWithFailures">;
 

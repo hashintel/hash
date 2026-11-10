@@ -14,14 +14,15 @@ import "@xyflow/react/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { findStep } from "../shared/find-step";
 import { notReachedMark, startMark } from "../shared/step-states";
 import { CanvasActionsContext } from "./canvas-actions";
 import { CanvasToolbar } from "./canvas-toolbar";
 import { ConnectionEdge } from "./connection-edge";
-import { getFlowGraph } from "./flow-graph";
+import { getFlowGraph, getStepNodeId } from "./flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./flow-nodes";
 import { layOutFlow } from "./layout";
-import { useStepFocus } from "./use-step-focus";
+import { useSelectedStepInView, useStepFocus } from "./use-step-focus";
 
 import type { StepRunMark } from "../shared/step-states";
 import type { CanvasActions } from "./canvas-actions";
@@ -45,6 +46,12 @@ const nodeTypes = {
 const edgeTypes = { connection: ConnectionEdge };
 
 const canvas = css({ position: "relative", width: "full", height: "full" });
+/* What isn't highlighted fades back, so the step that is stands out where it is. */
+const dimmed = css({
+  opacity: "[0.3]",
+  transition: "opacity",
+  transitionDuration: "fast",
+});
 
 const startRun: CardRun = { mark: startMark, featured: false };
 
@@ -70,6 +77,10 @@ type RunCanvasProps = {
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
+  /** A step to show apart from the rest, which are dimmed, e.g. one using the selected step's output. */
+  highlightedStepId: string | null;
+  /** How much of the canvas's right edge a panel covers, in pixels. */
+  coveredRight: number;
 };
 
 const FlowRunCanvas = ({
@@ -80,6 +91,8 @@ const FlowRunCanvas = ({
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
+  highlightedStepId,
+  coveredRight,
 }: RunCanvasProps) => {
   const { fitView } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -124,7 +137,8 @@ const FlowRunCanvas = ({
     }
   }, [nodesInitialized, fitView]);
 
-  useStepFocus(focusRequest, 0);
+  useStepFocus(focusRequest, coveredRight);
+  useSelectedStepInView(selectedStepIds, coveredRight);
 
   const graph = useMemo(() => {
     if (!layout) {
@@ -153,6 +167,22 @@ const FlowRunCanvas = ({
     [flowDefinition.outputs],
   );
 
+  /* A step in a collapsed for-each step isn't drawn, so the for-each step stands for it. */
+  const highlightedNodeId = useMemo(() => {
+    if (highlightedStepId === null) {
+      return null;
+    }
+
+    const collapsedParent = flowDefinition.steps.find(
+      (step) =>
+        step.kind === "for-each" &&
+        collapsedStepIds.has(step.stepId) &&
+        findStep(step.steps, highlightedStepId),
+    );
+
+    return getStepNodeId(collapsedParent?.stepId ?? highlightedStepId);
+  }, [highlightedStepId, flowDefinition.steps, collapsedStepIds]);
+
   const nodes = useMemo(() => {
     const selectedStepIdSet = new Set(selectedStepIds);
 
@@ -174,10 +204,21 @@ const FlowRunCanvas = ({
         deletable: false,
         connectable: false,
         selected: stepId !== null && selectedStepIdSet.has(stepId),
+        className:
+          highlightedNodeId !== null && node.id !== highlightedNodeId
+            ? dimmed
+            : undefined,
         ...(measured && { measured }),
       };
     });
-  }, [graph.nodes, marks, featuredStepIds, selectedStepIds, measurements]);
+  }, [
+    graph.nodes,
+    marks,
+    featuredStepIds,
+    selectedStepIds,
+    highlightedNodeId,
+    measurements,
+  ]);
 
   const edges = useMemo(
     () =>
@@ -185,8 +226,9 @@ const FlowRunCanvas = ({
         ...edge,
         selectable: false,
         focusable: false,
+        className: highlightedNodeId === null ? undefined : dimmed,
       })),
-    [graph.edges],
+    [graph.edges, highlightedNodeId],
   );
 
   const onNodesChange = (changes: NodeChange<FlowNode>[]) => {

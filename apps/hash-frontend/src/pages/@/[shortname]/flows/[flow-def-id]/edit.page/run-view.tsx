@@ -2,11 +2,17 @@ import { useCallback, useState } from "react";
 
 import { Banner, Button, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
+import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
 import { RunCanvas } from "./canvas";
 import { RunLeftPanel } from "./left-panel";
 import { flowChangedBetween } from "./run-view/flow-changed";
+import { StepRunPanel } from "./run-view/step-run-panel";
 import { useRun } from "./run-view/use-run";
+import { findStep } from "./shared/find-step";
+import { sidePanelWidth } from "./shared/side-panel";
+import { notReachedMark } from "./shared/step-states";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
@@ -61,7 +67,7 @@ const Message = ({
 
 /**
  * One of the flow's runs, on the flow's canvas as the run ran it, read-only: each step's card and row in the Steps tab
- * show its state, and follow the run while it's going.
+ * show its state, and follow the run while it's going. Selecting one step shows what it got and gave in a panel.
  */
 export const RunView = ({
   flowRunEntityId,
@@ -85,6 +91,12 @@ export const RunView = ({
   const [focusRequest, setFocusRequest] = useState<{ stepId: string } | null>(
     null,
   );
+  /* The step a "Used in" entry highlights, for the step whose panel it's in, so it's dropped with the selection. */
+  const [highlight, setHighlight] = useState<{
+    panelStepId: string;
+    stepId: string;
+  } | null>(null);
+  const getOwnerForEntity = useGetOwnerForEntity();
   const [collapsedStepIds, setCollapsedStepIds] = useState(
     () => new Set<string>(),
   );
@@ -146,8 +158,26 @@ export const RunView = ({
       );
   }
 
-  const { ranDefinition, marks, checkFailure } = run;
+  const {
+    ranDefinition,
+    marks,
+    stepRuns,
+    waitingOnPerson,
+    live,
+    checkFailure,
+  } = run;
   const flowDefinition = ranDefinition ?? currentDefinition;
+
+  const [selectedStepId] = selectedStepIds;
+  /* A selection can outlive its step, e.g. when the run's edition of the flow is read: no panel then. */
+  const selected =
+    selectedStepIds.length === 1 && selectedStepId !== undefined
+      ? findStep(flowDefinition.steps, selectedStepId)
+      : undefined;
+  const highlightedStepId =
+    selected && highlight?.panelStepId === selected.step.stepId
+      ? highlight.stepId
+      : null;
 
   return (
     <div className={body}>
@@ -164,7 +194,10 @@ export const RunView = ({
         onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
       />
       <div className={canvasArea}>
-        <div className={notices}>
+        <div
+          className={notices}
+          style={selected ? { right: sidePanelWidth + 16 } : undefined}
+        >
           {ranDefinition === null ? (
             <Banner tone="warning">
               <Banner.Title>Shown on the flow as it is now</Banner.Title>
@@ -198,7 +231,35 @@ export const RunView = ({
           focusRequest={focusRequest}
           collapsedStepIds={collapsedStepIds}
           onToggleCollapsed={toggleCollapsed}
+          highlightedStepId={highlightedStepId}
+          coveredRight={selected ? sidePanelWidth : 0}
         />
+        {selected && (
+          <StepRunPanel
+            /* Each step's panel starts afresh, e.g. with its outputs open. */
+            key={selected.step.stepId}
+            step={selected.step}
+            inner={selected.inner}
+            flowDefinition={flowDefinition}
+            mark={marks.get(selected.step.stepId) ?? notReachedMark}
+            stepRuns={stepRuns}
+            waitingOnPerson={waitingOnPerson}
+            live={live}
+            runPageHref={generateWorkerRunPath({
+              shortname: getOwnerForEntity({ entityId: flowRunEntityId })
+                .shortname,
+              flowRunEntityId,
+            })}
+            highlightedStepId={highlightedStepId}
+            onHighlightStep={(stepId) =>
+              setHighlight(
+                stepId === null
+                  ? null
+                  : { panelStepId: selected.step.stepId, stepId },
+              )
+            }
+          />
+        )}
       </div>
     </div>
   );

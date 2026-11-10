@@ -1,3 +1,5 @@
+import { getNameLabel } from "./name-label";
+
 import type {
   StepDefinition,
   StepInputSource,
@@ -7,6 +9,9 @@ import type {
 export type FlowValue =
   | { kind: "flow-input"; inputName: string }
   | { kind: "step-output"; stepId: string; outputName: string };
+
+/** A step that uses a value, and the properties of it that take the value, as people read them. */
+export type ValueUse = { step: StepDefinition<string>; properties: string[] };
 
 const getValueKey = (value: FlowValue) =>
   JSON.stringify(
@@ -26,25 +31,39 @@ const getSourceValue = (source: StepInputSource): FlowValue | null =>
  */
 export const indexValueUses = (
   steps: StepDefinition<string>[],
-): ((value: FlowValue) => StepDefinition<string>[]) => {
-  const usesByKey = new Map<string, StepDefinition<string>[]>();
+): ((value: FlowValue) => ValueUse[]) => {
+  const usesByKey = new Map<string, ValueUse[]>();
 
   const visit = (step: StepDefinition<string>) => {
-    const values =
+    const values: { property: string; value: FlowValue | null }[] =
       step.kind === "action"
-        ? Object.values(step.inputs).map(getSourceValue)
+        ? Object.entries(step.inputs).map(([inputName, source]) => ({
+            property: getNameLabel(inputName),
+            value: getSourceValue(source),
+          }))
         : [
-            getSourceValue(step.over),
-            { kind: "step-output" as const, ...step.collect },
+            { property: "List", value: getSourceValue(step.over) },
+            {
+              property: "Collects",
+              value: { kind: "step-output", ...step.collect },
+            },
           ];
 
-    /* A step taking the same value in two inputs is listed once. */
-    const keys = new Set(
-      values.flatMap((value) => (value ? [getValueKey(value)] : [])),
-    );
+    /* A step taking the same value in two properties is listed once, with both. */
+    const propertiesByKey = new Map<string, string[]>();
 
-    for (const key of keys) {
-      usesByKey.set(key, [...(usesByKey.get(key) ?? []), step]);
+    for (const { property, value } of values) {
+      if (value) {
+        const key = getValueKey(value);
+        propertiesByKey.set(key, [
+          ...(propertiesByKey.get(key) ?? []),
+          property,
+        ]);
+      }
+    }
+
+    for (const [key, properties] of propertiesByKey) {
+      usesByKey.set(key, [...(usesByKey.get(key) ?? []), { step, properties }]);
     }
 
     if (step.kind === "for-each") {
