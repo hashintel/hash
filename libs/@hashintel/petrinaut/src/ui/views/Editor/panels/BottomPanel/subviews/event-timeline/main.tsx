@@ -2,6 +2,7 @@ import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import {
   TimelineChartTypeSelector,
@@ -19,6 +20,16 @@ const headerActionsStyle = css({
 
 const EventTimelineHeaderActions: React.FC = () => {
   const { timelineView } = use(EditorContext);
+  const { mode } = use(SimulationContext);
+  // A Stochastic simulation draws one thing, the count of every place
+  // across runs, so it has no view to pick.
+  if (mode === "stochastic") {
+    return (
+      <div className={headerActionsStyle}>
+        <TimelineChartTypeSelector />
+      </div>
+    );
+  }
   // Firings are marks on lanes and the solver's error is read line by line:
   // neither has a stacked form.
   const stackable =

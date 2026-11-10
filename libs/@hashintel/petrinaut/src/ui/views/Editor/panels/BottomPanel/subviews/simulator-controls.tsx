@@ -1,6 +1,11 @@
 import { use } from "react";
 
-import { NumberInput, Select, Toggle } from "@hashintel/ds-components";
+import {
+  NumberInput,
+  SegmentedControl,
+  Select,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   resolveSimulatorParameters,
@@ -12,6 +17,7 @@ import { SimulationContext } from "../../../../../../react/simulation/context";
 import {
   findSimulator,
   SimulatorsContext,
+  type SimulationMode,
 } from "../../../../../../react/simulators/context";
 import { PointerHelpTooltip } from "../../../../../components/pointer-help-tooltip";
 
@@ -41,21 +47,30 @@ const itemReasonStyle = css({
 });
 
 /**
- * Why a simulator cannot compute a single run here, or null when it can.
+ * Why a simulator cannot compute what the mode shows, or null when it can.
  * Known from the registration alone, so the picker asks nothing of a
  * simulator it has not loaded.
  */
-export const singleRunRefusal = (
+export const simulatorRefusal = (
   registration: SimulatorRegistration,
+  mode: SimulationMode,
 ): string | null => {
   if (!registration.isAvailable()) {
     return "Not supported by this browser";
   }
-  if (!registration.produces.run) {
+  if (mode === "quick" && !registration.produces.run) {
     return "Computes many runs at once";
+  }
+  if (mode === "stochastic" && !registration.produces.experiment) {
+    return "Computes one run at a time";
   }
   return null;
 };
+
+const MODE_ITEMS: { value: SimulationMode; label: string }[] = [
+  { value: "quick", label: "Quick simulation" },
+  { value: "stochastic", label: "Stochastic" },
+];
 
 const fieldId = (simulatorId: string, key: string): string =>
   `simulator-${simulatorId}-${key}`;
@@ -129,22 +144,32 @@ const ParameterField: React.FC<{
 };
 
 /**
- * Which simulator computes the next run, and the fields its parameter spec
- * declares. A simulator that cannot compute a single run is listed, greyed,
- * with the reason beside it.
+ * What Play computes and with what: the mode, the simulator, the fields its
+ * parameter spec declares, and for a Stochastic simulation how many runs
+ * and until when. A simulator that cannot compute what the mode shows is
+ * listed, greyed, with the reason beside it.
  */
 export const SimulatorControls: React.FC<{ disabled: boolean }> = ({
   disabled,
 }) => {
   const { registrations } = use(SimulatorsContext);
-  const { simulatorSelection, selectSimulator, setSimulatorParameter } =
-    use(SimulationContext);
+  const {
+    mode,
+    setMode,
+    simulatorSelection,
+    selectSimulator,
+    setSimulatorParameter,
+    runs,
+    setRuns,
+    maxTime,
+    setMaxTime,
+  } = use(SimulationContext);
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
 
   const refusals = new Map(
     registrations.map((registration) => [
       registration.id,
-      singleRunRefusal(registration),
+      simulatorRefusal(registration, mode),
     ]),
   );
   const items = registrations.map((registration) => ({
@@ -170,6 +195,20 @@ export const SimulatorControls: React.FC<{ disabled: boolean }> = ({
 
   return (
     <>
+      <div className={inlineControlStyle}>
+        <span className={labelStyle}>
+          <span>Mode</span>
+          <PointerHelpTooltip content="Quick simulation computes one run and plays it on the canvas. Stochastic computes many runs and shows each place's token count across them." />
+        </span>
+        <SegmentedControl
+          size="xs"
+          aria-label="Simulation mode"
+          value={mode}
+          items={MODE_ITEMS}
+          onChange={(next) => setMode(next as SimulationMode)}
+          disabled={disabled}
+        />
+      </div>
       <div className={inlineControlStyle}>
         <span className={labelStyle}>
           <span>Simulator</span>
@@ -224,6 +263,54 @@ export const SimulatorControls: React.FC<{ disabled: boolean }> = ({
             />
           ))
         : null}
+      {mode === "stochastic" ? (
+        <>
+          <div className={inlineControlStyle}>
+            <label htmlFor="stochastic-runs-input" className={labelStyle}>
+              <span>Runs</span>
+              <PointerHelpTooltip content="How many independent runs are computed. More runs give a steadier mean and a truer spread, and take longer." />
+            </label>
+            <NumberInput
+              htmlForId="stochastic-runs-input"
+              size="xs"
+              width="xs"
+              min={1}
+              step={1}
+              hideStepper
+              value={runs}
+              onChange={(next) => {
+                if (next !== null && Number.isInteger(next) && next >= 1) {
+                  setRuns(next);
+                }
+              }}
+              disabled={disabled}
+            />
+          </div>
+          <div className={inlineControlStyle}>
+            <label htmlFor="stochastic-end-time-input" className={labelStyle}>
+              <span>
+                End time <span className={smallLabelStyle}>(s)</span>
+              </span>
+              <PointerHelpTooltip content="The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end." />
+            </label>
+            <NumberInput
+              htmlForId="stochastic-end-time-input"
+              size="xs"
+              width="xs"
+              min={0}
+              step="any"
+              hideStepper
+              value={maxTime}
+              onChange={(next) => {
+                if (next !== null && next > 0) {
+                  setMaxTime(next);
+                }
+              }}
+              disabled={disabled}
+            />
+          </div>
+        </>
+      ) : null}
     </>
   );
 };

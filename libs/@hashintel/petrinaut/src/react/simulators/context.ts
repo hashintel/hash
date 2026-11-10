@@ -6,11 +6,16 @@
 import { createContext } from "react";
 
 import {
-  defaultSimulatorParameters,
   FIXED_STEP_SIMULATOR_ID,
   type SimulatorRegistration,
   type StoredSimulatorParameters,
 } from "@hashintel/petrinaut-core";
+
+/**
+ * What Play computes. `quick` is one run, played on the canvas. `stochastic`
+ * is many runs, shown as what they add up to.
+ */
+export type SimulationMode = "quick" | "stochastic";
 
 /** Which simulator computes the next run, and with what parameter values. */
 export type SimulatorSelection = {
@@ -21,8 +26,20 @@ export type SimulatorSelection = {
 export type SimulatorsContextValue = {
   /** Built-ins first, then what the host adds, in picker order. */
   readonly registrations: readonly SimulatorRegistration[];
-  /** The simulator a session's Quick Simulation starts on. */
-  readonly defaultSimulatorId: string;
+  /**
+   * What each mode starts a session on: a simulator, and the parameters it
+   * holds away from their defaults. A step that suits one played run is
+   * wasteful for hundreds, so the two modes start on different ones.
+   */
+  readonly defaultSelections: Readonly<
+    Record<
+      SimulationMode,
+      {
+        readonly simulatorId: string;
+        readonly parameters?: StoredSimulatorParameters;
+      }
+    >
+  >;
 };
 
 /** A registration by id, or undefined when the host registered none under it. */
@@ -32,25 +49,14 @@ export const findSimulator = (
 ): SimulatorRegistration | undefined =>
   registrations.find((registration) => registration.id === simulatorId);
 
-/** The selection a simulator starts on: every parameter at its default. */
-export const defaultSelectionOf = (
-  registrations: readonly SimulatorRegistration[],
-  simulatorId: string,
-): SimulatorSelection => {
-  const registration = findSimulator(registrations, simulatorId);
-  return {
-    simulatorId,
-    parameters: registration
-      ? defaultSimulatorParameters(registration.parameters)
-      : {},
-  };
-};
-
 /**
  * No simulators: the value outside a `SimulatorsProvider`. A run cannot
  * start from it, and the picker shows nothing to pick.
  */
 export const SimulatorsContext = createContext<SimulatorsContextValue>({
   registrations: [],
-  defaultSimulatorId: FIXED_STEP_SIMULATOR_ID,
+  defaultSelections: {
+    quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+    stochastic: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+  },
 });

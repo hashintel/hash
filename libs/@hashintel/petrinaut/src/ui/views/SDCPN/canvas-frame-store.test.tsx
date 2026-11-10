@@ -1,9 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import {
+  EventPlaybackContext,
+  type EventPlaybackContextValue,
+} from "../../../react/event-playback/context";
 import {
   emptyExecutionFrameSource,
   ExecutionFrameSourceContext,
@@ -12,7 +16,7 @@ import { SimulationContext } from "../../../react/simulation/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import {
   CanvasFrameStoreProvider,
-  usePlaceTokenCount,
+  usePlaceTokenLabel,
   useTransitionFrame,
 } from "./canvas-frame-store";
 
@@ -30,7 +34,7 @@ const countRender = (key: string) =>
 
 const Tokens: React.FC<{ placeId: string }> = ({ placeId }) => {
   countRender(placeId);
-  const tokens = usePlaceTokenCount(placeId);
+  const tokens = usePlaceTokenLabel(placeId);
   return <output data-testid={placeId}>{tokens ?? "none"}</output>;
 };
 
@@ -158,5 +162,71 @@ describe("CanvasFrameStoreProvider", () => {
     expect(rendersSince("p1")).toBe(1);
     expect(rendersSince("p2")).toBe(0);
     expect(rendersSince("t1")).toBe(1);
+  });
+
+  it("shows a place's count across runs at the viewed time in a Stochastic simulation", () => {
+    // The mean across runs rises by one per simulated second.
+    const reader = {
+      placeCountAt: (placeId: string, time: number) =>
+        placeId === "p1"
+          ? { runCount: 4, mean: 10 + time, standardDeviation: 2.94, bins: [] }
+          : placeId === "p2"
+            ? { runCount: 4, mean: 7, standardDeviation: 0, bins: [] }
+            : null,
+    };
+    const timeListeners = new Set<() => void>();
+    let viewedTime = 0;
+    const sampleListeners = new Set<() => void>();
+    const playback = {
+      playbackStore: {
+        get: () => ({ time: viewedTime }),
+        subscribe: (listener: () => void) => {
+          timeListeners.add(listener);
+          return () => timeListeners.delete(listener);
+        },
+      },
+    } as unknown as EventPlaybackContextValue;
+    const simulation = {
+      initialMarking: { p1: 3 },
+      stochasticRun: {
+        reader,
+        experiment: {
+          metrics: {
+            subscribe: (listener: () => void) => {
+              sampleListeners.add(listener);
+              return () => sampleListeners.delete(listener);
+            },
+          },
+        },
+      },
+    } as unknown as SimulationContextValue;
+
+    render(
+      <ExecutionFrameSourceContext value={emptyExecutionFrameSource}>
+        <EventPlaybackContext value={playback}>
+          <SimulationContext value={simulation}>
+            <EditorContext value={{ globalMode: "edit" } as EditorContextValue}>
+              <CanvasFrameStoreProvider>{items}</CanvasFrameStoreProvider>
+            </EditorContext>
+          </SimulationContext>
+        </EventPlaybackContext>
+      </ExecutionFrameSourceContext>,
+    );
+
+    // The mean and its spread; the mean alone where every run agrees.
+    expect(shown("p1")).toBe("10 ±2.9");
+    expect(shown("p2")).toBe("7");
+
+    viewedTime = 2.34;
+    act(() => {
+      for (const listener of timeListeners) {
+        listener();
+      }
+    });
+    expect(shown("p1")).toBe("12.3 ±2.9");
+    // A place whose label did not move did not render again.
+    expect(renders.get("p2")).toBe(1);
+    // New samples reach the places too.
+    expect(sampleListeners.size).toBe(1);
   });
 });

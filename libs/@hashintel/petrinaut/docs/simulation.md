@@ -34,19 +34,28 @@ Override values for this run:
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
+### Mode
+
+The **Mode** switch beside the scenario picker chooses what **Play** computes:
+
+- **Quick simulation** (the default) computes one run and plays it on the canvas, token by token.
+- **Stochastic** computes many runs of the same configuration and shows each place's token count across them. See [Stochastic simulation](#stochastic-simulation).
+
+Each mode keeps its own simulator and parameter values. The switch is locked while a simulation exists; reset to change it.
+
 ### Simulator
 
-The **Simulator** picker beside the scenario picker chooses what computes the next run. The fields to its right are the selected simulator's own parameters, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
+The **Simulator** picker chooses what computes the next run. The fields to its right are the selected simulator's own parameters, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
 
-| Simulator             | Parameters                    | What it does                                                                                                                                                             |
-| --------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **JS fixed step**     | **Time step**, in seconds     | Advances the run in steps of one size, as described in [How a run is computed](#how-a-run-is-computed). The default.                                                     |
-| **JS adaptive**       | **Max error**                 | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.           |
-| **WebGPU fixed step** | **Time step**, **ODE method** | Computes many runs at once on the graphics card. It is listed for reference and cannot be picked for a single run; [experiments](experiments.md#compute-backend) use it. |
+| Simulator             | Parameters                    | Modes                        | What it does                                                                                                                                                               |
+| --------------------- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **JS fixed step**     | **Time step**, in seconds     | Quick simulation, Stochastic | Advances every run in steps of one size, as described in [How a run is computed](#how-a-run-is-computed). The default in both modes.                                       |
+| **JS adaptive**       | **Max error**                 | Quick simulation             | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
+| **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
-A simulator that cannot compute a single run is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
+A simulator that cannot compute what the mode shows is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
 
-- **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds.
+- **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds in Quick simulation and `0.1` in Stochastic, where every run pays for it.
 - **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
 
 Whichever simulator runs, it records the state at every transition firing, with the time it happened, and further states in between so that long stretches without a firing stay accurate. Where those further states go is the simulator's own decision. The continuous evolution of token attributes between two recorded states is interpolated from the values and derivatives stored in them, so playback moves through time and any instant can be viewed.
@@ -70,6 +79,24 @@ If there are unresolved error-severity [diagnostics](petri-net-extensions.md#dia
 Use arrow keys to move between the scenario picker, its action buttons, the time-step field, and the tables below. Enter opens a picker or edits a selected table value. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
 
 The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on the compact **Show all places** switch beside the Initial state title and info icon to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
+
+## Stochastic simulation
+
+With **Mode** set to **Stochastic**, Simulation Settings gains two fields after the simulator's own:
+
+- **Runs** -- how many independent runs are computed. Default: `100`. More runs give a steadier mean and a truer spread, and take longer.
+- **End time** -- the simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs one; switching to Stochastic sets `60` seconds when none was set.
+
+Press **Play**. The runs are computed in background workers, or on the graphics card with the WebGPU simulator, and the canvas shows what they add up to:
+
+- **Places** -- each place's badge reads the mean token count across runs at the viewed time, followed by its spread (one standard deviation) when the runs differ, such as `12.9 ±2.9`.
+- **Transitions** -- nothing fires on the canvas: there is no single run to show.
+- **Timeline** -- one line per place, the mean token count across runs over time. **Stacked** adds the places up as bands. There is no Metric picker in this mode.
+- **Playback bar** -- Play, Pause, the time readout and the scrubber move the viewed time, which never passes what every run has reached. Pause stops the viewed time only; the runs go on computing. The bar also shows how many runs have finished.
+
+**Keep as experiment** on the playback bar lists the simulation under **Simulate → Experiments**, named after its scenario and run count, with a chart of each place's token count across runs. It then outlives a reset, and from there it is cancelled or removed like any other [experiment](experiments.md). A simulation that was not kept is discarded by **Stop / Reset**.
+
+The same seed gives the same result every time for a given simulator. The WebGPU simulator uses a different random generator than the JS one, so the two agree on the distributions, not on the individual numbers.
 
 ## How a run is computed
 

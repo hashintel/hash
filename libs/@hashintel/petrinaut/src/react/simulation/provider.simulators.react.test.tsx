@@ -10,7 +10,10 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type EventSimulation,
   type HirArtifacts,
+  type MonteCarloExperiment,
+  type MonteCarloExperimentState,
   type SDCPN,
+  type SimulatorExperimentRequest,
   type SimulationRequest,
   type SimulatorOffer,
   type SimulatorRegistration,
@@ -72,15 +75,47 @@ const makeHandle = () =>
     getStateAt: () => null,
   }) as unknown as EventSimulation;
 
+/** An experiment that reports whatever status it was last put in. */
+const makeExperiment = () => {
+  let status: MonteCarloExperimentState = "Ready";
+  const listeners = new Set<(status: MonteCarloExperimentState) => void>();
+  const experiment = {
+    status: {
+      get: () => status,
+      subscribe: (listener: (status: MonteCarloExperimentState) => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    progress: { get: () => null, subscribe: () => () => {} },
+    metrics: {
+      get: () => ({ frames: [], latestByMetricId: {} }),
+      subscribe: () => () => {},
+    },
+    events: { subscribe: () => () => {} },
+    start: vi.fn(() => {
+      status = "Running";
+      for (const listener of listeners) {
+        listener(status);
+      }
+    }),
+    cancel: vi.fn(),
+    dispose: vi.fn(),
+  };
+  return experiment as typeof experiment & MonteCarloExperiment;
+};
+
 /** A simulator whose every assessment and start is recorded. */
 const makeSimulator = ({
   id,
   needsHirTrees,
   start,
+  startExperiment,
 }: {
   id: string;
   needsHirTrees: boolean;
   start: SimulatorOffer["startRun"];
+  startExperiment?: SimulatorOffer["startExperiment"];
 }) => {
   const assessed = vi.fn<(request: SimulationRequest) => void>();
   const registration = defineSimulator(
@@ -110,6 +145,7 @@ const makeSimulator = ({
               eligible: true,
               notes: [],
               ...(start ? { startRun: start } : {}),
+              ...(startExperiment ? { startExperiment } : {}),
             });
           },
         }),
@@ -118,7 +154,10 @@ const makeSimulator = ({
   return { assessed, registration: registration as SimulatorRegistration };
 };
 
-const renderProvider = (registrations: readonly SimulatorRegistration[]) => {
+const renderProvider = (
+  registrations: readonly SimulatorRegistration[],
+  definition: SDCPN = sdcpn,
+) => {
   const requestHirArtifacts = vi.fn<SimulationCompiler["requestHirArtifacts"]>(
     () => Promise.resolve({ artifacts, failures: [] }),
   );
@@ -132,10 +171,18 @@ const renderProvider = (registrations: readonly SimulatorRegistration[]) => {
     return null;
   };
   render(
-    <SDCPNContext.Provider value={sdcpnContextValue}>
+    <SDCPNContext.Provider
+      value={{ ...sdcpnContextValue, petriNetDefinition: definition }}
+    >
       <PetrinautNavigationProvider>
         <SimulatorsContext
-          value={{ registrations, defaultSimulatorId: registrations[0]!.id }}
+          value={{
+            registrations,
+            defaultSelections: {
+              quick: { simulatorId: registrations[0]!.id },
+              stochastic: { simulatorId: registrations[0]!.id },
+            },
+          }}
         >
           <SimulationProvider
             compiler={compiler}
@@ -290,6 +337,137 @@ describe("SimulationProvider on a registered simulator", () => {
 
     expect((failure as Error).message).toBe(
       "test.batched computes many runs at once, not a single run",
+    );
+  });
+});
+
+describe("SimulationProvider in Stochastic mode", () => {
+  const withPlaces: SDCPN = {
+    ...sdcpn,
+    places: [
+      {
+        id: "queue",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      },
+    ],
+  };
+
+  const stochastic = () => {
+    const experiment = makeExperiment();
+    const requested = vi.fn<(request: SimulatorExperimentRequest) => void>();
+    const simulator = makeSimulator({
+      id: "test.many",
+      needsHirTrees: false,
+      start: () => Promise.reject(new Error("Not a single run")),
+      startExperiment: (request) => {
+        requested(request);
+        return Promise.resolve({ ok: true, handle: experiment });
+      },
+    });
+    const rendered = renderProvider([simulator.registration], withPlaces);
+    return { experiment, requested, simulator, ...rendered };
+  };
+
+  it("starts an experiment of the runs asked for, measuring every place's token count", async () => {
+    const { experiment, requested, getValue } = stochastic();
+
+    act(() => getValue().setMode("stochastic"));
+    act(() => getValue().setRuns(250));
+    await act(() => getValue().initialize({ seed: 3, dt: 0.01 }));
+
+    expect(requested).toHaveBeenCalledWith({
+      runCount: 250,
+      metricSpecs: [
+        expect.objectContaining({
+          kind: "placeTokenCountMean",
+          placeId: "queue",
+          sampleRuns: "all",
+          runOutput: { type: "distribution", binning: "exact" },
+        }),
+      ],
+    });
+    expect(getValue().stochasticRun).toMatchObject({
+      experiment,
+      runCount: 250,
+      seed: 3,
+      maxTime: 12,
+      kept: false,
+    });
+    expect(getValue().eventSimulation).toBeNull();
+    // Playback has the experiment's samples to move over.
+    expect(getValue().playbackSource?.coverage.get()).toEqual({
+      eventCount: 0,
+      coveredTime: 0,
+    });
+
+    // It starts once: resuming playback finds it already going.
+    act(() => getValue().run());
+    act(() => getValue().run());
+    expect(experiment.start).toHaveBeenCalledTimes(1);
+    expect(getValue().state).toBe("Running");
+  });
+
+  it("gives a Stochastic simulation an end time when none was set", () => {
+    const { getValue } = stochastic();
+    act(() => getValue().setMaxTime(null));
+    act(() => getValue().setMode("stochastic"));
+    expect(getValue().maxTime).toBe(60);
+  });
+
+  it("ends the experiment on reset, unless something took it over", async () => {
+    const first = stochastic();
+    act(() => first.getValue().setMode("stochastic"));
+    await act(() => first.getValue().initialize({ seed: 1, dt: 0.01 }));
+    act(() => first.getValue().reset());
+    expect(first.experiment.dispose).toHaveBeenCalledTimes(1);
+    expect(first.getValue().stochasticRun).toBeNull();
+    cleanup();
+
+    const second = stochastic();
+    act(() => second.getValue().setMode("stochastic"));
+    await act(() => second.getValue().initialize({ seed: 1, dt: 0.01 }));
+    act(() => second.getValue().keepStochasticRun());
+    expect(second.getValue().stochasticRun?.kept).toBe(true);
+    act(() => second.getValue().reset());
+    expect(second.experiment.dispose).not.toHaveBeenCalled();
+    expect(second.getValue().stochasticRun).toBeNull();
+  });
+
+  it("keeps a simulator and its parameters per mode", () => {
+    const { getValue } = stochastic();
+    act(() => getValue().setSimulatorParameter("step", 0.25));
+    act(() => getValue().setMode("stochastic"));
+    expect(getValue().simulatorSelection.parameters).toEqual({ step: 0.5 });
+    act(() => getValue().setSimulatorParameter("step", 2));
+    act(() => getValue().setMode("quick"));
+    expect(getValue().simulatorSelection.parameters).toEqual({ step: 0.25 });
+    act(() => getValue().setMode("stochastic"));
+    expect(getValue().simulatorSelection.parameters).toEqual({ step: 2 });
+  });
+
+  it("refuses a simulator that computes no experiment", async () => {
+    const single = makeSimulator({
+      id: "test.single",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle: makeHandle() }),
+    });
+    const { getValue } = renderProvider([single.registration]);
+    act(() => getValue().setMode("stochastic"));
+
+    let failure: unknown = null;
+    await act(async () => {
+      await getValue()
+        .initialize({ seed: 1, dt: 0.01 })
+        .catch((caught: unknown) => {
+          failure = caught;
+        });
+    });
+    expect((failure as Error).message).toBe(
+      "test.single computes one run at a time, not many",
     );
   });
 });

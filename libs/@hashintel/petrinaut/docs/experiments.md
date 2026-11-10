@@ -245,8 +245,10 @@ opens the existing results in Simulate; starting the run does not switch modes.
 
 Experiments and the bottom-bar **Play** controls are independent systems:
 
-- Pressing Play runs a single simulation in the editor and drives the canvas + Timeline panel.
+- Pressing Play runs a simulation in the editor and drives the canvas + Timeline panel.
 - Experiments run separately, in their own workers, without animating the canvas.
+
+There is one bridge between them. A [Stochastic simulation](simulation.md#stochastic-simulation) started with Play computes many runs and shows them on the canvas, and its **Keep as experiment** action lists it here.
 
 You can press Play in Edit mode while experiments are running in the background, and switching to Simulate mode does not stop them.
 

@@ -125,6 +125,22 @@ export const stackColumns = (
 };
 
 /**
+ * A steps or sampled timeline as stacked bands: the visible series, each
+ * added to those before it.
+ */
+export const stackTimelineData = <
+  Data extends Exclude<EventTimelineData, { kind: "lanes" }>,
+>(
+  data: Data,
+  hiddenSeries: ReadonlySet<string>,
+): Data => ({
+  ...data,
+  series: stackedSeriesOf(data.series, hiddenSeries),
+  data: stackColumns(data.data, data.series, hiddenSeries),
+  stacked: true as const,
+});
+
+/**
  * What a band of a stacked chart holds on its own at `row`: its height above
  * the band under it. `seriesIndex` counts from 1, as uPlot numbers series.
  */

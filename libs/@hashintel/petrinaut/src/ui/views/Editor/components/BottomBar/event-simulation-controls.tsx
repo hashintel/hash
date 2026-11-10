@@ -13,6 +13,7 @@ import {
 import { CollapsibleGroup } from "./collapsible-group";
 import { EventTimeControls } from "./event-time-controls";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
+import { StochasticRunStatus } from "./stochastic-run-status";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -34,7 +35,12 @@ export const EventSimulationControls: React.FC<
   EventSimulationControlsProps
 > = ({ disabled = false, inSubnet = false, allowedPlaybackSpeeds }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
-  const { state: simulationState, reset } = use(SimulationContext);
+  const {
+    state: simulationState,
+    reset,
+    mode,
+    stochasticRun,
+  } = use(SimulationContext);
   const playback = use(EventPlaybackContext);
   const { coveredTime, playbackState, playbackStore, play, pause } = playback;
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
@@ -108,7 +114,13 @@ export const EventSimulationControls: React.FC<
       </ToolbarButton>
 
       <CollapsibleGroup>
-        {hasSimulation && <EventTimeControls disabled={disabled} />}
+        {hasSimulation && (
+          <EventTimeControls
+            disabled={disabled}
+            showEventSteppers={mode !== "stochastic"}
+          />
+        )}
+        {stochasticRun ? <StochasticRunStatus run={stochasticRun} /> : null}
         <PlaybackSettingsMenu
           allowedSpeeds={allowedPlaybackSpeeds}
           playback={playback}

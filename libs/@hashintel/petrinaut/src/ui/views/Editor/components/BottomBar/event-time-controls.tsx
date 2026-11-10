@@ -100,9 +100,11 @@ const sliderStyle = cva({
  * frame while playing, which is why it is its own component: the rest of
  * the bar stays put.
  */
-export const EventTimeControls: React.FC<{ disabled: boolean }> = ({
-  disabled,
-}) => {
+export const EventTimeControls: React.FC<{
+  disabled: boolean;
+  /** False where there are no events to step between, as across many runs. */
+  showEventSteppers?: boolean;
+}> = ({ disabled, showEventSteppers = true }) => {
   const presentation = usePetrinautPresentation();
   const { coveredTime, setTime, stepToEvent } = use(EventPlaybackContext);
   const { time, hasPreviousEvent, hasNextEvent } = useEventPlaybackFrame();
@@ -110,22 +112,26 @@ export const EventTimeControls: React.FC<{ disabled: boolean }> = ({
 
   return (
     <>
-      <ToolbarButton
-        tooltip="Previous event"
-        onClick={() => stepToEvent(-1)}
-        disabled={disabled || !hasPreviousEvent}
-        ariaLabel="Go to the previous event"
-      >
-        <Icon name="chevronLeft" size="sm" />
-      </ToolbarButton>
-      <ToolbarButton
-        tooltip="Next event"
-        onClick={() => stepToEvent(1)}
-        disabled={disabled || !hasNextEvent}
-        ariaLabel="Go to the next event"
-      >
-        <Icon name="chevronRight" size="sm" />
-      </ToolbarButton>
+      {showEventSteppers ? (
+        <>
+          <ToolbarButton
+            tooltip="Previous event"
+            onClick={() => stepToEvent(-1)}
+            disabled={disabled || !hasPreviousEvent}
+            ariaLabel="Go to the previous event"
+          >
+            <Icon name="chevronLeft" size="sm" />
+          </ToolbarButton>
+          <ToolbarButton
+            tooltip="Next event"
+            onClick={() => stepToEvent(1)}
+            disabled={disabled || !hasNextEvent}
+            ariaLabel="Go to the next event"
+          >
+            <Icon name="chevronRight" size="sm" />
+          </ToolbarButton>
+        </>
+      ) : null}
 
       <div
         role="timer"

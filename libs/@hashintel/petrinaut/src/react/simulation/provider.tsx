@@ -7,8 +7,10 @@ import { use, useEffect, useRef, useState } from "react";
 
 import {
   assessSimulator,
+  createExperimentReader,
   createSimulation,
   defaultSimulatorParameters,
+  placeCountMetricSpecs,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
@@ -16,6 +18,9 @@ import {
   type EventSimulation,
   type CompileHirArtifactsOptions,
   type HirCompileResult,
+  type MonteCarloExperiment,
+  type MonteCarloExperimentState,
+  type MonteCarloMetricSpec,
   type PetrinautExtensionSettings,
   type ReadableStore,
   type Scenario,
@@ -43,12 +48,15 @@ import { NotificationsContext } from "../notifications/context";
 import {
   findSimulator,
   SimulatorsContext,
+  type SimulationMode,
   type SimulatorSelection,
 } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { constantStore, selectStore, useStore } from "../use-store";
 import {
   type InitialMarking,
+  type PlaybackSource,
+  type StochasticRun,
   SimulationContext,
   type SimulationContextValue,
   type SimulationEngine,
@@ -81,11 +89,27 @@ type SimulationStateValues = {
   dt: number;
   maxTime: number | null;
   engine: SimulationEngine;
-  /** The simulator picked for the next run. Null follows the host's default. */
-  simulatorId: string | null;
-  /** The parameter values edited for each simulator, kept across a switch. */
+  mode: SimulationMode;
+  /** Runs a Stochastic simulation computes. */
+  runs: number;
+  /** The simulator picked in each mode. Null follows the host's default. */
+  simulatorIds: Record<SimulationMode, string | null>;
+  /**
+   * The parameter values edited for each simulator in each mode, kept
+   * across a switch. Keyed by {@link simulatorParametersKey}.
+   */
   simulatorParameters: Record<string, StoredSimulatorParameters>;
 };
+
+const simulatorParametersKey = (
+  mode: SimulationMode,
+  simulatorId: string,
+): string => `${mode}:${simulatorId}`;
+
+/** Runs a Stochastic simulation starts on. */
+const DEFAULT_STOCHASTIC_RUNS = 100;
+/** The end time a Stochastic simulation takes when none was set. */
+const DEFAULT_STOCHASTIC_MAX_TIME = 60;
 
 function getScenarioParameterDefaults(
   scenario?: Scenario,
@@ -118,7 +142,9 @@ function createInitialStateValues(options?: {
     dt: options?.dt ?? 0.01,
     maxTime: options?.maxTime ?? null,
     engine: options?.engine ?? "fixed-step",
-    simulatorId: null,
+    mode: "quick",
+    runs: DEFAULT_STOCHASTIC_RUNS,
+    simulatorIds: { quick: null, stochastic: null },
     simulatorParameters: {},
   };
 }
@@ -247,6 +273,90 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
   }
 }
 
+const experimentStatusAsRunStatus = (
+  status: MonteCarloExperimentState,
+): CoreSimulationState =>
+  // A cancelled experiment is over, with what it computed still to view.
+  status === "Cancelled" ? "Complete" : status;
+
+/**
+ * What playback moves over in Stochastic mode: the experiment's samples. It
+ * computes freely, so nothing is demanded of it.
+ */
+const createStochasticPlaybackSource = ({
+  experiment,
+  reader,
+}: Pick<StochasticRun, "experiment" | "reader">): PlaybackSource => {
+  const read = () => ({
+    eventCount: experiment.metrics.get().frames.length,
+    coveredTime: reader.coveredTime(),
+  });
+  // The same object while nothing moved, as a store's value has to be.
+  let coverage = read();
+  const getCoverage = () => {
+    const next = read();
+    if (
+      next.eventCount !== coverage.eventCount ||
+      next.coveredTime !== coverage.coveredTime
+    ) {
+      coverage = next;
+    }
+    return coverage;
+  };
+  return {
+    coverage: {
+      get: getCoverage,
+      subscribe: (listener) =>
+        experiment.metrics.subscribe(() => listener(getCoverage())),
+    },
+    status: {
+      get: () => experimentStatusAsRunStatus(experiment.status.get()),
+      subscribe: (listener) =>
+        experiment.status.subscribe((status) =>
+          listener(experimentStatusAsRunStatus(status)),
+        ),
+    },
+    demand: () => {},
+  };
+};
+
+/**
+ * Starts an experiment on the selected simulator, or throws why it could
+ * not. Kept out of `initialize` for the same reason as
+ * {@link startSimulatorRun}.
+ */
+const startSimulatorExperiment = async (
+  registration: SimulatorRegistration | undefined,
+  selection: SimulatorSelection,
+  request: Parameters<typeof assessSimulator>[2],
+  experiment: {
+    runCount: number;
+    metricSpecs: readonly MonteCarloMetricSpec[];
+  },
+): Promise<MonteCarloExperiment> => {
+  if (!registration) {
+    throw new Error(`No simulator is registered as "${selection.simulatorId}"`);
+  }
+  const outcome = await assessSimulator(
+    registration,
+    selection.parameters,
+    request,
+  );
+  if (!outcome.ok) {
+    throw new Error(refusalMessage(outcome.blockers));
+  }
+  if (!outcome.offer.startExperiment) {
+    throw new Error(
+      `${registration.label} computes one run at a time, not many`,
+    );
+  }
+  const started = await outcome.offer.startExperiment(experiment);
+  if (!started.ok) {
+    throw new Error(refusalMessage(started.blockers));
+  }
+  return started.handle;
+};
+
 /** Compilation surface consumed by simulation without coupling it to an LSP. */
 export type SimulationCompiler = {
   requestHirArtifacts: (
@@ -352,21 +462,29 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   );
   const stateValuesRef = useLatest(stateValues);
 
-  // The selection in effect: the picked simulator, or the host's default
-  // when none was picked or the picked one is no longer registered, with
-  // its parameters at their defaults wherever none was edited.
-  const pickedSimulator = stateValues.simulatorId
-    ? findSimulator(simulators.registrations, stateValues.simulatorId)
-    : undefined;
+  // The selection in effect for the current mode: the picked simulator, or
+  // the host's default when none was picked or the picked one is no longer
+  // registered. Its parameters are the spec's defaults, then the host's for
+  // the mode, then whatever was edited.
+  const { mode } = stateValues;
+  const modeDefault = simulators.defaultSelections[mode];
+  const pickedSimulatorId = stateValues.simulatorIds[mode];
   const selectedSimulator =
-    pickedSimulator ??
-    findSimulator(simulators.registrations, simulators.defaultSimulatorId);
+    (pickedSimulatorId
+      ? findSimulator(simulators.registrations, pickedSimulatorId)
+      : undefined) ??
+    findSimulator(simulators.registrations, modeDefault.simulatorId);
   const simulatorSelection: SimulatorSelection = {
-    simulatorId: selectedSimulator?.id ?? simulators.defaultSimulatorId,
+    simulatorId: selectedSimulator?.id ?? modeDefault.simulatorId,
     parameters: selectedSimulator
       ? {
           ...defaultSimulatorParameters(selectedSimulator.parameters),
-          ...stateValues.simulatorParameters[selectedSimulator.id],
+          ...(selectedSimulator.id === modeDefault.simulatorId
+            ? modeDefault.parameters
+            : undefined),
+          ...stateValues.simulatorParameters[
+            simulatorParametersKey(mode, selectedSimulator.id)
+          ],
         }
       : {},
   };
@@ -380,6 +498,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const [eventSimulation, setEventSimulation] =
     useState<EventSimulation | null>(null);
   const eventSimulationRef = useLatest(eventSimulation);
+  // A Stochastic simulation's experiment, with the source playback moves
+  // over made once beside it.
+  const [stochastic, setStochastic] = useState<{
+    run: StochasticRun;
+    playbackSource: PlaybackSource;
+  } | null>(null);
+  const stochasticRef = useLatest(stochastic);
   const initializationGenerationRef = useRef(0);
   // Track error info captured from the simulation's events stream so the UI
   // can surface it. The core handle has a status of "Error" but doesn't
@@ -390,7 +515,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
   const coreStatus = useStore(
-    simulation?.status ?? eventSimulation?.status ?? EMPTY_STATUS_STORE,
+    simulation?.status ??
+      eventSimulation?.status ??
+      stochastic?.playbackSource.status ??
+      EMPTY_STATUS_STORE,
   );
 
   // When the simulation changes, subscribe to its events stream for errors and
@@ -414,14 +542,33 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     return off;
   }, [addNotification, eventSimulation, simulation]);
 
+  // An experiment reports the same two things on its own stream.
+  useEffect(() => {
+    if (!stochastic) {
+      return;
+    }
+    return stochastic.run.experiment.events.subscribe((event) => {
+      if (event.type === "error") {
+        setError(event.message);
+        setErrorItemId(event.itemId);
+      } else if (event.type === "complete") {
+        addNotification({ message: "Simulation complete", tone: "success" });
+      }
+    });
+  }, [addNotification, stochastic]);
+
   // Dispose on unmount.
   useEffect(() => {
     return () => {
       initializationGenerationRef.current += 1;
       simulationRef.current?.dispose();
       eventSimulationRef.current?.dispose();
+      const currentStochastic = stochasticRef.current;
+      if (currentStochastic && !currentStochastic.run.kept) {
+        currentStochastic.run.experiment.dispose();
+      }
     };
-  }, [eventSimulationRef, simulationRef]);
+  }, [eventSimulationRef, simulationRef, stochasticRef]);
 
   // Keep the session initialMarking aligned with colour type schemas: when a
   // type element is renamed, re-typed, or removed, migrate the name-keyed
@@ -452,17 +599,29 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const disposeRuns = (): boolean => {
     const current = simulationRef.current;
     const currentEvent = eventSimulationRef.current;
+    const currentStochastic = stochasticRef.current;
     current?.dispose();
     currentEvent?.dispose();
+    // Disposing an experiment ends its workers, running or not. One that
+    // was taken over is its new owner's to end.
+    if (currentStochastic && !currentStochastic.run.kept) {
+      currentStochastic.run.experiment.dispose();
+    }
     simulationRef.current = null;
     eventSimulationRef.current = null;
+    stochasticRef.current = null;
     if (current) {
       setSimulation(null);
     }
     if (currentEvent) {
       setEventSimulation(null);
     }
-    return current !== null || currentEvent !== null;
+    if (currentStochastic) {
+      setStochastic(null);
+    }
+    return (
+      current !== null || currentEvent !== null || currentStochastic !== null
+    );
   };
 
   const invalidateSimulationForConfigurationChange = (): void => {
@@ -488,9 +647,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     simulationRef.current = null;
     eventSimulationRef.current?.dispose();
     eventSimulationRef.current = null;
+    const currentStochastic = stochasticRef.current;
+    if (currentStochastic && !currentStochastic.run.kept) {
+      currentStochastic.run.experiment.dispose();
+    }
+    stochasticRef.current = null;
     // Reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above.
     setSimulation(null);
     setEventSimulation(null);
+    setStochastic(null);
     setError(null);
     setErrorItemId(null);
     setStateValues((prev) => ({
@@ -507,6 +672,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     eventSimulationRef,
     petriNetDefinition.scenarios,
     simulationRef,
+    stochasticRef,
   ]);
 
   // Only navigates. The effective-scenario effect above owns the simulation
@@ -618,7 +784,47 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       invalidateSimulationForConfigurationChange();
     }
 
-    setStateValues((prev) => ({ ...prev, simulatorId }));
+    setStateValues((prev) => ({
+      ...prev,
+      simulatorIds: { ...prev.simulatorIds, [prev.mode]: simulatorId },
+    }));
+  };
+
+  const setMode: SimulationContextValue["setMode"] = (nextMode) => {
+    if (stateValuesRef.current.mode !== nextMode) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({
+      ...prev,
+      mode: nextMode,
+      // Many runs are compared at the same times, so they need an end.
+      maxTime:
+        nextMode === "stochastic" && prev.maxTime === null
+          ? DEFAULT_STOCHASTIC_MAX_TIME
+          : prev.maxTime,
+    }));
+  };
+
+  const setRuns: SimulationContextValue["setRuns"] = (runs) => {
+    if (!Number.isInteger(runs) || runs < 1) {
+      return;
+    }
+    if (stateValuesRef.current.runs !== runs) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({ ...prev, runs }));
+  };
+
+  const keepStochasticRun: SimulationContextValue["keepStochasticRun"] = () => {
+    const current = stochasticRef.current;
+    if (!current || current.run.kept) {
+      return;
+    }
+    const kept = { ...current, run: { ...current.run, kept: true } };
+    stochasticRef.current = kept;
+    setStochastic(kept);
   };
 
   const setSimulatorParameter: SimulationContextValue["setSimulatorParameter"] =
@@ -628,16 +834,19 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         invalidateSimulationForConfigurationChange();
       }
 
-      setStateValues((prev) => ({
-        ...prev,
-        simulatorParameters: {
-          ...prev.simulatorParameters,
-          [simulatorId]: {
-            ...prev.simulatorParameters[simulatorId],
-            [key]: value,
+      setStateValues((prev) => {
+        const parametersKey = simulatorParametersKey(prev.mode, simulatorId);
+        return {
+          ...prev,
+          simulatorParameters: {
+            ...prev.simulatorParameters,
+            [parametersKey]: {
+              ...prev.simulatorParameters[parametersKey],
+              [key]: value,
+            },
           },
-        },
-      }));
+        };
+      });
     };
 
   const initialize: SimulationContextValue["initialize"] = async ({
@@ -686,6 +895,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     let sim: Simulation | null = null;
     let eventSim: EventSimulation | null = null;
+    let stochasticRun: StochasticRun | null = null;
     try {
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
@@ -725,32 +935,57 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
       if (currentState.engine === "event-driven") {
         const selection = simulatorSelectionRef.current;
-        eventSim = await startSimulatorRun(
-          findSimulator(
-            simulatorsRef.current.registrations,
-            selection.simulatorId,
-          ),
-          selection,
-          // Compile the net's user code to HIR artifacts in the language
-          // worker: a simulator has no compiler of its own. One that reads
-          // the HIR trees itself gets them; the rest are spared the weight.
-          async (simulator): Promise<SimulationRequestBase> => {
-            const { artifacts } = await requestHirArtifacts(
-              simulationSdcpn,
-              simulationExtensions,
-              simulator.needsHirTrees ? { includeHir: true } : undefined,
-            );
-            return {
-              sdcpn: simulationSdcpn,
-              extensions: simulationExtensions,
-              hirArtifacts: artifacts,
-              initialMarking,
-              parameterValues,
-              seed,
-              maxTime: currentState.maxTime,
-            };
-          },
+        const registration = findSimulator(
+          simulatorsRef.current.registrations,
+          selection.simulatorId,
         );
+        // Compile the net's user code to HIR artifacts in the language
+        // worker: a simulator has no compiler of its own. One that reads
+        // the HIR trees itself gets them; the rest are spared the weight.
+        const buildRequest = async (simulator: {
+          needsHirTrees: boolean;
+        }): Promise<SimulationRequestBase> => {
+          const { artifacts } = await requestHirArtifacts(
+            simulationSdcpn,
+            simulationExtensions,
+            simulator.needsHirTrees ? { includeHir: true } : undefined,
+          );
+          return {
+            sdcpn: simulationSdcpn,
+            extensions: simulationExtensions,
+            hirArtifacts: artifacts,
+            initialMarking,
+            parameterValues,
+            seed,
+            maxTime: currentState.maxTime,
+          };
+        };
+        if (currentState.mode === "stochastic") {
+          const metricSpecs = placeCountMetricSpecs(simulationSdcpn.places);
+          const experiment = await startSimulatorExperiment(
+            registration,
+            selection,
+            buildRequest,
+            { runCount: currentState.runs, metricSpecs },
+          );
+          stochasticRun = {
+            experiment,
+            reader: createExperimentReader(experiment.metrics),
+            runCount: currentState.runs,
+            seed,
+            // An experiment without an end is refused before it starts.
+            maxTime: currentState.maxTime ?? 0,
+            metricSpecs,
+            simulator: selection,
+            kept: false,
+          };
+        } else {
+          eventSim = await startSimulatorRun(
+            registration,
+            selection,
+            buildRequest,
+          );
+        }
       } else {
         const { artifacts } = await requestHirArtifacts(
           simulationSdcpn,
@@ -791,20 +1026,35 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     if (initializationGenerationRef.current !== generation) {
       sim?.dispose();
       eventSim?.dispose();
+      stochasticRun?.experiment.dispose();
       return;
     }
 
+    const nextStochastic = stochasticRun
+      ? {
+          run: stochasticRun,
+          playbackSource: createStochasticPlaybackSource(stochasticRun),
+        }
+      : null;
     // Write the refs synchronously *before* the state so a same-tick caller
     // can run the newly initialized handle immediately.
     simulationRef.current = sim;
     eventSimulationRef.current = eventSim;
+    stochasticRef.current = nextStochastic;
     setSimulation(sim);
     setEventSimulation(eventSim);
+    setStochastic(nextStochastic);
   };
 
   const run: SimulationContextValue["run"] = () => {
     simulationRef.current?.run();
     eventSimulationRef.current?.run();
+    // An experiment starts once and runs to its end: resuming playback
+    // finds it already going.
+    const experiment = stochasticRef.current?.run.experiment;
+    if (experiment?.status.get() === "Ready") {
+      experiment.start();
+    }
   };
 
   const pause: SimulationContextValue["pause"] = () => {
@@ -890,8 +1140,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   };
 
   const simulationState = mapCoreState(
-    simulation || eventSimulation ? coreStatus : null,
+    simulation || eventSimulation || stochastic ? coreStatus : null,
   );
+  // The run's own stores, so the source holds still for as long as the run.
+  const playbackSource: PlaybackSource | null = eventSimulation
+    ? {
+        coverage: eventSimulation.trace,
+        status: eventSimulation.status,
+        demand: eventSimulation.demand,
+      }
+    : (stochastic?.playbackSource ?? null);
   // The frame count is handed out as a store, so this provider and the
   // consumers of its context are not rendered on every batch the worker posts.
   const totalFramesStore: ReadableStore<number> = simulation
@@ -1114,7 +1372,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: stateValues.maxTime,
     totalFramesStore,
     engine: stateValues.engine,
+    mode,
     simulatorSelection,
+    runs: stateValues.runs,
+    stochasticRun: stochastic?.run ?? null,
+    playbackSource,
     eventSimulation,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
@@ -1125,6 +1387,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
+    setMode: useStableCallback(setMode),
+    setRuns: useStableCallback(setRuns),
+    keepStochasticRun: useStableCallback(keepStochasticRun),
     selectSimulator: useStableCallback(selectSimulator),
     setSimulatorParameter: useStableCallback(setSimulatorParameter),
     setMaxTime: useStableCallback(setMaxTime),
