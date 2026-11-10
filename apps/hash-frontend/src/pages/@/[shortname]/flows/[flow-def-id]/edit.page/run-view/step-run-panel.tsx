@@ -184,8 +184,12 @@ export const StepRunPanel = ({
   const waiting = runs.some(({ stepRun }) =>
     waitingOnPerson.has(stepRun.stepId),
   );
-  /* A step run per item is still running while items are yet to be scheduled, though every run so far has closed. */
-  const running = live && mark.state === "running";
+  /*
+   * Timed up to now while it's still going: running, or waiting on a person, which outranks running items. A step run
+   * per item is still going while items are yet to be scheduled, though every run so far has closed.
+   */
+  const running =
+    live && (mark.state === "running" || mark.state === "needsReview");
   const now = useNow(running);
   const lastError = useMemo(() => getLastError(runs), [runs]);
   const itemCountsLine =

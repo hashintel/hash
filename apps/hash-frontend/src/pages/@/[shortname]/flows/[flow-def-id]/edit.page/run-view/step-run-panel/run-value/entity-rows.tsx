@@ -188,7 +188,9 @@ export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
           typesMap,
           { loading, failed: !!error },
         );
-        const { shortname } = getOwnerForEntity({ entityId });
+        /* A draft the run created may have been published since: link to the edition shown. */
+        const shownEntityId = entity?.metadata.recordId.entityId ?? entityId;
+        const { shortname } = getOwnerForEntity({ entityId: shownEntityId });
 
         return (
           <a
@@ -201,7 +203,7 @@ export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
               shortname
                 ? generateEntityPath({
                     shortname,
-                    entityId,
+                    entityId: shownEntityId,
                     includeDraftId: true,
                   })
                 : undefined
