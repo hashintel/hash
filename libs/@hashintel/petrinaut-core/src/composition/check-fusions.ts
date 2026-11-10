@@ -7,6 +7,7 @@
  */
 
 import { getArcEndpoint } from "../arc-endpoints";
+import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 import {
   describeFusionMember,
   fusionDisplayName,
@@ -77,7 +78,7 @@ type MemberFacts = TokenFlow & {
   label: string;
   color: Color | undefined;
   capacity: number | null;
-  /** The equation the member runs, keyed so two instances of one subnet agree. */
+  /** The equations the member runs, in order, keyed so two instances of one subnet agree. */
   dynamicsKey: string | null;
 };
 
@@ -145,6 +146,7 @@ const factsFor = (
     resolved.kind === "place" ? net.types : resolved.subnet.types;
   const scope: string =
     resolved.kind === "place" ? "" : `${resolved.subnet.id}::`;
+  const equationIds = getPlaceDynamicsEquationIds(place);
   const outside = outsideFlow(net, resolved);
   const inside: TokenFlow =
     resolved.kind === "port"
@@ -158,8 +160,10 @@ const factsFor = (
       : undefined,
     capacity: place.capacity ?? null,
     dynamicsKey:
-      place.dynamicsEnabled && place.differentialEquationId
-        ? `${scope}${place.differentialEquationId}`
+      place.dynamicsEnabled && equationIds.length > 0
+        ? JSON.stringify(
+            equationIds.map((equationId) => `${scope}${equationId}`),
+          )
         : null,
     produced: outside.produced || inside.produced,
     consumed: outside.consumed || inside.consumed,
@@ -268,7 +272,7 @@ export const checkFusion = (
     report(
       "dynamics-conflict",
       "error",
-      `${fusionName} fuses places that run different differential equations; at most one equation can drive the fused place.`,
+      `${fusionName} fuses places that run different differential equations; the members with dynamics must compose the same equations.`,
     );
   }
   if (!facts.some(({ produced }) => produced)) {

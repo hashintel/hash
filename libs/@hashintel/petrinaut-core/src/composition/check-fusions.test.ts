@@ -9,7 +9,6 @@ const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...overrides,
@@ -125,6 +124,7 @@ describe("checkFusions", () => {
           name: "Cool",
           colorId: "root_part",
           code: "return tokens;",
+          arity: 1,
         },
       ],
       places: [
@@ -132,7 +132,7 @@ describe("checkFusions", () => {
           colorId: "root_part",
           capacity: 5,
           dynamicsEnabled: true,
-          differentialEquationId: "cool",
+          dynamics: [{ differentialEquationId: "cool" }],
         }),
       ],
       subnets: [
@@ -146,6 +146,7 @@ describe("checkFusions", () => {
               name: "Heat",
               colorId: "part",
               code: "return tokens;",
+              arity: 1,
             },
           ],
           places: [
@@ -154,7 +155,7 @@ describe("checkFusions", () => {
               colorId: "part",
               capacity: 3,
               dynamicsEnabled: true,
-              differentialEquationId: "heat",
+              dynamics: [{ differentialEquationId: "heat" }],
             }),
           ],
         }),
@@ -189,6 +190,7 @@ describe("checkFusions", () => {
               name: "Drain",
               colorId: "fluid",
               code: "return tokens;",
+              arity: 1,
             },
           ],
           places: [
@@ -196,7 +198,7 @@ describe("checkFusions", () => {
               isPort: true,
               colorId: "fluid",
               dynamicsEnabled: true,
-              differentialEquationId: "drain",
+              dynamics: [{ differentialEquationId: "drain" }],
             }),
           ],
         }),
