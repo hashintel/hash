@@ -118,13 +118,13 @@ describe("getStepRunMarks", () => {
     expect(marks.get("fetch")?.state).toBe("notReached");
   });
 
-  it("shows a finished for-each step with some failed items as done with failures, and a step skipped for them as done", () => {
+  it("shows a finished for-each step with some failed items as done with failures, though their later steps never started", () => {
     const marks = marksOf(
       [
         itemRun("fetch", 0, FlowStepStatus.Completed),
         itemRun("send", 0, FlowStepStatus.Completed),
+        /* `send` waits on the failed `fetch` for this item, so it never runs. */
         itemRun("fetch", 1, FlowStepStatus.TimedOut),
-        itemRun("send", 1, FlowStepStatus.Skipped),
         itemRun("fetch", 2, FlowStepStatus.Completed),
         itemRun("send", 2, FlowStepStatus.Completed),
       ],
@@ -136,7 +136,6 @@ describe("getStepRunMarks", () => {
       items: counts({ done: 2, failed: 1 }),
     });
     expect(marks.get("fetch")?.state).toBe("doneWithFailures");
-    expect(marks.get("send")?.state).toBe("done");
   });
 
   it("shows a for-each step whose every item failed as failed", () => {

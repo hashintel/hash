@@ -103,7 +103,12 @@ const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
 
 /** An item's state from its steps' states for it: a failure in any step fails the item. */
 const getItemState = (stepStates: ItemState[], live: boolean): ItemState => {
-  const state = getStateOfItems(countItems(stepStates), live);
+  const counts = countItems(stepStates);
+  /* The steps after a failed one wait on it and never start, so they don't keep its item running. */
+  const state = getStateOfItems(
+    counts.failed > 0 ? { ...counts, notReached: 0 } : counts,
+    live,
+  );
 
   return state === "doneWithFailures" ? "failed" : state;
 };
