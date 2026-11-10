@@ -241,6 +241,51 @@ const typeChipStyle = css({
   whiteSpace: "nowrap",
 });
 
+/**
+ * How an output row shows its type, URL only (?outputtype=a|b; inbox output-type-display). No param is C: the chip after
+ * the name. a: no chip, the type only in the name's hover. b: the type as a faint 12 px second line under the name.
+ */
+export type OutputTypeTake = "a" | "b";
+
+export const useOutputTypeTake = (): OutputTypeTake | null => {
+  const value = useLocation().query.get("outputtype");
+  return value === "a" || value === "b" ? value : null;
+};
+
+const typeLineStyle = css({
+  display: "block",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+});
+
+const OutputName = ({ label, kind }: { label: string; kind: string | null | undefined }) => {
+  const take = useOutputTypeTake();
+  const name = (
+    <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
+      <span className={headNameStyle}>{label}</span>
+    </Tooltip>
+  );
+  if (take === "a") {
+    return name;
+  }
+  if (take === "b") {
+    return (
+      <span className={css({ display: "flex", flexDirection: "column", minWidth: "[0]", paddingY: "1" })}>
+        {name}
+        <span className={typeLineStyle}>{kind ?? "Known when it runs"}</span>
+      </span>
+    );
+  }
+  return (
+    <>
+      {name}
+      {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+    </>
+  );
+};
+
 const headEndStyle = css({
   display: "flex",
   alignItems: "center",
@@ -1157,10 +1202,7 @@ const MinimalBlock = ({
         {take === "u2" ? (
           <span className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })}>
             <span className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}>
-              <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
-                <span className={headNameStyle}>{label}</span>
-              </Tooltip>
-              {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+              <OutputName label={label} kind={kind} />
             </span>
             {count > 0 ? (
               <button
@@ -1177,10 +1219,7 @@ const MinimalBlock = ({
           </span>
         ) : (
           <>
-            <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
-              <span className={headNameStyle}>{label}</span>
-            </Tooltip>
-            {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+            <OutputName label={label} kind={kind} />
           </>
         )}
         <span className={headEndStyle}>
@@ -1455,10 +1494,7 @@ const StructureBlock = ({
         <span data-type-icon>
           <Icon name={typeIcon} size="sm" />
         </span>
-        <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
-          <span className={headNameStyle}>{label}</span>
-        </Tooltip>
-        {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+        <OutputName label={label} kind={kind} />
         <span className={headEndStyle}>{end}</span>
       </div>
       {body}
@@ -1650,10 +1686,7 @@ const RestBlock = ({
     ) : null;
   const nameBlock = (
     <>
-      <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
-        <span className={headNameStyle}>{label}</span>
-      </Tooltip>
-      {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+      <OutputName label={label} kind={kind} />
     </>
   );
   return (
@@ -1802,10 +1835,7 @@ export const UsedInBlock = ({
         <span data-type-icon>
           <Icon name={typeIcon} size="sm" />
         </span>
-        <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
-          <span className={headNameStyle}>{label}</span>
-        </Tooltip>
-        {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+        <OutputName label={label} kind={kind} />
         <span className={headEndStyle}>{end}</span>
       </div>
       {rows > 0 ? (

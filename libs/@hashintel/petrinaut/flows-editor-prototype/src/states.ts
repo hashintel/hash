@@ -324,58 +324,89 @@ const emailBodyExample = (): EditorDocument => {
 };
 
 /**
- * Outputs review (26 Oct sync): one Find entities read by six later steps, so its Entities output shows three users
- * and "+3 more". Count is read by none ("Not used yet").
+ * Outputs review (26 Oct sync): one Find entities read by six later steps of six kinds, each filling a different
+ * input, so its Entities output shows three users and "+3 more". Count is read by none ("Not used yet").
  */
 const manyUsersExample = (): EditorDocument => {
   const found = addStep(emptyDocument(), "queryEntities", {
     after: { stepId: START_ID, port: "next" },
   });
-  let document = found.document;
-  let previous = found.stepId;
-  const readers = [
-    "Alert to the team",
-    "Monthly report",
-    "Audit log",
-    "Notify suppliers",
-    "Quality summary",
-    "Archive copy",
+  const suppliers = {
+    kind: "step-output" as const,
+    stepId: found.stepId,
+    outputName: "entities",
+  };
+  const readers: Array<{
+    catalogId: string;
+    name: string;
+    input: string;
+    port: string;
+    via: "inputs" | "lists" | "over";
+  }> = [
+    { catalogId: "forEach", name: "For each supplier", input: "", port: "next", via: "over" },
+    { catalogId: "updateEntity", name: "Update supplier records", input: "entityId", port: "next", via: "inputs" },
+    { catalogId: "requestReview", name: "Ask QA to review", input: "entity", port: "approved", via: "inputs" },
+    { catalogId: "draftMessage", name: "Write quality summary", input: "entities", port: "next", via: "inputs" },
+    { catalogId: "sendEmail", name: "Notify suppliers", input: "to", port: "next", via: "lists" },
+    { catalogId: "filterList", name: "Suppliers to follow up", input: "items", port: "next", via: "inputs" },
   ];
-  const templates: EditorDocument["templates"] = {};
-  for (const name of readers) {
-    const added = addStep(document, "sendEmail", {
-      after: { stepId: previous, port: "next" },
-    });
+  let document = found.document;
+  let previous = { stepId: found.stepId, port: "next" };
+  const lists: EditorDocument["lists"] = {};
+  for (const reader of readers) {
+    const added = addStep(document, reader.catalogId, { after: previous });
     document = {
       ...added.document,
       steps: added.document.steps.map((step) =>
-        step.stepId === added.stepId ? { ...step, description: name } : step,
+        step.stepId !== added.stepId
+          ? step
+          : step.kind === "for-each"
+            ? { ...step, description: reader.name, over: suppliers }
+            : {
+                ...step,
+                description: reader.name,
+                inputs:
+                  reader.via === "inputs"
+                    ? { ...step.inputs, [reader.input]: suppliers }
+                    : step.inputs,
+              },
       ),
     };
-    templates[fieldKey(added.stepId, "subject")] = [
-      { kind: "text", text: `${name}: ` },
-      {
-        kind: "ref",
-        source: {
-          kind: "step-output",
-          stepId: found.stepId,
-          outputName: "entities",
-        },
-      },
-    ];
-    previous = added.stepId;
+    if (reader.via === "lists") {
+      lists[fieldKey(added.stepId, reader.input)] = [suppliers];
+    }
+    previous = { stepId: added.stepId, port: reader.port };
   }
   return {
     ...document,
     startDescription: "Flow inputs",
     steps: document.steps.map((step) =>
-      step.stepId === found.stepId
-        ? { ...step, description: "Shipments this month" }
-        : step,
+      step.stepId === found.stepId ? { ...step, description: "Suppliers" } : step,
     ),
-    templates,
+    lists,
   };
 };
+
+/** Output types card (10 Nov): the same flow plus "Rate supplier risk", an Answer question whose outputs are three types. */
+const outputTypesExample = (): { document: EditorDocument; stepId: string } => {
+  const base = manyUsersExample();
+  const last = base.steps.at(-1)!;
+  const added = addStep(base, "answerQuestion", {
+    after: { stepId: last.stepId, port: "next" },
+  });
+  return {
+    stepId: added.stepId,
+    document: {
+      ...added.document,
+      steps: added.document.steps.map((step) =>
+        step.stepId === added.stepId
+          ? { ...step, description: "Rate supplier risk" }
+          : step,
+      ),
+    },
+  };
+};
+
 
 /** Branching review (26 Oct sync, Figma 637:22029 B): Ask a person's Decision branches to two emails. */
 const reviewBranchExample = (): EditorDocument => {
@@ -713,6 +744,18 @@ const figmaStates: ScreenState[] = [
         document,
         ui: { ...initialUi, selectedId: document.steps[0]!.stepId },
       };
+    },
+  },
+  {
+    id: "out-types",
+    journey: 3,
+    row: "Outputs · 26 Oct",
+    title: "Outputs · How a row shows its type",
+    caption:
+      "Rate supplier risk selected: Answer, Explanation, Confidence and Source code. ?outputtype=a|b for the other takes.",
+    create: () => {
+      const { document, stepId } = outputTypesExample();
+      return { document, ui: { ...initialUi, selectedId: stepId } };
     },
   },
   {
