@@ -13,7 +13,7 @@
 
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { StrictMode, use, useLayoutEffect } from "react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
@@ -28,10 +28,7 @@ import type { TopBarState } from "./process-editor/petrinaut-editor/top-bar-cont
 import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
-import type {
-  BrunchAssistantHost,
-  useBrunchAssistant,
-} from "@hashintel/brunch-agent/ui";
+import type * as BrunchUi from "@hashintel/brunch-agent/ui";
 import type { AlertModal } from "@hashintel/design-system";
 import type {
   ErrorTracker,
@@ -43,7 +40,7 @@ import type * as PetrinautCore from "@hashintel/petrinaut-core";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
 
 type AlertProps = ComponentProps<typeof AlertModal>;
-type BrunchInput = Parameters<typeof useBrunchAssistant>[0];
+type BrunchInput = Parameters<typeof BrunchUi.useBrunchAssistant>[0];
 
 /** A net in the fake graph, with its revisions oldest first. */
 type GraphNet = {
@@ -161,7 +158,7 @@ const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
 const brunchHostContext = await vi.hoisted(async () => {
   const { createContext } = await import("react");
-  return createContext<BrunchAssistantHost | null>(null);
+  return createContext<BrunchUi.BrunchAssistantHost | null>(null);
 });
 
 vi.mock("next/router", async () => {
@@ -303,9 +300,8 @@ vi.hoisted(() => {
 });
 
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
-  createHashPetrinautSaveTool: (
-    await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
-  ).createHashPetrinautSaveTool,
+  createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
+    .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
   useBrunchAssistant: (input: BrunchInput) => {
@@ -589,6 +585,11 @@ const holdNextWrite = () => {
   graph.writeGates.push(gate.promise);
   return gate.resolve;
 };
+
+// Initialize the real save tool's UI module graph outside the editor's mount wait.
+beforeAll(async () => {
+  await import("@hashintel/brunch-agent/ui");
+});
 
 beforeEach(() => {
   graph.nets = new Map([

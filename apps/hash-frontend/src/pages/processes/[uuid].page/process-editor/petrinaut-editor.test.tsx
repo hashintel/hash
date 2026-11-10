@@ -16,11 +16,7 @@ import type {
 } from "./petrinaut-editor";
 import type { TopBarState } from "./petrinaut-editor/top-bar-context";
 import type { EntityId } from "@blockprotocol/type-system";
-import type {
-  BrunchAssistantHost,
-  PetrinautAiAutomaticToolExecuteParams,
-  useBrunchAssistant,
-} from "@hashintel/brunch-agent/ui";
+import type * as BrunchUi from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 import type * as PetrinautCore from "@hashintel/petrinaut-core";
 
@@ -45,7 +41,7 @@ const observed = vi.hoisted(() => ({
   petrinautHandles: [] as PetrinautDocHandle[],
   /** The top bar (Save, version picker) each editor render saw. */
   topBars: [] as unknown[],
-  brunchInputs: [] as Parameters<typeof useBrunchAssistant>[0][],
+  brunchInputs: [] as Parameters<typeof BrunchUi.useBrunchAssistant>[0][],
   /** Failures to report from inside the editor and from Brunch's hook. */
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
@@ -58,7 +54,7 @@ const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
 const brunchHostContext = await vi.hoisted(async () => {
   const { createContext: createHostContext } = await import("react");
-  return createHostContext<BrunchAssistantHost | null>(null);
+  return createHostContext<BrunchUi.BrunchAssistantHost | null>(null);
 });
 
 vi.mock("@sentry/nextjs", () => sentry);
@@ -113,15 +109,16 @@ vi.mock("@hashintel/petrinaut", async () => {
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => {
   const { ErrorTrackerContext } = await import("@hashintel/petrinaut");
   return {
-    createHashPetrinautSaveTool: (
-      await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
-    ).createHashPetrinautSaveTool,
+    createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
+      .createHashPetrinautSaveTool,
     BrunchAssistantContext: brunchHostContext,
     brunchPlugin: brunchPluginMarker,
     // Mirrors the hook's contract: its runner's `documentHandle` is the
     // open document's editor handle, and its failures go to the tracker the
     // hook reads where it is called.
-    useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
+    useBrunchAssistant: (
+      input: Parameters<typeof BrunchUi.useBrunchAssistant>[0],
+    ) => {
       observed.brunchInputs.push(input);
       const { captureException } = use(ErrorTrackerContext);
       const failure = observed.brunchFailure;
@@ -575,7 +572,7 @@ const agentSave = (
       input: { documentId },
       toolCallId: "save-1",
       signal,
-    } as PetrinautAiAutomaticToolExecuteParams),
+    } as BrunchUi.PetrinautAiAutomaticToolExecuteParams),
   );
   const state = { settled: false };
   void settled.then(

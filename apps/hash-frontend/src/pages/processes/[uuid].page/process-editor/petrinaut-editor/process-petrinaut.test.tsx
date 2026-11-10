@@ -11,11 +11,7 @@ import { ProcessPetrinaut } from "./process-petrinaut";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SaveHashNetForAgent } from "@hashintel/brunch-agent";
-import type {
-  BrunchAssistantHost,
-  ReadBrunchDocumentSaveState,
-  useBrunchAssistant,
-} from "@hashintel/brunch-agent/ui";
+import type * as BrunchUi from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 
 vi.hoisted(() => {
@@ -35,14 +31,14 @@ const observed = vi.hoisted(() => ({
   /** The plugins each editor render got. */
   petrinautPlugins: [] as unknown[][],
   petrinautMounts: 0,
-  brunchInputs: [] as Parameters<typeof useBrunchAssistant>[0][],
+  brunchInputs: [] as Parameters<typeof BrunchUi.useBrunchAssistant>[0][],
 }));
 
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
 const topBarPluginMarker = vi.hoisted(() => ({ id: "top-bar" }));
 const brunchHostContext = await vi.hoisted(async () => {
   const { createContext: createHostContext } = await import("react");
-  return createHostContext<BrunchAssistantHost | null>(null);
+  return createHostContext<BrunchUi.BrunchAssistantHost | null>(null);
 });
 
 vi.mock("@hashintel/petrinaut", () => ({
@@ -73,12 +69,13 @@ vi.mock("@hashintel/petrinaut", () => ({
 }));
 
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
-  createHashPetrinautSaveTool: (
-    await importOriginal<typeof import("@hashintel/brunch-agent/ui")>()
-  ).createHashPetrinautSaveTool,
+  createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
+    .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
-  useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
+  useBrunchAssistant: (
+    input: Parameters<typeof BrunchUi.useBrunchAssistant>[0],
+  ) => {
     observed.brunchInputs.push(input);
     return { assistant: { presentation: "brunch" }, openAIVoiceConfig: null };
   },
@@ -131,7 +128,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const readSaveState: ReadBrunchDocumentSaveState = () => ({
+const readSaveState: BrunchUi.ReadBrunchDocumentSaveState = () => ({
   title: "Net",
   lastSavedTime: null,
   refusal: null,
