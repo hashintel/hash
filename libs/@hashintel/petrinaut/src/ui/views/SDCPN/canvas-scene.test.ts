@@ -382,10 +382,12 @@ describe("buildCanvasScene", () => {
       };
 
       const folded = buildCanvasScene({ ...input, sdcpn: withWide, net });
-      expect(folded.nodes.find((node) => node.id === "big")).toMatchObject({
+      const foldedBig = folded.nodes.find((node) => node.id === "big");
+      expect(foldedBig).toMatchObject({
         foldable: true,
         expanded: false,
         height: compactNodeDimensions.componentInstance.height,
+        anchorOffset: 0,
       });
       expect(folded.nodes.find((node) => node.id === "small")).toMatchObject({
         foldable: false,
@@ -398,9 +400,19 @@ describe("buildCanvasScene", () => {
         net,
         expandedInstanceIds: new Set(["big"]),
       });
+      const grown =
+        getComponentInstanceHeight(compactNodeDimensions, 5) -
+        compactNodeDimensions.componentInstance.height;
       expect(unfolded.nodes.find((node) => node.id === "big")).toMatchObject({
         expanded: true,
         height: getComponentInstanceHeight(compactNodeDimensions, 5),
+        // It unfolds downward, its header where it was: the centre moves by
+        // half of what the card grew.
+        anchorOffset: grown / 2,
+        position: {
+          x: foldedBig?.position.x,
+          y: (foldedBig?.position.y ?? 0) + grown / 2,
+        },
       });
     });
 

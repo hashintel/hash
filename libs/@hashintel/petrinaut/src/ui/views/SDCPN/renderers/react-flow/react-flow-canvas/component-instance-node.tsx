@@ -6,6 +6,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   COMPONENT_INSTANCE_FOOTER_HEIGHT,
   COMPONENT_INSTANCE_HEADER_HEIGHT,
+  compactNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -111,15 +112,48 @@ const foldToggleStyle = css({
   },
 });
 
-/** The folded body: how many ports the card hides, in place of their rows. */
+/**
+ * Every part of a fold moves on one clock, which the canvas sets: the card's
+ * height, its pins, their labels and the count that stands in for them.
+ */
+const foldMotionStyle = css({
+  transitionDuration: "[var(--canvas-fold-duration, 180ms)]",
+  transitionTimingFunction: "[cubic-bezier(0.22, 1, 0.36, 1)]",
+});
+
+/** Faded out, not unmounted, so a fold has something to fade. */
+const fadedOutStyle = css({
+  opacity: "[0]",
+});
+
+/** The chevron turns over as the card unfolds. */
+const foldChevronStyle = css({
+  display: "flex",
+  transitionProperty: "[transform]",
+});
+
+const foldChevronTurnedStyle = css({
+  transform: "[rotate(180deg)]",
+});
+
+/**
+ * The folded body: how many ports the card hides, in place of their rows. It
+ * keeps the height of a folded card's body, so it stays where it is while
+ * the card grows under it.
+ */
 const foldedBodyStyle = css({
-  flex: "1",
+  flexShrink: "0",
   display: "flex",
   alignItems: "center",
   padding: "[0 14px]",
   fontSize: "xs",
   color: "neutral.a90",
+  transitionProperty: "[opacity]",
 });
+
+const foldedBodyHeight =
+  compactNodeDimensions.componentInstance.height -
+  COMPONENT_INSTANCE_HEADER_HEIGHT;
 
 const portLabelStyle = css({
   position: "absolute",
@@ -133,6 +167,7 @@ const portLabelStyle = css({
   whiteSpace: "nowrap",
   pointerEvents: "none",
   transform: "translateY(-50%)",
+  transitionProperty: "[top, opacity]",
 });
 
 /** A folded card's pins shrink to wire ends: the links still show where they land. */
@@ -140,6 +175,11 @@ const foldedPinStyle = css({
   width: "[7px]",
   height: "[7px]",
   border: "[1px solid white]",
+});
+
+/** A pin slides to its row, and grows to its full size, as the card unfolds. */
+const pinMotionStyle = css({
+  transitionProperty: "[top, width, height, border-width]",
 });
 
 // A side the port does not use keeps its handle, so a link can still land
@@ -261,13 +301,31 @@ export const ComponentInstanceNode: React.FC<
                 toggleComponentInstanceExpanded(data.id);
               }}
             >
-              <Icon name={expanded ? "chevronUp" : "chevronDown"} size="xs" />
+              <span
+                className={cx(
+                  foldChevronStyle,
+                  foldMotionStyle,
+                  expanded ? foldChevronTurnedStyle : undefined,
+                )}
+              >
+                <Icon name="chevronDown" size="xs" />
+              </span>
             </button>
           ) : null}
         </div>
-        {expanded ? null : (
-          <div className={foldedBodyStyle}>{describeFoldedPorts(ports)}</div>
-        )}
+        {foldable ? (
+          <div
+            className={cx(
+              foldedBodyStyle,
+              foldMotionStyle,
+              expanded ? fadedOutStyle : undefined,
+            )}
+            style={{ height: foldedBodyHeight }}
+            aria-hidden={expanded}
+          >
+            {describeFoldedPorts(ports)}
+          </div>
+        ) : null}
       </div>
 
       {ports.map((port, index) => {
@@ -284,6 +342,8 @@ export const ComponentInstanceNode: React.FC<
               id={portInHandleId(port.id)}
               className={cx(
                 pinStyle,
+                pinMotionStyle,
+                foldMotionStyle,
                 expanded ? undefined : foldedPinStyle,
                 portOnSide(port.direction, "left") ? undefined : unusedPinStyle,
               )}
@@ -295,6 +355,8 @@ export const ComponentInstanceNode: React.FC<
               id={portOutHandleId(port.id)}
               className={cx(
                 pinStyle,
+                pinMotionStyle,
+                foldMotionStyle,
                 expanded ? undefined : foldedPinStyle,
                 portOnSide(port.direction, "right")
                   ? undefined
@@ -302,19 +364,22 @@ export const ComponentInstanceNode: React.FC<
               )}
               style={{ top: rightTop, ...pinColor }}
             />
-            {expanded ? (
-              <span
-                className={portLabelStyle}
-                style={{
-                  top: leftTop,
-                  ...(port.direction === "out"
-                    ? { right: PORT_LABEL_INSET }
-                    : { left: PORT_LABEL_INSET }),
-                }}
-              >
-                {port.name}
-              </span>
-            ) : null}
+            <span
+              className={cx(
+                portLabelStyle,
+                foldMotionStyle,
+                expanded ? undefined : fadedOutStyle,
+              )}
+              style={{
+                top: leftTop,
+                ...(port.direction === "out"
+                  ? { right: PORT_LABEL_INSET }
+                  : { left: PORT_LABEL_INSET }),
+              }}
+              aria-hidden={!expanded}
+            >
+              {port.name}
+            </span>
           </div>
         );
       })}

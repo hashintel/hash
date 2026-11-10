@@ -108,6 +108,12 @@ export type CanvasComponentInstanceNode = CanvasNodeBase & {
   foldable: boolean;
   /** Whether the ports show in rows, or fold into the card's base height. */
   expanded: boolean;
+  /**
+   * How far the card's centre sits below the position the document holds for
+   * it. A foldable card unfolds downward, its header staying where it is, so
+   * unfolding moves its centre by half of what it grew.
+   */
+  anchorOffset: number;
 };
 
 export type CanvasNode =
@@ -337,15 +343,21 @@ export const buildCanvasScene = ({
           };
     const foldable = ports.length > COMPONENT_INSTANCE_FOLD_THRESHOLD;
     const expanded = !foldable || expandedInstanceIds.has(instance.id);
+    const foldedHeight = dimensions.componentInstance.height;
+    const height = expanded
+      ? getComponentInstanceHeight(dimensions, ports.length)
+      : foldedHeight;
+    const anchorOffset = foldable ? (height - foldedHeight) / 2 : 0;
+    const { position, dragging } = positionOf(instance, draggingStateByNodeId);
     nodes.push({
       kind: "componentInstance",
       id: instance.id,
       label: instance.name,
       width: dimensions.componentInstance.width,
-      height: expanded
-        ? getComponentInstanceHeight(dimensions, ports.length)
-        : dimensions.componentInstance.height,
-      ...positionOf(instance, draggingStateByNodeId),
+      height,
+      position: { x: position.x, y: position.y + anchorOffset },
+      dragging,
+      anchorOffset,
       ...interaction(instance.id),
       subnetName: subnet?.name ?? "Unknown subnet",
       binding,

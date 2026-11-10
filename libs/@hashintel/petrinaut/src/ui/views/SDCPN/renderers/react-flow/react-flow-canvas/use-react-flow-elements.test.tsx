@@ -59,6 +59,7 @@ const nodes: CanvasNode[] = [
     ],
     foldable: false,
     expanded: true,
+    anchorOffset: 0,
   },
 ];
 const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
@@ -249,5 +250,19 @@ describe("arc rendering", () => {
         expect(edge).toBe(original);
       }
     }
+  });
+});
+
+describe("node placement", () => {
+  it("hangs a component instance from its top edge, other nodes from their centre", () => {
+    const { result } = renderHook(() => useReactFlowElements(scene));
+    const byId = new Map(result.current.nodes.map((node) => [node.id, node]));
+
+    // Centred at (600, 0) and 100 high in the scene.
+    expect(byId.get("subnet")?.origin).toEqual([0.5, 0]);
+    expect(byId.get("subnet")?.position).toEqual({ x: 600, y: -50 });
+
+    expect(byId.get("place")?.origin).toBeUndefined();
+    expect(byId.get("place")?.position).toEqual({ x: 0, y: 0 });
   });
 });
