@@ -1,6 +1,7 @@
 import ts from "@typescript/typescript6";
 
 import { getArcEndpoint } from "../../arc-endpoints";
+import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -324,12 +325,15 @@ export function generateVirtualFiles(
     const tokenType = sanitizedColorId ? `Color_${sanitizedColorId}` : "number";
     const tuple = (element: string, count: number): string =>
       `[${Array.from({ length: count }, () => element).join(", ")}]`;
-    const tokensType = tuple("Token", de.arity);
+    // A net from a host can carry any number here; the checker reports an
+    // arity outside the supported range, and these types stay small.
+    const arity = isSupportedArity(de.arity) ? de.arity : 1;
+    const tokensType = tuple("Token", arity);
     const derivativesType =
-      de.arity === 1 ? "Derivative" : tuple("Derivative", de.arity);
+      arity === 1 ? "Derivative" : tuple("Derivative", arity);
     const dynamicsFunctionParameters = [
       ...Array.from(
-        { length: de.arity },
+        { length: arity },
         (_, position) => `token${position}: Token`,
       ),
       "parameters: Parameters",

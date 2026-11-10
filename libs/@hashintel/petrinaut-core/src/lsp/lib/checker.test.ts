@@ -341,6 +341,26 @@ return [{ v: d }, { v: -d }];`),
       expect(result.itemDiagnostics).toHaveLength(0);
     });
 
+    it("reports an arity outside the supported range without sizing types by it", () => {
+      const result = check(
+        createSDCPN({
+          types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+          differentialEquations: [
+            { colorId: "color1", code: "return { x: 1 };", arity: 100_000_000 },
+          ],
+        }),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("between 1 and 8 tokens"),
+        ),
+      ).toBe(true);
+    });
+
     it("rejects an index past the tuple", () => {
       const result = check(pairwise(`return [{ v: tokens[2].x }, { v: 0 }];`));
 

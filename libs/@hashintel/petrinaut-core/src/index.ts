@@ -412,6 +412,10 @@ export {
   placeArcEndpoint,
 } from "./arc-endpoints";
 export {
+  isSupportedArity,
+  MAX_DIFFERENTIAL_EQUATION_ARITY,
+} from "./equation-arity";
+export {
   getPlaceDynamicsEquationIds,
   placeUsesDifferentialEquation,
 } from "./place-dynamics";

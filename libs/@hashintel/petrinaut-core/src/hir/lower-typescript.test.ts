@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
@@ -746,6 +747,20 @@ return total;`;
       expect(result.fn.params.map((parameter) => parameter.name)).toEqual([
         "__tokens",
       ]);
+    });
+
+    it("rejects an arity outside the supported range before lowering", () => {
+      for (const arity of [0, 1.5, 100_000_000]) {
+        const result = lowerTypeScriptToHir("return { x: 1 };", "dynamics", {
+          arity,
+        });
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.diagnostics[0]?.code).toBe("hir:dynamics-arity");
+        expect(result.diagnostics[0]?.message).toContain(
+          `between 1 and ${MAX_DIFFERENTIAL_EQUATION_ARITY} tokens`,
+        );
+      }
     });
 
     it("rejects a module form with fewer token parameters than the arity", () => {

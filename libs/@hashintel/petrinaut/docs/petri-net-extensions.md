@@ -113,7 +113,7 @@ The code is a plain function body ending in `return`, with `tokens` (a tuple hol
 
 ### Equations over several tokens
 
-The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it.
+The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it. The select offers one to four tokens. A file can set up to eight; a larger number is refused on import, and an equation that carries one shows a diagnostic and does not run.
 
 ```ts
 // A mutual attraction over every pair of tokens

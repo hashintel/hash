@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { getParameterValueError } from "../parameter-values";
 import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
@@ -355,10 +356,13 @@ export const differentialEquationSchema = z
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
     }),
-    arity: z.int().positive().meta({
-      description:
-        "How many tokens the equation couples. The simulator applies the code to every unordered combination of that many distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation (the usual case), 2 a pairwise interaction such as an attraction between every two tokens.",
-    }),
+    arity: z
+      .int()
+      .positive()
+      .max(MAX_DIFFERENTIAL_EQUATION_ARITY)
+      .meta({
+        description: `How many tokens the equation couples, from 1 to ${MAX_DIFFERENTIAL_EQUATION_ARITY}. The simulator applies the code to every unordered combination of that many distinct tokens of the place, in index order, and sums the contributions into each token's derivative: 1 is a per-token equation (the usual case), 2 a pairwise interaction such as an attraction between every two tokens.`,
+      }),
   })
   .meta({
     description:

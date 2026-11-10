@@ -22,6 +22,10 @@
  */
 import ts from "@typescript/typescript6";
 
+import {
+  isSupportedArity,
+  MAX_DIFFERENTIAL_EQUATION_ARITY,
+} from "../equation-arity";
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,
@@ -2281,6 +2285,24 @@ export function lowerTypeScriptToHir(
   surface: HirFunctionSurfaceKind,
   options: LowerTypeScriptOptions = {},
 ): LowerTypeScriptResult {
+  if (
+    surface === "dynamics" &&
+    options.arity !== undefined &&
+    !isSupportedArity(options.arity)
+  ) {
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          code: "hir:dynamics-arity",
+          message: `An equation couples between 1 and ${MAX_DIFFERENTIAL_EQUATION_ARITY} tokens; this one is set to ${options.arity}.`,
+          severity: "error",
+          span: { start: 0, length: 1 },
+        },
+      ],
+    };
+  }
+
   const wrapped = WRAPPED_SURFACES[surface];
   if (wrapped) {
     return lowerWrappedBodyToHir(
