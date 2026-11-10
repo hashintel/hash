@@ -25,12 +25,17 @@ use core::{
 
 use error_stack::Report;
 use hash_integrations_orchestration::{
-    AdmissionKey, BackendError, FailureKind, FunctionVersion, Payload, RetryPolicy, RunError,
-    RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus, Runs as _, StartError,
-    StepContext, StepFailure, StepIndex, StepName, Worker as _,
+    AdmissionKey, BackendError, BucketScope, CoordinationStore as _, FailureKind, FunctionVersion,
+    Payload, RetryPolicy, RunError, RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus,
+    Runs as _, StartError, StepContext, StepFailure, StepIndex, StepName, TokenBucket, Worker as _,
     restate::{RestateBackend, RestateConfig},
 };
-use tokio::{runtime::Runtime, sync::Notify, task::JoinHandle};
+use time::UtcDateTime;
+use tokio::{
+    runtime::Runtime,
+    sync::Notify,
+    task::{JoinHandle, JoinSet},
+};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -759,4 +764,94 @@ async fn run_stays_on_its_version() {
     );
     worker_one.stop().await;
     worker_two.stop().await;
+}
+
+/// A bucket scope no other test uses.
+fn scope() -> BucketScope {
+    format!("web/{}", Uuid::new_v4().simple())
+        .parse()
+        .expect("should be a bucket scope")
+}
+
+fn at(seconds: f64) -> UtcDateTime {
+    UtcDateTime::UNIX_EPOCH + Duration::from_secs_f64(seconds)
+}
+
+/// The balances are whole numbers in these tests, so comparing them as integers avoids float
+/// comparisons.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "the balances in these tests are small whole numbers"
+)]
+async fn consume(backend: &RestateBackend, scope: &BucketScope, ops: u32, seconds: f64) -> i64 {
+    let bucket = TokenBucket {
+        rate_per_second: NonZero::new(100).expect("should be nonzero"),
+        capacity: NonZero::new(200).expect("should be nonzero"),
+    };
+    let balance = backend
+        .consume(scope, bucket, ops, at(seconds))
+        .await
+        .expect("should consume from the bucket");
+    balance.round() as i64
+}
+
+#[tokio::test]
+async fn token_bucket_refills_and_goes_into_debt() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let worker = TestWorker::spawn(&config, Arc::new(DoubleThenAddOne)).await;
+    let (first, second) = (scope(), scope());
+
+    assert_eq!(
+        consume(&backend, &first, 150, 1000.0).await,
+        50,
+        "a new bucket should start full"
+    );
+    assert_eq!(
+        consume(&backend, &first, 0, 1000.5).await,
+        100,
+        "half a second should refill fifty tokens"
+    );
+    assert_eq!(
+        consume(&backend, &first, 0, 9999.0).await,
+        200,
+        "a refill should stop at the capacity"
+    );
+    assert_eq!(
+        consume(&backend, &first, 300, 9999.0).await,
+        -100,
+        "taking more than the balance should go into debt"
+    );
+    assert_eq!(
+        consume(&backend, &second, 5, 9999.0).await,
+        195,
+        "scopes should have buckets of their own"
+    );
+    worker.stop().await;
+}
+
+#[tokio::test]
+async fn token_bucket_serialises_concurrent_consumes() {
+    let _server = lock_server();
+    let config = config();
+    let backend = Arc::new(RestateBackend::new(config.clone()));
+    let worker = TestWorker::spawn(&config, Arc::new(DoubleThenAddOne)).await;
+    let scope = scope();
+    consume(&backend, &scope, 200, 1000.0).await;
+
+    let mut consumes = JoinSet::new();
+    for _ in 0..10 {
+        let (backend, scope) = (Arc::clone(&backend), scope.clone());
+        consumes.spawn(async move { consume(&backend, &scope, 30, 1000.0).await });
+    }
+    let mut balances = consumes.join_all().await;
+    balances.sort_unstable();
+
+    assert_eq!(
+        balances,
+        (1..=10).rev().map(|n| -30 * n).collect::<Vec<_>>(),
+        "ten concurrent consumes should each see a distinct balance"
+    );
+    worker.stop().await;
 }

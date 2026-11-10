@@ -20,12 +20,16 @@ use serde_json::json;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
-use self::step::{CANCELLED, Failure, IntegrationRun, Start};
+use self::{
+    coordination::TokenBuckets,
+    step::{CANCELLED, Failure, IntegrationRun, Start},
+};
 use crate::{
     BackendError, RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus, Runs, StartError,
     Worker,
 };
 
+mod coordination;
 mod step;
 
 /// How long Restate waits for a step that ran past its timeout to stop, before it aborts the
@@ -81,7 +85,8 @@ impl RestateBackend {
 }
 
 impl Worker for RestateBackend {
-    /// Serves the run object at the configured address and registers its URL with Restate.
+    /// Serves the run object and the token buckets at the configured address and registers its
+    /// URL with Restate.
     #[tracing::instrument(skip_all, fields(version = %F::VERSION))]
     fn work<F: RunFunction + 'static>(
         &self,
@@ -115,6 +120,7 @@ impl RestateBackend {
                     .into_service_definition()
                     .options(options),
             )
+            .bind(TokenBuckets)
             .build();
         let server = HttpServer::new(endpoint).serve_with_cancel(listener, shutdown.cancelled());
         tokio::pin!(server);
@@ -217,12 +223,11 @@ impl RestateBackend {
             return Err(Report::new(StartError::AlreadyActive { active }));
         }
 
-        // An admission key can hold `/`, which separates the segments of the path.
-        let key = admission.as_ref().replace('/', "%2F");
         self.http
             .post(format!(
-                "{}/restate/send/IntegrationRun/{key}/run",
-                self.config.ingress_url
+                "{}/restate/send/IntegrationRun/{}/run",
+                self.config.ingress_url,
+                path_segment(admission.as_ref())
             ))
             .header("idempotency-key", run.as_ref())
             .json(&start)
@@ -347,6 +352,11 @@ impl RestateBackend {
             steps_recorded: steps - failed_steps,
         }))
     }
+}
+
+/// An object key as a segment of a URL path. A key can hold `/`, which separates segments.
+fn path_segment(key: &str) -> String {
+    key.replace('/', "%2F")
 }
 
 /// The phase of a run whose handler ended with an error, from `[<status code>] <message>`.
