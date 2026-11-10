@@ -161,7 +161,7 @@ Our briefing is for the Meridian release. We're interested in tasks that are unf
 
 The HASH graph is bitemporal, which means that time is tracked on two axes: transaction time, when the system recorded something, and decision time, when it was decided to be true.
 
-You can consider these to be a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
+You can think of these two axes as forming a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
 
 <TemporalAxes />
 
@@ -229,7 +229,7 @@ Currently, the only supported head is [`entities`][query-entities], and the only
 
 The [intro to the TypeScript SDK] already shows how to serialise a query program. In short, we take our expression fragment (which is itself a valid HashQL program) and mark it as a [`Program`]. We then compile it to [J-Expr] using the [`Program.compile`][program-compile] function. This step may fail, for example, if an identifier is not valid in HashQL.
 
-For our example, this looks like this:
+In our example, this looks like this:
 
 ```ts title="Produce J-Expr" data-example="serialize"
 const queryText = pipe(
@@ -436,25 +436,27 @@ We've added a new input, `release`. This follows the approach discussed in [Usin
 
 <Callout>
 
-The `$traverse` function used here is fictional. Its name and output are not yet defined, so we leave its J-Expr output empty. It stands for untyped property lookup, tracked in [BE-49][untyped-properties].
+The `$traverse` function used here is fictional. Its name and output are not yet defined, so we omit the generated J-Expr for this example. It represents untyped property lookup, tracked in [BE-49][untyped-properties].
 
-The [new polymorphic type core][polymorphic-core], [ontology schema imports][ontology-schemas] and [predicate-driven narrowing][type-narrowing] are separate parts of the planned support for [typed property access][typed-properties]. The intended result is for the first filter to establish the Task property schema, so the second filter can use `.` instead of `$traverse`.
+The [new polymorphic type core][polymorphic-core], [ontology schema imports][ontology-schemas] and [predicate-driven narrowing][type-narrowing] are separate parts of the planned support for [typed property access][typed-properties]. The intended result is for the first filter to establish the Task property schema, allowing the second filter to use `.` instead of `$traverse`.
 
 </Callout>
 
-When we supply a `release` of `"Meridian"` when running the query, T-105 is no longer included in the results, in the case that we supply a `release` of `"Northstar"` only T-105 is returned. This allows us to select a subset of tasks without changing the program we send.
+When we supply `"Meridian"` as the `release` input, T-105 is excluded from the results. If we supply `"Northstar"`, only T-105 is returned. This lets us select a different subset of tasks without changing the program we send.
 
-[`filter`][query-filter] is a body which runs a closure over every vertex in the current draft. Similar to `let`, the name of the closure's parameter is the first argument, with the closure following. This allows us to make it easier to make debugging easier. It is convention that the name for the variable is the same as the one chosen for the closure, and be by default `vertex`. Each closure tests if the vertex satisfies the filter's condition, if it does, it is included in the results; otherwise it is excluded.
+[`filter`][query-filter] is a body operation that runs a closure over every vertex in the current graph. Similar to `let`, it takes the name of the closure's parameter as its first argument, followed by the closure itself. Giving the parameter an explicit name makes debugging easier. By convention, this name matches the corresponding parameter in the TypeScript callback; the default choice is `vertex`.
+
+Each closure tests whether a vertex satisfies the filter's condition. If it does, the vertex is included in the results; otherwise, it is excluded.
 
 ### Name the properties with construction-time macros
 
-Now that is _a lot_ of code to write, especially the names of properties that are common with semtype, we can make this easier, by creating a set of helper functions through [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's first define a helper function to create a [`VersionedUrl`]:
+That's a lot of code, especially with the long property URLs used in [SemType]. We can make it easier to read by defining helper functions using [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's start with a helper function that creates a [`VersionedUrl`]:
 
 ```ts title="VersionedUrl helper" data-example="fields"
 const versionedUrl = ($, baseUrl: string, version: string) => todo();
 ```
 
-Let's go one step further because nothing is evaluated in the library itself, we are only building a program to execute after all, we can actually create a reusable helper functions to make the traversal paths for the properties more readable as well:
+We can go one step further. The SDK builds a program for later execution rather than evaluating the query itself, so we can also use reusable helper functions to make the property traversal paths more readable:
 
 ```ts title="Task property macros" data-example="fields"
 const taskFields = (
@@ -475,7 +477,7 @@ const taskFields = (
 });
 ```
 
-Let's add both `taskFields` and `taskType` before `briefing`, and modify it so that it is more readable:
+Let's add `versionedUrl` and `taskFields` before `briefing`, then update the query to use them:
 
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="release-macro"
 const briefing = Draft.program(
@@ -515,21 +517,17 @@ head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
 
-This is exactly what makes the TypeScript SDK so powerful, we're able to write queries in such a way that we benefit from both HashQL as well as TypeScript where we need it. Supplementing them where it makes sense.
+This is what makes the TypeScript SDK powerful: rather than replacing TypeScript, it works with it. Most things you can do in TypeScript can also be expressed in HashQL. For example, `versionedUrl` and `taskFields` could both be HashQL closures, but they don't have to be. You choose which language makes the most sense for each part of your program.
 
 ## Keep the unfinished work
 
-Now that we have the right release, and have cleaned up our filter, we now need to actually collect the tasks. Let's look back at what we tried to achieve:
+Now that we've selected the right release and made our filters more readable, let's collect the tasks we need. Our briefing should identify: unfinished tasks, unfinished tasks that are blocked, and unfinished tasks that are unassigned.
 
-- tasks that have been released
-- tasks that are blocked
-- tasks that are unassigned
-
-We can do this quite easily by using composition. Let's first create our query, and then use it to augment with the filters we need.
+We can do this through composition. First, we'll define a query for the release's tasks, then build on it with the filters we need.
 
 <Callout>
 
-This sends the same query three times, this is not ideal, H-XXX tracks the use of additional tails, which would allow for reduction operations, and would make this instead a single query.
+This sends the same query three times, which is not ideal. H-XXX tracks support for additional tails, including reduction operations, that would allow us to produce the briefing in a single query.
 
 </Callout>
 
@@ -565,229 +563,17 @@ return Program.Structural.struct({
 });
 ```
 
-and that's it! We now get three lists, `unfinished`, `blocked` and `unassigned`, each containing the tasks that match the corresponding filter.
+And that's it! We now get three lists: `unfinished`, `blocked` and `unassigned`. Each contains the tasks that match the corresponding filter.
 
 ## Taking the query further
 
-So where do we go from here? Right now these are the capabilities of the language, in the future you will be able to also filter by relationships, summarize, and use more query heads. A shiny future awaits us!
-
----
-
-We have the right release, but T-104 is already done. Keep the `taskType` declaration and add another filter to the returned query, keeping tasks whose status isn't `"done"`:
-
-```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="unfinished"
-return $.query
-  .entities(axis)
-  .filter("vertex", ($, vertex) =>
-    $.eq(
-      vertex.metadata.entity_type_ids,
-      Program.Structural.list(VersionedUrl, [taskType]),
-    ),
-  )
-  .filter("task", ($, task) => $.eq(taskFields(task).release, release))
-  .filter("task", ($, task) => $.ne(taskFields(task).status, "done"))
-  .collect();
-```
-
-```text tab="Functional notation" tab-group="hashql-language"
-(let release (input release String)
-  (collect
-    (filter
-      (filter
-        (filter (entities (input axis QueryTemporalAxes))
-          (fn () (vertex: _) Boolean
-            (eq vertex.metadata.entity_type_ids [taskType])))
-        (fn () (task: _) Boolean
-          (eq task.release release)))
-      (fn () (task: _) Boolean
-        (ne task.status "done")))))
-```
-
-```text tab="Reference notation" tab-group="hashql-language"
-let release = input(release, String) in
-head::entities(input(axis, QueryTemporalAxes))
-  |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
-  |> body::filter((task) -> task.release == release)
-  |> body::filter((task) -> task.status != "done")
-  |> tail::collect
-```
-
-Our selection now contains T-101, T-102 and T-103. The filters select Task entities, keep those belonging to one release, then remove the completed work. None of these operations changes the stored tasks.
-
-Notice that `collect` still comes last. Each filter takes a graph computation and returns another graph computation, so we can keep composing them. Only after describing the selection do we ask for its vertices as a list. We could also combine the predicates with `and`, but separate filters give each part of our question its own predicate.
-
-## Turn the list into a briefing
-
-We can now answer the first question. What about blocked tasks and tasks without an owner?
-
-Both are subsets of the unfinished work. Rather than repeat the selection for each answer, we can name it with a HashQL binding and use that binding in three places. This is the same expression-reuse technique from the SDK guide, applied to a graph computation.
-
-Keep the imports and `taskType` declaration at the start of the callback. Replace its returned query with these bindings and a return:
-
-```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="briefing"
-const releaseTasks = $.let(
-  "releaseTasks",
-  $.query
-    .entities(axis)
-    .filter("vertex", ($, vertex) =>
-      $.eq(
-        vertex.metadata.entity_type_ids,
-        Program.Structural.list(VersionedUrl, [taskType]),
-      ),
-    )
-    .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
-);
-const unfinished = $.let(
-  "unfinished",
-  $.query(releaseTasks).filter("task", ($, task) =>
-    $.ne(taskFields(task).status, "done"),
-  ),
-);
-
-return Program.Structural.struct({
-  unfinished: $.query(unfinished).collect(),
-  blocked: $.query(unfinished)
-    .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))
-    .collect(),
-  unassigned: $.query(unfinished)
-    .filter("task", ($, task) => $.isFalse(taskFields(task).assigned))
-    .collect(),
-});
-```
-
-```text tab="Functional notation" tab-group="hashql-language"
-(let releaseTasks
-  (filter
-    (filter (entities (input axis QueryTemporalAxes))
-      (fn () (vertex: _) Boolean
-        (eq vertex.metadata.entity_type_ids [taskType])))
-    (fn () (task: _) Boolean
-      (eq task.release (input release String))))
-  (let unfinished
-    (filter releaseTasks
-      (fn () (task: _) Boolean
-        (ne task.status "done")))
-    (unfinished: (collect unfinished),
-     blocked: (collect
-       (filter unfinished
-         (fn () (task: _) Boolean
-           (eq task.status "blocked")))),
-     unassigned: (collect
-       (filter unfinished
-         (fn () (task: _) Boolean
-           (eq task.assigned false)))))))
-```
-
-```text tab="Reference notation" tab-group="hashql-language"
-let releaseTasks =
-      head::entities(input(axis, QueryTemporalAxes))
-        |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
-        |> body::filter((task) ->
-          task.release == input(release, String)),
-    unfinished = releaseTasks
-      |> body::filter((task) -> task.status != "done")
-in
-(
-  unfinished: unfinished |> tail::collect,
-  blocked: unfinished
-    |> body::filter((task) -> task.status == "blocked")
-    |> tail::collect,
-  unassigned: unfinished
-    |> body::filter((task) -> task.assigned == false)
-    |> tail::collect
-)
-```
-
-There are two changes here. First, `releaseTasks` and `unfinished` name graph computations. We haven't collected either one yet. Second, the returned struct collects each view separately, after applying any additional predicate it needs.
-
-Why wrap the bindings in [`$.query`][context-query] again? `$.let` returns an expression handle referring to the binding. That handle retains its HashQL type, but it isn't the fluent query builder we started with. `$.query(unfinished)` gives us the query-building methods for that graph expression, so we can continue filtering it or collect its result.
-
-The struct contains three lists of entities. Showing only their task labels, our example graph gives us:
-
-```json title="Expected briefing for Meridian"
-{
-  "unfinished": ["T-101", "T-102", "T-103"],
-  "blocked": ["T-102"],
-  "unassigned": ["T-102", "T-103"]
-}
-```
-
-T-102 appears in every list: it is unfinished, blocked and unassigned. That's what we want! Each field answers a different question about the same release. The lists overlap, and their order here is only for readability: the query hasn't requested an ordering.
-
-## Use the briefing
-
-Keep the serialisation block after the `briefing` declaration. Our query now describes the bindings and all three graph computations in one program. The host integration supplies `axis` and `release` when submitting it. Draft constructs the program, while transport and execution belong to that integration.
-
-Changing the inputs changes the question without rebuilding its structure. With the same temporal view and `release` set to `"Northstar"`, the expected briefing is:
-
-```json title="Expected briefing for Northstar"
-{
-  "unfinished": ["T-105"],
-  "blocked": ["T-105"],
-  "unassigned": []
-}
-```
-
-Before connecting the query to an execution environment, try predicting how the Meridian result should change. Mark T-102 as assigned, move T-103 to Northstar, or complete every Meridian task. Which lists change, and which stay the same? These small examples give us concrete expectations to check against the returned entities.
-
-We now have the complete briefing we set out to construct. The next sections explore questions we could add to it, rather than further steps required to finish this program.
-
-## Taking the query further
-
-### Who should we talk to?
-
-The `assigned` flag tells us whether a task has an owner, but not who that person is. To answer that question, our schema needs an ownership relationship between a task and a person. The query would follow that relationship and include the owners in its result:
-
-```json title="An ownership-enriched result"
-{
-  "task": "T-102",
-  "title": "Confirm the rollout window",
-  "owners": []
-}
-```
-
-A list lets us represent both an unassigned task and a task with multiple owners. Whether multiple owners are valid is a schema decision. We also need to decide how to represent a relationship whose person the caller isn't allowed to see, rather than silently treating it as no owner.
-
-<Callout title="Relationship traversal">
-
-Draft's current query builder provides filtering and collection, but no ownership traversal builder. [Graph query heads][graph-heads] track part of the wider work. This extension also needs the relationship schema, traversal operations and backend support before we can write its Draft example.
-
-</Callout>
-
-### Is the release getting healthier?
-
-We made `axis` an input for a reason. We can ask the same questions about a previous review's temporal view and the current one, keeping the release input unchanged.
-
-Suppose T-101 and T-102 were blocked at the previous review, while only T-102 is blocked now. Comparing the two blocked sets tells us that T-101 left the set. A count alone wouldn't identify that task, and equal counts could hide one task being resolved while another becomes blocked.
-
-The host can compare the two returned briefings using stable entity identities. The T-labels in this example are display labels, not the identities a real integration should join on. Performing the comparison within HashQL would require the corresponding collection operations and an execution path that supports them.
-
-### Give me the short version
-
-The lists also give the host enough information to summarise the current review:
-
-```json title="Desired summary for Meridian"
-{
-  "unfinishedCount": 3,
-  "blockedCount": 1,
-  "unassignedCount": 2,
-  "needsAttention": true
-}
-```
-
-Here, `needsAttention` means that at least one unfinished task is blocked or unassigned. If we also want a count of distinct tasks needing attention, adding the blocked and unassigned counts won't work: T-102 would be counted twice. We'd need the union of those sets, compared by entity identity.
-
-<Callout title="Summary operations">
-
-The host can compute this summary from the returned lists. To construct it entirely through Draft, we still need a complete typed collection-counting API and backend support. [Generated library declarations][library-declarations] and [aggregate SQL emission][aggregate-emission] address different parts of that work.
-
-</Callout>
+These examples cover the language's current querying capabilities. Planned additions include filtering by relationships, summarising results and using more query heads. As these capabilities become available, we'll be able to extend the briefing to answer more questions about the release.
 
 ## Where to go next
 
-The query follows a small pattern: start a graph computation, refine it with predicates, then choose the values to return. Bindings let us share a selection across related questions, while inputs let us ask those questions about another release or temporal view.
+Queries in HashQL all follow the same pattern: a head starts a graph computation, the body refines it with predicates, and the tail evaluates the graph effect to materialise the results. Bindings let us reuse selections and query fragments across related questions, while inputs let us ask those questions with different values.
 
-For another way to read the examples, use the [cheatsheet](/docs/hashql/sdk/typescript/cheatsheet). For the available builders and their signatures, see the [Draft API reference](/docs/hashql/sdk/typescript/reference/hashql/Draft). [The technical explanation](https://hgres.org/hashql) goes deeper into how the compiler processes graph computations.
+For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see Bilal Mahmoud's Diplomarbeit.
 
 [`Boolean`]: https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1
 [query-temporal-axes]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#QueryTemporalAxes
