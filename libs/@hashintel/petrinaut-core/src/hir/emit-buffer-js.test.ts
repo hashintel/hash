@@ -504,6 +504,10 @@ return [
     if (!lowered.ok) throw new Error(lowered.diagnostics[0]?.message);
     const source = emitBufferDynamicsJs(lowered.fn, poolElements, 2);
     expect(source).not.toBeNull();
+    // The outer loop leaves room for the second token of a pair, so it
+    // starts no pair it cannot finish.
+    expect(source).toContain("i0 < numberOfTokens - 1;");
+    expect(source).toContain("< numberOfTokens;");
     // The parameter read is hoisted out of the pair loops; the difference
     // is not.
     expect(source!.indexOf("const k = ")).toBeLessThan(

@@ -1245,8 +1245,15 @@ export function emitBufferDynamicsJs(
     const loopLines: string[] = [];
     for (const [position, indexName] of indexNames.entries()) {
       const start = position === 0 ? "0" : `${indexNames[position - 1]} + 1`;
+      // Each loop stops where the tokens after it no longer fill the
+      // combination, so a place with fewer tokens than the arity runs none.
+      const stillToPick = arity - 1 - position;
+      const end =
+        stillToPick === 0
+          ? "numberOfTokens"
+          : `numberOfTokens - ${stillToPick}`;
       loopLines.push(
-        `${indent(position + 1)}for (let ${indexName} = ${start}; ${indexName} < numberOfTokens; ${indexName}++) {`,
+        `${indent(position + 1)}for (let ${indexName} = ${start}; ${indexName} < ${end}; ${indexName}++) {`,
         `${indent(position + 2)}const ${baseNames[position]} = ${indexName} * ${layout.strideBytes};`,
       );
     }
