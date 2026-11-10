@@ -432,17 +432,23 @@ const amberWarnings = {
  * tints; d c's steps with the hue softened 40% toward grey and 1 px card bars.
  * Warnings take yellow in b–d.
  */
-type StatusStep = "b" | "c" | "d";
+type StatusStep = "b" | "c" | "d" | "l1";
 
+/**
+ * `l1` is round 3's L1, deeper DS steps (every mark 3:1 or more on white). `?cardstatus=` (any value) implies it, as
+ * the M takes are drawn on L1's colours.
+ */
 export const statusStep = (): StatusStep | null => {
-  const value = new URLSearchParams(globalThis.location.search).get(
-    "statusstep",
-  );
-  return value === "b" || value === "c" || value === "d" ? value : null;
+  const query = new URLSearchParams(globalThis.location.search);
+  const value = query.get("statusstep");
+  if (value === "b" || value === "c" || value === "d" || value === "l1") {
+    return value;
+  }
+  return query.get("cardstatus") ? "l1" : null;
 };
 
 const statusSteps: Record<
-  "b" | "c" | "d",
+  StatusStep,
   Record<
     "done" | "failed" | "needsReview" | "warnings",
     { mark: string; bar: string; chart: string; node: string }
@@ -461,6 +467,13 @@ const statusSteps: Record<
     failed: { mark: "red.s70", bar: "red.s35", chart: "red.s40", node: "red.s50" },
     needsReview: { mark: "orange.s70", bar: "orange.s30", chart: "orange.s40", node: "orange.s45" },
     warnings: { mark: "yellow.s75", bar: "yellow.s40", chart: "yellow.s55", node: "yellow.s55" },
+  },
+  // l1: deeper steps, every mark 3:1 or more; orange stays amber in the bar (s75) so it keeps apart from red.
+  l1: {
+    done: { mark: "green.s90", bar: "green.s50", chart: "green.s60", node: "green.s85" },
+    failed: { mark: "red.s95", bar: "red.s60", chart: "red.s70", node: "red.s95" },
+    needsReview: { mark: "orange.s100", bar: "orange.s50", chart: "orange.s60", node: "orange.s75" },
+    warnings: { mark: "yellow.s105", bar: "yellow.s50", chart: "yellow.s80", node: "yellow.s80" },
   },
   // d: c's steps with the hue softened toward grey (see softened), and 1 px card bars.
   d: {
@@ -493,6 +506,10 @@ const statusStepVariables = (): Record<string, string> => {
       variables[`--flows-${state}-bar`] = paint(roles.bar);
       variables[`--flows-node-${nodeRole[state as keyof typeof nodeRole]}`] = paint(roles.node);
     }
+  }
+  if (step === "l1") {
+    variables["--flows-running-mark"] = tokenVar("blue.s90");
+    variables["--flows-node-runningBar"] = tokenVar("blue.s85");
   }
   return variables;
 };

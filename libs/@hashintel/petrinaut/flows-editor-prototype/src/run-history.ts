@@ -268,7 +268,133 @@ const loopStepRun = (facts: RunFacts, stage: number): StepRun => {
   return { state, count, bar, progress: { done, failed, total: n } };
 };
 
+/**
+ * `?runmix=` (MOCK, for the status-colour-steps comparison): every run shows one fixed mix of step states.
+ * six: all six step states on one canvas (done, running, needs review, failed, waiting, skipped). A sampler, not a run
+ *   the engine could produce: the sign-off asks while the loop still runs.
+ * early | middle | done: one live run at three moments, the find running; the loop half through; all done.
+ * failures: finished, the For each done with 2 of 20 suppliers failed, the steps after it skipped for those 2.
+ */
+const waiting: StepRun = { state: "notReached", count: "Waiting" };
+const loopBar = (done: number, failed: number, running: number, rest: number) =>
+  [
+    { state: "done" as const, count: done },
+    { state: "failed" as const, count: failed },
+    { state: "running" as const, count: running },
+    { state: "rest" as const, count: rest },
+  ].filter((segment) => segment.count > 0);
+const runMixes: Record<string, () => Record<string, StepRun>> = {
+  six: () => ({
+    [runTriggerId]: { state: "done" },
+    [START_ID]: { state: "done" },
+    findSuppliers: { state: "done", count: "20" },
+    [forEachId]: {
+      state: "running",
+      count: "14 of 20",
+      bar: loopBar(12, 1, 1, 6),
+      progress: { done: 12, failed: 1, total: 20 },
+    },
+    readName: { state: "done", count: "14" },
+    readEmail: { state: "running", count: "13 of 20" },
+    readCertificateLink: { state: "done", count: "14" },
+    fetchCertificate: { state: "failed", count: "Timed out" },
+    sendReviewEmail: { state: "skipped", count: "Skipped" },
+    markReviewed: waiting,
+    [signOffId]: { state: "needsReview", count: "Waiting" },
+  }),
+  early: () => ({
+    [runTriggerId]: { state: "done" },
+    [START_ID]: { state: "done" },
+    findSuppliers: { state: "running" },
+    [forEachId]: waiting,
+    readName: waiting,
+    readEmail: waiting,
+    readCertificateLink: waiting,
+    fetchCertificate: waiting,
+    sendReviewEmail: waiting,
+    markReviewed: waiting,
+    [signOffId]: waiting,
+  }),
+  middle: () => ({
+    [runTriggerId]: { state: "done" },
+    [START_ID]: { state: "done" },
+    findSuppliers: { state: "done", count: "20" },
+    [forEachId]: {
+      state: "running",
+      count: "10 of 20",
+      bar: loopBar(8, 0, 2, 10),
+      progress: { done: 8, failed: 0, total: 20 },
+    },
+    readName: { state: "done", count: "10" },
+    readEmail: { state: "done", count: "10" },
+    readCertificateLink: { state: "done", count: "10" },
+    fetchCertificate: { state: "running", count: "9 of 20" },
+    sendReviewEmail: { state: "running", count: "8 of 20" },
+    markReviewed: { state: "done", count: "8" },
+    [signOffId]: waiting,
+  }),
+  done: () => ({
+    [runTriggerId]: { state: "done" },
+    [START_ID]: { state: "done" },
+    findSuppliers: { state: "done", count: "20" },
+    [forEachId]: {
+      state: "done",
+      count: "20 of 20",
+      bar: loopBar(20, 0, 0, 0),
+      progress: { done: 20, failed: 0, total: 20 },
+    },
+    readName: { state: "done", count: "20" },
+    readEmail: { state: "done", count: "20" },
+    readCertificateLink: { state: "done", count: "20" },
+    fetchCertificate: { state: "done", count: "20" },
+    sendReviewEmail: { state: "done", count: "20" },
+    markReviewed: { state: "done", count: "20" },
+    [signOffId]: { state: "done", count: "Approved" },
+  }),
+  failures: () => ({
+    [runTriggerId]: { state: "done" },
+    [START_ID]: { state: "done" },
+    findSuppliers: { state: "done", count: "20" },
+    [forEachId]: {
+      state: "doneWithFailures",
+      count: "18 of 20",
+      bar: loopBar(18, 2, 0, 0),
+      progress: { done: 18, failed: 2, total: 20 },
+    },
+    readName: { state: "done", count: "20" },
+    readEmail: { state: "done", count: "20" },
+    readCertificateLink: { state: "done", count: "20" },
+    fetchCertificate: {
+      state: "doneWithFailures",
+      count: "18 of 20",
+      bar: loopBar(18, 2, 0, 0),
+      progress: { done: 18, failed: 2, total: 20 },
+    },
+    sendReviewEmail: {
+      state: "done",
+      count: "18",
+      bar: [
+        { state: "done", count: 18 },
+        { state: "skipped", count: 2 },
+      ],
+    },
+    markReviewed: {
+      state: "done",
+      count: "18",
+      bar: [
+        { state: "done", count: 18 },
+        { state: "skipped", count: 2 },
+      ],
+    },
+    [signOffId]: { state: "done", count: "Approved" },
+  }),
+};
+
 export const stepRuns = (facts: RunFacts): Record<string, StepRun> => {
+  const mix = runMixes[new URLSearchParams(globalThis.location.search).get("runmix") ?? ""];
+  if (mix) {
+    return mix();
+  }
   const { n } = facts;
   const runs: Record<string, StepRun> = {
     [runTriggerId]: { state: "done" },

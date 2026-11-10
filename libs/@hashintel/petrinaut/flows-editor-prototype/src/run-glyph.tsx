@@ -293,11 +293,24 @@ const bareArc = (start: number, end: number) => {
 
 const BareGlyph = ({
   state,
-  progress,
+  progress: progressProp,
+  live = false,
 }: {
   state: StepState;
   progress: GlyphProgress;
+  /** A running step's progress ring, which stays in proportion under every take. */
+  live?: boolean;
 }) => {
+  // ?cardstatus= draws status-mixed-mark b (decided 10 Nov): a finished step with failed items splits its ring in two
+  // equal arcs, done and failed, whatever the counts.
+  const progress =
+    cardStatusTake &&
+    !live &&
+    state === "doneWithFailures" &&
+    progressProp.failed > 0 &&
+    progressProp.done < progressProp.total
+      ? { done: 1, failed: 1, total: 2 }
+      : progressProp;
   const track = <circle cx="8" cy="8" r={bareR} opacity="0.25" />;
   switch (state) {
     case "notReached":
@@ -312,7 +325,7 @@ const BareGlyph = ({
       );
     case "running":
       return showsProgress(state, progress) ? (
-        <BareGlyph state="doneWithFailures" progress={progress} />
+        <BareGlyph state="doneWithFailures" progress={progress} live />
       ) : (
         <>
           {track}
@@ -1071,3 +1084,86 @@ export const TitleMark = ({
       <RunGlyph state={state} progress={progress} />
     </span>
   ) : null;
+
+/**
+ * `?cardstatus=` (inbox status-colour-steps, round 4; Aakarsh, 10 Nov: "if the icons can fit cleanly, why do we even
+ * need the bottom bar?"). Every take draws L1's deeper colours and a 12 px mark at the card's top right on every state,
+ * with the P1 ping on needs review. Read from the URL only.
+ * l1 · the round 3 comparison: mark and bar on every card.
+ * m1 · Icon only: no bar on any card.
+ * m2 · Bar by exception: the bar only on running, needs review and failed cards (a For each with failed items counts).
+ * m2q · m2 without the running bar: running shows by the mark's spin alone; bars only on needs review and failed.
+ * m3 · m2 at a constant screen size: the bar stays 2 px on screen at any zoom and the mark never draws below 12 px.
+ * A For each (or a step run per item) that is done with failed items counts as failed in m2, m2q and m3: its bar
+ * shows the split, while its word stays Done. `&mixedbar=off` draws no bar on it instead.
+ */
+export type CardStatusTake = "l1" | "m1" | "m2" | "m2q" | "m3";
+
+export const cardStatusTake: CardStatusTake | null = (() => {
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "cardstatus",
+  );
+  return value === "l1" ||
+    value === "m1" ||
+    value === "m2" ||
+    value === "m2q" ||
+    value === "m3"
+    ? value
+    : null;
+})();
+
+const mixedBarOff =
+  new URLSearchParams(globalThis.location.search).get("mixedbar") === "off";
+
+/** Whether the take keeps a card's bar: l1 always, m1 never, m2 and m3 on running, needs review and failed; m2q not on running. */
+export const cardStatusBar = (state: StepState, progress?: GlyphProgress) => {
+  if (cardStatusTake === "l1") {
+    return true;
+  }
+  if (cardStatusTake === "m1") {
+    return false;
+  }
+  return (
+    (state === "running" && cardStatusTake !== "m2q") ||
+    state === "needsReview" ||
+    state === "failed" ||
+    (state === "doneWithFailures" &&
+      (progress?.failed ?? 0) > 0 &&
+      !mixedBarOff)
+  );
+};
+
+/**
+ * The `?cardstatus=` mark: any state, the default CardMark's place and size. `scale` grows it about its top-right
+ * corner (m3 counter-scales it below 100 % zoom).
+ */
+export const StateMark = ({
+  state,
+  progress,
+  group,
+  scale = 1,
+}: {
+  state: StepState;
+  progress?: GlyphProgress;
+  group?: boolean;
+  scale?: number;
+}) => {
+  const color = markColor(state);
+  return (
+    <span
+      data-card-mark={`cardstatus-${cardStatusTake}`}
+      data-state={state}
+      className={cardMarkStyle}
+      style={{
+        ...(group
+          ? { top: 18, right: 12, width: 12, height: 12 }
+          : { top: 10, right: 10, width: 12, height: 12 }),
+        transform: scale === 1 ? undefined : `scale(${scale})`,
+        transformOrigin: "top right",
+      }}
+    >
+      <RunGlyph state={state} progress={progress} />
+      {state === "needsReview" ? <Ping color={color} /> : null}
+    </span>
+  );
+};
