@@ -249,6 +249,23 @@ return {
     );
   });
 
+  it("rewrites code with thousands of declarations without rescanning per name", () => {
+    const count = 4000;
+    const before = Array.from(
+      { length: count },
+      (_, index) => `const a${index} = parameters.k;`,
+    ).join("\n");
+    const inside = Array.from(
+      { length: count },
+      (_, index) => `  const b${index} = x;`,
+    ).join("\n");
+    const migrated = migrateWholePlaceDynamicsCode(
+      `${before}\nreturn tokens.map(({ x }) => {\n${inside}\n  return { x: b0 };\n});`,
+    );
+    expect(migrated?.split("\n")).toHaveLength(count * 2 + 3);
+    expect(migrated?.endsWith("return { x: b0 };")).toBe(true);
+  });
+
   it("binds a token that is only spread", () => {
     expect(
       migrateWholePlaceDynamicsCode(

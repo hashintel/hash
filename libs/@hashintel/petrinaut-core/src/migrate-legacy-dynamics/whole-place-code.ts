@@ -300,21 +300,24 @@ const parseCallback = (args: MaskedCode): Callback | null => {
 };
 
 /**
- * Whether the code reads or declares the local `name`: an occurrence that
- * is neither a property access nor the key of an object literal entry.
+ * The locals the code reads or declares: every identifier that is neither
+ * a property access nor the key of an object literal entry. One pass, so a
+ * caller checks any number of names against it.
  */
-const isReferenced = (masked: string, name: string): boolean =>
-  [...masked.matchAll(WORD)].some(({ 0: word, index }) => {
-    if (word !== name) {
-      return false;
-    }
+const referencedNames = (masked: string): Set<string> => {
+  const names = new Set<string>();
+  for (const { 0: word, index } of masked.matchAll(WORD)) {
     const before = solidBefore(masked, index);
     const isProperty = masked[before] === "." && masked[before - 1] !== ".";
     const isKey =
       (masked[before] === "{" || masked[before] === ",") &&
-      masked[solidFrom(masked, index + name.length)] === ":";
-    return !isProperty && !isKey;
-  });
+      masked[solidFrom(masked, index + word.length)] === ":";
+    if (!isProperty && !isKey) {
+      names.add(word);
+    }
+  }
+  return names;
+};
 
 /** The elements of an object pattern, split on the commas between them. */
 const patternElements = (pattern: MaskedCode): string[] => {
@@ -358,9 +361,10 @@ const readPattern = (
   bodyMasked: string,
 ): string | null => {
   const elements = patternElements(pattern);
+  const referenced = referencedNames(bodyMasked);
   const read = elements.filter((element) => {
     const name = boundName(element);
-    return name === null || isReferenced(bodyMasked, name);
+    return name === null || referenced.has(name);
   });
   if (read.length === elements.length) {
     return pattern.text;
@@ -431,7 +435,7 @@ const tokenBindings = (callback: Callback, masked: string): string[] => {
     return [];
   }
   if (parameter.kind === "name") {
-    return isReferenced(body.masked, parameter.name)
+    return referencedNames(body.masked).has(parameter.name)
       ? [`const [${parameter.name}] = ${TOKENS};`]
       : [];
   }
@@ -482,12 +486,13 @@ export const migrateWholePlaceDynamicsCode = (code: string): string | null => {
     return null;
   }
   const callback = parseCallback(slice(body, callOpen + 1, callClose));
-  if (
-    callback === null ||
-    // Lifted beside the statements before the return, a name the callback
-    // binds would be declared twice in one scope.
-    callbackNames(callback).some((name) => isReferenced(prefix.masked, name))
-  ) {
+  if (callback === null) {
+    return null;
+  }
+  // Lifted beside the statements before the return, a name the callback
+  // binds would be declared twice in one scope.
+  const usedBefore = referencedNames(prefix.masked);
+  if (callbackNames(callback).some((name) => usedBefore.has(name))) {
     return null;
   }
 
