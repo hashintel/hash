@@ -11,22 +11,22 @@ The TypeScript, Rust, and Python tabs show either a program that you can run you
 
 ## At a glance [#at-a-glance]
 
-| Form                  | Reference notation     | Functional notation   | TypeScript SDK                              |
-| --------------------- | ---------------------- | --------------------- | ------------------------------------------- |
-| [`struct`](#struct)   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`       |
-| [`tuple`](#tuple)     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`          |
-| [`list`](#list)       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`        |
-| [`dict`](#dict)       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`   |
-| [`let`](#let)         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                             |
-| [`if`](#if)           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                   |
-| [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
-| [`fn`](#fn)           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                               |
-| [`use`](#use)         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`              |
-| [`access`](#access)   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                           |
-| [`index`](#index)     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                               |
-| [`as`](#as)           | `e as T`               | `(as e T)`            | Not available                               |
-| [`type`](#type)       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                            |
-| [`newtype`](#newtype) | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                         |
+| Form                  | Reference notation     | Functional notation   | TypeScript SDK                                                   |
+| --------------------- | ---------------------- | --------------------- | ---------------------------------------------------------------- |
+| [`struct`](#struct)   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`                            |
+| [`tuple`](#tuple)     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`                               |
+| [`list`](#list)       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`                             |
+| [`dict`](#dict)       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`                        |
+| [`let`](#let)         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                                                  |
+| [`if`](#if)           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                                        |
+| [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)`                      |
+| [`fn`](#fn)           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                                                    |
+| [`use`](#use)         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`                                   |
+| [`access`](#access)   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                                                |
+| [`index`](#index)     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                                                    |
+| [`as`](#as)           | `e as T`               | `(as e T)`            | Not available ([BE-1141](https://linear.app/hash/issue/BE-1141)) |
+| [`type`](#type)       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                                                 |
+| [`newtype`](#newtype) | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                                              |
 
 ## Values and types [#literal]
 
@@ -745,6 +745,23 @@ With the input `payload` set to `(pair: (2, "two"), counts: [2, 3], totals: {"op
 </SideBySide>
 
 A type describes values without validating them: a Draft type handle doesn't check caller data at run time. `Structural.type` declares no HashQL type name, unlike [`type`](#type). An input schema also accepts the shorthand directly, as in the [task example](#read-a-task).
+
+## Operators [#operators]
+
+These helpers construct HashQL predicates, not host-language comparisons. Each returns a predicate you can chain with `.and`, `.or` and `.not`.
+
+| Draft fragment | Reference notation            | Functional notation             |
+| -------------- | ----------------------------- | ------------------------------- |
+| `$.eq(a, b)`   | `a == b`                      | `(eq a b)`                      |
+| `$.ne(a, b)`   | `a != b`                      | `(ne a b)`                      |
+| `$.and(a, b)`  | `a && b`                      | `(and a b)`                     |
+| `$.or(a, b)`   | `a \|\| b`                    | `(or a b)`                      |
+| `$.not(a)`     | `!a`                          | `(not a)`                       |
+| `$.isTrue(a)`  | `a == true`                   | `(eq a true)`                   |
+| `$.isFalse(a)` | `a == false`                  | `(eq a false)`                  |
+| `$.isNone(a)`  | `a == ::core::option::None()` | `(eq a (::core::option::None))` |
+
+`eq` and `ne` require identical SDK type descriptors. The Boolean helpers take Boolean expressions. `isNone` takes an `Option` descriptor containing `None`, not a nullable lookup result. See the [nullable comparison example](/docs/hashql/sdk/typescript/using-draft#construction-time-macros) for that distinction. Boolean operands are constructed before these calls. TypeScript does not short-circuit their construction.
 
 ## Common program patterns [#control-flow]
 
@@ -1747,7 +1764,7 @@ foo[position]
 <Result expected>
 
 ```text
-Some(2)
+2
 ```
 
 </Result>
@@ -1755,13 +1772,17 @@ Some(2)
 </div>
 </SideBySide>
 
-The language specifies an `Option`: `Some(2)` here, and `None()` for a position past the end, much like Rust's `get`. Python raises `IndexError` and JavaScript returns `undefined`.
+Today's compiler evaluates this lookup to a bare `2`, or to `null` past the end. The SDK describes the result as `Integer | Null`. Python raises `IndexError` and JavaScript returns `undefined`.
 
-**Implementation status:** today's compiler evaluates this lookup to a bare `2`, and to `null` past the end, and the SDK describes the result as `Integer | Null`. Don't rely on either shape in Draft code yet.
+<Callout type="info" title="Future Option result">
+
+With the new polymorphic core, indexing will return an `Option`: `Some(2)` here, and `None()` past the end, much like Rust's `get`. This is the planned result shape, not the current one.
+
+</Callout>
 
 ### `as` states a wider type [#as]
 
-`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`](/docs/hashql/intro#stating-a-type-with-as).
+`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`](/docs/hashql/intro#stating-a-type-with-as). Draft's missing builder is tracked in [BE-1141](https://linear.app/hash/issue/BE-1141).
 
 <SideBySide>
 <div>
@@ -1928,7 +1949,7 @@ console.log(text);
 
 ```text tab="Reference notation" tab-group="hashql-language"
 type Count = Integer in
-let foo = 2 as Count in
+let foo: Count = 2 in
 foo
 ```
 
@@ -2068,6 +2089,92 @@ Count(2)
 </SideBySide>
 
 A plain `Integer` isn't a `Count`, and a second newtype over `Integer` would be distinct from both. The Rust tuple struct also wraps its value. Python's `NewType` and the TypeScript brand exist only for type checkers: at run time, the value is still the plain integer.
+
+## Queries [#queries]
+
+A graph query has a **head** that selects a source, a **body** that transforms it, and a **tail** that produces the result. Here we collect every entity at the supplied temporal axes when `include` is true, or none when it is false.
+
+<SideBySide>
+<div>
+
+| Part | Draft                              | Role                                      |
+| ---- | ---------------------------------- | ----------------------------------------- |
+| Head | `$.query.entities(axis)`           | Select the graph at `axis`.               |
+| Body | `.filter("entity", () => include)` | Keep entities when the predicate is true. |
+| Tail | `.collect()`                       | Return the remaining entities as a list.  |
+
+The `axis` input selects the temporal view of the graph. Supply its value when executing the query.
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { JExpr, Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Option, Result, pipe } from "effect";
+
+const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
+  Option.getOrThrow(
+    JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
+  ),
+);
+const built = Draft.program(
+  { axis: axes, include: Boolean },
+  ($, { axis, include }) =>
+    $.query
+      .entities(axis)
+      .filter("entity", () => include)
+      .collect(),
+);
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(::graph::tail::collect
+  (::graph::body::filter
+    (::graph::head::entities
+      (input axis ::graph::temporal::QueryTemporalAxes))
+    (fn () (entity: _) _ (input include Boolean))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+::graph::head::entities(input(axis, ::graph::temporal::QueryTemporalAxes))
+  |> ::graph::body::filter((entity: _): _ -> input(include, Boolean))
+  |> ::graph::tail::collect
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::graph::tail::collect",
+  [
+    "::graph::body::filter",
+    [
+      "::graph::head::entities",
+      [
+        "::kernel::special_form::input",
+        "axis",
+        "::graph::temporal::QueryTemporalAxes"
+      ]
+    ],
+    [
+      "::kernel::special_form::fn",
+      { "#tuple": [] },
+      { "#struct": { "entity": "_" } },
+      "_",
+      ["::kernel::special_form::input", "include", "::kernel::type::Boolean"]
+    ]
+  ]
+]
+```
+
+</div>
+</SideBySide>
 
 ## Put the forms together [#programs]
 
