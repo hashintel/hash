@@ -11,7 +11,8 @@
  * Without arguments this is the driver; with a role it is a server process
  * (`proof/server.ts`), running the same wiring `src/main.ts` runs. The driver:
  *
- * 1. sends a user message to server 1, whose model calls `addPlace`;
+ * 1. sends a user message to server 1, whose model reads the net (the driver
+ *    answers the read as the browser), then calls `addPlace`;
  * 2. as the browser (one claimant, the conversation's binding), waits for the
  *    `tool-input-available` chunk, then claims and starts the call;
  * 3. SIGKILLs server 1, the call started and without a result;
@@ -62,7 +63,15 @@ import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgr
 import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 import { print } from "../browser-call/proof/server-process";
 import { scriptedModel } from "../scripted-model";
-import { answer, placeInput, serve, toolName } from "./proof/server";
+import {
+  answer,
+  placeInput,
+  readMetadata,
+  readOutput,
+  readToolName,
+  serve,
+  toolName,
+} from "./proof/server";
 import { type ServerProcess, spawnServer } from "./proof/server-process";
 
 const context = BACKGROUND_CONTEXT;
@@ -241,9 +250,45 @@ const drive = async () => {
         abortSignal: undefined,
       }),
     );
-    const issued = await sent.until(
-      ({ type }) => type === "tool-input-available",
+    const isCall = (chunk: UIMessageChunk) =>
+      chunk.type === "tool-input-available" && chunk.toolName === toolName;
+    const claimBody = { claimant, binding: canonicalBinding };
+
+    // Net freshness admits the change only against a read before it.
+    const read = await sent.until(
+      (chunk) =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === readToolName,
     );
+    if (read?.type !== "tool-input-available")
+      throw new Error(
+        `Server 1's stream ended without the net read: ${JSON.stringify(sent.ending())}`,
+      );
+    const readClaimed = await first.post(
+      first.callUrl(read.toolCallId),
+      claimBody,
+    );
+    if (readClaimed.status !== 200)
+      throw new Error(`Read claim refused: ${JSON.stringify(readClaimed)}`);
+    const readClaim = readClaimed.body as BrowserCallClaim;
+    const readProof = {
+      capability: readClaim.capability,
+      binding: readClaim.binding,
+    };
+    await first.post(first.callUrl(read.toolCallId, "/start"), readProof);
+    const readResult = await first.post(
+      first.callUrl(read.toolCallId, "/result"),
+      {
+        ...readProof,
+        toolName: readClaim.toolName,
+        canonicalInput: readClaim.input,
+        output: readOutput,
+        metadata: readMetadata,
+      },
+    );
+    show("The browser answered the net read on server 1", readResult);
+
+    const issued = await sent.until(isCall);
     if (issued?.type !== "tool-input-available")
       throw new Error(
         `Server 1's stream ended without a tool call: ${JSON.stringify(sent.ending())}`,
@@ -251,7 +296,6 @@ const drive = async () => {
     const callId = issued.toolCallId;
 
     print("(2) Browser: claim and start the call over HTTP");
-    const claimBody = { claimant, binding: canonicalBinding };
     const claimOnce = () => first.post(first.callUrl(callId), claimBody);
     // The stream may deliver the call before its issue commit; the panel retries a 404 too.
     let claimed = await claimOnce();
@@ -290,13 +334,13 @@ const drive = async () => {
     const second = await start("server-2", "answer");
     const reconnectStream = await second.client().reconnectToStream({ chatId });
     const reconnected = reconnectStream && recorder(reconnectStream);
-    await reconnected?.until(({ type }) => type === "tool-input-available");
+    await reconnected?.until(isCall);
     const reconnectedBeforeResult = [...(reconnected?.chunks ?? [])];
 
     print("(5) A second client reconnects; it only reads");
     const viewerStream = await second.client().reconnectToStream({ chatId });
     const viewer: Recorder | null = viewerStream && recorder(viewerStream);
-    await viewer?.until(({ type }) => type === "tool-input-available");
+    await viewer?.until(isCall);
     const viewerBeforeResult = await reduce([...(viewer?.chunks ?? [])]);
 
     print("(6) The first claimant re-sends its claim, then posts its result");
@@ -331,7 +375,10 @@ const drive = async () => {
       ({ type }) => type !== "step-start",
     );
     const finalTool = toolPart(contentParts);
-    const finalText = contentParts.at(1);
+    const finalRead = contentParts.at(0) as
+      | { type: string; state?: string }
+      | undefined;
+    const finalText = contentParts.at(2);
     const types = reconnected?.types() ?? [];
     const record = stored.calls.find(
       (call: BrowserCallRecord) => call.toolCallId === callId,
@@ -341,7 +388,11 @@ const drive = async () => {
       "server 1 was SIGKILLed after the call was claimed and started, with no result",
       killed.signal === "SIGKILL" &&
         started.status === 200 &&
-        !sent.types().includes("tool-output-available"),
+        !sent.chunks.some(
+          (chunk) =>
+            chunk.type === "tool-output-available" &&
+            chunk.toolCallId === callId,
+        ),
     );
     check(
       "the reconnect stream starts from the committed view: the pending tool call, under the original message id",
@@ -356,7 +407,9 @@ const drive = async () => {
             isDeepStrictEqual(chunk.input, placeInput),
         ) &&
         !reconnectedBeforeResult.some(
-          ({ type }) => type === "tool-output-available",
+          (chunk) =>
+            chunk.type === "tool-output-available" &&
+            chunk.toolCallId === callId,
         ),
     );
     check(
@@ -366,8 +419,10 @@ const drive = async () => {
         message?.id === startOf(sent.chunks),
     );
     check(
-      "the final parts are exactly one tool part (output-available, the browser's output) and the answer text",
-      contentParts.length === 2 &&
+      "the final parts are the net read, exactly one tool part for the call (output-available, the browser's output) and the answer text",
+      contentParts.length === 3 &&
+        finalRead?.type === `tool-${readToolName}` &&
+        finalRead.state === "output-available" &&
         finalTool?.toolCallId === callId &&
         finalTool.state === "output-available" &&
         isDeepStrictEqual(finalTool.output, browserOutput) &&
@@ -379,11 +434,11 @@ const drive = async () => {
         kind === "pi.tool-result" && toolCallId === callId,
     );
     check(
-      "the stored conversation has exactly one result for the call and one answer",
+      "the stored conversation has exactly one result for the call, one for the read, and one answer",
       callResults.length === 1 &&
         callResults[0]?.isError === false &&
         stored.transcript.filter(({ kind }) => kind === "pi.tool-result")
-          .length === 1 &&
+          .length === 2 &&
         stored.transcript.filter(
           ({ kind, text }) => kind === "pi.assistant" && text === answer,
         ).length === 1,

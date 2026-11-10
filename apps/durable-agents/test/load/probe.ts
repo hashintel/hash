@@ -51,8 +51,7 @@ import {
   readStoredConversation,
   type StoredConversation,
 } from "./probe/stored";
-
-import type { TurnPlan } from "./probe/workload";
+import { browserCallsOf, type TurnPlan } from "./probe/workload";
 
 const users = 20;
 const conversationsPerUser = 3;
@@ -346,7 +345,7 @@ const runScenario = async (scenario: Scenario) => {
           duplicateResults,
           extraToolCalls: Math.max(
             0,
-            (turn?.toolCalls.length ?? 0) - plan.calls,
+            (turn?.toolCalls.length ?? 0) - browserCallsOf(plan),
           ),
         };
       });
@@ -445,6 +444,15 @@ const runScenario = async (scenario: Scenario) => {
           .join(", ") || "none",
       ],
       ["browser calls stranded", String(stranded.length)],
+      [
+        "changes refused by net freshness",
+        String(
+          turnRows
+            .flatMap(({ turn }) => turn?.errors ?? [])
+            .filter((error) => error.includes("no current view of the net"))
+            .length,
+        ),
+      ],
       [
         "browser player outcomes",
         [...browserOutcomes]

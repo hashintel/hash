@@ -164,6 +164,10 @@ describe("the admission rules", () => {
 describe("admission on a Harness", () => {
   test("a mixed response blocks the offending call and runs the others", async () => {
     const { harness, root, ran } = await openConversation([
+      // Net freshness admits the change only against a read before it.
+      fauxAssistantMessage(fauxToolCall("readNetOutline", {}, { id: "read" }), {
+        stopReason: "toolUse",
+      }),
       fauxAssistantMessage(
         [
           fauxToolCall("addPlace", placeInput, { id: "place" }),
@@ -181,6 +185,26 @@ describe("admission on a Harness", () => {
     try {
       const submission = await root.submit(
         { type: "input", content: "Add a dryer." },
+        context,
+      );
+      await vi.waitFor(async () => {
+        const calls = (
+          await harness.snapshot(BrowserCallsDoc, root.id, context)
+        )?.calls;
+        expect(calls?.read).toBeDefined();
+      });
+      const read = await claimBrowserCall(harness, root.id, "read", context);
+      await finishBrowserCall(
+        harness,
+        {
+          conversationId: root.id,
+          toolCallId: "read",
+          toolName: "readNetOutline",
+          capability: read!.capability,
+          canonicalInput: read!.input,
+          output: { title: "Net" },
+          metadata: { documentRevision: { before: "r1" } },
+        },
         context,
       );
       await vi.waitFor(async () => {

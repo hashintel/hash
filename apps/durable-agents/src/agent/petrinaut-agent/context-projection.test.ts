@@ -197,7 +197,17 @@ describe("the context projection on a Harness", () => {
     const output = { id: "place-dryer" };
     const readBack = { places: ["place-dryer"] };
     const seen: Message[][] = [];
+    // Net freshness admits the change only against a read before it.
+    const readCallId = "call-read";
+    const readOutput = { title: "Net" };
     const { models, model } = scriptedModel([
+      (request) => {
+        seen.push([...request.messages]);
+        return fauxAssistantMessage(
+          fauxToolCall("readNetOutline", {}, { id: readCallId }),
+          { stopReason: "toolUse" },
+        );
+      },
       (request) => {
         seen.push([...request.messages]);
         return fauxAssistantMessage(
@@ -247,6 +257,31 @@ describe("the context projection on a Harness", () => {
         const calls = (
           await harness.snapshot(BrowserCallsDoc, root.id, context)
         )?.calls;
+        expect(calls?.[readCallId]).toBeDefined();
+      });
+      const readClaim = await claimBrowserCall(
+        harness,
+        root.id,
+        readCallId,
+        context,
+      );
+      await finishBrowserCall(
+        harness,
+        {
+          conversationId: root.id,
+          toolCallId: readCallId,
+          toolName: "readNetOutline",
+          capability: readClaim!.capability,
+          canonicalInput: readClaim!.input,
+          output: readOutput,
+          metadata: { documentRevision: { before: "r1" } },
+        },
+        context,
+      );
+      await vi.waitFor(async () => {
+        const calls = (
+          await harness.snapshot(BrowserCallsDoc, root.id, context)
+        )?.calls;
         expect(calls?.[toolCallId]).toBeDefined();
       });
       const claim = await claimBrowserCall(
@@ -274,13 +309,15 @@ describe("the context projection on a Harness", () => {
       expect(seen[0]?.find(({ role }) => role === "user")).toMatchObject({
         content: "Add a dryer.",
       });
-      expect(texts(seen[1] ?? [])).toEqual([
+      // The read came before the change, so the change keeps its read-back.
+      expect(texts(seen[2] ?? [])).toEqual([
+        readOutput,
         { output, netAfterChanges: readBack },
       ]);
       const committed = (
         await root.entries({ order: "ascending" }, 100, undefined, context)
       ).items.flatMap(({ model: messages = [] }) => messages);
-      expect(texts(committed)).toEqual([output]);
+      expect(texts(committed)).toEqual([readOutput, output]);
       expect(JSON.stringify(committed)).toContain("RelayDesk");
     } finally {
       await harness.close(context);

@@ -1,7 +1,7 @@
 /**
  * A minimal Brunch agent for Petrinaut on Pi Durable: the Ledger, the
- * Petrinaut browser tools and Brunch's system prompt. No Voice, interview
- * budget, skills, `query_basis` or Ledger comments.
+ * Petrinaut browser tools, `query_basis` and Brunch's system prompt. No
+ * Voice, interview budget, skills or Ledger comments.
  *
  * A server installs `extensions` in its registry, creates a conversation's
  * root with `agent` (adding its model), and binds the conversation to the
@@ -19,6 +19,7 @@ import {
 import { browserCallExtension } from "../browser-call/browser-call";
 import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
+import { queryBasisExtension } from "../net-state/query-basis";
 import { contextProjectionExtension } from "./petrinaut-agent/context-projection";
 import { toolAdmissionExtension } from "./petrinaut-agent/tool-admission";
 
@@ -60,6 +61,7 @@ export const createPetrinautAgent = (): PetrinautAgent => {
     petrinautBrowserToolsExtension,
     contextProjectionExtension,
     toolAdmissionExtension,
+    queryBasisExtension,
   ];
   return {
     systemPrompt: petrinautSystemPrompt,
