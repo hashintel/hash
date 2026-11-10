@@ -91,8 +91,12 @@ const backTarget = (flowName: string) => {
 export type RunBarTake = 1 | 2 | 3 | 4;
 
 export const runBarTake = (query: URLSearchParams): RunBarTake | null => {
+  // Picked r2-2 (Aakarsh, 10 Nov 16:20): the editor's bar. ?runbar=today keeps the old bar.
+  if (query.get("runbar") === "today") {
+    return null;
+  }
   const take = Number(query.get("runbar"));
-  return take === 1 || take === 2 || take === 3 || take === 4 ? take : null;
+  return take === 1 || take === 2 || take === 3 || take === 4 ? take : 2;
 };
 
 export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
