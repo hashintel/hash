@@ -722,6 +722,8 @@ export const tileKindOf = (icon: string): TileKind => {
 export const groupHues: { group: string; hue: string; icons: string[] }[] = [
   { group: "People", hue: "yellow", icons: ["user"] },
   { group: "Messages", hue: "blue", icons: ["at"] },
+  // AI steps: Draft message, Answer question, Summarize web page (Aakarsh, 10 Nov: pink).
+  { group: "AI", hue: "pink", icons: ["sparkles", "thoughtBubble", "fileLines"] },
   // Every "Files and web" step: Fetch file, Get web page, Web search.
   { group: "Documents", hue: "orange", icons: ["download", "externalLink", "microscope"] },
   {
@@ -769,6 +771,7 @@ const meaning: Record<string, string> = {
   Documents: "orange",
   Entities: "green",
   "Flow control": "purple",
+  AI: "pink",
 };
 
 export const groupPalettes: Record<
