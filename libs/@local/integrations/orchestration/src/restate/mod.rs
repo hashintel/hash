@@ -137,15 +137,24 @@ impl RestateBackend {
 
     /// Registers the worker's URL as a deployment. Registering a URL again changes nothing.
     async fn register(&self) -> Result<(), Report<RestateError>> {
-        self.http
-            .post(format!("{}/deployments", self.config.admin_url))
-            .json(&json!({ "uri": self.config.worker_url }))
-            .send()
-            .await
-            .and_then(reqwest::Response::error_for_status)
-            .change_context(RestateError::Request)?;
+        let deployments = format!("{}/deployments", self.config.admin_url);
+        send(
+            self.http
+                .post(deployments)
+                .json(&json!({ "uri": self.config.worker_url })),
+        )
+        .await?;
         Ok(())
     }
+}
+
+/// Sends a request to Restate and fails if Restate answers with an error status.
+async fn send(request: reqwest::RequestBuilder) -> Result<reqwest::Response, Report<RestateError>> {
+    request
+        .send()
+        .await
+        .and_then(reqwest::Response::error_for_status)
+        .change_context(RestateError::Request)
 }
 
 /// A run's row in Restate's `sys_invocation` table.
@@ -171,22 +180,6 @@ impl Runs for RestateBackend {
     /// after the other.
     #[tracing::instrument(skip_all, fields(run = %run))]
     async fn start(&self, run: RunId, start: RunStart) -> Result<(), Report<StartError>> {
-        self.start_run(&run, start).await
-    }
-
-    async fn status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<BackendError>> {
-        self.read_status(run).await.change_context(BackendError)
-    }
-
-    /// Restate raises the cancellation in the run at its next step, so a step that is executing
-    /// finishes and is recorded. A run that has not begun is removed.
-    async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
-        self.cancel_run(run).await.change_context(BackendError)
-    }
-}
-
-impl RestateBackend {
-    async fn start_run(&self, run: &RunId, start: RunStart) -> Result<(), Report<StartError>> {
         let admission = start.admission;
         let start = Start {
             version: start.version.get(),
@@ -223,21 +216,32 @@ impl RestateBackend {
             return Err(Report::new(StartError::AlreadyActive { active }));
         }
 
-        self.http
-            .post(format!(
-                "{}/restate/send/IntegrationRun/{}/run",
-                self.config.ingress_url,
-                path_segment(admission.as_ref())
-            ))
+        let object = format!(
+            "{}/restate/send/IntegrationRun/{}/run",
+            self.config.ingress_url,
+            path_segment(admission.as_ref())
+        );
+        let request = self
+            .http
+            .post(object)
             .header("idempotency-key", run.as_ref())
-            .json(&start)
-            .send()
-            .await
-            .and_then(reqwest::Response::error_for_status)
-            .change_context(StartError::Backend)?;
+            .json(&start);
+        send(request).await.change_context(StartError::Backend)?;
         Ok(())
     }
 
+    async fn status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<BackendError>> {
+        self.read_status(run).await.change_context(BackendError)
+    }
+
+    /// Restate raises the cancellation in the run at its next step, so a step that is executing
+    /// finishes and is recorded. A run that has not begun is removed.
+    async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
+        self.cancel_run(run).await.change_context(BackendError)
+    }
+}
+
+impl RestateBackend {
     /// Reads the start a run was sent with, which is the input in the first entry of its journal.
     async fn recorded_start(&self, invocation: &Invocation) -> Result<Start, Report<RestateError>> {
         #[derive(Deserialize)]
@@ -270,15 +274,11 @@ impl RestateBackend {
             ))
             .await?;
         for invocation in unfinished {
-            self.http
-                .patch(format!(
-                    "{}/invocations/{}/cancel",
-                    self.config.admin_url, invocation.id
-                ))
-                .send()
-                .await
-                .and_then(reqwest::Response::error_for_status)
-                .change_context(RestateError::Request)?;
+            let cancel = format!(
+                "{}/invocations/{}/cancel",
+                self.config.admin_url, invocation.id
+            );
+            send(self.http.patch(cancel)).await?;
         }
         Ok(())
     }
@@ -301,16 +301,13 @@ impl RestateBackend {
             rows: Vec<T>,
         }
 
-        let response = self
+        let request = self
             .http
             .post(format!("{}/query", self.config.admin_url))
             .header(reqwest::header::ACCEPT, "application/json")
-            .json(&json!({ "query": sql }))
-            .send()
-            .await
-            .and_then(reqwest::Response::error_for_status)
-            .change_context(RestateError::Request)?;
-        let rows: Rows<T> = response
+            .json(&json!({ "query": sql }));
+        let rows: Rows<T> = send(request)
+            .await?
             .json()
             .await
             .change_context(RestateError::Request)?;

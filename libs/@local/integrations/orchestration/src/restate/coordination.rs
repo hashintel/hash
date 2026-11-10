@@ -14,7 +14,7 @@ use restate_sdk::prelude::{
 use serde::{Deserialize, Serialize};
 use time::UtcDateTime;
 
-use super::{RestateBackend, path_segment};
+use super::{RestateBackend, path_segment, send};
 use crate::{BucketScope, CoordinationError, CoordinationStore, TokenBucket};
 
 /// The state key under which a bucket keeps its balance and when it was last refilled.
@@ -69,7 +69,8 @@ impl CoordinationStore for RestateBackend {
         ops: u32,
         now: UtcDateTime,
     ) -> Result<f64, Report<CoordinationError>> {
-        self.http
+        let request = self
+            .http
             .post(format!(
                 "{}/restate/call/TokenBucket/{}/consume",
                 self.config.ingress_url,
@@ -81,10 +82,9 @@ impl CoordinationStore for RestateBackend {
                 rate_per_second: f64::from(bucket.rate_per_second.get()),
                 ops: f64::from(ops),
                 now: (now - UtcDateTime::UNIX_EPOCH).as_seconds_f64(),
-            })
-            .send()
+            });
+        send(request)
             .await
-            .and_then(reqwest::Response::error_for_status)
             .change_context(CoordinationError)?
             .json()
             .await
