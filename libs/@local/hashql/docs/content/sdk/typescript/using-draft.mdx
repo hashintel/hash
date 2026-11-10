@@ -58,7 +58,7 @@ const built = Draft.program(revisionInputs, ($, { revision }) => {
 
 You can also inline the input definitions directly into the `program` call. In this example, we define them separately for clarity. The closure receives a handle for each declared input in its second argument, an object keyed by input name. We destructure this object to access `revision` within the closure. Importantly, `revision`, like any input handle, does not hold a value supplied during program construction. Instead, it acts as a proxy for a value supplied when the program runs on the server.
 
-The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, `BigInt` maps to [`Program.Prelude.builtin.types.Integer`][builtin-prelude], which we could use instead.
+The HashQL SDK aims to be as user-friendly as possible and supports both explicit types and common JavaScript type constructors. In our example, [`BigInt`][structural-definitions] maps to [`Program.Prelude.builtin.types.Integer`][builtin-prelude], which we could use instead.
 
 [`Draft.program`][draft-program] evaluates the closure immediately and returns a [`Result`]. A result has two variants: [`Success`] (also known as `Ok`) and [`Failure`] (also known as `Err`), representing the outcome of the evaluation. For [`Draft.program`], a successful result contains an [`Expression`], while a failed result contains a construction failure.
 
@@ -80,9 +80,9 @@ console.log(serialized);
 
 ### Handle construction failures
 
-[`program`][draft-program] catches exceptions raised by its construction callback rather than propagating them, returning a [`Result`] with the `CallbackException` reason to the caller. In this respect, it is similar to [`Result.try`]. This allows it to bridge naturally between [effect] and native JavaScript with minimal friction.
+[`program`][draft-program] catches exceptions raised by its construction callback rather than propagating them, returning a [`Result`] with the [`CallbackException`][program-error-reason] reason to the caller. In this respect, it is similar to [`Result.try`]. This allows it to bridge naturally between [effect] and native JavaScript with minimal friction.
 
-Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures are also returned explicitly through a [`Result`] value rather than thrown as exceptions. Each construction failure is represented by a distinct, well-typed case in [`ProgramError.Construction`], allowing for structured error handling. The troubleshooting guide shows [how to handle the result with `Result.match`](/docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure), including the failure's typed reason.
+Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures are also returned explicitly through a [`Result`] value rather than thrown as exceptions. Each construction failure is represented by a distinct, well-typed case in [`ProgramError.Construction`], allowing for structured error handling. The troubleshooting guide shows [how to handle the result with `Result.match`][troubleshooting-handle-a-construction-failure], including the failure's typed reason.
 
 ### Choose declarations from the prelude
 
@@ -261,7 +261,7 @@ console.log(compile(summarizeTaskWithAttention));
 
 To improve readability, `$` provides not only access to modules and the prelude but also helper functions for common operations. You can still use the full HashQL API through [`Program`], but the helpers available through [`Draft.Context`] make it easier to write readable programs—for example, through fluent predicate composition.
 
-In our example, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. Rather than returning a plain `Boolean` value, it returns a [`Program.Operators.Predicate`], allowing us to compose predicates using `.and`, `.or` and `.not`.
+In our example, [`$.eq`][program-operators-eq] maps to the HashQL function `::core::cmp::eq` and compares two values for equality. Rather than returning a plain `Boolean` value, it returns a [`Program.Operators.Predicate`], allowing us to compose predicates using `.and`, `.or` and `.not`.
 
 As mentioned earlier, the SDK does not restrict us to helper functions. An alternative way to write the same condition is:
 
@@ -341,7 +341,7 @@ const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
 
 This code passes TypeScript's checks, but the `nextRevision` handle used in the struct is expected to represent an `Integer`, while the HashQL binding now in scope—whose handle is assigned to `nextRevision2`—represents a `String`.
 
-Without the SDK's check, both name references in the struct would resolve to the inner `nextRevision` binding, silently selecting `"foo"` instead of the intended revision. Shadowing itself is valid HashQL. It is the old handle that no longer names the binding we meant. Draft detects this during construction and returns a [`ProgramError.Construction`] failure with the `StaleReference` reason.
+Without the SDK's check, both name references in the struct would resolve to the inner `nextRevision` binding, silently selecting `"foo"` instead of the intended revision. Shadowing itself is valid HashQL. It is the old handle that no longer names the binding we meant. Draft detects this during construction and returns a [`ProgramError.Construction`] failure with the [`StaleReference`][program-error-reason] reason.
 
 It is also why we recommend giving each binding the same name as the JavaScript variable holding its handle. This makes the code easier to reason about and, in this example, would expose the conflicting declarations as a TypeScript compile-time error.
 
@@ -369,7 +369,7 @@ It is often useful to define common behaviour that can be shared and reused acro
 
 <Callout>
 
-User-defined closure construction is not yet supported. This is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015).
+User-defined closure construction is not yet supported. This is tracked in [BE-1015].
 
 </Callout>
 
@@ -412,7 +412,7 @@ This is because `$index` returns `T | Null` --- in this case, `String | Null`. W
 
 In cases like this, you can use [`Expression.assume`] as an escape hatch. It allows you to "lie" to the TypeScript SDK (not the HashQL compiler) by asserting that an expression has a particular type. This annotation only satisfies the TypeScript compiler. It does not bypass HashQL's type checking, so invalid HashQL programs will still fail to compile.
 
-For our example, the solution is to widen the type of `null` to `String | Null` using `assume`:
+For our example, the solution is to widen the type of `null` to `String | Null` using [`assume`][`Expression.assume`]:
 
 ```ts title="Compare a nullable lookup" data-example="nullable-equality"
 import type { Type } from "@local/hashql";
@@ -476,7 +476,7 @@ const attentionFor = ($: TaskContext, task: Task) =>
   );
 ```
 
-The first type argument, [`Program.Prelude.Builtin`], describes the prelude declarations available to the helper. The second, [`Draft.Body.Requirements<typeof taskInputs>`][`Draft.Body.Requirements`], derives the input names and their HashQL type descriptors from our schema. This lets `$.let` and `$.if` check that the helper's expressions fit those inputs.
+The first type argument, [`Program.Prelude.Builtin`], describes the prelude declarations available to the helper. The second, [`Draft.Body.Requirements<typeof taskInputs>`][`Draft.Body.Requirements`], derives the input names and their HashQL type descriptors from our schema. This lets `$.let` and [`$.if`][draft-context-if] check that the helper's expressions fit those inputs.
 
 <Callout>
 
@@ -512,7 +512,7 @@ Although the output is dense, we can see that `attention` is bound before the su
 
 ### Projecting a field with a colliding name
 
-Expression handles reserve `pipe` for Effect's piping method. If a task has a `pipe` field naming its processing pipeline, `task.pipe` selects the SDK method, not that field. Use `$project` to select the HashQL field explicitly:
+Expression handles reserve `pipe` for Effect's piping method. If a task has a `pipe` field naming its processing pipeline, `task.pipe` selects the SDK method, not that field. Use [`$project`][`Expression`] to select the HashQL field explicitly:
 
 ```ts title="Read a field named pipe" data-example="colliding-field"
 const pipelineName = Draft.program({ task: { pipe: String } }, (_, { task }) =>
@@ -524,16 +524,16 @@ This constructs an ordinary HashQL field access.
 
 ## Querying the graph
 
-You now know how the Draft API works and how to use it, but we haven't yet covered how to construct a query for the graph. To learn more, see the [Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) guide.
+You now know how the Draft API works and how to use it, but we haven't yet covered how to construct a query for the graph. To learn more, see the [Writing a HashQL query][writing a query] guide.
 
 The reference guide covers features we haven't explored in detail here:
 
 - [`Program.Structural`]: constructing algebraic data types, such as tuples, lists, dictionaries and structs, using shorthand syntax where possible.
-- [`Program.Expression`]: typed field projection and indexing. Use `$project` when a field name collides with an existing name.
+- [`Program.Expression`]: typed field projection and indexing. Use [`$project`][`Expression`] when a field name collides with an existing name.
 - [`Draft.withPrelude`]: overriding the default prelude declarations with your own.
 - [`Draft.Context`]: additional operators, along with `$.type` and `$.newtype` for constructing custom types. These follow the same scope rules as `let`.
 
-For construction issues and common mistakes, see the [troubleshooting guide](/docs/hashql/sdk/typescript/troubleshooting).
+For construction issues and common mistakes, see the [troubleshooting guide][troubleshooting].
 
 [`J-Expr`]: /docs/hashql/sdk/typescript/reference/hashql/JExpr
 [`Program`]: /docs/hashql/sdk/typescript/reference/hashql/Program
@@ -576,3 +576,9 @@ For construction issues and common mistakes, see the [troubleshooting guide](/do
 [`TypeExpression`]: /docs/hashql/sdk/typescript/reference/hashql/Program/TypeExpression#TypeExpression
 [`Program.Operators.Predicate`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#Predicate
 [writing a query]: /docs/hashql/sdk/typescript/writing-a-query
+[program-error-reason]: /docs/hashql/sdk/typescript/reference/hashql/Program/ProgramError#Reason
+[troubleshooting-handle-a-construction-failure]: /docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure
+[program-operators-eq]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#eq
+[BE-1015]: https://linear.app/hash/issue/BE-1015
+[draft-context-if]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.if
+[troubleshooting]: /docs/hashql/sdk/typescript/troubleshooting

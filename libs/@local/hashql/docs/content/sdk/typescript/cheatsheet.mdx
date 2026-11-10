@@ -5,34 +5,34 @@ description: HashQL values, types and special forms in TypeScript (Draft), funct
 
 This guide is a quick reference for HashQL constructs across implementations. For each construct, you can view the equivalent in Rust, Python, or TypeScript.
 
-The [literal value cheatsheet](#literal) covers the construction of values in HashQL, while the [common program patterns cheatsheet](#control-flow) covers control flow constructs and special forms.
+The [literal value cheatsheet][literal] covers the construction of values in HashQL, while the [common program patterns cheatsheet][control-flow] covers control flow constructs and special forms.
 
-The TypeScript, Rust, and Python tabs show either a program that you can run yourself to verify the output, or type declarations. The right side shows the equivalent in any of the SDKs or syntaxes that are supported, or used through the documentation. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
+The TypeScript, Rust, and Python tabs show either a program that you can run yourself to verify the output, or type declarations. The right side shows the equivalent in any of the SDKs or syntaxes that are supported, or used through the documentation. Refer to the [introduction][intro] to learn more about each form.
 
 ## At a glance [#at-a-glance]
 
-| Form                  | Reference notation     | Functional notation   | TypeScript SDK                                                   |
-| --------------------- | ---------------------- | --------------------- | ---------------------------------------------------------------- |
-| [`struct`](#struct)   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`                            |
-| [`tuple`](#tuple)     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`                               |
-| [`list`](#list)       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`                             |
-| [`dict`](#dict)       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`                        |
-| [`let`](#let)         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                                                  |
-| [`if`](#if)           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                                        |
-| [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)`                      |
-| [`fn`](#fn)           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                                                    |
-| [`use`](#use)         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`                                   |
-| [`access`](#access)   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                                                |
-| [`index`](#index)     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                                                    |
-| [`as`](#as)           | `e as T`               | `(as e T)`            | Not available ([BE-1141](https://linear.app/hash/issue/BE-1141)) |
-| [`type`](#type)       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                                                 |
-| [`newtype`](#newtype) | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                                              |
+| Form                 | Reference notation     | Functional notation   | TypeScript SDK                              |
+| -------------------- | ---------------------- | --------------------- | ------------------------------------------- |
+| [`struct`][struct]   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`       |
+| [`tuple`][tuple]     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`          |
+| [`list`][list]       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`        |
+| [`dict`][dict]       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`   |
+| [`let`][let]         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                             |
+| [`if`][if]           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                   |
+| [`input`][input]     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
+| [`fn`][fn]           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                               |
+| [`use`][use]         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`              |
+| [`access`][access]   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                           |
+| [`index`][index]     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                               |
+| [`as`][as]           | `e as T`               | `(as e T)`            | Not available ([BE-1141])                   |
+| [`type`][type]       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                            |
+| [`newtype`][newtype] | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                         |
 
 ## Values and types [#literal]
 
 HashQL's primitive types are `Integer`, `Number`, `String`, `Boolean` and `Null`. Structs and tuples are static collections, with a fixed set of fields or positions that each have their own type. Lists and dictionaries are dynamic collections of any size. Every member of a list shares one element type, and every entry of a dictionary one key type and one value type.
 
-In Draft, you write a value as `2n`, `2.5`, `"two"`, `true` or `null`, and its type as `BigInt`, `Number`, `String`, `Boolean` or `$.prelude().Null`. A `bigint` becomes an `Integer` and a `number` a `Number`, so Draft keeps the distinction HashQL makes.
+In Draft, you write a value as `2n`, `2.5`, `"two"`, `true` or `null`, and its type as [`BigInt`][program-structural-definition], `Number`, `String`, `Boolean` or [`$.prelude().Null`][draft-context-prelude]. A `bigint` becomes an `Integer` and a `number` a `Number`, so Draft keeps the distinction HashQL makes.
 
 ### Primitive literals [#literals]
 
@@ -182,7 +182,7 @@ The `Null` type is a singleton, with only one value: `null`. It is expected to b
 
 ### Structs name their fields [#struct]
 
-A struct has a fixed set of fields, each with a name and type. A field can hold another struct. Read a field with [access](#access-struct).
+A struct has a fixed set of fields, each with a name and type. A field can hold another struct. Read a field with [access][access-struct].
 
 <SideBySide>
 <div>
@@ -302,7 +302,7 @@ A HashQL struct's type is its field names and their types, so any struct with th
 
 ### Tuples fix their positions [#tuple]
 
-A tuple holds a fixed number of values in order, each with its type. Read a position with [access](#access-tuple).
+A tuple holds a fixed number of values in order, each with its type. Read a position with [access][access-tuple].
 
 <SideBySide>
 <div>
@@ -394,7 +394,7 @@ TypeScript has no tuple value, so its program uses a read-only array. In Draft, 
 
 ### Lists share one element type [#list]
 
-A list holds any number of values of one type. This list of lists has type `List<List<Integer>>`, and its empty inner list is still a `List<Integer>`. Look up an element with [index](#index).
+A list holds any number of values of one type. This list of lists has type `List<List<Integer>>`, and its empty inner list is still a `List<Integer>`. Look up an element with [index].
 
 <SideBySide>
 <div>
@@ -509,7 +509,7 @@ The type annotation is what gives an empty list its element type. Draft writes o
 
 ### Dictionaries map keys to values [#dict]
 
-A dictionary has one key type and one value type, and any expression can compute a key. Here the name `status` supplies the second key. Look up an entry with [index](#index).
+A dictionary has one key type and one value type, and any expression can compute a key. Here the name `status` supplies the second key. Look up an entry with [index].
 
 <SideBySide>
 <div>
@@ -744,32 +744,262 @@ With the input `payload` set to `(pair: (2, "two"), counts: [2, 3], totals: {"op
 </div>
 </SideBySide>
 
-A type describes values without validating them: a Draft type handle doesn't check caller data at run time. `Structural.type` declares no HashQL type name, unlike [`type`](#type). An input schema also accepts the shorthand directly, as in the [task example](#read-a-task).
+`Structural.type` declares no HashQL type name, unlike [`type`][type]. An input schema also accepts the shorthand directly, as in the [task example][read-a-task].
 
 ## Operators [#operators]
 
-These helpers construct HashQL predicates, not host-language comparisons. Each returns a predicate you can chain with `.and`, `.or` and `.not`.
+The reference notation writes comparisons and Boolean logic as operators. Each one calls a standard-library function: `!=` calls `::core::cmp::ne`, and `&&` calls `::core::bool::and`.
 
-| Draft fragment | Reference notation            | Functional notation             |
-| -------------- | ----------------------------- | ------------------------------- |
-| `$.eq(a, b)`   | `a == b`                      | `(eq a b)`                      |
-| `$.ne(a, b)`   | `a != b`                      | `(ne a b)`                      |
-| `$.and(a, b)`  | `a && b`                      | `(and a b)`                     |
-| `$.or(a, b)`   | `a \|\| b`                    | `(or a b)`                      |
-| `$.not(a)`     | `!a`                          | `(not a)`                       |
-| `$.isTrue(a)`  | `a == true`                   | `(eq a true)`                   |
-| `$.isFalse(a)` | `a == false`                  | `(eq a false)`                  |
-| `$.isNone(a)`  | `a == ::core::option::None()` | `(eq a (::core::option::None))` |
+### Comparisons combine into conditions [#comparisons]
 
-`eq` and `ne` require identical SDK type descriptors. The Boolean helpers take Boolean expressions. `isNone` takes an `Option` descriptor containing `None`, not a nullable lookup result. See the [nullable comparison example](/docs/hashql/sdk/typescript/using-draft#construction-time-macros) for that distinction. Boolean operands are constructed before these calls. TypeScript does not short-circuit their construction.
+A task needs attention while it's unfinished and either blocked or unassigned. This task is open and has no owner, so it needs attention.
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const status: string = "open";
+const assigned = false;
+const needsAttention = status !== "done" && (status === "blocked" || !assigned);
+console.log(needsAttention);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+fn main() {
+    // [!code focus:3]
+    let status = "open";
+    let assigned = false;
+    let needs_attention = status != "done" && (status == "blocked" || !assigned);
+    println!("{needs_attention}");
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+status = "open"
+assigned = False
+needs_attention = status != "done" and (status == "blocked" or not assigned)
+print(needs_attention)
+```
+
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+true
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+true
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+True
+```
+
+</Result>
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const built = Draft.program({}, ($) => {
+  // [!code focus:4]
+  const status = $.let("status", "open");
+  const assigned = $.let("assigned", false);
+
+  return $.ne(status, "done").and($.eq(status, "blocked").or($.not(assigned)));
+});
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let status "open"
+  (let assigned false
+    (and (ne status "done")
+      (or (eq status "blocked") (not assigned)))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let status = "open" in
+let assigned = false in
+(status != "done") && ((status == "blocked") || (!assigned))
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "status",
+  { "#literal": "open" },
+  [
+    "::kernel::special_form::let",
+    "assigned",
+    { "#literal": false },
+    [
+      "::core::bool::and",
+      ["::core::cmp::ne", "status", { "#literal": "done" }],
+      [
+        "::core::bool::or",
+        ["::core::cmp::eq", "status", { "#literal": "blocked" }],
+        ["::core::bool::not", "assigned"]
+      ]
+    ]
+  ]
+]
+```
+
+<Result expected>
+
+```text
+true
+```
+
+</Result>
+
+</div>
+</SideBySide>
+
+`&&`, `||` and `!` take and return `Boolean` values, because HashQL has no truthy values. Python's `and` and `or` return one of their operands instead, so `"" or "none"` is `"none"`.
+
+In Draft, the operators are functions on `$`: [`eq`][program-operators-eq], [`ne`][program-operators-ne], [`and`][program-operators-and], [`or`][program-operators-or] and [`not`][program-operators-not]. Each returns a predicate whose `.and`, `.or` and `.not` methods continue the chain. [`isTrue`][program-operators-is-true] and [`isFalse`][program-operators-is-false] compare a Boolean with `true` or `false`. HashQL's `==` accepts operands of any two types, while `eq` and `ne` require both to have the same type, so compare an `Integer` with `2n` rather than `2`. A native `===` compares two handles, not their values, as the [troubleshooting guide][troubleshooting-native-operators] shows.
+
+### `None` marks a missing value [#absence]
+
+An [`if` without `else`][if-choose] returns an [`Option`][draft-context-option], and comparing it with `None()` tests for the missing value. The task isn't blocked, so it has no review label.
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const status: string = "open";
+const label = status === "blocked" ? "review" : undefined;
+console.log(label === undefined);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+fn main() {
+    // [!code focus:3]
+    let status = "open";
+    let label = if status == "blocked" { Some("review") } else { None };
+    println!("{}", label.is_none());
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+status = "open"
+label = "review" if status == "blocked" else None
+print(label is None)
+```
+
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+true
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+true
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+True
+```
+
+</Result>
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const built = Draft.program({}, ($) => {
+  // [!code focus:7]
+  const status = $.let("status", "open");
+  const label = $.let(
+    "label",
+    $.if($.eq(status, "blocked"), { then: () => "review" }),
+  );
+
+  return $.isNone(label);
+});
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let status "open"
+  (let label (if (eq status "blocked") "review")
+    (eq label (None))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let status = "open" in
+let label = if status == "blocked" then "review" in
+label == None()
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "status",
+  { "#literal": "open" },
+  [
+    "::kernel::special_form::let",
+    "label",
+    [
+      "::kernel::special_form::if",
+      ["::core::cmp::eq", "status", { "#literal": "blocked" }],
+      { "#literal": "review" }
+    ],
+    ["::core::cmp::eq", "label", ["::core::option::None"]]
+  ]
+]
+```
+
+<Result expected>
+
+```text
+true
+```
+
+</Result>
+
+</div>
+</SideBySide>
+
+TypeScript and Python mark the missing label with `undefined` and `None`, while Rust and HashQL wrap a present label in `Some`. HashQL's `None()` is an `Option` value, not `null`. In Draft, [`isNone`][program-operators-is-none] takes an `Option` and rejects the nullable result of a [list lookup][index], which the [nullable comparison example][using-draft-construction-time-macros] compares with `null`.
 
 ## Common program patterns [#control-flow]
 
-Special forms are calls that the compiler treats specially. [More on special forms](/docs/hashql/intro#functional-programming).
+Special forms are calls that the compiler treats specially. [More on special forms][intro-functional-programming].
 
 ### `let` names a value [#let]
 
-`let` binds a name within its body, and the body's value is the result, here `2`. [More on `let`](/docs/hashql/intro#naming-a-value-with-let).
+`let` binds a name within its body, and the body's value is the result, here `2`. [More on `let`][intro-naming-a-value-with-let].
 
 <SideBySide>
 <div>
@@ -862,7 +1092,7 @@ HashQL values are immutable, and a name exists only inside its `let`. Python can
 
 ### `if` chooses a value [#if]
 
-`if` evaluates a Boolean condition and returns one of two values. [More on `if`](/docs/hashql/intro#choosing-a-value-with-if).
+`if` evaluates a Boolean condition and returns one of two values. [More on `if`][intro-choosing-a-value-with-if].
 
 #### Choose between two values [#if-choose]
 
@@ -977,7 +1207,7 @@ else 0
 </div>
 </SideBySide>
 
-Draft runs both branch callbacks while it builds the program. HashQL evaluates only the selected branch. Without `else`, `if` returns an `Option`: `Some` of the branch's value, or `None()`.
+HashQL evaluates only the selected branch. Without `else`, `if` returns an [`Option`][draft-context-option]: `Some` of the branch's value, or `None()`.
 
 #### Conditions must be Boolean [#if-boolean]
 
@@ -1093,11 +1323,11 @@ Type mismatch: expected `Boolean`, found `Integer`
 </div>
 </SideBySide>
 
-Rust and the HashQL compiler reject the program before it runs. Draft's types reject it in your editor, because the condition's TypeScript type carries its HashQL type. The J-Expr is the program the compiler would reject. Python and TypeScript treat any nonzero number as true.
+Rust and the HashQL compiler reject the program before it runs. Draft's types reject it in your editor, because the condition's TypeScript type carries its HashQL type. Python and TypeScript treat any nonzero number as true.
 
 ### `input` receives a value [#input]
 
-`input` asks the caller for a named, typed value. Each run below supplies `2`, so the expression's value is `2`. [More on `input`](/docs/hashql/intro#receiving-a-value-with-input).
+`input` asks the caller for a named, typed value. Each run below supplies `2`, so the expression's value is `2`. [More on `input`][intro-receiving-a-value-with-input].
 
 <SideBySide>
 <div>
@@ -1218,7 +1448,7 @@ An input is fixed for one execution, and any expression can read it without havi
 
 ### `fn` defines a closure [#fn]
 
-`fn` makes a function value that can capture names from its surrounding scope. Calling it with `2` returns `true`. [More on `fn`](/docs/hashql/intro#defining-a-function-with-fn).
+`fn` makes a function value that can capture names from its surrounding scope. Calling it with `2` returns `true`. [More on `fn`][intro-defining-a-function-with-fn].
 
 <SideBySide>
 <div>
@@ -1323,11 +1553,11 @@ true
 </div>
 </SideBySide>
 
-Because HashQL values are immutable, `foo` has the same value whenever the closure runs. A Python function reads `foo` when it is called, so rebinding `foo` would change its answer. Draft's callbacks are TypeScript functions that build syntax, and none of them becomes a HashQL closure.
+Because HashQL values are immutable, `foo` has the same value whenever the closure runs. A Python function reads `foo` when it is called, so rebinding `foo` would change its answer.
 
 ### `use` imports under a local name [#use]
 
-`use` brings a module's items into scope for its body, here `eq` under the name `same`. The expression's value is `true`. [More on `use`](/docs/hashql/intro#bringing-names-into-scope-with-use).
+`use` brings a module's items into scope for its body, here `eq` under the name `same`. The expression's value is `true`. [More on `use`][intro-bringing-names-into-scope-with-use].
 
 <SideBySide>
 <div>
@@ -1445,11 +1675,11 @@ true
 </div>
 </SideBySide>
 
-Rust's standard library has no free `eq` function, so the Rust program defines the module it imports from. The host-language imports load code with their own equality rules. Draft's `$.import` adds a HashQL `use` to the program instead. It loads no JavaScript module and leaves `$.prelude()` unchanged.
+The host-language imports load code with their own equality rules. Draft's `$.import` adds a HashQL `use` to the program instead and leaves [`$.prelude()`][draft-context-prelude] unchanged.
 
 ### `access` reads a field or position [#access]
 
-`access` reads a struct field by name or a tuple element by position. Both are fixed in the program, so the compiler checks that they exist. The reference notation writes it as `.`. [More on `access`](/docs/hashql/intro#reading-a-field-with-access).
+`access` reads a struct field by name or a tuple element by position. Both are fixed in the program, so the compiler checks that they exist. The reference notation writes it as `.`. [More on `access`][intro-reading-a-field-with-access].
 
 #### Read a struct field [#access-struct]
 
@@ -1662,7 +1892,7 @@ In Draft, `foo[0]` constructs this access, not a list lookup. Rust and TypeScrip
 
 ### `index` looks up an element [#index]
 
-`index` reads a list element or a dictionary entry whose position or key is computed when the program runs. [More on `index`](/docs/hashql/intro#looking-up-an-element-with-index).
+`index` reads a list element or a dictionary entry whose position or key is computed when the program runs. [More on `index`][intro-looking-up-an-element-with-index].
 
 <SideBySide>
 <div>
@@ -1776,13 +2006,13 @@ Today's compiler evaluates this lookup to a bare `2`, or to `null` past the end.
 
 <Callout type="info" title="Future Option result">
 
-With the new polymorphic core, indexing will return an `Option`: `Some(2)` here, and `None()` past the end, much like Rust's `get`. This is the planned result shape, not the current one.
+With the [new polymorphic core][BE-645], indexing will return an [`Option`][draft-context-option]: `Some(2)` here, and `None()` past the end, much like Rust's `get`. This is the planned result shape, not the current one.
 
 </Callout>
 
 ### `as` states a wider type [#as]
 
-`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`](/docs/hashql/intro#stating-a-type-with-as). Draft's missing builder is tracked in [BE-1141](https://linear.app/hash/issue/BE-1141).
+`as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`][intro-stating-a-type-with-as]. Draft's missing builder is tracked in [BE-1141].
 
 <SideBySide>
 <div>
@@ -1867,7 +2097,7 @@ Rust's `as` converts the value, so its program prints `2.0`. Python's type check
 
 ### `type` names a type [#type]
 
-`type` gives a type another name within its body. The expression's value is `2`. [More on `type`](/docs/hashql/intro#naming-a-type-with-type).
+`type` gives a type another name within its body. The expression's value is `2`. [More on `type`][intro-naming-a-type-with-type].
 
 <SideBySide>
 <div>
@@ -1973,11 +2203,11 @@ foo
 </div>
 </SideBySide>
 
-An alias is another name for the same type, not a distinct type or a range check. Draft's `$.type` adds a declaration to the HashQL program and returns a handle for it. It isn't a TypeScript type. The typed `$.let` builds `let`'s four-argument form, which the compiler checks as it does `2 as Count`. The Python statement needs Python 3.12 or later.
+An alias is another name for the same type, not a distinct type or a range check. Draft's `$.type` adds a declaration to the HashQL program and returns a handle for it. The typed `$.let` builds `let`'s four-argument form, which the compiler checks as it does `2 as Count`. The Python statement needs Python 3.12 or later.
 
 ### `newtype` makes a distinct type [#newtype]
 
-`newtype` declares a type that is distinct from its underlying type, and a constructor with the same name. [More on `newtype`](/docs/hashql/intro#making-a-distinct-type-with-newtype).
+`newtype` declares a type that is distinct from its underlying type, and a constructor with the same name. [More on `newtype`][intro-making-a-distinct-type-with-newtype].
 
 <SideBySide>
 <div>
@@ -2092,18 +2322,24 @@ A plain `Integer` isn't a `Count`, and a second newtype over `Integer` would be 
 
 ## Queries [#queries]
 
-A graph query has a **head** that selects a source, a **body** that transforms it, and a **tail** that produces the result. Here we collect every entity at the supplied temporal axes when `include` is true, or none when it is false.
+A graph query has a **head** that selects a source, a **body** that transforms it, and a **tail** that produces the result. This query collects the entities that aren't archived: its filter compares each entity's `metadata.archived` field with `false`.
 
 <SideBySide>
 <div>
 
-| Part | Draft                              | Role                                      |
-| ---- | ---------------------------------- | ----------------------------------------- |
-| Head | `$.query.entities(axis)`           | Select the graph at `axis`.               |
-| Body | `.filter("entity", () => include)` | Keep entities when the predicate is true. |
-| Tail | `.collect()`                       | Return the remaining entities as a list.  |
+| Part | Draft                                                        | Role                                      |
+| ---- | ------------------------------------------------------------ | ----------------------------------------- |
+| Head | [`$.query.entities(axis)`][draft-context-queries-entities]   | Select the graph at `axis`.               |
+| Body | [`.filter("entity", predicate)`][draft-context-query-filter] | Keep entities when the predicate is true. |
+| Tail | [`.collect()`][draft-context-query-collect]                  | Return the remaining entities as a list.  |
 
 The `axis` input selects the temporal view of the graph. Supply its value when executing the query.
+
+<Callout title="Entity field declarations">
+
+The SDK's built-in `Entity` descriptor does not yet expose `metadata`. The Draft example needs declarations for these standard-library fields, tracked in [BE-1013].
+
+</Callout>
 
 </div>
 <div>
@@ -2118,13 +2354,11 @@ const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
     JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
   ),
 );
-const built = Draft.program(
-  { axis: axes, include: Boolean },
-  ($, { axis, include }) =>
-    $.query
-      .entities(axis)
-      .filter("entity", () => include)
-      .collect(),
+const built = Draft.program({ axis: axes }, ($, { axis }) =>
+  $.query
+    .entities(axis)
+    .filter("entity", ($, entity) => $.isFalse(entity.metadata.archived))
+    .collect(),
 );
 const text = pipe(
   built,
@@ -2140,12 +2374,13 @@ console.log(text);
   (::graph::body::filter
     (::graph::head::entities
       (input axis ::graph::temporal::QueryTemporalAxes))
-    (fn () (entity: _) _ (input include Boolean))))
+    (fn () (entity: _) _
+      (eq (`.` (`.` entity metadata) archived) false))))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
 ::graph::head::entities(input(axis, ::graph::temporal::QueryTemporalAxes))
-  |> ::graph::body::filter((entity: _): _ -> input(include, Boolean))
+  |> ::graph::body::filter((entity: _): _ -> entity.metadata.archived == false)
   |> ::graph::tail::collect
 ```
 
@@ -2167,7 +2402,15 @@ console.log(text);
       { "#tuple": [] },
       { "#struct": { "entity": "_" } },
       "_",
-      ["::kernel::special_form::input", "include", "::kernel::type::Boolean"]
+      [
+        "::core::cmp::eq",
+        [
+          "::kernel::special_form::access",
+          ["::kernel::special_form::access", "entity", "metadata"],
+          "archived"
+        ],
+        { "#literal": false }
+      ]
     ]
   ]
 ]
@@ -2178,7 +2421,7 @@ console.log(text);
 
 ## Put the forms together [#programs]
 
-These programs triage tasks from the [release briefing](/docs/hashql/sdk/typescript/writing-a-query). Each one adds forms to the last, and the final one turns the triage into a rule that reads an input.
+These programs triage tasks from the [release briefing][writing-a-query]. Each one adds forms to the last, and the final one turns the triage into a rule that reads an input.
 
 ### Label a task [#label-a-task]
 
@@ -2698,4 +2941,57 @@ With the input `flagged` set to `"blocked"`:
 </div>
 </SideBySide>
 
-The closure reads `flagged` from the input without receiving it as an argument. Changing the input to `open` flags the other task, and the program doesn't change. [Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) applies the same forms to a graph: it filters the tasks of one release and returns the unfinished, blocked and unassigned work as one briefing.
+The closure reads `flagged` from the input without receiving it as an argument. Changing the input to `open` flags the other task, and the program doesn't change. [Writing a HashQL query][writing-a-query] applies the same forms to a graph: it filters the tasks of one release and returns the unfinished, blocked and unassigned work as one briefing.
+
+[literal]: #literal
+[control-flow]: #control-flow
+[intro]: /docs/hashql/intro
+[struct]: #struct
+[tuple]: #tuple
+[list]: #list
+[dict]: #dict
+[let]: #let
+[if]: #if
+[input]: #input
+[fn]: #fn
+[use]: #use
+[access]: #access
+[index]: #index
+[as]: #as
+[BE-1141]: https://linear.app/hash/issue/BE-1141
+[type]: #type
+[newtype]: #newtype
+[program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
+[draft-context-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.prelude
+[access-struct]: #access-struct
+[access-tuple]: #access-tuple
+[read-a-task]: #read-a-task
+[program-operators-eq]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#eq
+[program-operators-ne]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#ne
+[program-operators-and]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#and
+[program-operators-or]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#or
+[program-operators-not]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#not
+[program-operators-is-true]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#isTrue
+[program-operators-is-false]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#isFalse
+[troubleshooting-native-operators]: /docs/hashql/sdk/typescript/troubleshooting#native-operators
+[if-choose]: #if-choose
+[draft-context-option]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Option
+[program-operators-is-none]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#isNone
+[using-draft-construction-time-macros]: /docs/hashql/sdk/typescript/using-draft#construction-time-macros
+[intro-functional-programming]: /docs/hashql/intro#functional-programming
+[intro-naming-a-value-with-let]: /docs/hashql/intro#naming-a-value-with-let
+[intro-choosing-a-value-with-if]: /docs/hashql/intro#choosing-a-value-with-if
+[intro-receiving-a-value-with-input]: /docs/hashql/intro#receiving-a-value-with-input
+[intro-defining-a-function-with-fn]: /docs/hashql/intro#defining-a-function-with-fn
+[intro-bringing-names-into-scope-with-use]: /docs/hashql/intro#bringing-names-into-scope-with-use
+[intro-reading-a-field-with-access]: /docs/hashql/intro#reading-a-field-with-access
+[intro-looking-up-an-element-with-index]: /docs/hashql/intro#looking-up-an-element-with-index
+[BE-645]: https://linear.app/hash/issue/BE-645
+[intro-stating-a-type-with-as]: /docs/hashql/intro#stating-a-type-with-as
+[intro-naming-a-type-with-type]: /docs/hashql/intro#naming-a-type-with-type
+[intro-making-a-distinct-type-with-newtype]: /docs/hashql/intro#making-a-distinct-type-with-newtype
+[draft-context-queries-entities]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Queries.entities
+[draft-context-query-filter]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.filter
+[draft-context-query-collect]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.collect
+[writing-a-query]: /docs/hashql/sdk/typescript/writing-a-query
+[BE-1013]: https://linear.app/hash/issue/BE-1013

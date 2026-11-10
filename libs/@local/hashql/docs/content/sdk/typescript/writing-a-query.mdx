@@ -3,11 +3,11 @@ title: Writing a HashQL query
 description: Build a release briefing by selecting tasks, filtering them and combining related queries.
 ---
 
-In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
+In [Using the TypeScript SDK], we built a summary of a task supplied as input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
 
 Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these questions share a common starting point: we must find the tasks that belong to one release. So let's start there!
 
-This guide assumes that you are already familiar with [the basics of HashQL](/docs/hashql/intro) and [the Draft API of the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft).
+This guide assumes that you are already familiar with [the basics of HashQL][intro] and [the Draft API of the TypeScript SDK][Using the TypeScript SDK].
 
 <Callout title="Following the examples">
 
@@ -30,7 +30,7 @@ For this walkthrough, suppose the selected graph view contains exactly these fiv
 <details>
 <summary>Task type definitions</summary>
 
-These [SemType](https://semtype.org/spec) definitions describe the tasks in our example. Each task has five required properties. The Task column contains a human-readable `task-id`, such as `T-101`, and the Assigned column displays `true` as "yes" and `false` as "no".
+These [SemType] definitions describe the tasks in our example. Each task has five required properties. The Task column contains a human-readable `task-id`, such as `T-101`, and the Assigned column displays `true` as "yes" and `false` as "no".
 
 The Property types tab groups the five property definitions in an array. They reuse the standard Text and Boolean data types, with a Task status data type restricting `status` to `open`, `blocked` or `done`.
 
@@ -432,7 +432,7 @@ const briefing = Draft.program(
 );
 ```
 
-We've added a new input, `release`. This follows the approach discussed in [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft): rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
+We've added a new input, `release`. This follows the approach discussed in [Using the TypeScript SDK]: rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
 
 <Callout>
 
@@ -450,7 +450,7 @@ Each closure tests whether a vertex satisfies the filter's condition. If it does
 
 ### Name the properties with construction-time macros
 
-That's a lot of code, especially with the long property URLs used in [SemType]. We can make it easier to read by defining helper functions using [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's start with a helper function that creates a `VersionedUrl`:
+That's a lot of code, especially with the long property URLs used in [SemType]. We can make it easier to read by defining helper functions using [construction-time macros][using-draft-construction-time-macros]. Let's start with a helper function that creates a `VersionedUrl`:
 
 ```ts title="VersionedUrl helper" data-example="versioned-url"
 const versionedUrl = <I>(
@@ -469,7 +469,7 @@ const versionedUrl = <I>(
 };
 ```
 
-The helper uses the module's exports directly, so it doesn't introduce any local HashQL names. Its context type follows the [context helpers](/docs/hashql/sdk/typescript/using-draft#passing-a-context) from the SDK guide. The helper does not modify the input requirements `I` in any way, therefore it is fully generic.
+The helper uses the module's exports directly, so it doesn't introduce any local HashQL names. Its context type follows the [context helpers][using-draft-passing-a-context] from the SDK guide. The helper does not modify the input requirements `I` in any way, therefore it is fully generic.
 
 We can go one step further. The SDK builds a program for later execution rather than evaluating the query itself, so we can also use reusable helper functions to make the property traversal paths more readable:
 
@@ -613,7 +613,7 @@ These examples cover the language's current querying capabilities. Planned addit
 
 Queries in HashQL all follow the same pattern: a head starts a graph computation, the body refines it with predicates, and the tail evaluates the graph effect to materialise the results. Bindings let us reuse selections and query fragments across related questions, while inputs let us ask those questions with different values.
 
-For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see [Bilal Mahmoud's Diplomarbeit](https://hgres.org/hashql).
+For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see [Bilal Mahmoud's Diplomarbeit][hgres-org-hashql].
 
 [Using the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
 [intro to the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
@@ -645,3 +645,7 @@ For a comparative view of the examples, take a look at the [cheatsheet]. The [Dr
 [ontology-schemas]: https://linear.app/hash/issue/BE-899
 [type-narrowing]: https://linear.app/hash/issue/BE-62
 [typed-properties]: https://linear.app/hash/issue/BE-900
+[intro]: /docs/hashql/intro
+[using-draft-construction-time-macros]: /docs/hashql/sdk/typescript/using-draft#construction-time-macros
+[using-draft-passing-a-context]: /docs/hashql/sdk/typescript/using-draft#passing-a-context
+[hgres-org-hashql]: https://hgres.org/hashql
