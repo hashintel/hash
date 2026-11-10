@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Icon } from "@hashintel/ds-components";
@@ -82,16 +83,24 @@ const openIcon = css({ display: "flex", color: "fg.subtle" });
 const getRowContent = (
   entity: HashEntity | undefined,
   typesMap: ClosedMultiEntityTypesRootMap | undefined,
-  loading: boolean,
+  query: { loading: boolean; failed: boolean },
 ): { title: string; meta: string; icon: IconName; imageUrl?: string } => {
   if (!entity || !typesMap) {
-    return {
-      title: loading ? "Loading…" : "Entity not found",
-      meta: loading
-        ? ""
-        : "It may have been deleted, or be in a web you can't see",
-      icon: "cube",
-    };
+    if (query.loading) {
+      return { title: "Loading…", meta: "", icon: "cube" };
+    }
+
+    return query.failed
+      ? {
+          title: "Couldn't load this entity",
+          meta: "Its page may still open",
+          icon: "cube",
+        }
+      : {
+          title: "Entity not found",
+          meta: "It may have been deleted, or be in a web you can't see",
+          icon: "cube",
+        };
   }
 
   const closedType = getClosedMultiEntityTypeFromMap(
@@ -123,7 +132,7 @@ const getRowContent = (
 export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const { data, loading } = useQuery<
+  const { data, loading, error } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
@@ -148,29 +157,38 @@ export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
     fetchPolicy: "cache-first",
   });
 
-  const entities = data
-    ? deserializeQueryEntitiesResponse(data.queryEntities).entities
-    : [];
+  /* The query finds each entity's live edition and drafts by its uuid: a row shows the one it names, else another. */
+  const entitiesByUuid = useMemo(() => {
+    const byUuid = new Map<string, HashEntity[]>();
+
+    for (const entity of data
+      ? deserializeQueryEntitiesResponse(data.queryEntities).entities
+      : []) {
+      const uuid = extractEntityUuidFromEntityId(
+        entity.metadata.recordId.entityId,
+      );
+      byUuid.set(uuid, [...(byUuid.get(uuid) ?? []), entity]);
+    }
+
+    return byUuid;
+  }, [data]);
   const typesMap = data?.queryEntities.closedMultiEntityTypes;
 
   return (
     <div className={rows}>
       {entityIds.map((entityId, index) => {
-        /* The query finds each entity's live edition and drafts by its uuid: the one named, else another. */
+        const editions =
+          entitiesByUuid.get(extractEntityUuidFromEntityId(entityId)) ?? [];
         const entity =
-          entities.find(
+          editions.find(
             ({ metadata }) => metadata.recordId.entityId === entityId,
-          ) ??
-          entities.find(
-            ({ metadata }) =>
-              extractEntityUuidFromEntityId(metadata.recordId.entityId) ===
-              extractEntityUuidFromEntityId(entityId),
-          );
+          ) ?? editions[0];
         const { title, meta, icon, imageUrl } = getRowContent(
           entity,
           typesMap,
-          loading,
+          { loading, failed: !!error },
         );
+        const { shortname } = getOwnerForEntity({ entityId });
 
         return (
           <a
@@ -178,11 +196,16 @@ export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
             // eslint-disable-next-line react/no-array-index-key
             key={`${entityId}-${index}`}
             className={row}
-            href={generateEntityPath({
-              shortname: getOwnerForEntity({ entityId }).shortname,
-              entityId,
-              includeDraftId: true,
-            })}
+            /* Its owner's shortname is empty until users and orgs have loaded. */
+            href={
+              shortname
+                ? generateEntityPath({
+                    shortname,
+                    entityId,
+                    includeDraftId: true,
+                  })
+                : undefined
+            }
             target="_blank"
             rel="noreferrer"
           >

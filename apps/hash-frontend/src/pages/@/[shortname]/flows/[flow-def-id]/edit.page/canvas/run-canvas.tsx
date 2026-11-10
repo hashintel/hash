@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { findStep } from "../shared/find-step";
 import { notReachedMark, startMark } from "../shared/step-states";
@@ -46,12 +46,9 @@ const nodeTypes = {
 const edgeTypes = { connection: ConnectionEdge };
 
 const canvas = css({ position: "relative", width: "full", height: "full" });
-/* What isn't highlighted fades back, so the step that is stands out where it is. */
-const dimmed = css({
-  opacity: "[0.3]",
-  transition: "opacity",
-  transitionDuration: "fast",
-});
+/* What isn't highlighted fades back, so the step that is stands out where it is, and fades in again after. */
+const dimmable = css({ transition: "opacity", transitionDuration: "fast" });
+const dimmed = css({ opacity: "0.3" });
 
 const startRun: CardRun = { mark: startMark, featured: false };
 
@@ -204,10 +201,10 @@ const FlowRunCanvas = ({
         deletable: false,
         connectable: false,
         selected: stepId !== null && selectedStepIdSet.has(stepId),
-        className:
-          highlightedNodeId !== null && node.id !== highlightedNodeId
-            ? dimmed
-            : undefined,
+        className: cx(
+          dimmable,
+          highlightedNodeId !== null && node.id !== highlightedNodeId && dimmed,
+        ),
         ...(measured && { measured }),
       };
     });
@@ -226,7 +223,7 @@ const FlowRunCanvas = ({
         ...edge,
         selectable: false,
         focusable: false,
-        className: highlightedNodeId === null ? undefined : dimmed,
+        className: cx(dimmable, highlightedNodeId !== null && dimmed),
       })),
     [graph.edges, highlightedNodeId],
   );

@@ -16,6 +16,10 @@ import { indexValueUses } from "../shared/value-uses";
 import { OutputUses } from "./step-run-panel/output-uses";
 import { RunValue } from "./step-run-panel/run-value";
 import {
+  getPayloadShape,
+  getValueDisplay,
+} from "./step-run-panel/run-value-display";
+import {
   getItemCountsLine,
   getStatusLines,
 } from "./step-run-panel/status-lines";
@@ -24,11 +28,8 @@ import {
   getCommonInputs,
   getLastError,
   getRunsOfStep,
+  sortInputs,
 } from "./step-run-panel/step-runs";
-import {
-  getPayloadShape,
-  getValueDisplay,
-} from "./step-run-panel/value-display";
 
 import type { StepRunMark } from "../shared/step-states";
 import type { ValueUse } from "../shared/value-uses";
@@ -36,7 +37,6 @@ import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/ste
 import type {
   FlowDefinition,
   StepDefinition,
-  StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
@@ -112,10 +112,15 @@ const RunValueRow = ({
 
 /** An output, open to show its value and the steps that use it, or closed to just its name. */
 const OutputRow = ({
+  label,
   name,
+  onClose,
   children,
 }: {
+  /** What the row's toggle shows, for those who can't see it. */
+  label: string;
   name: ReactNode;
+  onClose: () => void;
   children: ReactNode;
 }) => {
   const [open, setOpen] = useState(true);
@@ -127,9 +132,14 @@ const OutputRow = ({
           variant="ghost"
           size="xs"
           iconName={open ? "chevronDown" : "chevronRight"}
-          aria-label={open ? "Hide" : "Show"}
+          aria-label={label}
           aria-expanded={open}
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            if (open) {
+              onClose();
+            }
+            setOpen(!open);
+          }}
         />
         <span className={valueName}>{name}</span>
       </span>
@@ -137,14 +147,6 @@ const OutputRow = ({
     </div>
   );
 };
-
-/** Inputs in the order the step's action lists them, any it doesn't after. */
-const sortInputs = (inputs: StepInput[], order: string[]) =>
-  inputs.toSorted(
-    (left, right) =>
-      (order.indexOf(left.inputName) + 1 || order.length + 1) -
-      (order.indexOf(right.inputName) + 1 || order.length + 1),
-  );
 
 /**
  * The panel beside a run's canvas for the step selected: its state, timing and last error, what it got and what it
@@ -172,18 +174,22 @@ export const StepRunPanel = ({
   stepRuns: Map<string, FlowRunStepRunState>;
   waitingOnPerson: Set<string>;
   live: boolean;
-  /** The run's page outside the editor, where a person can answer a step's questions. */
-  runPageHref: string;
+  /** The run's page outside the editor, where a person can answer a step's questions, once its path is known. */
+  runPageHref: string | null;
   highlightedStepId: string | null;
   onHighlightStep: (stepId: string | null) => void;
 }) => {
-  const runs = getRunsOfStep(step, stepRuns);
+  const runs = useMemo(() => getRunsOfStep(step, stepRuns), [step, stepRuns]);
   const perItem = inner || step.kind === "for-each";
   const waiting = runs.some(({ stepRun }) =>
     waitingOnPerson.has(stepRun.stepId),
   );
-  const now = useNow(live && runs.some(({ stepRun }) => !stepRun.closedAt));
-  const lastError = getLastError(runs);
+  /* A step run per item is still running while items are yet to be scheduled, though every run so far has closed. */
+  const running = live && mark.state === "running";
+  const now = useNow(running);
+  const lastError = useMemo(() => getLastError(runs), [runs]);
+  const itemCountsLine =
+    perItem && mark.items ? getItemCountsLine(mark.items) : null;
 
   const usesOf = useMemo(
     () => indexValueUses(flowDefinition.steps),
@@ -203,16 +209,22 @@ export const StepRunPanel = ({
 
   const [onlyRun] = runs;
   /* A for-each step's runs are its steps', whose inputs aren't its own. */
-  const { common: inputs, varying } =
-    step.kind === "for-each"
-      ? { common: [], varying: [] }
-      : inner
-        ? getCommonInputs(runs)
-        : { common: onlyRun?.stepRun.inputs ?? [], varying: [] };
+  const { common: inputs, varying } = useMemo(
+    () =>
+      step.kind === "for-each"
+        ? { common: [], varying: [] }
+        : inner
+          ? getCommonInputs(runs)
+          : { common: onlyRun?.stepRun.inputs ?? [], varying: [] },
+    [step.kind, inner, runs, onlyRun],
+  );
+  /* An action this version of the app doesn't know still shows the outputs it gave. */
   const outputNames =
     step.kind === "for-each"
       ? [step.collect.as]
-      : (actionDefinition?.outputs.map((output) => output.name) ?? []);
+      : (actionDefinition?.outputs.map((output) => output.name) ??
+        onlyRun?.stepRun.outputs?.map((output) => output.outputName) ??
+        []);
 
   const renderOutputValue = (outputName: string) => {
     if (perItem) {
@@ -220,7 +232,7 @@ export const StepRunPanel = ({
     }
 
     const output = onlyRun?.stepRun.outputs?.find(
-      (candidate) => candidate.outputName === outputName,
+      (stepOutput) => stepOutput.outputName === outputName,
     );
 
     if (output) {
@@ -249,17 +261,16 @@ export const StepRunPanel = ({
           </span>
         </div>
       </div>
-      {(runs.length > 0 || perItem) && (
+      {(runs.length > 0 || itemCountsLine) && (
         <div className={status}>
           <div className={statusLines}>
-            {perItem && mark.items && (
-              <span className={statusLine}>
-                {getItemCountsLine(mark.items)}
-              </span>
+            {itemCountsLine && (
+              <span className={statusLine}>{itemCountsLine}</span>
             )}
             {getStatusLines({
               runs,
               perItem,
+              running,
               waitingOnPerson: waiting,
               now,
             }).map((line) => (
@@ -278,7 +289,7 @@ export const StepRunPanel = ({
               }
             />
           )}
-          {waiting && (
+          {waiting && runPageHref && (
             <Button
               variant="subtle"
               size="sm"
@@ -291,7 +302,7 @@ export const StepRunPanel = ({
               Answer on the run's page
             </Button>
           )}
-          {perItem && (
+          {itemCountsLine && (
             <span className={note}>
               Each item's values will show once you can step through the items.
             </span>
@@ -331,6 +342,16 @@ export const StepRunPanel = ({
             {outputNames.map((outputName) => (
               <OutputRow
                 key={outputName}
+                label={`${getNameLabel(outputName)} value`}
+                onClose={() => {
+                  if (
+                    getOutputUses(outputName).some(
+                      (use) => use.step.stepId === highlightedStepId,
+                    )
+                  ) {
+                    onHighlightStep(null);
+                  }
+                }}
                 name={
                   <ValueName
                     name={getNameLabel(outputName)}

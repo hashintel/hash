@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getStepName } from "../../shared/find-step";
@@ -12,19 +12,7 @@ import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const uses = css({ display: "flex", flexDirection: "column", gap: "1" });
 const summary = css({ display: "flex", alignItems: "center", gap: "2" });
-const label = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  p: "0",
-  bg: "[transparent]",
-  borderWidth: "0",
-  textStyle: "xs",
-  color: "fg.muted",
-  cursor: "pointer",
-  _hover: { color: "fg.heading" },
-  _focusVisible: { color: "fg.heading" },
-});
+const label = css({ textStyle: "xs", color: "fg.muted" });
 const tiles = css({ display: "flex", alignItems: "center", gap: "1" });
 const tile = css({ display: "flex" });
 const quiet = css({ textStyle: "xs", color: "fg.subtle" });
@@ -99,20 +87,22 @@ export const OutputUses = ({
   return (
     <div className={uses}>
       <span className={summary}>
-        <button
-          type="button"
-          className={label}
-          aria-expanded={open}
-          onClick={() => {
-            if (open && highlightsOne) {
-              onHighlightStep(null);
-            }
-            setOpen(!open);
-          }}
-        >
-          Used in
-          <Icon name={open ? "chevronUp" : "chevronDown"} size="xs" />
-        </button>
+        <span className={label}>
+          <Button
+            variant="linkSubtle"
+            iconName={open ? "chevronUp" : "chevronDown"}
+            iconPosition="right"
+            aria-expanded={open}
+            onClick={() => {
+              if (open && highlightsOne) {
+                onHighlightStep(null);
+              }
+              setOpen(!open);
+            }}
+          >
+            Used in
+          </Button>
+        </span>
         {!open && (
           <span className={tiles}>
             {valueUses.map(({ step }) => (

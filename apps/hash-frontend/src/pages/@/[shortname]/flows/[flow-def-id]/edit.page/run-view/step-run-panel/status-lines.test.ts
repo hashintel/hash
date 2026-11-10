@@ -35,8 +35,8 @@ const run = (
 
 const lines = (
   runs: ItemRun[],
-  { perItem = false, waitingOnPerson = false } = {},
-) => getStatusLines({ runs, perItem, waitingOnPerson, now });
+  { perItem = false, running = false, waitingOnPerson = false } = {},
+) => getStatusLines({ runs, perItem, running, waitingOnPerson, now });
 
 describe("getStatusLines", () => {
   it("says how long a step took and when it started", () => {
@@ -45,6 +45,12 @@ describe("getStatusLines", () => {
 
   it("counts a step still running up to now", () => {
     expect(lines([run(null, { closedAt: "" })])).toEqual([
+      "58m 00s · Today, 14:02",
+    ]);
+  });
+
+  it("counts a step run per item up to now while it runs, though every item's run so far has closed", () => {
+    expect(lines([run(0)], { perItem: true, running: true })).toEqual([
       "58m 00s · Today, 14:02",
     ]);
   });
@@ -95,5 +101,9 @@ describe("getItemCountsLine", () => {
       "17 of 20 items done · 2 failed",
     );
     expect(getItemCountsLine(counts({ done: 1 }))).toBe("1 of 1 item done");
+  });
+
+  it("has no line while there are no items", () => {
+    expect(getItemCountsLine(counts({}))).toBeNull();
   });
 });

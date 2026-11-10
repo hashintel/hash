@@ -59,6 +59,7 @@ export const StepRunError = ({
   const { triggerSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
   const [firstLine] = message.split("\n");
+  const summary = context ? `${context}: ${firstLine}` : firstLine;
 
   const copy = async () => {
     try {
@@ -75,8 +76,8 @@ export const StepRunError = ({
         <Icon name="error" size="sm" alt="Error" />
       </span>
       <div className={body}>
-        <span className={oneLine} title={firstLine}>
-          {context ? `${context}: ${firstLine}` : firstLine}
+        <span className={oneLine} title={summary}>
+          {summary}
         </span>
         {open && <pre className={details}>{message}</pre>}
         <span className={actions}>

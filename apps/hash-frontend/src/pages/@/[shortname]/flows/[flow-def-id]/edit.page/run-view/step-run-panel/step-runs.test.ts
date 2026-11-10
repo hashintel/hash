@@ -8,6 +8,7 @@ import {
   getLastError,
   getRunsOfStep,
   getTimeSpan,
+  sortInputs,
 } from "./step-runs";
 
 import type { ItemRun } from "./step-runs";
@@ -89,6 +90,21 @@ describe("getRunsOfStep", () => {
     expect(
       getRunsOfStep(forEach, stepRuns).map(({ stepRun: { stepId } }) => stepId),
     ).toEqual(["save~0", "fetch~0", "fetch~1"]);
+  });
+
+  it("gives a skipped for-each step its own run first", () => {
+    expect(
+      getRunsOfStep(
+        forEach,
+        new Map([
+          ["fetch~0", stepRun("fetch~0")],
+          ["each", stepRun("each", { status: FlowStepStatus.Skipped })],
+        ]),
+      ).map(({ itemIndex, stepRun: { stepId } }) => [itemIndex, stepId]),
+    ).toEqual([
+      [null, "each"],
+      [0, "fetch~0"],
+    ]);
   });
 });
 
@@ -209,5 +225,43 @@ describe("getLastError", () => {
       ]),
     ).toEqual({ itemIndex: null, error: { message: "Timed out" } });
     expect(getLastError(itemRuns(stepRun("fetch~0")))).toBeNull();
+  });
+
+  it("times a run still open by when it started, against one that closed", () => {
+    expect(
+      getLastError(
+        itemRuns(
+          stepRun("fetch~0", {
+            status: FlowStepStatus.Failed,
+            startedAt: "2026-11-05T14:00:02.000Z",
+            closedAt: "2026-11-05T14:00:06.000Z",
+            errorStatus: { message: "Not found" },
+          }),
+          stepRun("fetch~1", {
+            status: FlowStepStatus.Started,
+            startedAt: "2026-11-05T14:00:08.000Z",
+            closedAt: "",
+            attempt: 2,
+            lastFailure: { message: "Timed out" },
+          }),
+        ),
+      ),
+    ).toEqual({ itemIndex: 1, error: { message: "Timed out" } });
+  });
+});
+
+describe("sortInputs", () => {
+  it("puts inputs in the action's order, and those it doesn't list after, as they came", () => {
+    expect(
+      sortInputs(
+        [
+          text("extra", "a"),
+          text("url", "b"),
+          text("unknown", "c"),
+          text("description", "d"),
+        ],
+        ["description", "url"],
+      ).map(({ inputName }) => inputName),
+    ).toEqual(["description", "url", "extra", "unknown"]);
   });
 });

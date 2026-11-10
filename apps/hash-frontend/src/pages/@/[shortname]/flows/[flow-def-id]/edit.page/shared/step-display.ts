@@ -212,10 +212,7 @@ export const getStepDisplay = (
 
   const addable = findAddableAction(step.actionDefinitionId);
 
-  /* A definition may name an action that doesn't exist. */
-  const definition = (
-    actionDefinitions as Partial<Record<string, { name: string }>>
-  )[step.actionDefinitionId];
+  const definition = getActionDefinition(step.actionDefinitionId);
 
   return {
     title: addable?.label ?? definition?.name ?? step.actionDefinitionId,

@@ -1,3 +1,4 @@
+import { isEqual } from "lodash";
 import { useCallback, useState } from "react";
 
 import { Banner, Button, LoadingSpinner } from "@hashintel/ds-components";
@@ -91,11 +92,10 @@ export const RunView = ({
   const [focusRequest, setFocusRequest] = useState<{ stepId: string } | null>(
     null,
   );
-  /* The step a "Used in" entry highlights, for the step whose panel it's in, so it's dropped with the selection. */
-  const [highlight, setHighlight] = useState<{
-    panelStepId: string;
-    stepId: string;
-  } | null>(null);
+  /* The step a "Used in" entry in the selected step's panel highlights on the canvas. */
+  const [highlightedStepId, setHighlightedStepId] = useState<string | null>(
+    null,
+  );
   const getOwnerForEntity = useGetOwnerForEntity();
   const [collapsedStepIds, setCollapsedStepIds] = useState(
     () => new Set<string>(),
@@ -174,10 +174,16 @@ export const RunView = ({
     selectedStepIds.length === 1 && selectedStepId !== undefined
       ? findStep(flowDefinition.steps, selectedStepId)
       : undefined;
-  const highlightedStepId =
-    selected && highlight?.panelStepId === selected.step.stepId
-      ? highlight.stepId
-      : null;
+  /* A new selection opens a new panel, without the "Used in" list that set the highlight. */
+  const selectSteps = (stepIds: string[]) => {
+    if (!isEqual(stepIds, selectedStepIds)) {
+      setHighlightedStepId(null);
+    }
+    setSelectedStepIds(stepIds);
+  };
+  const ownerShortname = getOwnerForEntity({
+    entityId: flowRunEntityId,
+  }).shortname;
 
   return (
     <div className={body}>
@@ -186,7 +192,7 @@ export const RunView = ({
         runMarks={marks}
         selectedStepIds={selectedStepIds}
         onStepClick={(stepId) => {
-          setSelectedStepIds([stepId]);
+          selectSteps([stepId]);
           setFocusRequest({ stepId });
         }}
         collapsedGroupIds={collapsedStepIds}
@@ -227,7 +233,7 @@ export const RunView = ({
           flowDefinition={flowDefinition}
           marks={marks}
           selectedStepIds={selectedStepIds}
-          onSelectionChange={setSelectedStepIds}
+          onSelectionChange={selectSteps}
           focusRequest={focusRequest}
           collapsedStepIds={collapsedStepIds}
           onToggleCollapsed={toggleCollapsed}
@@ -245,19 +251,17 @@ export const RunView = ({
             stepRuns={stepRuns}
             waitingOnPerson={waitingOnPerson}
             live={live}
-            runPageHref={generateWorkerRunPath({
-              shortname: getOwnerForEntity({ entityId: flowRunEntityId })
-                .shortname,
-              flowRunEntityId,
-            })}
-            highlightedStepId={highlightedStepId}
-            onHighlightStep={(stepId) =>
-              setHighlight(
-                stepId === null
-                  ? null
-                  : { panelStepId: selected.step.stepId, stepId },
-              )
+            /* Its owner's shortname is empty until users and orgs have loaded. */
+            runPageHref={
+              ownerShortname
+                ? generateWorkerRunPath({
+                    shortname: ownerShortname,
+                    flowRunEntityId,
+                  })
+                : null
             }
+            highlightedStepId={highlightedStepId}
+            onHighlightStep={setHighlightedStepId}
           />
         )}
       </div>

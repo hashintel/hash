@@ -4,11 +4,6 @@ import { getTimeSpan } from "./step-runs";
 import type { ItemCounts } from "../../shared/step-states";
 import type { ItemRun } from "./step-runs";
 
-/*
- * How long a step took and when it started, then what else applies: retries, or that it's waiting on a person. The
- * format isn't settled; it follows the flows editor prototype's `run-step-status.tsx` until it is.
- */
-
 /**
  * The lines under a step's state in its run's panel. `perItem` is whether its runs are a for-each step's items, which
  * are counted rather than the attempts of one run.
@@ -16,11 +11,14 @@ import type { ItemRun } from "./step-runs";
 export const getStatusLines = ({
   runs,
   perItem,
+  running,
   waitingOnPerson,
   now,
 }: {
   runs: ItemRun[];
   perItem: boolean;
+  /** Still running, so timed up to now, though its runs so far may all have closed. */
+  running: boolean;
   waitingOnPerson: boolean;
   now: Date;
 }): string[] => {
@@ -29,7 +27,7 @@ export const getStatusLines = ({
 
   if (startedAt) {
     const start = new Date(startedAt);
-    const end = closedAt ? new Date(closedAt) : now;
+    const end = closedAt && !running ? new Date(closedAt) : now;
 
     lines.push(
       `${formatDuration(end.getTime() - start.getTime())} · ${formatRunTime(start, now)}`,
@@ -69,9 +67,16 @@ export const getStatusLines = ({
   return lines;
 };
 
-/** How a for-each step's items, or a step's runs for them, have gone so far, e.g. "18 of 20 items done · 2 failed". */
-export const getItemCountsLine = (items: ItemCounts) => {
+/**
+ * How a for-each step's items, or a step's runs for them, have gone so far, e.g. "18 of 20 items done · 2 failed".
+ * `null` while there are none: the step wasn't reached, was skipped, or had no items.
+ */
+export const getItemCountsLine = (items: ItemCounts): string | null => {
   const total = Object.values(items).reduce((sum, count) => sum + count, 0);
+
+  if (total === 0) {
+    return null;
+  }
   const done = `${items.done} of ${total} ${total === 1 ? "item" : "items"} done`;
 
   return items.failed > 0 ? `${done} · ${items.failed} failed` : done;

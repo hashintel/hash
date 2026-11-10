@@ -73,19 +73,19 @@ export const getTimeSpan = (
 export const getCommonInputs = (
   runs: ItemRun[],
 ): { common: StepInput[]; varying: string[] } => {
-  const [first, ...rest] = runs
+  const [firstRun, ...otherRuns] = runs
     .map(({ stepRun }) => stepRun)
     .filter(({ status }) => status !== FlowStepStatus.Skipped);
 
-  if (!first) {
+  if (!firstRun) {
     return { common: [], varying: [] };
   }
 
   const common: StepInput[] = [];
   const varying = new Set<string>();
 
-  for (const input of first.inputs) {
-    const same = rest.every(({ inputs }) =>
+  for (const input of firstRun.inputs) {
+    const same = otherRuns.every(({ inputs }) =>
       inputs.some(
         ({ inputName, payload }) =>
           inputName === input.inputName && isEqual(payload, input.payload),
@@ -99,7 +99,7 @@ export const getCommonInputs = (
     }
   }
 
-  for (const { inputs } of rest) {
+  for (const { inputs } of otherRuns) {
     for (const { inputName } of inputs) {
       if (!common.some((input) => input.inputName === inputName)) {
         varying.add(inputName);
@@ -139,4 +139,17 @@ export const getLastError = (
   );
 
   return last ? { itemIndex: last.itemIndex, error: last.error } : null;
+};
+
+/** Inputs in the order the step's action lists them, then any it doesn't, in the order they came. */
+export const sortInputs = (inputs: StepInput[], order: string[]) => {
+  const rank = (inputName: string) => {
+    const index = order.indexOf(inputName);
+
+    return index === -1 ? order.length : index;
+  };
+
+  return inputs.toSorted(
+    (left, right) => rank(left.inputName) - rank(right.inputName),
+  );
 };

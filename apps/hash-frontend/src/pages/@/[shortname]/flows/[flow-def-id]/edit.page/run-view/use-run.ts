@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useEffect, useMemo, useState } from "react";
 
-import { getInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
+import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
@@ -148,9 +148,8 @@ export const useRun = ({
         stepRuns: new Map(stepRuns.map((stepRun) => [stepRun.stepId, stepRun])),
         /* Requests for web pages are answered by the browser plugin, not a person. */
         waitingOnPerson: new Set(
-          getInputRequests(events.events).flatMap(
-            ({ stepId, type, resolvedAt }) =>
-              type === "human-input" && !resolvedAt ? [stepId] : [],
+          getOpenInputRequests(events.events).flatMap(({ stepId, type }) =>
+            type === "human-input" ? [stepId] : [],
           ),
         ),
       };

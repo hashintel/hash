@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getValueDisplay } from "./value-display";
+import { getValueDisplay } from "./run-value-display";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -23,6 +23,19 @@ describe("getValueDisplay", () => {
       kind: "inline",
       values: ["5 Nov 2026"],
     });
+    /* Read in local time, so the test holds in any time zone. */
+    expect(
+      getValueDisplay({ kind: "DateTime", value: "2026-11-05T09:05:00" }),
+    ).toEqual({ kind: "inline", values: ["5 Nov 2026, 09:05"] });
+    expect(
+      getValueDisplay({
+        kind: "Duration",
+        value: [
+          { amount: 1, unit: "hours" },
+          { amount: 3, unit: "days" },
+        ],
+      }),
+    ).toEqual({ kind: "inline", values: ["1 hour", "3 days"] });
     expect(getValueDisplay({ kind: "Text", value: [] })).toEqual({
       kind: "inline",
       values: [],
