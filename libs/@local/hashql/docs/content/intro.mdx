@@ -169,13 +169,13 @@ We have called functions throughout these examples. The `fn` special form lets u
 ```text tab="Functional notation" tab-group="hashql-language"
 (let foo 2
   (let matches_foo
-    (fn [] {value: Integer} Boolean
+    (fn () (value: Integer) Boolean
       (eq value foo))
     (matches_foo 2)))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
-let foo = 2
+let foo = 2,
     matches_foo = (value: Integer): Boolean -> value == foo
 in
 matches_foo(2)
@@ -222,13 +222,13 @@ Draft.program({}, ($) => {
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
-(use ::core::cmp {eq: same}
+(use ::core::cmp (eq: same)
   (let foo 2
     (same foo 2)))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
-use(::core::cmp, {eq: same},
+use(::core::cmp, (eq: same),
   let foo = 2 in
   same(foo, 2))
 ```
@@ -272,7 +272,7 @@ Draft.program({}, ($) => {
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
-(let foo {value: 2, label: "two"}
+(let foo (value: 2, label: "two")
   (`.` foo value))
 ```
 
