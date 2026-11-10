@@ -20,8 +20,10 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
+  EmptyJoiner,
   filterFitStyle,
   Joiner,
+  MatchLine,
   labelColumnStyle,
   menuSegmentStyle,
   rowStackStyle,
@@ -39,6 +41,7 @@ import { useEditor } from "./editor-context";
 import {
   conditionLayout,
   ifRenameTake,
+  joinerTake,
   namedPorts,
   regionValues,
   switchTake,
@@ -868,12 +871,23 @@ const LayoutConditionCases = ({
                 )}
               >
                 <div className={layoutRowsStyle}>
+                  {joinerTake === "j3" && group.rows.length > 1 ? (
+                    <MatchLine
+                      conjunction={group.join}
+                      onPick={(join) =>
+                        setGroup(port.outputName, { ...group, join })
+                      }
+                    />
+                  ) : null}
                   {group.rows.map((row, rowIndex) => (
                     <div
                       // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
                       key={rowIndex}
                       className={rowStackStyle}
                     >
+                      {joinerTake === "j3" && group.rows.length > 1 ? (
+                        <EmptyJoiner />
+                      ) : (
                       <Joiner
                         conjunction={rowIndex === 0 ? undefined : group.join}
                         onPick={
@@ -883,6 +897,7 @@ const LayoutConditionCases = ({
                                 setGroup(port.outputName, { ...group, join })
                         }
                       />
+                      )}
                       <div className={rowStyle} data-condition-row={rowIndex}>
                         <ConditionChip
                           row={row}

@@ -95,3 +95,18 @@ export const switchLayout: SwitchLayout | null = (() => {
 /** The take's layout for condition rows; null for today's (no param, or `today`). */
 export const conditionLayout =
   switchLayout === "today" ? null : switchLayout;
+
+/**
+ * `?joiner=` (inbox `condition-panels-layout`, second question, 10 Nov): how AND / OR shows under "Where", in the If,
+ * Switch and Find entities panels, with any `?switchlayout=`. No param: today's outlined select ("AND ⌄").
+ * - `j1`: plain muted text in the label column, as "Where" (13 px regular, lowercase "and" / "or"); a chevron shows on
+ *   hover; a click opens the same menu.
+ * - `j2`: a DS xs ghost Button (24 px), lowercase, muted, its text level with "Where".
+ * - `j3`: set once: "Where all of these match ⌄" above the rows, and the rows carry no joiner (Linear, Notion).
+ */
+export type JoinerTake = "j1" | "j2" | "j3";
+
+export const joinerTake: JoinerTake | null = (() => {
+  const value = query.get("joiner");
+  return value === "j1" || value === "j2" || value === "j3" ? value : null;
+})();

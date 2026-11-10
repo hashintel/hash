@@ -64,7 +64,7 @@ import {
 } from "./mock-graph";
 import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
-import { conditionLayout } from "./switch-flags";
+import { conditionLayout, joinerTake } from "./switch-flags";
 import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -1278,6 +1278,50 @@ const joinerMenuStyle = css({
   "&[class]": { width: "[208px]", minWidth: "[208px]" },
 });
 
+/** `?joiner=j1`: the joiner as a field label, plain muted text; its chevron shows on hover. */
+const joinerTextStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  height: "[28px]",
+  padding: "[0]",
+  border: "none",
+  background: "[none]",
+  cursor: "pointer",
+  color: "neutral.fg.muted",
+  fontSize: "[13px]",
+  lineHeight: "[16px]",
+  fontWeight: "normal",
+  "& > svg": { visibility: "hidden" },
+  "&:hover > svg, &:focus-visible > svg, &[aria-expanded=true] > svg": {
+    visibility: "visible",
+  },
+  _hover: { color: "neutral.fg.body" },
+});
+
+/** `?joiner=j2`: the DS xs ghost Button, lowercase and muted, its text level with "Where" (the xs padding pulled back). */
+const joinerXsStyle = css({
+  "&[class]": {
+    marginLeft: "[-9px]",
+    color: "neutral.fg.muted",
+    fontSize: "[13px]",
+    fontWeight: "normal",
+  },
+});
+
+const joinerItems = (
+  conjunction: "and" | "or" | undefined,
+  onPick: (conjunction: "and" | "or") => void,
+  label: (choice: "and" | "or") => string,
+) =>
+  (["and", "or"] as const).map((choice) => ({
+    id: choice,
+    text: selectedLabel(label(choice), (conjunction ?? "and") === choice),
+    selected: (conjunction ?? "and") === choice,
+    selectedStyle: "highlight" as const,
+    onClick: () => onPick(choice),
+  }));
+
 export const Joiner = ({
   conjunction,
   onPick,
@@ -1289,25 +1333,43 @@ export const Joiner = ({
     {onPick ? (
       <Menu
         className={joinerMenuStyle}
-        items={(["and", "or"] as const).map((choice) => ({
-          id: choice,
-          text: selectedLabel(choice.toUpperCase(), (conjunction ?? "and") === choice),
-          selected: (conjunction ?? "and") === choice,
-          selectedStyle: "highlight" as const,
-          onClick: () => onPick(choice),
-        }))}
+        items={joinerItems(conjunction, onPick, (choice) =>
+          joinerTake ? choice : choice.toUpperCase(),
+        )}
         trigger={
-          // Figma's Joiner: the DS Button, outline, neutral, sm (28 px), label then chevron. Code Button's outline is
-          // `subtle`, as for Add filter.
-          <Button
-            size="sm"
-            variant="subtle"
-            iconName="chevronDown"
-            iconPosition="right"
-            aria-label={`Join with ${conjunction ?? "and"}`}
-          >
-            {(conjunction ?? "and").toUpperCase()}
-          </Button>
+          joinerTake === "j1" ? (
+            <button
+              type="button"
+              className={joinerTextStyle}
+              aria-label={`Join with ${conjunction ?? "and"}`}
+            >
+              {conjunction ?? "and"}
+              <Icon name="chevronDown" size="xs" />
+            </button>
+          ) : joinerTake === "j2" ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              className={joinerXsStyle}
+              iconName="chevronDown"
+              iconPosition="right"
+              aria-label={`Join with ${conjunction ?? "and"}`}
+            >
+              {conjunction ?? "and"}
+            </Button>
+          ) : (
+            // Figma's Joiner: the DS Button, outline, neutral, sm (28 px), label then chevron. Code Button's outline is
+            // `subtle`, as for Add filter.
+            <Button
+              size="sm"
+              variant="subtle"
+              iconName="chevronDown"
+              iconPosition="right"
+              aria-label={`Join with ${conjunction ?? "and"}`}
+            >
+              {(conjunction ?? "and").toUpperCase()}
+            </Button>
+          )
         }
       />
     ) : (
@@ -1315,6 +1377,59 @@ export const Joiner = ({
         Where
       </span>
     )}
+  </span>
+);
+
+/** `?joiner=j3`: a row with no joiner keeps the column empty, so its chip stays level with the others. */
+export const EmptyJoiner = () => (
+  <span className={joinerColumnStyle} data-joiner="none" />
+);
+
+const matchLineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  minHeight: "[28px]",
+  color: "neutral.fg.muted",
+  fontSize: "[13px]",
+  lineHeight: "[16px]",
+  "& button": {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "1",
+    padding: "[0]",
+    border: "none",
+    background: "[none]",
+    cursor: "pointer",
+    color: "neutral.fg.body",
+    fontSize: "[13px]",
+    fontWeight: "medium",
+  },
+});
+
+/** `?joiner=j3`: "Where all of these match ⌄" once, above two or more rows. */
+export const MatchLine = ({
+  conjunction,
+  onPick,
+}: {
+  conjunction: "and" | "or" | undefined;
+  onPick: (conjunction: "and" | "or") => void;
+}) => (
+  <span className={matchLineStyle} data-joiner-line="">
+    Where
+    <Menu
+      className={joinerMenuStyle}
+      items={joinerItems(conjunction, onPick, (choice) =>
+        choice === "and" ? "all of these match" : "any of these match",
+      )}
+      trigger={
+        <button type="button" aria-label="How the conditions combine">
+          {(conjunction ?? "and") === "and" ? "all" : "any"}
+          <Icon name="chevronDown" size="xs" />
+        </button>
+      }
+    />
+    of these match
   </span>
 );
 
@@ -1452,6 +1567,12 @@ export const ConditionBuilder = ({
     >
       {topRows.length + groups.length > 0 ? (
         <div className={cx(rowsStyle, conditionLayout && takeRowsStyle)}>
+          {joinerTake === "j3" && topRows.length > 1 ? (
+            <MatchLine
+              conjunction={draft.conjunction}
+              onPick={setConjunction}
+            />
+          ) : null}
           {topRows.map((row, index) => (
             <ConditionRowView
               key={row.id}
@@ -1462,10 +1583,14 @@ export const ConditionBuilder = ({
               properties={properties}
               forGraph={forGraph}
               prefix={
-                <Joiner
-                  conjunction={index === 0 ? undefined : draft.conjunction}
-                  onPick={index === 0 ? undefined : setConjunction}
-                />
+                joinerTake === "j3" && topRows.length > 1 ? (
+                  <EmptyJoiner />
+                ) : (
+                  <Joiner
+                    conjunction={index === 0 ? undefined : draft.conjunction}
+                    onPick={index === 0 ? undefined : setConjunction}
+                  />
+                )
               }
               onChange={(change) =>
                 setRows(
