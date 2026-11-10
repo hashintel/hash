@@ -136,19 +136,17 @@ describe("getStepRunMarks", () => {
       items: counts({ done: 2, failed: 1 }),
     });
     expect(marks.get("fetch")?.state).toBe("doneWithFailures");
+    expect(marks.get("send")?.state).toBe("done");
   });
 
   it("shows a for-each step whose every item failed as failed", () => {
     const marks = marksOf(
-      [
-        itemRun("fetch", 0, FlowStepStatus.Failed),
-        itemRun("send", 0, FlowStepStatus.Skipped),
-      ],
+      [itemRun("fetch", 0, FlowStepStatus.Failed)],
       { itemCount: 1, live: false },
     );
 
     expect(marks.get("eachSupplier")?.state).toBe("failed");
-    expect(marks.get("send")?.state).toBe("skipped");
+    expect(marks.get("send")?.state).toBe("notReached");
   });
 
   it("shows a for-each step as needing review while an item waits on a person, even with failed items", () => {

@@ -194,13 +194,24 @@ export const getStepRunMarks = ({
       ),
     }));
 
+    const itemFailed = itemIndexes.map((itemIndex) =>
+      innerSteps.some(({ stateByItem }) => stateByItem[itemIndex] === "failed"),
+    );
+
     for (const { stepId, stateByItem } of innerSteps) {
-      const innerCounts = countItems(stateByItem);
+      /* The steps after a failed one wait on it and never start, so its item leaves them neither running nor abandoned. */
+      const reachableStates = stateByItem.filter(
+        (state, itemIndex) => state !== "notReached" || !itemFailed[itemIndex],
+      );
+      const state =
+        reachableStates.length > 0
+          ? getStateOfItems(countItems(reachableStates), live)
+          : "notReached";
 
       marks.set(stepId, {
         /* With no items, there was nothing to run it for. */
-        state: itemCount === 0 ? "skipped" : getStateOfItems(innerCounts, live),
-        items: innerCounts,
+        state: itemCount === 0 ? "skipped" : state,
+        items: countItems(stateByItem),
       });
     }
 
