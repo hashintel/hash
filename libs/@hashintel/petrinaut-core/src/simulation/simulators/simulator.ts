@@ -171,11 +171,19 @@ export type SimulatorSelectionOutcome =
  * checks the environment, resolves the parameters against the spec, loads
  * the simulator and has it assess the request. Nothing falls back to
  * another simulator: a refusal names its reason.
+ *
+ * `request` may be a function of the loaded simulator, for a host that
+ * compiles the net's code only once it knows whether the simulator reads
+ * the HIR trees.
  */
 export const assessSimulator = async (
   registration: SimulatorRegistration,
   parameters: StoredSimulatorParameters,
-  request: SimulationRequestBase,
+  request:
+    | SimulationRequestBase
+    | ((
+        simulator: Pick<Simulator, "needsHirTrees">,
+      ) => SimulationRequestBase | Promise<SimulationRequestBase>),
 ): Promise<SimulatorSelectionOutcome> => {
   if (!registration.isAvailable()) {
     return {
@@ -205,8 +213,10 @@ export const assessSimulator = async (
     return { ok: false, blockers: [blocker(first), ...rest.map(blocker)] };
   }
   const simulator = await registration.load();
+  const requestBase =
+    typeof request === "function" ? await request(simulator) : request;
   const assessment = await simulator.assess({
-    ...request,
+    ...requestBase,
     simulatorParameters: resolved.values,
   });
   return assessment.eligible
