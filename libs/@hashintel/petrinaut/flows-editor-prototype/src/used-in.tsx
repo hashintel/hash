@@ -196,6 +196,10 @@ const treeWire = "[rgba(0, 0, 0, 0.12)]";
 const k3Wire = "[rgba(0, 0, 0, 0.18)]";
 
 const blockStyle = css({
+  // The output row's own icon column; the open Used in list's flush take reads these to line its tile and name up.
+  "--lead-pad": "8px",
+  "--lead-col": "16px",
+  "--lead-gap": "10px",
   gridColumn: "1 / -1",
   display: "flex",
   flexDirection: "column",
@@ -206,15 +210,15 @@ const blockStyle = css({
 const headStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[10px]",
+  gap: "[var(--lead-gap)]",
   minHeight: "[40px]",
-  paddingX: "2",
+  paddingX: "[var(--lead-pad)]",
   borderRadius: "lg",
   minWidth: "[0]",
   textStyle: "sm",
   lineHeight: "[20px]",
   color: "neutral.fg.heading",
-  "& > [data-type-icon]": { display: "flex", flexShrink: 0, color: "neutral.fg.heading" },
+  "& > [data-type-icon]": { display: "flex", flexShrink: 0, width: "[var(--lead-col)]", color: "neutral.fg.heading" },
 });
 
 const headNameStyle = css({
@@ -1030,6 +1034,14 @@ const addNameStyle = css({
 
 const hoverAddStyle = css({
   paddingLeft: "[28px]",
+  "&[data-align=flush]": {
+    paddingLeft: "[0]",
+    "& > button": {
+      paddingLeft: "[var(--lead-pad)]",
+      gap: "[var(--lead-gap)]",
+      "& > svg": { width: "[var(--lead-col) !important]", minWidth: "[var(--lead-col)]", height: "[var(--lead-col) !important]" },
+    },
+  },
   visibility: "hidden",
   "[data-output]:hover &, [data-output]:focus-within &, &[data-open]": { visibility: "visible" },
 });
@@ -1273,7 +1285,32 @@ export const useUsedRows = (): UsedRows | null => {
   return value === "a" || value === "b" || value === "c" ? value : null;
 };
 
+/**
+ * `?usedalign=flush` (Aakarsh 10 Nov): the open list's tile sits in the output row's type-icon column and the step name
+ * starts at the output name's x; no param keeps today's indent. A tile wider than that column hangs evenly out of it
+ * so the name still lines up (usedrows=c, 32 px).
+ */
+export const useUsedAlign = (): "flush" | null => (useLocation().query.get("usedalign") === "flush" ? "flush" : null);
+
+/** `?usedprop=pill`: the input name is drawn as the output row's type chip. No param keeps the muted text. */
+export const useUsedPill = (): boolean => useLocation().query.get("usedprop") === "pill";
+
 const usedRowsStyle = css({
+  "&[data-align=flush]": {
+    "--tile": "20px",
+    "--lead-ml": "0px",
+    paddingLeft: "[0]",
+    "& > button": {
+      gap: "[0]",
+      paddingLeft: "[var(--lead-pad)]",
+    },
+    "& [data-look]": {
+      width: "[var(--tile)]",
+      marginLeft: "[var(--lead-ml)]",
+      marginRight: "[calc(var(--lead-col) + var(--lead-gap) - var(--tile) - var(--lead-ml))]",
+    },
+  },
+  "&[data-align=flush][data-rows=c]": { "--tile": "32px", "--lead-ml": "calc((var(--lead-col) - var(--tile)) / 2)" },
   "&[data-rows=a] > button, &[data-rows=b] > button": { minHeight: "[34px]" },
   "&[data-rows=b]": { display: "flex", flexDirection: "column", gap: "1" },
   "&[data-rows=c]": { display: "flex", flexDirection: "column", gap: "1" },
@@ -1286,10 +1323,23 @@ const usedRowsStyle = css({
   },
   "& [data-two]": { display: "flex", flexDirection: "column", minWidth: "[0]" },
   "& [data-under]": { textStyle: "xs", lineHeight: "[16px]", color: "neutral.fg.muted" },
+  "& [data-chips]": { display: "inline-flex", gap: "1", flexWrap: "wrap" },
 });
 
-const UsedRowContent = ({ lead, name, input }: { lead?: React.ReactNode; name: React.ReactNode; input: string }) => {
+const UsedRowContent = ({ lead, name, input: inputText }: { lead?: React.ReactNode; name: React.ReactNode; input: string }) => {
   const rows = useUsedRows();
+  const pill = useUsedPill();
+  const input = pill ? (
+    <span data-chips>
+      {inputText.split(", ").map((part) => (
+        <span key={part} className={typeChipStyle}>
+          {part}
+        </span>
+      ))}
+    </span>
+  ) : (
+    inputText
+  );
   if (rows === "c") {
     return (
       <>
@@ -1473,11 +1523,12 @@ const StructureBlock = ({
   });
   const inputsOf = (use: Use) => use.inputs.join(", ");
   const usedRows = useUsedRows();
+  const usedAlign = useUsedAlign();
   const shown = take === "s4" && !more ? uses.slice(0, 2) : uses;
   const rest = uses.length - shown.length;
   const body =
     uses.length === 0 ? null : take === "s1" ? (
-      <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined}>
+      <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined} data-align={usedAlign ?? undefined}>
         <span data-caption>Used in</span>
         {uses.map((use) => (
           <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
@@ -1549,7 +1600,7 @@ const StructureBlock = ({
       </div>
       {body}
       {readOnly ? null : (
-        <div className={hoverAddStyle} data-open={adding || undefined}>
+        <div className={hoverAddStyle} data-open={adding || undefined} data-align={usedAlign ?? undefined}>
           <button
             ref={addRef}
             type="button"
@@ -1665,6 +1716,7 @@ const RestBlock = ({
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const usedRows = useUsedRows();
+  const usedAlign = useUsedAlign();
   const addRef = useRef<HTMLButtonElement>(null);
   const nameOf = (id: string) => {
     const step = findStep(document, id)?.step;
@@ -1772,7 +1824,7 @@ const RestBlock = ({
         </span>
       </div>
       {open && count > 0 ? (
-        <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined}>
+        <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined} data-align={usedAlign ?? undefined}>
           {uses.map((use) => (
             <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
               <UsedRowContent
@@ -1785,7 +1837,7 @@ const RestBlock = ({
         </div>
       ) : null}
       {readOnly ? null : (
-        <div className={hoverAddStyle} data-open={adding || undefined}>
+        <div className={hoverAddStyle} data-open={adding || undefined} data-align={usedAlign ?? undefined}>
           <button
             ref={addRef}
             type="button"

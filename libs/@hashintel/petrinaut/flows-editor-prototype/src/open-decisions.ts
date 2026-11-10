@@ -165,6 +165,26 @@ export const openDecisions: OpenSwitch[] = [
       { label: "c", value: "c" },
     ],
   },
+  {
+    card: "used-in-row-spacing",
+    title: "Used in list · align",
+    flag: "usedalign",
+    defaultValue: null,
+    options: [
+      { label: "today", value: null },
+      { label: "flush with the type icon", value: "flush" },
+    ],
+  },
+  {
+    card: "used-in-row-spacing",
+    title: "Used in list · input name",
+    flag: "usedprop",
+    defaultValue: null,
+    options: [
+      { label: "muted text", value: null },
+      { label: "pill", value: "pill" },
+    ],
+  },
 ];
 
 /** Every flag above, so a page change keeps them and Reset all clears them. */
