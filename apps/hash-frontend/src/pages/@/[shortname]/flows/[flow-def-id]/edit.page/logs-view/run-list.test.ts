@@ -64,6 +64,24 @@ describe("toRunRow", () => {
     ).toBe("running");
   });
 
+  it("keeps a running run waiting only on web pages as running", () => {
+    expect(
+      row("aaaaaa", {
+        status: FlowRunStatus.Running,
+        closedAt: null,
+        openInputRequests: [
+          {
+            requestId: "request-2",
+            stepId: "fetch-pages",
+            type: "get-urls-html-content",
+            data: { urls: ["https://example.com"] },
+            raisedAt: "2026-11-09T08:01:00Z",
+          },
+        ],
+      }).state,
+    ).toBe("running");
+  });
+
   it("shows a cancelled or terminated run as abandoned", () => {
     expect(
       [FlowRunStatus.Cancelled, FlowRunStatus.Terminated].map(

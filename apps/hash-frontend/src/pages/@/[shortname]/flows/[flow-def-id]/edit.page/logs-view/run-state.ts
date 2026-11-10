@@ -37,7 +37,9 @@ export const getRunState = ({
 }: Pick<FlowRunSummary, "status" | "openInputRequests">): RunState => {
   const state = stateOfStatus[status];
 
-  return state === "running" && openInputRequests.length > 0
+  /* Requests for web pages are answered by the browser plugin, not a person, so only questions need review. */
+  return state === "running" &&
+    openInputRequests.some(({ type }) => type === "human-input")
     ? "needsReview"
     : state;
 };
