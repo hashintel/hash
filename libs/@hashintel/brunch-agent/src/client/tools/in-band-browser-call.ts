@@ -46,7 +46,15 @@ export type InBandBrowserCallAdmission = (
 export const BROWSER_CALL_STALE_MESSAGE =
   "The document changed by other means after the agent's last view of the net; the call was not started.";
 
-/** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
+/**
+ * The page's side of Brunch's in-band browser calls. A browser tool's call
+ * stays open on the server while the page claims it, runs it and posts its
+ * result to the agent's `browser-calls` routes, so the result reaches the
+ * same model turn that asked for it instead of arriving later as a new
+ * message or signal. The waiting call lives in the memory of the Brunch task
+ * that issued it, so a result that reaches another task, as can happen while
+ * a deploy overlaps old and new tasks, finds no call (FE-2149).
+ */
 export const createInBandBrowserCalls = (
   input: Pick<BrunchConnection, "actorKey" | "legacyActorHeader" | "fetch"> & {
     readonly client: Promise<FlueClient>;

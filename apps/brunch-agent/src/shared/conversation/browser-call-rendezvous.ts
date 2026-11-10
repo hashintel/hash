@@ -11,7 +11,12 @@ import type {
   ClientToolResult,
 } from "@hashintel/brunch-agent";
 
-/** Process-local handoff for the documented single-owner Node deployment. No durable effects live here. */
+/**
+ * Process-local handoff: an issued call lives only in this Brunch task's
+ * memory. Brunch can run more than one task (a deploy overlaps old and new),
+ * and a browser result that reaches another task finds no call until FE-2149
+ * makes waiting turns durable. No durable effects live here.
+ */
 const leaseMs = 25_000;
 export const BROWSER_CALL_UNSTARTED_ERROR =
   "Browser call was not started; no document operation was invoked.";

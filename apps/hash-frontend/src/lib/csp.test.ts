@@ -108,8 +108,8 @@ describe("buildCspHeader in development", () => {
 });
 
 describe("buildCspHeader with Brunch configured", () => {
-  test.each(processEditorPaths)(
-    "lets the process editor on %s connect to Brunch",
+  test.each([...processEditorPaths, ...otherPaths])(
+    "lets %s connect to Brunch, whichever route mounts its assistant",
     (pathname) => {
       vi.stubEnv("NODE_ENV", "production");
       deployment.brunchOrigin = "https://agent.brunch.example";
@@ -121,13 +121,20 @@ describe("buildCspHeader with Brunch configured", () => {
     },
   );
 
-  test.each(otherPaths)("names no Brunch origin on %s", (pathname) => {
+  test("adds Brunch's origin alone, and nothing without it", () => {
     vi.stubEnv("NODE_ENV", "production");
+    const withoutBrunch = buildCspHeader({ nonce: "abc", pathname: "/" });
     deployment.brunchOrigin = "https://agent.brunch.example";
-    const header = buildCspHeader({ nonce: "abc", pathname });
+    const withBrunch = buildCspHeader({ nonce: "abc", pathname: "/" });
 
-    expect(directiveSources(header, "connect-src")).not.toContain(
-      "https://agent.brunch.example",
+    expect(directiveSources(withBrunch, "connect-src")).toEqual(
+      expect.arrayContaining(directiveSources(withoutBrunch, "connect-src")),
     );
+    expect(
+      directiveSources(withBrunch, "connect-src").filter(
+        (source) =>
+          !directiveSources(withoutBrunch, "connect-src").includes(source),
+      ),
+    ).toEqual(["https://agent.brunch.example"]);
   });
 });
