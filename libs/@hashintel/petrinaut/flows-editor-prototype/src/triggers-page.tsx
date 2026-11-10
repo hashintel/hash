@@ -47,6 +47,7 @@ import {
   scheduleStart,
   zoneName,
 } from "./schedule-form";
+import { ScheduleFormLayout, scheduleLayout } from "./schedule-form-layouts";
 import { monthlyReviewId } from "./seed-flows";
 
 type Take = 1 | 2 | 3 | 4;
@@ -554,6 +555,29 @@ const TriggerForm = ({
           label: `${ruleSummary(schedule.rule, schedule.startIso, schedule.at)}`,
         }
       : values;
+  const layout = formTake && schedule && kind === "schedule" ? scheduleLayout() : null;
+  if (layout && schedule) {
+    return (
+      <div className={css({ paddingY: "3" })} data-trigger-form>
+        <ScheduleFormLayout
+          layout={layout}
+          values={schedule}
+          onChange={setSchedule}
+          initialCustom={scheduleShow() === "custom"}
+          runsAs={{
+            web: values.web,
+            webs: ["@aakarsh", "@hash"],
+            onWeb: set("web"),
+            version: `${flow?.latest ?? "v1"} (latest)`,
+            versions: [`${flow?.latest ?? "v1"} (latest)`, "v4", "v3"],
+          }}
+          saveLabel="Add trigger"
+          onSave={() => onSave(valuesToSave())}
+          onCancel={onCancel}
+        />
+      </div>
+    );
+  }
   return (
     <div
       className={css({
