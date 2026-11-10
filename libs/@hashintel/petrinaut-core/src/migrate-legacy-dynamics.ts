@@ -4,7 +4,7 @@ import { migrateWholePlaceDynamicsCode } from "./migrate-legacy-dynamics/whole-p
  * A place as written before equations composed: at most one equation,
  * linked through `differentialEquationId`.
  */
-export type LegacyDynamicsPlace = {
+type LegacyDynamicsPlace = {
   differentialEquationId?: string | null;
   dynamics?: { differentialEquationId: string }[];
 };
@@ -13,18 +13,18 @@ export type LegacyDynamicsPlace = {
  * An equation as written before equations had an arity: no `arity`, and
  * code that mapped over every token of the place.
  */
-export type LegacyDifferentialEquation = {
+type LegacyDifferentialEquation = {
   arity?: number;
   code: string;
 };
 
 /** The places and equations of a net or of one of its subnets. */
-export type LegacyDynamicsItems = {
+type LegacyDynamicsItems = {
   places: object[];
   differentialEquations?: LegacyDifferentialEquation[];
 };
 
-export type LegacyDynamicsNet = LegacyDynamicsItems & {
+type LegacyDynamicsNet = LegacyDynamicsItems & {
   subnets?: LegacyDynamicsItems[];
 };
 
@@ -32,7 +32,7 @@ export type LegacyDynamicsNet = LegacyDynamicsItems & {
  * A place's one legacy equation link becomes the first term of `dynamics`,
  * and the key is dropped so the place matches the current shape.
  */
-export const migratePlaceDynamicsLink = <P extends object>(place: P): P => {
+const migratePlaceDynamicsLink = <P extends object>(place: P): P => {
   if (!("differentialEquationId" in place)) {
     return place;
   }
@@ -50,9 +50,7 @@ export const migratePlaceDynamicsLink = <P extends object>(place: P): P => {
  * An equation without an arity couples one token, and whole-place code it
  * carries is rewritten to the one-token form where that is exact.
  */
-export const migrateDifferentialEquation = <
-  E extends LegacyDifferentialEquation,
->(
+const migrateDifferentialEquation = <E extends LegacyDifferentialEquation>(
   equation: E,
 ): E => {
   const arity = equation.arity ?? 1;

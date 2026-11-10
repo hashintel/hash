@@ -234,15 +234,15 @@ export function assessGpuEligibility(
     const equationIds = getPlaceDynamicsEquationIds(place);
     const coupled = equationIds
       .map((equationId) => equationById.get(equationId))
-      .filter((equation) => equation !== undefined && equation.arity > 1);
-    if (equationIds.length > 1 || coupled.length > 0) {
+      .find((equation) => equation !== undefined && equation.arity > 1);
+    if (equationIds.length > 1 || coupled !== undefined) {
       reasons.push({
         code: "composed-dynamics",
         itemId: place.id,
         message:
           equationIds.length > 1
             ? `Place \`${place.name}\` composes ${equationIds.length} differential equations. The GPU backend integrates one equation per place; run on the CPU.`
-            : `Place \`${place.name}\` uses an equation over ${coupled[0]?.arity} token(s) (\`${coupled[0]?.name}\`). The GPU backend does not visit token combinations; run on the CPU.`,
+            : `Place \`${place.name}\` uses an equation over ${coupled?.arity} tokens (\`${coupled?.name}\`). The GPU backend does not visit token combinations; run on the CPU.`,
       });
     }
   }

@@ -36,7 +36,7 @@ import { toPetrinautId } from "./petrinaut-id";
 import {
   getPlaceDynamicsEquationIds,
   placeUsesDifferentialEquation,
-  withoutDifferentialEquation,
+  withoutDifferentialEquations,
 } from "./place-dynamics";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
@@ -382,10 +382,9 @@ const assertComponentInstanceReferences = (
 };
 
 /**
- * Validate that a place's references to differential equations (the selected
- * equation and every composed term) are consistent: each equation must
- * exist, the place must have a colour, and each equation's `colorId` must
- * match the place's `colorId`. Throws a descriptive error when the invariant
+ * Validate that the differential equations a place composes are consistent:
+ * each equation must exist, the place must have a colour, and each
+ * equation's `colorId` must match the place's `colorId`. Throws a descriptive error when the invariant
  * is violated; otherwise no-ops.
  *
  * Mirrors the runtime invariant enforced by the simulation engine, but raises
@@ -415,16 +414,6 @@ function assertPlaceDynamicsReferences(
     }
   }
 }
-
-/** The place without any reference to the given equations. */
-const withoutDifferentialEquations = (
-  place: SDCPN["places"][number],
-  equationIds: ReadonlySet<string>,
-): SDCPN["places"][number] =>
-  [...equationIds].reduce(
-    (current, equationId) => withoutDifferentialEquation(current, equationId),
-    place,
-  );
 
 const collectWrittenIds = (
   value: unknown,
@@ -1009,8 +998,9 @@ export function createPetrinautActions(
             break;
           }
         }
+        const removed = new Set([parsed.equationId]);
         net.places = net.places.map((place) =>
-          withoutDifferentialEquation(place, parsed.equationId),
+          withoutDifferentialEquations(place, removed),
         );
       });
     },
