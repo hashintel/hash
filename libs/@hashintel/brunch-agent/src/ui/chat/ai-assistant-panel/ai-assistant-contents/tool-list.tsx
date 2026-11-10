@@ -23,13 +23,9 @@ import {
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { BrunchToolList } from "./tool-list/brunch-tool-list";
-import { StockToolList } from "./tool-list/stock-tool-list";
 
 import type { PetrinautAiInteractiveTool } from "../../ai-interactive-tool";
-import type {
-  PetrinautAiAssistantPresentation,
-  PetrinautAiToolPresentationResolver,
-} from "../../petrinaut";
+import type { PetrinautAiToolPresentationResolver } from "../../petrinaut";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
 import type { SimulateViewMode } from "@hashintel/petrinaut/react";
@@ -503,33 +499,23 @@ export const AiAssistantToolList = ({
   stopped = false,
   producedCard = false,
   preserveOpen = false,
-  presentation = "stock",
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
   stopped?: boolean;
-  /** Brunch only; the options below shape the fold around the tools. */
+  /** The options below shape the fold around the tools. */
   active?: boolean;
   producedCard?: boolean;
   preserveOpen?: boolean;
-  presentation?: PetrinautAiAssistantPresentation;
-}) =>
-  presentation === "stock" ? (
-    <StockToolList
-      tools={tools}
-      stopped={stopped}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
-  ) : (
-    <BrunchToolList
-      tools={tools}
-      active={active}
-      stopped={stopped}
-      producedCard={producedCard}
-      preserveOpen={preserveOpen}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
-  );
+}) => (
+  <BrunchToolList
+    tools={tools}
+    active={active}
+    stopped={stopped}
+    producedCard={producedCard}
+    preserveOpen={preserveOpen}
+    onInteractiveToolSubmit={onInteractiveToolSubmit}
+    onSelectToolTarget={onSelectToolTarget}
+  />
+);

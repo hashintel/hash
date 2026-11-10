@@ -7,6 +7,7 @@ import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./ai-assistant-panel";
+import type { PromptChip } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
 import type { PetrinautAiMutationExecutor } from "./ai-assistant-panel/types";
 import type { PetrinautAiAutomaticTool } from "./ai-automatic-tool";
 import type { PetrinautAiInteractiveTool } from "./ai-interactive-tool";
@@ -18,9 +19,6 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 /** What a durable Stop request reports. */
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
-
-/** The chat's visual presentation. */
-export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 
 /** A tool call's lifecycle, as its card shows it. */
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
@@ -57,8 +55,8 @@ export type PetrinautAiToolPresentationResolver = (
 
 /** Brunch's chat configuration: its transport, tools, conversation and host-owned controls. */
 export type PetrinautAiAssistant = {
-  /** Selects the assistant's visual presentation. Defaults to "stock". */
-  presentation?: PetrinautAiAssistantPresentation;
+  /** Host-owned suggestions for an empty net before the conversation. None by default. */
+  starterChips?: PromptChip[];
   /** Optional host controls alongside the assistant header. */
   headerActions?: ReactNode;
   /** Restrict header actions to this input mode. Omitted: both modes. */
@@ -66,7 +64,7 @@ export type PetrinautAiAssistant = {
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls
-   * available. Omitted: the stock assistant has its unchanged single view.
+   * available. Omitted: only the transcript is shown.
    */
   additionalTab?: {
     label: string;
@@ -102,7 +100,7 @@ export type PetrinautAiAssistant = {
   executeMutation?: PetrinautAiMutationExecutor;
   /**
    * Host-run tool calls whose results the host returns itself while the
-   * response is still streaming. Omitted for Stock and legacy Flue modes.
+   * response is still streaming.
    */
   inBandBrowserTools?: {
     has: (toolName: string) => boolean;
@@ -144,7 +142,7 @@ export type PetrinautAiAssistant = {
   ) => PetrinautAiMessage[];
   /**
    * Render display-only system-note content; return undefined for the default
-   * note. Only `presentation: "brunch"` shows system messages as notes.
+   * note.
    */
   renderSystemMessage?: (message: PetrinautAiMessage) => ReactNode;
   /**

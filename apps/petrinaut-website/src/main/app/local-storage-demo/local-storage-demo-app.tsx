@@ -31,6 +31,28 @@ import { useWordsPreference } from "./words-preference";
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
+/** Demo suggestions belong to this website, not every Brunch host. */
+const brunchStarterChips = [
+  {
+    id: "supply-chain",
+    label: "Supply chain",
+    prompt:
+      "Build a supply-chain SDCPN — orders flowing through warehouses, in-transit, and delivered states. Interview me first for more details.",
+  },
+  {
+    id: "epidemic",
+    label: "Epidemic",
+    prompt:
+      "Build an SIR-style epidemic model with susceptible, infected, and recovered places. Interview me first for more details.",
+  },
+  {
+    id: "surprise-me",
+    label: "Surprise me",
+    prompt:
+      "Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).",
+  },
+];
+
 /** Where Brunch's chat is mounted, resolved once per page load. */
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -206,6 +228,7 @@ export const LocalStorageDemoApp = ({
     ownerKey: brunchOwnerKey,
     chatEndpoint: brunchPreviewConfig.chatEndpoint,
     selected: brunchShown,
+    starterChips: brunchStarterChips,
     openDocument: brunchOpenDocument,
     voice: {
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,

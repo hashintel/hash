@@ -214,6 +214,7 @@ export const useBrunchAssistant = ({
   hostTools,
   hostSave,
   versionLoad,
+  starterChips,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -231,6 +232,8 @@ export const useBrunchAssistant = ({
    * name must be one the server issues to the browser. Pass a stable list.
    */
   readonly hostTools?: readonly PetrinautAiAutomaticTool[];
+  /** Host-owned empty-net suggestions; omitted by default. Pass a stable list. */
+  readonly starterChips?: PetrinautAiAssistant["starterChips"];
   /**
    * The host's own Save, for a host whose agent saves: Brunch offers the
    * agent's save from it, its refusals settle a save before its card, and the
@@ -735,7 +738,7 @@ export const useBrunchAssistant = ({
           }
         : undefined,
       primaryLabel: "Chat",
-      presentation: "brunch",
+      starterChips,
       mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
         const shown = showLedgerComments(messages);
         const withNotes = withInterviewBudgetLevelChanges(
@@ -882,6 +885,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    starterChips,
     versionLoad,
     wordsActive,
   ]);

@@ -1,4 +1,3 @@
-import type { PetrinautAiAssistantPresentation } from "./petrinaut";
 import type { ComponentType } from "react";
 
 /**
@@ -9,8 +8,6 @@ export type PetrinautAiInteractiveToolParser<Value> = {
 };
 
 type InteractiveToolWidgetCommonProps<Input, Output> = {
-  /** Assistant presentation selected by the embedding host. */
-  presentation?: PetrinautAiAssistantPresentation;
   /** Validated input supplied by the AI tool call. */
   input: Input;
   /** Submit one output for this tool call. Repeated calls are ignored. */

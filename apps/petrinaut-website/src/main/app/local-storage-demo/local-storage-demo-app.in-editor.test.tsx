@@ -364,6 +364,10 @@ test("a saved Brunch choice makes Brunch's plugin the editor's assistant, with P
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" })),
   );
   const panel = screen.getByRole("complementary", { name: "AI assistant" });
+  // The website opts into its demo starters through the real hook and plugin.
+  expect(panel.textContent).toContain("Supply chain");
+  expect(panel.textContent).toContain("Epidemic");
+  expect(panel.textContent).toContain("Surprise me");
   // Brunch's chat, with its Ledger beside the transcript, fills the panel.
   expect(within(panel).getByRole("tab", { name: /Ledger/u })).toBeTruthy();
   expect(

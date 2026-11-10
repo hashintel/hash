@@ -318,7 +318,6 @@ const BrunchMessage = memo(
                 isStreaming={active && item.part.state === "streaming"}
                 expandWhileStreaming={!voice}
                 part={item.part}
-                presentation="brunch"
               />
             ))}
             <AiAssistantToolList
@@ -326,7 +325,6 @@ const BrunchMessage = memo(
               active={active}
               stopped={wasStopped}
               preserveOpen
-              presentation="brunch"
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }
@@ -375,7 +373,6 @@ const BrunchMessage = memo(
               key={item.key}
               tools={[item.tool]}
               producedCard
-              presentation="brunch"
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }

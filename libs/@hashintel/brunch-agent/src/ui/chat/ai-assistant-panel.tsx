@@ -1733,12 +1733,11 @@ const ConversationAiAssistantPanel = ({
     ) {
       setPrimaryAttention(true);
       setAttentionAnnouncement(
-        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode, aiAssistant.presentation)} needs your attention`,
+        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode)} needs your attention`,
       );
     }
     conversationWasBusyRef.current = isBusy;
   }, [
-    aiAssistant.presentation,
     aiAssistant.primaryLabel,
     hostTabSelected,
     interactionMode,
@@ -2455,12 +2454,15 @@ const ConversationAiAssistantPanel = ({
     submitUserText,
   ]);
 
-  // Chips are only meaningful before a conversation has begun — once the
-  // user has typed or the AI has replied, they've signalled what they want
-  // and the chips become noise.
+  // Host starters disappear after the first turn; model-review chips remain
+  // available whenever the net has content.
   const hasConversation = messages.length > 0;
 
-  const promptChips = selectPromptChips({ hasConversation, isNetEmpty });
+  const promptChips = selectPromptChips({
+    hasConversation,
+    isNetEmpty,
+    starterChips: aiAssistant.starterChips,
+  });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
@@ -2666,7 +2668,6 @@ const ConversationAiAssistantPanel = ({
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
-      presentation={aiAssistant.presentation}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

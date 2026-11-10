@@ -288,7 +288,6 @@ test("the Ledger reviews without the chat composer, keeping its comments, Stop a
   const aiAssistant: PetrinautAiAssistant = {
     conversationId: "conversation",
     messages: [],
-    presentation: "brunch",
     primaryLabel: "Chat",
     transport: {
       reconnectToStream: () => Promise.resolve(null),
@@ -461,7 +460,6 @@ test("the Ledger marks the latest turn's changes as they are accepted, and keeps
     <BrunchAssistantContext
       value={fixedBrunchAssistant({
         messages: [],
-        presentation: "brunch",
         primaryLabel: "Chat",
         transport: {
           reconnectToStream: () => Promise.resolve(null),

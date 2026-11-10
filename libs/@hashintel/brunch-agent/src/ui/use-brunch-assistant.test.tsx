@@ -171,6 +171,17 @@ const renderAssistant = (
   };
 };
 
+test("empty-net suggestions are absent unless the host supplies them", () => {
+  const { assistant } = renderAssistant();
+  expect(assistant().starterChips).toBeUndefined();
+});
+
+test("passes host-owned starters to the panel configuration", () => {
+  const starterChips = [{ id: "demo", label: "Demo", prompt: "Build a demo" }];
+  const { assistant } = renderAssistant({ starterChips });
+  expect(assistant().starterChips).toBe(starterChips);
+});
+
 const executeAutomaticTool = (
   assistant: PetrinautAiAssistant,
   toolName: string,

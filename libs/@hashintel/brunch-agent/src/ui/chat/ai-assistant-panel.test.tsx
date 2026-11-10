@@ -524,9 +524,7 @@ describe("AiAssistantPanel composer submissions", () => {
     const applyLayout = vi.spyOn(instance.commands, "applyAutoLayout");
 
     // As the built-in panel did, the refusal comes before the widget asks.
-    expect(
-      screen.queryByRole("button", { name: "Yes, auto-layout" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
     await screen.findByText("The layout was not changed.");
     expect(applyLayout).not.toHaveBeenCalled();
     expect(
@@ -576,9 +574,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     // Eligible when the call arrived, so consent shows; the edit itself
     // refuses at Apply, as the built-in panel's submit guard did.
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Yes, auto-layout" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Allow" }));
     await screen.findByText("The layout was not changed.");
     expect(applyLayout).not.toHaveBeenCalled();
     expect(
@@ -788,24 +784,19 @@ describe("AiAssistantPanel composer submissions", () => {
         transport,
       },
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
     fireEvent.change(textarea, { target: { value: "Continue" } });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
-
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
     fireEvent.click(chatTab);
     await waitFor(() =>
-      expect(
-        screen
-          .getByRole("tab", { name: "Chat" })
-          .querySelector('[aria-hidden="true"]'),
-      ).toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).toBeNull(),
     );
   });
 
@@ -826,16 +817,15 @@ describe("AiAssistantPanel composer submissions", () => {
         },
       },
     });
-    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
     });
     fireEvent.change(textarea, { target: { value: "Continue" } });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
-
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     const chatTab = await screen.findByRole("tab", { name: "Chat" });
     await waitFor(() =>
-      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+      expect(chatTab.querySelector("[data-attention]")).not.toBeNull(),
     );
   });
 
@@ -1447,12 +1437,10 @@ describe("AiAssistantPanel composer submissions", () => {
       },
     });
     const applyLayout = vi.spyOn(instance.commands, "applyAutoLayout");
-    await screen.findByRole("button", { name: "Yes, auto-layout" });
+    await screen.findByRole("button", { name: "Allow" });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Yes, auto-layout" }));
-      fireEvent.click(
-        screen.getByRole("button", { name: "No, keep current layout" }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+      fireEvent.click(screen.getByRole("button", { name: "Deny" }));
     });
     expect(applyLayout).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
@@ -3067,9 +3055,7 @@ describe("AiAssistantPanel composer submissions", () => {
     ).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Voice mode voice" }));
 
-    expect(
-      screen.getByPlaceholderText("Describe the process you want to create"),
-    ).not.toBeNull();
+    expect(screen.getByPlaceholderText("Continue iterating...")).not.toBeNull();
     expect(endVoice).toHaveBeenCalledOnce();
     expect(voiceModeMounts).toBe(1);
     expect(voiceModeUnmounts).toBe(0);
@@ -3122,9 +3108,7 @@ describe("AiAssistantPanel composer submissions", () => {
     rendered.rerenderPanel(unavailableAssistant, editorContextValue);
 
     expect(screen.queryByText("Voice mode")).toBeNull();
-    expect(
-      screen.getByPlaceholderText("Describe the process you want to create"),
-    ).not.toBeNull();
+    expect(screen.getByPlaceholderText("Continue iterating...")).not.toBeNull();
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
@@ -3410,7 +3394,6 @@ describe("AiAssistantPanel composer submissions", () => {
       return null;
     };
     const assistant: PetrinautAiAssistant = {
-      presentation: "brunch",
       transport: {
         reconnectToStream: () => Promise.resolve(null),
         sendMessages: vi.fn(),
@@ -3429,7 +3412,6 @@ describe("AiAssistantPanel composer submissions", () => {
     let controls: PetrinautAiComposerControlContext | undefined;
     renderTestPanel({
       aiAssistant: {
-        presentation: "brunch",
         transport: {
           reconnectToStream: async () => null,
           sendMessages: vi.fn(),
@@ -3639,7 +3621,6 @@ describe("AiAssistantPanel composer submissions", () => {
     renderTestPanel({
       aiAssistant: {
         primaryLabel: "Chat",
-        presentation: "brunch",
         additionalTab: {
           label: "Ledger",
           content: <p>Ledger body</p>,
@@ -3918,6 +3899,50 @@ describe("AiAssistantPanel composer submissions", () => {
       expect(sendMessages).toHaveBeenCalledOnce();
     },
   );
+
+  test("the canonical guide tool returns Brunch's host-aware assistant guidance", async () => {
+    let latest: PetrinautAiComposerControlContext | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        messages: [
+          {
+            id: "guide-call",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-readPetrinautDoc",
+                toolCallId: "guide-read",
+                state: "input-available",
+                input: { doc: "ai-assistant" },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+    });
+    await waitFor(() =>
+      expect(latest?.messages[0]?.parts).toContainEqual(
+        expect.objectContaining({
+          toolCallId: "guide-read",
+          state: "output-available",
+          output: expect.stringContaining(
+            "`petrinaut_layout_auto` tool applies layout immediately",
+          ) as unknown,
+        }),
+      ),
+    );
+  });
 
   test("reports a textless automatic browser failure to hosts and its matching tool", async () => {
     let latest: PetrinautAiComposerControlContext | undefined;
@@ -4216,7 +4241,7 @@ describe("AiAssistantPanel composer submissions", () => {
     );
     expect(execute).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
-    expect(screen.getAllByText("No result — response failed")).toHaveLength(2);
+    expect(screen.getAllByText("No result — response failed")).toHaveLength(4);
   });
 
   test("never runs an in-band browser call it only hydrated from another panel's turn (T2)", async () => {
@@ -5108,7 +5133,6 @@ describe("AiAssistantPanel composer submissions", () => {
       conversationId: "conversation-1",
       followMessages: { canReplace: () => true },
       interactiveTools: [releaseTool],
-      presentation: "brunch",
       requestStop: async () => "stop-requested" as const,
       transport: { reconnectToStream: async () => null, sendMessages },
     } satisfies PetrinautAiAssistant;
@@ -5283,7 +5307,7 @@ describe("AiAssistantPanel composer submissions", () => {
           answerTool: async () => {
             fireEvent.click(
               await screen.findByRole("button", {
-                name: "No, keep current layout",
+                name: "Deny",
               }),
             );
           },
@@ -5328,9 +5352,7 @@ describe("AiAssistantPanel composer submissions", () => {
       { type: "finish", finishReason: "tool-calls" },
     ];
     const declineLayout = async () => {
-      fireEvent.click(
-        await screen.findByRole("button", { name: "No, keep current layout" }),
-      );
+      fireEvent.click(await screen.findByRole("button", { name: "Deny" }));
     };
     expect(
       await runBrowserToolThenFollowUp(
@@ -5995,7 +6017,7 @@ describe("AiAssistantPanel composer submissions", () => {
       aiAssistant: { interactiveTools: [hostTool], transport },
       initialMessage: "Start questions",
     });
-    await screen.findByText("No result — response failed");
+    await screen.findAllByText("No result — response failed");
 
     const textarea = screen.getByRole("textbox", {
       name: "Message AI assistant",
@@ -6565,7 +6587,7 @@ describe("AiAssistantPanel composer submissions", () => {
     });
   });
 
-  test("sends review chips as messages while an interactive tool is pending", async () => {
+  test("suppresses review chips while an interactive tool is pending", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
       reconnectToStream: () => Promise.resolve(null),
@@ -6611,27 +6633,13 @@ describe("AiAssistantPanel composer submissions", () => {
     });
     await screen.findByText("Which environment?");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /Suggest improvements/ }),
-    );
-    await screen.findByText("Review prompt accepted");
-
-    const reviewMessage = requestMessages[1]?.at(-1);
-    const reviewTextPart = reviewMessage?.parts.find(
-      (part) => part.type === "text",
-    );
-    expect(reviewMessage?.role).toBe("user");
-    expect(reviewTextPart?.text).toContain("suggest a few improvements");
     expect(
-      requestMessages[1]?.some((message) =>
-        message.parts.some(
-          (part) =>
-            part.type === "dynamic-tool" &&
-            part.toolCallId === "question-1" &&
-            part.state === "input-available",
-        ),
-      ),
-    ).toBe(true);
+      screen.queryByRole("button", { name: /Suggest improvements/u }),
+    ).toBeNull();
+    expect(
+      document.querySelector("[data-prompt-chips]")?.closest("[inert]"),
+    ).not.toBeNull();
+    expect(requestMessages).toHaveLength(1);
   });
 
   test("retries an answer as a new turn while preserving history and the unsent draft", async () => {
@@ -6651,7 +6659,7 @@ describe("AiAssistantPanel composer submissions", () => {
       }),
     };
     renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
+      aiAssistant: { transport },
       initialMessage: "Explain the queue",
     });
     await screen.findByText("Answer 1");
@@ -7625,7 +7633,6 @@ describe("AI experiment requests", () => {
     );
     renderTestPanel({
       aiAssistant: {
-        presentation: "brunch",
         transport: { reconnectToStream: async () => null, sendMessages },
         automaticTools: hashPetrinautHostTools,
         inBandBrowserTools: {
