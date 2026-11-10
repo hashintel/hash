@@ -19,18 +19,18 @@ use core::{
     future::{Future, ready},
     net::SocketAddr,
     num::NonZero,
-    sync::atomic::{AtomicU32, Ordering},
+    sync::atomic::{AtomicBool, AtomicU32, Ordering},
     time::Duration,
 };
 
 use error_stack::Report;
 use hash_integrations_orchestration::{
     AdmissionKey, BackendError, FailureKind, FunctionVersion, Payload, RetryPolicy, RunError,
-    RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus, Runs as _, StepContext,
-    StepFailure, StepIndex, StepName, Worker as _,
+    RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus, Runs as _, StartError,
+    StepContext, StepFailure, StepIndex, StepName, Worker as _,
     restate::{RestateBackend, RestateConfig},
 };
-use tokio::{runtime::Runtime, task::JoinHandle};
+use tokio::{runtime::Runtime, sync::Notify, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -362,4 +362,142 @@ async fn run_function_fails_itself() {
             steps_recorded: 0
         }
     );
+}
+
+/// With no worker running, a started run stays queued and holds its admission key.
+///
+/// Restate accepts a run once it knows the run object, so a worker registers first and stops.
+#[tokio::test]
+async fn start_without_worker() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    TestWorker::spawn(&config, Arc::new(DoubleThenAddOne))
+        .await
+        .stop()
+        .await;
+    let (admission, run) = (admission_key(), run_id());
+    let first = start(&admission, DoubleThenAddOne::VERSION, &20_u32);
+
+    backend
+        .start(run.clone(), first.clone())
+        .await
+        .expect("should start the run");
+    backend
+        .start(run.clone(), first)
+        .await
+        .expect("starting the same run again should attach to it");
+
+    let mismatch = backend
+        .start(
+            run.clone(),
+            start(&admission, DoubleThenAddOne::VERSION, &21_u32),
+        )
+        .await
+        .expect_err("a different start under the same ID should be rejected");
+    assert_eq!(*mismatch.current_context(), StartError::StartMismatch);
+
+    let active = backend
+        .start(
+            run_id(),
+            start(&admission, DoubleThenAddOne::VERSION, &20_u32),
+        )
+        .await
+        .expect_err("a second run under an active admission key should be rejected");
+    assert_eq!(
+        *active.current_context(),
+        StartError::AlreadyActive {
+            active: run.clone()
+        }
+    );
+
+    assert_eq!(
+        backend.status(&run).await.expect("should read the status"),
+        Some(RunStatus {
+            phase: RunPhase::Pending,
+            steps_recorded: 0
+        })
+    );
+    assert_eq!(
+        backend
+            .status(&run_id())
+            .await
+            .expect("should read the status"),
+        None,
+        "an unknown run should have no status"
+    );
+}
+
+/// Three steps, of which the second waits until the test releases it.
+struct Gated {
+    release: Notify,
+    ran_last: AtomicBool,
+}
+
+impl RunFunction for Gated {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context.run(step("first"), || async { Ok(()) }).await?;
+        context
+            .run(step("wait"), || async {
+                self.release.notified().await;
+                Ok(())
+            })
+            .await?;
+        context
+            .run(step("last"), || async {
+                self.ran_last.store(true, Ordering::SeqCst);
+                Ok(())
+            })
+            .await
+    }
+}
+
+#[tokio::test]
+async fn cancel_stops_before_the_next_step() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let function = Arc::new(Gated {
+        release: Notify::new(),
+        ran_last: AtomicBool::new(false),
+    });
+    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let run = run_id();
+
+    backend
+        .start(run.clone(), start(&admission_key(), Gated::VERSION, &()))
+        .await
+        .expect("should start the run");
+    let running = wait_until(&backend, &run, |status| status.steps_recorded == 1).await;
+    assert_eq!(running.phase, RunPhase::Running);
+
+    backend.cancel(&run).await.expect("should cancel the run");
+    function.release.notify_one();
+    let cancelled = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        cancelled,
+        RunStatus {
+            phase: RunPhase::Cancelled,
+            steps_recorded: 2
+        },
+        "the step that was executing should finish and be recorded"
+    );
+    assert!(
+        !function.ran_last.load(Ordering::SeqCst),
+        "the step after the cancel should not run"
+    );
+    backend
+        .cancel(&run)
+        .await
+        .expect("cancelling a finished run should succeed");
+    backend
+        .cancel(&run_id())
+        .await
+        .expect("cancelling an unknown run should succeed");
+    worker.stop().await;
 }

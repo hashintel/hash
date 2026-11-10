@@ -42,6 +42,8 @@ pub enum RestateError {
     Listen,
     #[display("the request to Restate failed")]
     Request,
+    #[display("the run's record is not one this backend wrote")]
+    Recorded,
 }
 
 /// Where the Restate backend finds Restate, and where Restate finds this process's worker.
@@ -144,6 +146,10 @@ impl RestateBackend {
 #[derive(Deserialize)]
 struct Invocation {
     id: String,
+    /// The run's ID.
+    idempotency_key: String,
+    /// The run's admission key.
+    target_service_key: String,
     /// `success` or `failure`, once the run has finished.
     completion_result: Option<String>,
     /// `[<status code>] <message>` of the error a failed run's handler ended with.
@@ -153,44 +159,133 @@ struct Invocation {
 impl Runs for RestateBackend {
     /// Sends the run to the object of its admission key, with the run's ID as the idempotency
     /// key. Restate queues it durably whether or not a worker is running.
+    ///
+    /// The check for an active run and the send are two requests. Two runs that start under one
+    /// admission key at the same moment can both be accepted, and Restate then executes them one
+    /// after the other.
     #[tracing::instrument(skip_all, fields(run = %run))]
     async fn start(&self, run: RunId, start: RunStart) -> Result<(), Report<StartError>> {
-        self.send(&run, start)
-            .await
-            .change_context(StartError::Backend)
+        self.start_run(&run, start).await
     }
 
     async fn status(&self, run: &RunId) -> Result<Option<RunStatus>, Report<BackendError>> {
         self.read_status(run).await.change_context(BackendError)
     }
 
-    fn cancel(&self, _: &RunId) -> impl Future<Output = Result<(), Report<BackendError>>> + Send {
-        core::future::ready(Err(
-            Report::new(BackendError).attach("the Restate backend does not cancel runs yet")
-        ))
+    /// Restate raises the cancellation in the run at its next step, so a step that is executing
+    /// finishes and is recorded. A run that has not begun is removed.
+    async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
+        self.cancel_run(run).await.change_context(BackendError)
     }
 }
 
 impl RestateBackend {
-    async fn send(&self, run: &RunId, start: RunStart) -> Result<(), Report<RestateError>> {
+    async fn start_run(&self, run: &RunId, start: RunStart) -> Result<(), Report<StartError>> {
+        let admission = start.admission;
+        let start = Start {
+            version: start.version.get(),
+            policy: start.policy,
+            input: start.input,
+        };
+        let invocations = self
+            .invocations(&format!(
+                "idempotency_key = '{run}' OR (target_service_key = '{admission}' AND \
+                 completion_result IS NULL)"
+            ))
+            .await
+            .change_context(StartError::Backend)?;
+
+        if let Some(started) = invocations
+            .iter()
+            .find(|invocation| invocation.idempotency_key == run.as_ref())
+        {
+            let recorded = self
+                .recorded_start(started)
+                .await
+                .change_context(StartError::Backend)?;
+            return if started.target_service_key == admission.as_ref() && recorded == start {
+                Ok(())
+            } else {
+                Err(Report::new(StartError::StartMismatch))
+            };
+        }
+        if let Some(active) = invocations.first() {
+            let active = active
+                .idempotency_key
+                .parse()
+                .change_context(StartError::Backend)?;
+            return Err(Report::new(StartError::AlreadyActive { active }));
+        }
+
         // An admission key can hold `/`, which separates the segments of the path.
-        let key = start.admission.as_ref().replace('/', "%2F");
+        let key = admission.as_ref().replace('/', "%2F");
         self.http
             .post(format!(
                 "{}/restate/send/IntegrationRun/{key}/run",
                 self.config.ingress_url
             ))
             .header("idempotency-key", run.as_ref())
-            .json(&Start {
-                version: start.version.get(),
-                policy: start.policy,
-                input: start.input,
-            })
+            .json(&start)
             .send()
             .await
             .and_then(reqwest::Response::error_for_status)
-            .change_context(RestateError::Request)?;
+            .change_context(StartError::Backend)?;
         Ok(())
+    }
+
+    /// Reads the start a run was sent with, which is the input in the first entry of its journal.
+    async fn recorded_start(&self, invocation: &Invocation) -> Result<Start, Report<RestateError>> {
+        #[derive(Deserialize)]
+        struct Entry {
+            entry_json: String,
+        }
+
+        let entries: Vec<Entry> = self
+            .query(&format!(
+                "SELECT entry_json FROM sys_journal WHERE id = '{}' AND index = 0",
+                invocation.id
+            ))
+            .await?;
+        let entry = entries.first().ok_or(RestateError::Recorded)?;
+        let entry: serde_json::Value =
+            serde_json::from_str(&entry.entry_json).change_context(RestateError::Recorded)?;
+        let input: Vec<u8> = entry
+            .pointer("/Command/Input/payload")
+            .cloned()
+            .map(serde_json::from_value)
+            .ok_or(RestateError::Recorded)?
+            .change_context(RestateError::Recorded)?;
+        serde_json::from_slice(&input).change_context(RestateError::Recorded)
+    }
+
+    async fn cancel_run(&self, run: &RunId) -> Result<(), Report<RestateError>> {
+        let unfinished = self
+            .invocations(&format!(
+                "idempotency_key = '{run}' AND completion_result IS NULL"
+            ))
+            .await?;
+        for invocation in unfinished {
+            self.http
+                .patch(format!(
+                    "{}/invocations/{}/cancel",
+                    self.config.admin_url, invocation.id
+                ))
+                .send()
+                .await
+                .and_then(reqwest::Response::error_for_status)
+                .change_context(RestateError::Request)?;
+        }
+        Ok(())
+    }
+
+    /// Reads the runs that match `filter` from Restate's `sys_invocation` table.
+    async fn invocations(&self, filter: &str) -> Result<Vec<Invocation>, Report<RestateError>> {
+        self.query(&format!(
+            "SELECT id, idempotency_key, target_service_key, completion_result, \
+             completion_failure FROM sys_invocation WHERE target_service_name = 'IntegrationRun' \
+             AND ({filter})"
+        ))
+        .await
     }
 
     /// Runs `sql` on Restate's introspection tables. The names this backend puts into a query
@@ -223,13 +318,10 @@ impl RestateBackend {
             steps: u32,
         }
 
-        let invocations: Vec<Invocation> = self
-            .query(&format!(
-                "SELECT id, completion_result, completion_failure FROM sys_invocation WHERE \
-                 target_service_name = 'IntegrationRun' AND idempotency_key = '{run}'"
-            ))
+        let invocations = self
+            .invocations(&format!("idempotency_key = '{run}'"))
             .await?;
-        let Some(invocation) = invocations.into_iter().next() else {
+        let Some(invocation) = invocations.first() else {
             return Ok(None);
         };
         // Restate journals the result of a step, a failure included, as a notification.
