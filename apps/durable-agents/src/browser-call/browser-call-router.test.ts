@@ -26,6 +26,8 @@ import {
   bindBrowserDocument,
   browserCallExtension,
   BrowserCallsDoc,
+  claimBrowserCall,
+  finishBrowserCall,
 } from "./browser-call";
 import { createBrowserCallRouter } from "./browser-call-router";
 import { petrinautBrowserToolsExtension } from "./petrinaut-browser-tools";
@@ -49,9 +51,25 @@ const binding = canonicalContent({
 });
 const answer = "Added the dryer.";
 
-/** A conversation bound to `binding` whose model calls `addPlace`, then answers; the router mounted as the server would. */
-const openConversation = async () => {
+const readCallId = "read-1";
+
+/**
+ * A conversation bound to `binding` whose model reads the net, calls
+ * `addPlace`, then answers; the router mounted as the server would. Net
+ * freshness admits the change against the read, which `answerRead` answers.
+ * Unless `issued` is false, the read is answered and the change issued.
+ */
+const openConversation = async ({
+  issueWaitMs = 50,
+  issued = true,
+}: { readonly issueWaitMs?: number; readonly issued?: boolean } = {}) => {
   const { models, model } = scriptedModel([
+    fauxAssistantMessage(
+      fauxToolCall("readNetOutline", {}, { id: readCallId }),
+      {
+        stopReason: "toolUse",
+      },
+    ),
     fauxAssistantMessage(fauxToolCall(toolName, input, { id: toolCallId }), {
       stopReason: "toolUse",
     }),
@@ -81,20 +99,48 @@ const openConversation = async () => {
     createBrowserCallRouter({
       resolveHarness: (conversationId) =>
         conversationId === routeConversationId ? harness : undefined,
+      issueWaitMs,
     }),
   );
   const submission = await root.submit(
     { type: "input", content: "Add a dryer." },
     context,
   );
-  // The call is pending once its issue commit lands.
-  await vi.waitFor(async () => {
-    const calls = (await harness.snapshot(BrowserCallsDoc, root.id, context))
-      ?.calls;
-    expect(calls?.[toolCallId]).toBeDefined();
-  });
-  return { harness, root, submission, app };
+  /** The browser answers the read, with the revision it observed. */
+  const answerRead = async () => {
+    await vi.waitFor(async () => {
+      const calls = (await harness.snapshot(BrowserCallsDoc, root.id, context))
+        ?.calls;
+      expect(calls?.[readCallId]?.status).toBe("pending");
+    });
+    const claim = await claimBrowserCall(harness, root.id, readCallId, context);
+    await finishBrowserCall(
+      harness,
+      {
+        conversationId: root.id,
+        toolCallId: readCallId,
+        toolName: claim!.toolName,
+        capability: claim!.capability,
+        canonicalInput: claim!.input,
+        output: { title: "Net" },
+        metadata: readMetadata,
+      },
+      context,
+    );
+  };
+  if (issued) {
+    await answerRead();
+    // The call is pending once its issue commit lands.
+    await vi.waitFor(async () => {
+      const calls = (await harness.snapshot(BrowserCallsDoc, root.id, context))
+        ?.calls;
+      expect(calls?.[toolCallId]).toBeDefined();
+    });
+  }
+  return { harness, root, submission, app, answerRead };
 };
+
+const readMetadata = { documentRevision: { before: "revision-1" } };
 
 /** The browser's side, over HTTP. */
 const browserOf = (app: Hono, callId = toolCallId) => {
@@ -139,8 +185,13 @@ const toolResultOf = async (conversation: Conversation) => {
   const entries: readonly EntryRecord[] = (
     await conversation.entries({ order: "ascending" }, 100, undefined, context)
   ).items;
-  const result = entries.find(({ kind }) => kind === "pi.tool-result")
-    ?.model?.[0];
+  const result = entries
+    .filter(({ kind }) => kind === "pi.tool-result")
+    .map(({ model }) => model?.[0])
+    .find(
+      (message) =>
+        message?.role === "toolResult" && message.toolCallId === toolCallId,
+    );
   const reply = entries.findLast(({ kind }) => kind === "pi.assistant")
     ?.model?.[0];
   return { result, reply };
@@ -267,6 +318,102 @@ describe("browser-call router", () => {
     );
     expect(elsewhere.status).toBe(404);
     await abandon(harness, submission);
+  });
+});
+
+describe("browser-call router: early claims and committed records", () => {
+  test("a claim sent before the call's issue commit waits for it and succeeds", async () => {
+    const { harness, root, submission, app, answerRead } =
+      await openConversation({ issueWaitMs: 3_000, issued: false });
+    const browser = browserOf(app);
+    // The stream would show the call now; its record does not exist yet.
+    const early = browser.claim("tab-a");
+    expect(
+      (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls[
+        toolCallId
+      ],
+    ).toBeUndefined();
+    await answerRead();
+    const claim = await claimOf(await early);
+    expect(claim).toMatchObject({
+      toolName,
+      input,
+      binding,
+      expectedRevision: "revision-1",
+    });
+    expect((await browser.start(claim.capability)).status).toBe(200);
+    expect(
+      (await browser.result(claim.capability, { applied: true })).status,
+    ).toBe(200);
+    expect((await submission.wait(context)).status).toBe("done");
+    await harness.close(context);
+  });
+
+  test("a claim for a call never issued waits only its bound", async () => {
+    const { harness, submission, app } = await openConversation({
+      issueWaitMs: 200,
+    });
+    const started = Date.now();
+    expect((await browserOf(app, "call-unknown").claim("tab-a")).status).toBe(
+      404,
+    );
+    const waited = Date.now() - started;
+    expect(waited).toBeGreaterThanOrEqual(150);
+    expect(waited).toBeLessThan(2_000);
+    await abandon(harness, submission);
+  });
+
+  test("every call's committed output and metadata are readable by tool call ID, without capabilities", async () => {
+    const { harness, submission, app } = await openConversation();
+    const browser = browserOf(app);
+    const claim = await claimOf(await browser.claim("tab-a"));
+    expect((await browser.start(claim.capability)).status).toBe(200);
+    await browser.result(claim.capability, { applied: true });
+    expect((await submission.wait(context)).status).toBe("done");
+
+    const response = await app.request(
+      `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${routeConversationId}/${brunchRoutes.browserCalls}`,
+    );
+    expect(response.status).toBe(200);
+    const { calls } = (await response.json()) as {
+      calls: Record<string, Record<string, unknown>>;
+    };
+    expect(calls[readCallId]).toMatchObject({
+      toolName: "readNetOutline",
+      status: "settled",
+      output: { title: "Net" },
+      metadata: readMetadata,
+      callIndex: 0,
+    });
+    expect(calls[toolCallId]).toMatchObject({
+      toolCallId,
+      toolName,
+      input,
+      status: "settled",
+      output: { applied: true },
+      metadata: { verified: true },
+      callIndex: 0,
+    });
+    expect(Object.keys(calls[toolCallId] ?? {}).toSorted()).toEqual(
+      [
+        "callIndex",
+        "input",
+        "issuedEntry",
+        "metadata",
+        "output",
+        "status",
+        "toolCallId",
+        "toolName",
+      ].toSorted(),
+    );
+    expect(
+      (
+        await app.request(
+          `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/other/${brunchRoutes.browserCalls}`,
+        )
+      ).status,
+    ).toBe(404);
+    await harness.close(context);
   });
 });
 

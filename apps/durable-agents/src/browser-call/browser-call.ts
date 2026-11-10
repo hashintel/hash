@@ -37,10 +37,12 @@ import {
   defineExtension,
   defineTask,
   defineTool,
+  type EntryId,
   type Harness,
   type JsonObject,
   type TaskId,
   type ToolRegistration,
+  type ToolTaskInput,
   type Tx,
 } from "@earendil-works/pi-durable";
 import { obj, str } from "@earendil-works/pi-schema";
@@ -55,6 +57,8 @@ import {
   canonicalContent,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
+
+import { expectedNetRevision, viewedCalls } from "../net-state/net-freshness";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
 export const callTtlMs = 24 * 60 * 60_000;
@@ -111,8 +115,23 @@ export type BrowserCallRecord = {
    * Absent under the single-shot `claimBrowserCall`, whose claim counts as a start.
    */
   started?: boolean;
-  /** The document revision the model last saw, which the browser re-checks before running. Not yet recorded by any tool. */
+  /**
+   * The document revision the model last saw, which the browser re-checks
+   * before running: net freshness records it on every document change.
+   */
   expectedRevision?: string;
+  /**
+   * The `pi.assistant` entry whose response issued the call. Absent on calls
+   * issued before it was recorded, and on a nested call, which no entry holds.
+   */
+  issuedEntry?: number;
+  /**
+   * The call's index among `issuedEntry`'s tool calls. A waiting call's
+   * result reaches the model right after `issuedEntry`, at this index (Pi
+   * Durable orders a round's results by call), so the pair is both the
+   * call's issue position and its delivery position.
+   */
+  callIndex?: number;
   /** Why a `failed` call ended without a result. */
   failure?: BrowserCallFailureDisposition;
 };
@@ -314,15 +333,52 @@ export type BrowserToolDefinition<TParameters extends object> = {
   readonly parameters: TParameters;
 };
 
+/** Where a model-issued call sits: its assistant entry and its index among that entry's tool calls. */
+const issuePosition = async (
+  tx: Tx,
+  taskId: TaskId,
+  callId: string,
+): Promise<{ issuedEntry: number; callIndex: number } | undefined> => {
+  const input = (await tx.task(taskId))?.input as ToolTaskInput | undefined;
+  if (input?.kind !== "model") return undefined;
+  const calls = ((await tx.entry(input.assistant))?.model ?? []).flatMap(
+    (message) =>
+      message.role === "assistant"
+        ? message.content.flatMap((content) =>
+            content.type === "toolCall" ? [content.id] : [],
+          )
+        : [],
+  );
+  const callIndex = calls.indexOf(callId);
+  return callIndex === -1
+    ? undefined
+    : { issuedEntry: input.assistant, callIndex };
+};
+
+export type WaitingBrowserToolOptions = {
+  /**
+   * Whether a document change is refused without a current view of the net
+   * (`net-freshness.ts`), and otherwise issued against the revision of that
+   * view. Default `true`. Only test scaffolding turns it off: the proofs and
+   * probes call `setNetTitle` alone, with no net read before it.
+   */
+  readonly checksNetView?: boolean;
+};
+
 /**
  * A tool the bound browser runs, the tool call waiting for the browser's
  * result: the call is recorded `pending` in `BrowserCallsDoc` with the
  * conversation's binding, a `BrowserCall` task waits for its outcome, and the
  * browser's output becomes the tool's result. Its tasks are registered by
  * `browserCallExtension`, which must be installed wherever it runs.
+ *
+ * A document change is first checked for a current view of the net, in the
+ * same commit that would issue it: refused, it records nothing and returns
+ * Brunch's refusal as an error result.
  */
 export const defineWaitingBrowserTool = <TParameters extends object>(
   definition: BrowserToolDefinition<TParameters>,
+  { checksNetView = true }: WaitingBrowserToolOptions = {},
 ): ToolRegistration<TParameters> =>
   defineTool<TParameters>({
     name: definition.name,
@@ -331,36 +387,69 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
     replay: "safe",
     execute: async (args, api, context) => {
       const { conversationId, callId } = api;
-      const taskId = await api.commit(async (tx) => {
-        const { calls } = await tx.doc(BrowserCallsDoc, conversationId);
-        const issued = calls[callId];
-        if (issued !== undefined)
-          return issued.task as TaskId<BrowserCallOutcome>;
-        const { binding } = await tx.doc(BrowserBindingDoc, conversationId);
-        const task = await tx.createTask(
-          BrowserCall,
-          { conversationId, toolCallId: callId },
-          { ownership: { kind: "task", taskId: api.taskId } },
-        );
-        const issuedAt = api.now();
-        calls[callId] = {
-          toolCallId: callId,
-          toolName: definition.name,
-          input: copyJson(args as JsonObject) as JsonObject,
-          status: "pending",
-          issuedAt,
-          expiresAt: issuedAt + callTtlMs,
-          task,
-          doorbell: null,
-          capability: null,
-          claimed: false,
-          output: null,
-          metadata: null,
-          binding,
+      const issued = await api.commit(
+        async (
+          tx,
+        ): Promise<
+          | { readonly task: TaskId<BrowserCallOutcome> }
+          | { readonly refusal: string }
+        > => {
+          const { calls } = await tx.doc(BrowserCallsDoc, conversationId);
+          const existing = calls[callId];
+          if (existing !== undefined)
+            return { task: existing.task as TaskId<BrowserCallOutcome> };
+          const position = await issuePosition(tx, api.taskId, callId);
+          let expectedRevision: string | undefined;
+          if (checksNetView && browserToolMutatesDocument(definition.name)) {
+            if (position === undefined)
+              throw new Error(
+                `Conversation history does not contain browser call ${callId}.`,
+              );
+            const expected = expectedNetRevision(
+              await viewedCalls(
+                tx,
+                conversationId,
+                position.issuedEntry as EntryId,
+              ),
+              calls,
+            );
+            if ("refusal" in expected) return { refusal: expected.refusal };
+            expectedRevision = expected.revision;
+          }
+          const { binding } = await tx.doc(BrowserBindingDoc, conversationId);
+          const task = await tx.createTask(
+            BrowserCall,
+            { conversationId, toolCallId: callId },
+            { ownership: { kind: "task", taskId: api.taskId } },
+          );
+          const issuedAt = api.now();
+          calls[callId] = {
+            toolCallId: callId,
+            toolName: definition.name,
+            input: copyJson(args as JsonObject) as JsonObject,
+            status: "pending",
+            issuedAt,
+            expiresAt: issuedAt + callTtlMs,
+            task,
+            doorbell: null,
+            capability: null,
+            claimed: false,
+            output: null,
+            metadata: null,
+            binding,
+            ...position,
+            ...(expectedRevision === undefined ? {} : { expectedRevision }),
+          };
+          return { task };
+        },
+        context,
+      );
+      if ("refusal" in issued)
+        return {
+          output: [{ type: "text", text: issued.refusal }],
+          isError: true,
         };
-        return task;
-      }, context);
-      const { state } = await api.waitForTask(taskId, context);
+      const { state } = await api.waitForTask(issued.task, context);
       const { outcome } = state;
       if (outcome.status !== "completed")
         throw new Error(`Browser call task ended ${outcome.status}.`);
@@ -417,8 +506,10 @@ export const setNetTitleDefinition = {
   }),
 };
 
-/** `setNetTitle` as the browser runs it, the tool call waiting for the browser's result. */
-export const setNetTitleTool = defineWaitingBrowserTool(setNetTitleDefinition);
+/** `setNetTitle` as the browser runs it, the tool call waiting for the browser's result; scaffolding, so it skips net freshness. */
+export const setNetTitleTool = defineWaitingBrowserTool(setNetTitleDefinition, {
+  checksNetView: false,
+});
 
 /** The browser-call tasks, and `setNetTitle` for the proofs and probes that call it alone. */
 export const browserCallExtension = defineExtension({

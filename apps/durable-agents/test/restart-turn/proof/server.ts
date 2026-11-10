@@ -3,7 +3,8 @@
  * (`startDurableAgentsServer`) on the compose Postgres, on a free port, with a
  * scripted model for its role.
  *
- * - `issue`: the model calls `addPlace` (server 1, which the driver kills).
+ * - `issue`: the model reads the net, then calls `addPlace` (server 1, which
+ *   the driver kills); net freshness admits the change against the read.
  * - `answer`: the model answers the browser's result (server 2).
  *
  * Reports `listening` with its port; on SIGTERM it closes, then reports
@@ -37,8 +38,16 @@ export const placeInput = {
 
 export const answer = "I added the Washer place to the net.";
 
+/** The net read before the change, and what the browser answers it with. */
+export const readToolName = "readNetOutline";
+export const readOutput = { title: "Laundry" };
+export const readMetadata = { documentRevision: { before: "r1" } };
+
 const responses: Record<string, FauxResponseStep[]> = {
   issue: [
+    fauxAssistantMessage(fauxToolCall(readToolName, {}), {
+      stopReason: "toolUse",
+    }),
     fauxAssistantMessage(fauxToolCall(toolName, placeInput), {
       stopReason: "toolUse",
     }),

@@ -28,10 +28,17 @@ import {
   type BrowserCallResultBody,
   type BrowserContext,
   canonicalContent,
+  type ClientToolResultMetadata,
+  type NetStructure,
 } from "@hashintel/brunch-agent";
 
 import { browserCallsPrefix } from "../../../src/server/start-durable-agents-server";
-import { answerText, type TurnPlan, userText } from "./workload";
+import {
+  answerText,
+  loadReadToolName,
+  type TurnPlan,
+  userText,
+} from "./workload";
 
 export type Slot = "A" | "B";
 
@@ -167,6 +174,55 @@ const assemble = async (chunks: readonly UIMessageChunk[]) => {
 
 const terminalTypes = new Set(["finish", "error", "abort"]);
 
+/**
+ * The conversation's net as the browser holds it, with the result metadata
+ * Brunch's panel reports (`ClientToolResultMetadata`): a read reports the
+ * revision it observed; a change that changed the net reports the revision
+ * before and after it and the net read back. Revisions come from a counter,
+ * where the panel hashes the document.
+ */
+const createFakeNet = () => {
+  let revision = 1;
+  const places: NetStructure["places"] = [];
+  const structure = (): NetStructure => ({
+    places: [...places],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  });
+  return {
+    /** Run `toolName` on the net: the result's output and metadata. */
+    run: (
+      toolName: string,
+      input: unknown,
+    ): {
+      readonly output: unknown;
+      readonly metadata: ClientToolResultMetadata;
+    } => {
+      const before = `revision-${revision}`;
+      if (toolName === loadReadToolName)
+        return {
+          output: { title: "Load net", definition: structure() },
+          metadata: { documentRevision: { before } },
+        };
+      places.push(input as NetStructure["places"][number]);
+      revision += 1;
+      const fields = input as { id?: unknown };
+      return {
+        output: {
+          ok: true,
+          id: typeof fields.id === "string" ? fields.id : null,
+        },
+        metadata: {
+          documentRevision: { before, after: `revision-${revision}` },
+          readBack: structure(),
+        },
+      };
+    },
+  };
+};
+
 /** One simulated user: its conversation's turns in order, and the browser for their calls. */
 export const runConversation = async ({
   conversationId,
@@ -238,6 +294,7 @@ export const runConversation = async ({
   const callPath = (callId: string, step = "") =>
     `${browserCallsPrefix}/${encodeURIComponent(conversationId)}/browser-calls/${encodeURIComponent(callId)}${step}`;
 
+  const net = createFakeNet();
   const played = new Map<string, Promise<BrowserCallOutcome>>();
   const calls: Promise<BrowserCallOutcome>[] = [];
 
@@ -290,15 +347,11 @@ export const runConversation = async ({
         outcome: `start ${started?.status ?? "unreachable"}`,
       };
     await sleep(between(random, timing.browserThinkMs) / 2);
-    const fields = claim.input as { id?: unknown };
     const result: BrowserCallResultBody = {
       ...proof,
       toolName: claim.toolName,
       canonicalInput: claim.input,
-      output: {
-        ok: true,
-        id: typeof fields.id === "string" ? fields.id : null,
-      },
+      ...net.run(claim.toolName, claim.input),
     };
     const resulted = await postUntil(
       callPath(toolCallId, "/result"),
