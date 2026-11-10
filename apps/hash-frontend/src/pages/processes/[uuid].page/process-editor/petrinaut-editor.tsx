@@ -21,11 +21,11 @@ import {
 } from "react";
 
 import {
-  canonicalizePetrinautIds,
   createJsonDocHandle,
   type ErrorTracker,
   ErrorTrackerContext,
   isSDCPNEqual,
+  normalizeSDCPN,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
@@ -108,17 +108,14 @@ type EditorSession = {
 };
 
 /**
- * The snapshot with its ids converted, as the handle holds the open net, so
- * dirty tracking compares like with like. Saved nets with legacy ids persist
- * the converted ids on their next save.
+ * The snapshot as the handle holds the open net, with the conversions a load
+ * applies, so dirty tracking compares like with like. A saved net in an
+ * older shape persists the converted one on its next save.
  */
-const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
+const asLoaded = (snapshot: SavedSnapshot): SavedSnapshot =>
   snapshot === null
     ? null
-    : {
-        ...snapshot,
-        definition: canonicalizePetrinautIds(snapshot.definition),
-      };
+    : { ...snapshot, definition: normalizeSDCPN(snapshot.definition) };
 
 /**
  * A new handle, with no `id`, so each load gets a fresh one. A new handle
@@ -135,7 +132,7 @@ const openSession = (load: PetrinautEditorLoad): EditorSession => {
     definition: handle.doc() ?? load.definition,
     title: load.title,
     mode: load.mode,
-    savedSnapshot: withPetrinautIds(load.savedSnapshot),
+    savedSnapshot: asLoaded(load.savedSnapshot),
     savePending: false,
   };
 };

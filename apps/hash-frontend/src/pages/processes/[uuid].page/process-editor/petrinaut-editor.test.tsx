@@ -83,9 +83,9 @@ vi.mock("@hashintel/petrinaut", async () => {
     return null;
   };
   return {
-    canonicalizePetrinautIds: core.canonicalizePetrinautIds,
     createJsonDocHandle: core.createJsonDocHandle,
     isSDCPNEqual: core.isSDCPNEqual,
+    normalizeSDCPN: core.normalizeSDCPN,
     ErrorTrackerContext: errorTrackerContext,
     PetrinautOptimizationContext: createContext(null),
     Petrinaut,
@@ -125,7 +125,10 @@ vi.mock("../../../shared/auth-info-context", () => ({
   useAuthInfo: () => ({ authenticatedUser: { accountId: "alice-account" } }),
 }));
 
-/** A net with a legacy (non-UUID) id, which the handle converts. */
+/**
+ * A net as stored before equations composed: a legacy (non-UUID) id and the
+ * one-equation link, both of which the handle converts.
+ */
 const definition = {
   places: [
     {
