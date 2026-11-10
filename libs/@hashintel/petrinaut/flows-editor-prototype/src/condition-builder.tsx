@@ -1064,7 +1064,7 @@ const ConditionRowView = ({
                 id: candidate.baseUrl,
                 text: candidate.title,
                 selected: candidate.baseUrl === row.propertyBaseUrl,
-                selectedStyle: "tick" as const,
+                selectedStyle: "highlight" as const,
                 onClick: () =>
                   onChange({
                     propertyBaseUrl: candidate.baseUrl,
@@ -1275,7 +1275,7 @@ const Joiner = ({
           id: choice,
           text: choice.toUpperCase(),
           selected: (conjunction ?? "and") === choice,
-          selectedStyle: "tick" as const,
+          selectedStyle: "highlight" as const,
           onClick: () => onPick(choice),
         }))}
         trigger={

@@ -31,7 +31,6 @@ import {
   menuRowStyle,
   menuTimeStyle,
   runArrowStyle,
-  runDropdownDark,
   runPickerStyle,
   useRunView,
 } from "./history-view";
@@ -535,7 +534,6 @@ const RunLikeSwitch = ({
   const at = path.indexOf(current);
   const previous = at > 0 ? path[at - 1] : undefined;
   const next = at < path.length - 1 ? path[at + 1] : undefined;
-  const dark = runDropdownDark();
   const menuTrigger = useRef<HTMLSpanElement>(null);
   const menuOpen = useRef(false);
   const wasOpen = useRef(false);
@@ -628,9 +626,7 @@ const RunLikeSwitch = ({
                     ),
                     suffix: <span className={menuTimeStyle}>{`${total}`}</span>,
                     selected: current === null,
-                    selectedStyle: dark
-                      ? ("highlight" as const)
-                      : ("tick" as const),
+                    selectedStyle: "highlight" as const,
                     onClick: () => pick(null),
                   },
                 ],
@@ -656,9 +652,7 @@ const RunLikeSwitch = ({
                     </span>
                   ) : undefined,
                   selected: current === index,
-                  selectedStyle: dark
-                    ? ("highlight" as const)
-                    : ("tick" as const),
+                  selectedStyle: "highlight" as const,
                   onClick: () => pick(index),
                 })),
               },

@@ -1,8 +1,11 @@
 /**
  * How a branching step shows its paths on the canvas card (inbox `node-paths`, 5 Nov), read from the URL only. With
- * no `?nodepaths=` the card looks as it does today. Each take draws the same paths: Ask a person's Approved and
+ * no `?nodepaths=` the card shows `rows` (picked by Aakarsh, 10 Nov); every other take stays reachable by URL:
+ * `?nodepaths=today|wires|chips|count|pills`. Each take draws the same paths: Ask a person's Approved and
  * Rejected, If's Yes and No, a Switch's cases and Default.
  *
+ * - `rows` (default): see below.
+ * - `today`: the card as it was before the pick: the same rows, every port a hollow ring, connected or not.
  * - `wires`: the card keeps its two lines; the paths leave its right edge, and each wire carries its path's name.
  *   An open path is its name beside a hollow port.
  * - `rows`: Attio's card (ops `research/attio-paths-2026-11-05`). One row per path inside the card, its name
@@ -24,14 +27,23 @@ export type NodePathsTake = "wires" | "rows" | "chips" | "count" | "pills";
 
 const takes: NodePathsTake[] = ["wires", "rows", "chips", "count", "pills"];
 
+/** The URL's take: `rows` with no `?nodepaths=`; `today` (and an unknown value) draws the previous card, so it is null. */
+const urlValue = new URLSearchParams(globalThis.location.search).get(
+  "nodepaths",
+);
+
 const query = new URLSearchParams(globalThis.location.search);
 
-export const nodePathsTake: NodePathsTake | null = (() => {
-  const value = query.get("nodepaths");
-  return takes.find((take) => take === value) ?? null;
-})();
+export const nodePathsTake: NodePathsTake | null =
+  urlValue === null
+    ? "rows"
+    : (takes.find((take) => take === urlValue) ?? null);
 
-export const nodePathsRun = nodePathsTake !== null && query.has("run");
+/** `&run` shows the demo run on a take given in the URL, or on the `node-paths` demo state under the default. */
+export const nodePathsRun =
+  nodePathsTake !== null &&
+  query.has("run") &&
+  (urlValue !== null || query.get("state") === "node-paths");
 
 /** The demo run's choices, by step description: Approved, then No, then Asia. */
 const takenByDescription: Record<string, string> = {

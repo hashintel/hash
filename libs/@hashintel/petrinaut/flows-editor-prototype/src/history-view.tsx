@@ -188,14 +188,6 @@ export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
  * Top bar: All runs, then the run switcher after the title
  * ------------------------------------------------------------------------------------------------------------- */
 
-/**
- * `?rundropdown=dark` (6 Nov sync): the open run has no tick, only the DS selected fill, so the menu shows one mark
- * per row. URL only, never remembered; unset keeps the tick.
- */
-export const runDropdownDark = () =>
-  new URLSearchParams(globalThis.location.search).get("rundropdown") ===
-  "dark";
-
 const runMenuLabel = (run: RunRecord, now: number) => {
   const outcome = outcomeOf(run, now);
   const timedOut =
@@ -298,9 +290,7 @@ export const RunSwitcher = ({
         ),
         suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
         selected: candidate.id === run.id,
-        selectedStyle: runDropdownDark()
-          ? ("highlight" as const)
-          : ("tick" as const),
+        selectedStyle: "highlight" as const,
         onClick: () => history.open(candidate.id),
       })),
   };

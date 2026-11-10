@@ -762,7 +762,7 @@ const figmaStates: ScreenState[] = [
     row: "Branching · 5 Nov",
     title: "Branching · Paths on the canvas card",
     caption:
-      "Ask a person, an If and a Switch with four cases and Default; Africa leads nowhere. Pick a take with ?nodepaths=wires|rows|chips|count|pills, add &run for the run.",
+      "Ask a person, an If and a Switch with four cases and Default; Africa leads nowhere. Rows is the default (picked by Aakarsh, 10 Nov). Other takes: ?nodepaths=today|wires|chips|count|pills (today is the old card, every port a hollow ring); add &run for the run.",
     create: () => ({
       document: nodePathsExample(),
       // Ask a person at the canvas's left edge, 100%: the branching steps fill the canvas.

@@ -519,7 +519,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
         id: `sort:${key}`,
         text: ordersOf(key).label,
         selected: sort.key === key,
-        selectedStyle: "tick" as const,
+        selectedStyle: "highlight" as const,
         keepOpenOnSelect: true,
         onClick: () => setSort({ key, flipped: false }),
       })),
@@ -531,7 +531,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
         id: `order:${index}`,
         text,
         selected: sort.flipped === (index === 1),
-        selectedStyle: "tick" as const,
+        selectedStyle: "highlight" as const,
         keepOpenOnSelect: true,
         onClick: () =>
           setSort((current) => ({ ...current, flipped: index === 1 })),

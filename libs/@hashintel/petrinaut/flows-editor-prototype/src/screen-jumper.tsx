@@ -213,6 +213,39 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                   </button>
                 </span>
               ))}
+              <span data-nodepaths-switch>
+                {" "}
+                · Branching paths on the card:
+                {(
+                  ["rows", "today", "wires", "chips", "pills", "count"] as const
+                ).map((id) => (
+                  <span key={id}>
+                    {" "}
+                    <button
+                      type="button"
+                      className={css({
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                        "&[aria-pressed=true]": { fontWeight: "semibold" },
+                      })}
+                      aria-pressed={
+                        (new URLSearchParams(globalThis.location.search).get(
+                          "nodepaths",
+                        ) ?? "rows") === id
+                      }
+                      data-nodepaths={id}
+                      onClick={() => {
+                        // The take is read when the page loads, so switching reloads with the URL param set.
+                        const url = new URL(globalThis.location.href);
+                        url.searchParams.set("nodepaths", id);
+                        globalThis.location.assign(url);
+                      }}
+                    >
+                      {id === "rows" ? "rows (default)" : id}
+                    </button>
+                  </span>
+                ))}
+              </span>
             </span>
           </div>
           <div className={css({ overflowY: "auto", paddingY: "1" })}>
