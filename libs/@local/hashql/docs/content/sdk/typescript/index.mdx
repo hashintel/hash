@@ -1,0 +1,30 @@
+---
+title: TypeScript SDK
+description: Construct HashQL programs in TypeScript, build a query and look up an API.
+---
+
+The TypeScript SDK constructs HashQL programs from typed expressions. Start with the Draft guide to learn the builders, or follow the worked query if you want to assemble a graph query first.
+
+## Learn the language
+
+Start with [Introduction to HashQL](/docs/hashql/intro) for the language's type system, expressions and special forms. The examples show TypeScript, functional notation and reference notation side by side.
+
+Already comfortable with Rust, Python or TypeScript? Use the [cheatsheet](/docs/hashql/sdk/typescript/cheatsheet) to connect familiar constructs to their HashQL counterparts. Choose either language independently, then open the differences where an analogy stops holding.
+
+## Use the TypeScript SDK
+
+[Using the Draft SDK](/docs/hashql/sdk/typescript/using-draft) explains how the construction context, prelude, expression accessors and combinators work together. Build a small task summary, reuse it through TypeScript helpers, and serialize the resulting program.
+
+## Build something useful
+
+[Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) builds a release briefing. Start with the tasks in a graph, narrow them to one release, and return unfinished, blocked and unassigned work in one result. The guide includes executable construction checkpoints and separates them from the extensions that need more implementation.
+
+## Find the problem
+
+[When a query doesn't work](/docs/hashql/sdk/typescript/troubleshooting) helps distinguish TypeScript errors, SDK construction failures and execution problems. It covers host-language conditionals, stale references, filter scope and schema declarations.
+
+## Look up an API
+
+The [TypeScript API reference](/docs/hashql/sdk/typescript/reference) is generated from the SDK. Use it for signatures, type relationships and the precise contract of a method. [Draft](/docs/hashql/sdk/typescript/reference/hashql/Draft) is the starting point for the construction style used in these guides.
+
+For the compiler, query placement and execution model, read [HashQL's technical explanation](https://hgres.org/hashql).
