@@ -15,7 +15,9 @@ Here is a compact example Petrinaut document demonstrating coloured tokens, stoc
         "description": "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         "colorId": "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         "dynamicsEnabled": true,
-        "differentialEquationId": "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
+        "dynamics": [
+          { "differentialEquationId": "1a2b3c4d-5e6f-7890-abcd-1234567890ab" }
+        ],
         "visualizerCode": "export default Visualization(({ tokens, parameters }) => {\n  const { satellite_radius, planet_radius } = parameters;\n\n  const width = 800;\n  const height = 600;\n\n  const centerX = width / 2;\n  const centerY = height / 2;\n\n  return (\n    <svg\n      viewBox={`0 0 ${width} ${height}`}\n      style={{ borderRadius: \"4px\", width: \"100%\" }}\n    >\n      {/* Background */}\n      <rect width={width} height={height} fill=\"#000014\" />\n\n      {/* Planet at center */}\n      <circle\n        cx={centerX}\n        cy={centerY}\n        r={planet_radius}\n        fill=\"#2196f3\"\n        stroke=\"#1976d2\"\n        strokeWidth=\"2\"\n      />\n\n      {/* Satellites */}\n      {tokens.map(({ x, y, direction, velocity }, index) => {\n        // Convert satellite coordinates to screen coordinates\n        // Assuming satellite coordinates are relative to planet center\n        const screenX = centerX + x;\n        const screenY = centerY + y;\n\n        return (\n          <g key={index}>\n            {/* Satellite */}\n            <circle\n              cx={screenX}\n              cy={screenY}\n              r={satellite_radius}\n              fill=\"#ff5722\"\n              stroke=\"#d84315\"\n              strokeWidth=\"1\"\n            />\n\n            {/* Velocity vector indicator */}\n            {velocity > 0 && (\n              <line\n                x1={screenX}\n                y1={screenY}\n                x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}\n                y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}\n                stroke=\"#ffc107\"\n                strokeWidth=\"2\"\n                markerEnd=\"url(#arrowhead)\"\n              />\n            )}\n          </g>\n        );\n      })}\n\n      {/* Arrow marker for velocity vectors */}\n      <defs>\n        <marker\n          id=\"arrowhead\"\n          markerWidth=\"8\"\n          markerHeight=\"8\"\n          refX=\"7\"\n          refY=\"4\"\n          orient=\"auto\"\n          markerUnits=\"strokeWidth\"\n        >\n          <polygon\n            points=\"0 0, 8 4, 0 8\"\n            fill=\"#ffc107\"\n            stroke=\"#f57f17\"\n            strokeWidth=\"0.5\"\n          />\n        </marker>\n      </defs>\n    </svg>\n  );\n});",
         "x": 15,
         "y": 90
@@ -26,7 +28,6 @@ Here is a compact example Petrinaut document demonstrating coloured tokens, stoc
         "description": "Defunct objects left by collisions and crashes, frozen at the point of impact with zero velocity.",
         "colorId": "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         "dynamicsEnabled": false,
-        "differentialEquationId": null,
         "x": 540,
         "y": 90
       }
@@ -132,7 +133,8 @@ Here is a compact example Petrinaut document demonstrating coloured tokens, stoc
         "id": "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
         "colorId": "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         "name": "Satellite Orbit Dynamics",
-        "code": "// Example of ODE for Satellite in orbit (simplified)\nconst mu = parameters.gravitational_constant; // Gravitational parameter\n\n// Process each token (satellite)\nreturn tokens.map(({ x, y, direction, velocity }) => {\n  const r = Math.hypot(x, y); // Distance to planet center\n\n  // Gravitational acceleration vector (points toward origin)\n  const ax = (-mu * x) / (r * r * r);\n  const ay = (-mu * y) / (r * r * r);\n\n  // Return derivatives for this token\n  return {\n    x: velocity * Math.cos(direction),\n    y: velocity * Math.sin(direction),\n    direction:\n      (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,\n    velocity:\n      ax * Math.cos(direction) + ay * Math.sin(direction),\n  }\n})"
+        "arity": 1,
+        "code": "// Example of ODE for one satellite in orbit (simplified)\nconst mu = parameters.gravitational_constant; // Gravitational parameter\n\nconst [satellite] = tokens;\nconst { x, y, direction, velocity } = satellite;\nconst r = Math.hypot(x, y); // Distance to planet center\n\n// Gravitational acceleration vector (points toward origin)\nconst ax = (-mu * x) / (r * r * r);\nconst ay = (-mu * y) / (r * r * r);\n\n// Return the derivatives of this satellite\nreturn {\n  x: velocity * Math.cos(direction),\n  y: velocity * Math.sin(direction),\n  direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,\n  velocity: ax * Math.cos(direction) + ay * Math.sin(direction),\n};"
       }
     ],
     "parameters": [

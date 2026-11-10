@@ -422,7 +422,6 @@ test("a call claimed in one editor never runs in a replacement with identical co
     name: "Queue",
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };
