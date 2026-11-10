@@ -14,9 +14,9 @@
  * UUID. The run picker and its menu rows show the ID without a copy control, since the whole
  * control already opens the menu.
  */
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, type PointerEvent, useEffect, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CODE_FONT_FAMILY } from "../../src/ui/constants/fonts";
@@ -43,9 +43,12 @@ export const monoSpecs: Record<RunIdMonoTake, MonoSpec> = {
 };
 
 export const runIdMonoTake = (): RunIdMonoTake | null => {
-  const value = new URLSearchParams(globalThis.location.search).get(
-    "runidmono",
-  );
+  const query = new URLSearchParams(globalThis.location.search);
+  const value = query.get("runidmono");
+  // The copy takes hold the styling at a.
+  if (!value && runIdCopyTake()) {
+    return "a";
+  }
   if (value === "c") {
     return "a";
   }
@@ -93,6 +96,129 @@ const clickCopyStyle = css({
   },
 });
 
+/**
+ * `?runidcopy=h1|h2|h4|h1t` (inbox run-id-mono; Aakarsh, 10 Nov: click opens the run, copy is the hover icon only).
+ * Styling stays at take a. A click anywhere on the row, the ID included, opens the run; only the icon copies.
+ * h1 · the icon right after the ID, shown while the row is hovered; its space is kept, so nothing shifts.
+ * h2 · the same icon, shown only while the ID itself is hovered.
+ * h4 · on row hover the ID gets a faint chip with the icon inside it.
+ * h1t · h1, with the "Copied run ID 2C07" toast after copying instead of the tick.
+ * After copying (h1, h2, h4) the icon turns into a tick for 1.5 s and its tooltip reads "Copied".
+ */
+export type RunIdCopyTake = "h1" | "h2" | "h4" | "h1t";
+
+export const runIdCopyTake = (): RunIdCopyTake | null => {
+  const value = new URLSearchParams(globalThis.location.search).get(
+    "runidcopy",
+  );
+  return value === "h1" || value === "h2" || value === "h4" || value === "h1t"
+    ? value
+    : null;
+};
+
+const hoverWrapStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "[2px]",
+  verticalAlign: "middle",
+  borderRadius: "md",
+  "& [data-copy-id]": { opacity: "0", transition: "[opacity 120ms ease]" },
+  "& [data-copy-id]:focus-visible, & [data-copy-id][data-copied]": { opacity: "1" },
+  "&[data-take=h1] , &[data-take=h1t]": {
+    ":is(tr, [role=menuitem], [data-highlighted], [data-run-id-row]):hover &": { "& [data-copy-id]": { opacity: "1" } },
+  },
+  "&[data-take=h2]:hover [data-copy-id]": { opacity: "1" },
+  // A row that opens the run: a Logs table row, a run dropdown row, the run panel header.
+  // h4: the chip's padding is always there, so the text never moves; only its fill comes in.
+  "&[data-take=h4]": {
+    paddingLeft: "[4px]",
+    marginLeft: "[-4px]",
+    transition: "[background-color 120ms ease]",
+    ":is(tr, [role=menuitem], [data-highlighted], [data-run-id-row]):hover &": {
+      // One alpha step over whatever the row's hover fill is, so the chip reads on a grey row and a white one.
+      backgroundColor: "neutral.a10",
+      "& [data-copy-id]": { opacity: "1" },
+      "& [data-copy-id]:hover": { backgroundColor: "neutral.a10" },
+    },
+  },
+});
+
+const hoverButtonStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  width: "[20px]",
+  height: "[20px]",
+  padding: "[0]",
+  border: "none",
+  borderRadius: "sm",
+  background: "[transparent]",
+  color: "neutral.fg.subtle",
+  cursor: "pointer",
+  "& svg": { width: "[14px !important]", height: "[14px !important]" },
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.subtle" },
+});
+
+/** The copy-take ID: the text, then the icon button; only the button copies. */
+const HoverCopyId = ({
+  text,
+  uuid,
+  take,
+  style,
+}: {
+  text: string;
+  uuid: string;
+  take: RunIdCopyTake;
+  style: React.CSSProperties;
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!copied) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  // The menu and the row act on pointer down and up as well as click, so the icon keeps all three to itself.
+  const keep = (event: MouseEvent | PointerEvent) => {
+    event.stopPropagation();
+  };
+  return (
+    <span className={hoverWrapStyle} data-take={take} data-run-id-mono="a" data-run-id-copy={take}>
+      <span style={style}>{text}</span>
+      <Tooltip content={copied ? "Copied" : "Copy run ID"} position="top" openDelay="fast">
+        <button
+          type="button"
+          className={hoverButtonStyle}
+          aria-label={`Copy run ID ${text}`}
+          data-copy-id
+          data-copied={copied || undefined}
+          onPointerDown={keep}
+          onPointerUp={keep}
+          onMouseDown={keep}
+          onMouseUp={keep}
+          onClick={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            copyText(uuid);
+            if (take === "h1t") {
+              setToast(`Copied run ID ${text}`);
+            } else {
+              setCopied(true);
+            }
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Icon name={copied ? "check" : "copy"} size="xs" />
+        </button>
+      </Tooltip>
+      {toast ? <Toast text={toast} onDone={() => setToast(null)} /> : null}
+    </span>
+  );
+};
+
 const copyText = (text: string) => {
   void navigator.clipboard?.writeText(text).catch(() => undefined);
 };
@@ -133,6 +259,10 @@ export const MonoRunId = ({
         {text}
       </span>
     );
+  }
+  const copyTake = runIdCopyTake();
+  if (copyTake) {
+    return <HoverCopyId text={text} uuid={uuid} take={copyTake} style={style} />;
   }
   if (spec.copy === "icon") {
     return (

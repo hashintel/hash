@@ -561,6 +561,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
     >
       <div className={summaryStyle}>
         <div
+          data-run-id-row
           className={css({
             display: "flex",
             alignItems: "center",

@@ -14,6 +14,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { runIdMono, runIdStyled, RunIdText, runLabel } from "./run-id";
+import { runIdCopyTake } from "./run-id-mono";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
@@ -286,7 +287,7 @@ export const RunSwitcher = ({
             <span>
               {runIdStyled() ? (
                 <>
-                  <RunIdText run={candidate} prefix />
+                  <RunIdText run={candidate} prefix copyable={runIdCopyTake() !== null} />
                   {runMenuLabel(candidate, now).slice(runLabel(candidate).length)}
                 </>
               ) : (
