@@ -4,11 +4,11 @@
   "root": true,
   "pages": [
     "index",
+    "[Intro to HashQL](/docs/hashql/intro)",
     "using-draft",
     "writing-a-query",
     "cheatsheet",
     "troubleshooting",
-    "reference",
-    "[Intro to HashQL](/docs/hashql/intro)"
+    "reference"
   ]
 }
