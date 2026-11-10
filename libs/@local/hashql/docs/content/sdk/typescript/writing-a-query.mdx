@@ -450,11 +450,26 @@ Each closure tests whether a vertex satisfies the filter's condition. If it does
 
 ### Name the properties with construction-time macros
 
-That's a lot of code, especially with the long property URLs used in [SemType]. We can make it easier to read by defining helper functions using [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's start with a helper function that creates a [`VersionedUrl`]:
+That's a lot of code, especially with the long property URLs used in [SemType]. We can make it easier to read by defining helper functions using [construction-time macros](/docs/hashql/sdk/typescript/using-draft#construction-time-macros). Let's start with a helper function that creates a `VersionedUrl`:
 
-```ts title="VersionedUrl helper" data-example="fields"
-const versionedUrl = ($, baseUrl: string, version: string) => todo();
+```ts title="VersionedUrl helper" data-example="versioned-url"
+const versionedUrl = <I>(
+  $: Draft.Body.Context<Program.Prelude.Builtin, I>,
+  baseUrl: string,
+  version: string,
+) => {
+  const { Url } = $.prelude();
+  const { BaseUrl, OntologyTypeVersion, VersionedUrl } =
+    $.modules().graph.modules.types.modules.ontology.values;
+
+  return VersionedUrl({
+    base_url: BaseUrl(Url(baseUrl)),
+    version: OntologyTypeVersion(version),
+  });
+};
 ```
+
+The helper uses the module's exports directly, so it doesn't introduce any local HashQL names. Its context type follows the [context helpers](/docs/hashql/sdk/typescript/using-draft#passing-a-context) from the SDK guide. The helper does not modify the input requirements `I` in any way, therefore it is fully generic.
 
 We can go one step further. The SDK builds a program for later execution rather than evaluating the query itself, so we can also use reusable helper functions to make the property traversal paths more readable:
 
@@ -482,8 +497,13 @@ Let's add `versionedUrl` and `taskFields` before `briefing`, then update the que
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="release-macro"
 const briefing = Draft.program(
   { axis: axes, release: String },
-  ($, { axis, release }) =>
-    $.query
+  ($, { axis, release }) => {
+    const { VersionedUrl } = $.import(
+      $.modules().graph.modules.types.modules.ontology,
+      ["VersionedUrl"],
+    );
+
+    return $.query
       .entities(axis)
       .filter("vertex", ($, vertex) =>
         $.eq(
@@ -494,27 +514,39 @@ const briefing = Draft.program(
         ),
       )
       .filter("task", ($, task) => $.eq(taskFields(task).release, release))
-      .collect(),
+      .collect();
+  },
 );
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
-(let release (input release String)
-  (collect
-    (filter
-      (filter (entities (input axis QueryTemporalAxes))
-        (fn () (vertex: _) Boolean
-          (eq vertex.metadata.entity_type_ids [taskType])))
-      (fn () (task: _) Boolean
-        (eq task.release release)))))
+(use ::graph::types::ontology *
+  (let release (input release String)
+    (collect
+      (filter
+        (filter (entities (input axis QueryTemporalAxes))
+          (fn () (vertex: _) Boolean
+            (eq vertex.metadata.entity_type_ids
+              [(VersionedUrl
+                (base_url: (BaseUrl (Url "https://example.com/types/entity-type/task/")),
+                 version: (OntologyTypeVersion "1")))])))
+        (fn () (task: _) Boolean
+          (eq task.release release))))))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
-let release = input(release, String) in
-head::entities(input(axis, QueryTemporalAxes))
-  |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
-  |> body::filter((task) -> task.release == release)
-  |> tail::collect
+use(::graph::types::ontology, *,
+  let release = input(release, String) in
+  head::entities(input(axis, QueryTemporalAxes))
+    |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [
+      VersionedUrl((
+        base_url: BaseUrl(Url("https://example.com/types/entity-type/task/")),
+        version: OntologyTypeVersion("1")
+      ))
+    ])
+    |> body::filter((task) -> task.release == release)
+    |> tail::collect
+)
 ```
 
 This is what makes the TypeScript SDK powerful: rather than replacing TypeScript, it works with it. Most things you can do in TypeScript can also be expressed in HashQL. For example, `versionedUrl` and `taskFields` could both be HashQL closures, but they don't have to be. You choose which language makes the most sense for each part of your program.
@@ -527,11 +559,19 @@ We can do this through composition. First, we'll define a query for the release'
 
 <Callout>
 
-This sends the same query three times, which is not ideal. H-XXX tracks support for additional tails, including reduction operations, that would allow us to produce the briefing in a single query.
+This queries the graph three times, once for each collection. The database queries share the release selection, but the compiler doesn't yet coalesce them, so they repeat that work. A reduction tail would let us accumulate all three lists in one graph query instead. Support for that tail is tracked in [BE-535][query-reduce].
 
 </Callout>
 
+Keep the `Draft.program` declaration and its `VersionedUrl` import. Inside its callback, replace the returned query with these bindings and the final return:
+
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="briefing"
+const taskType = versionedUrl(
+  $,
+  "https://example.com/types/entity-type/task/",
+  "1",
+);
+
 const releaseTasks = $.let(
   "releaseTasks",
   $.query
@@ -573,8 +613,19 @@ These examples cover the language's current querying capabilities. Planned addit
 
 Queries in HashQL all follow the same pattern: a head starts a graph computation, the body refines it with predicates, and the tail evaluates the graph effect to materialise the results. Bindings let us reuse selections and query fragments across related questions, while inputs let us ask those questions with different values.
 
-For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see Bilal Mahmoud's Diplomarbeit.
+For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see [Bilal Mahmoud's Diplomarbeit](https://hgres.org/hashql).
 
+[Using the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
+[intro to the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
+[`Program`]: /docs/hashql/sdk/typescript/reference/hashql/Program
+[J-Expr]: /docs/hashql/sdk/typescript/reference/hashql/JExpr
+[`Result`]: https://effect.website/docs/v4/api/effect/Result
+[Effect documentation]: https://effect.website/docs/v4/api/effect/Result
+[SemType]: https://semtype.org/spec
+[unknown]: /docs/hashql/intro#type-lattice
+[map-reduce pattern]: https://en.wikipedia.org/wiki/MapReduce
+[cheatsheet]: /docs/hashql/sdk/typescript/cheatsheet
+[Draft API reference]: /docs/hashql/sdk/typescript/reference/hashql/Draft
 [`Boolean`]: https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1
 [query-temporal-axes]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#QueryTemporalAxes
 [graph-type]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#Graph
@@ -582,11 +633,12 @@ For a comparative view of the examples, take a look at the [cheatsheet]. The [Dr
 [query-filter]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.filter
 [query-collect]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.collect
 [context-query]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.query
-[`Program.compile`]: /docs/hashql/sdk/typescript/reference/hashql/Program#compile
+[program-compile]: /docs/hashql/sdk/typescript/reference/hashql/Program#compile
+[query-reduce]: https://linear.app/hash/issue/BE-535
 [construction-failures]: /docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure
-[library-declarations]: https://linear.app/hash/issue/BE-1013/generate-sdk-module-declarations-from-the-hashql-standard-library
-[graph-heads]: https://linear.app/hash/issue/BE-529/extend-graph-query-heads
-[aggregate-emission]: https://linear.app/hash/issue/BE-682/emit-aggregate-sql-for-collection-operations
+[library-declarations]: https://linear.app/hash/issue/BE-1013
+[graph-heads]: https://linear.app/hash/issue/BE-529
+[aggregate-emission]: https://linear.app/hash/issue/BE-682
 [collection-membership]: https://linear.app/hash/issue/BE-659
 [untyped-properties]: https://linear.app/hash/issue/BE-49
 [polymorphic-core]: https://linear.app/hash/issue/BE-645
