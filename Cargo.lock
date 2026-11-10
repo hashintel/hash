@@ -7062,6 +7062,7 @@ dependencies = [
  "mimalloc",
  "serde",
  "simple-mermaid",
+ "tokio",
  "type-system",
  "uuid",
 ]
