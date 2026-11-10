@@ -7,7 +7,7 @@
 const TOKENS = "tokens";
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-const WORD = /\b[A-Za-z_$][\w$]*\b/g;
+const WORD = /(?<![\w$])[A-Za-z_$][\w$]*/g;
 const OPENERS: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
 const CLOSERS = new Set(Object.values(OPENERS));
 
@@ -108,8 +108,33 @@ const hasTopLevelComma = (masked: string): boolean => {
   return false;
 };
 
+/** How many times the identifier `word` occurs in the masked text. */
 const countWord = (masked: string, word: string): number =>
-  (masked.match(new RegExp(`\\b${word}\\b`, "g")) ?? []).length;
+  (masked.match(WORD) ?? []).filter((found) => found === word).length;
+
+/** Whether nothing but an optional `;` and white space is left. */
+const endsStatement = (masked: string): boolean => {
+  const rest = masked.trim();
+  return rest === "" || rest === ";";
+};
+
+/** The position of the nearest non-blank character before `index`, or -1. */
+const solidBefore = (masked: string, index: number): number => {
+  let at = index - 1;
+  while (at >= 0 && masked[at]!.trim() === "") {
+    at -= 1;
+  }
+  return at;
+};
+
+/** The position of the first non-blank character from `index` on. */
+const solidFrom = (masked: string, index: number): number => {
+  let at = index;
+  while (at < masked.length && masked[at]!.trim() === "") {
+    at += 1;
+  }
+  return at;
+};
 
 /**
  * Removes the indentation the lines after the first share, so text lifted
@@ -130,9 +155,9 @@ const dedent = (text: string): string => {
 };
 
 /** A region of code and its masked twin, kept in step. */
-type Body = { text: string; masked: string };
+type MaskedCode = { text: string; masked: string };
 
-const slice = (body: Body, from: number, to: number): Body => ({
+const slice = (body: MaskedCode, from: number, to: number): MaskedCode => ({
   text: body.text.slice(from, to),
   masked: body.masked.slice(from, to),
 });
@@ -146,7 +171,9 @@ const MODULE_HEADER =
  * body itself when it is one already. Null for a module whose callback
  * renames its parameters or is not that call.
  */
-const asBareBody = (body: Body): { leading: string; body: Body } | null => {
+const asBareBody = (
+  body: MaskedCode,
+): { leading: string; body: MaskedCode } | null => {
   const header = MODULE_HEADER.exec(body.masked);
   if (header === null) {
     return /\bexport\b/.test(body.masked) ? null : { leading: "", body };
@@ -156,10 +183,7 @@ const asBareBody = (body: Body): { leading: string; body: Body } | null => {
   const callOpen = body.masked.indexOf("(", header[0].indexOf("Dynamics"));
   const callClose = matchClose(body.masked, callOpen);
   const bodyStart = header[0].length;
-  if (
-    callClose === null ||
-    !/^\s*;?\s*$/.test(body.masked.slice(callClose + 1))
-  ) {
+  if (callClose === null || !endsStatement(body.masked.slice(callClose + 1))) {
     return null;
   }
   if (body.masked[bodyStart] === "{") {
@@ -186,7 +210,7 @@ type Callback = {
   /** The token parameter: a name, an object pattern, or none. */
   parameter:
     | { kind: "name"; name: string }
-    | { kind: "pattern"; pattern: Body }
+    | { kind: "pattern"; pattern: MaskedCode }
     | null;
   /** The callback's own statements, or the expression it returns. */
   body: { kind: "block" | "expression"; text: string; masked: string };
@@ -195,7 +219,7 @@ type Callback = {
 const ARROW = /^\s*(?:\(([\s\S]*?)\)|([A-Za-z_$][\w$]*))\s*=>\s*/;
 
 /** The arrow function `tokens.map` is called with, or null when it is not one. */
-const parseCallback = (args: Body): Callback | null => {
+const parseCallback = (args: MaskedCode): Callback | null => {
   if (hasTopLevelComma(args.masked)) {
     return null;
   }
@@ -275,26 +299,25 @@ const parseCallback = (args: Body): Callback | null => {
   };
 };
 
-const escapeRegExp = (text: string): string =>
-  text.replace(/[$^.*+?()[\]{}|\\]/g, "\\$&");
-
 /**
- * Whether the callback body reads the local `name`: an occurrence that is
- * neither a property access nor the key of an object literal entry.
+ * Whether the code reads or declares the local `name`: an occurrence that
+ * is neither a property access nor the key of an object literal entry.
  */
-const isReferenced = (bodyMasked: string, name: string): boolean => {
-  const word = escapeRegExp(name);
-  const occurrences = bodyMasked.match(
-    new RegExp(`(?<![.\\w$])${word}\\b`, "g"),
-  );
-  const keys = bodyMasked.match(
-    new RegExp(`(?<=[{,]\\s*)${word}(?=\\s*:)`, "g"),
-  );
-  return (occurrences?.length ?? 0) > (keys?.length ?? 0);
-};
+const isReferenced = (masked: string, name: string): boolean =>
+  [...masked.matchAll(WORD)].some(({ 0: word, index }) => {
+    if (word !== name) {
+      return false;
+    }
+    const before = solidBefore(masked, index);
+    const isProperty = masked[before] === "." && masked[before - 1] !== ".";
+    const isKey =
+      (masked[before] === "{" || masked[before] === ",") &&
+      masked[solidFrom(masked, index + name.length)] === ":";
+    return !isProperty && !isKey;
+  });
 
 /** The elements of an object pattern, split on the commas between them. */
-const patternElements = (pattern: Body): string[] => {
+const patternElements = (pattern: MaskedCode): string[] => {
   const elements: string[] = [];
   let depth = 0;
   let start = 1;
@@ -330,7 +353,10 @@ const boundName = (element: string): string | null => {
  * The object pattern without the names the callback never reads, so the
  * binding does not introduce unused locals; null when nothing is read.
  */
-const readPattern = (pattern: Body, bodyMasked: string): string | null => {
+const readPattern = (
+  pattern: MaskedCode,
+  bodyMasked: string,
+): string | null => {
   const elements = patternElements(pattern);
   const read = elements.filter((element) => {
     const name = boundName(element);
@@ -341,6 +367,49 @@ const readPattern = (pattern: Body, bodyMasked: string): string | null => {
   }
   return read.length === 0 ? null : `{ ${read.join(", ")} }`;
 };
+
+const DECLARATION = /(?<![\w$.])(?:const|let|var)\s/g;
+
+/**
+ * Every identifier in the heads of the block's `const`, `let` and `var`
+ * declarations: the text between the keyword and its `=`. Covers the names
+ * a destructuring pattern binds, and over-counts the names its defaults
+ * read.
+ */
+const declaredNames = (masked: string): string[] =>
+  [...masked.matchAll(DECLARATION)].flatMap((declaration) => {
+    const start = declaration.index + declaration[0].length;
+    let depth = 0;
+    let end = start;
+    for (; end < masked.length; end += 1) {
+      const char = masked[end]!;
+      if (char in OPENERS) {
+        depth += 1;
+      } else if (CLOSERS.has(char)) {
+        depth -= 1;
+      } else if (depth === 0 && (char === "=" || char === ";")) {
+        break;
+      }
+    }
+    return masked.slice(start, end).match(WORD) ?? [];
+  });
+
+/** The names an object pattern binds; every word of a nested pattern. */
+const patternNames = (pattern: MaskedCode): string[] =>
+  patternElements(pattern).flatMap((element) => {
+    const name = boundName(element);
+    return name === null ? (element.match(WORD) ?? []) : [name];
+  });
+
+/** The names the callback binds: its token parameter and its own locals. */
+const callbackNames = ({ parameter, body }: Callback): string[] => [
+  ...(parameter === null
+    ? []
+    : parameter.kind === "name"
+      ? [parameter.name]
+      : patternNames(parameter.pattern)),
+  ...(body.kind === "block" ? declaredNames(body.masked) : []),
+];
 
 /** A local name for the one token that the code does not use yet. */
 const freshTokenName = (masked: string): string => {
@@ -387,7 +456,8 @@ const RETURN_MAP = /\breturn\s+tokens\s*\.\s*map\s*\(/g;
  *
  * Returns null when the code is not that form, or when the rewrite would
  * change its meaning: a callback that reads the index, another read of
- * `tokens`, a `return` before the map, or a second argument to `map`. Such
+ * `tokens`, a `return` before the map, a second argument to `map`, or a
+ * callback local that shares its name with one used before the return. Such
  * code keeps its text and the editor's diagnostics ask for the one-token
  * form.
  */
@@ -408,14 +478,16 @@ export const migrateWholePlaceDynamicsCode = (code: string): string | null => {
   }
   const callOpen = match.index + match[0].length - 1;
   const callClose = matchClose(body.masked, callOpen);
-  if (
-    callClose === null ||
-    !/^\s*;?\s*$/.test(body.masked.slice(callClose + 1))
-  ) {
+  if (callClose === null || !endsStatement(body.masked.slice(callClose + 1))) {
     return null;
   }
   const callback = parseCallback(slice(body, callOpen + 1, callClose));
-  if (callback === null) {
+  if (
+    callback === null ||
+    // Lifted beside the statements before the return, a name the callback
+    // binds would be declared twice in one scope.
+    callbackNames(callback).some((name) => isReferenced(prefix.masked, name))
+  ) {
     return null;
   }
 

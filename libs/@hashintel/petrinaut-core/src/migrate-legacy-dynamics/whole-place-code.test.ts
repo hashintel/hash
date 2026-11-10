@@ -223,7 +223,37 @@ return {
       "return tokens.map(function (t) { return { x: t.x }; });",
     ],
     ["an unbalanced body", "return tokens.map((t) => ({ x: );"],
+    [
+      "a callback local declared before the return too",
+      "const k = parameters.k;\nreturn tokens.map(({ x }) => {\n  const k = 2;\n  return { x: -k * x };\n});",
+    ],
+    [
+      "a token field named like a local before the return",
+      "const x = parameters.x;\nreturn tokens.map(({ x }) => ({ x: -x }));",
+    ],
+    [
+      "code after a long run of spaces",
+      `return tokens.map((t) => ({ x: t.x }))${" ".repeat(60_000)}x`,
+    ],
   ])("leaves %s alone", (_label, code) => {
     expect(migrateWholePlaceDynamicsCode(code)).toBeNull();
+  });
+
+  it("lifts a callback whose local shares its name with a property read before the return", () => {
+    expect(
+      migrateWholePlaceDynamicsCode(
+        "const rate = parameters.k;\nreturn tokens.map(({ x }) => {\n  const k = rate * 2;\n  return { x: -k * x };\n});",
+      ),
+    ).toBe(
+      "const rate = parameters.k;\nconst [token] = tokens;\nconst { x } = token;\nconst k = rate * 2;\nreturn { x: -k * x };",
+    );
+  });
+
+  it("binds a token that is only spread", () => {
+    expect(
+      migrateWholePlaceDynamicsCode(
+        "return tokens.map((t) => ({ ...t, x: 1 }));",
+      ),
+    ).toBe("const [t] = tokens;\nreturn { ...t, x: 1 };");
   });
 });
