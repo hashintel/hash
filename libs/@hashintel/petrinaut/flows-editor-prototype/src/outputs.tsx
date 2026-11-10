@@ -267,9 +267,13 @@ export const useStarCopy = (): StarCopy | null => {
  */
 export type RunStars = "a" | "b";
 
+// Picked B (Aakarsh, 10 Nov): card star only. ?runstars=a compares; ?runstars=today shows the old faint outline.
 export const useRunStars = (): RunStars | null => {
   const value = useLocation().query.get("runstars");
-  return value === "a" || value === "b" ? value : null;
+  if (value === "today") {
+    return null;
+  }
+  return value === "a" ? "a" : "b";
 };
 
 const starTipLineStyle = css({ display: "block", opacity: "[0.7]" });
