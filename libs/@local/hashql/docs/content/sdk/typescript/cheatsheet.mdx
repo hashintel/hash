@@ -1,186 +1,253 @@
 ---
 title: HashQL cheatsheet
-description: HashQL values and special forms, with Draft constructors and comparisons to Rust, Python and TypeScript.
+description: HashQL values, types and special forms in TypeScript (Draft), functional notation, reference notation and J-Expr, compared with TypeScript, Rust and Python.
 ---
 
 This guide is a quick reference for HashQL constructs across implementations. For each construct, you can view the equivalent in Rust, Python or TypeScript.
 
 The [literal value cheatsheet](#literal) covers the construction of values in HashQL, while the [common program patterns cheatsheet](#control-flow) covers control flow constructs and special forms.
 
-Each example is a complete program that you can run yourself to verify the output. For convenience, the cheatsheet also shows each program’s result. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
+The TypeScript, Rust and Python tabs show either a program that you can run yourself to verify the output, or type declarations. Each runnable Draft example prints the J-Expr in the tab beside it. The functional and reference notations are illustrative, so the result shown for HashQL is the one the language specifies, written in reference notation. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
 
 ## At a glance [#at-a-glance]
 
-| Form                  | Reference notation     | Functional notation   | Typescript SDK                              |
+| Form                  | Reference notation     | Functional notation   | TypeScript SDK                              |
 | --------------------- | ---------------------- | --------------------- | ------------------------------------------- |
-| [`struct`](#struct)   | `(x: T)`               | `(x: T)`              | `Program.Structural.struct({ x: T })`       |
+| [`struct`](#struct)   | `(x: e)`               | `(x: e)`              | `Program.Structural.struct({ x: e })`       |
+| [`tuple`](#tuple)     | `(a, b)`               | `(a, b)`              | `Program.Structural.tuple([a, b])`          |
+| [`list`](#list)       | `[a, b]`               | `[a, b]`              | `Program.Structural.list(T, [a, b])`        |
+| [`dict`](#dict)       | `{k: v}`               | `{k: v}`              | `Program.Structural.dict(K, V, [[k, v]])`   |
 | [`let`](#let)         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                             |
 | [`if`](#if)           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                   |
 | [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
-| [`fn`](#fn)           | `(x: T): R -> e`       | `(fn [] {x: T} R e)`  | Not available                               |
-| [`use`](#use)         | `use(path, {a: b}, e)` | `(use path {a: b} e)` | `$.import(module, { a: "b" })`              |
+| [`fn`](#fn)           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                               |
+| [`use`](#use)         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`              |
 | [`access`](#access)   | `e.field`, `e.0`       | ``(`.` e field)``     | `e.field`, `e[0]`                           |
 | [`index`](#index)     | `e[i]`                 | `(index e i)`         | `e.$index(i)`                               |
 | [`as`](#as)           | `e as T`               | `(as e T)`            | Not available                               |
 | [`type`](#type)       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                            |
 | [`newtype`](#newtype) | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                         |
 
-## Literals write values [#literals]
+## Values and types [#literal]
 
-HashQL has integers, numbers, strings, Booleans and `null`. A tuple holds values of different types in fixed positions.
+HashQL's primitive types are `Integer`, `Number`, `String`, `Boolean` and `Null`. Structs and tuples are static collections, with a fixed set of fields or positions that each have their own type. Lists and dictionaries are dynamic collections of any size. Every member of a list shares one element type, and every entry of a dictionary one key type and one value type.
+
+In Draft, you write a value as `2n`, `2.5`, `"two"`, `true` or `null`, and its type as `BigInt`, `Number`, `String`, `Boolean` or `$.prelude().Null`. A `bigint` becomes an `Integer` and a `number` a `Number`, so Draft keeps the distinction HashQL makes.
+
+### Primitive literals [#literals]
+
+Each line is a separate program whose value is its literal. `2` is an `Integer` and `2.5` is a `Number`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+console.log(2n);
+console.log(2.5);
+console.log("two");
+console.log(true);
+console.log(null);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
-    // [!code focus:1]
-    let value = (2_i64, 2.5_f64, "two", true);
-    println!("{value:?}");
+    // [!code focus:6]
+    println!("{}", 2_i64);
+    println!("{}", 2.5_f64);
+    println!("{}", "two");
+    println!("{}", true);
+    // Rust has no null. None is an absent Option, and () is unit.
+    println!("{:?}", None::<i64>);
 }
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+print(2)
+print(2.5)
+print("two")
+print(True)
+print(None)
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+2.5
+two
+true
+null
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
 $ rustc main.rs && ./main
-(2, 2.5, "two", true)
+2
+2.5
+two
+true
+None
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+2
+2.5
+two
+True
+None
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```python
-value = (2, 2.5, "two", True)
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+// [!code focus:2]
+// A bigint is an Integer and a number is a Number.
+const values = [2n, 2.5, "two", true, null] as const;
+
+for (const value of values) {
+  const text = pipe(
+    Draft.program({}, ($) => $.literal(value)),
+    Result.map(Program.program),
+    Result.flatMap(Program.compile),
+    Result.getOrThrow,
+  );
+  console.log(text);
+}
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+2
+2.5
+"two"
+true
+null
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+2
+2.5
+"two"
+true
+null
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#literal": 2 }
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#literal": 2.5 }
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#literal": "two" }
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#literal": true }
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#literal": null }
+```
+
+<Result expected>
+
+```text
+2
+2.5
+"two"
+true
+null
+```
+
+</Result>
+
+</div>
+</SideBySide>
+
+`null` is the only value of `Null`. It is not the empty tuple `()`, and HashQL has no counterpart to TypeScript's `undefined`. Rust has no null at all. Its `None` is an absent `Option`, like HashQL's `None()`.
+
+### Structs name their fields [#struct]
+
+A struct has a fixed set of fields, each with a name and its own type. A field can hold another struct. Read a field with [access](#access-struct).
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const value = { count: 2n, owner: { name: "Ada", active: true } };
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+#[derive(Debug)]
+#[expect(dead_code, reason = "only the derived Debug output reads the fields")]
+struct Owner {
+    name: &'static str,
+    active: bool,
+}
+
+#[derive(Debug)]
+#[expect(dead_code, reason = "only the derived Debug output reads the fields")]
+struct Value {
+    count: i64,
+    owner: Owner,
+}
+
+fn main() {
+    // [!code focus:2]
+    let value = Value { count: 2, owner: Owner { name: "Ada", active: true } };
+    println!("{value:?}");
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+value = {"count": 2, "owner": {"name": "Ada", "active": True}}
 print(value)
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+{ count: 2n, owner: { name: 'Ada', active: true } }
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+Value { count: 2, owner: Owner { name: "Ada", active: true } }
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
-(2, 2.5, 'two', True)
+{'count': 2, 'owner': {'name': 'Ada', 'active': True}}
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const value = [2n, 2.5, "two", true] as const;
-console.log(value);
-```
-
-<Result>
-
-```text
-$ node main.ts
-[ 2n, 2.5, 'two', true ]
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
 const built = Draft.program({}, () =>
-  // [!code focus:1]
-  Program.Structural.tuple([2n, 2.5, "two", true]),
-);
-
-const text = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-  Result.getOrThrow,
-);
-console.log(text);
-```
-
-<Result>
-
-```json
-$ node main.ts
-{"#tuple":[{"#literal":2},{"#literal":2.5},{"#literal":"two"},{"#literal":true}]}
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-(2, 2.5, "two", true)
-```
-
-<Result expected>
-
-```text
-(2, 2.5, "two", true)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-(2, 2.5, "two", true)
-```
-
-<Result expected>
-
-```text
-(2, 2.5, "two", true)
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-</SideBySide>
-
-Draft maps a `bigint` to Integer and a `number` to Number, so `2n` and `2.5` keep the distinction HashQL makes. TypeScript has no tuple value, so its program uses a read-only array.
-
-## Construct values with Draft [#construction]
-
-`Program.Structural` builds HashQL expressions from TypeScript values. Structs and tuples have fixed fields or positions, each with its own type. Lists share one element type. Dictionaries share one key type and one value type. These constructors build syntax, not evaluated collections.
-
-| Construct                          | Draft call                                       | Types                                       |
-| ---------------------------------- | ------------------------------------------------ | ------------------------------------------- |
-| [Struct](#construct-struct)        | `Structural.struct({ count: 2n, label: "two" })` | Inferred per field                          |
-| [Tuple](#construct-list)           | `Structural.tuple([2n, "two"])`                  | Inferred per position                       |
-| [List](#construct-list)            | `Structural.list(BigInt, [2n, 3n])`              | Explicit element type                       |
-| [Dictionary](#construct-dict)      | `Structural.dict(String, BigInt, { total: 2n })` | Explicit key and value types                |
-| [Type expression](#construct-type) | `Structural.type({ count: BigInt })`             | Returns a `Result` containing a type handle |
-
-The snippets below use `const { Structural } = Program` to shorten the calls.
-
-### Structs name their fields [#construct-struct]
-
-Each field can contain a primitive, an expression or another structural value. Nested records become structs.
-
-```ts
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
-
-const { Structural } = Program;
-const built = Draft.program({}, () =>
-  Structural.struct({
+  // [!code focus:6]
+  // A nested record becomes a nested struct. A program's result and
+  // a $.let value take this constructed struct, not a raw record.
+  Program.Structural.struct({
     count: 2n,
-    label: "two",
     owner: { name: "Ada", active: true },
   }),
 );
@@ -194,33 +261,97 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
+```text tab="Functional notation" tab-group="hashql-language"
+(count: 2, owner: (name: "Ada", active: true))
+```
 
-```json
-$ node main.ts
-{"#struct":{"count":{"#literal":2},"label":{"#literal":"two"},"owner":{"#struct":{"name":{"#literal":"Ada"},"active":{"#literal":true}}}}}
+```text tab="Reference notation" tab-group="hashql-language"
+(count: 2, owner: (name: "Ada", active: true))
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{
+  "#struct": {
+    "count": { "#literal": 2 },
+    "owner": {
+      "#struct": {
+        "name": { "#literal": "Ada" },
+        "active": { "#literal": true }
+      }
+    }
+  }
+}
+```
+
+<Result expected>
+
+```text
+(count: 2, owner: (name: "Ada", active: true))
 ```
 
 </Result>
 
-Use a constructed expression for a top-level return or a `$.let` value, rather than a raw record. Read a field with [access](#access-struct).
+</div>
+</SideBySide>
 
-### Tuples fix positions and lists share a type [#construct-list]
+A HashQL struct's type is its field names and their types, so any struct with the same fields has the same type. Rust compares structs by their declared names instead. Python's nearest equivalent is a dictionary with fixed keys, which nothing checks before the program runs.
 
-The tuple below has an Integer in position zero and a String in position one. Both lists have type `List<Integer>`, even the empty one. Pass the element type first, then the members.
+### Tuples fix their positions [#tuple]
 
-```ts
+A tuple holds a fixed number of values in order, each with its own type. Read a position with [access](#access-tuple).
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const value = [2n, "two"] as const;
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+fn main() {
+    // [!code focus:1]
+    let value = (2_i64, "two");
+    println!("{value:?}");
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+value = (2, "two")
+print(value)
+```
+
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+[ 2n, 'two' ]
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+(2, "two")
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+(2, 'two')
+```
+
+</Result>
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const { Structural } = Program;
 const built = Draft.program({}, () =>
-  Structural.struct({
-    pair: Structural.tuple([2n, "two"]),
-    counts: Structural.list(BigInt, [2n, 3n]),
-    empty: Structural.list(BigInt, []),
-  }),
+  // [!code focus:2]
+  // A raw array is a tuple, never a list.
+  Program.Structural.tuple([2n, "two"]),
 );
 
 const text = pipe(
@@ -232,38 +363,93 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
+```text tab="Functional notation" tab-group="hashql-language"
+(2, "two")
+```
 
-```json
-$ node main.ts
-{"#struct":{"pair":{"#tuple":[{"#literal":2},{"#literal":"two"}]},"counts":{"#list":[{"#literal":2},{"#literal":3}],"#type":"::kernel::type::List<::kernel::type::Integer>"},"empty":{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}}}
+```text tab="Reference notation" tab-group="hashql-language"
+(2, "two")
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{ "#tuple": [{ "#literal": 2 }, { "#literal": "two" }] }
+```
+
+<Result expected>
+
+```text
+(2, "two")
 ```
 
 </Result>
 
-Within structural value shorthand, a raw array denotes a tuple, never a list. Adding TypeScript's `as const` preserves tuple inference. It does not turn an array into a HashQL list or validate its contents. Read a tuple position with [access](#access-tuple), and a list element with [index](#index).
+</div>
+</SideBySide>
 
-### Dictionaries accept records or entry pairs [#construct-dict]
+TypeScript has no tuple value, so its program uses a read-only array. In Draft, `as const` keeps an array variable's tuple type, but it doesn't turn the array into a HashQL list or check its contents. `()` is the empty tuple.
 
-For String keys, pass a record whose keys become string literals, not struct field names. For other key types or keys computed by HashQL expressions, pass `[key, value]` pairs. The explicit types also describe an empty dictionary.
+### Lists share one element type [#list]
 
-```ts
+A list holds any number of values of one type. This list of lists has type `List<List<Integer>>`, and its empty inner list is still a `List<Integer>`. Look up an element with [index](#index).
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const value: bigint[][] = [[2n, 3n], []];
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+fn main() {
+    // [!code focus:1]
+    let value: Vec<Vec<i64>> = vec![vec![2, 3], vec![]];
+    println!("{value:?}");
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+value: list[list[int]] = [[2, 3], []]
+print(value)
+```
+
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+[ [ 2n, 3n ], [] ]
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+[[2, 3], []]
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+[[2, 3], []]
+```
+
+</Result>
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const { Structural } = Program;
-const built = Draft.program({ code: BigInt }, (_, { code }) =>
-  Structural.struct({
-    counts: Structural.dict(String, BigInt, { "ready now": 2n }),
-    labels: Structural.dict(BigInt, String, [
-      [2n, "two"],
-      [code, "selected"],
-    ]),
-    emptyCounts: Structural.dict(String, BigInt, {}),
-    emptyLabels: Structural.dict(BigInt, String, []),
-  }),
-);
+const built = Draft.program({}, ($) => {
+  // [!code focus:7]
+  const { List } = $.prelude();
+  // Pass the element type first. Each inner list needs its own
+  // constructor, because a raw inner array would be a tuple.
+  return Program.Structural.list(List(BigInt), [
+    Program.Structural.list(BigInt, [2n, 3n]),
+    Program.Structural.list(BigInt, []),
+  ]);
+});
 
 const text = pipe(
   built,
@@ -274,33 +460,224 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
+```text tab="Functional notation" tab-group="hashql-language"
+(as
+  [(as [2, 3] List<Integer>),
+   (as [] List<Integer>)]
+  List<List<Integer>>)
+```
 
-```json
-$ node main.ts
-{"#struct":{"counts":{"#dict":[[{"#literal":"ready now"},{"#literal":2}]],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"},"labels":{"#dict":[[{"#literal":2},{"#literal":"two"}],[["::kernel::special_form::input","code","::kernel::type::Integer"],{"#literal":"selected"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"},"emptyCounts":{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"},"emptyLabels":{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}}}
+```text tab="Reference notation" tab-group="hashql-language"
+[
+  [2, 3] as List<Integer>,
+  [] as List<Integer>
+] as List<List<Integer>>
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+{
+  "#list": [
+    {
+      "#list": [{ "#literal": 2 }, { "#literal": 3 }],
+      "#type": "::kernel::type::List<::kernel::type::Integer>"
+    },
+    {
+      "#list": [],
+      "#type": "::kernel::type::List<::kernel::type::Integer>"
+    }
+  ],
+  "#type": "::kernel::type::List<::kernel::type::List<::kernel::type::Integer>>"
+}
+```
+
+<Result expected>
+
+```text
+[[2, 3], []]
 ```
 
 </Result>
 
-The emitted `#dict` uses entry pairs in both cases. `code` remains an input expression in the constructed program. This snippet does not supply or evaluate it. Use [index](#index) for a dictionary lookup.
+</div>
+</SideBySide>
 
-### Type expressions describe values [#construct-type]
+The type annotation is what gives an empty list its element type. Draft writes one on every list it builds, which is why each list in the J-Expr carries a `#type`.
 
-A type definition uses `BigInt`, `Number`, `String` and `Boolean`, whereas a value uses `2n`, `2.5`, `"two"` and `true`. In type shorthand, `[BigInt, String]` describes a tuple and a record describes a struct. Use the prelude's `List` and `Dict` type constructors for collection inputs, not raw arrays or records.
+### Dictionaries map keys to values [#dict]
 
-`Structural.type` normalizes a definition and returns a `Result` containing a type handle or a construction failure. Here `Result.flatMap` passes the successful handle to `Draft.program` and preserves a failure. You can also pass shorthand directly in an input schema, as the [task example](#read-a-task) does.
+A dictionary has one key type and one value type, and any expression can compute a key. Here the name `status` supplies the second key. Look up an entry with [index](#index).
 
-```ts
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const status = "blocked";
+const value = new Map([
+  ["open", 2n],
+  [status, 1n],
+]);
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+use std::collections::BTreeMap;
+
+fn main() {
+    // [!code focus:2]
+    let status = "blocked";
+    let value = BTreeMap::from([("open", 2_i64), (status, 1)]);
+    println!("{value:?}");
+}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+status = "blocked"
+value = {"open": 2, status: 1}
+print(value)
+```
+
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+Map(2) { 'open' => 2n, 'blocked' => 1n }
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+{"blocked": 1, "open": 2}
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ python3 main.py
+{'open': 2, 'blocked': 1}
+```
+
+</Result>
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
-const { Structural } = Program;
+const built = Draft.program({}, ($) => {
+  // [!code focus:8]
+  const status = $.let("status", "blocked");
+  // Pass the key and value types first. Entry pairs take any key
+  // expression. Literal String keys can also be a record: { open: 2n }.
+  return Program.Structural.dict(String, BigInt, [
+    ["open", 2n],
+    [status, 1n],
+  ]);
+});
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let status "blocked"
+  (as {"open": 2, status: 1} Dict<String, Integer>))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let status = "blocked" in
+{"open": 2, status: 1} as Dict<String, Integer>
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "status",
+  { "#literal": "blocked" },
+  {
+    "#dict": [
+      [{ "#literal": "open" }, { "#literal": 2 }],
+      ["status", { "#literal": 1 }]
+    ],
+    "#type": "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"
+  }
+]
+```
+
+<Result expected>
+
+```text
+{"open": 2, "blocked": 1}
+```
+
+</Result>
+
+</div>
+</SideBySide>
+
+The annotation also types an empty dictionary, as in `{} as Dict<String, Integer>`. HashQL dictionaries have no order. Rust's `BTreeMap` sorts its keys, which is why its output lists `"blocked"` first.
+
+### Types describe values [#types]
+
+A struct type gives each field's type, and a tuple type gives each position's type. List and dictionary types take their element types as arguments, as in `List<Integer>`. Here a type describes the input `payload`.
+
+<SideBySide>
+<div>
+
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+// A type declaration: tsc checks it, and nothing runs.
+type Payload = {
+  readonly pair: readonly [bigint, string];
+  readonly counts: readonly bigint[];
+  readonly totals: ReadonlyMap<string, bigint>;
+};
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
+use std::collections::BTreeMap;
+
+// [!code focus:7]
+// A type declaration: rustc checks it, and nothing runs.
+#[expect(dead_code, reason = "the example declares the type and never builds a value")]
+struct Payload {
+    pair: (i64, String),
+    counts: Vec<i64>,
+    totals: BTreeMap<String, i64>,
+}
+
+fn main() {}
+```
+
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+from typing import TypedDict
+
+
+# A type declaration for type checkers. Running it prints nothing.
+class Payload(TypedDict):
+    pair: tuple[int, str]
+    counts: list[int]
+    totals: dict[str, int]
+```
+
+</div>
+<div>
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+// [!code focus:13]
 const { List, Dict } = Program.Prelude.builtin.types;
+// BigInt is a type and 2n a value. A record describes a struct and an
+// array a tuple, but a list or dictionary needs its type constructor.
+// Structural.type returns a Result, which fails for an invalid definition.
 const built = pipe(
-  Structural.type({
-    label: String,
+  Program.Structural.type({
     pair: [BigInt, String],
     counts: List(BigInt),
     totals: Dict(String, BigInt),
@@ -319,62 +696,69 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
+```text tab="Functional notation" tab-group="hashql-language"
+(input payload
+  (pair: (Integer, String),
+   counts: List<Integer>,
+   totals: Dict<String, Integer>))
+```
 
-```json
-$ node main.ts
-["::kernel::special_form::input","payload",{"#struct":{"label":"::kernel::type::String","pair":{"#tuple":["::kernel::type::Integer","::kernel::type::String"]},"counts":"::kernel::type::List<::kernel::type::Integer>","totals":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"}}]
+```text tab="Reference notation" tab-group="hashql-language"
+input(payload, (
+  pair: (Integer, String),
+  counts: List<Integer>,
+  totals: Dict<String, Integer>
+))
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::input",
+  "payload",
+  {
+    "#struct": {
+      "pair": {
+        "#tuple": ["::kernel::type::Integer", "::kernel::type::String"]
+      },
+      "counts": "::kernel::type::List<::kernel::type::Integer>",
+      "totals": "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"
+    }
+  }
+]
+```
+
+<Result expected>
+
+With the input `payload` set to `(pair: (2, "two"), counts: [2, 3], totals: {"open": 2})`:
+
+```text
+(pair: (2, "two"), counts: [2, 3], totals: {"open": 2})
 ```
 
 </Result>
 
-`List(BigInt)` describes a list type. `Structural.list(BigInt, [])` constructs a list value. A type handle is not a runtime validator for caller data. Unlike [`$.type`](#type), `Structural.type` does not declare a HashQL type name.
+</div>
+</SideBySide>
 
-### Nested lists need list constructors [#construct-nested-list]
+A type describes values without validating them: a Draft type handle doesn't check caller data at run time. `Structural.type` declares no HashQL type name, unlike [`type`](#type). An input schema also accepts the shorthand directly, as in the [task example](#read-a-task).
 
-Construct each inner list explicitly. Raw inner arrays would denote tuples, so `[[2n, 3n], []]` is not shorthand for a list of lists. The outer list's element type is `List<Integer>`.
+## Common program patterns [#control-flow]
 
-```ts
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
+Special forms are calls that the compiler treats specially. [More on special forms](/docs/hashql/intro#functional-programming).
 
-const { Structural } = Program;
-const built = Draft.program({}, ($) => {
-  const { List } = $.prelude();
-  return Structural.list(List(BigInt), [
-    Structural.list(BigInt, [2n, 3n]),
-    Structural.list(BigInt, []),
-  ]);
-});
-
-const text = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-  Result.getOrThrow,
-);
-console.log(text);
-```
-
-<Result>
-
-```json
-$ node main.ts
-{"#list":[{"#list":[{"#literal":2},{"#literal":3}],"#type":"::kernel::type::List<::kernel::type::Integer>"},{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}],"#type":"::kernel::type::List<::kernel::type::List<::kernel::type::Integer>>"}
-```
-
-</Result>
-
-## `let` names a value [#let]
+### `let` names a value [#let]
 
 `let` binds a name within its body, and the body's value is the result, here `2`. [More on `let`](/docs/hashql/intro#naming-a-value-with-let).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = 2n;
+console.log(foo);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:1]
     let foo = 2_i64;
@@ -382,55 +766,34 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = 2
 print(foo)
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = 2n;
-console.log(foo);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -450,38 +813,19 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#literal":2},"foo"]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo 2 foo)
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = 2 in
 foo
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+["::kernel::special_form::let", "foo", { "#literal": 2 }, "foo"]
+```
+
 <Result expected>
 
 ```text
@@ -490,25 +834,29 @@ foo
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 HashQL values are immutable, and a name exists only inside its `let`. Python can rebind `foo` later, and a JavaScript `const` doesn't freeze an object's contents. In Draft, the rest of the callback is the body.
 
-## `if` chooses a value [#if]
+### `if` chooses a value [#if]
 
 `if` evaluates a Boolean condition and returns one of two values. [More on `if`](/docs/hashql/intro#choosing-a-value-with-if).
 
-### Choose between two values [#if-choose]
+#### Choose between two values [#if-choose]
 
 The condition is true, so the expression's value is `2`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = 2n;
+const value = foo === 2n ? foo : 0n;
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:2]
     let foo = 2_i64;
@@ -517,19 +865,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = 2
 value = foo if foo == 2 else 0
 print(value)
@@ -537,37 +873,27 @@ print(value)
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = 2n;
-const value = foo === 2n ? foo : 0n;
-console.log(value);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -591,43 +917,34 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#literal":2},["::kernel::special_form::if",["::core::cmp::eq","foo",{"#literal":2}],"foo",{"#literal":0}]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo 2
   (if (eq foo 2)
     foo
     0))
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = 2 in
 if foo == 2
 then foo
 else 0
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  { "#literal": 2 },
+  [
+    "::kernel::special_form::if",
+    ["::core::cmp::eq", "foo", { "#literal": 2 }],
+    "foo",
+    { "#literal": 0 }
+  ]
+]
+```
+
 <Result expected>
 
 ```text
@@ -636,21 +953,25 @@ else 0
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 Draft runs both branch callbacks while it builds the program. HashQL evaluates only the selected branch. Without `else`, `if` returns an `Option`: `Some` of the branch's value, or `None()`.
 
-### Conditions must be Boolean [#if-boolean]
+#### Conditions must be Boolean [#if-boolean]
 
 HashQL has no truthy values. Each program tests an integer, `count`, as its condition.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const count = 2;
+const value = count ? "yes" : "no";
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:2]
     let count = 2_i64;
@@ -659,9 +980,20 @@ fn main() {
 }
 ```
 
-<Result kind="error">
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
+count = 2
+value = "yes" if count else "no"
+print(value)
+```
 
-```text
+<Result>
+
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+yes
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
 $ rustc main.rs
 error[E0308]: mismatched types
  --> main.rs:3:20
@@ -670,58 +1002,26 @@ error[E0308]: mismatched types
   |                    ^^^^^ expected `bool`, found `i64`
 ```
 
-</Result>
-
-</Tab>
-<Tab>
-
-```python
-count = 2
-value = "yes" if count else "no"
-print(value)
-```
-
-<Result>
-
-```text
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 yes
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const count = 2;
-const value = count ? "yes" : "no";
-console.log(value);
-```
-
-<Result>
-
-```text
-$ node main.ts
-yes
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
 
 const built = Draft.program({}, ($) => {
-  // [!code focus:6]
+  // [!code focus:7]
   const count = $.let("count", 2n);
 
+  // tsc rejects `count` here: TS2769, no overload matches this call.
   return $.if(count, {
     then: () => "yes",
     else: () => "no",
@@ -737,41 +1037,30 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result kind="error">
-
-```text
-$ tsc --noEmit
-main.ts(8,15): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Argument of type 'Base<PrimitiveInteger, Empty>' is not assignable to parameter of type 'never'.
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let count 2
   (if count "yes" "no"))
 ```
 
-<Result kind="error" expected>
-
-```text
-Type mismatch: expected `Boolean`, found `Integer`
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let count = 2 in
 if count then "yes" else "no"
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "count",
+  { "#literal": 2 },
+  [
+    "::kernel::special_form::if",
+    "count",
+    { "#literal": "yes" },
+    { "#literal": "no" }
+  ]
+]
+```
+
 <Result kind="error" expected>
 
 ```text
@@ -780,21 +1069,25 @@ Type mismatch: expected `Boolean`, found `Integer`
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
-Rust and the HashQL compiler reject the program before it runs. Draft's types reject it in your editor, because the condition's TypeScript type carries its HashQL type. Python and TypeScript treat any nonzero number as true.
+Rust and the HashQL compiler reject the program before it runs. Draft's types reject it in your editor, because the condition's TypeScript type carries its HashQL type. The J-Expr is the program the compiler would reject. Python and TypeScript treat any nonzero number as true.
 
-## `input` receives a value [#input]
+### `input` receives a value [#input]
 
 `input` asks the caller for a named, typed value. Each run below supplies `2`, so the expression's value is `2`. [More on `input`](/docs/hashql/intro#receiving-a-value-with-input).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = BigInt(process.env["FOO"] ?? "0");
+const value = foo === 2n ? foo : 0n;
+console.log(value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 use std::env;
 
 fn main() {
@@ -805,19 +1098,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && FOO=2 ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 import os
 
 foo = int(os.environ["FOO"])
@@ -827,37 +1108,27 @@ print(value)
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ FOO=2 node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && FOO=2 ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ FOO=2 python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = BigInt(process.env["FOO"] ?? "0");
-const value = foo === 2n ? foo : 0n;
-console.log(value);
-```
-
-<Result>
-
-```text
-$ FOO=2 node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -881,45 +1152,34 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",["::kernel::special_form::input","foo","::kernel::type::Integer"],["::kernel::special_form::if",["::core::cmp::eq","foo",{"#literal":2}],"foo",{"#literal":0}]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo (input foo Integer)
   (if (eq foo 2)
     foo
     0))
 ```
 
-<Result expected>
-
-With the input `foo` set to `2`:
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = input(foo, Integer) in
 if foo == 2
 then foo
 else 0
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  ["::kernel::special_form::input", "foo", "::kernel::type::Integer"],
+  [
+    "::kernel::special_form::if",
+    ["::core::cmp::eq", "foo", { "#literal": 2 }],
+    "foo",
+    { "#literal": 0 }
+  ]
+]
+```
+
 <Result expected>
 
 With the input `foo` set to `2`:
@@ -930,21 +1190,25 @@ With the input `foo` set to `2`:
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 An input is fixed for one execution, and any expression can read it without having it passed down. Environment variables are the nearest host-language equivalent, but they are strings each program parses. A HashQL input declares its type, and the caller supplies a value of that type. Draft declares inputs in the first argument to `Draft.program`. `input(foo, Integer, 2)` would give `foo` a default.
 
-## `fn` defines a closure [#fn]
+### `fn` defines a closure [#fn]
 
 `fn` makes a function value that can capture names from its surrounding scope. Calling it with `2` returns `true`. [More on `fn`](/docs/hashql/intro#defining-a-function-with-fn).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = 2n;
+const matchesFoo = (value: bigint): boolean => value === foo;
+console.log(matchesFoo(2n));
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:3]
     let foo = 2_i64;
@@ -953,19 +1217,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-true
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = 2
 
 
@@ -978,97 +1230,67 @@ print(matches_foo(2))
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+true
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+true
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 True
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = 2n;
-const matchesFoo = (value: bigint): boolean => value === foo;
-console.log(matchesFoo(2n));
+```text tab="TypeScript (Draft)" tab-group="hashql-language"
+// Draft can't construct HashQL closures yet (BE-1015).
+// A TypeScript function can repeat the construction at each use,
+// but the program it builds then contains no closure.
 ```
 
-<Result>
-
-```text
-$ node main.ts
-true
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-**Draft can't construct HashQL closures yet** ([BE-1015](https://linear.app/hash/issue/BE-1015)). A TypeScript function can reuse construction instead. It runs while Draft builds the program, so the program contains the comparison, not a closure:
-
-```ts
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
-
-const built = Draft.program({}, ($) => {
-  // [!code focus:3]
-  const foo = $.let("foo", 2n);
-  const matchesFoo = (value: bigint) => $.eq(value, foo);
-  return matchesFoo(2n);
-});
-
-const text = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-  Result.getOrThrow,
-);
-console.log(text);
-```
-
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#literal":2},["::core::cmp::eq",{"#literal":2},"foo"]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo 2
   (let matches_foo
-    (fn [] {value: Integer} Boolean
+    (fn () (value: Integer) Boolean
       (eq value foo))
     (matches_foo 2)))
 ```
 
-<Result expected>
-
-```text
-true
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = 2,
     matches_foo = (value: Integer): Boolean -> value == foo
 in
 matches_foo(2)
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  { "#literal": 2 },
+  [
+    "::kernel::special_form::let",
+    "matches_foo",
+    [
+      "::kernel::special_form::fn",
+      { "#tuple": [] },
+      { "#struct": { "value": "::kernel::type::Integer" } },
+      "::kernel::type::Boolean",
+      ["::core::cmp::eq", "value", "foo"]
+    ],
+    ["matches_foo", { "#literal": 2 }]
+  ]
+]
+```
+
 <Result expected>
 
 ```text
@@ -1077,21 +1299,26 @@ true
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 Because HashQL values are immutable, `foo` has the same value whenever the closure runs. A Python function reads `foo` when it is called, so rebinding `foo` would change its answer. Draft's callbacks are TypeScript functions that build syntax, and none of them becomes a HashQL closure.
 
-## `use` imports under a local name [#use]
+### `use` imports under a local name [#use]
 
 `use` brings a module's items into scope for its body, here `eq` under the name `same`. The expression's value is `true`. [More on `use`](/docs/hashql/intro#bringing-names-into-scope-with-use).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+import { isDeepStrictEqual as same } from "node:util";
+
+const foo = 2n;
+console.log(same(foo, 2n));
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 mod cmp {
     pub fn eq(left: i64, right: i64) -> bool {
         left == right
@@ -1108,19 +1335,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-true
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 from operator import eq as same
 
 foo = 2
@@ -1129,38 +1344,27 @@ print(same(foo, 2))
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+true
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+true
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 True
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-import { isDeepStrictEqual as same } from "node:util";
-
-const foo = 2n;
-console.log(same(foo, 2n));
-```
-
-<Result>
-
-```text
-$ node main.ts
-true
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -1183,41 +1387,32 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::use","::core::cmp",{"#struct":{"eq":"same"}},["::kernel::special_form::let","foo",{"#literal":2},["same","foo",{"#literal":2}]]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-(use ::core::cmp {eq: same}
+```text tab="Functional notation" tab-group="hashql-language"
+(use ::core::cmp (eq: same)
   (let foo 2
     (same foo 2)))
 ```
 
-<Result expected>
-
-```text
-true
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-use(::core::cmp, {eq: same},
+```text tab="Reference notation" tab-group="hashql-language"
+use(::core::cmp, (eq: same),
   let foo = 2 in
   same(foo, 2))
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::use",
+  "::core::cmp",
+  { "#struct": { "eq": "same" } },
+  [
+    "::kernel::special_form::let",
+    "foo",
+    { "#literal": 2 },
+    ["same", "foo", { "#literal": 2 }]
+  ]
+]
+```
+
 <Result expected>
 
 ```text
@@ -1226,25 +1421,28 @@ true
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 Rust's standard library has no free `eq` function, so the Rust program defines the module it imports from. The host-language imports load code with their own equality rules. Draft's `$.import` adds a HashQL `use` to the program instead. It loads no JavaScript module and leaves `$.prelude()` unchanged.
 
-## `access` reads a field or position [#access]
+### `access` reads a field or position [#access]
 
 `access` reads a struct field by name or a tuple element by position. Both are fixed in the program, so the compiler checks that they exist. The reference notation writes it as `.`. [More on `access`](/docs/hashql/intro#reading-a-field-with-access).
 
-### Read a struct field [#access-struct]
+#### Read a struct field [#access-struct]
 
 The expression's value is `2`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = { value: 2n, label: "two" };
+console.log(foo.value);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 struct Foo {
     value: i64,
     #[expect(dead_code, reason = "access reads one field and leaves this one unread")]
@@ -1258,55 +1456,34 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = {"value": 2, "label": "two"}
 print(foo["value"])
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = { value: 2n, label: "two" };
-console.log(foo.value);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -1330,39 +1507,25 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#struct":{"value":{"#literal":2},"label":{"#literal":"two"}}},["::kernel::special_form::access","foo","value"]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-(let foo {value: 2, label: "two"}
+```text tab="Functional notation" tab-group="hashql-language"
+(let foo (value: 2, label: "two")
   (`.` foo value))
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = (value: 2, label: "two") in
 foo.value
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  { "#struct": { "value": { "#literal": 2 }, "label": { "#literal": "two" } } },
+  ["::kernel::special_form::access", "foo", "value"]
+]
+```
+
 <Result expected>
 
 ```text
@@ -1371,21 +1534,24 @@ foo.value
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
-A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. HashQL structs are structural: any struct with the same fields and field types has the same type. Draft's `$.let` needs `Program.Structural.struct` here, not a plain object.
+A missing field is a compile-time type error in HashQL. Python's dictionary raises `KeyError` only when the lookup runs. Draft's `$.let` needs `Program.Structural.struct` here, not a plain object.
 
-### Read a tuple position [#access-tuple]
+#### Read a tuple position [#access-tuple]
 
 Positions start at zero, and the expression's value is `2`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = [2n, "two"] as const;
+console.log(foo[0]);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:2]
     let foo = (2_i64, "two");
@@ -1393,55 +1559,34 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = (2, "two")
 print(foo[0])
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = [2n, "two"] as const;
-console.log(foo[0]);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -1462,39 +1607,25 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#tuple":[{"#literal":2},{"#literal":"two"}]},["::kernel::special_form::access","foo",{"#literal":0}]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo (2, "two")
   (`.` foo 0))
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = (2, "two") in
 foo.0
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  { "#tuple": [{ "#literal": 2 }, { "#literal": "two" }] },
+  ["::kernel::special_form::access", "foo", { "#literal": 0 }]
+]
+```
+
 <Result expected>
 
 ```text
@@ -1503,21 +1634,25 @@ foo.0
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 In Draft, `foo[0]` constructs this access, not a list lookup. Rust and TypeScript check a fixed position against the tuple's type too, while Python checks it only when the program runs. The functional notation borrows the reference notation's tuple spelling.
 
-## `index` looks up an element [#index]
+### `index` looks up an element [#index]
 
 `index` reads a list element or a dictionary entry whose position or key is computed when the program runs. [More on `index`](/docs/hashql/intro#looking-up-an-element-with-index).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = [2n, 3n];
+const position = 0;
+console.log(foo[position]);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:3]
     let foo = vec![2_i64, 3];
@@ -1526,19 +1661,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-Some(2)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo = [2, 3]
 position = 0
 print(foo[position])
@@ -1546,37 +1669,27 @@ print(foo[position])
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+Some(2)
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = [2n, 3n];
-const position = 0;
-console.log(foo[position]);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -1598,39 +1711,33 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo",{"#list":[{"#literal":2},{"#literal":3}],"#type":"::kernel::type::List<::kernel::type::Integer>"},["::kernel::special_form::let","position",{"#literal":0},["::kernel::special_form::index","foo","position"]]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo [2, 3]
   (let position 0
     (index foo position)))
 ```
 
-<Result expected>
-
-```text
-(Some 2)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = [2, 3] in
 let position = 0 in
 foo[position]
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  {
+    "#list": [{ "#literal": 2 }, { "#literal": 3 }],
+    "#type": "::kernel::type::List<::kernel::type::Integer>"
+  },
+  [
+    "::kernel::special_form::let",
+    "position",
+    { "#literal": 0 },
+    ["::kernel::special_form::index", "foo", "position"]
+  ]
+]
 ```
 
 <Result expected>
@@ -1641,23 +1748,26 @@ Some(2)
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 The language specifies an `Option`: `Some(2)` here, and `None()` for a position past the end, much like Rust's `get`. Python raises `IndexError` and JavaScript returns `undefined`.
 
 **Implementation status:** today's compiler evaluates this lookup to a bare `2`, and to `null` past the end, and the SDK describes the result as `Integer | Null`. Don't rely on either shape in Draft code yet.
 
-## `as` states a wider type [#as]
+### `as` states a wider type [#as]
 
 `as` checks that a value fits the stated type, either its own type or a wider one, and leaves the value unchanged. `Integer` is a subtype of `Number`. [More on `as`](/docs/hashql/intro#stating-a-type-with-as).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const foo = 2 as number | string;
+console.log(foo);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 fn main() {
     // [!code focus:1]
     let foo = 2_i64 as f64;
@@ -1665,109 +1775,58 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2.0
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 foo: float = 2
 print(foo)
 ```
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2.0
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const foo = 2 as number | string;
-console.log(foo);
+```text tab="TypeScript (Draft)" tab-group="hashql-language"
+// Draft has no builder for the HashQL `as` special form yet.
+// A typed binding, $.let("foo", 2n, Number), checks the same subtype
+// relation, but builds let's four-argument form instead of `as`.
 ```
 
-<Result>
-
-```text
-$ node main.ts
-2
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-**Draft has no `as` builder yet.** A typed binding is the nearest alternative. The compiler checks a `let` type annotation with the same subtype assertion, applied to the bound value:
-
-```ts
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
-
-const built = Draft.program({}, ($) => {
-  // [!code focus:2]
-  const foo = $.let("foo", 2n, Number);
-  return foo;
-});
-
-const text = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-  Result.getOrThrow,
-);
-console.log(text);
-```
-
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","foo","::kernel::type::Number",{"#literal":2},"foo"]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let foo (as 2 Number)
   foo)
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let foo = 2 as Number in
 foo
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "foo",
+  ["::kernel::special_form::as", { "#literal": 2 }, "::kernel::type::Number"],
+  "foo"
+]
+```
+
 <Result expected>
 
 ```text
@@ -1776,21 +1835,26 @@ foo
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 Rust's `as` converts the value, so its program prints `2.0`. Python's type checkers accept an `int` where a `float` is annotated, and the value stays `2`. TypeScript's `as` also accepts assertions it can't check, such as `"2" as unknown as number`. HashQL's `as` can keep a type unchanged or widen it, never narrow it.
 
-## `type` names a type [#type]
+### `type` names a type [#type]
 
 `type` gives a type another name within its body. The expression's value is `2`. [More on `type`](/docs/hashql/intro#naming-a-type-with-type).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+type Count = bigint;
+
+const foo: Count = 2n;
+console.log(foo);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 // [!code focus:1]
 type Count = i64;
 
@@ -1801,19 +1865,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 type Count = int
 
 foo: Count = 2
@@ -1822,38 +1874,27 @@ print(foo)
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+2
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-type Count = bigint;
-
-const foo: Count = 2n;
-console.log(foo);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -1875,41 +1916,27 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::type","Count","::kernel::type::Integer",["::kernel::special_form::let","foo","Count",{"#literal":2},"foo"]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (type Count Integer
-  (let foo (as 2 Count)
+  (let foo Count 2
     foo))
 ```
 
-<Result expected>
-
-```text
-2
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 type Count = Integer in
 let foo = 2 as Count in
 foo
 ```
 
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::type",
+  "Count",
+  "::kernel::type::Integer",
+  ["::kernel::special_form::let", "foo", "Count", { "#literal": 2 }, "foo"]
+]
+```
+
 <Result expected>
 
 ```text
@@ -1918,21 +1945,27 @@ foo
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
-An alias is another name for the same type, not a distinct type or a range check. Draft's `$.type` adds a declaration to the HashQL program and returns a handle for it. It isn't a TypeScript type. The Python statement needs Python 3.12 or later.
+An alias is another name for the same type, not a distinct type or a range check. Draft's `$.type` adds a declaration to the HashQL program and returns a handle for it. It isn't a TypeScript type. The typed `$.let` builds `let`'s four-argument form, which the compiler checks as it does `2 as Count`. The Python statement needs Python 3.12 or later.
 
-## `newtype` makes a distinct type [#newtype]
+### `newtype` makes a distinct type [#newtype]
 
 `newtype` declares a type that is distinct from its underlying type, and a constructor with the same name. [More on `newtype`](/docs/hashql/intro#making-a-distinct-type-with-newtype).
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+type Count = bigint & { readonly brand: "Count" };
+const Count = (value: bigint) => value as Count;
+
+const foo = Count(2n);
+console.log(foo);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 #[derive(Debug)]
 #[expect(dead_code, reason = "only the derived Debug output reads the field")]
 // [!code focus:1]
@@ -1945,19 +1978,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-Count(2)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 from typing import NewType
 
 Count = NewType("Count", int)
@@ -1968,39 +1989,27 @@ print(foo)
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+2n
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+Count(2)
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 2
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-type Count = bigint & { readonly brand: "Count" };
-const Count = (value: bigint) => value as Count;
-
-const foo = Count(2n);
-console.log(foo);
-```
-
-<Result>
-
-```text
-$ node main.ts
-2n
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -2022,39 +2031,25 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::newtype","Count","::kernel::type::Integer",["::kernel::special_form::let","foo",["Count",{"#literal":2}],"foo"]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (newtype Count Integer
   (let foo (Count 2)
     foo))
 ```
 
-<Result expected>
-
-```text
-(Count 2)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 newtype Count = Integer in
 let foo = Count(2) in
 foo
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::newtype",
+  "Count",
+  "::kernel::type::Integer",
+  ["::kernel::special_form::let", "foo", ["Count", { "#literal": 2 }], "foo"]
+]
 ```
 
 <Result expected>
@@ -2065,8 +2060,7 @@ Count(2)
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 A plain `Integer` isn't a `Count`, and a second newtype over `Integer` would be distinct from both. The Rust tuple struct also wraps its value. Python's `NewType` and the TypeScript brand exist only for type checkers: at run time, the value is still the plain integer.
@@ -2080,10 +2074,15 @@ These programs triage tasks from the [release briefing](/docs/hashql/sdk/typescr
 A task that is blocked needs a review. This program combines `let`, `if`, a comparison and a struct.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const status = "blocked";
+const attention = status === "blocked" ? "review" : "clear";
+console.log({ status, attention });
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 #[derive(Debug)]
 #[expect(dead_code, reason = "only the derived Debug output reads the fields")]
 struct Label {
@@ -2099,22 +2098,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && ./main
-Label {
-    status: "blocked",
-    attention: "review",
-}
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 status = "blocked"
 attention = "review" if status == "blocked" else "clear"
 print({"status": status, "attention": attention})
@@ -2122,37 +2106,30 @@ print({"status": status, "attention": attention})
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ node main.ts
+{ status: 'blocked', attention: 'review' }
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && ./main
+Label {
+    status: "blocked",
+    attention: "review",
+}
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ python3 main.py
 {'status': 'blocked', 'attention': 'review'}
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const status = "blocked";
-const attention = status === "blocked" ? "review" : "clear";
-console.log({ status, attention });
-```
-
-<Result>
-
-```text
-$ node main.ts
-{ status: 'blocked', attention: 'review' }
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -2180,42 +2157,38 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","status",{"#literal":"blocked"},["::kernel::special_form::let","attention",["::kernel::special_form::if",["::core::cmp::eq","status",{"#literal":"blocked"}],{"#literal":"review"},{"#literal":"clear"}],{"#struct":{"status":"status","attention":"attention"}}]]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Functional notation" tab-group="hashql-language"
 (let status "blocked"
   (let attention
     (if (eq status "blocked") "review" "clear")
-    {status: status, attention: attention}))
+    (status: status, attention: attention)))
 ```
 
-<Result expected>
-
-```text
-{status: "blocked", attention: "review"}
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let status = "blocked" in
 let attention =
   if status == "blocked" then "review" else "clear"
 in
 (status: status, attention: attention)
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "status",
+  { "#literal": "blocked" },
+  [
+    "::kernel::special_form::let",
+    "attention",
+    [
+      "::kernel::special_form::if",
+      ["::core::cmp::eq", "status", { "#literal": "blocked" }],
+      { "#literal": "review" },
+      { "#literal": "clear" }
+    ],
+    { "#struct": { "status": "status", "attention": "attention" } }
+  ]
+]
 ```
 
 <Result expected>
@@ -2226,8 +2199,7 @@ in
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 ### Read the task from the caller [#read-a-task]
@@ -2235,10 +2207,18 @@ in
 The caller now supplies the task, and the program reads its fields with `access`. Every run uses the task `Confirm the rollout window`, whose status is `blocked`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+const task = {
+  title: process.env["TASK_TITLE"] ?? "",
+  status: process.env["TASK_STATUS"] ?? "",
+};
+const attention = task.status === "blocked" ? "review" : "clear";
+console.log({ title: task.title, attention });
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 use std::env;
 
 #[derive(Debug)]
@@ -2257,22 +2237,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && TASK_TITLE="Confirm the rollout window" TASK_STATUS=blocked ./main
-Summary {
-    title: "Confirm the rollout window",
-    attention: "review",
-}
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 import os
 
 task = {"title": os.environ["TASK_TITLE"], "status": os.environ["TASK_STATUS"]}
@@ -2282,40 +2247,30 @@ print({"title": task["title"], "attention": attention})
 
 <Result>
 
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+$ TASK_TITLE="Confirm the rollout window" TASK_STATUS=blocked node main.ts
+{ title: 'Confirm the rollout window', attention: 'review' }
+```
+
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && TASK_TITLE="Confirm the rollout window" TASK_STATUS=blocked ./main
+Summary {
+    title: "Confirm the rollout window",
+    attention: "review",
+}
+```
+
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
 $ TASK_TITLE="Confirm the rollout window" TASK_STATUS=blocked python3 main.py
 {'title': 'Confirm the rollout window', 'attention': 'review'}
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```ts
-const task = {
-  title: process.env["TASK_TITLE"] ?? "",
-  status: process.env["TASK_STATUS"] ?? "",
-};
-const attention = task.status === "blocked" ? "review" : "clear";
-console.log({ title: task.title, attention });
-```
-
-<Result>
-
-```text
-$ TASK_TITLE="Confirm the rollout window" TASK_STATUS=blocked node main.ts
-{ title: 'Confirm the rollout window', attention: 'review' }
-```
-
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-```ts
+```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import { Program } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Result, pipe } from "effect";
@@ -2345,44 +2300,68 @@ const text = pipe(
 console.log(text);
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","attention",["::kernel::special_form::if",["::core::cmp::eq",["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","status":"::kernel::type::String"}}],"status"],{"#literal":"blocked"}],{"#literal":"review"},{"#literal":"clear"}],{"#struct":{"title":["::kernel::special_form::access",["::kernel::special_form::input","task",{"#struct":{"title":"::kernel::type::String","status":"::kernel::type::String"}}],"title"],"attention":"attention"}}]
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
-(let task (input task {title: String, status: String})
+```text tab="Functional notation" tab-group="hashql-language"
+(let task (input task (title: String, status: String))
   (let attention
     (if (eq (`.` task status) "blocked") "review" "clear")
-    {title: (`.` task title), attention: attention}))
+    (title: (`.` task title), attention: attention)))
 ```
 
-<Result expected>
-
-With the input `task` set to `{title: "Confirm the rollout window", status: "blocked"}`:
-
-```text
-{title: "Confirm the rollout window", attention: "review"}
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let task = input(task, (title: String, status: String)) in
 let attention =
   if task.status == "blocked" then "review" else "clear"
 in
 (title: task.title, attention: attention)
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "attention",
+  [
+    "::kernel::special_form::if",
+    [
+      "::core::cmp::eq",
+      [
+        "::kernel::special_form::access",
+        [
+          "::kernel::special_form::input",
+          "task",
+          {
+            "#struct": {
+              "title": "::kernel::type::String",
+              "status": "::kernel::type::String"
+            }
+          }
+        ],
+        "status"
+      ],
+      { "#literal": "blocked" }
+    ],
+    { "#literal": "review" },
+    { "#literal": "clear" }
+  ],
+  {
+    "#struct": {
+      "title": [
+        "::kernel::special_form::access",
+        [
+          "::kernel::special_form::input",
+          "task",
+          {
+            "#struct": {
+              "title": "::kernel::type::String",
+              "status": "::kernel::type::String"
+            }
+          }
+        ],
+        "title"
+      ],
+      "attention": "attention"
+    }
+  }
+]
 ```
 
 <Result expected>
@@ -2395,8 +2374,7 @@ With the input `task` set to `(title: "Confirm the rollout window", status: "blo
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 ### Reuse the rule [#reuse-the-rule]
@@ -2404,10 +2382,26 @@ With the input `task` set to `(title: "Confirm the rollout window", status: "blo
 The triage becomes a closure that captures the status the caller flags, and the program applies it to two tasks. Every run flags `blocked`.
 
 <SideBySide>
-<Tabs groupId="hashql-cheatsheet-familiar" persist defaultIndex={2} items={["Rust", "Python", "TypeScript"]}>
-<Tab>
+<div>
 
-```rust
+```ts tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
+interface Task {
+  readonly title: string;
+  readonly status: string;
+}
+
+const flagged = process.env["FLAGGED"] ?? "";
+const summarize = (task: Task) => ({
+  title: task.title,
+  attention: task.status === flagged ? "review" : "clear",
+});
+
+const first = { title: "Confirm the rollout window", status: "blocked" };
+const second = { title: "Update the release notes", status: "open" };
+console.log([summarize(first), summarize(second)]);
+```
+
+```rust tab="Rust" tab-group="hashql-cheatsheet-familiar"
 use std::env;
 
 struct Task {
@@ -2436,28 +2430,7 @@ fn main() {
 }
 ```
 
-<Result>
-
-```text
-$ rustc main.rs && FLAGGED=blocked ./main
-(
-    Summary {
-        title: "Confirm the rollout window",
-        attention: "review",
-    },
-    Summary {
-        title: "Update the release notes",
-        attention: "clear",
-    },
-)
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```python
+```python tab="Python" tab-group="hashql-cheatsheet-familiar"
 import os
 
 flagged = os.environ["FLAGGED"]
@@ -2475,36 +2448,7 @@ print((summarize(first), summarize(second)))
 
 <Result>
 
-```text
-$ FLAGGED=blocked python3 main.py
-({'title': 'Confirm the rollout window', 'attention': 'review'}, {'title': 'Update the release notes', 'attention': 'clear'})
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```ts
-interface Task {
-  readonly title: string;
-  readonly status: string;
-}
-
-const flagged = process.env["FLAGGED"] ?? "";
-const summarize = (task: Task) => ({
-  title: task.title,
-  attention: task.status === flagged ? "review" : "clear",
-});
-
-const first = { title: "Confirm the rollout window", status: "blocked" };
-const second = { title: "Update the release notes", status: "open" };
-console.log([summarize(first), summarize(second)]);
-```
-
-<Result>
-
-```text
+```text tab="TypeScript" tab-group="hashql-cheatsheet-familiar"
 $ FLAGGED=blocked node main.ts
 [
   { title: 'Confirm the rollout window', attention: 'review' },
@@ -2512,94 +2456,47 @@ $ FLAGGED=blocked node main.ts
 ]
 ```
 
-</Result>
-
-</Tab>
-</Tabs>
-<Tabs groupId="hashql-cheatsheet-hashql" persist items={["Draft (TypeScript)", "HashQL functional", "HashQL reference"]}>
-<Tab>
-
-**Draft can't construct HashQL closures yet** ([BE-1015](https://linear.app/hash/issue/BE-1015)). A TypeScript function can reuse the construction instead. The program it builds repeats the comparison for each task:
-
-```ts
-import { Program } from "@local/hashql";
-import * as Draft from "@local/hashql/Draft";
-import { Result, pipe } from "effect";
-
-// [!code focus:25]
-const built = Draft.program({ flagged: String }, ($, { flagged }) => {
-  const first = $.let(
-    "first",
-    Program.Structural.struct({
-      title: "Confirm the rollout window",
-      status: "blocked",
-    }),
-  );
-  const second = $.let(
-    "second",
-    Program.Structural.struct({
-      title: "Update the release notes",
-      status: "open",
-    }),
-  );
-  const summarize = (task: typeof first) =>
-    Program.Structural.struct({
-      title: task.title,
-      attention: $.if($.eq(task.status, flagged), {
-        then: () => $.literal("review"),
-        else: () => $.literal("clear"),
-      }),
-    });
-
-  return Program.Structural.tuple([summarize(first), summarize(second)]);
-});
-
-const text = pipe(
-  built,
-  Result.map(Program.program),
-  Result.flatMap(Program.compile),
-  Result.getOrThrow,
-);
-console.log(text);
+```text tab="Rust" tab-group="hashql-cheatsheet-familiar"
+$ rustc main.rs && FLAGGED=blocked ./main
+(
+    Summary {
+        title: "Confirm the rollout window",
+        attention: "review",
+    },
+    Summary {
+        title: "Update the release notes",
+        attention: "clear",
+    },
+)
 ```
 
-<Result>
-
-```json
-$ node main.ts
-["::kernel::special_form::let","first",{"#struct":{"title":{"#literal":"Confirm the rollout window"},"status":{"#literal":"blocked"}}},["::kernel::special_form::let","second",{"#struct":{"title":{"#literal":"Update the release notes"},"status":{"#literal":"open"}}},{"#tuple":[{"#struct":{"title":["::kernel::special_form::access","first","title"],"attention":["::kernel::special_form::if",["::core::cmp::eq",["::kernel::special_form::access","first","status"],["::kernel::special_form::input","flagged","::kernel::type::String"]],{"#literal":"review"},{"#literal":"clear"}]}},{"#struct":{"title":["::kernel::special_form::access","second","title"],"attention":["::kernel::special_form::if",["::core::cmp::eq",["::kernel::special_form::access","second","status"],["::kernel::special_form::input","flagged","::kernel::type::String"]],{"#literal":"review"},{"#literal":"clear"}]}}]}]]
+```text tab="Python" tab-group="hashql-cheatsheet-familiar"
+$ FLAGGED=blocked python3 main.py
+({'title': 'Confirm the rollout window', 'attention': 'review'}, {'title': 'Update the release notes', 'attention': 'clear'})
 ```
 
 </Result>
 
-</Tab>
-<Tab>
+</div>
+<div>
 
-```text
+```text tab="TypeScript (Draft)" tab-group="hashql-language"
+// Draft can't construct HashQL closures yet (BE-1015).
+// A TypeScript function can repeat the construction for each task,
+// but the program it builds then contains no closure.
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
 (let flagged (input flagged String)
   (let summarize
-    (fn [] {task: {title: String, status: String}} _
-      {title: (`.` task title),
-       attention: (if (eq (`.` task status) flagged) "review" "clear")})
-    ((summarize {title: "Confirm the rollout window", status: "blocked"}),
-     (summarize {title: "Update the release notes", status: "open"}))))
+    (fn () (task: (title: String, status: String)) _
+      (title: (`.` task title),
+       attention: (if (eq (`.` task status) flagged) "review" "clear")))
+    ((summarize (title: "Confirm the rollout window", status: "blocked")),
+     (summarize (title: "Update the release notes", status: "open")))))
 ```
 
-<Result expected>
-
-With the input `flagged` set to `"blocked"`:
-
-```text
-({title: "Confirm the rollout window", attention: "review"},
- {title: "Update the release notes", attention: "clear"})
-```
-
-</Result>
-
-</Tab>
-<Tab>
-
-```text
+```text tab="Reference notation" tab-group="hashql-language"
 let flagged = input(flagged, String),
     summarize = (task: (title: String, status: String)) -> (
       title: task.title,
@@ -2610,6 +2507,70 @@ in
   summarize((title: "Confirm the rollout window", status: "blocked")),
   summarize((title: "Update the release notes", status: "open"))
 )
+```
+
+```json tab="J-Expr" tab-group="hashql-language"
+[
+  "::kernel::special_form::let",
+  "flagged",
+  ["::kernel::special_form::input", "flagged", "::kernel::type::String"],
+  [
+    "::kernel::special_form::let",
+    "summarize",
+    [
+      "::kernel::special_form::fn",
+      { "#tuple": [] },
+      {
+        "#struct": {
+          "task": {
+            "#struct": {
+              "title": "::kernel::type::String",
+              "status": "::kernel::type::String"
+            }
+          }
+        }
+      },
+      "_",
+      {
+        "#struct": {
+          "title": ["::kernel::special_form::access", "task", "title"],
+          "attention": [
+            "::kernel::special_form::if",
+            [
+              "::core::cmp::eq",
+              ["::kernel::special_form::access", "task", "status"],
+              "flagged"
+            ],
+            { "#literal": "review" },
+            { "#literal": "clear" }
+          ]
+        }
+      }
+    ],
+    {
+      "#tuple": [
+        [
+          "summarize",
+          {
+            "#struct": {
+              "title": { "#literal": "Confirm the rollout window" },
+              "status": { "#literal": "blocked" }
+            }
+          }
+        ],
+        [
+          "summarize",
+          {
+            "#struct": {
+              "title": { "#literal": "Update the release notes" },
+              "status": { "#literal": "open" }
+            }
+          }
+        ]
+      ]
+    }
+  ]
+]
 ```
 
 <Result expected>
@@ -2623,8 +2584,7 @@ With the input `flagged` set to `"blocked"`:
 
 </Result>
 
-</Tab>
-</Tabs>
+</div>
 </SideBySide>
 
 The closure reads `flagged` from the input without receiving it as an argument. Changing the input to `open` flags the other task, and the program doesn't change. [Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) applies the same forms to a graph: it filters the tasks of one release and returns the unfinished, blocked and unassigned work as one briefing.
