@@ -19,6 +19,8 @@ import {
 import { browserCallExtension } from "../browser-call/browser-call";
 import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
+import { contextProjectionExtension } from "./petrinaut-agent/context-projection";
+import { toolAdmissionExtension } from "./petrinaut-agent/tool-admission";
 
 /**
  * Copied from `apps/brunch-agent/src/agents/petrinaut/prompts/system.md`,
@@ -56,6 +58,8 @@ export const createPetrinautAgent = (): PetrinautAgent => {
     petrinautPromptExtension,
     ledgerExtension,
     petrinautBrowserToolsExtension,
+    contextProjectionExtension,
+    toolAdmissionExtension,
   ];
   return {
     systemPrompt: petrinautSystemPrompt,
