@@ -232,6 +232,13 @@ export const runPickerStyle = css({
   },
 });
 
+/** The faint part of the picker: the version button's muted text in the editor ("v6 · Draft"). */
+export const pickerTimeStyle = css({
+  color: "neutral.fg.muted",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+});
+
 /** ‹ older run, the run picker (a DS Menu), › newer run (off on the newest). */
 export const RunSwitcher = ({
   history,
@@ -241,6 +248,8 @@ export const RunSwitcher = ({
   withTime = false,
   allRunsFirst = false,
   trigger,
+  label,
+  time,
 }: {
   history: HistoryValue;
   /** ‹ › beside the picker. */
@@ -255,6 +264,10 @@ export const RunSwitcher = ({
   allRunsFirst?: boolean;
   /** A picker of its own (top bar 2's compound control); it gets `data-run-picker`. */
   trigger?: React.ReactElement;
+  /** `?runtime=t2`: the picker's label in place of the ID. */
+  label?: React.ReactNode;
+  /** `?runtime=t1`: faint text after the ID, as the editor's "v6 · Draft". */
+  time?: string;
 }) => {
   const { run, runs, now } = history;
   if (!run) {
@@ -344,7 +357,16 @@ export const RunSwitcher = ({
                 tooltip={withTime ? undefined : run.when}
                 data-run-picker
               >
-                {runIdStyled() ? (
+                {label ? (
+                  label
+                ) : time ? (
+                  <>
+                    {runIdStyled() ? <RunIdText run={run} prefix /> : runLabel(run)}
+                    <span className={pickerTimeStyle} data-run-time>
+                      {` · ${time}`}
+                    </span>
+                  </>
+                ) : runIdStyled() ? (
                   <>
                     <RunIdText run={run} prefix />
                     {withTime ? ` · ${run.when}` : null}

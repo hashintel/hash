@@ -41,6 +41,7 @@ import {
   TechnicalFold,
 } from "./run-log-summary";
 import { triggerFiredTake } from "./trigger-flags";
+import { runTimeTake } from "./run-time";
 import { doneTone } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
@@ -632,12 +633,15 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
         </span>
         <span className={css({ textStyle: "sm" })}>
           <span className={mutedStyle}>
-            {[
-              duration,
-              // ?triggerfired=2 names the trigger on its own line below.
-              triggerFiredTake === 2 ? "" : trigger,
-              runWhen(run),
-            ]
+            {(runTimeTake() === "t4"
+              ? // ?runtime=t4: the bar has no time, so this line leads with it.
+                [runWhen(run), duration, triggerFiredTake === 2 ? "" : trigger]
+              : [
+                  duration,
+                  // ?triggerfired=2 names the trigger on its own line below.
+                  triggerFiredTake === 2 ? "" : trigger,
+                  runWhen(run),
+                ])
               .filter(Boolean)
               .join(" · ")}
           </span>

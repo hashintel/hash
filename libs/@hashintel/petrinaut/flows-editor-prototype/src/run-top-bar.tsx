@@ -28,7 +28,11 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { type HistoryValue, RunSwitcher } from "./history-view";
+import {
+  type HistoryValue,
+  pickerTimeStyle,
+  RunSwitcher,
+} from "./history-view";
 import { cameFrom, navigate, parseRoute } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -39,6 +43,13 @@ import {
   statusText,
 } from "./run-history";
 import { runIdMono, RunIdText, runLabel } from "./run-id";
+import {
+  liveTail,
+  runTimeTake,
+  shortTime,
+  startedLine,
+  startTime,
+} from "./run-time";
 
 export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
 export type EditorBarVariant = 1 | 2 | 3;
@@ -239,6 +250,15 @@ const plainTitleStyle = css({
 });
 
 const leftGapStyle = css({ gap: "3" });
+
+/** `?runtime=t3`: the run's start and length, faint, before the actions. */
+const startedStyle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  whiteSpace: "nowrap",
+  paddingX: "1.5",
+});
 
 /** Take 4's two lines: the path to the run at 12 px over the run at 14 px. */
 const stackStyle = css({
@@ -555,6 +575,7 @@ export const RunTopBar = ({
   );
 
   if (take) {
+    const timeTake = runTimeTake();
     const target = backTarget(flowName);
     const goBack = () => {
       if (target.page === "history") {
@@ -598,6 +619,11 @@ export const RunTopBar = ({
             : rightStyle
         }
       >
+        {take === 2 && timeTake === "t3" ? (
+          <span className={startedStyle} data-run-time>
+            {startedLine(run, now)}
+          </span>
+        ) : null}
         {rerunFailedButton}
         {actionButton}
         <RunBarMoreMenu onSimulate={onSimulate} />
@@ -618,7 +644,22 @@ export const RunTopBar = ({
               onClick={onFlows}
             />
             <span className={plainTitleStyle}>{flowName}</span>
-            <RunSwitcher history={history} />
+            <RunSwitcher
+              history={history}
+              time={timeTake === "t1" ? shortTime(run, now) : undefined}
+              label={
+                timeTake === "t2" ? (
+                  <>
+                    {startTime(run)}
+                    {liveTail(run, now) ? (
+                      <span className={pickerTimeStyle} data-run-time>
+                        {` · ${liveTail(run, now)}`}
+                      </span>
+                    ) : null}
+                  </>
+                ) : undefined
+              }
+            />
             {forEachSwitch}
           </div>
           <div className={centreStyle}>
