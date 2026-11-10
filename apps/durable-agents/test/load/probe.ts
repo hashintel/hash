@@ -537,10 +537,7 @@ const runScenario = async (scenario: Scenario) => {
           )
           .join(", "),
       ],
-      [
-        "pool connection timeouts",
-        `${poolTimeouts} (the pool sets no connectionTimeoutMillis)`,
-      ],
+      ["pool connection timeouts", `${poolTimeouts}`],
       [
         "RSS before → after",
         servers

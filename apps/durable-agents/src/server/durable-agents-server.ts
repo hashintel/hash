@@ -10,7 +10,10 @@
  *   lets the request.
  * - `GET /chat/:id/stream` (the transport's `reconnectToStream`) answers 204
  *   when the conversation is idle, else the running input's stream from the
- *   committed view on; 404 for an unknown conversation.
+ *   committed view on; 404 for an unknown conversation. The first one after
+ *   the crash-loop guard ended a run, while that is still the conversation's
+ *   last run, follows the ended input instead, so the client sees its turn
+ *   end in an `error`.
  * - `POST /chat/:id/abort` stops the conversation; AI SDK's `stop()` only
  *   drops the client's fetch, so a client calls it itself. 404 for an unknown
  *   conversation.
@@ -25,6 +28,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { LiveDoc, type SubmissionId } from "@earendil-works/pi-durable";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 
 import { createAbandonedTurns } from "./durable-agents-server/abandoned-turns";
 import {
@@ -97,6 +101,12 @@ export type DurableAgentsServerOptions = ConversationRegistryOptions & {
     conversationId: string,
     tasks: readonly CrashLoopingTask[],
   ) => void;
+  /**
+   * Whether a request's error means the server is unavailable for now, such
+   * as a storage connection that did not come in time: answered 503 with
+   * `Retry-After` instead of 500.
+   */
+  readonly isUnavailable?: (error: unknown) => boolean;
   readonly context?: Context;
 };
 
@@ -131,6 +141,9 @@ const userInput = (messages: readonly UIMessage[]) => {
 
 const unknownConversation = "Unknown conversation.";
 
+/** What a 503 tells the client to wait before it tries again, in seconds. */
+export const unavailableRetryAfterSeconds = 1;
+
 export const createDurableAgentsServer = (
   options: DurableAgentsServerOptions,
 ) => {
@@ -149,16 +162,33 @@ export const createDurableAgentsServer = (
       maxTurns: limits.maxTurns,
       crashLoopRestarts: limits.crashLoopRestarts,
       requestSlots,
-      onOpen: (conversationId, crashLoops) => {
+      onOpen: (conversationId, crashLoop) => {
         turns.opened(conversationId);
-        if (crashLoops.length > 0)
-          options.onCrashLoop?.(conversationId, crashLoops);
+        crashLoopEnded.delete(conversationId);
+        if (crashLoop === undefined) return;
+        if (crashLoop.running !== undefined)
+          crashLoopEnded.set(conversationId, crashLoop.running);
+        options.onCrashLoop?.(conversationId, crashLoop.tasks);
       },
     },
     context,
   );
+  /** Per conversation, the input its crash-loop guard ended on open here, until a reconnect follows it. */
+  const crashLoopEnded = new Map<string, SubmissionId>();
   const projection = { clientToolNames: options.clientToolNames };
   const app = new Hono();
+
+  // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
+  app.onError((error, ctx) => {
+    if (options.isUnavailable?.(error) === true) {
+      ctx.header("Retry-After", String(unavailableRetryAfterSeconds));
+      return ctx.text("The server is busy; try again shortly.", 503);
+    }
+    if (error instanceof HTTPException) return error.getResponse();
+    // oxlint-disable-next-line no-console -- As Hono's default handler, which this one replaces.
+    console.error(error);
+    return ctx.text("Internal Server Error", 500);
+  });
 
   /** A client stream of `submission`, counted as watching the conversation until it ends. */
   const follow = async (
@@ -224,11 +254,18 @@ export const createDurableAgentsServer = (
     if (conversation === undefined) return ctx.text(unknownConversation, 404);
     const { harness, root } = conversation;
     const live = await harness.snapshot(LiveDoc, root.id, context);
-    const running = live?.run?.inputs.at(0) as SubmissionId | undefined;
+    const ended = crashLoopEnded.get(conversationId);
+    crashLoopEnded.delete(conversationId);
+    // Idle after a crash-loop abort that is still the last run's end: follow the input it ended, once.
+    const followed =
+      live?.run?.inputs.at(0) ??
+      (ended !== undefined && live?.runFailure?.inputs.includes(ended) === true
+        ? ended
+        : undefined);
     const submission =
-      running === undefined
+      followed === undefined
         ? undefined
-        : await harness.submission(running, context);
+        : await harness.submission(followed, context);
     if (submission === undefined) return ctx.body(null, 204);
     return follow(conversationId, conversation, submission);
   });

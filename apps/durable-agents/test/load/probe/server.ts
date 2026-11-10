@@ -22,6 +22,7 @@ import { Pool } from "pg";
 
 import { conversationSchema } from "../../../src/server/conversation-storage";
 import { startDurableAgentsServer } from "../../../src/server/start-durable-agents-server";
+import { poolLimitsFromEnvironment } from "../../../src/server/start-durable-agents-server/limits-from-environment";
 import { postgresConfigFromEnvironment } from "../../../src/storage/postgres/postgres-config";
 import { PostgresStorage } from "../../../src/storage/postgres/postgres-storage";
 import { report } from "../../browser-call/proof/server-process";
@@ -213,8 +214,10 @@ export const serve = async ({
   const { models, model } = scriptedModel(
     Array.from({ length: 50_000 }, () => step),
   );
+  // The pool's size and wait from the environment, as `src/main.ts` builds it.
   const pool = new Pool({
     ...postgresConfigFromEnvironment(),
+    ...poolLimitsFromEnvironment(process.env),
     application_name: applicationName,
   });
   const server = await startDurableAgentsServer({

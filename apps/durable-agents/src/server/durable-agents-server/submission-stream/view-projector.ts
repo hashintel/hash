@@ -1,3 +1,8 @@
+import {
+  crashLoopErrorText,
+  stoppedByCrashLoop,
+} from "../conversation-registry/crash-loop-guard";
+
 /**
  * Project the watched views of one followed submission onto AI SDK UI message
  * chunks, in the shape `@local/flue-aisdk-transport`'s `createFlueUiStream`
@@ -270,16 +275,18 @@ export const createViewProjector = (
     return anchorSeen ? 0 : undefined;
   };
 
+  /** A user's stop ends in `abort`; the crash-loop guard's, which the transcript records, and any failure in `error`. */
   const settleUnanswered = (
     submission: Extract<SubmissionRecord, { status: "unanswered" }>,
+    view: ConversationView,
   ) => {
     finishStep();
     finished = true;
-    write(
-      submission.reason === "aborted"
-        ? { type: "abort", reason: "The chat turn aborted." }
-        : { type: "error", errorText: runErrorText(submission) },
-    );
+    if (submission.reason !== "aborted")
+      write({ type: "error", errorText: runErrorText(submission) });
+    else if (stoppedByCrashLoop(view.entries, submission.id))
+      write({ type: "error", errorText: crashLoopErrorText });
+    else write({ type: "abort", reason: "The chat turn aborted." });
   };
 
   const accept = (frame: ViewFrame): void => {
@@ -288,7 +295,8 @@ export const createViewProjector = (
     const start = responseStart(submission, view);
     if (start === undefined) {
       // Withdrawn while queued: it never reached the transcript.
-      if (submission.status === "unanswered") settleUnanswered(submission);
+      if (submission.status === "unanswered")
+        settleUnanswered(submission, view);
       return;
     }
     const responseId = responseMessageId(submission);
@@ -338,7 +346,7 @@ export const createViewProjector = (
       finished = true;
       write({ type: "finish", finishReason: "stop" });
     } else if (submission.status === "unanswered") {
-      settleUnanswered(submission);
+      settleUnanswered(submission, view);
     }
   };
 
