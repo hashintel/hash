@@ -80,9 +80,9 @@ console.log(serialized);
 
 ### Handle construction failures
 
-[`program`][draft-program] catches exceptions raised during program construction rather than propagating them, returning a [`Result`] value to the caller. In this respect, it is similar to [`Result.try`]. This allows it to bridge naturally between [effect] and native JavaScript with minimal friction.
+[`program`][draft-program] catches exceptions raised by its construction callback rather than propagating them, returning a [`Result`] with the `CallbackException` reason to the caller. In this respect, it is similar to [`Result.try`]. This allows it to bridge naturally between [effect] and native JavaScript with minimal friction.
 
-Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures are also returned explicitly through a [`Result`] value rather than thrown as exceptions. Each construction failure is represented by a distinct, well-typed case in [`ProgramError.Construction`], allowing for structured error handling.
+Construction and serialisation can also fail for other reasons, such as an invalid binding name or a reference used outside its scope. These failures are also returned explicitly through a [`Result`] value rather than thrown as exceptions. Each construction failure is represented by a distinct, well-typed case in [`ProgramError.Construction`], allowing for structured error handling. The troubleshooting guide shows [how to handle the result with `Result.match`](/docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure), including the failure's typed reason.
 
 ### Choose declarations from the prelude
 
@@ -219,7 +219,7 @@ console.log(compile(summarizeTask));
 
 </details>
 
-[`Program.Structural.struct`] creates a struct value from the field expressions we provide. HashQL operates in three “universes”: modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`Program.Structural.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
+[`Program.Structural.struct`] creates a struct value from the field expressions we provide. HashQL operates in three "universes": modules, types and values. Whereas [`Program.Structural.type`] constructs a struct type, [`Program.Structural.struct`] constructs a struct value. We can then use standard JavaScript property access notation to access the fields of these struct values, with each access returning an expression handle.
 
 <Callout>
 
@@ -341,7 +341,7 @@ const namedRevision = Draft.program(revisionInputs, ($, { revision }) => {
 
 This code passes TypeScript's checks, but the `nextRevision` handle used in the struct is expected to represent an `Integer`, while the HashQL binding now in scope—whose handle is assigned to `nextRevision2`—represents a `String`.
 
-The resulting HashQL program would fail to compile on the server, but the SDK can detect this mismatch on the client during construction. This is one reason HashQL returns a [`Result`]: the mismatch produces a [`ProgramError.Construction`] error.
+Without the SDK's check, both name references in the struct would resolve to the inner `nextRevision` binding, silently selecting `"foo"` instead of the intended revision. Shadowing itself is valid HashQL. It is the old handle that no longer names the binding we meant. Draft detects this during construction and returns a [`ProgramError.Construction`] failure with the `StaleReference` reason.
 
 It is also why we recommend giving each binding the same name as the JavaScript variable holding its handle. This makes the code easier to reason about and, in this example, would expose the conflicting declarations as a TypeScript compile-time error.
 
@@ -389,9 +389,51 @@ const needsReviewFor = (task: Task) =>
 
 Here, [`Draft.Body.Handles`] derives the handle types from our input definitions. We then extract the type of the `task` handle, allowing us to pass it to the helper in a type-safe way.
 
+#### Detour: conservative type-system implementation
+
+The HashQL type system modelled in TypeScript is deliberately conservative and does not implement all of HashQL's subtyping rules. Where necessary, use [`Expression.assume`] to give an expression the type descriptor your use case requires. The server still type-checks every program before execution.
+
+Let's look at an example:
+
+```ts title="Compare a nullable lookup" data-example="nullable-equality"
+import type { Type } from "@local/hashql";
+
+const missingLabel = Draft.program({}, ($) =>
+  $.eq(
+    Program.Structural.list(String, ["review"]).$index(1n), //
+    null,
+  ),
+);
+```
+
+HashQL has a sophisticated type system with subtyping and inference rules, so the generated program would type-check correctly in HashQL. However, the deliberately conservative TypeScript SDK rejects this code with the following error:
+
+```text
+[insert here]
+```
+
+This is because `$index` returns `T | Null`—in this case, `String | Null`. We compare that result against `Null`, but the TypeScript SDK requires the operands to have the same type. `String | Null` is not the same type as `Null`, even though `Null` is a subtype of `String | Null`. HashQL's type system accepts this comparison, but the SDK does not.
+
+In cases like this, you can use [`Expression.assume`] as an escape hatch. It allows you to "lie" to the TypeScript SDK --- not the HashQL compiler --- by asserting that an expression has a particular type. This annotation only satisfies the TypeScript compiler; it does not bypass HashQL's type checking, so invalid HashQL programs will still fail to compile.
+
+For our example, the solution is to widen the type of `null` to `String | Null` using `assume`:
+
+```ts title="Compare a nullable lookup" data-example="nullable-equality"
+import type { Type } from "@local/hashql";
+
+const missingLabel = Draft.program({}, ($) =>
+  $.eq(
+    Program.Structural.list(String, ["review"]).$index(1n), //
+    Program.Expression.assume<
+      Type.Union<readonly [Type.PrimitiveString, Type.PrimitiveNull]>
+    >()(null),
+  ),
+);
+```
+
 <Callout>
 
-The HashQL type system modelled in TypeScript is deliberately conservative and does not implement all of HashQL's subtyping rules. Where necessary, use [`Expression.assume`] to cast an expression. The server still type-checks every program before execution.
+The order of types can cause a similar issue. We use tuples to represent intersections and unions, but there is no built-in way to deduplicate or sort tuple entries at the type level. You may therefore need to use [`Expression.assume`] to express the types in the required order.
 
 </Callout>
 
@@ -414,6 +456,12 @@ const attentionFor = ($: TaskContext, task: Task) =>
     }),
   );
 ```
+
+<Callout>
+
+`Draft.Body.Context` takes two type parameters: the prelude scope and the input requirements. Both are covariant, so a helper can accept a narrower scope and narrower input requirements than those of the program itself.
+
+</Callout>
 
 We can now assemble our summary using the extracted helpers:
 
@@ -440,6 +488,18 @@ console.log(compile(reusableSummary));
 </details>
 
 Although the output is dense, we can see that `attention` is bound before the summary is constructed. Construction-time macros let us organise our code and share common logic without serialising intermediate fragments or giving up type safety. Neat!
+
+### Projecting a field with a colliding name
+
+Expression handles reserve `pipe` for Effect's piping method. If a task has a `pipe` field naming its processing pipeline, `task.pipe` selects the SDK method, not that field. Use `$project` to select the HashQL field explicitly:
+
+```ts title="Read a field named pipe" data-example="colliding-field"
+const pipelineName = Draft.program({ task: { pipe: String } }, (_, { task }) =>
+  task.$project("pipe"),
+);
+```
+
+This constructs an ordinary HashQL field access.
 
 ## Querying the graph
 

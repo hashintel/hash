@@ -337,7 +337,7 @@ Check whether the feature has a construction API yet. The [language introduction
 
 General closure construction is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015). Query filters already construct the closures their predicates need. This does not make arbitrary standalone closures available through Draft.
 
-Draft also has no dedicated `as` builder today. A type annotation on `$.let` annotates that binding. `Expression.assume` changes an SDK descriptor. Neither is a general Draft `as` operation. Consult the [J-Expr reference](/docs/hashql/sdk/typescript/reference/hashql/JExpr) if you need to construct syntax through the lower-level API, whose contract differs from Draft's typed builders.
+Draft also has no dedicated `as` builder today. This is tracked in [BE-1141](https://linear.app/hash/issue/BE-1141). A type annotation on `$.let` annotates that binding. `Expression.assume` changes an SDK descriptor. Neither is a general Draft `as` operation. Consult the [J-Expr reference](/docs/hashql/sdk/typescript/reference/hashql/JExpr) if you need to construct syntax through the lower-level API, whose contract differs from Draft's typed builders.
 
 ## The server rejects serialised J-Expr [#server-errors]
 
