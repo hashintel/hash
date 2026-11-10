@@ -1,8 +1,9 @@
 /**
  * The server's limits across restarts, on the compose Postgres: model
  * request slots, whose waiting requests survive a restart and a crash, and
- * the crash-loop guard, which aborts work a crash keeps cutting off but
- * spares a tool call waiting on a browser.
+ * the crash-loop guard, which aborts work a crash keeps cutting off, as an
+ * error the client and the transcript tell from a user's stop, but spares a
+ * tool call waiting on a browser.
  *
  * A "crash" here is a second instance taking a conversation over while the
  * first still runs it: open counts every task the first was running as cut
@@ -46,6 +47,10 @@ import {
   type CrashLoopingTask,
   type DurableAgentsServerLimits,
 } from "../../src/server/durable-agents-server";
+import {
+  CrashLoopEntry,
+  crashLoopErrorText,
+} from "../../src/server/durable-agents-server/conversation-registry/crash-loop-guard";
 import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
 
 const context = BACKGROUND_CONTEXT;
@@ -339,22 +344,41 @@ test("the crash-loop guard aborts a task a crash cut off too often, visibly", as
     });
 
     // The second instance opens it: the tool task was cut off once, which reaches the lowered limit.
-    expect(await second.transport.reconnectToStream({ chatId })).toBeNull();
+    // The client reconnecting to its turn sees it end in an error, not a stop.
+    const reconnected = await second.transport.reconnectToStream({ chatId });
+    expect(reconnected).not.toBeNull();
+    const stopped = await drain(reconnected!);
+    expect(stopped.map(({ type }) => type)).toContain("tool-input-available");
+    expect(stopped.at(-1)).toEqual({
+      type: "error",
+      errorText: crashLoopErrorText,
+    });
     expect(second.crashLoops).toEqual([
       {
         conversationId: chatId,
         tasks: [expect.objectContaining({ kind: "pi.tool", restarts: 1 })],
       },
     ]);
+    // Only the first reconnect follows the ended turn; the conversation is idle.
+    expect(await second.transport.reconnectToStream({ chatId })).toBeNull();
     const { harness, root } = await openConversation(second, chatId);
     const live = await harness.snapshot(LiveDoc, root.id, context);
     expect(live?.run).toBeUndefined();
     expect(live?.runFailure?.reason).toBe("aborted");
-    // The client's retry of its message finds the run ended.
+    // The transcript records why, for a later reader: the input it ended and the task it aborted for.
+    const { items: entries } = await root.entries({}, 50, undefined, context);
+    const records = entries.filter((entry) => CrashLoopEntry.is(entry));
+    expect(records).toHaveLength(1);
+    expect(records[0]?.data).toEqual({
+      inputs: live?.runFailure?.inputs,
+      tasks: [expect.objectContaining({ kind: "pi.tool", restarts: 1 })],
+    });
+    expect(records[0]?.model).toBeUndefined();
+    // The client's retry of its message finds the run ended the same way.
     const retried = await drain(await send(second, chatId));
     expect(retried.at(-1)).toEqual({
-      type: "abort",
-      reason: "The chat turn aborted.",
+      type: "error",
+      errorText: crashLoopErrorText,
     });
     expect(second.modelRequests()).toBe(0);
   } finally {
