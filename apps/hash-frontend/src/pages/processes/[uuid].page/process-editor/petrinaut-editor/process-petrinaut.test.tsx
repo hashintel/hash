@@ -91,8 +91,26 @@ vi.mock("./process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: topBarPluginMarker,
 }));
 
+const deployment = vi.hoisted(
+  (): { brunchOrigin: string | null; accountSignupComplete: boolean } => ({
+    brunchOrigin: "https://brunch.test",
+    accountSignupComplete: true,
+  }),
+);
+
+vi.mock("../../../../../lib/public-env", () => ({
+  get brunchAgentOrigin() {
+    return deployment.brunchOrigin;
+  },
+}));
+
 vi.mock("../../../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: { accountId: "alice-account" } }),
+  useAuthInfo: () => ({
+    authenticatedUser: {
+      accountId: "alice-account",
+      accountSignupComplete: deployment.accountSignupComplete,
+    },
+  }),
 }));
 
 const handle = createJsonDocHandle({
@@ -118,6 +136,8 @@ beforeEach(() => {
   observed.brunchInputs.length = 0;
   captureException.mockClear();
   fetchMock.mockClear();
+  deployment.brunchOrigin = "https://brunch.test";
+  deployment.accountSignupComplete = true;
   identityResponse = () =>
     Promise.resolve(Response.json({ actorKey: "hash:alice-account" }));
   vi.stubGlobal("fetch", fetchMock);
@@ -200,33 +220,59 @@ test("Brunch is offered on an editable saved net only once the actor key is know
   expect(captureException).not.toHaveBeenCalled();
 });
 
-test("a 503 from the identity route turns Brunch off without reporting it", async () => {
-  identityResponse = () => Promise.resolve(new Response(null, { status: 503 }));
+test("asks Brunch itself for the actor key, with the user's session, and talks to its HASH agent", async () => {
   renderEditor({ savedEntityId, readonly: false });
-
   await settleIdentity();
 
+  expect(fetchMock).toHaveBeenCalledWith(
+    "https://brunch.test/hash/identity",
+    expect.objectContaining({ credentials: "include" }),
+  );
+  await waitFor(() =>
+    expect(observed.brunchInputs.at(-1)).toMatchObject({
+      actorKey: "hash:alice-account",
+      chatEndpoint: "https://brunch.test/agents/hash",
+    }),
+  );
+});
+
+test.each([
+  ["this deployment has no Brunch", { brunchOrigin: null }],
+  ["the account hasn't completed signup", { accountSignupComplete: false }],
+])("offers no Brunch, and asks nothing, when %s", async (_case, overrides) => {
+  Object.assign(deployment, overrides);
+  renderEditor({ savedEntityId, readonly: false });
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  });
+
+  expect(fetchMock).not.toHaveBeenCalled();
   expect(observed.brunchInputs).toHaveLength(0);
   expect(lastPlugins()).toEqual([topBarPluginMarker]);
   expect(captureException).not.toHaveBeenCalled();
 });
 
-test("other identity failures are still reported, and offer no Brunch", async () => {
-  identityResponse = () => Promise.resolve(new Response(null, { status: 500 }));
-  renderEditor({ savedEntityId, readonly: false });
+test.each([401, 503])(
+  "a %s from Brunch's identity route is reported, and offers no Brunch",
+  async (status) => {
+    identityResponse = () => Promise.resolve(new Response(null, { status }));
+    renderEditor({ savedEntityId, readonly: false });
 
-  await settleIdentity();
+    await settleIdentity();
 
-  expect(captureException).toHaveBeenCalledTimes(1);
-  expect(captureException).toHaveBeenCalledWith(
-    expect.objectContaining({
-      message: "The Brunch identity request failed with status 500",
-    }),
-    { source: "brunch.identity" },
-  );
-  expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([topBarPluginMarker]);
-});
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: `The Brunch identity request failed with status ${status}`,
+      }),
+      { source: "brunch.identity" },
+    );
+    expect(observed.brunchInputs).toHaveLength(0);
+    expect(lastPlugins()).toEqual([topBarPluginMarker]);
+  },
+);
 
 test("a net the user may not edit gets no Brunch, and gaining or losing permission keeps the editor mounted", async () => {
   const { rerender } = renderEditor({ savedEntityId, readonly: true });

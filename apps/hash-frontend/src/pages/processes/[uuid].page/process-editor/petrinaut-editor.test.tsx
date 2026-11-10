@@ -142,8 +142,17 @@ vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: { id: "top-bar" },
 }));
 
+vi.mock("../../../../lib/public-env", () => ({
+  brunchAgentOrigin: "https://brunch.test",
+}));
+
 vi.mock("../../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: { accountId: "alice-account" } }),
+  useAuthInfo: () => ({
+    authenticatedUser: {
+      accountId: "alice-account",
+      accountSignupComplete: true,
+    },
+  }),
 }));
 
 /**
@@ -274,7 +283,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(lastEditorHandle()).toBe(firstHandle);
   expect(lastBrunchInput()).toMatchObject({
     actorKey: "hash:alice-account",
-    chatEndpoint: "http://localhost:5001/api/brunch/agents/hash",
+    chatEndpoint: "https://brunch.test/agents/hash",
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
@@ -287,7 +296,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(lastBrunchInput()?.hostSave).toBeDefined();
   expect(identityRequests).toEqual([
     {
-      url: "http://localhost:5001/api/brunch/identity",
+      url: "https://brunch.test/hash/identity",
       credentials: "include",
     },
   ]);

@@ -3,8 +3,8 @@
  * names that packages, apps and the website share. Environment variable names
  * live in the app that reads them.
  *
- * This module imports nothing but `@local/brunch-configs`, which imports
- * nothing, so the browser, plain Node and Flue builds can all load it.
+ * This module imports nothing, so the browser, plain Node and Flue builds can
+ * all load it.
  */
 
 /**
@@ -70,15 +70,40 @@ export const brunchSignals = {
 export const brunchActorKeyStorageKey = "brunch-principal-v1";
 
 /**
- * The wire facts of reaching Brunch over HTTP, owned by `@local/brunch-configs`
- * so hash-api can share them without depending on this package.
+ * Request headers that carry conversation identity: who is acting, and which
+ * of their conversations.
  */
-export {
-  brunchExposedResponseHeaders,
-  brunchHeaders,
-  brunchRoutes,
-  hashSessionCredential,
-} from "@local/brunch-configs/wire";
+export const brunchHeaders = {
+  actor: "x-brunch-actor",
+  conversation: "x-brunch-conversation",
+  /**
+   * The actor header's former name, which Brunch still reads when `actor` is
+   * absent, so a browser client and Brunch can deploy in either order.
+   * Temporary: remove once the Petrinaut website sends `actor` from its own
+   * server-side hop and no client sends this name. The HASH agent's route
+   * reads neither: its actor comes from the user's HASH session.
+   */
+  legacyPrincipal: "x-brunch-principal",
+} as const;
+
+/** Server routes and route segments. */
+export const brunchRoutes = {
+  /** Where agents mount; each serves under `<agents>/<route>`. */
+  agents: "/agents",
+  /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
+  petrinautAgent: "petrinaut",
+  /** The HASH agent's route, which HASH's process page talks to. */
+  hashAgent: "hash",
+  /**
+   * Answers `{ actorKey }` for the HASH session the request carries, which
+   * HASH's process page needs to address the user's conversations.
+   */
+  hashIdentity: "/hash/identity",
+  /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
+  browserCalls: "browser-calls",
+  /** Cheap process-liveness probe; dependency readiness is established before listen. */
+  health: "/health",
+} as const;
 
 /** Actor key for the stock Flue UI at `/`. Not a second ownership rule. */
 export const localUiActorKey = "local";

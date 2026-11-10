@@ -25,8 +25,8 @@ import {
   Petrinaut,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import { brunchAgentOrigin } from "../../../../../lib/public-env";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
@@ -36,15 +36,17 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
-/** Brunch's HASH agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
+/** Brunch's HASH agent, which the page calls directly. */
+const brunchChatEndpoint = (origin: string) =>
+  `${origin}${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
 
 /** Returns `{ actorKey }` for the signed-in account. */
-const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
+const brunchIdentityEndpoint = (origin: string) =>
+  `${origin}${brunchRoutes.hashIdentity}`;
 
 /**
- * Carries Brunch's requests to hash-api with the session cookie, which the
- * route turns into the conversation's actor key. Module-level, so its identity
+ * Carries Brunch's requests with the user's HASH session cookie, from which
+ * Brunch learns who they are from hash-api. Module-level, so its identity
  * never changes: a new one would recreate the conversation's client.
  */
 const brunchFetch: typeof fetch = (input, init) =>
@@ -66,34 +68,38 @@ const noNetSwitchingError = () => {
 };
 
 /**
- * The signed-in account's Brunch actor key, from hash-api, or `null` while
- * it loads, when nobody is signed in, when this deployment has no Brunch
- * (hash-api answers 503), or when the request failed. Requested again
- * whenever the signed-in account changes.
+ * Brunch's origin and the signed-in account's actor key, from Brunch, or
+ * `null` while it loads, when nobody with a completed signup is signed in,
+ * when this deployment has no Brunch, or when the request failed. Requested
+ * again whenever the signed-in account changes.
  */
-const useBrunchActorKey = (): string | null => {
+const useBrunchConnection = (): {
+  readonly origin: string;
+  readonly actorKey: string;
+} | null => {
   const { authenticatedUser } = useAuthInfo();
-  const accountId = authenticatedUser?.accountId ?? null;
+  const origin = brunchAgentOrigin;
+  const accountId = authenticatedUser?.accountSignupComplete
+    ? authenticatedUser.accountId
+    : null;
   const { captureException } = use(ErrorTrackerContext);
   const [identity, setIdentity] = useState<{
+    origin: string;
     accountId: UserId;
     actorKey: string;
   } | null>(null);
 
   useEffect(() => {
-    if (accountId === null) {
+    if (origin === null || accountId === null) {
       return;
     }
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await fetch(brunchIdentityEndpoint, {
+        const response = await fetch(brunchIdentityEndpoint(origin), {
           credentials: "include",
           signal: controller.signal,
         });
-        if (response.status === 503) {
-          return;
-        }
         if (!response.ok) {
           throw new Error(
             `The Brunch identity request failed with status ${response.status}`,
@@ -104,7 +110,7 @@ const useBrunchActorKey = (): string | null => {
           throw new Error("The Brunch identity response has no actor key");
         }
         const { actorKey } = body;
-        setIdentity({ accountId, actorKey });
+        setIdentity({ origin, accountId, actorKey });
       } catch (error) {
         if (!controller.signal.aborted) {
           captureException(error, { source: "brunch.identity" });
@@ -112,10 +118,12 @@ const useBrunchActorKey = (): string | null => {
       }
     })();
     return () => controller.abort();
-  }, [accountId, captureException]);
+  }, [origin, accountId, captureException]);
 
-  return identity !== null && identity.accountId === accountId
-    ? identity.actorKey
+  return identity !== null &&
+    identity.origin === origin &&
+    identity.accountId === accountId
+    ? identity
     : null;
 };
 
@@ -132,6 +140,7 @@ const useBrunchActorKey = (): string | null => {
 const BrunchSession = memo(
   ({
     actorKey,
+    chatEndpoint,
     openDocument,
     shown,
     hostTools,
@@ -140,6 +149,8 @@ const BrunchSession = memo(
     onChange,
   }: {
     actorKey: string;
+    /** Brunch's HASH agent. */
+    chatEndpoint: string;
     openDocument: BrunchOpenDocument;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
@@ -159,7 +170,7 @@ const BrunchSession = memo(
   }) => {
     const { assistant } = useBrunchAssistant({
       actorKey,
-      chatEndpoint: brunchChatEndpoint,
+      chatEndpoint,
       fetch: brunchFetch,
       selected: shown,
       openDocument,
@@ -210,7 +221,7 @@ export const ProcessPetrinaut = ({
   setTitle: (title: string) => void;
   title: string;
 }) => {
-  const actorKey = useBrunchActorKey();
+  const brunch = useBrunchConnection();
   const graphReads = useBrunchHashGraphReadTools();
   const hostTools = useMemo(
     () => [...graphReads, ...hashPetrinautHostTools],
@@ -244,9 +255,10 @@ export const ProcessPetrinaut = ({
 
   return (
     <>
-      {actorKey !== null && openDocument !== null && (
+      {brunch !== null && openDocument !== null && (
         <BrunchSession
-          actorKey={actorKey}
+          actorKey={brunch.actorKey}
+          chatEndpoint={brunchChatEndpoint(brunch.origin)}
           openDocument={openDocument}
           shown={brunchShown}
           hostTools={hostTools}
@@ -266,7 +278,7 @@ export const ProcessPetrinaut = ({
           hideNetManagementControls="all"
           loadPetriNet={noNetSwitchingError}
           plugins={
-            actorKey !== null && openDocument !== null
+            brunch !== null && openDocument !== null
               ? editorPluginsWithBrunch
               : editorPlugins
           }

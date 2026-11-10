@@ -291,3 +291,62 @@ test.each([
   expect(response.status).toBe(204);
   expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });
+
+describe("the HASH route's origins", () => {
+  const hashList = {
+    variable: brunchEnv.hashCorsAllowedOrigins,
+    wildcards: false,
+  };
+
+  test("are exact origins, named by their own variable when refused", () => {
+    expect(
+      parseCorsAllowedOrigins(
+        "https://app.example.com/, https://stage.example.com",
+        hashList,
+      ),
+    ).toEqual(["https://app.example.com", "https://stage.example.com"]);
+    for (const value of ["https://*.example.com", "https://app.example.com/x"])
+      expect(() => parseCorsAllowedOrigins(value, hashList)).toThrow(
+        `${brunchEnv.hashCorsAllowedOrigins} must contain only comma-separated exact HTTP(S) origins`,
+      );
+  });
+
+  test("may send the session cookie, and never the actor header's former name", async () => {
+    const app = new Hono();
+    app.use(
+      "/agents/*",
+      createAgentCors([allowedOrigin], { sessionCredentials: true }),
+    );
+    app.all("/agents/*", (context) => context.text("admitted"));
+
+    const preflight = await app.fetch(
+      new Request(conversationUrl, {
+        method: "OPTIONS",
+        headers: {
+          Origin: allowedOrigin,
+          "Access-Control-Request-Method": "POST",
+        },
+      }),
+    );
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(
+      allowedOrigin,
+    );
+    expect(preflight.headers.get("access-control-allow-credentials")).toBe(
+      "true",
+    );
+    expect(preflight.headers.get("access-control-allow-headers")).toBe(
+      `Content-Type,x-brunch-actor,${brunchHeaders.conversation}`,
+    );
+
+    const refused = await app.fetch(
+      new Request(conversationUrl, {
+        method: "OPTIONS",
+        headers: {
+          Origin: rejectedOrigin,
+          "Access-Control-Request-Method": "POST",
+        },
+      }),
+    );
+    expect(refused.headers.get("access-control-allow-origin")).toBeNull();
+  });
+});

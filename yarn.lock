@@ -409,6 +409,7 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/flue-aisdk-transport": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
+    "@local/hash-isomorphic-utils": "workspace:*"
     "@local/pi-faux-providers": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -538,7 +539,6 @@ __metadata:
     "@keyv/redis": "npm:5.1.3"
     "@linear/sdk": "npm:61.0.0"
     "@local/advanced-types": "workspace:*"
-    "@local/brunch-configs": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/harpc-client": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
@@ -6872,7 +6872,6 @@ __metadata:
     "@hashintel/ds-icons": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
-    "@local/brunch-configs": "workspace:*"
     "@local/flue-aisdk-transport": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@pandacss/dev": "npm:1.11.1"
@@ -9169,21 +9168,6 @@ __metadata:
     zod: "npm:4.6.7"
   bin:
     archinaut: ./bin/archinaut.js
-  languageName: unknown
-  linkType: soft
-
-"@local/brunch-configs@workspace:*, @local/brunch-configs@workspace:libs/@local/brunch-configs":
-  version: 0.0.0-use.local
-  resolution: "@local/brunch-configs@workspace:libs/@local/brunch-configs"
-  dependencies:
-    "@local/eslint": "workspace:*"
-    "@local/tsconfig": "workspace:*"
-    "@tsconfig/bases": "catalog:"
-    "@types/node": "catalog:"
-    eslint: "npm:9.39.4"
-    react: "npm:19.2.6"
-    rimraf: "npm:6.1.3"
-    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 

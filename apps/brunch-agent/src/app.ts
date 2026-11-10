@@ -38,6 +38,10 @@ import {
   parseCorsAllowedOrigins,
 } from "./server/http/cors.ts";
 import { hashSessionActor } from "./server/http/hash-session-actor.ts";
+import {
+  hashTurnLimit,
+  type TurnWindows,
+} from "./server/http/hash-turn-limit.ts";
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
@@ -277,30 +281,48 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const app = new Hono();
-const kratosPublicUrl = process.env[brunchEnv.hashKratosPublicUrl];
 
-app.use(
-  `${brunchRoutes.agents}/*`,
-  createAgentCors(
-    parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
-  ),
+// The website's agents answer its browsers' JavaScript without credentials;
+// the HASH agent answers only HASH's origins, which send the user's session.
+const agentCors = createAgentCors(
+  parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
+);
+const hashCors = createAgentCors(
+  parseCorsAllowedOrigins(process.env[brunchEnv.hashCorsAllowedOrigins], {
+    variable: brunchEnv.hashCorsAllowedOrigins,
+    wildcards: false,
+  }),
+  { sessionCredentials: true },
+);
+// One session cache for the HASH agent's routes and the identity route.
+const resolveSessionActor = hashSessionActor({
+  apiOrigin: process.env[brunchEnv.apiOrigin],
+});
+const hashTurnWindows: TurnWindows = new Map();
+// The signed-in user's actor key, which the page needs to address their
+// conversations and which tells it Brunch will serve them.
+app.use(brunchRoutes.hashIdentity, hashCors, resolveSessionActor);
+app.get(brunchRoutes.hashIdentity, (context) =>
+  context.json({ actorKey: context.get("hashSessionActorKey") }),
 );
 for (const { route, aliases = [], agent } of mountedAgents) {
   const broadcaster = liveToolBroadcasters.get(agent.agentName);
   if (broadcaster === undefined)
     throw new Error(`No live-tool channel for ${agent.agentName}.`);
   const sessionActor = route === brunchRoutes.hashAgent;
-  // One session cache per agent, shared by its route and aliases.
-  const resolveSessionActor = sessionActor
-    ? hashSessionActor({ kratosPublicUrl })
-    : undefined;
   for (const segment of [route, ...aliases]) {
     const mount = `${brunchRoutes.agents}/${segment}`;
-    if (resolveSessionActor) app.use(`${mount}/*`, resolveSessionActor);
+    app.use(`${mount}/*`, sessionActor ? hashCors : agentCors);
+    if (sessionActor) app.use(`${mount}/*`, resolveSessionActor);
     app.use(
       `${mount}/*`,
       agentOwnershipGuard(`${mount}/`, agent.agentName, { sessionActor }),
     );
+    if (sessionActor)
+      app.use(
+        `${mount}/*`,
+        hashTurnLimit({ mountPrefix: `${mount}/`, windows: hashTurnWindows }),
+      );
     app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
       liveToolResponse(broadcaster, {
         instanceId: context.req.param("id"),

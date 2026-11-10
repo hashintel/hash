@@ -42,6 +42,11 @@ process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
 process.env.NEXT_PUBLIC_API_ORIGIN =
   process.env.API_ORIGIN ?? "http://localhost:5001";
 
+// Brunch's origin, which the process page's assistant calls with the user's
+// session. Unset, the page offers no assistant.
+process.env.NEXT_PUBLIC_HASH_BRUNCH_AGENT_ORIGIN =
+  process.env.HASH_BRUNCH_AGENT_ORIGIN ?? "";
+
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =
