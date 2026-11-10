@@ -109,16 +109,16 @@ const getItemState = (stepStates: ItemState[], live: boolean): ItemState => {
 };
 
 /** The number of items each for-each step started, by its id, as the run last started it. */
-const getItemCounts = (events: FlowRunEvent[]) => {
-  const itemCounts = new Map<string, number>();
+const getItemCountByStepId = (events: FlowRunEvent[]) => {
+  const itemCountByStepId = new Map<string, number>();
 
   for (const event of events) {
     if (event.kind === "forEachStarted") {
-      itemCounts.set(event.stepRun.stepId, event.itemCount);
+      itemCountByStepId.set(event.stepRun.stepId, event.itemCount);
     }
   }
 
-  return itemCounts;
+  return itemCountByStepId;
 };
 
 /**
@@ -142,7 +142,7 @@ export const getStepRunMarks = ({
   const statusByStepRunId = new Map(
     stepRuns.map(({ stepId, status }) => [stepId, status]),
   );
-  const itemCounts = getItemCounts(events);
+  const itemCountByStepId = getItemCountByStepId(events);
   const marks = new Map<string, StepRunMark>();
 
   const getRunState = (stepRunId: string): ItemState => {
@@ -160,47 +160,51 @@ export const getStepRunMarks = ({
       continue;
     }
 
-    const itemCount = itemCounts.get(step.stepId);
-    const ownState = getRunState(step.stepId);
-    const itemIndexes = Array.from(
-      { length: itemCount ?? 0 },
-      (_, index) => index,
-    );
+    const itemCount = itemCountByStepId.get(step.stepId);
 
-    /* For each inner step, its state for each item. */
-    const innerStates = step.steps.map((innerStep) =>
-      itemIndexes.map((index) =>
-        getRunState(generateStepRunId(innerStep.stepId, index)),
-      ),
-    );
-
-    for (const [position, innerStep] of step.steps.entries()) {
-      const counts = countItems(innerStates[position] ?? []);
-
-      marks.set(innerStep.stepId, {
-        state:
-          itemCount === undefined
-            ? "notReached"
-            : /* With no items, there was nothing to run it for. */
-              itemCount === 0
-              ? "skipped"
-              : getStateOfItems(counts, live),
-        items: counts,
-      });
-    }
-
+    /* Never started: skipped or not reached itself, with none of its steps reached. */
     if (itemCount === undefined) {
+      for (const innerStep of step.steps) {
+        marks.set(innerStep.stepId, {
+          state: "notReached",
+          items: countItems([]),
+        });
+      }
+
       marks.set(step.stepId, {
-        state: ownState,
+        state: getRunState(step.stepId),
         items: countItems([]),
       });
       continue;
     }
 
+    const itemIndexes = Array.from(
+      { length: itemCount },
+      (_, itemIndex) => itemIndex,
+    );
+    const innerSteps = step.steps.map(({ stepId }) => ({
+      stepId,
+      stateByItem: itemIndexes.map((itemIndex) =>
+        getRunState(generateStepRunId(stepId, itemIndex)),
+      ),
+    }));
+
+    for (const { stepId, stateByItem } of innerSteps) {
+      const innerCounts = countItems(stateByItem);
+
+      marks.set(stepId, {
+        /* With no items, there was nothing to run it for. */
+        state: itemCount === 0 ? "skipped" : getStateOfItems(innerCounts, live),
+        items: innerCounts,
+      });
+    }
+
     const counts = countItems(
-      itemIndexes.map((index) =>
+      itemIndexes.map((itemIndex) =>
         getItemState(
-          innerStates.map((states) => states[index] ?? "notReached"),
+          innerSteps.map(
+            ({ stateByItem }) => stateByItem[itemIndex] ?? "notReached",
+          ),
           live,
         ),
       ),

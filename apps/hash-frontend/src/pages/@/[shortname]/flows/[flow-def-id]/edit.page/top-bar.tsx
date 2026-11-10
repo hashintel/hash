@@ -251,6 +251,15 @@ export const TopBar = ({
     }
   };
 
+  const renameInput = (
+    <RenameInput
+      value={name}
+      placeholder="Untitled flow"
+      ariaLabel="Flow name"
+      onRename={onRename}
+    />
+  );
+
   return (
     <div className={topBar}>
       <div className={titleGroup}>
@@ -266,12 +275,7 @@ export const TopBar = ({
         />
         {flowRunEntityId ? (
           <BreadCrumbs size="sm">
-            <RenameInput
-              value={name}
-              placeholder="Untitled flow"
-              ariaLabel="Flow name"
-              onRename={onRename}
-            />
+            {renameInput}
             {/* Never collapsed: it's the way back to the runs. */}
             <BreadCrumbs.Item noCollapse onClick={() => onViewChange("logs")}>
               Runs
@@ -283,12 +287,7 @@ export const TopBar = ({
             </BreadCrumbs.Item>
           </BreadCrumbs>
         ) : (
-          <RenameInput
-            value={name}
-            placeholder="Untitled flow"
-            ariaLabel="Flow name"
-            onRename={onRename}
-          />
+          renameInput
         )}
       </div>
       <div className={viewSwitch}>

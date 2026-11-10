@@ -172,19 +172,30 @@ const cardDescription = css({
 });
 const featuredStar = css({ display: "flex", color: "fg.muted" });
 
-/** A run's marks in a card's title row: a star if it has a featured output, then its state. */
-const RunTitleMarks = ({ run }: { run: CardRun }) => (
-  <>
-    {run.featured && (
-      <span className={featuredStar}>
-        <Icon name="starFilled" size="xs" alt="Shown in run results" />
-      </span>
-    )}
-    <CornerMark state={run.mark.state} />
-  </>
-);
+/**
+ * What a card's title row ends with. Editing, the step's problems; in a run, a star if it has a featured output, then
+ * its state.
+ */
+const TitleMarks = ({
+  problems,
+  run,
+}: {
+  problems: FlowDefinitionDiagnosticWithStepId[];
+  run: CardRun | undefined;
+}) =>
+  run ? (
+    <>
+      {run.featured && (
+        <span className={featuredStar}>
+          <Icon name="starFilled" size="xs" alt="Shown in run results" />
+        </span>
+      )}
+      <CornerMark state={run.mark.state} />
+    </>
+  ) : (
+    <ProblemsMarker problems={problems} />
+  );
 
-/** In a run, a card shows the step's state instead of its problems. */
 const Card = ({
   title,
   description,
@@ -209,11 +220,7 @@ const Card = ({
     <div className={cardText}>
       <div className={cardTitleRow}>
         <span className={cardTitle}>{title}</span>
-        {run ? (
-          <RunTitleMarks run={run} />
-        ) : (
-          <ProblemsMarker problems={problems} />
-        )}
+        <TitleMarks problems={problems} run={run} />
       </div>
       <span className={cardDescription}>
         {description || (run ? "" : "Add a description…")}
@@ -320,11 +327,7 @@ export const ForEachNode = ({
           </div>
         )}
         <span className={forEachTitle}>{description || title}</span>
-        {run ? (
-          <RunTitleMarks run={run} />
-        ) : (
-          <ProblemsMarker problems={problems} />
-        )}
+        <TitleMarks problems={problems} run={run} />
       </div>
       <Handle
         type="target"
