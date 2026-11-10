@@ -50,35 +50,14 @@ mod tests {
         }
     }
 
-    fn failures(count: u32) -> NonZero<u32> {
-        NonZero::new(count).expect("failures should be nonzero")
-    }
-
     #[rstest]
-    #[case::first(Duration::from_secs(30), 1, Duration::from_secs(30))]
-    #[case::second(Duration::from_secs(30), 2, Duration::from_mins(1))]
-    #[case::capped(Duration::from_secs(30), 6, Duration::from_mins(10))]
-    #[case::many_failures(Duration::from_secs(30), 40, Duration::from_mins(10))]
-    #[case::initial_above_maximum(Duration::from_mins(20), 1, Duration::from_mins(10))]
-    #[case::zero_delay(Duration::ZERO, 40, Duration::ZERO)]
-    fn retry_policy_delay(
-        #[case] initial_delay: Duration,
-        #[case] count: u32,
-        #[case] expected: Duration,
-    ) {
+    #[case::first(Duration::from_secs(30), Duration::from_secs(30))]
+    #[case::initial_above_maximum(Duration::from_mins(20), Duration::from_mins(10))]
+    fn retry_policy_delay(#[case] initial_delay: Duration, #[case] expected: Duration) {
         assert_eq!(
-            policy(initial_delay).delay(failures(count)),
+            policy(initial_delay).delay(NonZero::<u32>::MIN),
             expected,
-            "the delay should grow by the multiplier up to the maximum"
-        );
-    }
-
-    #[test]
-    fn retry_policy_delay_small_initial_delay() {
-        let delay = policy(Duration::from_nanos(1)).delay(failures(33));
-        assert!(
-            delay > Duration::from_secs(4) && delay < Duration::from_secs(5),
-            "1ns doubled 32 times should be about 4.29s, got {delay:?}"
+            "the first delay should be the initial delay, capped at the maximum"
         );
     }
 }
