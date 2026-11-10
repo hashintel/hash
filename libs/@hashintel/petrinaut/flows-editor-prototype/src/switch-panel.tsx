@@ -20,6 +20,16 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
+  filterFitStyle,
+  Joiner,
+  labelColumnStyle,
+  menuSegmentStyle,
+  rowStackStyle,
+  rowStyle,
+  takeColumnStyle,
+  takeFooterAtEdge,
+} from "./condition-builder";
+import {
   type DraftActionStep,
   flattenSteps,
   stepLabel,
@@ -27,6 +37,7 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import {
+  conditionLayout,
   ifRenameTake,
   namedPorts,
   regionValues,
@@ -505,9 +516,11 @@ const uncovered = (conditions: Record<string, CaseConditions>) => {
 const ConditionChip = ({
   row,
   onChange,
+  className = filterStyle,
 }: {
   row: Condition;
   onChange: (value: string) => void;
+  className?: string;
 }) => {
   const operators: FilterOperator<{ is: string }>[] = [
     {
@@ -522,7 +535,7 @@ const ConditionChip = ({
   return (
     <Filter<{ is: string }>
       size="sm"
-      className={filterStyle}
+      className={className}
       property={row.field}
       propertyLabel={row.field}
       operators={operators}
@@ -706,6 +719,289 @@ const ConditionCases = ({
   );
 };
 
+/**
+ * `?switchlayout=a|b|c` (inbox `condition-panels-layout`): S3 on the condition builder's own rows, so If, Switch and
+ * Find entities share one layout. A case is its in-place name (regular, as I1's path names), its condition rows
+ * (joiner, chip, ⋮ on hover), the Add button and "Goes to"; 16 px on each side of the hairline between cases.
+ */
+const layoutCaseStyle = css({
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  paddingBlock: "4",
+  "& + &": {
+    borderTopWidth: "[1px]",
+    borderTopStyle: "solid",
+    borderTopColor: "neutral.bd.subtle",
+  },
+  "&:first-child": { paddingTop: "[0]" },
+  "& > [data-case-delete]": {
+    position: "absolute",
+    top: "[3px]",
+    right: "[0]",
+    visibility: "hidden",
+  },
+  "& + & > [data-case-delete]": { top: "[19px]" },
+  "&:hover > [data-case-delete], &:focus-within > [data-case-delete]": {
+    visibility: "visible",
+  },
+});
+
+const layoutNameStyle = css({
+  display: "flex",
+  alignItems: "center",
+  minHeight: "[28px]",
+  paddingRight: "[32px]",
+  textStyle: "sm",
+  color: "neutral.s120",
+});
+
+/** The case's conditions: the builder's rows, then its Add button 16 px under them. */
+const layoutConditionsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "4",
+  alignSelf: "stretch",
+});
+
+const layoutRowsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "2",
+  alignSelf: "stretch",
+});
+
+const layoutAddStyle = css({
+  paddingLeft: "[calc(var(--flows-label-column) + 8px)]",
+});
+
+/** "Goes to" on the panel's grid: the label column, then the target. 16 px under the Add button. */
+const layoutTargetRowStyle = css({
+  display: "grid",
+  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
+  columnGap: "2",
+  alignItems: "center",
+  marginTop: "2",
+});
+
+const layoutDefaultStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  paddingTop: "4",
+  borderTopWidth: "[1px]",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
+});
+
+const layoutDefaultHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  minHeight: "[28px]",
+  textStyle: "sm",
+  color: "neutral.s120",
+});
+
+const LayoutConditionCases = ({
+  step,
+  ports,
+  iconOf,
+}: {
+  step: DraftActionStep;
+  ports: Port[];
+  iconOf: (id: string) => IconName;
+}) => {
+  const { setDocument } = useEditor();
+  const [conditions, setConditions] = useState(initialConditions);
+  const cases = ports.filter((port) => port.outputName !== "default");
+  const fallback = ports.find((port) => port.outputName === "default");
+  const defaultOn = !step.noDefault;
+  const missing = uncovered(conditions);
+  const setDefault = (on: boolean) =>
+    setDocument((document) => ({
+      ...updateStep(document, step.stepId, (current) =>
+        current.kind === "action" ? { ...current, noDefault: !on } : current,
+      ),
+      wires: on
+        ? document.wires
+        : document.wires.filter(
+            (wire) =>
+              !(wire.source === step.stepId && wire.sourcePort === "default"),
+          ),
+    }));
+  const setGroup = (outputName: string, group: CaseConditions) =>
+    setConditions((current) => ({ ...current, [outputName]: group }));
+  return (
+    <Section title="Cases">
+      <span className={helpStyle}>
+        Checked top to bottom. The first match runs.
+      </span>
+      <div
+        className={css({
+          gridColumn: "1 / -1",
+          display: "flex",
+          flexDirection: "column",
+          marginTop: "2",
+        })}
+      >
+        {cases.map((port, index) => {
+          const group = conditions[port.outputName] ?? {
+            join: "or",
+            rows: [],
+          };
+          return (
+            <div key={port.outputName} className={layoutCaseStyle} data-case>
+              <span className={layoutNameStyle}>
+                <PathName stepId={step.stepId} port={port} renamable />
+              </span>
+              <DeleteCase name={port.label || `Case ${index + 1}`} />
+              <div
+                className={cx(
+                  layoutConditionsStyle,
+                  labelColumnStyle,
+                  conditionLayout === "c" && takeColumnStyle,
+                )}
+              >
+                <div className={layoutRowsStyle}>
+                  {group.rows.map((row, rowIndex) => (
+                    <div
+                      // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
+                      key={rowIndex}
+                      className={rowStackStyle}
+                    >
+                      <Joiner
+                        conjunction={rowIndex === 0 ? undefined : group.join}
+                        onPick={
+                          rowIndex === 0
+                            ? undefined
+                            : (join) =>
+                                setGroup(port.outputName, { ...group, join })
+                        }
+                      />
+                      <div className={rowStyle} data-condition-row={rowIndex}>
+                        <ConditionChip
+                          row={row}
+                          className={filterFitStyle}
+                          onChange={(value) =>
+                            setGroup(port.outputName, {
+                              ...group,
+                              rows: group.rows.map((candidate, candidateIndex) =>
+                                candidateIndex === rowIndex
+                                  ? { ...candidate, value }
+                                  : candidate,
+                              ),
+                            })
+                          }
+                        />
+                        <Menu
+                          position="bottom-end"
+                          items={[
+                            {
+                              id: "delete",
+                              text: "Delete condition",
+                              onClick: () =>
+                                setGroup(port.outputName, {
+                                  ...group,
+                                  rows: group.rows.filter(
+                                    (_row, candidateIndex) =>
+                                      candidateIndex !== rowIndex,
+                                  ),
+                                }),
+                            },
+                          ]}
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={menuSegmentStyle}
+                              iconName="ellipsisVertical"
+                              aria-label="Condition options"
+                            />
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={takeFooterAtEdge ? undefined : layoutAddStyle}>
+                  <Button
+                    size="sm"
+                    variant="subtle"
+                    iconName="plus"
+                    onClick={() =>
+                      setGroup(port.outputName, {
+                        ...group,
+                        rows: [
+                          ...group.rows,
+                          { field: "Region", value: "Europe" },
+                        ],
+                      })
+                    }
+                  >
+                    Add condition
+                  </Button>
+                </div>
+              </div>
+              <div className={layoutTargetRowStyle}>
+                <span className={keyStyle}>Goes to</span>
+                <PathTarget stepId={step.stepId} port={port} iconOf={iconOf} />
+              </div>
+            </div>
+          );
+        })}
+        <div className={css({ paddingBottom: "4" })}>
+          <Button size="sm" variant="subtle" iconName="plus">
+            Add case
+          </Button>
+        </div>
+        <div className={layoutDefaultStyle}>
+          <span className={layoutDefaultHeadStyle}>
+            {fallback ? (
+              <PathName
+                stepId={step.stepId}
+                port={fallback}
+                renamable={defaultRenamable}
+              />
+            ) : (
+              "Default"
+            )}
+            <Toggle
+              size="sm"
+              value={defaultOn}
+              onChange={setDefault}
+              aria-label="Default"
+            />
+          </span>
+          <span className={helpStyle}>Runs when no case matches</span>
+          {defaultOn && fallback ? (
+            <div className={layoutTargetRowStyle}>
+              <span className={keyStyle}>Goes to</span>
+              <PathTarget
+                stepId={step.stepId}
+                port={fallback}
+                iconOf={iconOf}
+              />
+            </div>
+          ) : null}
+          {!defaultOn && missing.length > 0 ? (
+            <span className={warningStyle} data-not-exhaustive>
+              <Icon name="warning" size="sm" />
+              <span>
+                {`Cases aren't exhaustive: no case covers ${missing.join(", ")}, so those runs stop here.`}
+              </span>
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </Section>
+  );
+};
+
 /** S4: no Switch step. Find entities finds the batch's supplier, and its Paths split by Region. */
 const SplitByPaths = ({
   stepId,
@@ -787,7 +1083,13 @@ export const SwitchSections = ({
       return <ValueCases stepId={step.stepId} ports={named} iconOf={iconOf} />;
     case "s3":
       // Default's row stays when it is off, so pass every port and let the row read `noDefault`.
-      return (
+      return conditionLayout ? (
+        <LayoutConditionCases
+          step={step}
+          ports={namedPorts({ pathNames: step.pathNames }, ports)}
+          iconOf={iconOf}
+        />
+      ) : (
         <ConditionCases
           step={step}
           ports={namedPorts({ pathNames: step.pathNames }, ports)}

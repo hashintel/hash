@@ -20,8 +20,17 @@
  * `&run` shows the demo run: read-only, the taken path's port and wire in the DS success tone, the steps and paths
  * the run did not take faint and dashed.
  */
-import { addStep, type EditorDocument, START_ID } from "./document";
-import { switchTake } from "./switch-flags";
+import { getCatalogEntry } from "./catalog";
+import {
+  addStep,
+  type EditorDocument,
+  fieldKey,
+  type QueryDraft,
+  START_ID,
+  VALUE_SUBJECT,
+} from "./document";
+import { mockEntityTypes } from "./mock-graph";
+import { switchLayout, switchTake } from "./switch-flags";
 
 export type NodePathsTake = "wires" | "rows" | "chips" | "count" | "pills";
 
@@ -174,5 +183,72 @@ export const nodePathsExample = (): EditorDocument => {
     x: 1792,
     y: 470,
   });
-  return { ...document, startDescription: "Flow inputs" };
+  return {
+    ...document,
+    startDescription: "Flow inputs",
+    // `?switchlayout=`: the If and Find entities get conditions, so the three panels compare row for row.
+    queries: switchLayout
+      ? { ...document.queries, ...demoConditions(found, check) }
+      : document.queries,
+  };
+};
+
+/** The condition input of a step's catalog entry: Find entities' query, If's condition. */
+const conditionInput = (catalogId: string) =>
+  getCatalogEntry(catalogId)?.inputs.find((input) =>
+    (input.kinds ?? []).some(
+      (kind) => kind === "EntityQuery" || kind === "FilterCondition",
+    ),
+  )?.name;
+
+/** Find entities: Shipments where Status is Rejected and Purity is under 90. If: Value is Approved. */
+const demoConditions = (
+  found: string,
+  check: string,
+): Record<string, QueryDraft> => {
+  const shipment = mockEntityTypes.find((type) => type.title === "Shipment");
+  const property = (title: string) =>
+    shipment?.properties.find((candidate) => candidate.title === title)
+      ?.baseUrl ?? "";
+  const query = conditionInput("queryEntities");
+  const condition = conditionInput("if");
+  return {
+    ...(query && shipment
+      ? {
+          [fieldKey(found, query)]: {
+            entityTypeBaseUrl: shipment.baseUrl,
+            conjunction: "and",
+            conditions: [
+              {
+                id: 1,
+                propertyBaseUrl: property("Status"),
+                operator: "equals",
+                value: "Rejected",
+              },
+              {
+                id: 2,
+                propertyBaseUrl: property("Purity"),
+                operator: "lessThan",
+                value: 90,
+              },
+            ],
+          },
+        }
+      : {}),
+    ...(condition
+      ? {
+          [fieldKey(check, condition)]: {
+            conditions: [
+              {
+                id: 1,
+                propertyBaseUrl: VALUE_SUBJECT,
+                // The If's Value subject is typed text in the prototype, so it has no "greater than".
+                operator: "equals",
+                value: "Approved",
+              },
+            ],
+          },
+        }
+      : {}),
+  };
 };

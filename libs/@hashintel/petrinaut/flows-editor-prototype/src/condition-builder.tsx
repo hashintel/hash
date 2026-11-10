@@ -64,6 +64,7 @@ import {
 } from "./mock-graph";
 import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
+import { conditionLayout } from "./switch-flags";
 import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -318,7 +319,7 @@ const parseRelative = (key: string): RelativeDate | undefined => {
 };
 
 /** One line: the joiner column, then the chip (Figma Q8: 4 px between). */
-const rowStackStyle = css({
+export const rowStackStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
@@ -331,10 +332,23 @@ const rowStackStyle = css({
  * builder, which spans both columns. Its top-level joiner takes this width, so its chips start at the value column,
  * level with every other field.
  */
-const labelColumnStyle = css({
+export const labelColumnStyle = css({
   containerType: "inline-size",
   "--flows-label-column": "max(88px, 30cqw)",
 });
+
+/**
+ * `?switchlayout=a|b|c` (inbox `condition-panels-layout`): the DS Filter's 8 px between rows (Figma DS `41967:40965`);
+ * `c` also takes its 64 px joiner column. The Switch panel reads the same styles, so the three panels share one layout.
+ */
+export const takeColumnStyle = css({
+  "&[class]": { "--flows-label-column": "[64px]" },
+});
+
+export const takeRowsStyle = css({ "&[class]": { gap: "2" } });
+
+/** `b`, `c`: the Add button under the joiner, at the builder's left edge, as the DS Filter's footer. */
+export const takeFooterAtEdge = conditionLayout === "b" || conditionLayout === "c";
 
 const oldLabelColumnWidthStyle = css({
   "--flows-label-column": "max(88px, min(30cqw, 120px))",
@@ -357,7 +371,7 @@ const joinerColumnStyle = css({
 });
 
 /** A row: the chip, then its ⋮ segment, on one line. */
-const rowStyle = css({
+export const rowStyle = css({
   display: "flex",
   alignItems: "stretch",
   gap: "[0]",
@@ -385,7 +399,7 @@ const tipStyle = css({
  * overflow and ends in "…". The ⋮ that follows is the chip's last segment, so the chip's own last corners square off.
  * Layout and type size only: the chip's parts keep their DS look.
  */
-const filterFitStyle = css({
+export const filterFitStyle = css({
   "&[class]": {
     textStyle: "sm",
     "--filter-font-size": "[1em]",
@@ -416,7 +430,7 @@ const filterFitStyle = css({
 });
 
 /** The ⋮ as the chip's last segment: the chip's hairline on three sides, its divider on the left. */
-const menuSegmentStyle = css({
+export const menuSegmentStyle = css({
   // 2 Nov: a row's ⋮ shows while the row is hovered, focused or its menu is open.
   "[data-condition-row]:not(:hover):not(:focus-within) &": {
     "&[class]:not([aria-expanded=true])": { display: "none" },
@@ -1264,7 +1278,7 @@ const joinerMenuStyle = css({
   "&[class]": { width: "[208px]", minWidth: "[208px]" },
 });
 
-const Joiner = ({
+export const Joiner = ({
   conjunction,
   onPick,
 }: {
@@ -1432,11 +1446,12 @@ export const ConditionBuilder = ({
         builderStyle,
         labelColumnStyle,
         oldLabelColumn && oldLabelColumnWidthStyle,
+        conditionLayout === "c" && takeColumnStyle,
       )}
       data-condition-builder
     >
       {topRows.length + groups.length > 0 ? (
-        <div className={rowsStyle}>
+        <div className={cx(rowsStyle, conditionLayout && takeRowsStyle)}>
           {topRows.map((row, index) => (
             <ConditionRowView
               key={row.id}
@@ -1582,7 +1597,12 @@ export const ConditionBuilder = ({
           })}
         </div>
       ) : null}
-      <div className={cx(footerStyle, valueColumnFooterStyle)}>
+      <div
+        className={cx(
+          footerStyle,
+          !takeFooterAtEdge && valueColumnFooterStyle,
+        )}
+      >
         <AddCondition
           label="Add filter"
           properties={properties}

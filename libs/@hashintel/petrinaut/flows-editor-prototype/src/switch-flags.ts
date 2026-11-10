@@ -69,3 +69,29 @@ export const namedPorts = (
       ...port,
       label: step.pathNames?.[port.outputName] ?? port.label,
     }));
+
+/**
+ * `?switchlayout=` (inbox `condition-panels-layout`, 10 Nov): one condition layout for the If, Switch (S3) and Find
+ * entities panels. Any value also fills the demo's If and Find entities conditions, so every take shows the same
+ * rows. With no param the panels look as they do today.
+ * - `today`: today's layout, with the demo conditions filled.
+ * - `a`: today's structure, aligned: the joiner in the panel's label column, chips and the Add button in the value
+ *   column, 8 px between condition rows, 16 px before the Add button, the Switch's chips with the row ⋮ and its Add
+ *   button outlined like Add filter; case names regular, as I1's path names; even 16 px around every hairline.
+ * - `b`: as `a`, with the Add button under the joiner, at the panel's left edge, as the DS Filter draws its footer
+ *   (Figma DS `42423:56345`).
+ * - `c`: the DS Filter's own grammar: a 64 px joiner column (Figma DS `41967:40965`), so the chips start 72 px in and
+ *   get the panel's full width; the Add button at the left edge. Fields keep the panel's label column.
+ */
+export type SwitchLayout = "today" | "a" | "b" | "c";
+
+export const switchLayout: SwitchLayout | null = (() => {
+  const value = query.get("switchlayout");
+  return value === "today" || value === "a" || value === "b" || value === "c"
+    ? value
+    : null;
+})();
+
+/** The take's layout for condition rows; null for today's (no param, or `today`). */
+export const conditionLayout =
+  switchLayout === "today" ? null : switchLayout;
