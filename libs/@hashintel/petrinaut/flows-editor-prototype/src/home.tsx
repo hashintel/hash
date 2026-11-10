@@ -1,4 +1,5 @@
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
+import { statusWord } from "./status-grammar";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { HashShell } from "./hash-shell";
@@ -266,7 +267,13 @@ export const Home = ({
                             state={flow.lastRun.state}
                             progress={flow.lastRun.progress}
                           />
-                          <RunIdsIn text={flow.lastRun.label} />
+                          <RunIdsIn
+                            text={
+                              flow.lastRun.label === "Completed"
+                                ? statusWord("Completed", "Done")
+                                : flow.lastRun.label
+                            }
+                          />
                         </span>
                       ) : (
                         <span className={css({ color: "neutral.fg.subtle" })}>

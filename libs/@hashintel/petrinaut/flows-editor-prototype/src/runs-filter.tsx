@@ -6,6 +6,7 @@
  * DS diff: the code chip ends in ✕; Figma's ends in ⋮ with Edit and Remove, so the chip is drawn without its ✕ and a
  * DS ghost button with a DS Menu follows it.
  */
+import { statusWord } from "./status-grammar";
 import { useRef, useState } from "react";
 
 import {
@@ -66,11 +67,11 @@ type Operator = FilterOperator<RunFilterValues>;
 /** Status words, finer than the tabs (a run with warnings is one way of Completed). */
 const statusWords: Record<RunOutcome, string> = {
   error: "Failed",
-  abandoned: "Abandoned",
+  abandoned: statusWord("Abandoned", "Cancelled"),
   needsReview: "Needs review",
   running: "Running",
-  warnings: "Completed with warnings",
-  completed: "Completed",
+  warnings: statusWord("Completed with warnings", "Done · items failed"),
+  completed: statusWord("Completed", "Done"),
 };
 
 const periods: { value: string; text: string; days: number }[] = [

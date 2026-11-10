@@ -3,6 +3,7 @@
  * step's state; the left panel lists the steps with their counts; the top bar switches runs with arrows and a
  * dropdown, and All runs goes back to the list. Run 17 runs live; Runs 12–16 are past runs (`run-history.ts`).
  */
+import { statusWord } from "./status-grammar";
 import { createContext, use, useEffect, useState } from "react";
 
 import {
@@ -560,7 +561,7 @@ const chipsFor = (state: StepRun, done: string): Detail["chips"] => {
     case "abandoned":
       return [{ label: "Abandoned", color: "grey" }];
     case "notReached":
-      return [{ label: "Not reached", color: "grey" }];
+      return [{ label: statusWord("Not reached", "Waiting"), color: "grey" }];
     case "skipped":
       return [{ label: "Skipped", color: "grey" }];
     default:

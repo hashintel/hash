@@ -6,6 +6,7 @@
  * The glyphs follow the local Figma set 1196:88872. DS gap: ds-components has no run-state icons (no filled
  * check-circle, no half-filled ring), so they are drawn here.
  */
+import { statusWord } from "./status-grammar";
 import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -38,14 +39,14 @@ const Tick = () => (
 );
 
 const glyphLabel: Record<StepState, string> = {
-  notReached: "Not reached",
+  notReached: statusWord("Not reached", "Waiting"),
   running: "Running",
   done: "Done",
   failed: "Failed",
   needsReview: "Needs review",
   skipped: "Skipped",
   abandoned: "Abandoned",
-  doneWithFailures: "Partly done",
+  doneWithFailures: statusWord("Partly done", "Done"),
 };
 
 /** The counts behind a mark, for its tooltip: "18 of 20 · 2 failed". */

@@ -8,6 +8,7 @@
  * running, so it has ticks instead). Filter opens "Filter by…" and the DS Filter ribbon under the tabs (B, inbox
  * run-filter; ledger 4 Nov: status tabs, plus the DS Filter, plus sorting): `runs-filter.tsx`.
  */
+import { statusWord } from "./status-grammar";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import {
@@ -21,6 +22,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   factsOf,
+  failedAtStep,
+  failedItemsText,
+  oldStatusWords,
+  outcomeLabel,
   minutes,
   outcomeOf,
   outcomeState,
@@ -92,7 +97,7 @@ const tabOf: Record<RunOutcome, Exclude<Tab, "all">> = {
 const tabs: { value: Tab; label: string }[] = [
   { value: "all", label: "All" },
   { value: "running", label: "Running" },
-  { value: "completed", label: "Completed" },
+  { value: "completed", label: statusWord("Completed", "Done") },
   { value: "failed", label: "Failed" },
 ];
 
@@ -114,6 +119,9 @@ const statusCellOf = (
   const facts = factsOf(run, now);
   const progress = runProgress(run, now);
   const state = outcomeState[outcome];
+  if (!oldStatusWords) {
+    return grammarCellOf(run, now, state);
+  }
   if (facts.find === "failed") {
     return {
       state,
@@ -164,6 +172,41 @@ const statusCellOf = (
     }
     default:
       return { state, progress, text: String(facts.n) };
+  }
+};
+
+/** The status grammar in the Status column: word · where · how many; the glyph is the mark. */
+const grammarCellOf = (
+  run: RunRecord,
+  now: number,
+  state: React.ComponentProps<typeof StatusCell>["state"],
+): React.ComponentProps<typeof StatusCell> => {
+  const outcome = outcomeOf(run, now);
+  const facts = factsOf(run, now);
+  const progress = runProgress(run, now);
+  const word = outcomeLabel[outcome];
+  const ofTotal = progress ? ` · ${progress.done} of ${progress.total}` : "";
+  if (outcome === "error" || facts.find === "failed") {
+    const at = `Failed at ${failedAtStep(run, now)}`;
+    return { state, text: at, detail: `${timeoutReason(run)} · ${at}` };
+  }
+  switch (outcome) {
+    case "running":
+      return facts.find === "running"
+        ? { state, text: `${word} at Find active suppliers` }
+        : { state, progress, text: `${word}${ofTotal}` };
+    case "needsReview":
+      return { state, text: `${word} at Quality sign-off` };
+    case "abandoned":
+      return { state, progress, text: `${word}${ofTotal}` };
+    case "warnings":
+      return {
+        state,
+        warnings: true,
+        text: `${word} · ${failedItemsText(run, now)}`,
+      };
+    default:
+      return { state, progress, text: word };
   }
 };
 
@@ -259,7 +302,7 @@ const sortOrders: Record<SortKey, { label: string; orders: [string, string] }> =
       label: "Duration",
       orders: ["Longest first", "Shortest first"],
     },
-    status: { label: "Status", orders: ["Failed first", "Completed first"] },
+    status: { label: "Status", orders: ["Failed first", statusWord("Completed first", "Done first")] },
   };
 
 /** Status order for sorting: what needs a look first. */
@@ -273,13 +316,20 @@ const statusRank: Record<RunOutcome, number> = {
 };
 
 /** The Filter menu's status words, finer than the tabs (a run with warnings is one way of Completed). */
-const statusFilterLabel: Record<RunOutcome, string> = {
+const statusFilterLabel: Record<RunOutcome, string> = oldStatusWords ? {
   running: "Running",
   needsReview: "Needs review",
   completed: "Completed",
   warnings: "Completed with warnings",
   error: "Failed",
   abandoned: "Abandoned",
+} : {
+  running: "Running",
+  needsReview: "Needs review",
+  completed: "Done",
+  warnings: "Done · items failed",
+  error: "Failed",
+  abandoned: "Cancelled",
 };
 
 /** One Filter choice: "status:error", "trigger:manual", "by:Dora". */
