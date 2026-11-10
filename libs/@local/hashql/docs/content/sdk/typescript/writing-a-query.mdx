@@ -3,7 +3,7 @@ title: Writing a HashQL query
 description: Build a release briefing by selecting tasks, filtering them and combining related queries.
 ---
 
-In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as an input. While we could supply those values ourselves as the input, a query language that is run on the server isn't of much use. HashQL shines through its deep integration into the HASH graph and to be able to query and transform the outputs from it. So how do we move from computing with values to querying the graph?
+In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as an input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
 
 Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these share a common root: we must find the tasks that belong to one release. So let's just start by that!
 
@@ -11,7 +11,7 @@ This guide expects that you are already [familiar with the basics of HashQL](/do
 
 <Callout title="Following the examples">
 
-We're working on a fictional graph database, feel free to create your own graph dev environment and seed the database with your own data, or follow along only through the guide. Creating the database is out of scope for this guide, but may be added in the future, if requested.
+We're working on a fictional graph database, feel free to create your own graph dev environment and seed the database withsw data, or follow along only through the guide. Creating the database is out of scope for this guide, but may be added in the future if requested.
 
 </Callout>
 
@@ -28,9 +28,130 @@ For this walkthrough, suppose the selected graph view contains exactly these fiv
 | T-105 | Refresh the demo data      | Northstar | blocked | yes      |
 
 <details>
-<summary>Type Definitions</summary>
+<summary>Task type definitions</summary>
 
-<!-- SEMTYPE TYPE DEFINITIONS -->
+These [SemType](https://semtype.org/spec) definitions describe the tasks in our example. Each task has five required properties. The Task column contains a human-readable `task-id`, such as `T-101`, and the Assigned column displays `true` as "yes" and `false` as "no".
+
+The property-types tab groups the five property definitions in an array. They reuse the standard Text and Boolean data types, with a Task status data type restricting `status` to `open`, `blocked` or `done`.
+
+```json tab="Entity type" tab-group="task-schema"
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "kind": "entityType",
+  "$id": "https://example.com/types/entity-type/task/v/1",
+  "title": "Task",
+  "titlePlural": "Tasks",
+  "description": "A piece of work tracked as part of a release.",
+  "type": "object",
+  "properties": {
+    "https://example.com/types/property-type/task-id/": {
+      "$ref": "https://example.com/types/property-type/task-id/v/1"
+    },
+    "https://example.com/types/property-type/title/": {
+      "$ref": "https://example.com/types/property-type/title/v/1"
+    },
+    "https://example.com/types/property-type/release/": {
+      "$ref": "https://example.com/types/property-type/release/v/1"
+    },
+    "https://example.com/types/property-type/status/": {
+      "$ref": "https://example.com/types/property-type/status/v/1"
+    },
+    "https://example.com/types/property-type/assigned/": {
+      "$ref": "https://example.com/types/property-type/assigned/v/1"
+    }
+  },
+  "required": [
+    "https://example.com/types/property-type/task-id/",
+    "https://example.com/types/property-type/title/",
+    "https://example.com/types/property-type/release/",
+    "https://example.com/types/property-type/status/",
+    "https://example.com/types/property-type/assigned/"
+  ],
+  "labelProperty": "https://example.com/types/property-type/task-id/"
+}
+```
+
+```json tab="Property types" tab-group="task-schema"
+[
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://example.com/types/property-type/task-id/v/1",
+    "title": "Task ID",
+    "description": "A human-readable label for a task, such as T-101.",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+      }
+    ]
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://example.com/types/property-type/title/v/1",
+    "title": "Title",
+    "description": "A short description of the work a task represents.",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+      }
+    ]
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://example.com/types/property-type/release/v/1",
+    "title": "Release",
+    "description": "The name of the release a task belongs to.",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+      }
+    ]
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://example.com/types/property-type/status/v/1",
+    "title": "Status",
+    "description": "The workflow state of a task.",
+    "oneOf": [
+      {
+        "$ref": "https://example.com/types/data-type/task-status/v/1"
+      }
+    ]
+  },
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://example.com/types/property-type/assigned/v/1",
+    "title": "Assigned",
+    "description": "Whether a task has an owner.",
+    "oneOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1"
+      }
+    ]
+  }
+]
+```
+
+```json tab="Data type" tab-group="task-schema"
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+  "kind": "dataType",
+  "$id": "https://example.com/types/data-type/task-status/v/1",
+  "title": "Task status",
+  "description": "The permitted workflow states of a task.",
+  "type": "string",
+  "enum": ["open", "blocked", "done"],
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}
+```
 
 </details>
 
@@ -38,9 +159,11 @@ Our briefing is for the Meridian release. We're interested in tasks that are unf
 
 ## Start with the tasks
 
-The HASH graph is bi-temporal, which means that time is tracked on two axes: transaction time, so when something was inserted, and decision time, so when something was decided upon. You can think of these two as a cartesian graph, and when you select temporal axes you select a rectangle. Any entity version that falls within that rectangle is selected and subsequently queried.
+The HASH graph is bi-temporal, which means that time is tracked on two axes: transaction time, when the system recorded something, and decision time, when it was decided to be true.
 
-<!-- I believe my slides have a visualisation we can port here -->
+You can think of these as a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
+
+<TemporalAxes />
 
 Looking at _when_ is just as important as looking at _what_. We want to know the evolution of the data over time, so we can understand how it has changed. That means that the temporal axes are actually an input into the query. So let's set up the temporal input first.
 
@@ -67,7 +190,13 @@ const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
 
 </Callout>
 
-[`QueryTemporalAxes`][query-temporal-axes] describes the selection, we have a variable axis, which can be a range, and a fixed interval for the other. This value is used to determine which one is which.
+[`QueryTemporalAxes`][query-temporal-axes] describes which axis is pinned to a timestamp and which varies over an interval. Our `axes` value describes this input's type, we don't set it as part of our program, because we're interested in the values at different points in time.
+
+<Callout>
+
+In general, as outlined in [using the TypeScript SDK], try to remove as much variance from your programs as possible. This means that generally your program should have the temporal axes as an input.
+
+</Callout>
 
 Now we can construct our first query:
 
@@ -87,17 +216,31 @@ head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
 
----
+Queries inside of HashQL follow a pattern of head -> body -> tail. The head decides where we start our query, for example [`entities`][query-entities] starts a graph computation over all the entities in the knowledge graph at any given point in time. The body transforms the result (more on that later), and the tail then decides how to materialise the result (in functional programming terms, head creates an effect, body transforms the result inside of the effect, and the tail then executes the effect), for example [`collect`][query-collect] asks for those entities as a list.
 
-[`entities`][query-entities] starts a graph computation over the entities in the selected temporal view. [`collect`][query-collect] asks for those entities as a list. For our example graph, that list contains all five tasks, including the completed task and the task belonging to Northstar.
+<Callout>
 
-What happens between those two operations? The result of `entities` has the HashQL type [`Graph<Entity<?>>`][graph-type]. It represents a graph computation, rather than a list of entities already loaded into memory. We can compose further operations on that computation before asking for a materialised result. This is the graph effect introduced at the end of the SDK guide.
+Currently the only head supported is [`entities`][query-entities], and the only tail supported is [`collect`][query-collect].
 
-The graph library groups these operations by their role. A **head**, such as `entities`, starts the computation. A **body** operation transforms it, for example by filtering its vertices. A **tail**, such as `collect`, returns a materialised result. The reference notation shows those module names explicitly. The functional notation uses their short names to keep the nesting readable.
+</Callout>
+
+With the query that we have now we return all the entities in the graph, but those are not the ones that we're interested in, so how do we transform our set of entities to only those that we are?
+
+This is where the body operations come in. Each graph works on vertices in the knowledge graph, and each body operation transforms each vertex that we have selected, either by removing it or by keeping it. An analogy for this is the [map-reduce pattern] from functional programming. In our example, the head returns a [`Graph<Entity<?>>`][graph-type], which is a graph that only contains entities, and where the properties of it are [unknown].
+
+<Callout>
+
+Currently the only body operation supported is [`filter`][query-filter]
+
+</Callout>
+
+Before we start filtering, let's first take a look at how we can take a look at the query that we have written so far.
 
 ### Serialize the program
 
-Let's inspect what we've built before making the query more specific. Append the same serialisation pipeline we used in the SDK guide:
+The [intro to the TypeScript SDK] already shows how to serialize the query program, to boil it down we first take our expression fragment (which is in itself a valid HashQL program), and mark it as a [`Program`]. We then compile it to [J-Expr] using the [`Program.compile`][program-compile] function, which may fail, for example because an identifier is not valid HashQL.
+
+For our example, this would look like this:
 
 ```ts title="Produce J-Expr" data-example="serialize"
 const queryText = pipe(
@@ -129,9 +272,17 @@ console.log(queryText);
 
 </details>
 
-The output contains the graph operations and the request for the `axis` input. It doesn't contain the tasks themselves. Calling [`Program.compile`] serialises the program into J-Expr JSON text. The host supplies the input and submits the program to the server, where the graph computation can be executed.
+What's important is that the program that we compiles was not executed, it was merely translated to a [`Program`] that can be run on the server. We also haven't verified that the program is truly well-formed. The TypeScript SDK tries its hardest to catch any errors at construction time, but each program still goes through a compilation step on the server, which may surface issues that are not caught by the TypeScript SDK.
 
-We'll keep this serialisation block at the end of the file. Each following step replaces the `briefing` declaration, while retaining the setup and any helpers we've added. `Result.getOrThrow` keeps this controlled example short. For programs constructed from user input, see [handling a construction failure][construction-failures].
+Let's keep this serialisation block at the end of our file, and periodically check how it changed. When we show new snippets we always replace the `briefing` declaration, while retaining the setup and any helpers we've added.
+
+<Callout>
+
+For handling of [`Result`] refer to the [intro to the TypeScript SDK] or the [effect documentation].
+
+</Callout>
+
+---
 
 ## Ask about one release
 
@@ -141,7 +292,7 @@ Before writing that predicate, we need to describe the properties it reads. The 
 
 ### Set up the example
 
-The SDK's [`Entity`][entity-type] descriptor doesn't yet describe application properties. Add this helper after the imports and before `briefing`. It exposes the three fields used by our query:
+Add this helper after the imports and before `briefing` to access the three Task properties used by our query:
 
 <details>
 <summary>Declare the task fields</summary>
@@ -177,13 +328,7 @@ const taskFields = (
 
 </details>
 
-The helper constructs field accesses and declares their types to the SDK. It relies on our example graph containing only tasks with those properties: `release` and `status` are strings, and `assigned` is a Boolean.
-
-<Callout type="warn" title="Declaring an application schema">
-
-[`Expression.assume`][expression-assume] changes the SDK's type descriptor. It neither validates stored data nor emits the language's checked `as` operation. A real application must select entities matching its task schema and supply declarations that describe that schema. The [planned generated library declarations][library-declarations] won't establish an application's schema on their own.
-
-</Callout>
+The helper constructs field accesses using the Task schema above: `release` and `status` are strings, and `assigned` is a Boolean.
 
 ### Filter by the release input
 
@@ -432,15 +577,14 @@ The query follows a small pattern: start a graph computation, refine it with pre
 
 For another way to read the examples, use the [cheatsheet](/docs/hashql/sdk/typescript/cheatsheet). For the available builders and their signatures, see the [Draft API reference](/docs/hashql/sdk/typescript/reference/hashql/Draft). [The technical explanation](https://hgres.org/hashql) goes deeper into how the compiler processes graph computations.
 
+[`Boolean`]: https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1
 [query-temporal-axes]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#QueryTemporalAxes
 [graph-type]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#Graph
-[entity-type]: /docs/hashql/sdk/typescript/reference/hashql/Program/Query#Entity
 [query-entities]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Queries.entities
 [query-filter]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.filter
 [query-collect]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.collect
 [context-query]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.query
 [`Program.compile`]: /docs/hashql/sdk/typescript/reference/hashql/Program#compile
-[expression-assume]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression#assume
 [construction-failures]: /docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure
 [library-declarations]: https://linear.app/hash/issue/BE-1013/generate-sdk-module-declarations-from-the-hashql-standard-library
 [graph-heads]: https://linear.app/hash/issue/BE-529/extend-graph-query-heads

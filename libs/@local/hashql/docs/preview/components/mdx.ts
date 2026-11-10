@@ -7,6 +7,7 @@ import { MdxCallout } from "./mdx-callout.js";
 import { Mermaid } from "./mermaid.js";
 import { Result } from "./result.js";
 import { SideBySide } from "./side-by-side.js";
+import { TemporalAxes } from "./temporal-axes.js";
 
 /** The preview's components for hand-written MDX pages. */
 export const components = Struct.assign(defaultMdxComponents, {
@@ -18,4 +19,5 @@ export const components = Struct.assign(defaultMdxComponents, {
   SideBySide,
   Tab,
   Tabs,
+  TemporalAxes,
 });
