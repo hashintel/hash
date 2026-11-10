@@ -33,7 +33,8 @@ import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
-import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
+import { sidePanelWidth } from "./edit.page/shared/side-panel";
+import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
@@ -414,7 +415,7 @@ const FlowEditor = ({
               <div
                 className={notices}
                 style={
-                  panelSubject ? { right: stepPanelWidth + 16 } : undefined
+                  panelSubject ? { right: sidePanelWidth + 16 } : undefined
                 }
               >
                 {saveRefusedReason !== null && (
@@ -453,7 +454,7 @@ const FlowEditor = ({
               focusRequest={focusRequest}
               collapsedStepIds={collapsedStepIds}
               onToggleCollapsed={toggleCollapsed}
-              coveredRight={panelSubject ? stepPanelWidth : 0}
+              coveredRight={panelSubject ? sidePanelWidth : 0}
             />
             {panelSubject && (
               <StepPanel
