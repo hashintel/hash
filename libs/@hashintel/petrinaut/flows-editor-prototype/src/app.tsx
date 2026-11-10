@@ -40,6 +40,7 @@ import {
   HistoryButton,
   RunTopBar,
   runBackTake,
+  runBarTake,
   runBarVariant,
 } from "./run-top-bar";
 import { validateDocument } from "./shapes";
@@ -456,6 +457,8 @@ export const Editor = ({
                   <RunTopBar
                     variant={runBarVariant(location.query)}
                     back={runBackTake(location.query)}
+                    take={runBarTake(location.query)}
+                    onFlows={onBack ? () => onBack(document) : undefined}
                     forEachSwitch={
                       forEachSwitchTake(location.query) === "top" ? (
                         <ForEachTopSwitch />

@@ -20,12 +20,24 @@
  * 3. One muted line by the title, "v6 · Draft ▾ · 17 runs".
  * Every take has the title (renamed in place) and the version menu (V0–V7).
  */
-import { BreadCrumbs, Button, Menu } from "@hashintel/ds-components";
+import {
+  BreadCrumbs,
+  Button,
+  Menu,
+  SegmentedControl,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type HistoryValue, RunSwitcher } from "./history-view";
 import { cameFrom, navigate, parseRoute } from "./router";
-import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
+import { RunGlyph } from "./run-glyph";
+import {
+  bannerAction,
+  factsOf,
+  outcomeOf,
+  outcomeState,
+  statusText,
+} from "./run-history";
 import { runIdMono, RunIdText, runLabel } from "./run-id";
 
 export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
@@ -62,6 +74,25 @@ const backTarget = (flowName: string) => {
     : page === "runs"
       ? { page, label: "All runs" }
       : { page: "history" as const, label: "Logs" };
+};
+
+/**
+ * `?runbar=1..4` (10 Nov, run-back-control round 2): the run bar as one composition with the editor bar, not a back
+ * control on its own. URL only; without it the bar is `?topbar=` / `?runback=` as before. Every take has the same
+ * right side, "Re-run 2 failed", Re-run, ⋮, with Simulate and Publish moved into ⋮; they differ in where back goes.
+ * 1. Take 1, balanced: the editor's ← (back where you came from) and the flow name in heading colour (to the
+ *    editor) on the left; the run switcher stays centred.
+ * 2. The editor's bar: ← to flows, the flow name, the run switcher in the version's place; Editor | Logs centred,
+ *    with Logs on. The switch is the way back.
+ * 3. Breadcrumb: Monthly supplier review › Logs › ‹ Run 2C07 ▾ ›; the crumbs are the way back. No centre.
+ * 4. Run as the title: ← (back where you came from), then two lines, "Monthly supplier review › Logs" over the run
+ *    and its status; ‹ ▾ › after.
+ */
+export type RunBarTake = 1 | 2 | 3 | 4;
+
+export const runBarTake = (query: URLSearchParams): RunBarTake | null => {
+  const take = Number(query.get("runbar"));
+  return take === 1 || take === 2 || take === 3 || take === 4 ? take : null;
 };
 
 export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
@@ -164,6 +195,172 @@ const runMetaStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** `?runbar=` ←: the editor's back button (app.tsx `backStyle`), a 28 px hairline square with a 16 px arrow. */
+const editorBackStyle = css({
+  "&[class]": {
+    width: "[28px]",
+    height: "[28px]",
+    minWidth: "[28px]",
+    padding: "[0]",
+    justifyContent: "center",
+    backgroundColor: "neutral.bgSolid.min",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.bd.solid",
+    borderRadius: "lg",
+    color: "neutral.fg.heading",
+  },
+  "&[class] svg": { width: "[16px]", height: "[16px]" },
+});
+
+/** `?runbar=` flow name: the editor title's 14 px medium heading colour, a faint fill on hover. */
+const flowTitleStyle = css({
+  "&[class]": {
+    fontWeight: "medium",
+    color: "neutral.fg.heading",
+    paddingX: "1.5",
+    maxWidth: "[320px]",
+  },
+});
+
+const plainTitleStyle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "[320px]",
+  paddingX: "1.5",
+});
+
+const leftGapStyle = css({ gap: "3" });
+
+/** Take 4's two lines: the path to the run at 12 px over the run at 14 px. */
+const stackStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  gap: "[1px]",
+  minWidth: "[0]",
+});
+
+const pathLineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  "& button": {
+    all: "unset",
+    cursor: "pointer",
+    borderRadius: "sm",
+  },
+  "& button:hover": { color: "neutral.fg.heading" },
+});
+
+const runLineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  textStyle: "sm",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+});
+
+const runNameStyle = css({
+  all: "unset",
+  cursor: "pointer",
+  fontWeight: "medium",
+  color: "neutral.fg.heading",
+  borderRadius: "sm",
+  "&:hover": { textDecoration: "underline", textDecorationColor: "neutral.bd.solid" },
+});
+
+const runStatusStyle = css({
+  color: "neutral.fg.subtle",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+/** The status grammar (10 Nov): mark · Word · how many. */
+const statusWord: Record<ReturnType<typeof outcomeOf>, string> = {
+  running: "Running",
+  needsReview: "Needs review",
+  warnings: "Done",
+  error: "Failed",
+  completed: "Done",
+  abandoned: "Cancelled",
+};
+
+/** ⋮ in a run under `?runbar=`: Simulate and Publish join the run's own items. MOCK: Download log and Delete run do nothing yet. */
+const RunBarMoreMenu = ({ onSimulate }: { onSimulate: () => void }) => (
+  <Menu
+    position="bottom-end"
+    className={css({ minWidth: "[208px]" })}
+    items={[
+      {
+        id: "flow",
+        label: "",
+        items: [
+          {
+            id: "simulate",
+            text: "Simulate with these inputs",
+            icon: "flask",
+            onClick: onSimulate,
+          },
+          {
+            id: "publish",
+            text: "Publish draft",
+            icon: "arrowUp",
+            onClick: () => undefined,
+          },
+        ],
+      },
+      {
+        id: "run",
+        label: "",
+        items: [
+          {
+            id: "copy-link",
+            text: "Copy run link",
+            icon: "copy",
+            onClick: () => {
+              void globalThis.navigator.clipboard
+                ?.writeText(globalThis.location.href)
+                .catch(() => undefined);
+            },
+          },
+          {
+            id: "download-log",
+            text: "Download log",
+            icon: "download",
+            onClick: () => undefined,
+          },
+          {
+            id: "delete",
+            text: "Delete run",
+            icon: "trash",
+            onClick: () => undefined,
+          },
+        ],
+      },
+    ]}
+    trigger={
+      <Button
+        size="sm"
+        variant="subtle"
+        tone="neutral"
+        iconName="ellipsisVertical"
+        className={squareStyle}
+        aria-label="More"
+        data-run-more
+      />
+    }
+  />
+);
+
 /** ⋮ in a run. MOCK: Download log and Delete run do nothing yet. */
 const RunMoreMenu = () => (
   <Menu
@@ -210,6 +407,8 @@ const RunMoreMenu = () => (
 export const RunTopBar = ({
   variant,
   back = "editor",
+  take = null,
+  onFlows,
   forEachSwitch,
   history,
   flowName,
@@ -218,6 +417,10 @@ export const RunTopBar = ({
 }: {
   variant: RunBarVariant;
   back?: RunBackTake;
+  /** `?runbar=`: round 2's whole-bar takes; null keeps `variant` and `back`. */
+  take?: RunBarTake | null;
+  /** The editor's ←: back to the flows list (take 2). */
+  onFlows?: () => void;
   /** `?foreachswitch=top`: the For each item switcher, beside the run switcher. */
   forEachSwitch?: React.ReactNode;
   history: HistoryValue;
@@ -346,6 +549,181 @@ export const RunTopBar = ({
       {flowName}
     </Button>
   );
+
+  if (take) {
+    const target = backTarget(flowName);
+    const goBack = () => {
+      if (target.page === "history") {
+        history.open(null);
+      } else if (target.page === "runs") {
+        navigate("/runs");
+      } else {
+        onEditor();
+      }
+    };
+    const backButton = (
+      <Button
+        size="sm"
+        variant="ghost"
+        iconName="arrowLeft"
+        className={editorBackStyle}
+        aria-label={`Back to ${target.label}`}
+        tooltip={`Back to ${target.label}`}
+        onClick={goBack}
+        data-run-back
+      />
+    );
+    const flowTitle = (
+      <Button
+        size="sm"
+        variant="ghost"
+        tone="neutral"
+        className={flowTitleStyle}
+        tooltip="Open in editor"
+        onClick={onEditor}
+        data-run-open-editor
+      >
+        {flowName}
+      </Button>
+    );
+    const rightSide = (
+      <div
+        className={
+          take === 3 || take === 4
+            ? `${rightStyle} ${css({ flex: "[0 0 auto]" })}`
+            : rightStyle
+        }
+      >
+        {rerunFailedButton}
+        {actionButton}
+        <RunBarMoreMenu onSimulate={onSimulate} />
+      </div>
+    );
+    if (take === 2) {
+      return (
+        <>
+          <div className={`${sideStyle} ${leftGapStyle}`} data-runbar="2">
+            <Button
+              size="sm"
+              variant="ghost"
+              iconName="arrowLeft"
+              className={editorBackStyle}
+              aria-label="Back to flows"
+              tooltip="Back to flows"
+              disabled={!onFlows}
+              onClick={onFlows}
+            />
+            <span className={plainTitleStyle}>{flowName}</span>
+            <RunSwitcher history={history} />
+            {forEachSwitch}
+          </div>
+          <div className={centreStyle}>
+            <SegmentedControl<"editor" | "history">
+              size="md"
+              className={css({
+                "&[class]": { "--sc-item-px": "6px", "--form-padding-y": "3px" },
+              })}
+              aria-label="Flow view"
+              items={[
+                { value: "editor", label: "Editor" },
+                { value: "history", label: "Logs" },
+              ]}
+              value="history"
+              onChange={(view) =>
+                view === "editor" ? onEditor() : history.open(null)
+              }
+            />
+          </div>
+          {rightSide}
+        </>
+      );
+    }
+    if (take === 3) {
+      return (
+        <>
+          <div className={sideStyle} data-runbar="3">
+            <BreadCrumbs size="sm" aria-label="Run">
+              <BreadCrumbs.Item onClick={onEditor} maxWidth="320px" noCollapse>
+                {flowName}
+              </BreadCrumbs.Item>
+              <BreadCrumbs.Item onClick={() => history.open(null)} noCollapse>
+                Logs
+              </BreadCrumbs.Item>
+              <RunSwitcher history={history} withTime />
+            </BreadCrumbs>
+            {forEachSwitch}
+          </div>
+          {rightSide}
+        </>
+      );
+    }
+    if (take === 4) {
+      const facts = factsOf(run, now);
+      const count =
+        facts.failures.length > 0
+          ? ` · ${facts.failures.length} of ${facts.n} suppliers failed`
+          : "";
+      return (
+        <>
+          <div className={`${sideStyle} ${leftGapStyle}`} data-runbar="4">
+            {backButton}
+            {/* A two-line title, not a row of controls: its links are text. */}
+            <div className={stackStyle} data-control-check="skip">
+              <span className={pathLineStyle}>
+                <button type="button" onClick={onEditor}>
+                  {flowName}
+                </button>
+                <span aria-hidden>›</span>
+                <button type="button" onClick={() => history.open(null)}>
+                  Logs
+                </button>
+              </span>
+              <span className={runLineStyle}>
+                <RunGlyph
+                  state={outcomeState[outcome]}
+                  warnings={outcome === "warnings"}
+                  size={12}
+                />
+                <RunSwitcher
+                  history={history}
+                  arrows={false}
+                  trigger={
+                    <button
+                      type="button"
+                      className={runNameStyle}
+                      aria-label="Pick a run"
+                      data-run-picker
+                    >
+                      <RunIdText run={run} prefix />
+                    </button>
+                  }
+                />
+                <span className={runStatusStyle}>
+                  {`${statusWord[outcome]}${count} · ${run.when}`}
+                </span>
+              </span>
+            </div>
+            <RunSwitcher history={history} picker={false} />
+            {forEachSwitch}
+          </div>
+          {rightSide}
+        </>
+      );
+    }
+    return (
+      <>
+        <div className={sideStyle} data-runbar="1">
+          {backButton}
+          {flowTitle}
+        </div>
+        <div className={forEachSwitch ? centreInRowStyle : centreStyle}>
+          <RunSwitcher history={history} withTime={!forEachSwitch} />
+          {forEachSwitch}
+        </div>
+        {rightSide}
+      </>
+    );
+  }
 
   switch (variant) {
     case 2:
