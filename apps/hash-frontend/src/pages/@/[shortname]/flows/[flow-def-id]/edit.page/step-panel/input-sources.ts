@@ -7,6 +7,7 @@ import { getNameLabel } from "../shared/name-label";
 import { getStepsBefore } from "../shared/step-order";
 import { getFlowInputLabel } from "../shared/value-display";
 import { findStep, getStepName } from "./shared/find-step";
+import { indexValueUses } from "./value-uses";
 
 import type {
   ConnectionSource,
@@ -257,6 +258,15 @@ const canBeTyped = {
 
 const typedKinds = typedKeys(canBeTyped).filter((kind) => canBeTyped[kind]);
 
+/**
+ * The types a flow input can be given on Start: one value of a kind that can be typed. Not a list of them, which the
+ * Run flow form can't take yet.
+ */
+export const flowInputTypes = typedKinds.map((payloadKind) => ({
+  payloadKind,
+  array: false,
+}));
+
 /** A fixed value that can be typed in its field, as it reads there: one text, number or date. */
 export const getTypedConstant = (
   source: StepInputSource | undefined,
@@ -301,10 +311,15 @@ export const getNewFlowInput = ({
     return null;
   }
 
+  /* A name a step still refers to, e.g. that of a removed input, is taken too: the step would take the new input. */
   const takenNames = new Set(flowDefinition.inputs.map(({ name }) => name));
+  const stepsUsing = indexValueUses(flowDefinition.steps);
+  const isTaken = (name: string) =>
+    takenNames.has(name) ||
+    stepsUsing({ kind: "flow-input", inputName: name }).length > 0;
   let name = inputName;
 
-  for (let index = 2; takenNames.has(name); index++) {
+  for (let index = 2; isTaken(name); index++) {
     name = `${inputName}${index}`;
   }
 

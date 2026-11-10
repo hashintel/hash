@@ -1,11 +1,11 @@
 import { upperFirst } from "lodash";
 
-import { Button, Chip, Form, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Form, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getStepDisplay } from "../shared/step-display";
 import { getKindIcon, getKindLabel } from "../shared/value-display";
 import { getStepName } from "./shared/find-step";
+import { StepChips } from "./shared/step-chips";
 
 import type {
   PayloadKind,
@@ -34,10 +34,8 @@ const summary = css({
 });
 const chips = css({
   display: "none",
-  flexWrap: "wrap",
-  gap: "1",
-  _groupHover: { display: "flex" },
-  _groupFocusWithin: { display: "flex" },
+  _groupHover: { display: "block" },
+  _groupFocusWithin: { display: "block" },
 });
 
 /*
@@ -141,15 +139,7 @@ export const UsedByField = ({
             {getUsedBySummary(usedByNames)}
           </span>
           <span className={chips}>
-            {usedBy.map((step) => (
-              <Chip
-                key={step.stepId}
-                size="md"
-                prefix={{ iconName: getStepDisplay(step).icon }}
-              >
-                {getStepName(step)}
-              </Chip>
-            ))}
+            <StepChips steps={usedBy} />
           </span>
         </span>
       )}
