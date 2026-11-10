@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type AdHocScenarioState,
   type CompileHirArtifactsOptions,
+  type MonteCarloExperiment,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautExtensionSettings,
@@ -1949,5 +1950,123 @@ describe("compileExperimentScenario with an ad-hoc definition", () => {
     expect(compiled.axes).toEqual([]);
     expect(compiled.sweptCompiler).toBeNull();
     expect(compiled.initialMarking["place-queue"]).toBe(4);
+  });
+});
+
+describe("adoptExperiment", () => {
+  /** An experiment something else started, reporting what it is told to. */
+  const makeStartedExperiment = (initial: "Running" | "Complete") => {
+    let status: "Running" | "Complete" = initial;
+    const statusListeners = new Set<(status: string) => void>();
+    const eventListeners = new Set<(event: { type: "complete" }) => void>();
+    const frame = { metricId: "tokens", frameNumber: 0, time: 0 };
+    const handle = {
+      status: {
+        get: () => status,
+        subscribe: (listener: (status: string) => void) => {
+          statusListeners.add(listener);
+          return () => statusListeners.delete(listener);
+        },
+      },
+      progress: { get: () => null, subscribe: () => () => {} },
+      metrics: {
+        get: () => ({ frames: [frame], latestByMetricId: { tokens: frame } }),
+        subscribe: () => () => {},
+      },
+      events: {
+        subscribe: (listener: (event: { type: "complete" }) => void) => {
+          eventListeners.add(listener);
+          return () => eventListeners.delete(listener);
+        },
+      },
+      start: vi.fn(),
+      cancel: vi.fn(),
+      dispose: vi.fn(),
+    };
+    return {
+      handle: handle as unknown as MonteCarloExperiment & typeof handle,
+      frame,
+      complete: () => {
+        status = "Complete";
+        for (const listener of statusListeners) {
+          listener(status);
+        }
+        for (const listener of eventListeners) {
+          listener({ type: "complete" });
+        }
+      },
+    };
+  };
+
+  const adoption = (handle: MonteCarloExperiment) => ({
+    name: "Seasonal Flu, 100 runs",
+    handle,
+    definition: EMPTY_SDCPN,
+    scenarioId: null,
+    scenarioName: null,
+    runCount: 100,
+    seed: 7,
+    dt: 0.1,
+    maxTime: 60,
+    metricSpecs: CONSTANT_METRIC_SPEC,
+    computeBackend: "cpu" as const,
+  });
+
+  it("lists an experiment that is already computing and follows it to its end", () => {
+    const { getValue, renderResult } = renderExperimentsProvider(
+      new FakeMonteCarloWorker(),
+    );
+    const started = makeStartedExperiment("Running");
+
+    try {
+      let record!: ExperimentRecord;
+      act(() => {
+        record = getValue().adoptExperiment(adoption(started.handle));
+      });
+
+      expect(getValue().experiments).toEqual([
+        expect.objectContaining({
+          id: record.id,
+          name: "Seasonal Flu, 100 runs",
+          status: "running",
+          runCount: 100,
+          seed: 7,
+          dt: 0.1,
+          maxTime: 60,
+          computeBackend: "cpu",
+          metricFrames: [started.frame],
+        }),
+      ]);
+      // It was started by its previous owner, and is not started again.
+      expect(started.handle.start).not.toHaveBeenCalled();
+
+      act(() => started.complete());
+      expect(getValue().experiments[0]?.status).toBe("complete");
+      // Its end releases the handle, as for an experiment created here.
+      expect(started.handle.dispose).toHaveBeenCalledTimes(1);
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("releases the handle of an experiment that had already finished, keeping its frames", () => {
+    const { getValue, renderResult } = renderExperimentsProvider(
+      new FakeMonteCarloWorker(),
+    );
+    const finished = makeStartedExperiment("Complete");
+
+    try {
+      act(() => {
+        getValue().adoptExperiment(adoption(finished.handle));
+      });
+
+      expect(getValue().experiments[0]).toMatchObject({
+        status: "complete",
+        metricFrames: [finished.frame],
+      });
+      expect(finished.handle.dispose).toHaveBeenCalledTimes(1);
+    } finally {
+      renderResult.unmount();
+    }
   });
 });

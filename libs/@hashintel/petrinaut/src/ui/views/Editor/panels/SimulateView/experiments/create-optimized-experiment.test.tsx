@@ -94,6 +94,9 @@ const makeHarness = (
     setSelectedExperimentId: vi.fn(() => {
       calls.push("setSelectedExperimentId");
     }),
+    adoptExperiment: () => {
+      throw new Error("Nothing adopts an experiment here");
+    },
     cancelExperiment: () => {},
     setSweepSelection: () => {},
     navigateSweep: () => Promise.resolve(null),

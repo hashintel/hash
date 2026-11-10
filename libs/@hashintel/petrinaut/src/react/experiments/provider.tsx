@@ -639,6 +639,45 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     return experiment;
   };
 
+  const adoptExperiment: ExperimentsContextValue["adoptExperiment"] = (
+    input,
+  ) => {
+    const experimentId = generateUuid();
+    const experiment: ExperimentRecord = {
+      ...newExperimentRecord({
+        id: experimentId,
+        input: {
+          name: input.name,
+          scenarioId: input.scenarioId,
+          scenarioParameterValues: {},
+          runCount: input.runCount,
+          seed: input.seed,
+          dt: input.dt,
+          maxTime: input.maxTime,
+          metricSpecs: input.metricSpecs,
+        },
+        scenarioName: input.scenarioName,
+        axes: [],
+        fixedScenarioValues: {},
+        scenario: null,
+      }),
+      definition: input.definition,
+      computeBackend: input.computeBackend,
+      // When it began stepping is its previous owner's knowledge; from here
+      // the record counts from the moment it was listed.
+      startedAt: Date.now(),
+    };
+    setExperiments((prev) => [experiment, ...prev]);
+    registerExperimentHandle(experiment, input.handle);
+    // A finished experiment reports nothing more, so nothing would release
+    // its handle: its frames are in the record already.
+    const status = input.handle.status.get();
+    if (status === "Complete" || status === "Error" || status === "Cancelled") {
+      disposeExperimentHandle(experimentId);
+    }
+    return experiment;
+  };
+
   const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
     experimentId,
   ) => {
@@ -686,6 +725,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setSelectedExperimentId,
   );
   const stableCreateExperiment = useStableCallback(createExperiment);
+  const stableAdoptExperiment = useStableCallback(adoptExperiment);
   const stableCancelExperiment = useStableCallback(cancelExperiment);
   const stableRemoveExperiment = useStableCallback(removeExperiment);
   const stableSetSweepSelection = useStableCallback(setSweepSelection);
@@ -695,6 +735,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
     setSelectedExperimentId: stableSetSelectedExperimentId,
     createExperiment: stableCreateExperiment,
+    adoptExperiment: stableAdoptExperiment,
     cancelExperiment: stableCancelExperiment,
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: stableSetSweepSelection,
