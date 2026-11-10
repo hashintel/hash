@@ -12,7 +12,8 @@
 //!
 //! A backend implements [`Runs`], [`Worker`] and [`CoordinationStore`]. It executes a
 //! [`RunFunction`], which requests its steps through a [`StepContext`]. The `dbos` feature adds
-//! the backend on DBOS, in [`dbos`].
+//! the backend on DBOS, in [`dbos`], and the `restate` feature the backend on Restate, in
+//! [`restate`].
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
@@ -26,6 +27,8 @@ mod event;
 mod name;
 mod payload;
 mod policy;
+#[cfg(feature = "restate")]
+pub mod restate;
 mod run;
 mod runs;
 mod state;

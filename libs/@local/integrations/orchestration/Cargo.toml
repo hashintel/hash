@@ -24,6 +24,8 @@ tokio-util = { workspace = true, public = true }
 backon         = { workspace = true }
 dbos           = { workspace = true, optional = true }
 derive_more    = { workspace = true, features = ["as_ref", "display", "error"] }
+reqwest        = { workspace = true, optional = true }
+restate-sdk    = { workspace = true, optional = true, features = ["http_server"] }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, optional = true, features = ["rt"] }
 tokio-postgres = { workspace = true, optional = true, features = ["runtime"] }
@@ -34,13 +36,15 @@ uuid           = { workspace = true, optional = true, features = ["v4"] }
 pretty_assertions = { workspace = true }
 proptest          = { workspace = true, features = ["attr-macro", "std"] }
 proptest-derive   = { workspace = true }
+reqwest           = { workspace = true }
 rstest            = { workspace = true }
 time              = { workspace = true, features = ["macros"] }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
 uuid              = { workspace = true, features = ["std", "v4"] }
 
 [features]
-dbos = ["dep:dbos", "dep:tokio", "dep:tokio-postgres", "dep:tracing", "dep:uuid"]
+dbos    = ["dep:dbos", "dep:tokio", "dep:tokio-postgres", "dep:tracing", "dep:uuid"]
+restate = ["dep:reqwest", "dep:restate-sdk", "dep:tokio", "dep:tracing", "tokio/macros", "tokio/net", "tokio/sync"]
 
 [lints]
 workspace = true
@@ -48,3 +52,7 @@ workspace = true
 [[test]]
 name              = "dbos"
 required-features = ["dbos"]
+
+[[test]]
+name              = "restate"
+required-features = ["restate"]
