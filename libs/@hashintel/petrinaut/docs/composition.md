@@ -10,7 +10,7 @@ A component is a subnet: a net of its own with places, transitions, types, param
 
 To use a component, place an **instance** of it: pick the component from the cube tool in the bottom toolbar and click the canvas. An instance draws as a card: its name, the component it runs, and a labelled pin on its edge for each port, coloured by the port's token type. Inside the component, a port place wears the same pin on its own edge and says which kind of port it is under its name, so the boundary reads alike from inside and outside. Select an instance to name it, describe it and set its parameters.
 
-A component with more than four ports starts **folded**: its card keeps its base height, says how many ports go in and out, and its arcs and fusion links meet its edges. The chevron in the card's header unfolds it to show every port with its pin and name, and folds it again.
+A component with more than four ports starts **folded**: its card keeps its base height, says how many ports go in and out, and its arcs and fusion links meet its edges. The chevron in the card's header unfolds it to show every port with its pin and name, and folds it again. The card unfolds downward, so its header stays where it is.
 
 A transition of the net can connect to a port with an arc, as to any place. The arc reaches the place inside the instance.
 
