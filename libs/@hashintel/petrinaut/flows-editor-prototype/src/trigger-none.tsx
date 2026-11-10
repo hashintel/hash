@@ -1,5 +1,6 @@
 /**
  * `?triggernone=2`: when nothing can start the flow (Manual off, no schedule, no responsive trigger), Publish asks
+ * first in a DS Dialog warning modal (default since 10 Nov). `?triggernone=2p`, the earlier take, asks
  * first in a soft popover under the button, in the DS orange at a muted step, never red. Publishing anyway is allowed:
  * the flow can still be run from Simulate, and triggers can be added later.
  *
@@ -14,7 +15,7 @@
  *   Dialog footer's gap "2") instead of the Toast's 3 px.
  * - `?triggernone=2b`: the code DS Banner (warning, outline) inside the Popover.
  */
-import { Banner, Button, Icon, Popover } from "@hashintel/ds-components";
+import { Banner, Button, Dialog, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useEditor } from "./editor-context";
@@ -219,6 +220,45 @@ export const NoTriggerWarning = (props: Props) => {
     props.onClose();
     openFlowTriggers(document.name);
   };
+  if (triggerNoneLayout === "modal") {
+    return (
+      <Dialog size="sm" onClose={props.onClose} aria-label={TITLE}>
+        <Dialog.Header title={TITLE} iconName="warning" />
+        <Dialog.Body>
+          <span
+            data-trigger-none-publish
+            className={css({ textStyle: "sm", color: "neutral.fg.muted" })}
+          >
+            {BODY}
+          </span>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <span className={css({ display: "flex", gap: "2" })}>
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                onClick={props.onPublish}
+              >
+                Publish anyway
+              </Button>
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                iconName="arrowUpRight"
+                iconPosition="right"
+                onClick={editTriggers}
+              >
+                Edit flow triggers
+              </Button>
+            </span>
+          }
+        />
+      </Dialog>
+    );
+  }
   return (
     <Popover
       triggerRef={props.triggerRef}

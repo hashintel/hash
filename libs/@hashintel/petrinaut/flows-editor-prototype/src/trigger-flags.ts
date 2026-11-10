@@ -31,16 +31,21 @@ export const triggerGhostTake = takeOf("triggerghost", 4);
 export const triggerFiredTake = takeOf("triggerfired", 4);
 const triggerNoneRaw = query.get("triggernone");
 export const triggerNoneTake =
-  triggerNoneRaw === "2t" || triggerNoneRaw === "2b"
+  triggerNoneRaw === "2t" || triggerNoneRaw === "2b" || triggerNoneRaw === "2p"
     ? 2
     : takeOf("triggernone", 2);
-/** How the Publish warning (`?triggernone=2`) is laid out. */
-export const triggerNoneLayout: "popover" | "toast" | "banner" =
+/**
+ * How the Publish warning (`?triggernone=2`) is laid out. A DS Dialog warning modal by default (Dei, Slack, 10 Nov:
+ * a warning that gates an action is a modal, never a toast or a popover); `2p` is the anchored popover from before.
+ */
+export const triggerNoneLayout: "modal" | "popover" | "toast" | "banner" =
   triggerNoneRaw === "2t"
     ? "toast"
     : triggerNoneRaw === "2b"
       ? "banner"
-      : "popover";
+      : triggerNoneRaw === "2p"
+        ? "popover"
+        : "modal";
 export const triggerDistinctTake = takeOf("triggerdistinct", 5);
 export const triggerScaleTake = takeOf("triggerscale", 4);
 /** The panel as drawn is the default (inbox triggers-panel-scale, approved 10 Nov); `?triggerscale=old` is P3·B. */
