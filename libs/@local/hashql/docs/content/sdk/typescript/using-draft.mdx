@@ -261,7 +261,7 @@ console.log(compile(summarizeTaskWithAttention));
 
 To improve readability, `$` provides not only access to modules and the prelude but also helper functions for common operations. You can still use the full HashQL API through [`Program`], but the helpers available through [`Draft.Context`] make it easier to write readable programs—for example, through fluent predicate composition.
 
-In our example, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. Rather than returning a plain `Boolean` value, it returns a [`Program.Operators.Boolean`], allowing us to compose predicates using `.and`, `.or` and `.not`.
+In our example, `$.eq` maps to the HashQL function `::core::cmp::eq` and compares two values for equality. Rather than returning a plain `Boolean` value, it returns a [`Program.Operators.Predicate`], allowing us to compose predicates using `.and`, `.or` and `.not`.
 
 As mentioned earlier, the SDK does not restrict us to helper functions. An alternative way to write the same condition is:
 
@@ -369,7 +369,7 @@ It is often useful to define common behaviour that can be shared and reused acro
 
 <Callout>
 
-User-defined closure construction is not yet supported. This is tracked in BE-XXXX.
+User-defined closure construction is not yet supported. This is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015).
 
 </Callout>
 
@@ -443,7 +443,7 @@ Although the output is dense, we can see that `attention` is bound before the su
 
 ## Querying the graph
 
-You now know how the Draft API works and how to use it, but we haven't yet covered how to construct a query for the graph. To learn more, see the [Writing a HashQL query](/docs/hashql/writing-a-query) guide.
+You now know how the Draft API works and how to use it, but we haven't yet covered how to construct a query for the graph. To learn more, see the [Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) guide.
 
 The reference guide covers features we haven't explored in detail here:
 
@@ -452,34 +452,45 @@ The reference guide covers features we haven't explored in detail here:
 - [`Draft.withPrelude`]: overriding the default prelude declarations with your own.
 - [`Draft.Context`]: additional operators, along with `$.type` and `$.newtype` for constructing custom types. These follow the same scope rules as `let`.
 
-For construction issues and common mistakes, see the [troubleshooting guide](/docs/hashql/troubleshooting).
+For construction issues and common mistakes, see the [troubleshooting guide](/docs/hashql/sdk/typescript/troubleshooting).
 
-[`J-Expr`]: /docs/hashql/reference/hashql/JExpr
-[`Program`]: /docs/hashql/reference/hashql/Program
-[`Draft`]: /docs/hashql/reference/hashql/Draft
-[`Expression`]: /docs/hashql/reference/hashql/Program/Expression#Expression
-[`Program.program`]: /docs/hashql/reference/hashql/Program#program
-[`Program.compile`]: /docs/hashql/reference/hashql/Program#compile
-[`ProgramError.Construction`]: /docs/hashql/reference/hashql/Program/ProgramError#Construction
-[`Draft.withPrelude`]: /docs/hashql/reference/hashql/Draft#withPrelude
-[builtin-prelude]: /docs/hashql/reference/hashql/Program/Prelude#builtin
-[draft-program]: /docs/hashql/reference/hashql/Draft#program
-[draft-context]: /docs/hashql/reference/hashql/Draft/Context#Context
+[`J-Expr`]: /docs/hashql/sdk/typescript/reference/hashql/JExpr
+[`Program`]: /docs/hashql/sdk/typescript/reference/hashql/Program
+[`Draft`]: /docs/hashql/sdk/typescript/reference/hashql/Draft
+[`Expression`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression#Expression
+[`Program.program`]: /docs/hashql/sdk/typescript/reference/hashql/Program#program
+[`Program.compile`]: /docs/hashql/sdk/typescript/reference/hashql/Program#compile
+[`ProgramError.Construction`]: /docs/hashql/sdk/typescript/reference/hashql/Program/ProgramError#Construction
+[`Draft.withPrelude`]: /docs/hashql/sdk/typescript/reference/hashql/Draft#withPrelude
+[builtin-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Program/Prelude#builtin
+[draft-program]: /docs/hashql/sdk/typescript/reference/hashql/Draft#program
+[draft-context]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context
 [effect]: https://effect.website
 [`Result`]: https://effect.website/docs/v4/api/effect/Result
 [`Result.map`]: https://effect.website/docs/v4/api/effect/Result#map
 [`Result.flatMap`]: https://effect.website/docs/v4/api/effect/Result#flatMap
 [`Result.getOrThrow`]: https://effect.website/docs/v4/api/effect/Result#getOrThrow
 [`Effect.fromResult`]: https://effect.website/docs/v4/api/effect/Effect#fromResult
-[`Program.Structural.type`]: /docs/hashql/reference/hashql/Program/Structural#type
-[structural-definitions]: /docs/hashql/reference/hashql/Program/Structural#Definition
-[`Program.Structural.struct`]: /docs/hashql/reference/hashql/Program/Structural#struct
-[`Program.Structural`]: /docs/hashql/reference/hashql/Program/Structural
-[`Program.Expression`]: /docs/hashql/reference/hashql/Program/Expression
-[`Expression.assume`]: /docs/hashql/reference/hashql/Program/Expression#assume
-[`Program.Operators`]: /docs/hashql/reference/hashql/Program/Operators
-[`Draft.Context`]: /docs/hashql/reference/hashql/Draft/Context#Context
-[`Draft.Body.Handles`]: /docs/hashql/reference/hashql/Draft/Body#Handles
-[`Draft.Body.Context`]: /docs/hashql/reference/hashql/Draft/Body#Context
-[`Draft.Body.Requirements`]: /docs/hashql/reference/hashql/Draft/Body#Requirements
-[draft-let]: /docs/hashql/reference/hashql/Draft/Context#Context.let
+[`Program.Structural.type`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#type
+[structural-definitions]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
+[`Program.Structural.struct`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#struct
+[`Program.Structural`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural
+[`Program.Expression`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression
+[`Expression.assume`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression#assume
+[`Program.Operators`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators
+[`Draft.Context`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context
+[`Draft.Body.Handles`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Body#Handles
+[`Draft.Body.Context`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Body#Context
+[`Draft.Body.Requirements`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Body#Requirements
+[draft-let]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.let
+[Redux]: https://redux.js.org/
+[Immer]: https://immerjs.github.io/immer/
+[`Success`]: https://effect.website/docs/v4/api/effect/Result#Success
+[`Failure`]: https://effect.website/docs/v4/api/effect/Result#Failure
+[`Draft.program`]: /docs/hashql/sdk/typescript/reference/hashql/Draft#program
+[`Result.try`]: https://effect.website/docs/v4/api/effect/Result#try
+[structs]: /docs/hashql/intro#reading-a-field-with-access
+[`$.type`]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.type
+[`TypeExpression`]: /docs/hashql/sdk/typescript/reference/hashql/Program/TypeExpression#TypeExpression
+[`Program.Operators.Predicate`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#Predicate
+[writing a query]: /docs/hashql/sdk/typescript/writing-a-query

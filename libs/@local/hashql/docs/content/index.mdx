@@ -1,30 +1,18 @@
 ---
 title: HashQL
-description: Learn the language, build a query, and look up the TypeScript API.
+description: Learn the language and choose an SDK for constructing your programs.
 ---
 
-HashQL is a language for working with the entities, types and relationships in a HASH graph. These pages take you from its basic forms to constructing a query with the TypeScript SDK.
+HashQL is a language for working with the entities, types and relationships in a HASH graph.
 
 ## Learn the language
 
-Start with [Introduction to HashQL](/docs/hashql/intro) for the language's type system, expressions and special forms. The examples show TypeScript, functional notation and reference notation side by side.
+[Intro to HashQL](/docs/hashql/intro) explains its type system, expressions and special forms. Examples show the language's functional and reference notations alongside TypeScript construction.
 
-Already comfortable with Rust, Python or TypeScript? Use the [cheatsheet](/docs/hashql/cheatsheet) to connect familiar constructs to their HashQL counterparts. Choose either language independently, then open the differences where an analogy stops holding.
+## Use an SDK
 
-## Use the TypeScript SDK
+The [TypeScript SDK](/docs/hashql/sdk/typescript) provides builders for constructing HashQL programs. Its guides cover reusable program construction, a worked graph query, a cheatsheet and troubleshooting, followed by the generated API reference.
 
-[Using the Draft SDK](/docs/hashql/using-draft) explains how the construction context, prelude, expression accessors and combinators work together. Build a small task summary, reuse it through TypeScript helpers, and serialize the resulting program.
-
-## Build something useful
-
-[Writing a HashQL query](/docs/hashql/writing-a-query) builds a release briefing. Start with the tasks in a graph, narrow them to one release, and return unfinished, blocked and unassigned work in one result. The guide includes executable construction checkpoints and separates them from the extensions that need more implementation.
-
-## Find the problem
-
-[When a query doesn't work](/docs/hashql/troubleshooting) helps distinguish TypeScript errors, SDK construction failures and execution problems. It covers host-language conditionals, stale references, filter scope and schema declarations.
-
-## Look up an API
-
-The [TypeScript API reference](/docs/hashql/reference) is generated from the SDK. Use it for signatures, type relationships and the precise contract of a method. [Draft](/docs/hashql/reference/hashql/Draft) is the starting point for the construction style used in these guides.
+TypeScript is the SDK documented here today. Its sidebar selector keeps SDK-specific guides and reference pages together.
 
 For the compiler, query placement and execution model, read [HashQL's technical explanation](https://hgres.org/hashql).
