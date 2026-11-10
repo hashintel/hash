@@ -29,6 +29,7 @@ describe("the minimal Petrinaut agent", () => {
     expect(tools.toSorted()).toEqual(
       [
         brunchTools.ledgerCommit,
+        brunchTools.queryBasis,
         ...CANONICAL_PETRINAUT_TOOL_NAMES,
         ...Object.values(netReaderToolNames),
       ].toSorted(),

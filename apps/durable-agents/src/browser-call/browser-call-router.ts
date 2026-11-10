@@ -4,14 +4,21 @@
  * claim rule. Mounted where the server serves a conversation's agent:
  *
  * - `POST <id>/browser-calls/<callId>` claims, with `vBrowserCallClaimBody`;
+ *   a claim for a call not yet issued waits up to `issueWaitMs` for its issue
+ *   commit before answering 404;
  * - `POST …/start` says the holder is executing it, with the lease body;
- * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies.
+ * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
+ * - `GET <id>/browser-calls` reads every call's committed record, without its
+ *   capability: what a panel replays after a reload.
  *
  * The caller's ownership middleware runs before these routes; the capability
  * proves the claim, not the user.
  */
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
+  type ConversationId,
   type Harness,
   type JsonObject,
   ROOT_CONVERSATION_ID,
@@ -27,6 +34,8 @@ import {
 } from "@hashintel/brunch-agent";
 
 import {
+  type BrowserCallRecord,
+  BrowserCallsDoc,
   claimBrowserCallAs,
   failBrowserCall,
   finishBrowserCall,
@@ -54,6 +63,8 @@ export type ResolveHarness = (
 const callRoute =
   `/:conversationId/${brunchRoutes.browserCalls}/:callId` as const;
 
+const context = BACKGROUND_CONTEXT;
+
 const readBody = async <Schema extends v.GenericSchema>(
   context: Context,
   schema: Schema,
@@ -70,15 +81,83 @@ const claimStatusCodes = {
   ended: 409,
 } as const;
 
+/**
+ * How long a claim waits for its call's issue commit. AI SDK's stream shows a
+ * tool call once its assistant entry commits, and the panel claims it then;
+ * the tool task issues the call a scheduling step later, so a first claim
+ * nearly always arrived before the record. Brunch's panel retries a 404 for
+ * 6 s, so a wait inside that leaves it its retries for anything slower.
+ */
+export const defaultIssueWaitMs = 3_000;
+
+/** How often a waiting claim looks for the record: a committed in-memory read. */
+const issuePollMs = 20;
+
+/** Wait until `toolCallId`'s record is committed, `deadline` passes or `signal` aborts. */
+const waitForIssue = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  toolCallId: string,
+  deadline: number,
+  signal: AbortSignal,
+) => {
+  while (Date.now() < deadline && !signal.aborted) {
+    // eslint-disable-next-line no-await-in-loop -- Each look follows the last one's wait.
+    const issued = await harness.snapshot(
+      BrowserCallsDoc,
+      conversationId,
+      context,
+    );
+    if (issued?.calls[toolCallId] !== undefined) return;
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(issuePollMs);
+  }
+};
+
+/** A call's committed record as a panel replays it: no capability, claimant or tasks. */
+export type BrowserCallView = Pick<
+  BrowserCallRecord,
+  | "toolCallId"
+  | "toolName"
+  | "input"
+  | "status"
+  | "output"
+  | "metadata"
+  | "issuedEntry"
+  | "callIndex"
+>;
+
+const viewOf = ({
+  toolCallId,
+  toolName,
+  input,
+  status,
+  output,
+  metadata,
+  issuedEntry,
+  callIndex,
+}: BrowserCallRecord): BrowserCallView => ({
+  toolCallId,
+  toolName,
+  input,
+  status,
+  output,
+  metadata,
+  ...(issuedEntry === undefined ? {} : { issuedEntry }),
+  ...(callIndex === undefined ? {} : { callIndex }),
+});
+
 /** The browser-call routes over the Harness `resolveHarness` names; calls live in its root conversation. */
 export const createBrowserCallRouter = ({
   resolveHarness,
+  issueWaitMs = defaultIssueWaitMs,
 }: {
   readonly resolveHarness: ResolveHarness;
+  /** How long a claim for a call not yet issued waits for it; `defaultIssueWaitMs` when omitted. */
+  readonly issueWaitMs?: number;
 }): Hono => {
   const router = new Hono();
   const conversationId = ROOT_CONVERSATION_ID;
-  const context = BACKGROUND_CONTEXT;
 
   /** The route's Harness and call ID, after its body parsed. */
   const addressed = async <Schema extends v.GenericSchema>(
@@ -97,17 +176,50 @@ export const createBrowserCallRouter = ({
     return { harness, body, toolCallId: params.callId ?? "" };
   };
 
+  router.get(
+    `/:conversationId/${brunchRoutes.browserCalls}`,
+    async (request) => {
+      request.header("Cache-Control", "no-store");
+      const harness = await resolveHarness(request.req.param("conversationId"));
+      if (harness === undefined)
+        return request.json({ error: "unknown-conversation" }, 404);
+      const calls =
+        (await harness.snapshot(BrowserCallsDoc, conversationId, context))
+          ?.calls ?? {};
+      return request.json({
+        calls: Object.fromEntries(
+          Object.entries(calls).map(([toolCallId, record]) => [
+            toolCallId,
+            viewOf(record),
+          ]),
+        ),
+      });
+    },
+  );
+
   router.post(callRoute, async (request) => {
     request.header("Cache-Control", "no-store");
     const target = await addressed(request, vBrowserCallClaimBody);
     if ("response" in target) return target.response;
-    const outcome = await claimBrowserCallAs(
-      target.harness,
-      conversationId,
-      target.toolCallId,
-      target.body,
-      context,
-    );
+    const claim = () =>
+      claimBrowserCallAs(
+        target.harness,
+        conversationId,
+        target.toolCallId,
+        target.body,
+        context,
+      );
+    let outcome = await claim();
+    if (outcome.status === "not-issued" && issueWaitMs > 0) {
+      await waitForIssue(
+        target.harness,
+        conversationId,
+        target.toolCallId,
+        Date.now() + issueWaitMs,
+        request.req.raw.signal,
+      );
+      outcome = await claim();
+    }
     return outcome.status === "claimed"
       ? request.json(outcome.claim)
       : request.json(

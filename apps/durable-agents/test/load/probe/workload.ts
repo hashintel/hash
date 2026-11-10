@@ -4,12 +4,14 @@
  * conversation from its transcript alone, and the model's answer.
  *
  * A user message carries a marker naming its conversation, its turn and how
- * many browser calls the turn makes. The model counts the tool results since
- * the last user message: fewer than the turn's calls, it calls `addPlace`
- * again; else it answers with the turn's answer text. So a request resent
- * after a restart gets the answer the first send would have got, and a
- * transcript holding a result twice would show as a turn with too many
- * results.
+ * many places the turn adds. A conversation's first turn reads the net first
+ * (`readNetOutline`): net freshness admits a change only against a view of
+ * the net in the model's context, and that view lasts the conversation. The
+ * model counts the tool results since the last user message: fewer than the
+ * turn's browser calls, it makes the next one; else it answers with the
+ * turn's answer text. So a request resent after a restart gets the answer
+ * the first send would have got, and a transcript holding a result twice
+ * would show as a turn with too many results.
  */
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -19,15 +21,25 @@ import { fauxAssistantMessage, fauxToolCall } from "../../scripted-model";
 import type { Message } from "@earendil-works/pi-ai";
 import type { FauxResponseFactory } from "@earendil-works/pi-ai/providers/faux";
 
-/** The browser tool every call of the workload makes: a canonical net mutation. */
+/** The browser tool every change of the workload makes: a canonical net mutation. */
 export const loadToolName = "addPlace";
+
+/** The net read a conversation's first turn makes before its changes. */
+export const loadReadToolName = "readNetOutline";
 
 export type TurnPlan = {
   readonly conversationId: string;
   readonly turn: number;
-  /** Browser calls the turn makes before its answer. */
+  /** Places the turn adds, one `addPlace` call each. */
   readonly calls: number;
 };
+
+/** Whether the turn reads the net before its changes: a conversation's first turn. */
+export const readsFirst = (plan: TurnPlan) => plan.turn === 1;
+
+/** Browser calls the turn makes before its answer: its read, if any, and its changes. */
+export const browserCallsOf = (plan: TurnPlan) =>
+  plan.calls + (readsFirst(plan) ? 1 : 0);
 
 const markerPattern = /\[load (\S+) turn=(\d+) calls=(\d+)\]/u;
 
@@ -98,12 +110,16 @@ export const loadModelStep =
     const results = messages
       .slice(lastUser + 1)
       .filter(({ role }) => role === "toolResult").length;
-    return results < plan.calls
-      ? fauxAssistantMessage(
-          fauxToolCall(loadToolName, placeInput(plan, results), {
-            id: `call-${randomUUID()}`,
-          }),
-          { stopReason: "toolUse" },
-        )
-      : fauxAssistantMessage(answerText(plan));
+    if (results >= browserCallsOf(plan))
+      return fauxAssistantMessage(answerText(plan));
+    const id = `call-${randomUUID()}`;
+    if (readsFirst(plan) && results === 0)
+      return fauxAssistantMessage(fauxToolCall(loadReadToolName, {}, { id }), {
+        stopReason: "toolUse",
+      });
+    const change = results - (readsFirst(plan) ? 1 : 0);
+    return fauxAssistantMessage(
+      fauxToolCall(loadToolName, placeInput(plan, change), { id }),
+      { stopReason: "toolUse" },
+    );
   };
