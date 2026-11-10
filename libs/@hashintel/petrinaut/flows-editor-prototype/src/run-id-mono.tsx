@@ -1,15 +1,14 @@
 /**
- * Run IDs in monospace (9 Nov sync: mono is for unique identifiers, with a way to copy the ID). `?runidmono=a..f`
- * picks a take; unset keeps today's IDs. Every take shows 4 characters and sets the size in em, so it follows the
- * text around it (13/14 or 12/14 of a 14 px row).
+ * Run IDs in JetBrains Mono, Petrinaut's mono (#lib-designsystem, 9 Nov: use the app's existing mono). `?runidmono=`
+ * picks a styling take; unset keeps today's IDs. Every take shows 4 characters and sets the size in em, so it follows
+ * the text around it (13/14 or 12/14 of a 14 px row). Take c was a with another font, so it now shows a.
  *
- * | take | font          | case  | tracking | size | weight | chip | copy               |
- * | a    | Geist Mono    | CAPS  | 0.02em   | 13   | 500    | –    | icon on hover      |
- * | b    | Geist Mono    | CAPS  | 0.05em   | 12   | 500    | yes  | icon on hover      |
- * | c    | IBM Plex Mono | CAPS  | 0.02em   | 13   | 500    | –    | icon on hover      |
- * | d    | IBM Plex Mono | CAPS  | 0.05em   | 12   | 400    | yes  | click, then toast  |
- * | e    | Geist Mono    | lower | 0        | 13   | 400    | –    | click, then toast  |
- * | f    | IBM Plex Mono | lower | 0        | 13   | 500    | –    | click, then toast  |
+ * | take | case  | tracking | size | weight | chip | copy               |
+ * | a    | CAPS  | 0.02em   | 13   | 500    | –    | icon on hover      |
+ * | b    | CAPS  | 0.05em   | 12   | 500    | yes  | icon on hover      |
+ * | d    | CAPS  | 0.05em   | 12   | 400    | yes  | click, then toast  |
+ * | e    | lower | 0        | 13   | 400    | –    | click, then toast  |
+ * | f    | lower | 0        | 13   | 500    | –    | click, then toast  |
  *
  * The chip shows only where the ID stands alone (the Logs ID column, the run panel title). Copying takes the full
  * UUID. The run picker and its menu rows show the ID without a copy control, since the whole
@@ -20,12 +19,13 @@ import { type MouseEvent, useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { CODE_FONT_FAMILY } from "../../src/ui/constants/fonts";
+
 import { Toast } from "./ui";
 
-export type RunIdMonoTake = "a" | "b" | "c" | "d" | "e" | "f";
+export type RunIdMonoTake = "a" | "b" | "d" | "e" | "f";
 
 type MonoSpec = {
-  font: "geist" | "plex";
   caps: boolean;
   tracking: string;
   size: number;
@@ -35,49 +35,25 @@ type MonoSpec = {
 };
 
 export const monoSpecs: Record<RunIdMonoTake, MonoSpec> = {
-  a: { font: "geist", caps: true, tracking: "0.02em", size: 13, weight: 500, chip: false, copy: "icon" },
-  b: { font: "geist", caps: true, tracking: "0.05em", size: 12, weight: 500, chip: true, copy: "icon" },
-  c: { font: "plex", caps: true, tracking: "0.02em", size: 13, weight: 500, chip: false, copy: "icon" },
-  d: { font: "plex", caps: true, tracking: "0.05em", size: 12, weight: 400, chip: true, copy: "toast" },
-  e: { font: "geist", caps: false, tracking: "0", size: 13, weight: 400, chip: false, copy: "toast" },
-  f: { font: "plex", caps: false, tracking: "0", size: 13, weight: 500, chip: false, copy: "toast" },
+  a: { caps: true, tracking: "0.02em", size: 13, weight: 500, chip: false, copy: "icon" },
+  b: { caps: true, tracking: "0.05em", size: 12, weight: 500, chip: true, copy: "icon" },
+  d: { caps: true, tracking: "0.05em", size: 12, weight: 400, chip: true, copy: "toast" },
+  e: { caps: false, tracking: "0", size: 13, weight: 400, chip: false, copy: "toast" },
+  f: { caps: false, tracking: "0", size: 13, weight: 500, chip: false, copy: "toast" },
 };
 
 export const runIdMonoTake = (): RunIdMonoTake | null => {
   const value = new URLSearchParams(globalThis.location.search).get(
     "runidmono",
   );
+  if (value === "c") {
+    return "a";
+  }
   return value && value in monoSpecs ? (value as RunIdMonoTake) : null;
 };
 
-const fontStacks = {
-  geist: '"Geist Mono Variable", "Geist Mono", ui-monospace, monospace',
-  plex: '"IBM Plex Mono", ui-monospace, monospace',
-};
-
-// The prototype loads neither face on its own: its monospace is Petrinaut's JetBrains Mono (loaded in main.tsx), and the DS `fonts.mono`
-// token names Geist Mono without shipping its @font-face.
-const loadedFonts = new Set<MonoSpec["font"]>();
-const loadFont = (font: MonoSpec["font"]) => {
-  if (loadedFonts.has(font)) {
-    return;
-  }
-  loadedFonts.add(font);
-  if (font === "geist") {
-    void import("@fontsource-variable/geist-mono");
-    return;
-  }
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href =
-    "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap";
-  document.head.append(link);
-};
-
-const take = runIdMonoTake();
-if (take) {
-  loadFont(monoSpecs[take].font);
-}
+// JetBrains Mono is loaded in main.tsx, as Petrinaut loads it.
+const monoFont = CODE_FONT_FAMILY;
 
 const wrapStyle = css({
   display: "inline-flex",
@@ -136,7 +112,7 @@ export const MonoRunId = ({
   const spec = monoSpecs[monoTake];
   const [toast, setToast] = useState<string | null>(null);
   const style = {
-    fontFamily: fontStacks[spec.font],
+    fontFamily: monoFont,
     fontSize: `${(spec.size / 14).toFixed(3)}em`,
     fontWeight: spec.weight,
     letterSpacing: spec.tracking,
