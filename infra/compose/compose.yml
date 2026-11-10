@@ -1,5 +1,12 @@
 name: hash
 
+networks:
+  # Kratos's second network, with IPv6 when HASH_KRATOS_HOST_IPV6 is true, so
+  # it can reach the host at an IPv6 address. See "Engines whose host gateway
+  # Kratos refuses" in README.md.
+  kratos-host:
+    enable_ipv6: ${HASH_KRATOS_HOST_IPV6:-false}
+
 volumes:
   hash-postgres-data:
   hash-vault-data:
@@ -153,8 +160,13 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+    networks:
+      - default
+      - kratos-host
     extra_hosts:
-      - host.docker.internal:host-gateway
+      # Where Kratos's registration hook reaches hash-api on the host.
+      # HASH_KRATOS_HOST_GATEWAY overrides the address; see README.md.
+      - host.docker.internal=${HASH_KRATOS_HOST_GATEWAY:-host-gateway}
 
   hydra-migrate:
     profiles:

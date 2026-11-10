@@ -56,6 +56,19 @@ Each service includes health checks and proper dependency management. Services w
 - Kratos Admin API: http://localhost:4434
 - Hydra Admin API: http://localhost:4445
 
+### Engines whose host gateway Kratos refuses
+
+Kratos's registration hook calls hash-api on the host at `host.docker.internal`, which Compose maps to the engine's host gateway. Kratos refuses to call some addresses, whatever its configuration: anything in `0.0.0.0/8` among them. Docker Desktop (`192.168.65.254`) and Docker on Linux (the bridge, usually `172.17.0.1`) are fine. OrbStack maps the host gateway to `0.250.250.254`, so registering an account fails with "prohibited IP address" in Kratos's log.
+
+OrbStack also reaches the host at an IPv6 address, which Kratos accepts. Give Kratos that address, on a network with IPv6, in `.env.local`:
+
+```sh
+HASH_KRATOS_HOST_GATEWAY=fd07:b51a:cc66:f0::fe
+HASH_KRATOS_HOST_IPV6=true
+```
+
+Then recreate Kratos with `yarn compose up --wait`. To check the address on your machine, run `docker run --rm busybox nslookup host.orb.internal` and take the `fd07:` address it reports.
+
 ## Configuration Files
 
 ### Observability Configuration
