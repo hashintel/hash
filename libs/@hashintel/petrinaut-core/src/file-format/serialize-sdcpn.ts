@@ -46,6 +46,8 @@ const SUBNET_KEY_ORDER = [
   "componentInstances",
   "fusions",
   "transitions",
+  "displayColor",
+  "iconSvg",
 ] as const satisfies readonly (keyof Subnet)[];
 
 /** Compiles only when `T` is `never` — see the checks below. */
@@ -82,7 +84,8 @@ const pickInOrder = (
  *
  * The output includes format metadata (`version`, `meta.generator`) and the
  * editor-supplied `title`. When `removeVisualInfo` is true, places/transitions
- * lose their `x`/`y` and types lose their `displayColor`/`iconSlug` — useful
+ * lose their `x`/`y`, types lose their `displayColor`/`iconSlug` and subnets
+ * their `displayColor`/`iconSvg` — useful
  * when sharing the structural definition without baking in a particular
  * layout / palette.
  *

@@ -891,6 +891,9 @@ export const Interfaces: Story = {
 const cellSubnet: NonNullable<SDCPN["subnets"]>[number] = {
   id: "cell",
   name: "Cell",
+  displayColor: "#14b8a6",
+  iconSvg:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M5 20V11l5 3v-3l5 3V5h4v15"/><path d="M9 17h.01M13 17h.01M17 17h.01"/></svg>',
   places: [
     place("cell_frames", "Frames", 80, 80, {
       isPort: true,

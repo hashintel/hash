@@ -319,6 +319,44 @@ describe("serializeSDCPN", () => {
     ]);
   });
 
+  it("writes a subnet's colour and icon last, and leaves them out without visual info", () => {
+    const sdcpn = parseFixture();
+    const iconSvg = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const styled = {
+      ...sdcpn,
+      subnets: [{ ...sdcpn.subnets![0]!, iconSvg, displayColor: "#3b82f6" }],
+    };
+
+    const text = serializeSDCPN({
+      petriNetDefinition: styled,
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(text) as {
+      subnets: Record<string, unknown>[];
+    };
+    expect(Object.keys(document.subnets[0]!).slice(-2)).toEqual([
+      "displayColor",
+      "iconSvg",
+    ]);
+
+    const reimported = parseSDCPNDocument(text);
+    expect(reimported.ok).toBe(true);
+    if (!reimported.ok) return;
+    expect(reimported.sdcpn.subnets?.[0]).toMatchObject({
+      iconSvg,
+      displayColor: "#3b82f6",
+    });
+
+    const bare = serializeSDCPN({
+      petriNetDefinition: styled,
+      title: "Test Net",
+      removeVisualInfo: true,
+    });
+    expect(bare).not.toContain("iconSvg");
+    expect(bare).not.toContain("displayColor");
+  });
+
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {
     const result = parseSDCPNDocument("places: [");
     expect(result.ok).toBe(false);

@@ -114,4 +114,20 @@ describe("hashPetrinautDocument", () => {
       hashPetrinautDocument(net, { exclude: [part] }),
     );
   });
+
+  it("counts a subnet's icon and colour as appearance", () => {
+    const styled: SDCPN = {
+      ...net,
+      subnets: net.subnets?.map((subnet) => ({
+        ...subnet,
+        iconSvg: "<svg/>",
+        displayColor: "#00FF00",
+      })),
+    };
+
+    expect(hashPetrinautDocument(styled)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(styled, { exclude: ["appearance"] })).toBe(
+      hashPetrinautDocument(net, { exclude: ["appearance"] }),
+    );
+  });
 });
