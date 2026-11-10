@@ -9,9 +9,9 @@ import type { Simulator } from "./simulator";
 /**
  * An experiment backend as a simulator that computes experiments.
  *
- * Both built-in backends step and sample on one time step, so the sample
- * period has to equal the simulator's time step: a different one is refused
- * rather than rounded.
+ * Both built-in backends step and sample on one time step, so an experiment
+ * samples at the simulator's time step: asked for a different period, the
+ * simulator refuses rather than rounds.
  */
 export const simulatorFromExperimentBackend = <
   const Specs extends SimulatorParameterSpecs,
@@ -39,7 +39,10 @@ export const simulatorFromExperimentBackend = <
           };
         }
         const dt = timeStepOf(request.simulatorParameters);
-        if (experiment.samplePeriod !== dt) {
+        if (
+          experiment.samplePeriod !== undefined &&
+          experiment.samplePeriod !== dt
+        ) {
           return {
             ok: false,
             blockers: [

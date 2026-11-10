@@ -39,6 +39,13 @@ export type {
 } from "./simulator";
 export { simulatorFromExperimentBackend } from "./experiment-backend-simulator";
 export {
+  countStatisticsOfBins,
+  createExperimentReader,
+  placeCountMetricId,
+  placeCountMetricSpecs,
+} from "./experiment-reader";
+export type { CountStatistics, ExperimentReader } from "./experiment-reader";
+export {
   builtInSimulatorManifests,
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,

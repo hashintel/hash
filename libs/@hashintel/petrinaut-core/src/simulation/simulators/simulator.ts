@@ -42,9 +42,11 @@ export type SimulatorExperimentRequest = {
   readonly metricSpecs: readonly MonteCarloMetricSpec[];
   /**
    * Spacing of the grid the metrics are observed on, in simulated seconds.
-   * A metric frame's `frameNumber` is its index on this grid.
+   * A metric frame's `frameNumber` is its index on this grid. Left out, the
+   * simulator samples at a period of its own: a fixed-step simulator at its
+   * time step.
    */
-  readonly samplePeriod: number;
+  readonly samplePeriod?: number;
 };
 
 export type SimulatorStartOptions = {
