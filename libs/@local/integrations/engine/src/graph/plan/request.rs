@@ -5,7 +5,8 @@
 
 use alloc::collections::BTreeMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 use type_system::{
     knowledge::{
         entity::{
@@ -58,6 +59,79 @@ impl Delivery {
             version: DELIVERY_VERSION,
             entity_id,
             request,
+        }
+    }
+}
+
+/// The requests delivery sends for one write, borrowed from its payload so they go out exactly as
+/// they were planned.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::graph) enum SavedRequests<'payload> {
+    /// Creates the entity, or patches it if it already exists.
+    Upsert {
+        create: &'payload RawValue,
+        patch: &'payload RawValue,
+    },
+    Archive {
+        archive: &'payload RawValue,
+    },
+}
+
+/// Reports a payload that is not a delivery this engine wrote.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the payload is not a delivery of version {DELIVERY_VERSION}")]
+pub(in crate::graph) struct UnreadablePayload;
+
+/// A [`Delivery`] as it is read back, keeping each request as its saved JSON.
+#[derive(Deserialize)]
+struct SavedDelivery<'payload> {
+    version: u8,
+    #[serde(borrow)]
+    request: SavedRequest<'payload>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum RequestKind {
+    Upsert,
+    Archive,
+}
+
+/// A [`Request`] as it is read back. Its fields are not an internally tagged enum, as serde
+/// buffers those and cannot borrow raw JSON from them.
+#[derive(Deserialize)]
+struct SavedRequest<'payload> {
+    kind: RequestKind,
+    #[serde(borrow)]
+    create: Option<&'payload RawValue>,
+    #[serde(borrow)]
+    patch: Option<&'payload RawValue>,
+    #[serde(borrow)]
+    archive: &'payload RawValue,
+}
+
+impl Payload {
+    /// The requests delivery sends for this write.
+    pub(in crate::graph) fn requests(&self) -> Result<SavedRequests<'_>, UnreadablePayload> {
+        let SavedDelivery { version, request } =
+            serde_json::from_str(self.as_str()).map_err(|_error| UnreadablePayload)?;
+        if version != DELIVERY_VERSION {
+            return Err(UnreadablePayload);
+        }
+        match request {
+            SavedRequest {
+                kind: RequestKind::Upsert,
+                create: Some(create),
+                patch: Some(patch),
+                archive: _,
+            } => Ok(SavedRequests::Upsert { create, patch }),
+            SavedRequest {
+                kind: RequestKind::Archive,
+                create: None,
+                patch: None,
+                archive,
+            } => Ok(SavedRequests::Archive { archive }),
+            SavedRequest { .. } => Err(UnreadablePayload),
         }
     }
 }
