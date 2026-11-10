@@ -78,7 +78,7 @@ function selectValueToView(value: string): TimelineView {
   return { kind: "metric", metricId: value };
 }
 
-const TimelineChartTypeSelector: React.FC = () => {
+export const TimelineChartTypeSelector: React.FC = () => {
   const { timelineChartType: chartType, setTimelineChartType: setChartType } =
     use(EditorContext);
 

@@ -1,6 +1,12 @@
+import { use } from "react";
+
 import { css } from "@hashintel/ds-helpers/css";
 
-import { TimelineViewPicker } from "../simulation-timeline/header";
+import { EditorContext } from "../../../../../../../react/state/editor-context";
+import {
+  TimelineChartTypeSelector,
+  TimelineViewPicker,
+} from "../simulation-timeline/header";
 import { EventTimeline } from "./content";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -11,11 +17,21 @@ const headerActionsStyle = css({
   gap: "[8px]",
 });
 
-const EventTimelineHeaderActions: React.FC = () => (
-  <div className={headerActionsStyle}>
-    <TimelineViewPicker />
-  </div>
-);
+const EventTimelineHeaderActions: React.FC = () => {
+  const { timelineView } = use(EditorContext);
+  // Firings are marks on lanes and the solver's error is read line by line:
+  // neither has a stacked form.
+  const stackable =
+    timelineView.kind !== "per-transition" &&
+    timelineView.kind !== "solver-error";
+
+  return (
+    <div className={headerActionsStyle}>
+      <TimelineViewPicker />
+      {stackable ? <TimelineChartTypeSelector /> : null}
+    </div>
+  );
+};
 
 /**
  * The Timeline tab while the event-driven engine is selected. It shares the

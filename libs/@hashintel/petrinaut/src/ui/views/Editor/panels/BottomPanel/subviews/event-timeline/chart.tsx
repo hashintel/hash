@@ -24,6 +24,7 @@ import {
 } from "./interactions";
 import {
   findFiringNear,
+  stackedBandValue,
   FIRING_COLOR,
   type EventTimelineData,
   type FiringMark,
@@ -359,10 +360,13 @@ const updateTooltip = (
   const series =
     focusedSeries >= 1 ? state.data.series[focusedSeries - 1] : undefined;
   const idx = u.cursor.idx;
+  // A stacked band shows what it holds itself, not the height it reaches.
   const value =
-    series && idx != null && idx >= 0
-      ? state.data.data[focusedSeries]?.[idx]
-      : undefined;
+    !series || idx == null || idx < 0
+      ? undefined
+      : state.data.kind !== "lanes" && state.data.stacked
+        ? stackedBandValue(state.data.data, focusedSeries, idx)
+        : state.data.data[focusedSeries]?.[idx];
 
   const showSeries = series !== undefined && state.data.kind !== "lanes";
   nodes.dot.style.display = showSeries ? "block" : "none";
@@ -590,6 +594,9 @@ const seriesStyles: Record<
   sampled: () => ({ width: 2, points: { show: false } }),
 };
 
+const isStacked = (data: EventTimelineData): boolean =>
+  data.kind !== "lanes" && data.stacked === true;
+
 const buildSeries = (
   data: EventTimelineData,
   hiddenSeries: Set<string>,
@@ -598,10 +605,22 @@ const buildSeries = (
   ...data.series.map((series): uPlot.Series => ({
     label: series.seriesName,
     stroke: series.color,
-    show: !hiddenSeries.has(series.seriesId),
+    // A stacked chart is given its visible series only.
+    show: isStacked(data) || !hiddenSeries.has(series.seriesId),
     ...seriesStyles[data.kind](series.color),
+    ...(isStacked(data)
+      ? { fill: `color-mix(in srgb, ${series.color} 53%, transparent)` }
+      : {}),
   })),
 ];
+
+/** Each band fills down to the one drawn after it, the bottom one to zero. */
+const buildBands = (data: EventTimelineData): uPlot.Band[] | undefined =>
+  isStacked(data) && data.series.length > 1
+    ? data.series
+        .slice(1)
+        .map((_, index): uPlot.Band => ({ series: [index + 1, index + 2] }))
+    : undefined;
 
 const buildOptions = (
   data: EventTimelineData,
@@ -618,6 +637,7 @@ const buildOptions = (
     width: size.width,
     height: size.height,
     series: buildSeries(data, hiddenSeries),
+    bands: buildBands(data),
     pxAlign: false,
     padding: [8, 8, 4, null],
     cursor: {
@@ -626,7 +646,8 @@ const buildOptions = (
       focus: { prox: 16 },
     },
     legend: { show: false },
-    focus: { alpha: 0.3 },
+    // Dimming the bands around the focused one would show through them.
+    focus: { alpha: isStacked(data) ? 1 : 0.3 },
     axes: [
       {
         side: 0,

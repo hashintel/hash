@@ -49,6 +49,12 @@ vi.mock(
   () => ({ UPlotChart: () => <div>Chart</div> }),
 );
 
+// uPlot reads the device pixel ratio as it loads, which jsdom cannot answer.
+vi.mock(
+  "../views/Editor/panels/BottomPanel/subviews/event-timeline/chart",
+  () => ({ EventTimelineChart: () => <div>Event chart</div> }),
+);
+
 const placeId = "00000000-0000-4000-8000-0000000000a1";
 const otherPlaceId = "00000000-0000-4000-8000-0000000000a2";
 const transitionId = "00000000-0000-4000-8000-0000000000b1";
