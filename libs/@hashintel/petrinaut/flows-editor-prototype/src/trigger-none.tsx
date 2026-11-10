@@ -46,109 +46,6 @@ type Props = {
   onPublish: () => void;
 };
 
-export const NoTriggerWarning = (props: Props) => {
-  const { document } = useEditor();
-  const editTriggers = () => {
-    props.onClose();
-    openFlowTriggers(document.name);
-  };
-  return (
-    <Popover
-      triggerRef={props.triggerRef}
-      position="bottom-end"
-      gapX={0}
-      gapY={8}
-      onClose={props.onClose}
-    >
-      {triggerNoneLayout === "toast" ? (
-        <ToastLayout {...props} onEdit={editTriggers} />
-      ) : triggerNoneLayout === "banner" ? (
-        <BannerLayout {...props} onEdit={editTriggers} />
-      ) : (
-        <div
-          role="dialog"
-          aria-label={TITLE}
-          className={cardStyle}
-          data-trigger-none-publish
-        >
-          <span className={css({ display: "flex", gap: "2" })}>
-            <span
-              className={css({
-                display: "inline-flex",
-                paddingTop: "[2px]",
-                color: "orange.fg.muted",
-              })}
-            >
-              <Icon name="warning" size="sm" />
-            </span>
-            <span
-              className={css({
-                display: "flex",
-                flexDirection: "column",
-                gap: "1",
-                minWidth: "0",
-              })}
-            >
-              <span
-                data-tn="title"
-                className={css({
-                  textStyle: "sm",
-                  fontWeight: "medium",
-                  color: "neutral.fg.heading",
-                })}
-              >
-                {TITLE}
-              </span>
-              <span
-                data-tn="body"
-                className={css({
-                  textStyle: "sm",
-                  color: "neutral.fg.muted",
-                  textWrap: "balance",
-                })}
-              >
-                {BODY}
-              </span>
-              <span
-                className={css({
-                  display: "flex",
-                  gap: "2",
-                  marginTop: "2",
-                  whiteSpace: "nowrap",
-                  "& > button": { flexShrink: "0" },
-                })}
-              >
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  tone="neutral"
-                  // The ghost has no visible edge, so its label is its edge: pull it left by its padding and border.
-                  className={css({
-                    marginLeft: "[calc(-1 * (var(--spacing-2) + 1px))]",
-                  })}
-                  onClick={props.onPublish}
-                >
-                  Publish anyway
-                </Button>
-                <Button
-                  size="sm"
-                  variant="subtle"
-                  tone="neutral"
-                  iconName="arrowUpRight"
-                  iconPosition="right"
-                  onClick={editTriggers}
-                >
-                  Edit flow triggers
-                </Button>
-              </span>
-            </span>
-          </span>
-        </div>
-      )}
-    </Popover>
-  );
-};
-
 /** The Figma DS filled exclamation-circle (Toast warning icon), 15 px. */
 const ExclamationCircleSolid = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
@@ -315,3 +212,106 @@ const BannerLayout = ({
     </Banner>
   </div>
 );
+
+export const NoTriggerWarning = (props: Props) => {
+  const { document } = useEditor();
+  const editTriggers = () => {
+    props.onClose();
+    openFlowTriggers(document.name);
+  };
+  return (
+    <Popover
+      triggerRef={props.triggerRef}
+      position="bottom-end"
+      gapX={0}
+      gapY={8}
+      onClose={props.onClose}
+    >
+      {triggerNoneLayout === "toast" ? (
+        <ToastLayout {...props} onEdit={editTriggers} />
+      ) : triggerNoneLayout === "banner" ? (
+        <BannerLayout {...props} onEdit={editTriggers} />
+      ) : (
+        <div
+          role="dialog"
+          aria-label={TITLE}
+          className={cardStyle}
+          data-trigger-none-publish
+        >
+          <span className={css({ display: "flex", gap: "2" })}>
+            <span
+              className={css({
+                display: "inline-flex",
+                paddingTop: "[2px]",
+                color: "orange.fg.muted",
+              })}
+            >
+              <Icon name="warning" size="sm" />
+            </span>
+            <span
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "1",
+                minWidth: "0",
+              })}
+            >
+              <span
+                data-tn="title"
+                className={css({
+                  textStyle: "sm",
+                  fontWeight: "medium",
+                  color: "neutral.fg.heading",
+                })}
+              >
+                {TITLE}
+              </span>
+              <span
+                data-tn="body"
+                className={css({
+                  textStyle: "sm",
+                  color: "neutral.fg.muted",
+                  textWrap: "balance",
+                })}
+              >
+                {BODY}
+              </span>
+              <span
+                className={css({
+                  display: "flex",
+                  gap: "2",
+                  marginTop: "2",
+                  whiteSpace: "nowrap",
+                  "& > button": { flexShrink: "0" },
+                })}
+              >
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="neutral"
+                  // The ghost has no visible edge, so its label is its edge: pull it left by its padding and border.
+                  className={css({
+                    marginLeft: "[calc(-1 * (var(--spacing-2) + 1px))]",
+                  })}
+                  onClick={props.onPublish}
+                >
+                  Publish anyway
+                </Button>
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  tone="neutral"
+                  iconName="arrowUpRight"
+                  iconPosition="right"
+                  onClick={editTriggers}
+                >
+                  Edit flow triggers
+                </Button>
+              </span>
+            </span>
+          </span>
+        </div>
+      )}
+    </Popover>
+  );
+};

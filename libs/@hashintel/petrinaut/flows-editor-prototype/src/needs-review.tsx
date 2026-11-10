@@ -11,6 +11,8 @@
  * - `popout`: the form opens in a small pop-out beside the list row, or beside the step when the step is selected.
  * - `inbox`: each row links to the HASH Inbox (`/inbox`), which lists this flow's requests and answers them there.
  * - `link`: `panel`, with "Open in inbox" in the form's header.
+ * - `r2-1`..`r2-4` (round 2, 9 Nov sync): question list, reviewed context and form all at once; see
+ *   `needs-review-r2.tsx`.
  *
  * MOCK: the requests. Run 17 of the Monthly supplier review waits on Quality sign-off (`?at=200&pin`); the loop's
  * two open requests and the two answered ones are invented for the demo.
@@ -38,7 +40,15 @@ import { outcomeOf, type RunRecord } from "./run-history";
 import { RunGlyph } from "./run-glyph";
 import { statusColor } from "./status-colors";
 
-export type NeedsReviewTake = "panel" | "popout" | "inbox" | "link";
+export type NeedsReviewTake =
+  | "panel"
+  | "popout"
+  | "inbox"
+  | "link"
+  | "r2-1"
+  | "r2-2"
+  | "r2-3"
+  | "r2-4";
 
 export const needsReviewTake: NeedsReviewTake | null = (() => {
   const value = new URLSearchParams(globalThis.location.search).get(
@@ -47,7 +57,11 @@ export const needsReviewTake: NeedsReviewTake | null = (() => {
   return value === "panel" ||
     value === "popout" ||
     value === "inbox" ||
-    value === "link"
+    value === "link" ||
+    value === "r2-1" ||
+    value === "r2-2" ||
+    value === "r2-3" ||
+    value === "r2-4"
     ? value
     : null;
 })();
@@ -59,9 +73,9 @@ const inPanel = needsReviewTake === "panel" || needsReviewTake === "link";
  * MOCK requests
  * ------------------------------------------------------------------------------------------------------------- */
 
-type Answer = { choice: string; text: string; by: string; at: string };
+export type Answer = { choice: string; text: string; by: string; at: string };
 
-type ReviewRequest = {
+export type ReviewRequest = {
   id: string;
   stepId: string;
   /** The step's name, then the item it waits on: "Fetch certificate › Pinecrest Minerals". */
@@ -181,7 +195,7 @@ const listeners = new Set<() => void>();
 /** `popout`: the step whose pop-out the current selection already opened. */
 let placedFor: string | null = null;
 
-const update = (change: Partial<ReviewState>) => {
+export const update = (change: Partial<ReviewState>) => {
   state = { ...state, ...change };
   for (const listener of listeners) {
     listener();
@@ -193,14 +207,14 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
-const useReview = () =>
+export const useReview = () =>
   useSyncExternalStore(
     subscribe,
     () => state,
     () => state,
   );
 
-const answerOf = (request: ReviewRequest, answers: Record<string, Answer>) =>
+export const answerOf = (request: ReviewRequest, answers: Record<string, Answer>) =>
   request.answer ?? answers[request.id];
 
 const openRequests = (answers: Record<string, Answer>) =>
@@ -228,7 +242,7 @@ const submit = (request: ReviewRequest, choice: string, text: string) =>
   });
 
 /** The run that waits: a live run at Quality sign-off. */
-const useWaitingRun = (): RunRecord | null => {
+export const useWaitingRun = (): RunRecord | null => {
   const view = useRunView();
   if (!needsReviewTake || !view?.run) {
     return null;
@@ -448,7 +462,7 @@ const formStyle = css({
 });
 
 /** The request's form: the question, a radio group and a comment, Submit. Answered: the same, read-only. */
-const RequestForm = ({ request }: { request: ReviewRequest }) => {
+export const RequestForm = ({ request }: { request: ReviewRequest }) => {
   const { answers } = useReview();
   const answer = answerOf(request, answers);
   const [choice, setChoice] = useState<string>(answer?.choice ?? "");
@@ -606,7 +620,7 @@ const Ping = ({ host }: { host: HTMLElement }) => {
 };
 
 /** Finds each waiting step's card and draws its ping inside it. */
-const ReviewPings = () => {
+export const ReviewPings = () => {
   const run = useWaitingRun();
   const { answers } = useReview();
   const waiting = [

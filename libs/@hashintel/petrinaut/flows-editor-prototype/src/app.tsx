@@ -30,7 +30,8 @@ import {
 import { HashShellStrip } from "./hash-shell";
 import { LeftPanel } from "./left-panel";
 import { mockRuns, runStatus } from "./mock-runs";
-import { ReviewSide } from "./needs-review";
+import { needsReviewTake, ReviewSide } from "./needs-review";
+import { ReviewR2Side } from "./needs-review-r2";
 import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
@@ -809,13 +810,24 @@ export const Editor = ({
                   {inHistory ? (
                     openRun && history ? (
                       // A selected step shows its outputs; otherwise the run's log (minimal log, 4 Nov).
-                      <ReviewSide>
-                        {ui.selectedId ? (
-                          <RunStepPanel history={history} />
-                        ) : (
-                          <RunLogPanel history={history} />
-                        )}
-                      </ReviewSide>
+                      needsReviewTake?.startsWith("r2-") ? (
+                        // ?needsreview=r2-1..r2-4: list, context and form at once (round 2, 9 Nov sync).
+                        <ReviewR2Side>
+                          {ui.selectedId ? (
+                            <RunStepPanel history={history} />
+                          ) : (
+                            <RunLogPanel history={history} />
+                          )}
+                        </ReviewR2Side>
+                      ) : (
+                        <ReviewSide>
+                          {ui.selectedId ? (
+                            <RunStepPanel history={history} />
+                          ) : (
+                            <RunLogPanel history={history} />
+                          )}
+                        </ReviewSide>
+                      )
                     ) : null
                   ) : viewingVersion === null ? (
                     <PropertiesPanel />

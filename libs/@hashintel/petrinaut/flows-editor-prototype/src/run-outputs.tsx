@@ -657,7 +657,7 @@ const EmailPage = ({ file }: { file: Email }) => (
 );
 
 /** A drawn page, scaled to `width`; the 3 : 4 page keeps its shape. */
-const Page = ({
+export const Page = ({
   file,
   width,
   framed = true,
