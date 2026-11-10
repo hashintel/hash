@@ -163,6 +163,8 @@ The HASH graph is bitemporal, which means that time is tracked on two axes: tran
 
 You can consider these to be a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
 
+<TemporalAxes />
+
 Looking at _when_ is just as important as looking at _what_. We want to understand how the data has changed over time. The temporal axes therefore form an input to the query. Let's set up that input first.
 
 ```ts title="release-briefing.ts" data-example="setup"
@@ -224,18 +226,6 @@ Currently, the only supported head is [`entities`][query-entities], and the only
 
 </Callout>
 
-Our query currently returns all the entities in the selected graph view, not just the ones we're interested in. How do we narrow the results to the entities we want?
-
-This is where body operations come in. Each graph operates on vertices in the knowledge graph, and body operations transform the selected vertices. Filtering, for example, either removes or keeps each vertex. An analogy is the [map-reduce pattern] from functional programming. In our example, the head returns a [`Graph<Entity<?>>`][graph-type]: a graph containing only entities whose properties are [unknown].
-
-<Callout>
-
-Currently, the only supported body operation is [`filter`][query-filter].
-
-</Callout>
-
-Before we start filtering, let's look at how to inspect the query we've written so far.
-
 ### Serialise the program
 
 The [intro to the TypeScript SDK] already shows how to serialise a query program. In short, we take our expression fragment (which is itself a valid HashQL program) and mark it as a [`Program`]. We then compile it to [J-Expr] using the [`Program.compile`][program-compile] function. This step may fail, for example, if an identifier is not valid in HashQL.
@@ -279,6 +269,18 @@ Let's keep this serialisation block at the end of our file and periodically chec
 <Callout>
 
 For guidance on handling [`Result`], refer to the [intro to the TypeScript SDK] or the [Effect documentation].
+
+</Callout>
+
+### Narrow the results
+
+Our query currently returns all the entities in the selected graph view, not just the ones we're interested in. How do we narrow the results to the entities we want?
+
+This is where body operations come in. Each graph operates on vertices in the knowledge graph, and body operations transform the selected vertices. Filtering, for example, either removes or keeps each vertex. An analogy is the [map-reduce pattern] from functional programming. In our example, the head returns a [`Graph<Entity<?>>`][graph-type]: a graph containing only entities whose properties are [unknown].
+
+<Callout>
+
+Currently, the only supported body operation is [`filter`][query-filter].
 
 </Callout>
 
