@@ -3,7 +3,7 @@
  * today's G1/G2 form). Same fields and the same rule in each; only the layout changes.
  * - `a`: today's fields in three groups (When, Ends, Runs as) with more space between groups, one control width,
  *   the Figma DS ToggleGroup for the weekdays, Next runs as a faint line under When.
- * - `b`: a one-line summary sentence, the When fields under it, Ends and Runs as one line each that open on click
+ * - `b`: a one-line summary sentence (when and where only; Ends lives in its own row), the When fields under it, Ends and Runs as one line each that open on click
  *   (`&schedopen=ends,runs` lands with them open).
  * - `c`: Google Calendar's Custom recurrence dialog in the panel: labels above their controls, "Repeat every 2 weeks"
  *   as one line, Ends as Google's three radio rows, Web and Flow version side by side.
@@ -29,7 +29,6 @@ import {
   dayLetter,
   dayNames,
   type Ends,
-  endsWords,
   isLastWeek,
   type Monthly,
   nextRuns,
@@ -433,7 +432,11 @@ const LayoutAB = ({
     </>
   );
 
-  /** b: one line that opens its fields, as the Figma DS Accordion header (the code DS has no Accordion). */
+  /**
+   * b: one line that opens its fields, standing in for the Figma DS Accordion header (the code DS has no Accordion).
+   * The chevron is the Accordion's 16 px chevron-down, but it sits 4 px after the value, not at the row's far right as
+   * in Figma, so it reads as part of the value. The whole row takes the DS hover fill.
+   */
   const foldLine = (
     title: string,
     value: string,
@@ -451,19 +454,27 @@ const LayoutAB = ({
         columnGap: "4",
         alignItems: "center",
         minHeight: "[28px]",
+        // The fill reaches 8 px past the text on both sides; the text keeps its column.
+        marginX: "[-8px]",
+        paddingX: "[8px]",
+        width: "[calc(100% + 16px)]",
         textAlign: "left",
         cursor: "pointer",
         borderRadius: "md",
-        "& .chevron": { color: "neutral.fg.subtle", transition: "[transform 120ms]" },
+        "&:hover": { backgroundColor: "[var(--colors-neutral-bg-subtle-hover)]" },
+        "& .chevron": {
+          display: "inline-flex",
+          color: "neutral.fg.body",
+          transition: "[transform 120ms]",
+        },
         "&[aria-expanded=true] .chevron": { transform: "[rotate(180deg)]" },
-        "&:hover .chevron": { color: "neutral.fg.muted" },
       })}
     >
       <span className={groupTitle}>{title}</span>
-      <span className={cx(row, css({ justifyContent: "space-between" }))}>
-        <span className={bodyText}>{open ? "" : value}</span>
+      <span className={css({ display: "flex", alignItems: "center", gap: "1" })}>
+        <span className={bodyText}>{value}</span>
         <span className="chevron">
-          <Icon name="chevronDown" size="xs" />
+          <Icon name="chevronDown" size="sm" />
         </span>
       </span>
     </button>
@@ -491,9 +502,6 @@ const LayoutAB = ({
           data-schedule-summary
         >
           {`${ruleSummary(rule, startIso, at)}, ${zoneName(zone)}`}
-          <span className={css({ color: "neutral.fg.subtle", fontWeight: "normal" })}>
-            {endsWords(rule, startIso)}
-          </span>
         </span>
       ) : null}
       <div className={gridA}>
