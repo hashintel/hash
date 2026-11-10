@@ -169,7 +169,6 @@ Looking at _when_ is just as important as looking at _what_. We want to understa
 
 ```ts title="release-briefing.ts" data-example="setup"
 import { JExpr, Program, Prelude } from "@local/hashql";
-import type { Type } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Option, Result, pipe } from "effect";
 
@@ -288,21 +287,28 @@ Currently, the only supported body operation is [`filter`][query-filter].
 
 Our query currently returns all the entities in the selected graph view, but we're only interested in tasks. Let's narrow the results:
 
-```ts title="release-briefing.ts" data-example="filter"
-const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
-  $.query
+```ts title="release-briefing.ts" data-example="task-type"
+const briefing = Draft.program({ axis: axes }, ($, { axis }) => {
+  const { Url } = $.prelude();
+  const { BaseUrl, OntologyTypeVersion, VersionedUrl } = $.import(
+    $.modules().graph.modules.types.modules.ontology,
+  );
+  const taskType = VersionedUrl({
+    base_url: BaseUrl(Url("https://example.com/types/entity-type/task/")),
+    version: OntologyTypeVersion("1"),
+  });
+
+  return $.query
     .entities(axis)
     .filter("vertex", ($, vertex) =>
-      $.eq(vertex.entityTypeIds, [
-        VersionedUrl("https://example.com/types/entity-type/task/v/1"),
-      ]),
+      $.eq(vertex.metadata.entity_type_ids, [taskType]),
     )
-    .collect(),
-);
+    .collect();
+});
 ```
 
 <details>
-  <summary>J-Expr</summary>
+<summary>J-Expr</summary>
 
 </details>
 
@@ -314,39 +320,45 @@ Generic collection membership, such as a `contains` operator, is tracked in [BE-
 
 This selects all the tasks, but we're reviewing Meridian, not Northstar. Let's add a predicate to select only the tasks belonging to the release we're interested in:
 
-```ts title="release-briefing.ts" data-example="filter"
+```ts title="release-briefing.ts" data-example="release"
 const briefing = Draft.program(
   { axis: axes, release: String },
-  ($, { axis, release }) =>
-    $.query
+  ($, { axis, release }) => {
+    const { Url } = $.prelude();
+    const { BaseUrl, OntologyTypeVersion, VersionedUrl } = $.import(
+      $.modules().graph.modules.types.modules.ontology,
+    );
+
+    return $.query
       .entities(axis)
       .filter("vertex", ($, vertex) =>
-        $.eq(vertex.entityTypeIds, [
-          VersionedUrl("https://example.com/types/entity-type/task/v/1"),
+        $.eq(vertex.metadata.entity_type_ids, [
+          VersionedUrl({
+            base_url: BaseUrl(
+              Url("https://example.com/types/entity-type/task/"),
+            ),
+            version: OntologyTypeVersion("1"),
+          }),
         ]),
       )
-      .filter("vertex", ($, vertex) => {
-        return $.eq(
-          vertex.properties.$traverse(
+      .filter("task", ($, task) =>
+        $.eq(
+          task.properties.$traverse(
             "https://example.com/types/property-type/release/",
           ),
           release,
-        );
-      })
-      .collect(),
+        ),
+      )
+      .collect();
+  },
 );
 ```
 
-<details>
-  <summary>J-Expr</summary>
-
-</details>
-
-We've added a new input, `release`. This follows the approach discussed in [Introduction to the TypeScript SDK]: rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
+We've added a new input, `release`. This follows the approach discussed in [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft): rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
 
 <Callout>
 
-The `$traverse` operator is not yet implemented. Untyped property lookup is tracked in [BE-49][untyped-properties]. Traversal is untyped, which limits type safety.
+The `$traverse` function used here is fictional. Its name and output are not yet defined, so we leave its J-Expr output empty. It stands for untyped property lookup, tracked in [BE-49][untyped-properties].
 
 The [new polymorphic type core][polymorphic-core], [ontology schema imports][ontology-schemas] and [predicate-driven narrowing][type-narrowing] are separate parts of the planned support for [typed property access][typed-properties]. The intended result is for the first filter to establish the Task property schema, so the second filter can use `.` instead of `$traverse`.
 
@@ -354,102 +366,52 @@ The [new polymorphic type core][polymorphic-core], [ontology schema imports][ont
 
 ---
 
-### Set up the example
-
-Add this helper after the imports and before `briefing` to access the three Task properties used by our query:
-
-<details>
-<summary>Declare the task fields</summary>
-
-```ts title="Task property declarations" data-example="fields"
-const taskFields = (
-  entity: Program.Expression.Expression<
-    Program.Query.Entity,
-    Program.Inputs.Empty
-  >,
-) => {
-  const properties = entity.$projectUnsafe("properties");
-
-  return {
-    release: Program.Expression.assume<Type.PrimitiveString>()(
-      properties.$projectUnsafe(
-        "https://example.com/types/property-type/release/",
-      ),
-    ),
-    status: Program.Expression.assume<Type.PrimitiveString>()(
-      properties.$projectUnsafe(
-        "https://example.com/types/property-type/status/",
-      ),
-    ),
-    assigned: Program.Expression.assume<Type.PrimitiveBoolean>()(
-      properties.$projectUnsafe(
-        "https://example.com/types/property-type/assigned/",
-      ),
-    ),
-  };
-};
-```
-
-</details>
-
-The helper constructs field accesses using the Task schema above: `release` and `status` are strings, and `assigned` is a Boolean.
-
-### Filter by the release input
-
-We could write `"Meridian"` into the predicate, but the same question will be useful for other releases. Let's make `release` an input instead:
-
-```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="release"
-const briefing = Draft.program(
-  { axis: axes, release: String },
-  ($, { axis, release }) =>
-    $.query
-      .entities(axis)
-      .filter("task", ($, task) => $.eq(taskFields(task).release, release))
-      .collect(),
-);
-```
-
-```text tab="Functional notation" tab-group="hashql-language"
-(let release (input release String)
-  (collect
-    (filter (entities (input axis QueryTemporalAxes))
-      (fn () (task: _) Boolean
-        (eq task.release release)))))
-```
-
-```text tab="Reference notation" tab-group="hashql-language"
-let release = input(release, String) in
-head::entities(input(axis, QueryTemporalAxes))
-  |> body::filter((task) -> task.release == release)
-  |> tail::collect
-```
-
 With `release` supplied as `"Meridian"`, T-105 drops out. The remaining tasks are T-101 through T-104. Supplying `"Northstar"` instead selects only T-105, without changing the program we send.
 
 [`filter`][query-filter] introduces a closure over each vertex. In Draft, `"task"` names that closure's parameter. The callback receives a construction context and a handle for the parameter, then constructs a Boolean expression with `$.eq`. Draft invokes the callback while building the program. The generated HashQL closure is what tests each task when the query runs.
 
-This is the same distinction between TypeScript logic and HashQL logic that we explored in the SDK guide. Writing `taskFields(task).release === release` would compare two expression handles in JavaScript. `$.eq` constructs the comparison we want the graph query to perform.
+### Name the properties with construction-time macros
 
-<Callout>
+What we already see here is that using full URLs for properties is quite unwieldy. Adding status and assignment checks would make our query harder to read. We can use the [construction-time macro support](/docs/hashql/sdk/typescript/using-draft#construction-time-macros) from the SDK guide to give those accesses names:
 
-In the functional and reference tabs, `task.release`, `task.status` and `task.assigned` abbreviate the property-URL accesses declared by `taskFields`. They aren't built-in fields on every HASH entity. `eq` and `ne` are the core comparison functions.
+```ts title="Task property macros" data-example="fields"
+const taskFields = (
+  task: Program.Expression.Expression<
+    Program.Query.Entity,
+    Program.Inputs.Empty
+  >,
+) => ({
+  release: task.properties.$traverse(
+    "https://example.com/types/property-type/release/",
+  ),
+  status: task.properties.$traverse(
+    "https://example.com/types/property-type/status/",
+  ),
+  assigned: task.properties.$traverse(
+    "https://example.com/types/property-type/assigned/",
+  ),
+});
+```
 
-</Callout>
+Add this helper before `briefing`. It takes a handle for a Task entity and returns a TypeScript object containing handles for its properties. Calling `taskFields(task).release` constructs the same property lookup as writing the URL directly. The helper runs while building the program, so the server receives the constructed lookup rather than a call to `taskFields`.
 
-## Keep the unfinished work
+The URLs now have one home, while the helper names make our question easier to read. The Task filter stays in the query.
 
-We have the right release, but T-104 is already done. Add another filter to keep tasks whose status isn't `"done"`:
+We can also name the constructed type URL `taskType`. Keep the inputs and imports in `briefing`, and replace its returned query with this declaration and return:
 
-```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="unfinished"
-const briefing = Draft.program(
-  { axis: axes, release: String },
-  ($, { axis, release }) =>
-    $.query
-      .entities(axis)
-      .filter("task", ($, task) => $.eq(taskFields(task).release, release))
-      .filter("task", ($, task) => $.ne(taskFields(task).status, "done"))
-      .collect(),
-);
+```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="release-macro"
+const taskType = VersionedUrl({
+  base_url: BaseUrl(Url("https://example.com/types/entity-type/task/")),
+  version: OntologyTypeVersion("1"),
+});
+
+return $.query
+  .entities(axis)
+  .filter("vertex", ($, vertex) =>
+    $.eq(vertex.metadata.entity_type_ids, [taskType]),
+  )
+  .filter("task", ($, task) => $.eq(taskFields(task).release, release))
+  .collect();
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
@@ -457,6 +419,51 @@ const briefing = Draft.program(
   (collect
     (filter
       (filter (entities (input axis QueryTemporalAxes))
+        (fn () (vertex: _) Boolean
+          (eq vertex.metadata.entity_type_ids [taskType])))
+      (fn () (task: _) Boolean
+        (eq task.release release)))))
+```
+
+```text tab="Reference notation" tab-group="hashql-language"
+let release = input(release, String) in
+head::entities(input(axis, QueryTemporalAxes))
+  |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
+  |> body::filter((task) -> task.release == release)
+  |> tail::collect
+```
+
+This is the same distinction between TypeScript logic and HashQL logic that we explored in the SDK guide. Writing `taskFields(task).release === release` would compare two expression handles in JavaScript. `$.eq` constructs the comparison we want the graph query to perform.
+
+<Callout>
+
+In the functional and reference tabs, `taskType` stands for the same constructed `VersionedUrl`, and `task.release`, `task.status` and `task.assigned` abbreviate the property-URL accesses above. They aren't built-in fields on every HASH entity. These tabs describe the query without choosing a syntax for the fictional lookup function. `eq` and `ne` are the core comparison functions.
+
+</Callout>
+
+## Keep the unfinished work
+
+We have the right release, but T-104 is already done. Keep the `taskType` declaration and add another filter to the returned query, keeping tasks whose status isn't `"done"`:
+
+```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="unfinished"
+return $.query
+  .entities(axis)
+  .filter("vertex", ($, vertex) =>
+    $.eq(vertex.metadata.entity_type_ids, [taskType]),
+  )
+  .filter("task", ($, task) => $.eq(taskFields(task).release, release))
+  .filter("task", ($, task) => $.ne(taskFields(task).status, "done"))
+  .collect();
+```
+
+```text tab="Functional notation" tab-group="hashql-language"
+(let release (input release String)
+  (collect
+    (filter
+      (filter
+        (filter (entities (input axis QueryTemporalAxes))
+          (fn () (vertex: _) Boolean
+            (eq vertex.metadata.entity_type_ids [taskType])))
         (fn () (task: _) Boolean
           (eq task.release release)))
       (fn () (task: _) Boolean
@@ -466,12 +473,13 @@ const briefing = Draft.program(
 ```text tab="Reference notation" tab-group="hashql-language"
 let release = input(release, String) in
 head::entities(input(axis, QueryTemporalAxes))
+  |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
   |> body::filter((task) -> task.release == release)
   |> body::filter((task) -> task.status != "done")
   |> tail::collect
 ```
 
-Our selection now contains T-101, T-102 and T-103. The first filter narrows the graph computation to one release. The second narrows it to unfinished work within that release. Neither operation changes the stored tasks.
+Our selection now contains T-101, T-102 and T-103. The filters select Task entities, keep those belonging to one release, then remove the completed work. None of these operations changes the stored tasks.
 
 Notice that `collect` still comes last. Each filter takes a graph computation and returns another graph computation, so we can keep composing them. Only after describing the selection do we ask for its vertices as a list. We could also combine the predicates with `and`, but separate filters give each part of our question its own predicate.
 
@@ -481,39 +489,42 @@ We can now answer the first question. What about blocked tasks and tasks without
 
 Both are subsets of the unfinished work. Rather than repeat the selection for each answer, we can name it with a HashQL binding and use that binding in three places. This is the same expression-reuse technique from the SDK guide, applied to a graph computation.
 
-```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="briefing"
-const briefing = Draft.program(
-  { axis: axes, release: String },
-  ($, { axis, release }) => {
-    const releaseTasks = $.let(
-      "releaseTasks",
-      $.query
-        .entities(axis)
-        .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
-    );
-    const unfinished = $.let(
-      "unfinished",
-      $.query(releaseTasks).filter("task", ($, task) =>
-        $.ne(taskFields(task).status, "done"),
-      ),
-    );
+Keep the imports and `taskType` declaration at the start of the callback. Replace its returned query with these bindings and a return:
 
-    return Program.Structural.struct({
-      unfinished: $.query(unfinished).collect(),
-      blocked: $.query(unfinished)
-        .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))
-        .collect(),
-      unassigned: $.query(unfinished)
-        .filter("task", ($, task) => $.isFalse(taskFields(task).assigned))
-        .collect(),
-    });
-  },
+```ts tab="TypeScript (Draft)" tab-group="hashql-language" data-example="briefing"
+const releaseTasks = $.let(
+  "releaseTasks",
+  $.query
+    .entities(axis)
+    .filter("vertex", ($, vertex) =>
+      $.eq(vertex.metadata.entity_type_ids, [taskType]),
+    )
+    .filter("task", ($, task) => $.eq(taskFields(task).release, release)),
 );
+const unfinished = $.let(
+  "unfinished",
+  $.query(releaseTasks).filter("task", ($, task) =>
+    $.ne(taskFields(task).status, "done"),
+  ),
+);
+
+return Program.Structural.struct({
+  unfinished: $.query(unfinished).collect(),
+  blocked: $.query(unfinished)
+    .filter("task", ($, task) => $.eq(taskFields(task).status, "blocked"))
+    .collect(),
+  unassigned: $.query(unfinished)
+    .filter("task", ($, task) => $.isFalse(taskFields(task).assigned))
+    .collect(),
+});
 ```
 
 ```text tab="Functional notation" tab-group="hashql-language"
 (let releaseTasks
-  (filter (entities (input axis QueryTemporalAxes))
+  (filter
+    (filter (entities (input axis QueryTemporalAxes))
+      (fn () (vertex: _) Boolean
+        (eq vertex.metadata.entity_type_ids [taskType])))
     (fn () (task: _) Boolean
       (eq task.release (input release String))))
   (let unfinished
@@ -534,6 +545,7 @@ const briefing = Draft.program(
 ```text tab="Reference notation" tab-group="hashql-language"
 let releaseTasks =
       head::entities(input(axis, QueryTemporalAxes))
+        |> body::filter((vertex) -> vertex.metadata.entity_type_ids == [taskType])
         |> body::filter((task) ->
           task.release == input(release, String)),
     unfinished = releaseTasks
@@ -568,7 +580,7 @@ T-102 appears in every list: it is unfinished, blocked and unassigned. That's wh
 
 ## Use the briefing
 
-Keep the serialisation block after the final `briefing` declaration. Its output now describes the bindings and all three graph computations in one program. The host integration supplies `axis` and `release` when submitting it. Draft constructs the program, while transport and execution belong to that integration.
+Keep the serialisation block after the `briefing` declaration. Our query now describes the bindings and all three graph computations in one program. The host integration supplies `axis` and `release` when submitting it. Draft constructs the program, while transport and execution belong to that integration.
 
 Changing the inputs changes the question without rebuilding its structure. With the same temporal view and `release` set to `"Northstar"`, the expected briefing is:
 
