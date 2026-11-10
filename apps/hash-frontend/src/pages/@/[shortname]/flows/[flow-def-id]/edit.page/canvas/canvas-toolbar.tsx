@@ -27,17 +27,18 @@ const toolbarDivider = css({
 export const CanvasToolbar = ({
   tool,
   onToolChange,
-  onAddStep,
-  emptyFlow,
-  onOrganize,
+  editing,
   fitPadding,
 }: {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
-  onAddStep: (actionDefinitionId: string) => void;
-  /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
-  emptyFlow: boolean;
-  onOrganize: () => void;
+  /** `null` on a canvas that can't be edited, such as a run's, which has no Add or Organize. */
+  editing: {
+    onAddStep: (actionDefinitionId: string) => void;
+    /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
+    emptyFlow: boolean;
+    onOrganize: () => void;
+  } | null;
   /** Keeps Zoom to fit clear of a panel covering the canvas. */
   fitPadding: FitViewOptions["padding"];
 }) => {
@@ -126,28 +127,32 @@ export const CanvasToolbar = ({
           aria-pressed={tool === "select"}
           onClick={() => onToolChange("select")}
         />
-        <div className={toolbarDivider} />
-        <AddStepMenu
-          position="top-start"
-          trigger={
+        {editing && (
+          <>
+            <div className={toolbarDivider} />
+            <AddStepMenu
+              position="top-start"
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="md"
+                  iconName="plus"
+                  tooltip="Add action"
+                />
+              }
+              emptyFlow={editing.emptyFlow}
+              onPick={editing.onAddStep}
+            />
             <Button
               variant="ghost"
               size="md"
-              iconName="plus"
-              tooltip="Add action"
+              iconName="list"
+              tooltip="Organize"
+              disabled={editing.emptyFlow}
+              onClick={editing.onOrganize}
             />
-          }
-          emptyFlow={emptyFlow}
-          onPick={onAddStep}
-        />
-        <Button
-          variant="ghost"
-          size="md"
-          iconName="list"
-          tooltip="Organize"
-          disabled={emptyFlow}
-          onClick={onOrganize}
-        />
+          </>
+        )}
       </ButtonGroup>
     </div>
   );

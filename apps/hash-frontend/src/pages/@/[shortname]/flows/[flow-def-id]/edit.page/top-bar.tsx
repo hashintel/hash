@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  BreadCrumbs,
   Button,
   Chip,
   Dialog,
@@ -11,10 +12,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 import { RenameInput } from "./shared/rename-input";
+import { getShortRunId, shortRunIdFont } from "./shared/run-id";
 import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
-import type { WebId } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -179,13 +181,15 @@ export type FlowEditorView = "editor" | "logs";
 
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
- * runs, whether its edits are saved, Run, and its menu.
+ * runs, whether its edits are saved, Run, and its menu. Showing a run, it names the run after the flow, with the way
+ * back to the flow's runs between them.
  */
 export const TopBar = ({
   editorKey,
   webId,
   editorState,
   view,
+  flowRunEntityId,
   onViewChange,
   onRename,
   saveStatus,
@@ -205,6 +209,8 @@ export const TopBar = ({
   webId: WebId;
   editorState: FlowEditorState;
   view: FlowEditorView;
+  /** The run shown, in the Logs view. */
+  flowRunEntityId: EntityId | null;
   onViewChange: (view: FlowEditorView) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
@@ -258,12 +264,32 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <RenameInput
-          value={name}
-          placeholder="Untitled flow"
-          ariaLabel="Flow name"
-          onRename={onRename}
-        />
+        {flowRunEntityId ? (
+          <BreadCrumbs size="sm">
+            <RenameInput
+              value={name}
+              placeholder="Untitled flow"
+              ariaLabel="Flow name"
+              onRename={onRename}
+            />
+            {/* Never collapsed: it's the way back to the runs. */}
+            <BreadCrumbs.Item noCollapse onClick={() => onViewChange("logs")}>
+              Runs
+            </BreadCrumbs.Item>
+            <BreadCrumbs.Item noCollapse>
+              <span className={shortRunIdFont}>
+                {getShortRunId(flowRunEntityId)}
+              </span>
+            </BreadCrumbs.Item>
+          </BreadCrumbs>
+        ) : (
+          <RenameInput
+            value={name}
+            placeholder="Untitled flow"
+            ariaLabel="Flow name"
+            onRename={onRename}
+          />
+        )}
       </div>
       <div className={viewSwitch}>
         <SegmentedControl<FlowEditorView>

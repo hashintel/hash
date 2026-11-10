@@ -4,6 +4,7 @@ import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CollapseButton } from "../shared/collapse-button";
+import { CornerMark, StatusBar } from "../shared/run-marks";
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
 import { useCanvasActions } from "./canvas-actions";
@@ -12,6 +13,7 @@ import { forEachBoxPadding, stepCardSize } from "./sizes";
 import type { StepTone } from "../shared/step-display";
 import type {
   ActionStepNode,
+  CardRun,
   ForEachStepNode,
   StartNode as StartNodeType,
 } from "./flow-graph";
@@ -64,7 +66,11 @@ const portAdd = css({
 
 /** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
 const PortAdd = ({ stepId }: { stepId: string | null }) => {
-  const { openAddMenuAfter } = useCanvasActions();
+  const { editing } = useCanvasActions();
+
+  if (!editing) {
+    return null;
+  }
 
   return (
     <button
@@ -73,7 +79,7 @@ const PortAdd = ({ stepId }: { stepId: string | null }) => {
       aria-label={`Add a ${stepNoun.singular} after this`}
       onClick={(event) => {
         event.stopPropagation();
-        openAddMenuAfter(event.currentTarget, stepId);
+        editing.openAddMenuAfter(event.currentTarget, stepId);
       }}
       /* Inline, as the design system's reset of buttons in its scope outranks classes. */
       style={{
@@ -135,6 +141,7 @@ const ProblemsMarker = ({
 };
 
 const card = css({
+  position: "relative",
   display: "flex",
   gap: "2",
   alignItems: "flex-start",
@@ -163,7 +170,21 @@ const cardDescription = css({
   fontSize: "xs",
   color: "fg.subtle",
 });
+const featuredStar = css({ display: "flex", color: "fg.muted" });
 
+/** A run's marks in a card's title row: a star if it has a featured output, then its state. */
+const RunTitleMarks = ({ run }: { run: CardRun }) => (
+  <>
+    {run.featured && (
+      <span className={featuredStar}>
+        <Icon name="starFilled" size="xs" alt="Shown in run results" />
+      </span>
+    )}
+    <CornerMark state={run.mark.state} />
+  </>
+);
+
+/** In a run, a card shows the step's state instead of its problems. */
 const Card = ({
   title,
   description,
@@ -171,6 +192,7 @@ const Card = ({
   tone,
   selected,
   problems,
+  run,
   children,
 }: {
   title: string;
@@ -179,6 +201,7 @@ const Card = ({
   tone: StepTone;
   selected: boolean;
   problems: FlowDefinitionDiagnosticWithStepId[];
+  run: CardRun | undefined;
   children: ReactNode;
 }) => (
   <div className={cx(ports, card, getOutline(selected))} style={stepCardSize}>
@@ -186,37 +209,72 @@ const Card = ({
     <div className={cardText}>
       <div className={cardTitleRow}>
         <span className={cardTitle}>{title}</span>
-        <ProblemsMarker problems={problems} />
+        {run ? (
+          <RunTitleMarks run={run} />
+        ) : (
+          <ProblemsMarker problems={problems} />
+        )}
       </div>
       <span className={cardDescription}>
-        {description || "Add a description…"}
+        {description || (run ? "" : "Add a description…")}
       </span>
     </div>
     {children}
+    {run && <StatusBar mark={run.mark} />}
   </div>
 );
 
-export const StartNode = ({ selected }: NodeProps<StartNodeType>) => (
-  <Card {...startDisplay} selected={selected} problems={[]}>
-    <Handle type="source" position={Position.Right}>
-      <PortAdd stepId={null} />
-    </Handle>
-  </Card>
-);
+export const StartNode = ({
+  data: { run },
+  selected,
+}: NodeProps<StartNodeType>) => {
+  const { editing } = useCanvasActions();
+
+  return (
+    <Card {...startDisplay} selected={selected} problems={[]} run={run}>
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={editing !== null}
+      >
+        <PortAdd stepId={null} />
+      </Handle>
+    </Card>
+  );
+};
 
 export const StepNode = ({
-  data: { step, problems, inner },
+  data: { step, problems, inner, run },
   selected,
-}: NodeProps<ActionStepNode>) => (
-  <Card {...getStepDisplay(step)} selected={selected} problems={problems}>
-    <Handle type="target" position={Position.Left} isConnectable={!inner} />
-    <Handle type="source" position={Position.Right} isConnectable={!inner}>
-      {selected && !inner && <PortAdd stepId={step.stepId} />}
-    </Handle>
-  </Card>
-);
+}: NodeProps<ActionStepNode>) => {
+  const { editing } = useCanvasActions();
+  const connectable = !inner && editing !== null;
+
+  return (
+    <Card
+      {...getStepDisplay(step)}
+      selected={selected}
+      problems={problems}
+      run={run}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={connectable}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={connectable}
+      >
+        {selected && !inner && <PortAdd stepId={step.stepId} />}
+      </Handle>
+    </Card>
+  );
+};
 
 const forEachBox = css({
+  position: "relative",
   boxSizing: "border-box",
   width: "full",
   height: "full",
@@ -240,11 +298,12 @@ const forEachTitle = css({
 
 /** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
 export const ForEachNode = ({
-  data: { step, problems, inner, collapsed },
+  data: { step, problems, inner, collapsed, run },
   selected,
 }: NodeProps<ForEachStepNode>) => {
-  const { toggleCollapsed } = useCanvasActions();
+  const { editing, toggleCollapsed } = useCanvasActions();
   const { title, description } = getStepDisplay(step);
+  const connectable = !inner && editing !== null;
 
   return (
     <div className={cx(ports, forEachBox, getOutline(selected))}>
@@ -261,12 +320,25 @@ export const ForEachNode = ({
           </div>
         )}
         <span className={forEachTitle}>{description || title}</span>
-        <ProblemsMarker problems={problems} />
+        {run ? (
+          <RunTitleMarks run={run} />
+        ) : (
+          <ProblemsMarker problems={problems} />
+        )}
       </div>
-      <Handle type="target" position={Position.Left} isConnectable={!inner} />
-      <Handle type="source" position={Position.Right} isConnectable={!inner}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={connectable}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={connectable}
+      >
         {selected && !inner && <PortAdd stepId={step.stepId} />}
       </Handle>
+      {run && <StatusBar mark={run.mark} />}
     </div>
   );
 };

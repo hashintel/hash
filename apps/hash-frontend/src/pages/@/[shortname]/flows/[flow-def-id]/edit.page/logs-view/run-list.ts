@@ -1,4 +1,4 @@
-import { getShortRunId } from "./run-id";
+import { getShortRunId } from "../shared/run-id";
 import { getRunState, runStates, runStatesByUrgency } from "./run-state";
 
 import type { FlowRunSummary } from "../../../../../../../graphql/api-types.gen";

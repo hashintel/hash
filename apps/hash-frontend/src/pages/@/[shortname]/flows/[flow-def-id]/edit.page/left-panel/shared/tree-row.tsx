@@ -63,6 +63,7 @@ export const TreeRow = ({
   emphasized = false,
   expander,
   stepCount,
+  status,
   actionDefinitionId,
   onClick,
 }: {
@@ -75,6 +76,8 @@ export const TreeRow = ({
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
+  /** Shown at the end of the row, e.g. the step's state in a run. */
+  status?: ReactNode;
   /** An action whose inputs and outputs show while the row is hovered or focused. */
   actionDefinitionId?: FlowActionDefinitionId;
   onClick?: () => void;
@@ -116,6 +119,7 @@ export const TreeRow = ({
       {stepCount !== undefined && (
         <span className={stepCountLabel}>{countSteps(stepCount)}</span>
       )}
+      {status}
     </div>
   );
 };

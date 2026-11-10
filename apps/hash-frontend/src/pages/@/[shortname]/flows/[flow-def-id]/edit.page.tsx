@@ -8,10 +8,7 @@ import {
 } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  generateFlowEditorPath,
-  generateWorkerRunPath,
-} from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { generateFlowEditorPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import {
@@ -33,6 +30,8 @@ import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
+import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
+import { RunView } from "./edit.page/run-view";
 import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
 import { findStep } from "./edit.page/step-panel/shared/find-step";
 import { TopBar } from "./edit.page/top-bar";
@@ -275,6 +274,8 @@ const FlowEditor = ({
 
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
+  const getRunPath = (flowRunEntityId: EntityId) =>
+    generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
 
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
   const runFlow = async (flowInputs: FlowInputValues) => {
@@ -295,9 +296,9 @@ const FlowEditor = ({
       throw new Error("The run didn't start.");
     }
 
-    await router.push(
-      generateWorkerRunPath({ shortname, flowRunEntityId: data.startFlow }),
-    );
+    await router.push(getRunPath(data.startFlow), undefined, {
+      shallow: true,
+    });
   };
 
   const archiveFlow = async () => {
@@ -327,8 +328,12 @@ const FlowEditor = ({
     return true;
   };
 
-  /* In the URL, so a view can be linked to and Back returns to the one before. */
+  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
   const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
+  const flowRunEntityId =
+    view === "logs"
+      ? parseRunParam(router.query.run, flowDefinitionEntityId)
+      : null;
   const showView = (nextView: FlowEditorView) => {
     const editorPath = generateFlowEditorPath({
       shortname,
@@ -356,6 +361,7 @@ const FlowEditor = ({
         webId={webId}
         editorState={editorState}
         view={view}
+        flowRunEntityId={flowRunEntityId}
         onViewChange={showView}
         onRename={editor.setName}
         saveStatus={status}
@@ -369,7 +375,20 @@ const FlowEditor = ({
         onLeaveWithoutSaving={leaveWithoutSaving}
       />
       {view === "logs" ? (
-        <LogsView flowDefinitionEntityId={flowDefinitionEntityId} />
+        flowRunEntityId ? (
+          <RunView
+            key={flowRunEntityId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            currentDefinition={flowDefinition}
+            onBackToLogs={() => showView("logs")}
+          />
+        ) : (
+          <LogsView
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            getRunPath={getRunPath}
+          />
+        )
       ) : (
         <div className={editorBody}>
           <LeftPanel

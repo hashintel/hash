@@ -166,8 +166,9 @@ const RunFlowDialog = ({
     setRunError(null);
 
     try {
-      /* Opens the run, which leaves the editor, so the dialog stays as it is until then. */
+      /* The dialog stays as it is until the run has opened, under it. */
       await onRun(flowInputs);
+      onClose();
     } catch (error) {
       setRunError(error instanceof Error ? error.message : String(error));
       setRunning(false);
