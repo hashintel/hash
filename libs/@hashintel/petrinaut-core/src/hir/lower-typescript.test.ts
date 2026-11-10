@@ -844,6 +844,54 @@ return [{ x: b.x - a.x }, { x: a.x - b.x }];`,
       const { start, length } = result.diagnostics[0]!.span;
       expect(code.slice(start, start + length)).toBe("tokens");
     });
+
+    it("says which name to read when a bare body reads the other arity's", () => {
+      const single = lowerTypeScriptToHir(
+        `return { x: tokens[0].v };`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(single.ok).toBe(false);
+      if (single.ok) return;
+      expect(single.diagnostics[0]?.message).toBe(
+        "Unknown identifier `tokens`. An equation over one token reads it as `token`.",
+      );
+
+      const coupled = lowerTypeScriptToHir(
+        `return [{ x: token.x }, { x: 0 }];`,
+        "dynamics",
+        { arity: 2 },
+      );
+      expect(coupled.ok).toBe(false);
+      if (coupled.ok) return;
+      expect(coupled.diagnostics[0]?.message).toBe(
+        "Unknown identifier `token`. An equation over several tokens reads them as `tokens`.",
+      );
+    });
+
+    it("says nothing more for another unknown name or in the module form", () => {
+      const otherName = lowerTypeScriptToHir(
+        `return { x: speed };`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(otherName.ok).toBe(false);
+      if (otherName.ok) return;
+      expect(otherName.diagnostics[0]?.message).toBe(
+        "Unknown identifier `speed`.",
+      );
+
+      const moduleForm = lowerTypeScriptToHir(
+        `export default Dynamics((particle, parameters) => ({ x: tokens[0].v }));`,
+        "dynamics",
+        { arity: 1 },
+      );
+      expect(moduleForm.ok).toBe(false);
+      if (moduleForm.ok) return;
+      expect(moduleForm.diagnostics[0]?.message).toBe(
+        "Unknown identifier `tokens`.",
+      );
+    });
   });
 
   describe("metric surface", () => {

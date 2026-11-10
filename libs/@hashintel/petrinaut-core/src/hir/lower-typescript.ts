@@ -32,6 +32,7 @@ import {
   detectUserCodeForm,
   dynamicsInputName,
   getStateConstraintExpression,
+  SINGLE_TOKEN_INPUT_NAME,
   type DualFormSurfaceKind,
 } from "./user-code-form";
 
@@ -270,6 +271,12 @@ function childScope(scope: HirLoweringScope): HirLoweringScope {
 class Lowering {
   private nextId = 0;
 
+  /**
+   * Whether the code is a bare body, which reads its input by an ambient
+   * name. The module form's callback names its own parameters.
+   */
+  private bareBody = false;
+
   constructor(
     private readonly sourceFile: ts.SourceFile,
     private readonly surface: HirSurfaceKind,
@@ -367,6 +374,7 @@ class Lowering {
    * parameter.
    */
   lowerDualFormBareBody(surface: DualFormSurfaceKind): HirFunction {
+    this.bareBody = true;
     const [statement, ...rest] = this.sourceFile.statements;
     if (rest.length > 0) {
       this.fail(
@@ -1349,8 +1357,27 @@ class Lowering {
     this.fail(
       node,
       "hir:unknown-identifier",
-      `Unknown identifier \`${name}\`.`,
+      `Unknown identifier \`${name}\`.${this.otherInputNameHint(name)}`,
     );
+  }
+
+  /**
+   * The sentence added to an unknown `token` or `tokens` in a bare dynamics
+   * body: the name an equation of that arity reads its input by. Empty for
+   * any other name, and for the module form.
+   */
+  private otherInputNameHint(name: string): string {
+    const { arity } = this.options;
+    if (!this.bareBody || this.surface !== "dynamics" || arity === undefined) {
+      return "";
+    }
+    if (arity === 1 && name === AMBIENT_INPUT_NAMES.dynamics) {
+      return ` An equation over one token reads it as \`${SINGLE_TOKEN_INPUT_NAME}\`.`;
+    }
+    if (arity > 1 && name === SINGLE_TOKEN_INPUT_NAME) {
+      return ` An equation over several tokens reads them as \`${AMBIENT_INPUT_NAMES.dynamics}\`.`;
+    }
+    return "";
   }
 
   private lowerUnary(
