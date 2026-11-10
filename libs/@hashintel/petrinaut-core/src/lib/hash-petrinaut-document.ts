@@ -17,7 +17,7 @@ export type PetrinautNonSemanticPart =
 const fieldsByPart: Record<PetrinautNonSemanticPart, readonly string[]> = {
   layout: ["x", "y"],
   descriptions: ["description"],
-  appearance: ["iconSlug", "displayColor", "visualizerCode"],
+  appearance: ["iconSlug", "iconSvg", "displayColor", "visualizerCode"],
   metadata: ["metadata"],
 };
 

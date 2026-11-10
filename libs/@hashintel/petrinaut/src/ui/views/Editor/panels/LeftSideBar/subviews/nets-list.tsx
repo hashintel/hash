@@ -8,6 +8,7 @@ import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { ComponentGlyph } from "../../../../../components/component-glyph";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
@@ -339,9 +340,15 @@ export const NetNavigationList: React.FC<{
             aria-selected={activeSubnetId === subnet.id}
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
           >
-            <span className={iconStyle}>
-              <Icon
-                name={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}
+            <span
+              className={iconStyle}
+              style={
+                subnet.displayColor ? { color: subnet.displayColor } : undefined
+              }
+            >
+              <ComponentGlyph
+                iconSvg={subnet.iconSvg}
+                fallback={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}
                 size="xs"
               />
             </span>
@@ -374,7 +381,7 @@ export const NetNavigationList: React.FC<{
                     size="xs"
                     variant="ghost"
                     iconName="gear"
-                    tooltip="Interface and implementations"
+                    tooltip="Interface, icon and colour"
                     onClick={(event) =>
                       setOptionsAnchor({
                         subnetId: subnet.id,
