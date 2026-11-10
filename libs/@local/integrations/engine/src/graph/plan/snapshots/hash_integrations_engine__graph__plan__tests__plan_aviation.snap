@@ -304,7 +304,7 @@ UpsertLink a2c8e6c7-485d-4b54-a248-53c9b9b014a2~b16436f1-2384-575c-b2d3-e5606539
 }
 
 issues:
-  `a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309` is written without a property: could not convert the value of `https://example.com/@demo/types/property-type/first-flight/v/1`: the value cannot be read as a date
-  row 2 has no `TAIL` to identify its record
-  row 1 has no `HOME_BASE` to identify its record
-  row 2 has no `TAIL` to identify its record
+  `a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309` of `https://example.com/@demo/types/entity-type/aircraft/v/1` is written without a property: could not convert the value of `https://example.com/@demo/types/property-type/first-flight/v/1`: the value cannot be read as a date
+  row 2 of `https://example.com/@demo/types/entity-type/aircraft/v/1` has no `TAIL` to identify its record
+  row 1 of `https://example.com/@demo/types/entity-type/based-at/v/1` has no `HOME_BASE` to identify its record
+  row 2 of `https://example.com/@demo/types/entity-type/based-at/v/1` has no `TAIL` to identify its record

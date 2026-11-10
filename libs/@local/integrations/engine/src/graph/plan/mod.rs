@@ -19,6 +19,7 @@ use hash_integrations_definition::{ColumnName, EntitySink, LinkPipeline, UnitMap
 use serde_json::value::RawValue;
 use type_system::{
     knowledge::entity::{id::EntityId, provenance::ProvidedEntityEditionProvenance},
+    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -99,14 +100,22 @@ pub struct DuplicateWrite {
 }
 
 /// A row, or part of one, that is not written as planned.
+///
+/// Each issue names the type of the entity or link the row was planned as, as several sinks and
+/// link pipelines can read the same rows.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum PlanIssue {
     /// The row is left out, as it has no value to identify what it describes.
-    #[display("row {row} has no `{column}` to identify its record")]
-    MissingSourceId { row: usize, column: ColumnName },
+    #[display("row {row} of `{entity_type}` has no `{column}` to identify its record")]
+    MissingSourceId {
+        entity_type: VersionedUrl,
+        row: usize,
+        column: ColumnName,
+    },
     /// The entity or link is written without one of its properties.
-    #[display("`{entity_id}` is written without a property")]
+    #[display("`{entity_id}` of `{entity_type}` is written without a property")]
     Property {
+        entity_type: VersionedUrl,
         entity_id: EntityId,
         #[error(source)]
         failure: ConversionFailure,
@@ -162,10 +171,11 @@ impl GraphPlan {
         })
     }
 
-    /// The text identifying the record `values` describes, or `None` after reporting that the
-    /// row has none.
+    /// The text identifying the record `values` describes as an `entity_type`, or `None` after
+    /// reporting that the row has none.
     fn source_id(
         &mut self,
+        entity_type: &VersionedUrl,
         row: usize,
         values: SinkRow<'_>,
         column: &ColumnName,
@@ -173,6 +183,7 @@ impl GraphPlan {
         let source_id = values.text(column);
         if source_id.is_none() {
             self.issues.push(PlanIssue::MissingSourceId {
+                entity_type: entity_type.clone(),
                 row,
                 column: column.clone(),
             });
@@ -180,12 +191,18 @@ impl GraphPlan {
         source_id
     }
 
-    fn report(&mut self, entity_id: EntityId, failures: Vec<ConversionFailure>) {
-        self.issues.extend(
-            failures
-                .into_iter()
-                .map(|failure| PlanIssue::Property { entity_id, failure }),
-        );
+    fn report(
+        &mut self,
+        entity_type: &VersionedUrl,
+        entity_id: EntityId,
+        failures: Vec<ConversionFailure>,
+    ) {
+        self.issues
+            .extend(failures.into_iter().map(|failure| PlanIssue::Property {
+                entity_type: entity_type.clone(),
+                entity_id,
+                failure,
+            }));
     }
 }
 
@@ -268,7 +285,8 @@ impl Planner {
     ) -> Result<GraphPlan, UnencodableRequest> {
         let mut plan = GraphPlan::default();
         for (index, row) in rows.into_iter().enumerate() {
-            let Some(source_id) = plan.source_id(index, row, &sink.entity_id) else {
+            let Some(source_id) = plan.source_id(&sink.entity_type, index, row, &sink.entity_id)
+            else {
                 continue;
             };
             let ResolvedProperties {
@@ -283,7 +301,7 @@ impl Planner {
                 properties,
                 self.provenance.clone(),
             );
-            plan.report(upsert.entity_id, failures);
+            plan.report(&upsert.entity_type, upsert.entity_id, failures);
             plan.add(GraphOperation::UpsertEntity(upsert))?;
         }
         Ok(plan)
@@ -301,10 +319,10 @@ impl Planner {
     ) -> Result<GraphPlan, UnencodableRequest> {
         let mut plan = GraphPlan::default();
         for (index, row) in rows.into_iter().enumerate() {
-            let Some(left) = plan.source_id(index, row, &link.from.column) else {
+            let Some(left) = plan.source_id(&link.link_type, index, row, &link.from.column) else {
                 continue;
             };
-            let Some(right) = plan.source_id(index, row, &link.to.column) else {
+            let Some(right) = plan.source_id(&link.link_type, index, row, &link.to.column) else {
                 continue;
             };
             let ResolvedProperties {
@@ -327,7 +345,7 @@ impl Planner {
                 Some(properties).filter(|properties| !properties.value.is_empty()),
                 self.provenance.clone(),
             );
-            plan.report(upsert.link_id, failures);
+            plan.report(&upsert.link_type, upsert.link_id, failures);
             plan.add(GraphOperation::UpsertLink(upsert))?;
         }
         Ok(plan)
