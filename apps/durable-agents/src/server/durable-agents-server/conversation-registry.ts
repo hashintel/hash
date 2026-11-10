@@ -25,7 +25,7 @@ import {
 } from "@earendil-works/pi-durable";
 
 import {
-  type CrashLoopingTask,
+  type CrashLoopAbort,
   guardCrashLoops,
 } from "./conversation-registry/crash-loop-guard";
 
@@ -37,7 +37,10 @@ import type {
 import type { RequestSlots } from "./request-slots";
 import type { Context } from "@earendil-works/chord";
 
-export type { CrashLoopingTask } from "./conversation-registry/crash-loop-guard";
+export type {
+  CrashLoopAbort,
+  CrashLoopingTask,
+} from "./conversation-registry/crash-loop-guard";
 
 export type ConversationRegistryOptions = {
   readonly openStorage: OpenConversationStorage;
@@ -58,10 +61,10 @@ export type ConversationLimits = {
   readonly crashLoopRestarts: number;
   /** The process's model request slots. */
   readonly requestSlots: RequestSlots;
-  /** Each conversation as it opens, with what its guard aborted for. */
+  /** Each conversation as it opens, with what its guard aborted, if anything. */
   readonly onOpen?: (
     conversationId: string,
-    crashLoops: readonly CrashLoopingTask[],
+    crashLoop: CrashLoopAbort | undefined,
   ) => void;
 };
 
@@ -164,7 +167,7 @@ export const createConversationRegistry = (
       }
       await enforceAgent(root, gate.extension, limits.maxTurns, context);
       await gate.attach(harness, context);
-      const crashLoops = await guardCrashLoops(
+      const crashLoop = await guardCrashLoops(
         harness,
         root,
         limits.crashLoopRestarts,
@@ -176,7 +179,7 @@ export const createConversationRegistry = (
       void harness.closed.then((end) => {
         if (end.kind === "failed") entry.failed = true;
       });
-      limits.onOpen?.(conversationId, crashLoops);
+      limits.onOpen?.(conversationId, crashLoop);
       return entry;
     } catch (error) {
       await harness.close(context).catch(() => {});

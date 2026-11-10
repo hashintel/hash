@@ -18,6 +18,8 @@
  * is (and creates none: 404).
  *
  * Limits come from the environment (`limitsFromEnvironment`) unless given.
+ * A request that cannot get a pool connection within the pool's
+ * `connectionTimeoutMillis` is answered 503 with `Retry-After`.
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
@@ -40,6 +42,7 @@ import {
 } from "../browser-call/browser-call";
 import { createBrowserCallRouter } from "../browser-call/browser-call-router";
 import { petrinautBrowserTools } from "../browser-call/petrinaut-browser-tools";
+import { isPoolConnectTimeout } from "../storage/postgres/postgres-config";
 import {
   postgresConversationStorage,
   postgresConversationExists,
@@ -48,6 +51,7 @@ import {
   type ChatRefusal,
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
+  type DurableAgentsServerOptions,
   type OpenConversation,
 } from "./durable-agents-server";
 import { limitsFromEnvironment } from "./start-durable-agents-server/limits-from-environment";
@@ -70,6 +74,8 @@ export type StartDurableAgentsServerOptions = {
   readonly settings?: HarnessOptions["settings"];
   /** Any of the limits, over the environment's (`limitsFromEnvironment`). */
   readonly limits?: Partial<DurableAgentsServerLimits>;
+  /** Told when opening a conversation aborted its work for a crash loop. */
+  readonly onCrashLoop?: DurableAgentsServerOptions["onCrashLoop"];
 };
 
 /** A chat body's `binding`: absent leaves the conversation as it is. */
@@ -147,6 +153,8 @@ export const startDurableAgentsServer = async (
     admitNewConversation,
     admitChat: admitBinding,
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
+    onCrashLoop: options.onCrashLoop,
+    isUnavailable: isPoolConnectTimeout,
   });
   server.app.route(
     browserCallsPrefix,
