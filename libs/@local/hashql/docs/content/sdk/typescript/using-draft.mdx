@@ -476,9 +476,11 @@ const attentionFor = ($: TaskContext, task: Task) =>
   );
 ```
 
+The first type argument, [`Program.Prelude.Builtin`], describes the prelude declarations available to the helper. The second, [`Draft.Body.Requirements<typeof taskInputs>`][`Draft.Body.Requirements`], derives the input names and their HashQL type descriptors from our schema. This lets `$.let` and `$.if` check that the helper's expressions fit those inputs.
+
 <Callout>
 
-`Draft.Body.Context` takes two type parameters: the prelude scope and the input requirements. Both are covariant, so a helper can accept a narrower scope and narrower input requirements than those of the program itself.
+Both parameters are covariant. A program can therefore pass a context with additional prelude declarations or inputs, such as `requestId: String`, while keeping `TaskContext` unchanged. The names the helper requires must still have compatible types.
 
 </Callout>
 
@@ -542,6 +544,7 @@ For construction issues and common mistakes, see the [troubleshooting guide](/do
 [`ProgramError.Construction`]: /docs/hashql/sdk/typescript/reference/hashql/Program/ProgramError#Construction
 [`Draft.withPrelude`]: /docs/hashql/sdk/typescript/reference/hashql/Draft#withPrelude
 [builtin-prelude]: /docs/hashql/sdk/typescript/reference/hashql/Program/Prelude#builtin
+[`Program.Prelude.Builtin`]: /docs/hashql/sdk/typescript/reference/hashql/Program/Prelude#Builtin
 [draft-program]: /docs/hashql/sdk/typescript/reference/hashql/Draft#program
 [draft-context]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context
 [effect]: https://effect.website
