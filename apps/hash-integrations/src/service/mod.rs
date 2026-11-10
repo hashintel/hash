@@ -5,7 +5,7 @@ mod tests;
 
 use error_stack::{Report, ResultExt as _, bail};
 use hash_integrations_definition::Definition;
-use hash_integrations_orchestration::{Payload, RunId, RunStart, Runs, StartError};
+use hash_integrations_orchestration::{Payload, RunId, RunStart, RunStatus, Runs, StartError};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 
@@ -92,6 +92,44 @@ impl<R: Runs> IntegrationService<R> {
             .map_err(start_error)?;
 
         Ok(run)
+    }
+
+    /// Returns the status of `run`, or `None` if no run has this ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
+    /// - [`ServiceError::Backend`] if the backend could not read the run.
+    pub(crate) async fn status(
+        &self,
+        request: &Request,
+        run: &RunId,
+    ) -> Result<Option<RunStatus>, Report<ServiceError>> {
+        self.check_web(request)?;
+
+        self.runs
+            .status(run)
+            .await
+            .change_context(ServiceError::Backend)
+    }
+
+    /// Asks `run` to stop before its next step. Cancelling a finished or unknown run succeeds.
+    ///
+    /// # Errors
+    ///
+    /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
+    /// - [`ServiceError::Backend`] if the backend could not record the request.
+    pub(crate) async fn cancel(
+        &self,
+        request: &Request,
+        run: &RunId,
+    ) -> Result<(), Report<ServiceError>> {
+        self.check_web(request)?;
+
+        self.runs
+            .cancel(run)
+            .await
+            .change_context(ServiceError::Backend)
     }
 
     fn check_web(&self, request: &Request) -> Result<(), Report<ServiceError>> {

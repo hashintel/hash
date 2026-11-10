@@ -243,3 +243,83 @@ async fn submit_rejects_an_invalid_definition_before_starting() {
     assert_eq!(*report.current_context(), ServiceError::InvalidDefinition);
     assert!(service.runs.started().is_empty());
 }
+
+#[tokio::test]
+async fn status_of_a_started_run_is_pending() {
+    let service = service();
+    let run = service
+        .submit(&request(10), submission(DEFINITION))
+        .await
+        .expect("the run should start");
+
+    let status = service
+        .status(&request(10), &run)
+        .await
+        .expect("the status should be read");
+
+    assert_eq!(
+        status,
+        Some(RunStatus {
+            phase: RunPhase::Pending,
+            steps_recorded: 0,
+        })
+    );
+}
+
+#[tokio::test]
+async fn status_of_an_unknown_run_is_none() {
+    let service = service();
+    let run = "unknown".parse().expect("unknown should be a run ID");
+
+    let status = service
+        .status(&request(10), &run)
+        .await
+        .expect("the status should be read");
+
+    assert_eq!(status, None);
+}
+
+#[tokio::test]
+async fn cancel_stops_a_run() {
+    let service = service();
+    let run = service
+        .submit(&request(10), submission(DEFINITION))
+        .await
+        .expect("the run should start");
+
+    service
+        .cancel(&request(10), &run)
+        .await
+        .expect("the run should be cancelled");
+    let status = service
+        .status(&request(10), &run)
+        .await
+        .expect("the status should be read");
+
+    assert_eq!(status.map(|status| status.phase), Some(RunPhase::Cancelled));
+}
+
+#[tokio::test]
+async fn status_and_cancel_reject_another_web() {
+    let service = service();
+    let run = service
+        .submit(&request(10), submission(DEFINITION))
+        .await
+        .expect("the run should start");
+    let request = Request {
+        web: WebId::new(uuid(3)),
+        ..request(10)
+    };
+
+    let status = service
+        .status(&request, &run)
+        .await
+        .expect_err("another web should be rejected");
+    let cancel = service
+        .cancel(&request, &run)
+        .await
+        .expect_err("another web should be rejected");
+
+    assert_eq!(*status.current_context(), ServiceError::WebMismatch);
+    assert_eq!(*cancel.current_context(), ServiceError::WebMismatch);
+}
