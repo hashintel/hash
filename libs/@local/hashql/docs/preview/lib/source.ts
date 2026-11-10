@@ -20,7 +20,7 @@ const docs = defineDocs({
 });
 
 /** The directory the reference's pages go in. */
-const dir = "reference";
+const dir = "sdk/typescript/reference";
 
 // No commit names the working tree the preview builds. A declaration links to its line on the main branch.
 const sourceUrl = ({ file, line }: Location.Location): string =>

@@ -9,7 +9,7 @@ Your release review starts in a few minutes. The task list is in HASH, but a lis
 
 Let's build that briefing. Start with one query, give it a release to work on, then use its results to ask more specific questions. By the end, one HashQL program will describe all three views.
 
-This guide uses the [language introduction](/docs/hashql/intro)'s bindings, inputs and field access. [Using the Draft SDK](/docs/hashql/using-draft) introduces the context, prelude and expression handles used below. Keep the [cheatsheet](/docs/hashql/cheatsheet) nearby if you want to compare the notation with a language you already know.
+This guide uses the [language introduction](/docs/hashql/intro)'s bindings, inputs and field access. [Using the Draft SDK](/docs/hashql/sdk/typescript/using-draft) introduces the context, prelude and expression handles used below. Keep the [cheatsheet](/docs/hashql/sdk/typescript/cheatsheet) nearby if you want to compare the notation with a language you already know.
 
 <Callout title="What you can run">
   The TypeScript examples construct and serialize a HashQL program with the
@@ -122,7 +122,7 @@ head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
 
-In our task-only fixture, this selects all five entities. [`entities`](/docs/hashql/reference/hashql/Draft/Context#Queries.entities) starts the graph computation. [`collect`](/docs/hashql/reference/hashql/Draft/Context#Query.collect) describes materializing its vertices as a list. Neither call reads the graph while TypeScript constructs the program.
+In our task-only fixture, this selects all five entities. [`entities`](/docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Queries.entities) starts the graph computation. [`collect`](/docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Query.collect) describes materializing its vertices as a list. Neither call reads the graph while TypeScript constructs the program.
 
 The short graph-operation names in the functional examples stand for the graph standard library's operations. `eq` and `ne` denote the core comparison functions. The reference examples use `head`, `body` and `tail` to make their roles visible. In the remaining illustrative examples, `task.release`, `task.status` and `task.assigned` abbreviate the property-URL accesses declared above. They are not built-in fields on every HASH entity.
 
@@ -296,7 +296,7 @@ The result contains entities, not just identifiers. Showing only their labels, t
 
 T-102 appears in two views because it is both blocked and unassigned. The lists aren't a partition. We haven't requested an ordering either, so the order shown here is for readability, not a query guarantee.
 
-Notice where `collect` moved. We bind the graph expression first, then collect each view after applying its own filters. [`$.query`](/docs/hashql/reference/hashql/Draft/Context#Context.query) adds the query-building methods to the bound expression again. A `let` reference itself is an expression handle, not the original fluent builder.
+Notice where `collect` moved. We bind the graph expression first, then collect each view after applying its own filters. [`$.query`](/docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.query) adds the query-building methods to the bound expression again. A `let` reference itself is an expression handle, not the original fluent builder.
 
 A binding gives the common computation a name. It does not promise one database scan, caching or an execution plan. Those are compiler and runtime decisions.
 
@@ -312,7 +312,7 @@ const queryText = Result.getOrThrow(serialized);
 console.log(queryText);
 ```
 
-[`Program.compile`](/docs/hashql/reference/hashql/Program#compile) is the SDK's serializer. It produces J-Expr JSON text and reports construction failures. Despite its name, this operation is not the server-side HashQL compiler, and it does not execute the query.
+[`Program.compile`](/docs/hashql/sdk/typescript/reference/hashql/Program#compile) is the SDK's serializer. It produces J-Expr JSON text and reports construction failures. Despite its name, this operation is not the server-side HashQL compiler, and it does not execute the query.
 
 For example, the first checkpoint serializes to:
 
@@ -332,7 +332,7 @@ For example, the first checkpoint serializes to:
 
 The release name and temporal selection remain inputs. Submitting the text and its inputs is the host integration's responsibility. The SDK shown here provides no transport method. You now have a constructed program to pass to that integration, plus a fixture against which to check its results.
 
-`getOrThrow` keeps this controlled example small. An application building programs from user input should [handle the construction result](/docs/hashql/troubleshooting#handle-a-construction-failure) and report failures to its caller.
+`getOrThrow` keeps this controlled example small. An application building programs from user input should [handle the construction result](/docs/hashql/sdk/typescript/troubleshooting#handle-a-construction-failure) and report failures to its caller.
 
 ## Who should we talk to?
 
@@ -399,4 +399,4 @@ We started with all tasks and ended with a program containing three related grap
 
 Try changing the fixture before changing the program: mark T-102 as assigned, move T-103 to another release, or complete every Meridian task. Predict all three lists, then use those predictions as checks when you connect the query to an execution environment.
 
-For the language behind the examples, return to [the introduction](/docs/hashql/intro). For method signatures, use the [Draft API reference](/docs/hashql/reference/hashql/Draft). For compilation and execution internals, read [the technical explanation](https://hgres.org/hashql).
+For the language behind the examples, return to [the introduction](/docs/hashql/intro). For method signatures, use the [Draft API reference](/docs/hashql/sdk/typescript/reference/hashql/Draft). For compilation and execution internals, read [the technical explanation](https://hgres.org/hashql).

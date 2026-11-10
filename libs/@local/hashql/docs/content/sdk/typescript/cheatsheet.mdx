@@ -1,9 +1,9 @@
 ---
 title: HashQL cheatsheet
-description: HashQL special forms beside Rust, Python and TypeScript, as complete programs with their results.
+description: HashQL values and special forms, with Draft constructors and comparisons to Rust, Python and TypeScript.
 ---
 
-Each section puts a language you know on the left and HashQL on the right. Choose a tab on either side, and the choice follows you down the page. Every tab holds a complete program. The button under it shows the program's result in place:
+The comparisons put a language you know on the left and HashQL on the right. Choose a tab on either side, and the choice follows you down the page. The [construction lookup](#construction) covers Draft's struct, tuple, list and dictionary constructors. Every example is a complete program. The button under it shows the program's result in place:
 
 - **Recorded** results come from running that exact program. A Draft program prints the HashQL program it constructs, as J-Expr. It doesn't evaluate it.
 - **Expected** results are what the language specifies. Nothing on this page runs HashQL or queries a graph.
@@ -152,6 +152,219 @@ $ node main.ts
 </SideBySide>
 
 Draft maps a `bigint` to Integer and a `number` to Number, so `2n` and `2.5` keep the distinction HashQL makes. TypeScript has no tuple value, so its program uses a read-only array.
+
+## Construct values with Draft [#construction]
+
+`Program.Structural` builds HashQL expressions from TypeScript values. Structs and tuples have fixed fields or positions, each with its own type. Lists share one element type. Dictionaries share one key type and one value type. These constructors build syntax, not evaluated collections.
+
+| Construct                          | Draft call                                       | Types                                       |
+| ---------------------------------- | ------------------------------------------------ | ------------------------------------------- |
+| [Struct](#construct-struct)        | `Structural.struct({ count: 2n, label: "two" })` | Inferred per field                          |
+| [Tuple](#construct-list)           | `Structural.tuple([2n, "two"])`                  | Inferred per position                       |
+| [List](#construct-list)            | `Structural.list(BigInt, [2n, 3n])`              | Explicit element type                       |
+| [Dictionary](#construct-dict)      | `Structural.dict(String, BigInt, { total: 2n })` | Explicit key and value types                |
+| [Type expression](#construct-type) | `Structural.type({ count: BigInt })`             | Returns a `Result` containing a type handle |
+
+The snippets below use `const { Structural } = Program` to shorten the calls.
+
+### Structs name their fields [#construct-struct]
+
+Each field can contain a primitive, an expression or another structural value. Nested records become structs.
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const { Structural } = Program;
+const built = Draft.program({}, () =>
+  Structural.struct({
+    count: 2n,
+    label: "two",
+    owner: { name: "Ada", active: true },
+  }),
+);
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+<Result>
+
+```json
+$ node main.ts
+{"#struct":{"count":{"#literal":2},"label":{"#literal":"two"},"owner":{"#struct":{"name":{"#literal":"Ada"},"active":{"#literal":true}}}}}
+```
+
+</Result>
+
+Use a constructed expression for a top-level return or a `$.let` value, rather than a raw record. Read a field with [access](#access-struct).
+
+### Tuples fix positions and lists share a type [#construct-list]
+
+The tuple below has an Integer in position zero and a String in position one. Both lists have type `List<Integer>`, even the empty one. Pass the element type first, then the members.
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const { Structural } = Program;
+const built = Draft.program({}, () =>
+  Structural.struct({
+    pair: Structural.tuple([2n, "two"]),
+    counts: Structural.list(BigInt, [2n, 3n]),
+    empty: Structural.list(BigInt, []),
+  }),
+);
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+<Result>
+
+```json
+$ node main.ts
+{"#struct":{"pair":{"#tuple":[{"#literal":2},{"#literal":"two"}]},"counts":{"#list":[{"#literal":2},{"#literal":3}],"#type":"::kernel::type::List<::kernel::type::Integer>"},"empty":{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}}}
+```
+
+</Result>
+
+Within structural value shorthand, a raw array denotes a tuple, never a list. Adding TypeScript's `as const` preserves tuple inference. It does not turn an array into a HashQL list or validate its contents. Read a tuple position with [access](#access-tuple), and a list element with [index](#index).
+
+### Dictionaries accept records or entry pairs [#construct-dict]
+
+For String keys, pass a record whose keys become string literals, not struct field names. For other key types or keys computed by HashQL expressions, pass `[key, value]` pairs. The explicit types also describe an empty dictionary.
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const { Structural } = Program;
+const built = Draft.program({ code: BigInt }, (_, { code }) =>
+  Structural.struct({
+    counts: Structural.dict(String, BigInt, { "ready now": 2n }),
+    labels: Structural.dict(BigInt, String, [
+      [2n, "two"],
+      [code, "selected"],
+    ]),
+    emptyCounts: Structural.dict(String, BigInt, {}),
+    emptyLabels: Structural.dict(BigInt, String, []),
+  }),
+);
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+<Result>
+
+```json
+$ node main.ts
+{"#struct":{"counts":{"#dict":[[{"#literal":"ready now"},{"#literal":2}]],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"},"labels":{"#dict":[[{"#literal":2},{"#literal":"two"}],[["::kernel::special_form::input","code","::kernel::type::Integer"],{"#literal":"selected"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"},"emptyCounts":{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"},"emptyLabels":{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}}}
+```
+
+</Result>
+
+The emitted `#dict` uses entry pairs in both cases. `code` remains an input expression in the constructed program. This snippet does not supply or evaluate it. Use [index](#index) for a dictionary lookup.
+
+### Type expressions describe values [#construct-type]
+
+A type definition uses `BigInt`, `Number`, `String` and `Boolean`, whereas a value uses `2n`, `2.5`, `"two"` and `true`. In type shorthand, `[BigInt, String]` describes a tuple and a record describes a struct. Use the prelude's `List` and `Dict` type constructors for collection inputs, not raw arrays or records.
+
+`Structural.type` normalizes a definition and returns a `Result` containing a type handle or a construction failure. Here `Result.flatMap` passes the successful handle to `Draft.program` and preserves a failure. You can also pass shorthand directly in an input schema, as the [task example](#read-a-task) does.
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const { Structural } = Program;
+const { List, Dict } = Program.Prelude.builtin.types;
+const built = pipe(
+  Structural.type({
+    label: String,
+    pair: [BigInt, String],
+    counts: List(BigInt),
+    totals: Dict(String, BigInt),
+  }),
+  Result.flatMap((Payload) =>
+    Draft.program({ payload: Payload }, (_, { payload }) => payload),
+  ),
+);
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+<Result>
+
+```json
+$ node main.ts
+["::kernel::special_form::input","payload",{"#struct":{"label":"::kernel::type::String","pair":{"#tuple":["::kernel::type::Integer","::kernel::type::String"]},"counts":"::kernel::type::List<::kernel::type::Integer>","totals":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"}}]
+```
+
+</Result>
+
+`List(BigInt)` describes a list type. `Structural.list(BigInt, [])` constructs a list value. A type handle is not a runtime validator for caller data. Unlike [`$.type`](#type), `Structural.type` does not declare a HashQL type name.
+
+### Nested lists need list constructors [#construct-nested-list]
+
+Construct each inner list explicitly. Raw inner arrays would denote tuples, so `[[2n, 3n], []]` is not shorthand for a list of lists. The outer list's element type is `List<Integer>`.
+
+```ts
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const { Structural } = Program;
+const built = Draft.program({}, ($) => {
+  const { List } = $.prelude();
+  return Structural.list(List(BigInt), [
+    Structural.list(BigInt, [2n, 3n]),
+    Structural.list(BigInt, []),
+  ]);
+});
+
+const text = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+  Result.getOrThrow,
+);
+console.log(text);
+```
+
+<Result>
+
+```json
+$ node main.ts
+{"#list":[{"#list":[{"#literal":2},{"#literal":3}],"#type":"::kernel::type::List<::kernel::type::Integer>"},{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}],"#type":"::kernel::type::List<::kernel::type::List<::kernel::type::Integer>>"}
+```
+
+</Result>
 
 ## `let` names a value [#let]
 
@@ -1860,7 +2073,7 @@ A plain `Integer` isn't a `Count`, and a second newtype over `Integer` would be 
 
 ## Put the forms together [#programs]
 
-These programs triage tasks from the [release briefing](/docs/hashql/writing-a-query). Each one adds forms to the last, and the final one turns the triage into a rule that reads an input.
+These programs triage tasks from the [release briefing](/docs/hashql/sdk/typescript/writing-a-query). Each one adds forms to the last, and the final one turns the triage into a rule that reads an input.
 
 ### Label a task [#label-a-task]
 
@@ -2414,4 +2627,4 @@ With the input `flagged` set to `"blocked"`:
 </Tabs>
 </SideBySide>
 
-The closure reads `flagged` from the input without receiving it as an argument. Changing the input to `open` flags the other task, and the program doesn't change. [Writing a HashQL query](/docs/hashql/writing-a-query) applies the same forms to a graph: it filters the tasks of one release and returns the unfinished, blocked and unassigned work as one briefing.
+The closure reads `flagged` from the input without receiving it as an argument. Changing the input to `open` flags the other task, and the program doesn't change. [Writing a HashQL query](/docs/hashql/sdk/typescript/writing-a-query) applies the same forms to a graph: it filters the tasks of one release and returns the unfinished, blocked and unassigned work as one briefing.
