@@ -134,7 +134,7 @@ Here is a compact example Petrinaut document demonstrating coloured tokens, stoc
         "colorId": "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         "name": "Satellite Orbit Dynamics",
         "arity": 1,
-        "code": "// Example of ODE for one satellite in orbit (simplified)\nconst mu = parameters.gravitational_constant; // Gravitational parameter\n\nconst [satellite] = tokens;\nconst { x, y, direction, velocity } = satellite;\nconst r = Math.hypot(x, y); // Distance to planet center\n\n// Gravitational acceleration vector (points toward origin)\nconst ax = (-mu * x) / (r * r * r);\nconst ay = (-mu * y) / (r * r * r);\n\n// Return the derivatives of this satellite\nreturn {\n  x: velocity * Math.cos(direction),\n  y: velocity * Math.sin(direction),\n  direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,\n  velocity: ax * Math.cos(direction) + ay * Math.sin(direction),\n};"
+        "code": "// Example of ODE for one satellite in orbit (simplified)\nconst mu = parameters.gravitational_constant; // Gravitational parameter\n\nconst { x, y, direction, velocity } = token;\nconst r = Math.hypot(x, y); // Distance to planet center\n\n// Gravitational acceleration vector (points toward origin)\nconst ax = (-mu * x) / (r * r * r);\nconst ay = (-mu * y) / (r * r * r);\n\n// Return the derivatives of this satellite\nreturn {\n  x: velocity * Math.cos(direction),\n  y: velocity * Math.sin(direction),\n  direction: (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,\n  velocity: ax * Math.cos(direction) + ay * Math.sin(direction),\n};"
       }
     ],
     "parameters": [

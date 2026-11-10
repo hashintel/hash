@@ -79,8 +79,7 @@ const assertContentRevision = (revision: string | undefined) => {
 /** Canonical construction and compiler diagnostics, written to browser storage and Flue history. */
 const canonicalConstruction = async () => {
   const dirtyCode = "return definitelyNotDefined;";
-  const repairedCode =
-    "const [token] = tokens; return { level: -token.level };";
+  const repairedCode = "return { level: -token.level };";
   const page = await fixture.openAssistant();
   const order = [
     "read-before",
