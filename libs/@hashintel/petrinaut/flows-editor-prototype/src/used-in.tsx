@@ -76,6 +76,20 @@ export const useStructureUsedIn = (): StructureUsedIn | null => {
   return value === "s1" || value === "s2" || value === "s3" || value === "s4" ? value : null;
 };
 
+/**
+ * 9 Nov sync (L45–L92): the at-rest label is the words "Used in", not the ↗ count (L75–L78). URL only (?usedin=r1..r3).
+ * Opened on click, every take shows S1's flat rows with U1a's hue tile, the node name and the property always shown
+ * (decided 10 Nov). r1 "Used in 6" as words at the row end, no icons (Ciarán, L53); r2 "Used in" and the using steps'
+ * hue tiles, overlapped, at most 3 then +n, with their full names on hover (L55); r3 "Used in 6" as a quiet second line
+ * under the output name.
+ */
+export type RestUsedIn = "r1" | "r2" | "r3";
+
+export const useRestUsedIn = (): RestUsedIn | null => {
+  const value = useLocation().query.get("usedin");
+  return value === "r1" || value === "r2" || value === "r3" ? value : null;
+};
+
 /** The one "used here" icon: an outbound arrow; ?usedicon=pipe tries the input pipe instead. */
 const useUsedIcon = (): IconName =>
   useLocation().query.get("usedicon") === "pipe" ? "inputPipe" : "arrowUpRight";
@@ -1473,6 +1487,242 @@ const StructureBlock = ({
   );
 };
 
+const restLabelStyle = css({
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[24px]",
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.muted",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.surface.hover" },
+  "&[aria-expanded=true]": { color: "neutral.fg.heading" },
+});
+
+/** r2's tiles: 16 px hue tiles (10 px icon), each over the last by 4 px with a 1.5 px panel-coloured ring between. */
+const stackStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  "& [data-stack-tile]": {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "[16px]",
+    height: "[16px]",
+    borderRadius: "[4px]",
+    boxShadow: "[0 0 0 1.5px var(--colors-neutral-s00, #fff)]",
+    "& svg": { width: "[10px !important]", height: "[10px !important]" },
+  },
+  "& [data-stack-tile] + [data-stack-tile]": { marginLeft: "[-4px]" },
+  "& [data-stack-more]": { marginLeft: "1", textStyle: "xs", color: "neutral.fg.subtle" },
+});
+
+const restLineStyle = css({
+  alignSelf: "flex-start",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "[16px]",
+  padding: "[0]",
+  border: "none",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
+  fontVariantNumeric: "tabular-nums",
+  _hover: { color: "neutral.fg.heading" },
+  "&[aria-expanded=true]": { color: "neutral.fg.body" },
+});
+
+const restNamesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[2px]",
+  textStyle: "xs",
+  lineHeight: "[16px]",
+});
+
+const STACK_CAP = 3;
+
+const RestBlock = ({
+  take,
+  iconOf,
+  stepId,
+  outputName,
+  label,
+  kind,
+  typeIcon,
+  readOnly,
+  end,
+}: {
+  take: RestUsedIn;
+  iconOf: (id: string) => IconName;
+  stepId: string;
+  outputName: string;
+  label: string;
+  kind: string | null;
+  typeIcon: IconName;
+  readOnly: boolean;
+  end: React.ReactNode;
+}) => {
+  const { document, setUi } = useEditor();
+  const uses = usesOf(document, stepId, outputName);
+  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const nameOf = (id: string) => {
+    const step = findStep(document, id)?.step;
+    return step ? stepLabel(step) : id;
+  };
+  const select = (id: string) =>
+    setUi((current) => ({ ...current, selectedId: id, openField: null, hoverSourceId: null }));
+  const hover = (id: string | null) => setUi((current) => ({ ...current, hoverSourceId: id }));
+  const [pinned, setPinned] = useState<string | null>(null);
+  const on = (id: string) => ({
+    "data-pinned": pinned === id || undefined,
+    onPointerEnter: () => hover(id),
+    onPointerLeave: () => hover(pinned),
+    onClick: () => {
+      if (pinned === id) {
+        setPinned(null);
+        select(id);
+      } else {
+        setPinned(id);
+        hover(id);
+      }
+    },
+  });
+  const count = uses.length;
+  const toggle = () => setOpen((current) => !current);
+  const words = `Used in ${String(count)}`;
+  const shownTiles = uses.slice(0, uses.length > STACK_CAP ? STACK_CAP - 1 : STACK_CAP);
+  const moreTiles = uses.length - shownTiles.length;
+  const atRest =
+    count === 0 ? null : take === "r1" ? (
+      <button
+        type="button"
+        className={restLabelStyle}
+        aria-expanded={open}
+        data-used-count={`${stepId}.${outputName}`}
+        onClick={toggle}
+      >
+        {words}
+      </button>
+    ) : take === "r2" ? (
+      <Tooltip
+        position="top"
+        content={
+          <span className={restNamesStyle}>
+            {uses.map((use) => (
+              <span key={use.stepId}>{nameOf(use.stepId)}</span>
+            ))}
+          </span>
+        }
+      >
+        <button
+          type="button"
+          className={restLabelStyle}
+          aria-expanded={open}
+          aria-label={`Used in ${uses.map((use) => nameOf(use.stepId)).join(", ")}`}
+          data-used-count={`${stepId}.${outputName}`}
+          onClick={toggle}
+        >
+          Used in
+          <span className={stackStyle}>
+            {shownTiles.map((use) => (
+              <span key={use.stepId} data-stack-tile style={treeTileColor(iconOf(use.stepId))}>
+                <Icon name={iconOf(use.stepId)} size="sm" />
+              </span>
+            ))}
+            {moreTiles > 0 ? <span data-stack-more>{`+${String(moreTiles)}`}</span> : null}
+          </span>
+        </button>
+      </Tooltip>
+    ) : null;
+  const nameBlock = (
+    <>
+      <Tooltip content={`${label} · ${kind ?? "Kind is known when it runs"}`} position="top">
+        <span className={headNameStyle}>{label}</span>
+      </Tooltip>
+      {kind ? <span className={typeChipStyle}>{kind}</span> : null}
+    </>
+  );
+  return (
+    <div className={blockStyle} data-output={`${stepId}.${outputName}`} data-used-take={take}>
+      <div
+        className={headStyle}
+        data-row
+        style={take === "r3" && count > 0 ? { alignItems: "flex-start", paddingTop: 10, paddingBottom: 6 } : undefined}
+      >
+        <span data-type-icon style={take === "r3" && count > 0 ? { marginTop: 2 } : undefined}>
+          <Icon name={typeIcon} size="sm" />
+        </span>
+        {take === "r3" && count > 0 ? (
+          <span className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })}>
+            <span className={css({ display: "flex", alignItems: "center", gap: "[10px]" })}>{nameBlock}</span>
+            <button
+              type="button"
+              className={restLineStyle}
+              aria-expanded={open}
+              data-used-count={`${stepId}.${outputName}`}
+              onClick={toggle}
+            >
+              {words}
+            </button>
+          </span>
+        ) : (
+          nameBlock
+        )}
+        <span className={headEndStyle}>
+          {atRest}
+          {end}
+        </span>
+      </div>
+      {open && count > 0 ? (
+        <div className={structStyle} data-used-names>
+          {uses.map((use) => (
+            <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
+              <NameLead look="u1a" icon={iconOf(use.stepId)} tile={treeTileColor(iconOf(use.stepId))} />
+              {nameOf(use.stepId)}
+              <span data-input>{use.inputs.join(", ")}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {readOnly ? null : (
+        <div className={hoverAddStyle} data-open={adding || undefined}>
+          <button
+            ref={addRef}
+            type="button"
+            className={addNameStyle}
+            data-output-use={`${stepId}:${outputName}`}
+            onClick={() => setAdding((current) => !current)}
+          >
+            <Icon name="plus" size="sm" />
+            Use in a step
+          </button>
+          {adding ? (
+            <LaterStepsMenu
+              anchor={addRef}
+              stepId={stepId}
+              outputName={outputName}
+              onClose={() => setAdding(false)}
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const UsedInBlock = ({
   stepId,
   outputName,
@@ -1500,6 +1750,22 @@ export const UsedInBlock = ({
     setUi((current) => ({ ...current, selectedId: id, openField: null }));
   const minimal = useMinimalUsedIn();
   const structure = useStructureUsedIn();
+  const rest = useRestUsedIn();
+  if (rest) {
+    return (
+      <RestBlock
+        take={rest}
+        iconOf={iconOf}
+        stepId={stepId}
+        outputName={outputName}
+        label={label}
+        kind={kind}
+        typeIcon={typeIcon}
+        readOnly={readOnly}
+        end={end}
+      />
+    );
+  }
   if (structure) {
     return (
       <StructureBlock
