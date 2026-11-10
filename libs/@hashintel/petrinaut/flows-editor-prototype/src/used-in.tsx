@@ -1184,8 +1184,9 @@ const MinimalBlock = ({
           </>
         )}
         <span className={headEndStyle}>
-          {take === "u2" ? null : countButton}
+          {/* The star sits before "Used in" so the count keeps its place when the star shows on hover (Aakarsh, 10 Nov). */}
           {end}
+          {take === "u2" ? null : countButton}
         </span>
       </div>
       {list}
@@ -1682,8 +1683,8 @@ const RestBlock = ({
           nameBlock
         )}
         <span className={headEndStyle}>
-          {atRest}
           {end}
+          {atRest}
         </span>
       </div>
       {open && count > 0 ? (
