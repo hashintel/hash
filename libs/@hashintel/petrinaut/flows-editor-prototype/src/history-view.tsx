@@ -45,6 +45,7 @@ import {
   triggerLabel,
 } from "./run-history";
 import { openFlowTriggers } from "./flow-triggers";
+import { selectedLabel } from "./menu-rows";
 import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
@@ -277,14 +278,15 @@ export const RunSwitcher = ({
               size={14}
             />
             <span>
-              {runIdStyled() ? (
-                <>
+              {selectedLabel(
+                runIdStyled() ? (
                   <RunIdText run={candidate} prefix copyable={runIdCopyTake() !== null} />
-                  {runMenuLabel(candidate, now).slice(runLabel(candidate).length)}
-                </>
-              ) : (
-                runMenuLabel(candidate, now)
+                ) : (
+                  runLabel(candidate)
+                ),
+                candidate.id === run.id,
               )}
+              {runMenuLabel(candidate, now).slice(runLabel(candidate).length)}
             </span>
           </span>
         ),

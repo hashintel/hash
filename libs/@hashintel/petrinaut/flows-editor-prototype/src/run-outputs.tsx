@@ -50,7 +50,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
 import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
-import { firstLineIconStyle } from "./menu-rows";
+import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -2853,14 +2853,14 @@ const ColumnList = ({
           items={[
             {
               id: "all",
-              text: "All types",
+              text: selectedLabel("All types", current === null),
               suffix: String(total),
               selected: current === null,
               onClick: () => setPicked(null),
             },
             ...groups.map((group) => ({
               id: group.type,
-              text: groupLabel[group.type][1],
+              text: selectedLabel(groupLabel[group.type][1], current === group.type),
               suffix: String(groupSize(group)),
               selected: current === group.type,
               onClick: () => setPicked(group.type),

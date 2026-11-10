@@ -34,6 +34,7 @@ import {
   runPickerStyle,
   useRunView,
 } from "./history-view";
+import { selectedLabelStyle } from "./menu-rows";
 import { setQuery, useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import {
@@ -338,7 +339,9 @@ const ItemMenu = ({
               text: (
                 <span className={rowStyle}>
                   <span aria-hidden className={glyphSpaceStyle} />
-                  <span>All suppliers</span>
+                  <span className={current === null ? selectedLabelStyle : undefined}>
+                    All suppliers
+                  </span>
                 </span>
               ),
               selected: current === null,
@@ -359,7 +362,9 @@ const ItemMenu = ({
                   size={16}
                   tooltip={false}
                 />
-                <span>{names[index]}</span>
+                <span className={current === index ? selectedLabelStyle : undefined}>
+                  {names[index]}
+                </span>
               </span>
             ),
             selected: current === index,
@@ -621,7 +626,9 @@ const RunLikeSwitch = ({
                           aria-hidden
                           className={css({ width: "[14px]", flexShrink: 0 })}
                         />
-                        <span>All suppliers</span>
+                        <span className={current === null ? selectedLabelStyle : undefined}>
+                          All suppliers
+                        </span>
                       </span>
                     ),
                     suffix: <span className={menuTimeStyle}>{`${total}`}</span>,
@@ -643,7 +650,9 @@ const RunLikeSwitch = ({
                         size={14}
                         tooltip={false}
                       />
-                      <span>{names[index]}</span>
+                      <span className={current === index ? selectedLabelStyle : undefined}>
+                        {names[index]}
+                      </span>
                     </span>
                   ),
                   suffix: itemWord[stateOf(index)] ? (

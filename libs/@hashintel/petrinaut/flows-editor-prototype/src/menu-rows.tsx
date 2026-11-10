@@ -14,6 +14,20 @@ import { css, cva } from "@hashintel/ds-helpers/css";
  * 16 px icon, centred across both lines (Aakarsh, 9 Nov: "one big icon that spans 2 lines"). It replaces B′
  * (ledger 2 Nov), which hung a 14 px icon on the first line. The name is kept so every caller follows it.
  */
+/**
+ * Selected row in any single-choice menu (approved parts, 10 Nov): the label is dark Semi Bold beside the active fill,
+ * as in the Steps list, so the row still reads as selected while hovered (the DS lightens a hovered selected row to
+ * the hover fill). Only the label: times, counts and status words keep their weight.
+ */
+export const selectedLabelStyle = css({
+  fontWeight: "semibold",
+  color: "neutral.fg.max",
+});
+
+/** `text` as a selected row's label when `selected`, else unchanged. */
+export const selectedLabel = (text: React.ReactNode, selected: boolean | undefined) =>
+  selected ? <span className={selectedLabelStyle}>{text}</span> : text;
+
 export const firstLineIconStyle = css({
   display: "flex",
   alignItems: "center",
@@ -409,8 +423,14 @@ export const tileMenu = (
           ),
         }
       : {};
+    const label =
+      rest.selectedStyle === "highlight" || tiled ? selectedLabel(rest.text, rest.selected) : rest.text;
     if (!tiled) {
-      return { ...rest, ...subItems, ...(tooltip ? { text: withTooltip(rest.text) } : {}) } as MenuItem;
+      return {
+        ...rest,
+        ...subItems,
+        ...(tooltip || label !== rest.text ? { text: withTooltip(label) } : {}),
+      } as MenuItem;
     }
     return {
       ...rest,
@@ -420,7 +440,7 @@ export const tileMenu = (
         <MenuRow
           // Every tile holds an icon: a row with none (a "nothing here" line) gets the info glyph.
           icon={glyph ?? rest.icon ?? (tiles === "all" ? "info" : undefined)}
-          title={rest.text}
+          title={label}
           description={rest.description}
           lines={lines}
           tint={tint}

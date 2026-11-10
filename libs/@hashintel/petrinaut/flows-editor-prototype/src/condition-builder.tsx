@@ -62,6 +62,7 @@ import {
   mockEntities,
   mockEntityTypes,
 } from "./mock-graph";
+import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
 import { oldLabelColumn } from "./ui";
 
@@ -1062,7 +1063,10 @@ const ConditionRowView = ({
               label: "Attributes",
               items: properties.map((candidate) => ({
                 id: candidate.baseUrl,
-                text: candidate.title,
+                text: selectedLabel(
+                  candidate.title,
+                  candidate.baseUrl === row.propertyBaseUrl,
+                ),
                 selected: candidate.baseUrl === row.propertyBaseUrl,
                 selectedStyle: "highlight" as const,
                 onClick: () =>
@@ -1273,7 +1277,7 @@ const Joiner = ({
         className={joinerMenuStyle}
         items={(["and", "or"] as const).map((choice) => ({
           id: choice,
-          text: choice.toUpperCase(),
+          text: selectedLabel(choice.toUpperCase(), (conjunction ?? "and") === choice),
           selected: (conjunction ?? "and") === choice,
           selectedStyle: "highlight" as const,
           onClick: () => onPick(choice),

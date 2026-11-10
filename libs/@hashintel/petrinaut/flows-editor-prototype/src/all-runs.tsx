@@ -34,6 +34,7 @@ import {
   warningsText,
 } from "./run-history";
 import { runId, runIdMono, RunIdsIn, RunIdText, runLabel } from "./run-id";
+import { selectedLabel } from "./menu-rows";
 import { RunOutputsCell } from "./run-outputs";
 import { StatTiles, statTilesTake } from "./stat-tiles";
 import {
@@ -517,7 +518,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       label: "Sort by",
       items: menuSortKeys.map((key) => ({
         id: `sort:${key}`,
-        text: ordersOf(key).label,
+        text: selectedLabel(ordersOf(key).label, sort.key === key),
         selected: sort.key === key,
         selectedStyle: "highlight" as const,
         keepOpenOnSelect: true,
@@ -529,7 +530,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
       label: "Order",
       items: ordersOf(sort.key).orders.map((text, index) => ({
         id: `order:${index}`,
-        text,
+        text: selectedLabel(text, sort.flipped === (index === 1)),
         selected: sort.flipped === (index === 1),
         selectedStyle: "highlight" as const,
         keepOpenOnSelect: true,
