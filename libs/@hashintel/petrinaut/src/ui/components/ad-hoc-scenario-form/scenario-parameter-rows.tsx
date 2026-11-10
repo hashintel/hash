@@ -13,6 +13,14 @@ import { use } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
+import {
+  cellStyle,
+  dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
+} from "../spreadsheet-kit/form-table";
+import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
 import { adHocVariableKey } from "./dependency-highlight";
 import {
   AdHocFormContext,
@@ -20,14 +28,6 @@ import {
   adHocSelectionApplies,
   adHocSelectionText,
 } from "./form-context";
-import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
-import {
-  cellStyle,
-  dependencyHighlightStyle as highlightStyle,
-  staticNameCellStyle,
-  staticTypeCellStyle,
-} from "./spreadsheet/form-table";
-import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";

@@ -17,6 +17,7 @@ import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../parameter-values";
+import { getPlaceDynamicsEquationIds } from "../../place-dynamics";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -34,6 +35,7 @@ import {
   computeTransitionCapacityConstraints,
   normalizePlaceCapacity,
 } from "./capacity";
+import { composeDerivatives } from "./compose-derivatives";
 import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
@@ -700,22 +702,28 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     packedInitialMarking.set(place.id, packed);
   }
 
-  // Compile all differential equation functions
+  // Instantiate every place's dynamics: one program per composed equation,
+  // summed into the place's derivative when there are several.
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
-    // Skip places without dynamics enabled or without differential equation code
-    if (!place.dynamicsEnabled || !place.differentialEquationId) {
+    const equationIds = place.dynamicsEnabled
+      ? getPlaceDynamicsEquationIds(place)
+      : [];
+    if (equationIds.length === 0) {
       continue;
     }
 
-    const differentialEquation = sdcpn.differentialEquations.find(
-      (de) => de.id === place.differentialEquationId,
-    );
-    if (!differentialEquation) {
-      throw new Error(
-        `Differential equation with ID ${place.differentialEquationId} referenced by place ${place.id} does not exist in SDCPN`,
+    const differentialEquations = equationIds.map((equationId) => {
+      const differentialEquation = sdcpn.differentialEquations.find(
+        (de) => de.id === equationId,
       );
-    }
+      if (!differentialEquation) {
+        throw new Error(
+          `Differential equation with ID ${equationId} referenced by place ${place.id} does not exist in SDCPN`,
+        );
+      }
+      return differentialEquation;
+    });
     try {
       if (!place.colorId) {
         continue;
@@ -735,28 +743,27 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const placeParameterValues =
         flattened.placeParameterValues.get(place.id) ?? parameterValues;
 
-      const artifact: HirDynamicsArtifact | undefined = getOwn(
-        input.hirArtifacts?.dynamics,
-        sourceItemId(differentialEquation.id),
-      );
-      if (!artifact) {
-        throw missingArtifactError(
-          "dynamics",
-          differentialEquation.name,
-          place.id,
-        );
-      }
-
-      // Buffer-native program: matches the byte-addressed
+      // Buffer-native programs: each matches the byte-addressed
       // DifferentialEquationFn shape directly — no per-token record decoding.
-      differentialEquationFns.set(
-        place.id,
-        instantiateHirBufferDynamics(
+      const terms = differentialEquations.map((differentialEquation) => {
+        const artifact: HirDynamicsArtifact | undefined = getOwn(
+          input.hirArtifacts?.dynamics,
+          sourceItemId(differentialEquation.id),
+        );
+        if (!artifact) {
+          throw missingArtifactError(
+            "dynamics",
+            differentialEquation.name,
+            place.id,
+          );
+        }
+        return instantiateHirBufferDynamics(
           artifact.source,
           placeParameterValues,
           stringPool,
-        ),
-      );
+        );
+      });
+      differentialEquationFns.set(place.id, composeDerivatives(terms));
     } catch (error) {
       throw new SDCPNItemError(
         `Failed to compile differential equation for place \`${

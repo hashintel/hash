@@ -22,11 +22,17 @@
  */
 import ts from "@typescript/typescript6";
 
+import {
+  isSupportedArity,
+  MAX_DIFFERENTIAL_EQUATION_ARITY,
+} from "../equation-arity";
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,
   detectUserCodeForm,
+  dynamicsInputName,
   getStateConstraintExpression,
+  SINGLE_TOKEN_INPUT_NAME,
   type DualFormSurfaceKind,
 } from "./user-code-form";
 
@@ -46,6 +52,17 @@ import type {
 export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
+
+export type LowerTypeScriptOptions = {
+  /**
+   * The dynamics equation's arity (`HirDynamicsContext.arity`). With it,
+   * the module form declares one parameter per coupled token followed by an
+   * optional `parameters`, and the bare-body form sees `token` for an
+   * arity of 1 and the `tokens` tuple above that. Ignored for other
+   * surfaces.
+   */
+  arity?: number;
+};
 
 const CONSTRUCTOR_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "Dynamics",
@@ -254,9 +271,16 @@ function childScope(scope: HirLoweringScope): HirLoweringScope {
 class Lowering {
   private nextId = 0;
 
+  /**
+   * Whether the code is a bare body, which reads its input by an ambient
+   * name. The module form's callback names its own parameters.
+   */
+  private bareBody = false;
+
   constructor(
     private readonly sourceFile: ts.SourceFile,
     private readonly surface: HirSurfaceKind,
+    private readonly options: LowerTypeScriptOptions = {},
   ) {}
 
   spanOf(node: ts.Node): Span {
@@ -343,8 +367,14 @@ class Lowering {
    * surface's ambient names as the wrapper's parameters. Spans are still
    * relative to the wrapped text — the caller shifts them back onto the raw
    * user body.
+   *
+   * An equation over one token is wrapped as `(token, parameters) => …`:
+   * the function still takes the one-element tuple every equation takes,
+   * and `token` is bound from it the way the module form binds its token
+   * parameter.
    */
   lowerDualFormBareBody(surface: DualFormSurfaceKind): HirFunction {
+    this.bareBody = true;
     const [statement, ...rest] = this.sourceFile.statements;
     if (rest.length > 0) {
       this.fail(
@@ -368,8 +398,9 @@ class Lowering {
         span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
       });
     }
-    const inputName = AMBIENT_INPUT_NAMES[surface];
     const [inputParam, parametersParam] = arrow.parameters;
+    const singleToken = surface === "dynamics" && this.options.arity === 1;
+    const inputName = singleToken ? "__tokens" : AMBIENT_INPUT_NAMES[surface];
     const scope: HirLoweringScope = {
       locals: new Set([inputName]),
       distributionLocals: new Set(),
@@ -379,7 +410,14 @@ class Lowering {
       scenarioAliases: new Map(),
       scenarioName: null,
     };
-    const body = this.lowerBlock(arrowBody, scope);
+    const tokenBindings = singleToken
+      ? [this.tokenBinding(inputParam!, 0, inputName, scope)]
+      : [];
+    const body = this.withTokenBindings(
+      arrow,
+      tokenBindings,
+      this.lowerBlock(arrowBody, scope),
+    );
     return {
       hirVersion: 1,
       surface,
@@ -528,20 +566,70 @@ class Lowering {
       );
     }
 
-    if (fnArg.parameters.length > 2) {
-      this.fail(
-        fnArg.parameters[2]!,
-        "hir:too-many-parameters",
-        "User functions take at most two parameters (tokens and parameters).",
+    // A dynamics module declares one parameter per coupled token
+    // (`Dynamics((a, b, parameters) => …)`); every other function declares
+    // its one input object. Either way the HIR function's first parameter
+    // is the input: for dynamics a tuple the token parameters are bound
+    // from, so the checker, analyses and emitters see one shape.
+    const arity = this.surface === "dynamics" ? this.options.arity : undefined;
+    if (this.surface === "dynamics" && arity === undefined) {
+      throw new Error(
+        "Lowering a dynamics module needs the equation's arity (LowerTypeScriptOptions.arity).",
       );
+    }
+    const tokenParamCount = arity ?? 1;
+    // `(a, parameters)` and `(a, b)` have the same count, so a trailing
+    // parameter named `parameters` is the parameters object even when the
+    // count would let it be a token; a destructured one is a token
+    // (`({ x, v }) => …`) unless the count says otherwise.
+    const lastParameter = fnArg.parameters.at(-1);
+    const declaresParameters =
+      lastParameter !== undefined &&
+      (fnArg.parameters.length > tokenParamCount ||
+        (ts.isIdentifier(lastParameter.name) &&
+          lastParameter.name.text === "parameters"));
+    const declaredTokenCount =
+      fnArg.parameters.length - (declaresParameters ? 1 : 0);
+    if (declaredTokenCount > tokenParamCount) {
+      this.fail(
+        fnArg.parameters[tokenParamCount + 1]!,
+        "hir:too-many-parameters",
+        arity === undefined
+          ? "User functions take at most two parameters (tokens and parameters)."
+          : `An equation over ${arity} token(s) takes ${arity} token parameter(s) and optionally \`parameters\`.`,
+      );
+    }
+    if (arity !== undefined && declaredTokenCount < arity) {
+      const start = fnArg.getStart(this.sourceFile);
+      throw new LowerError({
+        code: "hir:dynamics-arity",
+        message: `This equation couples ${arity} tokens, so its function takes ${arity} token parameters (and optionally \`parameters\`), got ${declaredTokenCount}.`,
+        severity: "error",
+        span: {
+          start,
+          length: Math.max(fnArg.body.getStart(this.sourceFile) - start, 1),
+        },
+      });
     }
 
     const params: HirFunction["params"] = [];
+    const tokenBindings: HirLetBinding[] = [];
     const scope = this.newScope();
+    const tokensName = arity === undefined ? null : "__tokens";
+    if (tokensName !== null) {
+      scope.locals.add(tokensName);
+      params.push({ name: tokensName, span: this.spanOf(fnArg) });
+    }
 
     for (const [index, parameter] of fnArg.parameters.entries()) {
-      if (index === 0) {
-        params.push(this.bindInputParameter(parameter, "__input", scope));
+      if (index < tokenParamCount) {
+        if (tokensName === null) {
+          params.push(this.bindInputParameter(parameter, "__input", scope));
+          continue;
+        }
+        tokenBindings.push(
+          this.tokenBinding(parameter, index, tokensName, scope),
+        );
         continue;
       }
       if (ts.isIdentifier(parameter.name)) {
@@ -577,9 +665,13 @@ class Lowering {
       );
     }
 
-    const body = ts.isBlock(fnArg.body)
-      ? this.lowerBlock(fnArg.body, scope)
-      : this.lowerExpr(fnArg.body, scope);
+    const body = this.withTokenBindings(
+      fnArg,
+      tokenBindings,
+      ts.isBlock(fnArg.body)
+        ? this.lowerBlock(fnArg.body, scope)
+        : this.lowerExpr(fnArg.body, scope),
+    );
 
     return {
       hirVersion: 1,
@@ -588,6 +680,54 @@ class Lowering {
       body,
       span: this.spanOf(fnArg),
     };
+  }
+
+  /**
+   * Binds the token parameter of an equation to the element at `index` of
+   * the tuple `tokensName` that the function takes.
+   */
+  private tokenBinding(
+    parameter: ts.ParameterDeclaration,
+    index: number,
+    tokensName: string,
+    scope: HirLoweringScope,
+  ): HirLetBinding {
+    const bound = this.bindInputParameter(parameter, `__token${index}`, scope);
+    return {
+      name: bound.name,
+      nameSpan: bound.span,
+      value: this.make(parameter, {
+        kind: "indexAccess",
+        target: this.make(parameter, { kind: "localRef", name: tokensName }),
+        index: this.make(parameter, {
+          kind: "numberLit",
+          value: index,
+          raw: String(index),
+        }),
+      }),
+    };
+  }
+
+  /**
+   * `body` behind the token bindings it reads. A token the body never reads
+   * gets no binding, so declaring one only to satisfy the arity is not an
+   * unused binding.
+   */
+  private withTokenBindings(
+    anchor: ts.Node,
+    bindings: HirLetBinding[],
+    body: HirExpr,
+  ): HirExpr {
+    const referenced = new Set<string>();
+    walkHir(body, (node) => {
+      if (node.kind === "localRef") {
+        referenced.add(node.name);
+      }
+    });
+    const used = bindings.filter((binding) => referenced.has(binding.name));
+    return used.length === 0
+      ? body
+      : this.make(anchor, { kind: "let", bindings: used, body });
   }
 
   /** A scope with nothing in it: the start of a function. */
@@ -1217,8 +1357,27 @@ class Lowering {
     this.fail(
       node,
       "hir:unknown-identifier",
-      `Unknown identifier \`${name}\`.`,
+      `Unknown identifier \`${name}\`.${this.otherInputNameHint(name)}`,
     );
+  }
+
+  /**
+   * The sentence added to an unknown `token` or `tokens` in a bare dynamics
+   * body: the name an equation of that arity reads its input by. Empty for
+   * any other name, and for the module form.
+   */
+  private otherInputNameHint(name: string): string {
+    const { arity } = this.options;
+    if (!this.bareBody || this.surface !== "dynamics" || arity === undefined) {
+      return "";
+    }
+    if (arity === 1 && name === AMBIENT_INPUT_NAMES.dynamics) {
+      return ` An equation over one token reads it as \`${SINGLE_TOKEN_INPUT_NAME}\`.`;
+    }
+    if (arity > 1 && name === SINGLE_TOKEN_INPUT_NAME) {
+      return ` An equation over several tokens reads them as \`${AMBIENT_INPUT_NAMES.dynamics}\`.`;
+    }
+    return "";
   }
 
   private lowerUnary(
@@ -2113,6 +2272,7 @@ function lowerWrappedBodyToHir(
   prefix: string,
   suffix: string,
   lower: (lowering: Lowering) => HirFunction,
+  options: LowerTypeScriptOptions = {},
 ): LowerTypeScriptResult {
   const wrapped = prefix + code + suffix;
   const sourceFile = ts.createSourceFile(
@@ -2134,7 +2294,7 @@ function lowerWrappedBodyToHir(
   }
 
   try {
-    const fn = lower(new Lowering(sourceFile, surface));
+    const fn = lower(new Lowering(sourceFile, surface, options));
     shiftWrappedFunctionSpans(fn, code.length, prefix.length);
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
@@ -2147,8 +2307,15 @@ function lowerWrappedBodyToHir(
 
 /** Parsing wrapper for the bare-body form of a dynamics/lambda/kernel
  * surface: the ambient names become the wrapper arrow's parameters. */
-function bareBodyPrefix(surface: DualFormSurfaceKind): string {
-  return `(${AMBIENT_INPUT_NAMES[surface]}, parameters) => {\n`;
+function bareBodyPrefix(
+  surface: DualFormSurfaceKind,
+  arity: number | undefined,
+): string {
+  const inputName =
+    surface === "dynamics"
+      ? dynamicsInputName(arity)
+      : AMBIENT_INPUT_NAMES[surface];
+  return `(${inputName}, parameters) => {\n`;
 }
 
 const BARE_BODY_SUFFIX = "\n}";
@@ -2181,7 +2348,26 @@ export const lowerStateConstraintToHir = (
 export function lowerTypeScriptToHir(
   code: string,
   surface: HirFunctionSurfaceKind,
+  options: LowerTypeScriptOptions = {},
 ): LowerTypeScriptResult {
+  if (
+    surface === "dynamics" &&
+    options.arity !== undefined &&
+    !isSupportedArity(options.arity)
+  ) {
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          code: "hir:dynamics-arity",
+          message: `An equation couples between 1 and ${MAX_DIFFERENTIAL_EQUATION_ARITY} tokens; this one is set to ${options.arity}.`,
+          severity: "error",
+          span: { start: 0, length: 1 },
+        },
+      ],
+    };
+  }
+
   const wrapped = WRAPPED_SURFACES[surface];
   if (wrapped) {
     return lowerWrappedBodyToHir(
@@ -2198,9 +2384,10 @@ export function lowerTypeScriptToHir(
     return lowerWrappedBodyToHir(
       code,
       surface,
-      bareBodyPrefix(dualFormSurface),
+      bareBodyPrefix(dualFormSurface, options.arity),
       BARE_BODY_SUFFIX,
       (lowering) => lowering.lowerDualFormBareBody(dualFormSurface),
+      options,
     );
   }
 
@@ -2219,7 +2406,7 @@ export function lowerTypeScriptToHir(
   }
 
   try {
-    const fn = new Lowering(sourceFile, surface).lowerModule();
+    const fn = new Lowering(sourceFile, surface, options).lowerModule();
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
     if (error instanceof LowerError) {

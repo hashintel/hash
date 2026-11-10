@@ -12,7 +12,6 @@ const place = (id: string): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });

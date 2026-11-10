@@ -33,7 +33,7 @@ export const deploymentPipelineSDCPN: {
           "Release queue: deployments waiting for the safety gate to open, each with a sampled size and risk.",
         colorId: "type__deployment",
         dynamicsEnabled: true,
-        differentialEquationId: "dynamics__deployment_age",
+        dynamics: [{ differentialEquationId: "dynamics__deployment_age" }],
         x: 180,
         y: 0,
         visualizerCode: `// Release queue: one card per deployment waiting to start. Card colour goes
@@ -98,7 +98,7 @@ return (
           "Open incidents under investigation. Any token here closes the deployment gate through the inhibitor arc into Start Deployment.",
         colorId: "type__incident",
         dynamicsEnabled: true,
-        differentialEquationId: "dynamics__incident_age",
+        dynamics: [{ differentialEquationId: "dynamics__incident_age" }],
         x: 675,
         y: 510,
         visualizerCode: `// Incident bridge: one bar per open incident, taller and darker with severity.
@@ -164,7 +164,7 @@ return (
           "The deployment currently rolling out — at most one, enforced by this place's inhibitor arc into Start Deployment. It either finishes successfully or fails and opens an incident.",
         colorId: "type__deployment",
         dynamicsEnabled: true,
-        differentialEquationId: "dynamics__deployment_age",
+        dynamics: [{ differentialEquationId: "dynamics__deployment_age" }],
         x: 150,
         y: 315,
         visualizerCode: `// Deployment lane: shows the single in-progress deployment as a progress bar
@@ -247,7 +247,6 @@ return (
           "Archive of releases that finished without causing an incident, keeping their size, risk, and run time for metrics.",
         colorId: "type__deployment",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 825,
         y: 210,
         visualizerCode: `// Successful releases: a tally of completed deployments (most recent last).
@@ -304,7 +303,6 @@ return (
           "Archive of closed incidents; they no longer block deployments but keep their severity and age as a record of operational load.",
         colorId: "type__incident",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 1170,
         y: 510,
         visualizerCode: `// Closed incidents: a tally of resolved incident tickets (most recent last).
@@ -360,7 +358,6 @@ return (
           "Archive of releases that failed mid-rollout and opened an incident, kept for failure-share metrics.",
         colorId: "type__deployment",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         visualizerCode: `// Failed releases: deployments that rolled back and opened an incident. The
 // red cross marks each failure and its outline thickens with the deployment's
 // risk, so the riskiest failures stand out.
@@ -788,25 +785,27 @@ return {
         id: "dynamics__deployment_age",
         name: "Deployment Age",
         colorId: "type__deployment",
+        arity: 1,
         code: `// A simple clock: every deployment's age increases at rate 1 (size and risk
 // are fixed at creation, so their derivatives are 0). Age is used to estimate
 // progress in the deployment-lane visualizer.
-return tokens.map(() => ({
+return {
   size: 0,
   risk: 0,
   age: 1,
-}));`,
+};`,
       },
       {
         id: "dynamics__incident_age",
         name: "Incident Age",
         colorId: "type__incident",
+        arity: 1,
         code: `// Clock for incidents: age rises at rate 1 while severity stays fixed. Older,
 // higher-severity incidents take longer to resolve in the Close Incident rate.
-return tokens.map(() => ({
+return {
   severity: 0,
   age: 1,
-}));`,
+};`,
       },
     ],
     parameters: [

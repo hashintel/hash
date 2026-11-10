@@ -79,7 +79,7 @@ const assertContentRevision = (revision: string | undefined) => {
 /** Canonical construction and compiler diagnostics, written to browser storage and Flue history. */
 const canonicalConstruction = async () => {
   const dirtyCode = "return definitelyNotDefined;";
-  const repairedCode = "return tokens.map(({ level }) => ({ level: -level }));";
+  const repairedCode = "return { level: -token.level };";
   const page = await fixture.openAssistant();
   const order = [
     "read-before",
@@ -112,6 +112,7 @@ const canonicalConstruction = async () => {
         name: "Decay",
         colorId: "item",
         code: dirtyCode,
+        arity: 1,
         targetSubnetId: null,
       },
       "equation-dirty",
@@ -123,7 +124,7 @@ const canonicalConstruction = async () => {
         name: "Store",
         colorId: "item",
         dynamicsEnabled: true,
-        differentialEquationId: "decay",
+        dynamics: [{ differentialEquationId: "decay" }],
         x: 0,
         y: 0,
         targetSubnetId: null,
@@ -357,7 +358,6 @@ const callsAfterStreamLoss = async () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
           targetSubnetId: null,

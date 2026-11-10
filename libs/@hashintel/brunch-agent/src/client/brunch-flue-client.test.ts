@@ -23,7 +23,6 @@ const placeInput = {
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };

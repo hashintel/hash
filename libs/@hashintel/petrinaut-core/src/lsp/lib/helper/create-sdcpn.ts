@@ -46,13 +46,14 @@ export function createSDCPN(options?: {
       colorId: de.colorId ?? "color_1",
       name: de.name ?? `DE${index + 1}`,
       code: de.code ?? "",
+      arity: de.arity ?? 1,
     })),
     places: places.map((place, index) => ({
       id: place.id ?? `place_${index + 1}`,
       name: place.name ?? `Place${index + 1}`,
       colorId: place.colorId ?? null,
       dynamicsEnabled: place.dynamicsEnabled ?? false,
-      differentialEquationId: place.differentialEquationId ?? null,
+      ...(place.dynamics === undefined ? {} : { dynamics: place.dynamics }),
       ...(place.visualizerCode !== undefined
         ? { visualizerCode: place.visualizerCode }
         : {}),

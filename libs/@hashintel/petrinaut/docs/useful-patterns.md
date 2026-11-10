@@ -35,7 +35,7 @@ return {
 1. **Count down** with a differential equation:
 
 ```ts
-return tokens.map(() => ({ remaining_time: -1 }));
+return { remaining_time: -1 };
 ```
 
 1. **Guard the completion transition** with a predicate:

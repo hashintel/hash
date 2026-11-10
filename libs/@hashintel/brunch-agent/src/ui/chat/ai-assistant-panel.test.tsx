@@ -128,7 +128,6 @@ const nonEmptySDCPN: SDCPN = {
       name: "PlaceOne",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -443,7 +442,6 @@ describe("AiAssistantPanel composer submissions", () => {
                       name: "Queue",
                       colorId: null,
                       dynamicsEnabled: false,
-                      differentialEquationId: null,
                       x: 0,
                       y: 0,
                     },
@@ -2586,7 +2584,6 @@ describe("AiAssistantPanel composer submissions", () => {
         places: [
           {
             colorId: null,
-            differentialEquationId: null,
             dynamicsEnabled: false,
             id: "place__review",
             name: "Review",
@@ -7051,7 +7048,6 @@ describe("AiAssistantPanel host interactive tools", () => {
                 name: "HostPlace",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 x: 0,
                 y: 0,
               });

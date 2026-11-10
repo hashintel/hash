@@ -1,6 +1,6 @@
 /**
- * The shared spreadsheet grammar of the ad-hoc form, mirroring the token
- * spreadsheet (`ui/components/spreadsheet.tsx`): a bordered container, a
+ * The shared spreadsheet grammar of the editor's form tables, mirroring the
+ * token spreadsheet (`ui/components/spreadsheet.tsx`): a bordered container, a
  * `border-collapse` table with 28px rows, hairline cell delimitations, a
  * gutter with a stronger right border, and a 2px blue focus outline on the
  * focused cell.
@@ -416,4 +416,37 @@ export const cellSelectStyle = css({
     minHeight: "[0!]",
     paddingY: "[0!]",
   },
+});
+
+/**
+ * A gutter button that also starts a row drag: the row's glyph gives way
+ * to a grip while the row is hovered or focused, and the cursor says the
+ * row can be picked up.
+ */
+export const dragHandleButtonStyle = css({
+  cursor: "grab",
+  "& [data-grip]": { display: "none" },
+  "&:is(tr:hover *, tr:focus-within *) [data-glyph]": { display: "none" },
+  "&:is(tr:hover *, tr:focus-within *) [data-grip]": { display: "flex" },
+  "&[data-dragging]": { cursor: "grabbing" },
+});
+
+/**
+ * A column header that is a label ("Name", "Tokens") rather than an
+ * identifier: small caps on the header band, quiet next to the cells.
+ */
+export const labelHeaderStyle = css({
+  backgroundColor: "neutral.s15",
+  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
+  borderRight: "[1px solid {colors.neutral.a05}]",
+  height: "[24px]",
+  paddingX: "2",
+  textAlign: "left",
+  fontSize: "[10px]",
+  fontWeight: "medium",
+  letterSpacing: "[0.4px]",
+  textTransform: "uppercase",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
+  _last: { borderRight: "none" },
 });

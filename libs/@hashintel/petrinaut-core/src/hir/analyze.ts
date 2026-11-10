@@ -33,6 +33,13 @@ export type HirTokenReadPlace = "self" | (string & {});
 export type HirTokenRead = {
   place: HirTokenReadPlace;
   field: string;
+  /**
+   * Which token of the equation's tuple the read is of, for a dynamics
+   * equation with an arity (`tokens[k].field`, or a parameter bound from
+   * position `k`). Absent for reads through `.map(...)`, which are of every
+   * token, and for reads in other surfaces.
+   */
+  tokenIndex?: number;
 };
 
 export type HirDependencies = {
@@ -123,8 +130,9 @@ type AbstractValue =
   | { kind: "inputRecord" }
   /** A token array belonging to a place. */
   | { kind: "tokens"; place: HirTokenReadPlace }
-  /** A single token of a place. */
-  | { kind: "token"; place: HirTokenReadPlace }
+  /** A single token of a place; `index` is its position in the dynamics
+   * tuple when it was read by a literal index. */
+  | { kind: "token"; place: HirTokenReadPlace; index?: number }
   | { kind: "record"; fields: Map<string, AbstractValue> }
   /** `elements` is null for arrays of statically-unknown shape (map results
    * carry the per-element value in `element`). */
@@ -451,7 +459,7 @@ class Analyzer {
   }
 
   private recordTokenRead(read: HirTokenRead): void {
-    const key = `${read.place}\u0000${read.field}`;
+    const key = `${read.place}\u0000${read.field}\u0000${read.tokenIndex ?? ""}`;
     this.globalDeps.tokenReads.set(key, read);
     for (const sink of this.depSinkStack) {
       sink.tokenReads.set(key, read);
@@ -733,7 +741,11 @@ class Analyzer {
         }
         return SCALAR;
       case "token":
-        this.recordTokenRead({ place: target.place, field });
+        this.recordTokenRead({
+          place: target.place,
+          field,
+          ...(target.index === undefined ? {} : { tokenIndex: target.index }),
+        });
         return SCALAR;
       case "record":
         return target.fields.get(field) ?? SCALAR;
@@ -747,10 +759,15 @@ class Analyzer {
     }
   }
 
-  private accessIndex(target: AbstractValue, _index: HirExpr): AbstractValue {
+  private accessIndex(target: AbstractValue, index: HirExpr): AbstractValue {
     switch (target.kind) {
       case "tokens":
-        return { kind: "token", place: target.place };
+        // A literal index into the equation's own tokens names a position
+        // of its tuple; the analysis keeps it so a read is attributed to
+        // the parameter it came through.
+        return target.place === "self" && index.kind === "numberLit"
+          ? { kind: "token", place: target.place, index: index.value }
+          : { kind: "token", place: target.place };
       case "array":
         if (target.elements) {
           // Index may be dynamic; the result may be any element.
@@ -762,7 +779,7 @@ class Analyzer {
       case "union":
         return {
           kind: "union",
-          values: target.values.map((value) => this.accessIndex(value, _index)),
+          values: target.values.map((value) => this.accessIndex(value, index)),
         };
       default:
         return SCALAR;

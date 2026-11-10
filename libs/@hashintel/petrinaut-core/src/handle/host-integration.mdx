@@ -167,13 +167,12 @@ Required fields for a plain net:
 | Arc        | `placeId` (or an explicit `endpoint`)             |
 
 Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
-`type: "standard"`, place `colorId: null`, `dynamicsEnabled: false`, and
-`differentialEquationId: null`,
+`type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
 Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
-place `isPort`, `visualizerCode`, `showAsInitialState`) pass through only when
-present, so a normalized document compares equal to what the editor itself
+place `isPort`, `dynamics`, `visualizerCode`, `showAsInitialState`) pass
+through only when present, so a normalized document compares equal to what the editor itself
 produces (`isSDCPNEqual`).
 
 Arcs name their target place in one of two forms. `placeId` is the shorthand

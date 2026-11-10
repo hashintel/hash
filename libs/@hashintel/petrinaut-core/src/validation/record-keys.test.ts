@@ -77,7 +77,6 @@ describe("findDangerousSdcpnKeys", () => {
       name: "Place 1",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -92,7 +91,6 @@ describe("findDangerousSdcpnKeys", () => {
           name: "Place 1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -120,7 +118,13 @@ describe("findDangerousSdcpnKeys", () => {
         },
       ],
       differentialEquations: [
-        { id: "hasOwnProperty", name: "DE 1", colorId: null, code: "" },
+        {
+          arity: 1,
+          id: "hasOwnProperty",
+          name: "DE 1",
+          colorId: null,
+          code: "",
+        },
       ],
       parameters: [
         {
@@ -194,7 +198,6 @@ describe("findDangerousSdcpnKeys", () => {
             name: "Place 1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },

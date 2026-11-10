@@ -8,7 +8,6 @@ import {
   HelpTooltip,
   NumberInput,
   Select,
-  Toggle,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -26,6 +25,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../context";
+import { placeTypeChange } from "./place-dynamics/compose-dynamics";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
@@ -65,11 +65,6 @@ const capacityFieldStyle = css({
   "& label": { fontWeight: "normal" },
 });
 
-const hintTextStyle = css({
-  fontSize: "[12px]",
-  color: "neutral.s95",
-});
-
 const typeColorDotStyle = css({
   width: "3",
   height: "3",
@@ -96,16 +91,11 @@ const PlaceMainContent: React.FC = () => {
 
   const { extensions } = use(SDCPNContext);
   const {
-    activeNet: { differentialEquations, types: availableTypes },
+    activeNet: { types: availableTypes },
   } = use(ActiveNetContext);
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
-
-  // Filter differential equations by place type
-  const availableDiffEqs = place.colorId
-    ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
-    : [];
 
   return (
     <SectionList>
@@ -139,7 +129,7 @@ const PlaceMainContent: React.FC = () => {
             availableTypes.length === 0
               ? " You must create a data type in the left-hand sidebar first."
               : ""
-          } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+          } Tokens in places don't have to carry data, but they need one for dynamics (token data changing over time when in a place); changing the type clears the place's equations.`}
         >
           <PropertyValue text={placeTypeName}>
             <Tooltip
@@ -152,17 +142,13 @@ const PlaceMainContent: React.FC = () => {
                 size="sm"
                 value={place.colorId ?? ""}
                 onChange={(colorId) => {
-                  const nextColorId = colorId === "" ? null : colorId;
-                  updatePlace({
-                    placeId: place.id,
-                    update: {
-                      colorId: nextColorId,
-                      dynamicsEnabled:
-                        nextColorId === null && place.dynamicsEnabled
-                          ? false
-                          : place.dynamicsEnabled,
-                    },
-                  });
+                  const update = placeTypeChange(
+                    place,
+                    colorId === "" ? null : colorId,
+                  );
+                  if (update) {
+                    updatePlace({ placeId: place.id, update });
+                  }
                 }}
                 items={[
                   { value: "", text: "None" },
@@ -211,125 +197,6 @@ const PlaceMainContent: React.FC = () => {
         </Section>
       )}
 
-      {extensions.colors && extensions.dynamics && (
-        <Section
-          title="Dynamics"
-          tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-          renderHeaderAction={() => {
-            const dynamicsTooltip = isReadOnly
-              ? UI_MESSAGES.READ_ONLY_MODE
-              : place.colorId === null
-                ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                : availableDiffEqs.length === 0
-                  ? "Create a differential equation for this type first"
-                  : undefined;
-
-            return (
-              <Tooltip
-                content={dynamicsTooltip}
-                disableTooltip={!dynamicsTooltip}
-              >
-                <Toggle
-                  aria-label="Dynamics"
-                  size="sm"
-                  tone="success"
-                  value={!!place.colorId && place.dynamicsEnabled}
-                  disabled={
-                    isReadOnly ||
-                    place.colorId === null ||
-                    availableDiffEqs.length === 0
-                  }
-                  onChange={(checked) => {
-                    const update: {
-                      dynamicsEnabled: boolean;
-                      differentialEquationId?: string | null;
-                    } = { dynamicsEnabled: checked };
-
-                    if (checked) {
-                      // Auto-select first available diff eq if none selected or previous no longer exists
-                      const currentIsValid = availableDiffEqs.some(
-                        (eq) => eq.id === place.differentialEquationId,
-                      );
-                      if (!currentIsValid && availableDiffEqs.length > 0) {
-                        update.differentialEquationId = availableDiffEqs[0]!.id;
-                      }
-                    }
-
-                    updatePlace({
-                      placeId: place.id,
-                      update,
-                    });
-                  }}
-                />
-              </Tooltip>
-            );
-          }}
-        >
-          {place.colorId === null ? (
-            <div className={hintTextStyle}>
-              {availableTypes.length === 0
-                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-                : "Select a type to enable dynamics"}
-            </div>
-          ) : availableDiffEqs.length === 0 ? (
-            <div className={hintTextStyle}>
-              Create a differential equation for the selected type in the
-              left-hand sidebar first
-            </div>
-          ) : (
-            place.dynamicsEnabled && (
-              <>
-                <Tooltip
-                  content={UI_MESSAGES.READ_ONLY_MODE}
-                  disableTooltip={!isReadOnly}
-                >
-                  <Select
-                    aria-label="Differential equation"
-                    required
-                    value={place.differentialEquationId ?? ""}
-                    size="sm"
-                    onChange={(differentialEquationId) => {
-                      if (differentialEquationId) {
-                        updatePlace({
-                          placeId: place.id,
-                          update: { differentialEquationId },
-                        });
-                      }
-                    }}
-                    items={availableDiffEqs.map((eq) => ({
-                      value: eq.id,
-                      text: eq.name,
-                    }))}
-                    disabled={isReadOnly}
-                  />
-                </Tooltip>
-
-                {place.differentialEquationId && (
-                  <div className={relatedActionsStyle}>
-                    <Button
-                      variant="ghost"
-                      tone="neutral"
-                      size="xs"
-                      onClick={() => {
-                        if (place.differentialEquationId) {
-                          selectItem({
-                            type: "differentialEquation",
-                            id: place.differentialEquationId,
-                          });
-                        }
-                      }}
-                      iconName="arrowRight"
-                      iconPosition="right"
-                    >
-                      View equation
-                    </Button>
-                  </div>
-                )}
-              </>
-            )
-          )}
-        </Section>
-      )}
       <Section title="Options">
         <div className={optionRowStyle}>
           <Checkbox

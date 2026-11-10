@@ -19,7 +19,6 @@ function place(id: string, capacity?: number): Place {
     name: id,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     ...(capacity === undefined ? {} : { capacity }),

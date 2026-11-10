@@ -67,7 +67,7 @@ The uppercase section headers stack at the top as you scroll each column. Earlie
 
 Each simulation step proceeds in two phases:
 
-1. **Continuous dynamics** -- for every place with dynamics enabled, the differential equation is integrated one step (Euler method, step size = dt). This updates all token dimension values.
+1. **Continuous dynamics** -- for every place with dynamics enabled, its differential equations are integrated one step (Euler method, step size = dt). The derivatives of every [listed equation](petri-net-extensions.md#composing-equations) are summed first, an equation over several tokens contributing once per combination of that many tokens. This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
    - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met, and enough room in any output place with a [token capacity](drawing-a-net.md#token-capacity)).

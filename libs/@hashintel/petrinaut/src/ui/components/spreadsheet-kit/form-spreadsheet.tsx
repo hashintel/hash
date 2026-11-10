@@ -1,14 +1,14 @@
 /**
- * @layerRoot ui.adhoc-form.spreadsheet
- * @role The state-agnostic spreadsheet grammar the form's tables compose: shell, gutter cells and menus, phantom add-lines, row selection
+ * @layerRoot ui.spreadsheet-kit
+ * @role The state-agnostic spreadsheet grammar the editor's tables compose: shell, gutter cells and menus, text cells, phantom add-lines, row selection and reordering
  *
- * The bordered table shell every form spreadsheet renders into: the scroll
+ * The bordered table shell every spreadsheet renders into: the scroll
  * container that registers as a member of the enclosing worksheet stack,
- * and the table with the form's fixed layout. The rows inside stay the
- * owning table's business.
+ * and the table with the fixed layout. The rows inside stay the owning
+ * table's business.
  *
- * Nothing in this folder knows `AdHocScenarioState` — that is what keeps
- * the tables thin and the grammar reusable.
+ * Nothing in this folder knows the ad-hoc form's state or the net — that is
+ * what keeps the tables thin and the grammar reusable.
  */
 
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -39,6 +39,9 @@ export interface FormSpreadsheetProps {
   frame?: "regular" | "light";
   /** "raised" darkens the grid a step; "plain" (default) stays white. */
   tone?: "plain" | "raised";
+  /** The width below which the container scrolls instead of squeezing the
+   * columns. */
+  minWidth?: number;
   children: ReactNode;
 }
 
@@ -47,6 +50,7 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
   ariaLabel,
   frame = "regular",
   tone = "plain",
+  minWidth,
   children,
 }) => (
   <div
@@ -58,6 +62,8 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
     )}
     aria-label={ariaLabel}
   >
-    <table className={tableStyle}>{children}</table>
+    <table className={tableStyle} style={{ minWidth }}>
+      {children}
+    </table>
   </div>
 );

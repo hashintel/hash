@@ -32,6 +32,7 @@ import type {
   Span,
 } from "./hir";
 import type {
+  HirDynamicsContext,
   HirFunctionContext,
   HirKernelContext,
   HirLambdaContext,
@@ -290,7 +291,12 @@ class Typechecker {
   private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        return { kind: "array", element: hirTokenRecordType(context.elements) };
+        // The function's input is a tuple of exactly `arity` tokens.
+        return {
+          kind: "array",
+          element: hirTokenRecordType(context.elements),
+          length: context.arity,
+        };
       case "lambda":
       case "kernel":
         return transitionInputType(context);
@@ -1014,44 +1020,43 @@ class Typechecker {
 
     switch (context.surface) {
       case "dynamics": {
+        const { arity } = context;
+        if (arity === 1) {
+          // One token in, one derivative record out.
+          if (returnType.kind !== "record") {
+            if (returnType.kind !== "unknown") {
+              this.report(
+                bodySpan,
+                "hir:dynamics-return",
+                `An equation over one token must return one derivative record, got ${formatHirType(returnType)}.`,
+              );
+            }
+            return;
+          }
+          this.checkDerivativeRecord(returnType, fn, bodySpan, context);
+          return;
+        }
         if (returnType.kind !== "array") {
           if (returnType.kind !== "unknown") {
             this.report(
               bodySpan,
               "hir:dynamics-return",
-              `Dynamics must return an array of derivative records (one per token), got ${formatHirType(returnType)}.`,
+              `An equation over ${arity} tokens must return an array of ${arity} derivative records (one per token), got ${formatHirType(returnType)}.`,
             );
           }
           return;
+        }
+        if (returnType.length !== undefined && returnType.length !== arity) {
+          this.report(
+            bodySpan,
+            "hir:dynamics-return",
+            `An equation over ${arity} tokens must return ${arity} derivative records, one per token, got ${returnType.length}.`,
+          );
         }
         if (returnType.element.kind !== "record") {
           return;
         }
-        const elementByName = new Map(
-          context.elements.map((element) => [element.name, element]),
-        );
-        for (const field of returnType.element.fields) {
-          const element = elementByName.get(field.name);
-          if (!element) {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:unknown-attribute",
-              `\`${field.name}\` is not an attribute of this type.`,
-            );
-          } else if (element.type !== "real") {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:discrete-derivative",
-              `\`${field.name}\` is a discrete (${element.type}) attribute — only real attributes can have derivatives.`,
-            );
-          } else if (!isNumeric(field.type)) {
-            this.report(
-              this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
-              "hir:type-mismatch",
-              `The derivative of \`${field.name}\` must be a number, got ${formatHirType(field.type)}.`,
-            );
-          }
-        }
+        this.checkDerivativeRecord(returnType.element, fn, bodySpan, context);
         return;
       }
       case "lambda": {
@@ -1385,6 +1390,41 @@ class Typechecker {
       return this.resultRecordLit(expr.body);
     }
     return null;
+  }
+
+  /** Every key of a derivative record names a real attribute of the colour
+   * and carries a number. */
+  private checkDerivativeRecord(
+    record: Extract<HirType, { kind: "record" }>,
+    fn: HirFunction,
+    bodySpan: Span,
+    context: HirDynamicsContext,
+  ): void {
+    const elementByName = new Map(
+      context.elements.map((element) => [element.name, element]),
+    );
+    for (const field of record.fields) {
+      const element = elementByName.get(field.name);
+      if (!element) {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:unknown-attribute",
+          `\`${field.name}\` is not an attribute of this type.`,
+        );
+      } else if (element.type !== "real") {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:discrete-derivative",
+          `\`${field.name}\` is a discrete (${element.type}) attribute — only real attributes can have derivatives.`,
+        );
+      } else if (!isNumeric(field.type)) {
+        this.report(
+          this.derivativeKeySpan(fn.body, field.name) ?? bodySpan,
+          "hir:type-mismatch",
+          `The derivative of \`${field.name}\` must be a number, got ${formatHirType(field.type)}.`,
+        );
+      }
+    }
   }
 
   /** Span of the `name:` key inside the derivative record literal returned by

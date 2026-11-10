@@ -13,7 +13,6 @@ const definition: SDCPN = {
     ...place,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
   })),
   transitions: [
     {
@@ -94,7 +93,6 @@ const definitionWithSubnet: SDCPN = {
           isPort: true,
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },

@@ -1,4 +1,5 @@
 import { getArcEndpoint } from "../../arc-endpoints";
+import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 
 import type {
@@ -328,9 +329,10 @@ const flattenNet = ({
       ...place,
       id,
       colorId: place.colorId ? (typeIdMap.get(place.colorId) ?? null) : null,
-      differentialEquationId: place.differentialEquationId
-        ? (equationIdMap.get(place.differentialEquationId) ?? null)
-        : null,
+      ...remapPlaceDynamics(
+        place,
+        (equationId) => equationIdMap.get(equationId) ?? equationId,
+      ),
     });
   }
 

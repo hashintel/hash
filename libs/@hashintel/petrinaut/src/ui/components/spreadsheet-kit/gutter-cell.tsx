@@ -2,14 +2,22 @@
  * The inside of a gutter cell, shared by every row-owning table: the main
  * button (focus selects the row, a pointer click selects first, Enter or the
  * trailing dots button opens the row menu, Delete removes the row) and the
- * `GutterMenu` itself, with the dismiss-refocus choreography. The owning
- * `<td>` stays with the table — it carries the table's own tints and widths.
+ * `GutterMenu` itself, with the dismiss-refocus choreography. Inside a
+ * `ReorderableRow` the main button is also the row's drag handle. The
+ * owning `<td>` stays with the table — it carries the table's own tints and
+ * widths.
  */
 
-import { Tooltip } from "@hashintel/ds-components";
+import { Icon, Tooltip } from "@hashintel/ds-components";
+import { cx } from "@hashintel/ds-helpers/css";
 
-import { gutterButtonStyle, gutterMenuButtonStyle } from "./form-table";
+import {
+  dragHandleButtonStyle,
+  gutterButtonStyle,
+  gutterMenuButtonStyle,
+} from "./form-table";
 import { GutterMenu } from "./gutter-menu";
+import { useRowDragHandle } from "./reorderable-rows";
 
 import type { GutterMenuItem } from "./gutter-menu";
 import type { ReactNode } from "react";
@@ -40,9 +48,9 @@ export interface GutterCellProps {
   /** Delete/Backspace on the selected gutter. */
   onDelete: () => void;
   /**
-   * No row actions: the menu, the dots affordance, and Delete are gone,
-   * while the button stays focusable so the row can still be selected and
-   * walked (the form's run mode).
+   * No row actions: the menu, the dots affordance, Delete and the drag
+   * handle are gone, while the button stays focusable so the row can still
+   * be selected and walked.
    */
   readOnly?: boolean;
 }
@@ -64,14 +72,25 @@ export const GutterCell: React.FC<GutterCellProps> = ({
   onDelete,
   readOnly = false,
 }) => {
+  const dragHandle = useRowDragHandle();
+  const draggable =
+    !readOnly && dragHandle !== null && dragHandle.listeners !== undefined;
+
   const button = (
     <button
-      ref={buttonRef}
+      ref={(element) => {
+        buttonRef?.(element);
+        if (draggable) {
+          dragHandle.ref(element);
+        }
+      }}
       type="button"
-      className={gutterButtonStyle}
+      className={cx(gutterButtonStyle, draggable && dragHandleButtonStyle)}
+      data-dragging={draggable && dragHandle.dragging ? "" : undefined}
       aria-label={label}
-      aria-haspopup="menu"
-      aria-expanded={menuAnchor !== null}
+      aria-haspopup={readOnly ? undefined : "menu"}
+      aria-expanded={readOnly ? undefined : menuAnchor !== null}
+      aria-keyshortcuts={draggable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
       onFocus={onFocus}
       onBlur={onBlur}
       onKeyDown={(event) => {
@@ -92,8 +111,18 @@ export const GutterCell: React.FC<GutterCellProps> = ({
           onOpenMenu(event.currentTarget);
         }
       }}
+      {...(draggable ? dragHandle.listeners : undefined)}
     >
-      {glyph}
+      {draggable ? (
+        <>
+          <span data-glyph>{glyph}</span>
+          <span data-grip aria-hidden>
+            <Icon name="gripVertical" size="xs" />
+          </span>
+        </>
+      ) : (
+        glyph
+      )}
     </button>
   );
 

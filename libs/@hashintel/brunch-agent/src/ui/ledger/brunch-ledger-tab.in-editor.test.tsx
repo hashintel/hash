@@ -130,7 +130,6 @@ test("a reflection's net elements become the editor's selection, which the Ledge
                 name: "Reservoir",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 x: 0,
                 y: 0,
               },

@@ -275,9 +275,9 @@ vi.mock("@hashintel/petrinaut", async () => {
     return null;
   };
   return {
-    canonicalizePetrinautIds: core.canonicalizePetrinautIds,
     createJsonDocHandle: core.createJsonDocHandle,
     isSDCPNEqual: core.isSDCPNEqual,
+    normalizeSDCPN: core.normalizeSDCPN,
     ErrorTrackerContext,
     Petrinaut,
   };
@@ -531,7 +531,6 @@ const definition = (name: string): SDCPN => ({
       name,
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },

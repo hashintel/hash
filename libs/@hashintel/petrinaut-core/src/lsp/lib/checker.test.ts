@@ -81,11 +81,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map((token) => {
-                const value = token.x;
-                return { x: value };
-              });
+            code: `export default Dynamics((token, parameters) => {
+              const value = token.x;
+              return { x: value };
             });`,
           },
         ],
@@ -115,10 +113,10 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics(({ x }, parameters) => {
               const a = parameters.alpha;
               const e = parameters.enabled;
-              return tokens.map(({ x }) => ({ x }));
+              return { x };
             });`,
           },
         ],
@@ -149,9 +147,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              const value = tokens[0].undefinedProperty;
-              return tokens;
+            code: `export default Dynamics((token, parameters) => {
+              const value = token.undefinedProperty;
+              return { x: value };
             });`,
           },
         ],
@@ -188,10 +186,8 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map(({ x, count, flag }) => {
-                return { x: flag ? x + count : x };
-              });
+            code: `export default Dynamics(({ x, count, flag }, parameters) => {
+              return { x: flag ? x + count : x };
             });`,
           },
         ],
@@ -220,10 +216,8 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
-              return tokens.map(({ x }) => {
-                return { x: 1, flag: 0 };
-              });
+            code: `export default Dynamics(({ x }, parameters) => {
+              return { x: 1, flag: 0 };
             });`,
           },
         ],
@@ -261,9 +255,9 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics((token, parameters) => {
               const value = parameters.undefinedParam;
-              return tokens;
+              return { x: value };
             });`,
           },
         ],
@@ -289,7 +283,7 @@ describe("checkSDCPN", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code: `export default Dynamics((tokens, parameters) => {
+            code: `export default Dynamics((token, parameters) => {
               const x = ;
             });`,
           },
@@ -306,6 +300,133 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
       expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
       expect(result.itemDiagnostics[0]?.diagnostics.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Differential Equations with an arity", () => {
+    const equationOver = (arity: number) => (code: string) =>
+      createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "v", type: "real" },
+            ],
+          },
+        ],
+        differentialEquations: [{ colorId: "color1", code, arity }],
+      });
+    const single = equationOver(1);
+    const pairwise = equationOver(2);
+
+    it("types the ambient token of a one-token body", () => {
+      const result = check(single(`return { x: token.v };`));
+
+      expect(result.itemDiagnostics).toHaveLength(0);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("rejects the tokens tuple in a one-token body", () => {
+      const code = `return { x: tokens[0].v };`;
+      const result = check(single(code));
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics).toHaveLength(1);
+      expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some(
+          (diag) =>
+            diag.start === code.indexOf("tokens") &&
+            ts
+              .flattenDiagnosticMessageText(diag.messageText, "\n")
+              .includes("Cannot find name 'tokens'"),
+        ),
+      ).toBe(true);
+    });
+
+    it("types the ambient tokens as a tuple of the arity", () => {
+      const result = check(
+        pairwise(`const [a, b] = tokens;
+const d = b.x - a.x;
+return [{ v: d }, { v: -d }];`),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("types the module form's token parameters", () => {
+      const result = check(
+        pairwise(`export default Dynamics((a, b, parameters) => [
+  { v: b.x - a.x },
+  { v: a.x - b.x },
+]);`),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("reports an arity outside the supported range without sizing types by it", () => {
+      const result = check(
+        createSDCPN({
+          types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+          differentialEquations: [
+            { colorId: "color1", code: "return { x: 1 };", arity: 100_000_000 },
+          ],
+        }),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("between 1 and 8 tokens"),
+        ),
+      ).toBe(true);
+    });
+
+    it("rejects an index past the tuple", () => {
+      const result = check(pairwise(`return [{ v: tokens[2].x }, { v: 0 }];`));
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("length '2'"),
+        ),
+      ).toBe(true);
+    });
+
+    it("rejects a result with the wrong number of records", () => {
+      const result = check(
+        pairwise(`const [a, b] = tokens;
+return [{ v: b.x - a.x }];`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.itemDiagnostics[0]!.diagnostics.length).toBeGreaterThan(0);
+    });
+
+    it("rejects a module form with too few token parameters", () => {
+      const result = check(
+        pairwise(`export default Dynamics((a, parameters) => [
+  { v: 1 },
+  { v: -1 },
+]);`),
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(
+        result.itemDiagnostics[0]!.diagnostics.some((diag) =>
+          ts
+            .flattenDiagnosticMessageText(diag.messageText, "\n")
+            .includes("2 token parameters"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -539,7 +660,6 @@ describe("checkSDCPN", () => {
                 name: "PortIn",
                 colorId: "subnet-color",
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -1014,7 +1134,6 @@ describe("checkSDCPN", () => {
                 name: "PortOut",
                 colorId: "subnet-color",
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -1590,9 +1709,7 @@ return { Target: [{ x: source.x + parameters.rate }] };`,
         differentialEquations: [
           {
             colorId: "color1",
-            code: `return tokens.map(({ x }) => {
-  return { x: -x * parameters.rate };
-});`,
+            code: `return { x: -token.x * parameters.rate };`,
           },
         ],
         parameters: [

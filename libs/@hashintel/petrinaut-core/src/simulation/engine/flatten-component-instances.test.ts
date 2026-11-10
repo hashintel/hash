@@ -22,7 +22,6 @@ const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...overrides,
@@ -144,7 +143,15 @@ describe("flattenComponentInstancesForSimulation", () => {
       id: "flow",
       name: "Flow",
       colorId: "token",
-      code: "export default Dynamics(() => []);",
+      code: "export default Dynamics((token) => ({}));",
+      arity: 1,
+    };
+    const pairwise: DifferentialEquation = {
+      id: "pull",
+      name: "Pull",
+      colorId: "token",
+      code: "return [{ x: 1 }, { x: -1 }];",
+      arity: 2,
     };
     const definition = sdcpn({
       places: [place("root")],
@@ -169,14 +176,17 @@ describe("flattenComponentInstancesForSimulation", () => {
       subnets: [
         subnet("processor", {
           types: [color],
-          differentialEquations: [equation],
+          differentialEquations: [equation, pairwise],
           places: [
             place("port-in", {
               name: "Port In",
               isPort: true,
               colorId: "token",
               dynamicsEnabled: true,
-              differentialEquationId: "flow",
+              dynamics: [
+                { differentialEquationId: "flow" },
+                { differentialEquationId: "pull" },
+              ],
             }),
           ],
           transitions: [
@@ -198,15 +208,20 @@ describe("flattenComponentInstancesForSimulation", () => {
     expect(result.sdcpn.types.map(({ id }) => id)).toEqual(["worker::token"]);
     expect(result.sdcpn.differentialEquations).toMatchObject([
       { id: "worker::flow", colorId: "worker::token" },
+      { id: "worker::pull", colorId: "worker::token", arity: 2 },
     ]);
     expect(result.sdcpn.places).toMatchObject([
       { id: "root" },
       {
         id: "worker::port-in",
         colorId: "worker::token",
-        differentialEquationId: "worker::flow",
+        dynamics: [
+          { differentialEquationId: "worker::flow" },
+          { differentialEquationId: "worker::pull" },
+        ],
       },
     ]);
+    expect(result.sdcpn.places[0]).not.toHaveProperty("dynamics");
     expect(result.sdcpn.transitions).toMatchObject([
       {
         id: "send",
