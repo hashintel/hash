@@ -161,6 +161,7 @@ const Mark = ({ status, tooltip }: { status: RunStatus; tooltip?: string }) => (
   <RunGlyph
     state={status.state}
     warnings={status.warnings}
+    run
     detail={tooltip}
     tooltip={tooltip !== undefined}
   />

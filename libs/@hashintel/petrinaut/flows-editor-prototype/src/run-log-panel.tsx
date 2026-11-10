@@ -29,6 +29,7 @@ import {
   warningsText,
   runWhen,
 } from "./run-history";
+import { oldStatusWords } from "./status-grammar";
 import { type LogRow, logRows, secondsText } from "./run-log";
 import { BusinessRunLog, runLogTake } from "./run-log-business";
 import {
@@ -608,7 +609,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
                 setOpenIds((current) => ({ ...current, loop: true }))
               }
             >
-              {outcome === "warnings"
+              {outcome === "warnings" && oldStatusWords
                 ? warningsText(failed)
                 : `${failed} failed`}
             </Button>

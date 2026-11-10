@@ -76,6 +76,7 @@ export const StatusCell = ({
   small = false,
   warnings = false,
   textClassName,
+  run = false,
 }: {
   state: StepState;
   progress?: ItemProgress;
@@ -87,6 +88,8 @@ export const StatusCell = ({
   textFirst?: boolean;
   /** Smaller, subtler text, for the step list. */
   small?: boolean;
+  /** The cell is a run's, not a step's. */
+  run?: boolean;
   /** A run that completed with warnings. */
   warnings?: boolean;
   /** Extra class on the text, for the ?rowtext= takes that hide it until the row is hovered. */
@@ -107,6 +110,7 @@ export const StatusCell = ({
       detail={detail}
       size={size}
       warnings={warnings}
+      run={run}
     />
   );
   return (

@@ -885,7 +885,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                   {statusTake ? (
                     <RunStatusTakeCell run={run} now={now} take={statusTake} />
                   ) : (
-                    <StatusCell {...statusCellOf(run, now)} />
+                    <StatusCell {...statusCellOf(run, now)} run />
                   )}
                 </td>
                 {statusTake === "c" && !colsTake ? (
@@ -1669,19 +1669,19 @@ const Overview = ({ history }: { history: HistoryValue }) => {
       : [
           onlyWarning
             ? {
-                label: "With warnings",
+                label: statusWord("With warnings", "Items failed"),
                 text: `${runLabel(onlyWarning)} · ${onlyWarning.when}`,
                 color: "var(--flows-warnings-text)",
                 onOpen: () => history.open(onlyWarning.id),
               }
-            : { label: "With warnings", text: `${withWarnings.length} runs` },
+            : { label: statusWord("With warnings", "Items failed"), text: `${withWarnings.length} runs` },
         ]),
     { label: "Next run", text: "1 Dec, 09:00" },
     // MOCK: a fixed median until runs carry real durations.
     {
       label: "Average run time",
       text: "1m 44s",
-      tooltip: "Median of completed runs",
+      tooltip: statusWord("Median of completed runs", "Median of done runs"),
     },
   ];
   const failures: { runId: number; title: string; line: string }[] =
@@ -1693,7 +1693,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
           {
             runId: run.id,
             title: `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
-            line: `${runLabel(run)} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
+            line: `${runLabel(run)} · ${run.when} · ${statusWord(`completed, ${warningsText(facts.failures.length)}`, `Done · ${facts.failures.length} failed`)}`,
           },
         ];
       }
@@ -1703,9 +1703,9 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             runId: run.id,
             title:
               facts.find === "failed"
-                ? "Find entities · timed out"
-                : "Quality sign-off · timed out",
-            line: `${runLabel(run)} · ${run.when} · failed`,
+                ? statusWord("Find entities · timed out", "Failed at Find entities")
+                : statusWord("Quality sign-off · timed out", "Failed at Quality sign-off"),
+            line: `${runLabel(run)} · ${run.when} · ${statusWord("failed", "Failed")}`,
           },
         ];
       }
@@ -1815,7 +1815,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          Recent failures and warnings
+          {statusWord("Recent failures and warnings", "Recent failures")}
         </span>
         {failures.map((failure) => (
           <button

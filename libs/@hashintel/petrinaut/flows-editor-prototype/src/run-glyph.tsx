@@ -45,7 +45,7 @@ const glyphLabel: Record<StepState, string> = {
   failed: "Failed",
   needsReview: "Needs review",
   skipped: "Skipped",
-  abandoned: "Abandoned",
+  abandoned: statusWord("Abandoned", "Skipped"),
   doneWithFailures: statusWord("Partly done", "Done"),
 };
 
@@ -75,9 +75,15 @@ export const glyphTooltip = (
   state: StepState,
   progress?: GlyphProgress,
   detail?: string,
+  run = false,
 ) => {
   const extra = detail ?? progressDetail(state, progress);
-  return extra ? `${glyphLabel[state]} · ${extra}` : glyphLabel[state];
+  // A stopped run is Cancelled, a stopped step Skipped.
+  const word =
+    run && state === "abandoned"
+      ? statusWord("Abandoned", "Cancelled")
+      : glyphLabel[state];
+  return extra ? `${word} · ${extra}` : word;
 };
 
 /**
@@ -431,16 +437,19 @@ export const RunGlyph = ({
   detail,
   tooltip = true,
   warnings = false,
+  run = false,
 }: {
   state: StepState;
   size?: number;
   progress?: GlyphProgress;
   detail?: string;
   tooltip?: boolean;
+  /** The mark is a run's, not a step's: a stopped run says Cancelled. */
+  run?: boolean;
   /** A run that completed with warnings: its done mark takes the warnings colour (amber under ?done=neutral). */
   warnings?: boolean;
 }) => {
-  const label = glyphTooltip(state, progress, detail);
+  const label = glyphTooltip(state, progress, detail, run);
   const mark =
     glyphSet === "old" ? (
       <OldRunGlyph state={state} size={size} label={label} />

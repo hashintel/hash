@@ -446,7 +446,7 @@ export const Editor = ({
               ui.history &&
               new URLSearchParams(globalThis.location.search).get(
                 "runtiles",
-              ) !== "pa"
+              ) === "neutral"
                 ? true
                 : undefined
             }

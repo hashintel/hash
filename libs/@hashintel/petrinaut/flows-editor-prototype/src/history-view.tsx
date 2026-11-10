@@ -288,6 +288,7 @@ export const RunSwitcher = ({
               state={outcomeState[outcomeOf(candidate, now)]}
               progress={runProgress(candidate, now)}
               warnings={outcomeOf(candidate, now) === "warnings"}
+              run
               size={14}
             />
             <span>

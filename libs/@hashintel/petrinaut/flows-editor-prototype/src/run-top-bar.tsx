@@ -727,6 +727,7 @@ export const RunTopBar = ({
                 <RunGlyph
                   state={outcomeState[outcome]}
                   warnings={outcome === "warnings"}
+                  run
                   size={12}
                 />
                 <RunSwitcher

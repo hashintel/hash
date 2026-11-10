@@ -266,6 +266,7 @@ export const Home = ({
                           <RunGlyph
                             state={flow.lastRun.state}
                             progress={flow.lastRun.progress}
+                            run
                           />
                           <RunIdsIn
                             text={

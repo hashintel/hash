@@ -811,8 +811,9 @@ export const pickerPalette = (): "a" | "b" | "c" | "d" | null => {
 };
 
 /**
- * With a palette, tiles are neutral in the run view and Logs: `app.tsx` marks the root `data-run-tiles` there, and
- * `applyPalette` points these variables at the neutral steps under it.
+ * The run view and Logs use the editor's group hues (10 Nov: "none of our tiles are grey"). `?runtiles=neutral` brings
+ * back the neutral tiles from before: `app.tsx` then marks the root `data-run-tiles`, and `applyPalette` points these
+ * variables at the neutral steps under it.
  */
 const runTile = (property: "bg" | "icon", colour: string) =>
   pickerPalette() && !circleTiles ? `var(--flows-run-tile-${property}, ${colour})` : colour;
@@ -980,7 +981,7 @@ export const panelTileColor = (icon: string): CSSProperties => {
  * `?treetiles=b|c|d` (inbox status-colour-steps, open): the Steps tree's tiles apart from the canvas and Add menu.
  * Unset or `a` is P-a everywhere, as now. b: neutral tree tiles (the 2 Nov rule); c: the group hue on the icon only,
  * on a neutral tile (P-c); d: P-a one step fainter (tile s15, yellow s20; icon one step lighter). Under P-a the run
- * view still makes them neutral unless `?runtiles=pa`.
+ * view uses the same hues unless `?runtiles=neutral`.
  * d1..d4 keep the P-a hues, quieter. d1: tile one step fainter (s20; yellow s20 too, as its s30 has 8× the others'
  * chroma), icon as P-a; d2: tile and icon one step fainter each, icons held at ≥ 3:1 on white (yellow has no lighter
  * step that passes, so People keeps s110); d3: tile nearly white (s10, yellow s15), the hue carried by the icon;
