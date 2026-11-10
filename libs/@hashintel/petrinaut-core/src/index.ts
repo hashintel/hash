@@ -366,6 +366,47 @@ export type {
   TraceEventKind,
 } from "./simulation/event-trace";
 
+// --- Simulators (experimental) ---
+export {
+  assessSimulator,
+  builtInSimulatorManifests,
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
+  defaultSimulatorParameters,
+  defineSimulator,
+  jsAdaptiveSimulatorManifest,
+  jsFixedStepSimulatorManifest,
+  resolveSimulatorParameters,
+  simulatorFromExperimentBackend,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
+  webGpuFixedStepSimulatorManifest,
+} from "./simulation/simulators";
+export type {
+  JsAdaptiveSimulatorOptions,
+  JsFixedStepSimulatorOptions,
+  ResolvedSimulatorParameters,
+  SimulationRequest,
+  SimulationRequestBase,
+  Simulator,
+  SimulatorAssessment,
+  SimulatorExperimentRequest,
+  SimulatorImplementation,
+  SimulatorManifest,
+  SimulatorOffer,
+  SimulatorParameterProblem,
+  SimulatorParameterSpec,
+  SimulatorParameterSpecs,
+  SimulatorParameterValues,
+  SimulatorProducts,
+  SimulatorRegistration,
+  SimulatorSelectionOutcome,
+  SimulatorStart,
+  SimulatorStartOptions,
+  StoredSimulatorParameters,
+  WebGpuFixedStepSimulatorOptions,
+} from "./simulation/simulators";
+
 // --- Playback ---
 export {
   createEventPlayback,
