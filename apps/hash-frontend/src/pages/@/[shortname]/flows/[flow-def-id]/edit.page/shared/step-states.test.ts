@@ -140,10 +140,10 @@ describe("getStepRunMarks", () => {
   });
 
   it("shows a for-each step whose every item failed as failed", () => {
-    const marks = marksOf(
-      [itemRun("fetch", 0, FlowStepStatus.Failed)],
-      { itemCount: 1, live: false },
-    );
+    const marks = marksOf([itemRun("fetch", 0, FlowStepStatus.Failed)], {
+      itemCount: 1,
+      live: false,
+    });
 
     expect(marks.get("eachSupplier")?.state).toBe("failed");
     expect(marks.get("send")?.state).toBe("notReached");
