@@ -9,6 +9,7 @@ import {
   findDangerousSdcpnKeys,
 } from "../validation/record-keys";
 import { parseDocumentText } from "./document-text";
+import { findUnknownKeys, keyTreeOf } from "./key-tree";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
@@ -16,6 +17,7 @@ import {
 } from "./types";
 
 import type { SDCPN } from "../types/sdcpn";
+import type { DocumentKeyPath } from "./key-tree";
 
 type SDCPNWithTitle = SDCPN & { title: string };
 
@@ -23,8 +25,21 @@ type SDCPNWithTitle = SDCPN & { title: string };
  * Result of attempting to import an SDCPN file.
  */
 export type ImportResult =
-  | { ok: true; sdcpn: SDCPNWithTitle; hadMissingPositions: boolean }
+  | {
+      ok: true;
+      sdcpn: SDCPNWithTitle;
+      hadMissingPositions: boolean;
+      /**
+       * Where the file carries a key that this build's file schema does not
+       * define. None of these keys is in `sdcpn`, so a file exported from it
+       * is written without them.
+       */
+      unknownKeys: ReadonlyArray<DocumentKeyPath>;
+    }
   | { ok: false; error: string };
+
+const fileKeys = keyTreeOf(sdcpnFileSchema);
+const legacyFileKeys = keyTreeOf(legacySdcpnFileSchema);
 
 /**
  * Checks whether any node positions are missing.
@@ -142,6 +157,7 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
  * to Petrinaut ids, then apply the record-key boundary check. */
 const toImportResult = (
   sdcpnData: Parameters<typeof fillMissingVisualInfo>[0],
+  unknownKeys: DocumentKeyPath[],
 ): ImportResult => {
   const sdcpn = canonicalizePetrinautIds(fillMissingVisualInfo(sdcpnData));
   return (
@@ -149,6 +165,7 @@ const toImportResult = (
       ok: true,
       sdcpn,
       hadMissingPositions: hasMissingPositions(sdcpnData),
+      unknownKeys,
     }
   );
 };
@@ -163,7 +180,7 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   const versioned = sdcpnFileSchema.safeParse(data);
   if (versioned.success) {
     const { version: _version, meta: _meta, ...sdcpnData } = versioned.data;
-    return toImportResult(sdcpnData);
+    return toImportResult(sdcpnData, findUnknownKeys(fileKeys, data));
   }
 
   // If the data has a `version` field but failed the versioned schema, reject it
@@ -191,7 +208,7 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Fall back to legacy format (current schema without version/meta)
   const legacy = legacySdcpnFileSchema.safeParse(data);
   if (legacy.success) {
-    return toImportResult(legacy.data);
+    return toImportResult(legacy.data, findUnknownKeys(legacyFileKeys, data));
   }
 
   return {

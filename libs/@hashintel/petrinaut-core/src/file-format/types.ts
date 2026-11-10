@@ -20,7 +20,16 @@ import {
   scenarioSchema as currentScenarioSchema,
 } from "../schemas/scenario-schema";
 
-export const SDCPN_FILE_FORMAT_VERSION = 1;
+/**
+ * The highest file format version this build reads.
+ *
+ * Version 2 has the structure of version 1 and marks a file that uses a key
+ * version 1 does not define. A reader of version 1 drops such a key without
+ * reporting it and refuses every version above 1, so it refuses that file. A
+ * reader of version 2 reports the keys it does not define, so a key the
+ * format gains later needs no further version.
+ */
+export const SDCPN_FILE_FORMAT_VERSION = 2;
 
 /*
  * File import intentionally stays more permissive than current runtime/action

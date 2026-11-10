@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import * as examples from "../examples/index";
 import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
 import { serializeSDCPN } from "./serialize-sdcpn";
+
+import type { SDCPN } from "../types/sdcpn";
 
 const sourceDocument = {
   version: 1,
@@ -157,6 +160,68 @@ describe("serializeSDCPN", () => {
       "componentInstances",
       "transitions",
     ]);
+  });
+
+  describe("format version", () => {
+    const versionOf = (petriNetDefinition: SDCPN): unknown =>
+      (
+        JSON.parse(
+          serializeSDCPN({ petriNetDefinition, title: "Net", format: "json" }),
+        ) as { version: unknown }
+      ).version;
+
+    /** `sdcpn` with `extra` added to its first place, as a later build's net would carry it. */
+    const withPlaceKeys = (extra: Record<string, unknown>): SDCPN => {
+      const sdcpn = parseFixture();
+      return {
+        ...sdcpn,
+        places: sdcpn.places.map((place, index) =>
+          index === 0 ? { ...place, ...extra } : place,
+        ),
+      };
+    };
+
+    it.each(Object.entries(examples))(
+      "writes the %s example as version 1",
+      (_name, { petriNetDefinition }) => {
+        expect(versionOf(petriNetDefinition)).toBe(1);
+      },
+    );
+
+    it("writes a net that uses a key version 1 does not define as version 2", () => {
+      expect(versionOf(withPlaceKeys({ portDirection: "in" }))).toBe(2);
+    });
+
+    it("keeps `version` first in a version 2 file", () => {
+      const text = serializeSDCPN({
+        petriNetDefinition: withPlaceKeys({ portDirection: "in" }),
+        title: "Net",
+      });
+
+      expect(text.startsWith("version: 2\n")).toBe(true);
+    });
+
+    it.each([
+      ["undefined", undefined],
+      ["null", null],
+      ["an empty array", []],
+      ["an empty object", {}],
+    ])("keeps version 1 when such a key holds %s", (_label, held) => {
+      expect(versionOf(withPlaceKeys({ later: held }))).toBe(1);
+    });
+
+    it("reads back a version 2 file, reporting the key this build does not define", () => {
+      const reimported = parseSDCPNDocument(
+        serializeSDCPN({
+          petriNetDefinition: withPlaceKeys({ portDirection: "in" }),
+          title: "Net",
+        }),
+      );
+
+      expect(reimported.ok).toBe(true);
+      if (!reimported.ok) return;
+      expect(reimported.unknownKeys).toEqual([["places", 0, "portDirection"]]);
+    });
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

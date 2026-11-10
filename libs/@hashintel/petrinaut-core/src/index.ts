@@ -651,6 +651,7 @@ export {
   type DocumentFormat,
   type ParseDocumentTextResult,
 } from "./file-format/document-text";
+export { type DocumentKeyPath } from "./file-format/key-tree";
 export {
   parseSDCPNDocument,
   parseSDCPNFile,

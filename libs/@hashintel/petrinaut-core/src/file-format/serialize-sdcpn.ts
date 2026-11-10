@@ -1,6 +1,7 @@
 import { serializeDocument } from "./document-text";
+import { findUnknownKeys } from "./key-tree";
 import { removeVisualInformation } from "./remove-visual-info";
-import { SDCPN_FILE_FORMAT_VERSION } from "./types";
+import { version1Keys } from "./serialize-sdcpn/version-1-keys";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
 import type { DocumentFormat } from "./document-text";
@@ -71,6 +72,13 @@ const pickInOrder = (
 };
 
 /**
+ * Whether `document` uses a key that file format version 1 does not define.
+ * A reader of version 1 drops such a key without reporting it.
+ */
+const usesKeysBeyondVersion1 = (document: Record<string, unknown>): boolean =>
+  findUnknownKeys(version1Keys, document).length > 0;
+
+/**
  * Serialize an SDCPN to the canonical file format string — YAML by default,
  * JSON on request. Both encodings carry the same structure and re-import
  * identically.
@@ -99,10 +107,10 @@ export function serializeSDCPN({
     ? removeVisualInformation(petriNetDefinition)
     : petriNetDefinition;
 
-  const payload = pickInOrder(
+  const document = pickInOrder(
     {
       ...sdcpnToExport,
-      version: SDCPN_FILE_FORMAT_VERSION,
+      version: 1,
       meta: {
         generator: "Petrinaut",
       },
@@ -114,5 +122,8 @@ export function serializeSDCPN({
     DOCUMENT_KEY_ORDER,
   );
 
-  return serializeDocument(payload, format);
+  return serializeDocument(
+    usesKeysBeyondVersion1(document) ? { ...document, version: 2 } : document,
+    format,
+  );
 }
