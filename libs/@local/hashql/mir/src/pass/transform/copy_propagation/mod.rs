@@ -48,7 +48,10 @@
 #[cfg(test)]
 mod tests;
 
-use core::{alloc::Allocator, convert::Infallible};
+use core::{
+    alloc::{Allocator, AllocatorNightly},
+    convert::Infallible,
+};
 
 use hashql_core::{
     graph::Predecessors as _,
@@ -124,7 +127,7 @@ pub(crate) fn propagate_block_params<'args, 'heap: 'args, T, A, E>(
 ) -> impl IntoIterator<Item = (Local, T)> + 'args
 where
     T: Copy + Eq,
-    A: Allocator,
+    A: Allocator + AllocatorNightly,
     E: FnMut(Operand<'heap>) -> Option<T>,
 {
     let pred = body.basic_blocks.predecessors(id);

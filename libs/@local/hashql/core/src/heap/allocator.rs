@@ -166,6 +166,8 @@ unsafe impl alloc::Allocator for Allocator {
     }
 }
 
+impl alloc::AllocatorNightly for Allocator {}
+
 #[repr(transparent)]
 pub struct AllocatorScope<'scope>(BumpScope<'scope>);
 
@@ -298,3 +300,5 @@ unsafe impl alloc::Allocator for AllocatorScope<'_> {
         }
     }
 }
+
+impl alloc::AllocatorNightly for AllocatorScope<'_> {}

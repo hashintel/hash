@@ -260,7 +260,7 @@ url = "https://github.com/protocolbuffers/protobuf/releases/download/v35.1/proto
 url_api = "https://api.github.com/repos/protocolbuffers/protobuf/releases/assets/445060254"
 
 [[tools.rust]]
-version = "nightly-2026-10-02"
+version = "nightly-2026-11-09"
 backend = "core:rust"
 
 [tools.rust.options]
@@ -345,9 +345,6 @@ url_api = "https://api.github.com/repos/typst/typst/releases/assets/480300018"
 [[tools."ubi:terrastruct/d2"]]
 version = "0.9.0"
 backend = "ubi:terrastruct/d2"
-
-[tools."ubi:terrastruct/d2"."platforms.macos-arm64-d2"]
-checksum = "blake3:f2105f786f3125f6f6f91681e2020ae0ebacd5885a1c0898329b5a45b6563ea9"
 
 [[tools.uv]]
 version = "0.13.6"

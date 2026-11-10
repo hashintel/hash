@@ -363,6 +363,7 @@ fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'he
     iter::once("").chain(path).intersperse("::").collect()
 }
 
+#[expect(unevaluated_default_field_value)]
 struct SpellingSuggestions<'heap, I> {
     name: Spanned<Symbol<'heap>>,
     candidates: I,

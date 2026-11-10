@@ -80,7 +80,7 @@ pub(super) struct Pending {
 
 impl Pending {
     /// Returns the total count of entries summed across every stage.
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.poll_database.len()
             + self.submit_workflow.len()
             + self.poll_workflow.len()

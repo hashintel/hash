@@ -1,7 +1,7 @@
 //! Certificates for the minibatch samplers.
 //!
 //! Distribution laws, per-type limits under skew, veto admission, and seeded reproducibility.
-use std::alloc::Global;
+use alloc::alloc::Global;
 
 use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
