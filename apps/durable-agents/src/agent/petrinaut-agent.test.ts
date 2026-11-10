@@ -1,8 +1,10 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
   createRegistry,
+  GenerationTask,
   Harness,
   MemoryStorage,
+  ToolTask,
 } from "@earendil-works/pi-durable";
 import { describe, expect, test } from "vitest";
 
@@ -33,6 +35,19 @@ describe("the minimal Petrinaut agent", () => {
     );
     expect(systemPrompt).toMatch(/^# Cyber-physical operational process/);
     expect(systemPrompt).not.toMatch(/ledger_compile|ledger-comments|Load `/);
+  });
+
+  test("selects the context projection and the tool admission hooks", () => {
+    const { agent } = createPetrinautAgent();
+    const hooks = agent.extensions.flatMap(({ hooks: registered = [] }) =>
+      registered.map(({ task, handlers }) => [task, Object.keys(handlers)]),
+    );
+    expect(hooks).toEqual(
+      expect.arrayContaining([
+        [GenerationTask.definition.name, ["beforeRequest"]],
+        [ToolTask.definition.name, ["beforeTool"]],
+      ]),
+    );
   });
 
   test("installs beside the server's own extensions and sends its prompt", async () => {
