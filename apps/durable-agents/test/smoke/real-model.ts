@@ -9,8 +9,9 @@
  * `ANTHROPIC_API_KEY` set: `yarn tsx test/smoke/real-model.ts`. It spends real
  * model requests, at most `budget` across every run that shares the ledger.
  *
- * - Turn 1 builds a place and a transition; the browser claims, starts and
- *   answers each call with a plausible result.
+ * - Turn 1 asks directly to build a place, a transition and an arc now; the
+ *   browser claims, starts and applies each call to its net. When the model
+ *   changes nothing, one firmer turn retries the request.
  * - Turn 2 asks a question the net answers; the browser answers net reads
  *   from what turn 1 built.
  * - Turn 3, when at least three requests remain, asks for a Ledger commit.
@@ -22,7 +23,7 @@
  * conversation and drops the conversation's schema.
  */
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -50,6 +51,8 @@ import {
   type BrowserCallResultBody,
   type BrowserContext,
   canonicalContent,
+  type ClientToolResultMetadata,
+  type NetStructure,
 } from "@hashintel/brunch-agent";
 
 import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
@@ -66,7 +69,7 @@ const model = process.env.SMOKE_MODEL ?? "anthropic/claude-sonnet-4-5";
  * every request (budget 0, its own ledger) and only turn 1 runs, briefly.
  */
 const dryRun = process.env.SMOKE_DRY_RUN === "1";
-const budget = dryRun ? 0 : 10;
+const budget = dryRun ? 0 : 29;
 const turnTimeoutMs = dryRun ? 20_000 : 4 * 60_000;
 const ledgerPath = join(
   tmpdir(),
@@ -162,51 +165,201 @@ const startServer = async () => {
   };
 };
 
-/** A browser that answers every call from a small net it keeps. */
+type NetItem = Record<string, unknown> & { id: string; name?: unknown };
+type Arc = Record<string, unknown> & { placeId?: unknown; endpoint?: unknown };
+
+/** Mutation tools the scripted browser applies to its net. */
+const netChangingTools = new Set([
+  "addPlace",
+  "addTransition",
+  "addArc",
+  "setNetTitle",
+]);
+
+/**
+ * A browser that applies place, transition and arc additions to a small net
+ * it keeps and answers net reads from it, in the panel's output shapes:
+ * `{ title, target, applied: true }` for an applied mutation
+ * (`tool-summaries.ts`), `{ title, definition, extensions }` for a read
+ * (`net-readers.ts`). It keeps IDs as the model sent them, where the panel
+ * would convert a non-UUID ID to a stable UUID.
+ */
 const fakeBrowser = () => {
-  const places: { id: string; name: string }[] = [];
-  const transitions: { id: string; name: string }[] = [];
-  const answer = (toolName: string, input: unknown): unknown => {
-    const fields = (input ?? {}) as { id?: unknown; name?: unknown };
-    const element = {
-      id: typeof fields.id === "string" ? fields.id : randomUUID(),
-      name: typeof fields.name === "string" ? fields.name : "",
+  let title = "Untitled";
+  const places: NetItem[] = [];
+  const transitions: (NetItem & { inputArcs: Arc[]; outputArcs: Arc[] })[] = [];
+  const nameOf = (items: NetItem[], id: unknown) =>
+    items.find((item) => item.id === id)?.name ?? id;
+  const placeIdOf = (arc: Arc) =>
+    arc.placeId ?? (arc.endpoint as { placeId?: unknown } | undefined)?.placeId;
+  const text = (value: unknown) =>
+    typeof value === "string" ? value : JSON.stringify(value);
+  const declined = (reason: string) => ({ applied: false, reason });
+  const withoutKeys = (item: NetItem, keys: readonly string[]) =>
+    Object.fromEntries(
+      Object.entries(item).filter(([key]) => !keys.includes(key)),
+    );
+  const read = (level: "outline" | "structure" | "full") => {
+    const left =
+      level === "full"
+        ? []
+        : [
+            "x",
+            "y",
+            "visualizerCode",
+            "metadata",
+            ...(level === "outline"
+              ? ["lambdaCode", "transitionKernelCode"]
+              : []),
+          ];
+    return {
+      title,
+      definition: {
+        places: places.map((place) => withoutKeys(place, left)),
+        transitions: transitions.map((transition) =>
+          withoutKeys(transition, left),
+        ),
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+        scenarios: [],
+        metrics: [],
+      },
+      extensions: {
+        colors: true,
+        stochasticity: true,
+        dynamics: true,
+        parameters: true,
+        subnets: true,
+      },
     };
+  };
+  const answer = (toolName: string, input: unknown): unknown => {
+    const { targetSubnetId: _subnet, ...fields }: Record<string, unknown> =
+      typeof input === "object" && input !== null
+        ? (input as Record<string, unknown>)
+        : {};
+    const id = typeof fields.id === "string" ? fields.id : randomUUID();
     switch (toolName) {
       case "addPlace":
-        places.push(element);
-        return { ok: true, id: element.id };
-      case "addTransition":
-        transitions.push(element);
-        return { ok: true, id: element.id };
-      case "readNetOutline":
-      case "readNetStructure":
+        if (places.some((place) => place.id === id))
+          return declined(
+            `Add place ${text(fields.name)} left the document unchanged.`,
+          );
+        places.push({ ...fields, id });
         return {
-          title: "Untitled",
-          definition: {
-            places: places.map((place) => ({
-              ...place,
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-            })),
-            transitions: transitions.map((transition) => ({
-              ...transition,
-              inputArcs: [],
-              outputArcs: [],
-              lambdaType: "predicate",
-            })),
-            types: [],
-            parameters: [],
-            differentialEquations: [],
-          },
-          extensions: {},
+          title: `Added place ${text(fields.name)}`,
+          target: { kind: "selection", item: { type: "place", id } },
+          applied: true,
         };
+      case "addTransition":
+        if (transitions.some((transition) => transition.id === id))
+          return declined(
+            `Add transition ${text(fields.name)} left the document unchanged.`,
+          );
+        transitions.push({
+          ...fields,
+          id,
+          inputArcs: Array.isArray(fields.inputArcs)
+            ? (fields.inputArcs as Arc[])
+            : [],
+          outputArcs: Array.isArray(fields.outputArcs)
+            ? (fields.outputArcs as Arc[])
+            : [],
+        });
+        return {
+          title: `Added transition ${text(fields.name)}`,
+          target: { kind: "selection", item: { type: "transition", id } },
+          applied: true,
+        };
+      case "addArc": {
+        const transition = transitions.find(
+          (each) => each.id === fields.transitionId,
+        );
+        const placeId = placeIdOf(fields);
+        if (
+          transition === undefined ||
+          !places.some((place) => place.id === placeId)
+        )
+          return declined("Add arc left the document unchanged.");
+        const arcs =
+          fields.arcDirection === "input"
+            ? transition.inputArcs
+            : transition.outputArcs;
+        if (arcs.some((arc) => placeIdOf(arc) === placeId))
+          return declined("Add arc left the document unchanged.");
+        arcs.push({
+          placeId,
+          weight: fields.weight,
+          ...(fields.arcDirection === "input"
+            ? { type: fields.type ?? "standard" }
+            : {}),
+        });
+        return {
+          title: `Added ${fields.arcDirection === "input" && fields.type !== undefined && fields.type !== "standard" ? `${text(fields.type)} input` : text(fields.arcDirection)} arc`,
+          detail: `${text(nameOf(places, placeId))} <-> ${text(nameOf(transitions, transition.id))}`,
+          applied: true,
+        };
+      }
+      case "setNetTitle": {
+        const previous = title;
+        title = text(fields.title);
+        return {
+          applied: true,
+          title: `Renamed net to "${title}"`,
+          detail:
+            previous !== title ? `Previous title: ${previous}` : undefined,
+        };
+      }
+      case "readNetOutline":
+        return read("outline");
+      case "readNetStructure":
+        return read("structure");
+      case "getLatestNetDefinition":
+        return read("full");
+      case "getNetCompilationErrors":
+        return { diagnostics: [] };
       default:
-        return { ok: true };
+        return declined(`The smoke browser does not run ${toolName}.`);
     }
   };
-  return { answer };
+  /**
+   * The panel's host metadata (`ClientToolResultMetadata`): a read reports the
+   * revision it saw; a change that changed the net reports both revisions and
+   * the net's structure after it; a change that did not, only `before`.
+   */
+  const revision = () =>
+    createHash("sha256")
+      .update(canonicalContent(read("full")))
+      .digest("hex")
+      .slice(0, 16);
+  const readTools = new Set([
+    "readNetOutline",
+    "readNetStructure",
+    "getLatestNetDefinition",
+  ]);
+  const answerWithMetadata = (
+    toolName: string,
+    input: unknown,
+  ): { output: unknown; metadata?: ClientToolResultMetadata } => {
+    const before = revision();
+    const output = answer(toolName, input);
+    if (readTools.has(toolName))
+      return { output, metadata: { documentRevision: { before } } };
+    if (!netChangingTools.has(toolName)) return { output };
+    const after = revision();
+    return {
+      output,
+      metadata:
+        after === before
+          ? { documentRevision: { before } }
+          : {
+              documentRevision: { before, after },
+              readBack: read("structure").definition as unknown as NetStructure,
+            },
+    };
+  };
+  return { answer: answerWithMetadata, net: () => read("full") };
 };
 
 type BrowserOutcome = {
@@ -217,6 +370,7 @@ type BrowserOutcome = {
   start: number;
   result: number;
   output: unknown;
+  metadata?: ClientToolResultMetadata["documentRevision"];
 };
 
 const reduce = async (chunks: readonly UIMessageChunk[]) => {
@@ -295,12 +449,13 @@ const drive = async () => {
     const claim = claimed.body as BrowserCallClaim;
     const proof = { capability: claim.capability, binding: claim.binding };
     const started = await post(callPath(toolCallId, "/start"), proof);
-    const output = browser.answer(claim.toolName, claim.input);
+    const { output, metadata } = browser.answer(claim.toolName, claim.input);
     const body: BrowserCallResultBody = {
       ...proof,
       toolName: claim.toolName,
       canonicalInput: claim.input,
       output,
+      ...(metadata === undefined ? {} : { metadata }),
     };
     const resulted = await post(callPath(toolCallId, "/result"), body);
     return {
@@ -311,6 +466,7 @@ const drive = async () => {
       start: started.status,
       result: resulted.status,
       output,
+      metadata: metadata?.documentRevision,
     };
   };
 
@@ -358,6 +514,11 @@ const drive = async () => {
         )
           calls.push(playCall(chunk.toolCallId));
         if (chunk.type === "error") print(`  error chunk: ${chunk.errorText}`);
+        if (
+          chunk.type === "tool-output-error" ||
+          chunk.type === "tool-input-error"
+        )
+          print(`  ${chunk.type} ${chunk.toolCallId}: ${chunk.errorText}`);
       }
     } catch (error) {
       ending = `stream error: ${String(error)}`;
@@ -384,7 +545,15 @@ const drive = async () => {
       finished: types.at(-1) === "finish",
       ending,
       aborted,
-      browserCalls: browserCalls.map(({ output: _output, ...call }) => call),
+      browserCalls: browserCalls.map(({ output, ...call }) =>
+        netChangingTools.has(call.toolName) ? { ...call, output } : call,
+      ),
+      netChanged: browserCalls.some(
+        ({ toolName, result, output }) =>
+          netChangingTools.has(toolName) &&
+          result === 200 &&
+          (output as { applied?: unknown }).applied === true,
+      ),
       renderedParts: parts.map((part) =>
         part.type === "text"
           ? { type: "text", text: part.text }
@@ -404,10 +573,20 @@ const drive = async () => {
   };
 
   try {
-    const first = await runTurn(
+    let first = await runTurn(
       "Turn 1",
-      "Create a place called Queue and a transition called Serve.",
+      "Please build it now in the editor, before asking me anything else: add a place called Queue and a transition called Serve, connected by an input arc from Queue to Serve.",
     );
+    if (
+      first.finished &&
+      !first.netChanged &&
+      !dryRun &&
+      budget - requestsUsed() >= 6
+    )
+      first = await runTurn(
+        "Turn 1 retry",
+        "You haven't changed the net yet. Use the Petrinaut tools right now to add the place Queue, the transition Serve, and an input arc from Queue to Serve. Do not ask questions first; build, then reply.",
+      );
     // A turn that ends in an error stops the run: later turns would spend requests on the same failure.
     const second =
       first.finished && requestsUsed() < budget && !dryRun
@@ -440,6 +619,7 @@ const drive = async () => {
     show("Server exit", stopped);
   }
 
+  show("Scripted browser net", browser.net());
   const stored = await readStored(chatId);
   show("Stored conversation", stored);
   const admin = new Pool({ ...poolConfig, max: 1 });
@@ -529,4 +709,32 @@ const readStored = async (chatId: string) => {
   }
 };
 
-await drive();
+/**
+ * `SMOKE_BROWSER_CHECK=1` plays a read, a build and a repeated change through
+ * the scripted browser alone, printing its outputs and metadata, without a
+ * server or a model.
+ */
+const checkBrowser = () => {
+  const browser = fakeBrowser();
+  const steps: [string, unknown][] = [
+    ["readNetOutline", {}],
+    ["addPlace", { id: "queue", name: "Queue" }],
+    ["addTransition", { id: "serve", name: "Serve" }],
+    [
+      "addArc",
+      {
+        transitionId: "serve",
+        arcDirection: "input",
+        placeId: "queue",
+        weight: 1,
+      },
+    ],
+    ["addPlace", { id: "queue", name: "Queue" }],
+    ["readNetStructure", {}],
+  ];
+  for (const [toolName, input] of steps)
+    show(toolName, browser.answer(toolName, input));
+};
+
+if (process.env.SMOKE_BROWSER_CHECK === "1") checkBrowser();
+else await drive();
