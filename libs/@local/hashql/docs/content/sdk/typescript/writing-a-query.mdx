@@ -91,7 +91,7 @@ head::entities(input(axis, QueryTemporalAxes))
 
 [`entities`][query-entities] starts a graph computation over the entities in the selected temporal view. [`collect`][query-collect] asks for those entities as a list. For our example graph, that list contains all five tasks, including the completed task and the task belonging to Northstar.
 
-What happens between those two operations? The result of `entities` has the HashQL type [`Graph<Entity>`][graph-type]. It represents a graph computation, rather than a list of entities already loaded into memory. We can compose further operations on that computation before asking for a materialised result. This is the graph effect introduced at the end of the SDK guide.
+What happens between those two operations? The result of `entities` has the HashQL type [`Graph<Entity<?>>`][graph-type]. It represents a graph computation, rather than a list of entities already loaded into memory. We can compose further operations on that computation before asking for a materialised result. This is the graph effect introduced at the end of the SDK guide.
 
 The graph library groups these operations by their role. A **head**, such as `entities`, starts the computation. A **body** operation transforms it, for example by filtering its vertices. A **tail**, such as `collect`, returns a materialised result. The reference notation shows those module names explicitly. The functional notation uses their short names to keep the nesting readable.
 
