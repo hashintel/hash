@@ -62,7 +62,7 @@ HashQL bindings are referenced by name, so you must supply that name explicitly.
 <Accordions>
   <Accordion title="Shadowing a binding" id="shadowing-a-binding">
 
-A `let` binding is available within its body. If a nested binding uses the same name, it shadows the outer binding. Referring to the outer binding through its Draft handle from within that inner scope causes Draft construction to fail with `StaleReference`.
+A `let` binding is available within its body. If a nested binding uses the same name, it shadows the outer binding. Referring to the outer binding through its Draft handle from within that inner scope causes Draft construction to fail with [`StaleReference`][program-error-reason].
 
   </Accordion>
 </Accordions>
@@ -109,7 +109,7 @@ In Draft, `$.eq(foo, 2n)` constructs the HashQL comparison. The `then` and `else
 <Accordions>
   <Accordion title="Omitting the else branch" id="omitting-the-else-branch">
 
-In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces, as no side-effects can occur. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an `Option`: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
+In JavaScript and Python, `if` is a statement, so it does not need to produce a value: its branches can perform side effects instead. In HashQL, an expression contributes to the query's result through the value it produces, as no side-effects can occur. However, there are still legitimate uses for an `if` without an `else` branch. HashQL supports this by returning an [`Option`][draft-context-option]: when the condition is true, the branch's result is automatically wrapped in `Some`; otherwise, the expression returns `None`.
 
 ```ts
 import * as Draft from "@local/hashql/Draft";
@@ -123,7 +123,7 @@ Draft.program({}, ($) => {
 });
 ```
 
-Draft can construct this two-operand `if`. Runtime support for its `Option` result is separate from constructing the expression.
+Draft can construct this two-operand [`if`][draft-context-if]. Runtime support for its [`Option`][draft-context-option] result is separate from constructing the expression.
 
   </Accordion>
 </Accordions>
@@ -134,7 +134,7 @@ So far, `foo` has always come from a literal written into the program. In many l
 
 HashQL provides `input` for this purpose. It lets an expression request a named value supplied to the program rather than to the enclosing function. You can think of it as a global `const` whose value is supplied for each execution.
 
-In the input definition below, `BigInt` is a type descriptor: it tells Draft that `foo` has the HashQL type `Integer`. It is not an input value. By contrast, `2n` in the comparison is an integer value written into the program.
+In the input definition below, [`BigInt`][program-structural-definition] is a type descriptor: it tells Draft that `foo` has the HashQL type `Integer`. It is not an input value. By contrast, `2n` in the comparison is an integer value written into the program.
 
 ```ts tab="TypeScript (Draft)" tab-group="hashql-language"
 import * as Draft from "@local/hashql/Draft";
@@ -172,7 +172,7 @@ Inputs are strongly typed: you must specify the type of each value you request. 
 
 An `input` can also specify a default value. For example, `input(foo, Integer, 2)` in the reference notation uses `2` when the caller does not supply `foo`. Without a default, the caller must supply the input if execution needs it.
 
-In Draft, `$.input` takes a type expression rather than the `BigInt` shorthand accepted by the upfront input schema. We can get one from the prelude:
+In Draft, [`$.input`][draft-context-input] takes a type expression rather than the [`BigInt`][program-structural-definition] shorthand accepted by the upfront input schema. We can get one from the prelude:
 
 ```ts
 import * as Draft from "@local/hashql/Draft";
@@ -215,7 +215,7 @@ matches_foo(2)
 
 <Callout type="warn" title="Constructing closures in Draft">
 
-Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015](https://linear.app/hash/issue/BE-1015). TypeScript callbacks can provide reusable query-building logic, but they run while Draft constructs the program. They do not become callable values inside the generated HashQL program.
+Draft cannot construct HashQL closures yet. Support for constructing them through Draft is tracked in [BE-1015]. TypeScript callbacks can provide reusable query-building logic, but they run while Draft constructs the program. They do not become callable values inside the generated HashQL program.
 
 </Callout>
 
@@ -365,7 +365,7 @@ Because we don't know if an element exists at a position, we need to handle a mi
 
 <Callout type="info" title="Future Option result">
 
-With the new polymorphic core, indexing will return an `Option`: `Some(2)` and `Some(3)` for the existing positions, and `None()` past the end. This is the planned indexing behaviour, not its current result shape.
+With the [new polymorphic core][BE-645], indexing will return an [`Option`][draft-context-option]: `Some(2)` and `Some(3)` for the existing positions, and `None()` past the end. This is the planned indexing behaviour, not its current result shape.
 
 </Callout>
 
@@ -420,7 +420,7 @@ An **intersection**, written `A & B`, requires a value to belong to both types. 
 
 ### Stating a type with `as`
 
-Draft's missing `as` builder is tracked in [BE-1141](https://linear.app/hash/issue/BE-1141). The functional and reference tabs below show the language form.
+Draft's missing `as` builder is tracked in [BE-1141]. The functional and reference tabs below show the language form.
 
 Strong typing doesn't mean you have to write every type yourself. The compiler can usually infer them, as it did for the literals and comparisons in our earlier examples. When we want to state a type explicitly, the `as` special form checks that the expression fits it:
 
@@ -537,7 +537,7 @@ Side-effect-free queries let us reuse values and break a query into smaller expr
 
 <Callout type="warn" title="Implementation status">
 
-Runtime enforcement of the cutoff described below is pending in [BE-1121](https://linear.app/hash/issue/BE-1121). Graph write operations are planned separately in [BE-550](https://linear.app/hash/issue/BE-550).
+Runtime enforcement of the cutoff described below is pending in [BE-1121]. Graph write operations are planned separately in [BE-550].
 
 </Callout>
 
@@ -566,3 +566,14 @@ The same reasoning applies if we add valid time, which records when a fact is tr
 
   </Accordion>
 </Accordions>
+
+[program-error-reason]: /docs/hashql/sdk/typescript/reference/hashql/Program/ProgramError#Reason
+[draft-context-option]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Option
+[draft-context-if]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.if
+[program-structural-definition]: /docs/hashql/sdk/typescript/reference/hashql/Program/Structural#Definition
+[draft-context-input]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.input
+[BE-1015]: https://linear.app/hash/issue/BE-1015
+[BE-645]: https://linear.app/hash/issue/BE-645
+[BE-1141]: https://linear.app/hash/issue/BE-1141
+[BE-1121]: https://linear.app/hash/issue/BE-1121
+[BE-550]: https://linear.app/hash/issue/BE-550
