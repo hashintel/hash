@@ -157,7 +157,8 @@ const hoverButtonStyle = css({
   color: "neutral.fg.subtle",
   cursor: "pointer",
   "& svg": { width: "[14px !important]", height: "[14px !important]" },
-  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.bg.subtle" },
+  // An alpha step, so the fill darkens a grey hovered row instead of showing a white square on it.
+  _hover: { color: "neutral.fg.heading", backgroundColor: "neutral.a10" },
 });
 
 /** The copy-take ID: the text, then the icon button; only the button copies. */

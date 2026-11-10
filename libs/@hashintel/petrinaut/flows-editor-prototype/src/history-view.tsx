@@ -14,7 +14,6 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { runIdMono, runIdStyled, RunIdText, runLabel } from "./run-id";
-import { runIdCopyTake } from "./run-id-mono";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
@@ -280,7 +279,8 @@ export const RunSwitcher = ({
             <span>
               {selectedLabel(
                 runIdStyled() ? (
-                  <RunIdText run={candidate} prefix copyable={runIdCopyTake() !== null} />
+                  {/* No copy icon in the run menu: too cramped there (Aakarsh, 10 Nov). */}
+                  <RunIdText run={candidate} prefix />
                 ) : (
                   runLabel(candidate)
                 ),
