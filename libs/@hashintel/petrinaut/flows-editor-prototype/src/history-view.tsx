@@ -277,9 +277,9 @@ export const RunSwitcher = ({
               size={14}
             />
             <span>
+              {/* No copy icon in the run menu: too cramped there (Aakarsh, 10 Nov). */}
               {selectedLabel(
                 runIdStyled() ? (
-                  {/* No copy icon in the run menu: too cramped there (Aakarsh, 10 Nov). */}
                   <RunIdText run={candidate} prefix />
                 ) : (
                   runLabel(candidate)
