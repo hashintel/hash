@@ -10,6 +10,11 @@
 )]
 
 mod args;
+#[expect(
+    dead_code,
+    reason = "the CLI and the HTTP API do not call the service yet"
+)]
+mod service;
 mod subcommand;
 
 use hash_telemetry::traces::sentry::{init, release_name};
