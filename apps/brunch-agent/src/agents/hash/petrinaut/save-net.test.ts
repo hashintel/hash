@@ -75,7 +75,7 @@ const resultText = (context: TranscriptContext, toolCallId: string) =>
     ?.content.flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("");
 
-let hashAgent: typeof import("./agent.ts").HashAgent;
+let hashAgent: typeof import("../agent.ts").HashAgent;
 let stopRuntime: () => Promise<void> = async () => {};
 beforeAll(async () => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "faux/faux-1");
