@@ -1260,6 +1260,56 @@ const MinimalBlock = ({
   );
 };
 
+/**
+ * `?usedrows=a|b|c` (inbox used-in-row-spacing): more air in the open Used in list (R1–R3, S1); no param keeps 28 px
+ * rows. a: 34 px rows, the DS md form height (16 px text at 1.5 = 24 + 4 + 4 + 2). b: a, plus 4 px between rows.
+ * c: 42 px rows, the DS lg form height, with the name and its input on two lines beside the G77 tile (32 px, 6 px
+ * corners, 16 px icon); the input column on the right goes away.
+ */
+export type UsedRows = "a" | "b" | "c";
+
+export const useUsedRows = (): UsedRows | null => {
+  const value = useLocation().query.get("usedrows");
+  return value === "a" || value === "b" || value === "c" ? value : null;
+};
+
+const usedRowsStyle = css({
+  "&[data-rows=a] > button, &[data-rows=b] > button": { minHeight: "[34px]" },
+  "&[data-rows=b]": { display: "flex", flexDirection: "column", gap: "1" },
+  "&[data-rows=c]": { display: "flex", flexDirection: "column", gap: "1" },
+  "&[data-rows=c] > button": { minHeight: "[42px]", paddingY: "[3px]" },
+  "&[data-rows=c] [data-look]": {
+    width: "[32px]",
+    height: "[32px]",
+    borderRadius: "[6px]",
+    "& svg": { width: "[16px !important]", height: "[16px !important]" },
+  },
+  "& [data-two]": { display: "flex", flexDirection: "column", minWidth: "[0]" },
+  "& [data-under]": { textStyle: "xs", lineHeight: "[16px]", color: "neutral.fg.muted" },
+});
+
+const UsedRowContent = ({ lead, name, input }: { lead?: React.ReactNode; name: React.ReactNode; input: string }) => {
+  const rows = useUsedRows();
+  if (rows === "c") {
+    return (
+      <>
+        {lead}
+        <span data-two>
+          <span>{name}</span>
+          <span data-under>{input}</span>
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      {lead}
+      {name}
+      <span data-input>{input}</span>
+    </>
+  );
+};
+
 /** The structure takes' body: starts at the name's left edge (28 px), never further in. */
 const structStyle = css({
   paddingLeft: "[28px]",
@@ -1422,16 +1472,16 @@ const StructureBlock = ({
     },
   });
   const inputsOf = (use: Use) => use.inputs.join(", ");
+  const usedRows = useUsedRows();
   const shown = take === "s4" && !more ? uses.slice(0, 2) : uses;
   const rest = uses.length - shown.length;
   const body =
     uses.length === 0 ? null : take === "s1" ? (
-      <div className={structStyle} data-used-names>
+      <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined}>
         <span data-caption>Used in</span>
         {uses.map((use) => (
           <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
-            {nameOf(use.stepId)}
-            <span data-input>{inputsOf(use)}</span>
+            <UsedRowContent name={nameOf(use.stepId)} input={inputsOf(use)} />
           </button>
         ))}
       </div>
@@ -1614,6 +1664,7 @@ const RestBlock = ({
   const uses = usesOf(document, stepId, outputName);
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const usedRows = useUsedRows();
   const addRef = useRef<HTMLButtonElement>(null);
   const nameOf = (id: string) => {
     const step = findStep(document, id)?.step;
@@ -1721,12 +1772,14 @@ const RestBlock = ({
         </span>
       </div>
       {open && count > 0 ? (
-        <div className={structStyle} data-used-names>
+        <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined}>
           {uses.map((use) => (
             <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
-              <NameLead look="u1a" icon={iconOf(use.stepId)} tile={treeTileColor(iconOf(use.stepId))} />
-              {nameOf(use.stepId)}
-              <span data-input>{use.inputs.join(", ")}</span>
+              <UsedRowContent
+                lead={<NameLead look="u1a" icon={iconOf(use.stepId)} tile={treeTileColor(iconOf(use.stepId))} />}
+                name={nameOf(use.stepId)}
+                input={use.inputs.join(", ")}
+              />
             </button>
           ))}
         </div>
