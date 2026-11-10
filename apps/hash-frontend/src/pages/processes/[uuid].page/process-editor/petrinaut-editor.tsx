@@ -452,12 +452,14 @@ export const PetrinautEditor = ({
 
   /**
    * Submits the open load's net, title and identity as they are when called,
-   * returning `null` when no save starts: with no load open, while a save of
-   * it is pending, or with no net to submit. Its completion marks what it
-   * submitted as saved, so edits made meanwhile stay dirty, and applies only
-   * while the same load is open. The promise settles when the host's save
-   * does, rejecting when it failed; `hostSaved` is called with the snapshot
-   * the load is about to hold, only while the load is still open.
+   * returning `null` when no save starts: with no load open, or while a save
+   * of it is pending. It submits the net the handle holds, or the session's
+   * mirror of it when the handle holds none, as the dirty check and the
+   * agent's save check judge it. Its completion marks what it submitted as
+   * saved, so edits made meanwhile stay dirty, and applies only while the
+   * same load is open. The promise settles when the host's save does,
+   * rejecting when it failed; `hostSaved` is called with the snapshot the
+   * load is about to hold, only while the load is still open.
    */
   const startSave = useCallback(
     (
@@ -468,10 +470,7 @@ export const PetrinautEditor = ({
         return null;
       }
       const { handle: savedHandle, mode, title } = live;
-      const definition = savedHandle.doc();
-      if (!definition) {
-        return null;
-      }
+      const definition = savedHandle.doc() ?? live.definition;
       updateSession(savedHandle, (current) => ({
         ...current,
         savePending: true,
