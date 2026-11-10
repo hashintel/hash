@@ -5,7 +5,6 @@ import {
   Button,
   Icon,
   NumberInput,
-  SegmentedControl,
   Select,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -15,7 +14,6 @@ import {
   classicScenarioRunState,
   compileScenario,
   createUserKeyedRecord,
-  DEFAULT_SOLVER_TOLERANCE,
   EMPTY_AD_HOC_STATE,
   initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
@@ -40,6 +38,12 @@ import {
   scenarioRunParameterValues,
   seedScenarioRunState,
 } from "./scenario-run-state";
+import {
+  inlineControlStyle,
+  labelStyle,
+  SimulatorControls,
+  smallLabelStyle,
+} from "./simulator-controls";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
@@ -83,20 +87,14 @@ const scenarioPickerGroupStyle = css({
   maxWidth: "[420px]",
 });
 
-// Engine and Time Step sit inline on the picker row, pushed to the right
-// edge — the columns below keep the full panel width to themselves.
+// The simulator and its parameters sit inline on the picker row, pushed to
+// the right edge — the columns below keep the full panel width to themselves.
 const runSettingsInlineStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "4",
   marginLeft: "auto",
   flexShrink: 0,
-});
-
-const inlineControlStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
 });
 
 const scenarioLabelStyle = css({
@@ -152,21 +150,6 @@ const adHocFormRootStyle = css({
 // matching the panel's disabled inputs.
 const lockedFormStyle = css({
   opacity: "[0.5]",
-});
-
-const labelStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  whiteSpace: "nowrap",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
-});
-
-const smallLabelStyle = css({
-  fontSize: "[10px]",
-  fontWeight: "normal",
 });
 
 const parametersListStyle = css({
@@ -266,9 +249,6 @@ const SimulationSettingsContent: React.FC = () => {
     dt,
     setDt,
     engine,
-    setEngine,
-    eventSolver,
-    setEventSolver,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
     scenarioParameterValues,
@@ -559,82 +539,15 @@ const SimulationSettingsContent: React.FC = () => {
     </div>
   );
 
-  // The event-driven engine chooses how it advances between events; the
-  // adaptive solver also takes the local error it may incur per step.
-  const solverControls = (
-    <>
-      <div className={inlineControlStyle}>
-        <span className={labelStyle}>
-          <span>Solver</span>
-          <PointerHelpTooltip content="Fixed step advances the run at a small fixed step. Adaptive integrates each place's dynamics with an error-controlled solver, choosing its own steps, and samples firing times from the transitions' rates." />
-        </span>
-        <SegmentedControl
-          size="xs"
-          aria-label="Event solver"
-          value={eventSolver.kind}
-          items={[
-            { value: "fixed-step", label: "Fixed step" },
-            { value: "adaptive", label: "Adaptive" },
-          ]}
-          onChange={(kind) =>
-            setEventSolver(
-              kind === "adaptive"
-                ? { kind, tolerance: DEFAULT_SOLVER_TOLERANCE }
-                : { kind: "fixed-step" },
-            )
-          }
-          disabled={isSimulationActive}
-        />
-      </div>
-      {eventSolver.kind === "adaptive" ? (
-        <div className={inlineControlStyle}>
-          <label htmlFor="solver-tolerance-input" className={labelStyle}>
-            <span>Max error</span>
-            <PointerHelpTooltip content="The largest error the solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. The run records the error accumulated per place at every event." />
-          </label>
-          <NumberInput
-            htmlForId="solver-tolerance-input"
-            size="xs"
-            width="xs"
-            min={1e-12}
-            max={1}
-            step="any"
-            hideStepper
-            value={eventSolver.tolerance}
-            onChange={(tolerance) => {
-              if (tolerance !== null && tolerance > 0) {
-                setEventSolver({ kind: "adaptive", tolerance });
-              }
-            }}
-            disabled={isSimulationActive}
-          />
-        </div>
-      ) : null}
-    </>
-  );
-
-  // The event-driven engine records a frame per firing rather than per step,
-  // so the Time Step only applies to the fixed-step engine.
+  // An event-driven run is computed by a simulator, which brings its own
+  // parameters. The Time Step belongs to the frame-per-step engine.
   const runSettingsControls = (
     <div className={runSettingsInlineStyle}>
-      <div className={inlineControlStyle}>
-        <span className={labelStyle}>
-          <span>Engine</span>
-          <PointerHelpTooltip content="Fixed step computes one frame per time step. Event-driven (experimental) records one frame per transition firing and interpolates the continuous evolution in between, so playback moves through time rather than frames." />
-        </span>
-        <SegmentedControl
-          size="xs"
-          aria-label="Simulation engine"
-          value={engine}
-          items={[
-            { value: "fixed-step", label: "Fixed step" },
-            { value: "event-driven", label: "Event-driven" },
-          ]}
-          onChange={setEngine}
-          disabled={isSimulationActive}
-        />
-      </div>
-      {engine === "fixed-step" ? timeStepControl : solverControls}
+      {engine === "event-driven" ? (
+        <SimulatorControls disabled={isSimulationActive} />
+      ) : (
+        timeStepControl
+      )}
     </div>
   );
 

@@ -12,6 +12,7 @@ import {
   PetrinautDocumentProvider,
 } from "./petrinaut-provider-layers";
 import { SimulationProvider } from "./simulation/provider";
+import { SimulatorsProvider } from "./simulators/provider";
 
 import type { NetManagement } from "./net-management-context";
 import type {
@@ -20,6 +21,8 @@ import type {
   WorkerFactory,
 } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
+
+const EDITOR_SIMULATION_CONFIGURATION = { engine: "event-driven" } as const;
 
 export type PetrinautProviderProps = {
   /** The Core instance whose stores the bridges subscribe to. */
@@ -34,6 +37,11 @@ export type PetrinautProviderProps = {
    * issues with the inlined worker.
    */
   simulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional factory for the worker a Quick Simulation's run is stepped in,
+   * with the same role and default as `simulationWorkerFactory`.
+   */
+  eventSimulationWorkerFactory?: WorkerFactory;
   monteCarloWorkerFactory?: WorkerFactory;
   /**
    * Optional language-server worker factory. Same shape as
@@ -60,6 +68,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
   netManagement,
   simulationWorkerFactory,
+  eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
   navigation,
@@ -80,20 +89,27 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
           workerFactory={lspWorkerFactory}
         >
           <NotificationsProvider>
-            <SimulationProvider
-              key={instance.handle.id}
-              workerFactory={simulationWorkerFactory}
+            <SimulatorsProvider
+              runWorkerFactory={eventSimulationWorkerFactory}
+              experimentWorkerFactory={monteCarloWorkerFactory}
             >
-              <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-                <OptimizationsProvider>
-                  <ExperimentHostProvider>
-                    <PetrinautCanvasProvider>
-                      {children}
-                    </PetrinautCanvasProvider>
-                  </ExperimentHostProvider>
-                </OptimizationsProvider>
-              </ExperimentsProvider>
-            </SimulationProvider>
+              {/* The editor's Quick Simulation runs on a registered simulator. */}
+              <SimulationProvider
+                key={instance.handle.id}
+                workerFactory={simulationWorkerFactory}
+                initialConfiguration={EDITOR_SIMULATION_CONFIGURATION}
+              >
+                <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                  <OptimizationsProvider>
+                    <ExperimentHostProvider>
+                      <PetrinautCanvasProvider>
+                        {children}
+                      </PetrinautCanvasProvider>
+                    </ExperimentHostProvider>
+                  </OptimizationsProvider>
+                </ExperimentsProvider>
+              </SimulationProvider>
+            </SimulatorsProvider>
           </NotificationsProvider>
         </LanguageClientProvider>
       </PetrinautNavigationProvider>

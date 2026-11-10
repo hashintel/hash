@@ -33,4 +33,3 @@ export { FIXED_STEP_SIMULATOR_ID } from "./worker/fixed-step-stepper";
 export type { StepperParameters } from "./worker/run-stepper";
 export type { StepperSelection } from "./worker/steppers";
 export { DEFAULT_SOLVER_TOLERANCE } from "./solver/solver-config";
-export type { EventSolverConfig } from "./solver/solver-config";

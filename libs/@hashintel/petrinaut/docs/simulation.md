@@ -13,7 +13,7 @@ Select a place and open its **State** sub-view to inspect the resulting tokens. 
 - **Untyped places** show the token count.
 - **Typed places** show each token's attribute values in a read-only grid.
 
-During simulation, the State sub-view shows the tokens at the current playback frame. Make initial-state changes in Simulation Settings.
+During simulation, the State sub-view shows the tokens at the viewed time. Make initial-state changes in Simulation Settings.
 
 ## Simulation settings
 
@@ -34,36 +34,30 @@ Override values for this run:
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
-### Engine
+### Simulator
 
-The **Engine** switch beside the scenario picker chooses how the next run is computed:
+The **Simulator** picker beside the scenario picker chooses what computes the next run. The fields to its right are the selected simulator's own parameters, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
 
-- **Fixed step** (the default) computes one frame per time step, as described below.
-- **Event-driven** (experimental) records one frame per transition firing, with the time it happened, and keeps further frames of the continuous state between firings so that long stretches without one stay accurate. The continuous evolution of token attributes between two frames is interpolated from the values and derivatives stored in them. Playback moves through time rather than through frames, so any instant can be viewed, and the [Timeline](#timeline) shows the events themselves.
+| Simulator             | Parameters                    | What it does                                                                                                                                                             |
+| --------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **JS fixed step**     | **Time step**, in seconds     | Advances the run in steps of one size, as described in [How a run is computed](#how-a-run-is-computed). The default.                                                     |
+| **JS adaptive**       | **Max error**                 | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.           |
+| **WebGPU fixed step** | **Time step**, **ODE method** | Computes many runs at once on the graphics card. It is listed for reference and cannot be picked for a single run; [experiments](experiments.md#compute-backend) use it. |
 
-The switch is locked while a simulation exists; reset to change it. The Time Step input applies to the fixed-step engine only.
+A simulator that cannot compute a single run is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
 
-With the event-driven engine, a **Solver** switch takes its place:
+- **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds.
+- **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
 
-- **Fixed step** advances the run at a small fixed step and records the steps where something fired.
-- **Adaptive** integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates, so nothing is quantised to a step. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. The **Max error** input sets the largest error the solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. Every recorded frame carries the error accumulated so far per place.
-
-### Time step (dt)
-
-Set the time step in seconds per frame using the **Time Step** input beside the scenario picker in Simulation Settings. It controls the resolution of ODE integration and how frequently transitions are evaluated. Hover the info icon beside its label for a short explanation.
-
-- **Smaller dt** -- finer approximation, but slower computation.
-- **Larger dt** -- faster, but less accurate for continuous dynamics.
-
-Default: `0.01` seconds.
+Whichever simulator runs, it records the state at every transition firing, with the time it happened, and further states in between so that long stretches without a firing stay accurate. Where those further states go is the simulator's own decision. The continuous evolution of token attributes between two recorded states is interpolated from the values and derivatives stored in them, so playback moves through time and any instant can be viewed.
 
 ## Running a simulation
 
 Press **Play** in the bottom toolbar. The simulation:
 
-1. Initializes with a fixed random seed, the current dt, and parameter values, so pressing Play twice with the same configuration reproduces the same trajectory. Many runs at once, and a search over parameters, are an [experiment](experiments.md).
-2. Computes frames in a background Web Worker.
-3. Streams frames to the UI for playback.
+1. Initializes with a fixed random seed, the selected simulator's parameters, and parameter values, so pressing Play twice with the same configuration reproduces the same trajectory. Many runs at once, and a search over parameters, are an [experiment](experiments.md).
+2. Computes the run in a background Web Worker, only as far ahead of the viewed time as the play mode asks for.
+3. Streams the recorded states to the UI for playback.
 
 If you need multiple runs of the same configuration -- e.g. to compare a stochastic model under different conditions -- use a Monte Carlo [experiment](experiments.md).
 
@@ -77,11 +71,11 @@ Use arrow keys to move between the scenario picker, its action buttons, the time
 
 The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on the compact **Show all places** switch beside the Initial state title and info icon to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
 
-## How a frame is computed
+## How a run is computed
 
-Each simulation step proceeds in two phases:
+The **JS fixed step** simulator advances in steps of the **Time step**. Each step proceeds in two phases:
 
-1. **Continuous dynamics** -- for every place with dynamics enabled, its differential equations are integrated one step (Euler method, step size = dt). The derivatives of every [listed equation](petri-net-extensions.md#composing-equations) are summed first, an equation over several tokens contributing once per combination of that many tokens. This updates all token dimension values.
+1. **Continuous dynamics** -- for every place with dynamics enabled, its differential equations are integrated one step (Euler method, one time step). The derivatives of every [listed equation](petri-net-extensions.md#composing-equations) are summed first, an equation over several tokens contributing once per combination of that many tokens. This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
    - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met, and enough room in any output place with a [token capacity](drawing-a-net.md#token-capacity)).
@@ -90,7 +84,9 @@ Each simulation step proceeds in two phases:
 
    All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights. Because output is applied at the end of the step, capacity accounts for tokens that transitions earlier in the same step have already produced -- several transitions feeding one capped place cannot collectively overflow it.
 
-Simulation time advances by `dt` each frame.
+Simulation time advances by the time step each step. A firing is recorded at the end of the step it happened in.
+
+The **JS adaptive** simulator has no step to set. Between firings it integrates each place's dynamics with steps it chooses so that no step's error exceeds **Max error**. It draws the time of the next firing from the transitions' rates, every combination of tokens a transition could consume counting as a firing of its own, so a firing lands at the instant it was drawn for rather than at the end of a step. A transition with a predicate fires at the instant its condition starts to hold. The same seed gives a different run than the fixed-step simulator does: the two draw their random numbers at different moments.
 
 ## What a firing looks like
 
@@ -102,7 +98,7 @@ Firings you cannot see are not animated: a node off the side of the canvas, or a
 
 If no transition fires in a step **and** no transition is structurally enabled (regardless of lambda values), the simulation reports **deadlock** and stops (a "Simulation Complete" message is shown).
 
-This only stops computation: the simulation will continue to playback computed frames until no more are available.
+This only stops computation: playback continues to the time the run stopped at.
 
 If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping.
 
@@ -118,8 +114,8 @@ The bottom toolbar provides playback controls:
 | **Pause**        | Pause at the current point in the run.    |
 | **Stop / Reset** | Stop playback and reset to the run start. |
 
-The time readout shows the elapsed simulation time and the run's total
-simulated time, at the precision the run's time step carries. Both values include
+The time readout shows the viewed simulation time and the time the run is
+computed up to, to the millisecond. Both values include
 **s** for seconds: the current time is prominent, with **of** and the total below it.
 The toolbar expands with a quick start and gentle settle to reveal the time readout and scrubber when a run starts.
 
@@ -137,11 +133,11 @@ Choose a playback speed multiplier via playback settings: **1x**, **2x**, **5x**
 
 Controls how computation and playback interact:
 
-| Mode                         | Behavior                                                    |
-| ---------------------------- | ----------------------------------------------------------- |
-| **Play computed steps only** | Replay already-computed frames without further computation. |
-| **Play + compute buffer**    | Compute only a small buffer ahead of the playhead.          |
-| **Play + compute max**       | Compute frames as fast as possible while playing.           |
+| Mode                         | Behavior                                                     |
+| ---------------------------- | ------------------------------------------------------------ |
+| **Play computed steps only** | Replay what is already computed without further computation. |
+| **Play + compute buffer**    | Compute only a small buffer ahead of the playhead.           |
+| **Play + compute max**       | Compute as fast as possible while playing.                   |
 
 ### Stopping condition
 
@@ -157,9 +153,9 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 <img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
-- **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
-- **Closing the panel** -- a closed timeline stops reading frames and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
-  With the **Event-driven** engine, the timeline shows the run's events instead of its steps. Token counts per place or per type are drawn as steps that change at the events, and **Transition firings** shows one lane per transition with a mark at every firing. The Metric picker groups user metrics by what their code reads: a **discrete** metric reads only token counts and attributes that change at events, so it is drawn as steps read at the events; a **continuous** metric reads an attribute that follows a differential equation, so it is drawn as a curve read from the interpolated state between events. With the **Adaptive** solver the picker also offers **Solver › Accumulated error**: one series per place with dynamics, the error the solver has accumulated for that place's attributes since the start of the run, stepped at the events it was recorded on, in the attributes' own units. A place advanced exactly stays at zero. Every firing is also marked on the ruler above the chart, and pointing at one names the transitions that fired; fainter ticks mark the frames recorded between firings. Drag the ruler or the playhead to scrub, click anywhere to view that exact time, and drag across the chart to select a range, which has no effect yet. Scroll sideways to pan, and pinch or scroll up and down to zoom around the pointer; **Fit to run** returns to the whole run. With the chart focused, the arrow keys step between firings, and Home and End jump to the start and to the end of what is computed. The playback bar gains **Previous event** and **Next event** buttons that move between firings and the initial state, and its scrubber moves through time rather than frames. **Stacked** adds the traces up as bands, for token counts and for a metric; the chart type control is not offered for **Transition firings** or **Accumulated error**, which have no stacked form.
+- **Scrub** -- click the chart to view that time, or drag the ruler or the playhead. A playhead indicator shows the viewed time.
+- **Closing the panel** -- a closed timeline stops reading the run and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
+  The timeline shows the run's events. Token counts per place or per type are drawn as steps that change at the events, and **Transition firings** shows one lane per transition with a mark at every firing. The Metric picker groups user metrics by what their code reads: a **discrete** metric reads only token counts and attributes that change at events, so it is drawn as steps read at the events; a **continuous** metric reads an attribute that follows a differential equation, so it is drawn as a curve read from the interpolated state between events. With the **Adaptive** solver the picker also offers **Solver › Accumulated error**: one series per place with dynamics, the error the solver has accumulated for that place's attributes since the start of the run, stepped at the events it was recorded on, in the attributes' own units. A place advanced exactly stays at zero. Every firing is also marked on the ruler above the chart, and pointing at one names the transitions that fired; fainter ticks mark the frames recorded between firings. Drag the ruler or the playhead to scrub, click anywhere to view that exact time, and drag across the chart to select a range, which has no effect yet. Scroll sideways to pan, and pinch or scroll up and down to zoom around the pointer; **Fit to run** returns to the whole run. With the chart focused, the arrow keys step between firings, and Home and End jump to the start and to the end of what is computed. The playback bar gains **Previous event** and **Next event** buttons that move between firings and the initial state, and its scrubber moves through time rather than frames. **Stacked** adds the traces up as bands, for token counts and for a metric; the chart type control is not offered for **Transition firings** or **Accumulated error**, which have no stacked form.
 
 - **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: click the **N/M shown** badge (or anywhere else in the selector) to open the full list for searching, which is also where traces that don't fit in the strip live. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
@@ -179,4 +175,4 @@ The editor is **read-only** during simulation and after a simulation completes. 
 
 Press **Stop / Reset** to return to editing mode.
 
-At the last frame of a completed simulation, Play is disabled -- reset to replay from the beginning.
+At the end of a completed simulation, Play is disabled -- reset to replay from the beginning.

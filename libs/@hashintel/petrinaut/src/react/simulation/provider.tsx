@@ -6,17 +6,15 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import {
-  ADAPTIVE_SIMULATOR_ID,
-  createEventSimulation,
+  assessSimulator,
   createSimulation,
-  FIXED_STEP_SIMULATOR_ID,
+  defaultSimulatorParameters,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
   type AdHocSynthesisContext,
   type EventSimulation,
   type CompileHirArtifactsOptions,
-  type EventSolverConfig,
   type HirCompileResult,
   type PetrinautExtensionSettings,
   type ReadableStore,
@@ -26,11 +24,13 @@ import {
   type ScenarioLoweringInput,
   type SDCPN,
   type Simulation,
+  type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
+  type SimulatorRegistration,
+  type StoredSimulatorParameters,
   type WorkerFactory,
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
-import { createEventSimulationWorker } from "@hashintel/petrinaut-core/workers/event-simulation";
 import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simulation";
 
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
@@ -40,6 +40,11 @@ import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
 import { resolveNavigatedId } from "../navigation/resolve-navigated-ids";
 import { NotificationsContext } from "../notifications/context";
+import {
+  findSimulator,
+  SimulatorsContext,
+  type SimulatorSelection,
+} from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { constantStore, selectStore, useStore } from "../use-store";
 import {
@@ -76,7 +81,10 @@ type SimulationStateValues = {
   dt: number;
   maxTime: number | null;
   engine: SimulationEngine;
-  eventSolver: EventSolverConfig;
+  /** The simulator picked for the next run. Null follows the host's default. */
+  simulatorId: string | null;
+  /** The parameter values edited for each simulator, kept across a switch. */
+  simulatorParameters: Record<string, StoredSimulatorParameters>;
 };
 
 function getScenarioParameterDefaults(
@@ -110,7 +118,8 @@ function createInitialStateValues(options?: {
     dt: options?.dt ?? 0.01,
     maxTime: options?.maxTime ?? null,
     engine: options?.engine ?? "fixed-step",
-    eventSolver: { kind: "fixed-step" },
+    simulatorId: null,
+    simulatorParameters: {},
   };
 }
 
@@ -162,12 +171,43 @@ export function getEffectiveSelectedScenarioId(
   return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
 
+/** A refusal's reasons as one message, the way a failed start reports. */
+const refusalMessage = (
+  blockers: readonly { readonly message: string }[],
+): string => blockers.map((blocker) => blocker.message).join("\n");
+
 /**
- * The step the event-driven engine's fixed-step solver advances by. Small
- * enough that a firing lands close to its true time; the Time Step field
- * belongs to the fixed-step engine.
+ * Starts one run on the selected simulator, or throws why it could not.
+ * Kept out of `initialize`: a `throw` inside that function's `try`/`catch`
+ * is syntax React Compiler does not lower.
  */
-const EVENT_DRIVEN_FIXED_STEP_DT = 0.0001;
+const startSimulatorRun = async (
+  registration: SimulatorRegistration | undefined,
+  selection: SimulatorSelection,
+  request: Parameters<typeof assessSimulator>[2],
+): Promise<EventSimulation> => {
+  if (!registration) {
+    throw new Error(`No simulator is registered as "${selection.simulatorId}"`);
+  }
+  const outcome = await assessSimulator(
+    registration,
+    selection.parameters,
+    request,
+  );
+  if (!outcome.ok) {
+    throw new Error(refusalMessage(outcome.blockers));
+  }
+  if (!outcome.offer.startRun) {
+    throw new Error(
+      `${registration.label} computes many runs at once, not a single run`,
+    );
+  }
+  const started = await outcome.offer.startRun();
+  if (!started.ok) {
+    throw new Error(refusalMessage(started.blockers));
+  }
+  return started.handle;
+};
 
 const ZERO_FRAMES_STORE = constantStore(0);
 
@@ -236,11 +276,6 @@ export type SimulationProviderProps = React.PropsWithChildren<{
    */
   workerFactory?: WorkerFactory;
   /**
-   * Factory for the event-driven engine's worker, with the same role and
-   * default as `workerFactory`.
-   */
-  eventWorkerFactory?: WorkerFactory;
-  /**
    * Optional compiler override. The Preview supplies build-time artifacts so
    * it can reuse the simulation/playback providers without mounting an LSP.
    */
@@ -285,7 +320,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   initialConfiguration,
   requireScenario = false,
   workerFactory,
-  eventWorkerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
   const languageClient = use(LanguageClientContext);
@@ -300,9 +334,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
-  const eventWorkerFactoryRef = useLatest(
-    eventWorkerFactory ?? createEventSimulationWorker,
-  );
+  const simulators = use(SimulatorsContext);
+  const simulatorsRef = useLatest(simulators);
   const requestedScenarioId = navigation.state.scenarioId;
   const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
     petriNetDefinition.scenarios,
@@ -318,6 +351,26 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }),
   );
   const stateValuesRef = useLatest(stateValues);
+
+  // The selection in effect: the picked simulator, or the host's default
+  // when none was picked or the picked one is no longer registered, with
+  // its parameters at their defaults wherever none was edited.
+  const pickedSimulator = stateValues.simulatorId
+    ? findSimulator(simulators.registrations, stateValues.simulatorId)
+    : undefined;
+  const selectedSimulator =
+    pickedSimulator ??
+    findSimulator(simulators.registrations, simulators.defaultSimulatorId);
+  const simulatorSelection: SimulatorSelection = {
+    simulatorId: selectedSimulator?.id ?? simulators.defaultSimulatorId,
+    parameters: selectedSimulator
+      ? {
+          ...defaultSimulatorParameters(selectedSimulator.parameters),
+          ...stateValues.simulatorParameters[selectedSimulator.id],
+        }
+      : {},
+  };
+  const simulatorSelectionRef = useLatest(simulatorSelection);
 
   // Active simulation handle. Lifecycle is owned by this provider.
   const [simulation, setSimulation] = useState<Simulation | null>(null);
@@ -558,29 +611,34 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
 
-  const setEngine: SimulationContextValue["setEngine"] = (engine) => {
-    if (stateValuesRef.current.engine !== engine) {
-      invalidateSimulationForConfigurationChange();
-    }
-
-    setStateValues((prev) => ({ ...prev, engine }));
-  };
-
-  const setEventSolver: SimulationContextValue["setEventSolver"] = (
-    eventSolver,
+  const selectSimulator: SimulationContextValue["selectSimulator"] = (
+    simulatorId,
   ) => {
-    const current = stateValuesRef.current.eventSolver;
-    if (
-      current.kind !== eventSolver.kind ||
-      (current.kind === "adaptive" &&
-        eventSolver.kind === "adaptive" &&
-        current.tolerance !== eventSolver.tolerance)
-    ) {
+    if (simulatorSelectionRef.current.simulatorId !== simulatorId) {
       invalidateSimulationForConfigurationChange();
     }
 
-    setStateValues((prev) => ({ ...prev, eventSolver }));
+    setStateValues((prev) => ({ ...prev, simulatorId }));
   };
+
+  const setSimulatorParameter: SimulationContextValue["setSimulatorParameter"] =
+    (key, value) => {
+      const { simulatorId, parameters } = simulatorSelectionRef.current;
+      if (parameters[key] !== value) {
+        invalidateSimulationForConfigurationChange();
+      }
+
+      setStateValues((prev) => ({
+        ...prev,
+        simulatorParameters: {
+          ...prev.simulatorParameters,
+          [simulatorId]: {
+            ...prev.simulatorParameters[simulatorId],
+            [key]: value,
+          },
+        },
+      }));
+    };
 
   const initialize: SimulationContextValue["initialize"] = async ({
     seed,
@@ -665,46 +723,42 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         };
       }
 
-      // Compile the net's user code to HIR artifacts in the language worker —
-      // the simulation engine has no compiler of its own. The adaptive solver
-      // classifies each place's dynamics from their HIR, so it gets the tree.
-      const { artifacts } = await requestHirArtifacts(
-        simulationSdcpn,
-        simulationExtensions,
-        currentState.engine === "event-driven" &&
-          currentState.eventSolver.kind === "adaptive"
-          ? { includeHir: true }
-          : undefined,
-      );
-      if (initializationGenerationRef.current !== generation) {
-        return;
-      }
-
       if (currentState.engine === "event-driven") {
-        // The event-driven engine takes no `dt` from the Time Step field:
-        // its fixed-step solver runs at a step of its own, and what it
-        // records is decided by what fires.
-        eventSim = await createEventSimulation({
-          sdcpn: simulationSdcpn,
-          extensions: simulationExtensions,
-          hirArtifacts: artifacts,
-          initialMarking,
-          parameterValues,
-          seed,
-          maxTime: currentState.maxTime,
-          simulator:
-            currentState.eventSolver.kind === "adaptive"
-              ? {
-                  id: ADAPTIVE_SIMULATOR_ID,
-                  parameters: { tolerance: currentState.eventSolver.tolerance },
-                }
-              : {
-                  id: FIXED_STEP_SIMULATOR_ID,
-                  parameters: { dt: EVENT_DRIVEN_FIXED_STEP_DT },
-                },
-          createWorker: eventWorkerFactoryRef.current,
-        });
+        const selection = simulatorSelectionRef.current;
+        eventSim = await startSimulatorRun(
+          findSimulator(
+            simulatorsRef.current.registrations,
+            selection.simulatorId,
+          ),
+          selection,
+          // Compile the net's user code to HIR artifacts in the language
+          // worker: a simulator has no compiler of its own. One that reads
+          // the HIR trees itself gets them; the rest are spared the weight.
+          async (simulator): Promise<SimulationRequestBase> => {
+            const { artifacts } = await requestHirArtifacts(
+              simulationSdcpn,
+              simulationExtensions,
+              simulator.needsHirTrees ? { includeHir: true } : undefined,
+            );
+            return {
+              sdcpn: simulationSdcpn,
+              extensions: simulationExtensions,
+              hirArtifacts: artifacts,
+              initialMarking,
+              parameterValues,
+              seed,
+              maxTime: currentState.maxTime,
+            };
+          },
+        );
       } else {
+        const { artifacts } = await requestHirArtifacts(
+          simulationSdcpn,
+          simulationExtensions,
+        );
+        if (initializationGenerationRef.current !== generation) {
+          return;
+        }
         sim = await createSimulation({
           sdcpn: simulationSdcpn,
           extensions: simulationExtensions,
@@ -1060,7 +1114,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: stateValues.maxTime,
     totalFramesStore,
     engine: stateValues.engine,
-    eventSolver: stateValues.eventSolver,
+    simulatorSelection,
     eventSimulation,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
@@ -1071,8 +1125,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
-    setEngine: useStableCallback(setEngine),
-    setEventSolver: useStableCallback(setEventSolver),
+    selectSimulator: useStableCallback(selectSimulator),
+    setSimulatorParameter: useStableCallback(setSimulatorParameter),
     setMaxTime: useStableCallback(setMaxTime),
     initialize: useStableCallback(initialize),
     run: useStableCallback(run),
