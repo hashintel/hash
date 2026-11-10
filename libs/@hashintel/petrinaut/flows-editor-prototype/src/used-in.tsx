@@ -1324,6 +1324,9 @@ const usedRowsStyle = css({
   "& [data-two]": { display: "flex", flexDirection: "column", minWidth: "[0]" },
   "& [data-under]": { textStyle: "xs", lineHeight: "[16px]", color: "neutral.fg.muted" },
   "& [data-chips]": { display: "inline-flex", gap: "1", flexWrap: "wrap" },
+  "& [data-pillrow]": { display: "flex", alignItems: "center", gap: "[var(--lead-gap, 10px)]", minWidth: "[0]" },
+  "& [data-pillrow] > [data-pillname]": { display: "block", minWidth: "[0]", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  "& [data-pillrow] [data-chips]": { flexWrap: "nowrap", flexShrink: 0 },
 });
 
 const UsedRowContent = ({ lead, name, input: inputText }: { lead?: React.ReactNode; name: React.ReactNode; input: string }) => {
@@ -1347,6 +1350,17 @@ const UsedRowContent = ({ lead, name, input: inputText }: { lead?: React.ReactNo
         <span data-two>
           <span>{name}</span>
           <span data-under>{input}</span>
+        </span>
+      </>
+    );
+  }
+  if (pill) {
+    return (
+      <>
+        {lead}
+        <span data-pillrow>
+          <span data-pillname>{name}</span>
+          {input}
         </span>
       </>
     );
