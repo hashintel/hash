@@ -36,6 +36,17 @@ import { flowTriggersOf } from "./flow-triggers";
 import { HashShell } from "./hash-shell";
 import { firstLineIconStyle } from "./menu-rows";
 import { navigate } from "./router";
+import {
+  customPreset,
+  endsWords,
+  ruleSummary,
+  ScheduleFields,
+  type ScheduleValues,
+  scheduleFormTake,
+  scheduleShow,
+  scheduleStart,
+  zoneName,
+} from "./schedule-form";
 import { monthlyReviewId } from "./seed-flows";
 
 type Take = 1 | 2 | 3 | 4;
@@ -50,6 +61,10 @@ export const triggersPageTake = (): Take | null => {
 
 /** `?triggeradd=1..3`, from the URL only. */
 export const triggerAddStep = (): 1 | 2 | 3 | null => {
+  // `?triggeradd=g1|g2` (schedule-form.tsx) open a new schedule, as 2 does, with the Google Calendar fields.
+  if (scheduleFormTake()) {
+    return 2;
+  }
   const step = Number(query().get("triggeradd"));
   return step === 1 || step === 2 || step === 3 ? step : null;
 };
@@ -68,6 +83,8 @@ type Values = {
   web: string;
   entityType: string;
   event: string;
+  /** `?triggeradd=g1|g2`: the row's own words, written by the schedule form. */
+  label?: string;
 };
 
 type PageTrigger = Values & {
@@ -517,6 +534,26 @@ const TriggerForm = ({
     setValues((current) => ({ ...current, [key]: value ?? current[key] }));
   const flow = flows.find((candidate) => candidate.id === values.flowId);
   const day = repeatDay(trigger);
+  const formTake = trigger ? null : scheduleFormTake();
+  const [schedule, setSchedule] = useState<ScheduleValues | null>(() => {
+    if (!formTake) {
+      return null;
+    }
+    const start = scheduleStart();
+    return scheduleShow() === "custom" && formTake === "g1"
+      ? { ...start, rule: customPreset(start.startIso) }
+      : start;
+  });
+  const valuesToSave = (): Values =>
+    schedule
+      ? {
+          ...values,
+          repeat: ruleSummary(schedule.rule, schedule.startIso, schedule.at),
+          at: schedule.at,
+          timeZone: zoneName(schedule.zone),
+          label: `${ruleSummary(schedule.rule, schedule.startIso, schedule.at)}`,
+        }
+      : values;
   return (
     <div
       className={css({
@@ -544,7 +581,13 @@ const TriggerForm = ({
             />
           </>
         ) : null}
-        {kind === "schedule" ? (
+        {kind === "schedule" && formTake && schedule ? (
+          <ScheduleFields
+            take={formTake}
+            values={schedule}
+            onChange={setSchedule}
+          />
+        ) : kind === "schedule" ? (
           <>
             <span className="label">Repeat</span>
             <Select
@@ -648,7 +691,7 @@ const TriggerForm = ({
             size="sm"
             variant="solid"
             tone="neutral"
-            onClick={() => onSave(values)}
+            onClick={() => onSave(valuesToSave())}
           >
             {trigger ? "Save" : "Add trigger"}
           </Button>
@@ -735,7 +778,34 @@ type Draft = { kind: Kind; flowId: string };
 
 const usePage = (routeFlowId: string | null) => {
   const add = triggerAddStep();
-  const [data, setData] = useState(seed);
+  const [data, setData] = useState(() => {
+    const seeded = seed();
+    // `?triggeradd=g1|g2&schedshow=saved`: Custom's preset, saved as the newest schedule of the Monthly supplier review.
+    if (!scheduleFormTake() || scheduleShow() !== "saved") {
+      return seeded;
+    }
+    const start = scheduleStart();
+    const rule = customPreset(start.startIso);
+    const label = ruleSummary(rule, start.startIso, start.at);
+    const id = "new-saved";
+    return {
+      ...seeded,
+      triggers: [
+        ...seeded.triggers,
+        {
+          ...blank,
+          flowId: monthlyReviewId,
+          repeat: label,
+          timeZone: `${zoneName(start.zone)}${endsWords(rule, start.startIso)}`,
+          id,
+          kind: "schedule" as const,
+          label,
+          version: seeded.flows.find((flow) => flow.id === monthlyReviewId)?.latest ?? "v1",
+        },
+      ],
+      on: { ...seeded.on, [id]: true },
+    };
+  });
   const [opened, setOpened] = useState<string | null>(() =>
     add === 3 ? "monday" : (query().get("triggeropen") ?? null),
   );
@@ -747,7 +817,9 @@ const usePage = (routeFlowId: string | null) => {
     known && routeFlowId ? routeFlowId : monthlyReviewId,
   );
   const [draft, setDraft] = useState<Draft | null>(
-    add === 2 ? { kind: "schedule", flowId: monthlyReviewId } : null,
+    add === 2 && scheduleShow() !== "saved"
+      ? { kind: "schedule", flowId: monthlyReviewId }
+      : null,
   );
   const flip = (id: string, on: boolean) =>
     setData((current) => ({ ...current, on: { ...current.on, [id]: on } }));
@@ -777,7 +849,7 @@ const usePage = (routeFlowId: string | null) => {
           kind: draft.kind,
           label:
             draft.kind === "schedule"
-              ? scheduleLabel(values)
+              ? (values.label ?? scheduleLabel(values))
               : eventLabel(values),
           version: flow?.latest ?? "v1",
         },
