@@ -44,6 +44,18 @@ describe("dimensionNameError", () => {
     );
   });
 
+  it("refuses a name the schema reserves", () => {
+    expect(dimensionNameError(elements, "a", "constructor")).toBe(
+      "constructor is a reserved name",
+    );
+    expect(dimensionNameError(elements, "a", "Prototype")).toBe(
+      "prototype is a reserved name",
+    );
+    // Lower-cased and trimmed of underscores, these are ordinary names.
+    expect(dimensionNameError(elements, "a", "toString")).toBeNull();
+    expect(dimensionNameError(elements, "a", "__proto__")).toBeNull();
+  });
+
   it("refuses a name another dimension already has, after slugifying", () => {
     expect(dimensionNameError(elements, "a", "Velocity")).toBe(
       "Another dimension is already named velocity",

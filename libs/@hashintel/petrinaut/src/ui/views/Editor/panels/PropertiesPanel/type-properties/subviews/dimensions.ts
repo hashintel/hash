@@ -4,6 +4,8 @@
  * from being committed.
  */
 
+import { isDangerousRecordKey } from "@hashintel/petrinaut-core";
+
 import type { Color, ColorElementType } from "@hashintel/petrinaut-core";
 
 type Dimension = Color["elements"][number];
@@ -48,8 +50,8 @@ export const nextDimensionName = (
 
 /**
  * Why `text` cannot become the name of the element `elementId`: it is
- * empty, or another dimension already has the identifier it becomes.
- * `null` when the name can be committed.
+ * empty, the identifier it becomes is one the net's schema reserves, or
+ * another dimension already has it. `null` when the name can be committed.
  */
 export const dimensionNameError = (
   elements: readonly Pick<Dimension, "elementId" | "name">[],
@@ -59,6 +61,9 @@ export const dimensionNameError = (
   const slug = slugifyToIdentifier(text);
   if (slug === "") {
     return "A dimension needs a name";
+  }
+  if (isDangerousRecordKey(slug)) {
+    return `${slug} is a reserved name`;
   }
   const taken = elements.some(
     (element) => element.elementId !== elementId && element.name === slug,
