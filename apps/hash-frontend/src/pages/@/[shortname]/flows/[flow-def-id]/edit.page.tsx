@@ -32,8 +32,8 @@ import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
+import { findStep } from "./edit.page/shared/find-step";
 import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
-import { findStep } from "./edit.page/step-panel/shared/find-step";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,

@@ -5,8 +5,10 @@ import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
+import { findStep } from "./shared/find-step";
 import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
+import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
@@ -15,9 +17,7 @@ import {
   getNewFlowInput,
 } from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
-import { findStep } from "./step-panel/shared/find-step";
 import { UsedByField } from "./step-panel/used-by-field";
-import { indexValueUses } from "./step-panel/value-uses";
 
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";

@@ -5,6 +5,11 @@ import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
+  formatDuration,
+  formatEndTime,
+  formatRunTime,
+} from "../shared/run-times";
+import {
   countRunsByTab,
   defaultRunSort,
   filterRuns,
@@ -12,7 +17,6 @@ import {
   isInTab,
   sortRuns,
 } from "./run-list";
-import { formatDuration, formatEndTime, formatRunTime } from "./run-times";
 import { IdCell, StatusCell } from "./runs-table/run-cells";
 import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
 

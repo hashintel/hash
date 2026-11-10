@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { actionStep } from "../shared/step-fixtures";
+import { actionStep } from "./step-fixtures";
 import { indexValueUses } from "./value-uses";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";

@@ -3,8 +3,8 @@ import { upperFirst } from "lodash";
 import { Button, Form, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { getStepName } from "../shared/find-step";
 import { getKindIcon, getKindLabel } from "../shared/value-display";
-import { getStepName } from "./shared/find-step";
 import { StepChips } from "./shared/step-chips";
 
 import type {

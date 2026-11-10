@@ -1,4 +1,4 @@
-import { getStepDisplay } from "../../shared/step-display";
+import { getStepDisplay } from "./step-display";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
