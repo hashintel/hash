@@ -34,15 +34,20 @@ use self::value::ColumnValue;
 pub use self::value::UnsupportedValue;
 
 /// The positions of a sink table's columns by name, built once for all of its rows.
+///
+/// Names are compared ignoring ASCII case, as DuckDB compares identifiers, so a definition reads
+/// the same columns its pipeline was checked against.
 #[derive(Debug, Clone)]
 pub struct SinkColumns(HashMap<Box<str>, usize>);
 
 /// Indexes the columns in the order of each row's values.
-impl<S: Into<Box<str>>> FromIterator<S> for SinkColumns {
+impl<S: AsRef<str>> FromIterator<S> for SinkColumns {
     fn from_iter<I: IntoIterator<Item = S>>(iter: I) -> Self {
         let mut positions = HashMap::new();
         for (position, column) in iter.into_iter().enumerate() {
-            positions.entry(column.into()).or_insert(position);
+            positions
+                .entry(column.as_ref().to_ascii_lowercase().into_boxed_str())
+                .or_insert(position);
         }
         Self(positions)
     }
@@ -99,7 +104,7 @@ impl SinkRow<'_> {
     fn get(&self, column: &ColumnName) -> &Value {
         self.columns
             .0
-            .get(column.as_ref())
+            .get(column.as_ref().to_ascii_lowercase().as_str())
             .and_then(|&position| self.values.get(position))
             .unwrap_or(&Value::Null)
     }

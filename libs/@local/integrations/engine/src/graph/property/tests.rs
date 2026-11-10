@@ -371,6 +371,23 @@ fn resolve_unit_fallback() {
 }
 
 #[test]
+fn column_case() {
+    let columns = core::iter::once("model").collect::<SinkColumns>();
+    let values = [text("DC-3")];
+    let properties = Properties::try_from(BTreeMap::from([(
+        property("model"),
+        Accessor::Column(column("MODEL")),
+    )]))
+    .expect("should be valid properties");
+    let resolved = SinkRow::new(&columns, &values).resolve(&properties, &BTreeMap::new());
+    assert_eq!(
+        resolved.properties.value.keys().collect::<Vec<_>>(),
+        [&property("model").base_url],
+        "should read a column whose name differs only in case, as DuckDB does"
+    );
+}
+
+#[test]
 fn missing_column_reads_as_null() {
     let columns = core::iter::once("MODEL").collect::<SinkColumns>();
     let values = [text("DC-3")];
