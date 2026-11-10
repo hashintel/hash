@@ -29,7 +29,6 @@ const launcherMigrated = `// Example of ODE for Satellite in orbit (simplified)
 const mu = parameters.gravitational_constant; // Gravitational parameter
 
 // Process each token (satellite)
-const [token] = tokens;
 const { x, y, direction, velocity } = token;
 const r = Math.hypot(x, y); // Distance to planet center
 
@@ -72,22 +71,42 @@ return {
   });
 
   it("binds a named token parameter by its own name", () => {
+    const migrated = "const satellite = token;\nreturn { x: satellite.vx };";
     expect(
       migrateWholePlaceDynamicsCode(
         "return tokens.map((satellite) => ({ x: satellite.vx }));",
       ),
-    ).toBe("const [satellite] = tokens;\nreturn { x: satellite.vx };");
+    ).toBe(migrated);
+    expect(lowersAsOneTokenBody(migrated)).toBe(true);
   });
 
-  it("picks a token name the code does not use yet", () => {
-    const code = `const token = parameters.scale;
-return tokens.map(({ x }) => ({ x: token * x }));`;
-    expect(migrateWholePlaceDynamicsCode(code)).toBe(
-      `const token = parameters.scale;
-const [token_] = tokens;
-const { x } = token_;
-return { x: token * x };`,
+  it("binds nothing for a parameter already called token", () => {
+    const migrated = migrateWholePlaceDynamicsCode(
+      "return tokens.map((token) => ({ x: token.vx }));",
     );
+    expect(migrated).toBe("return { x: token.vx };");
+    expect(lowersAsOneTokenBody(migrated!)).toBe(true);
+  });
+
+  it.each([
+    [
+      "declared before the return",
+      "const token = parameters.scale;\nreturn tokens.map(({ x }) => ({ x: token * x }));",
+    ],
+    [
+      "declared in the callback body",
+      "return tokens.map(({ x }) => {\n  const token = x * 2;\n  return { x: token };\n});",
+    ],
+    [
+      "bound by the callback's pattern",
+      "return tokens.map(({ token }) => ({ x: token }));",
+    ],
+    [
+      "read in the callback body beside a parameter of another name",
+      "return tokens.map((lot) => ({ x: lot.x * token }));",
+    ],
+  ])("refuses code with a local called token %s", (_label, code) => {
+    expect(migrateWholePlaceDynamicsCode(code)).toBeNull();
   });
 
   it("unwraps the module form when its parameters carry the ambient names", () => {
@@ -97,14 +116,14 @@ return { x: token * x };`,
 });`;
     expect(migrateWholePlaceDynamicsCode(code)).toBe(
       `const k = parameters.k;
-const [t] = tokens;
+const t = token;
 return { x: -k * t.x };`,
     );
     expect(
       migrateWholePlaceDynamicsCode(
         "export default Dynamics((tokens) => tokens.map((t) => ({ x: t.x })));",
       ),
-    ).toBe("const [t] = tokens;\nreturn { x: t.x };");
+    ).toBe("const t = token;\nreturn { x: t.x };");
   });
 
   it("keeps the comment above a module's export and brackets inside literals", () => {
@@ -119,7 +138,6 @@ export default Dynamics((tokens, parameters) => {
     expect(migrateWholePlaceDynamicsCode(code)).toBe(
       `// Example of ODE for Satellite in orbit (simplified)
 const label = "map(" + ")"; // a ")" in a string and a comment
-const [token] = tokens;
 const { x } = token;
 const note = \`{ \${x} }\`;
 return { x: note.length };`,
@@ -131,7 +149,7 @@ return { x: note.length };`,
       migrateWholePlaceDynamicsCode(
         "return tokens.map(({ x = 0 }) => ({ x }));",
       ),
-    ).toBe("const [token] = tokens;\nconst { x = 0 } = token;\nreturn { x };");
+    ).toBe("const { x = 0 } = token;\nreturn { x };");
   });
 
   it("leaves out destructured fields the callback never reads", () => {
@@ -142,8 +160,7 @@ return { x: note.length };`,
   cost: 0,
 }));`;
     expect(migrateWholePlaceDynamicsCode(code)).toBe(
-      `const [token] = tokens;
-const { processing_left, quality } = token;
+      `const { processing_left, quality } = token;
 return {
   processing_left: processing_left > 0 ? -1 : 0,
   quality: quality > 0 ? -1 : 0,
@@ -175,16 +192,12 @@ return {
       migrateWholePlaceDynamicsCode(
         "return tokens.map(({ x: px, y: py, z }) => ({ x: px + py }));",
       ),
-    ).toBe(
-      "const [token] = tokens;\nconst { x: px, y: py } = token;\nreturn { x: px + py };",
-    );
+    ).toBe("const { x: px, y: py } = token;\nreturn { x: px + py };");
     expect(
       migrateWholePlaceDynamicsCode(
         "return tokens.map(({ a: { b } }) => ({ x: b }));",
       ),
-    ).toBe(
-      "const [token] = tokens;\nconst { a: { b } } = token;\nreturn { x: b };",
-    );
+    ).toBe("const { a: { b } } = token;\nreturn { x: b };");
   });
 
   it("carries a trailing comment and semicolon", () => {
@@ -192,7 +205,7 @@ return {
       migrateWholePlaceDynamicsCode(
         "return tokens.map((t) => ({ x: t.x })); // per token",
       ),
-    ).toBe("const [t] = tokens;\nreturn { x: t.x };\n// per token");
+    ).toBe("const t = token;\nreturn { x: t.x };\n// per token");
   });
 
   it.each([
@@ -209,7 +222,11 @@ return {
       "if (parameters.frozen) return [];\nreturn tokens.map((t) => ({ x: 1 }));",
     ],
     ["a different method", "return tokens.filter((t) => t.x > 0);"],
-    ["a one-token body", "const [token] = tokens;\nreturn { x: token.x };"],
+    ["a one-token body", "const { x } = token;\nreturn { x: -x };"],
+    [
+      "a body that destructures the tuple",
+      "const [token] = tokens;\nreturn { x: token.x };",
+    ],
     [
       "a module form with other parameter names",
       "export default Dynamics((items) => items.map((t) => ({ x: t.x })));",
@@ -245,7 +262,7 @@ return {
         "const rate = parameters.k;\nreturn tokens.map(({ x }) => {\n  const k = rate * 2;\n  return { x: -k * x };\n});",
       ),
     ).toBe(
-      "const rate = parameters.k;\nconst [token] = tokens;\nconst { x } = token;\nconst k = rate * 2;\nreturn { x: -k * x };",
+      "const rate = parameters.k;\nconst { x } = token;\nconst k = rate * 2;\nreturn { x: -k * x };",
     );
   });
 
@@ -262,7 +279,7 @@ return {
     const migrated = migrateWholePlaceDynamicsCode(
       `${before}\nreturn tokens.map(({ x }) => {\n${inside}\n  return { x: b0 };\n});`,
     );
-    expect(migrated?.split("\n")).toHaveLength(count * 2 + 3);
+    expect(migrated?.split("\n")).toHaveLength(count * 2 + 2);
     expect(migrated?.endsWith("return { x: b0 };")).toBe(true);
   });
 
@@ -271,6 +288,6 @@ return {
       migrateWholePlaceDynamicsCode(
         "return tokens.map((t) => ({ ...t, x: 1 }));",
       ),
-    ).toBe("const [t] = tokens;\nreturn { ...t, x: 1 };");
+    ).toBe("const t = token;\nreturn { ...t, x: 1 };");
   });
 });

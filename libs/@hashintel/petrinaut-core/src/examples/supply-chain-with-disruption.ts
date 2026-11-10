@@ -1357,9 +1357,8 @@ return {};`,
 // return DERIVATIVES, so eta: -1 means "decrease eta at rate 1"; once it
 // reaches 0 the derivative becomes 0 (it holds, ready for arrival predicates).
 // All other attributes are constant during transit (derivative 0).
-const [shipment] = tokens;
 return {
-  eta: shipment.eta > 0 ? -1 : 0,
+  eta: token.eta > 0 ? -1 : 0,
   risk_score: 0,
   cost: 0,
 };`,
@@ -1385,8 +1384,7 @@ return {
         code: `// While a batch is in process, processing_left counts down toward 0 and its
 // quality slowly decays. So a batch that sits in WIP too long can drift below
 // the minimum quality and end up scrapped rather than finished.
-const [batch] = tokens;
-const { processing_left, quality } = batch;
+const { processing_left, quality } = token;
 return {
   processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
   // Decay stops at 0 so quality stays within its implied [0, 1] range
@@ -1404,8 +1402,7 @@ return {
         code: `// The running machine continuously loses a little health and gains a little
 // wear even between batches. Combined with the per-batch wear in production,
 // this is the slow degradation that maintenance and repair counteract.
-const [machine] = tokens;
-const { health, wear } = machine;
+const { health, wear } = token;
 return {
   health: health > 0 ? -parameters.machine_health_decay : 0,
   // Wear accrues only up to 1 so it stays within its implied [0, 1] range.

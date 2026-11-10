@@ -1,10 +1,13 @@
 /**
- * The ambient name of a dynamics body's input, as `AMBIENT_INPUT_NAMES` in
- * `hir/user-code-form.ts` declares it. Spelled out here because this module
- * runs in the editor's main bundle, which must not reach the TypeScript
- * compiler that module imports; the rewrite scans the text instead.
+ * The ambient names of a dynamics body's input, as `hir/user-code-form.ts`
+ * declares them: `tokens`, which code written for the whole place reads,
+ * and `token`, which a one-token body reads. Spelled out here because this
+ * module runs in the editor's main bundle, which must not reach the
+ * TypeScript compiler that module imports; the rewrite scans the text
+ * instead.
  */
 const TOKENS = "tokens";
+const TOKEN = "token";
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const WORD = /(?<![\w$])[A-Za-z_$][\w$]*/g;
@@ -415,36 +418,27 @@ const callbackNames = ({ parameter, body }: Callback): string[] => [
   ...(body.kind === "block" ? declaredNames(body.masked) : []),
 ];
 
-/** A local name for the one token that the code does not use yet. */
-const freshTokenName = (masked: string): string => {
-  const taken = new Set(masked.match(WORD) ?? []);
-  let name = "token";
-  while (taken.has(name)) {
-    name = `${name}_`;
-  }
-  return name;
-};
+/** Whether the callback's parameter is the ambient `token` name itself. */
+const takesTokenByName = ({ parameter }: Callback): boolean =>
+  parameter?.kind === "name" && parameter.name === TOKEN;
 
 /**
- * The statements binding the one token the way the callback's parameter
- * did, leaving out what the callback never reads.
+ * The statement binding the ambient `token` the way the callback's
+ * parameter did, leaving out what the callback never reads; none when the
+ * parameter is already called `token`.
  */
-const tokenBindings = (callback: Callback, masked: string): string[] => {
+const tokenBindings = (callback: Callback): string[] => {
   const { parameter, body } = callback;
-  if (parameter === null) {
+  if (parameter === null || takesTokenByName(callback)) {
     return [];
   }
   if (parameter.kind === "name") {
     return referencedNames(body.masked).has(parameter.name)
-      ? [`const [${parameter.name}] = ${TOKENS};`]
+      ? [`const ${parameter.name} = ${TOKEN};`]
       : [];
   }
   const pattern = readPattern(parameter.pattern, body.masked);
-  if (pattern === null) {
-    return [];
-  }
-  const token = freshTokenName(masked);
-  return [`const [${token}] = ${TOKENS};`, `const ${pattern} = ${token};`];
+  return pattern === null ? [] : [`const ${pattern} = ${TOKEN};`];
 };
 
 const RETURN_MAP = /\breturn\s+tokens\s*\.\s*map\s*\(/g;
@@ -452,18 +446,19 @@ const RETURN_MAP = /\breturn\s+tokens\s*\.\s*map\s*\(/g;
 /**
  * Rewrites an equation body written for the whole place, which ends in
  * `return tokens.map(callback)` over every token, into the one-token body an
- * arity-1 equation runs: `const [token] = tokens;` followed by the callback's
- * own body, after any statements that came before the return. Comments and
- * the module form `export default Dynamics((tokens, parameters) => ...)`
- * are carried over; fields the callback destructured but never read are
- * left out of the binding.
+ * arity-1 equation runs: the callback's own body over the ambient `token`,
+ * bound to the callback's parameter where the two differ, after any
+ * statements that came before the return. Comments and the module form
+ * `export default Dynamics((tokens, parameters) => ...)` are carried over;
+ * fields the callback destructured but never read are left out of the
+ * binding.
  *
  * Returns null when the code is not that form, or when the rewrite would
  * change its meaning: a callback that reads the index, another read of
- * `tokens`, a `return` before the map, a second argument to `map`, or a
- * callback local that shares its name with one used before the return. Such
- * code keeps its text and the editor's diagnostics ask for the one-token
- * form.
+ * `tokens`, a `return` before the map, a second argument to `map`, a
+ * callback local that shares its name with one used before the return, or
+ * a local of its own called `token`. Such code keeps its text and the
+ * editor's diagnostics ask for the one-token form.
  */
 export const migrateWholePlaceDynamicsCode = (code: string): string | null => {
   const unwrapped = asBareBody({ text: code, masked: maskLiterals(code) });
@@ -492,7 +487,18 @@ export const migrateWholePlaceDynamicsCode = (code: string): string | null => {
   // Lifted beside the statements before the return, a name the callback
   // binds would be declared twice in one scope.
   const usedBefore = referencedNames(prefix.masked);
-  if (callbackNames(callback).some((name) => usedBefore.has(name))) {
+  const bound = callbackNames(callback);
+  if (bound.some((name) => usedBefore.has(name))) {
+    return null;
+  }
+  // The body reads the ambient `token`, so the code cannot keep a local of
+  // that name unless it is the callback's parameter itself.
+  if (
+    !takesTokenByName(callback) &&
+    (usedBefore.has(TOKEN) ||
+      bound.includes(TOKEN) ||
+      referencedNames(callback.body.masked).has(TOKEN))
+  ) {
     return null;
   }
 
@@ -507,7 +513,7 @@ export const migrateWholePlaceDynamicsCode = (code: string): string | null => {
   return [
     unwrapped.leading.trim(),
     dedent(prefix.text).trim(),
-    ...tokenBindings(callback, body.masked),
+    ...tokenBindings(callback),
     callbackBody,
     tail,
   ]

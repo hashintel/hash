@@ -349,8 +349,8 @@ export const differentialEquationSchema = z
     }),
     code: z.string().meta({
       description: [
-        "Function body ending in `return`, with `tokens` and `parameters` ambient (the module form `export default Dynamics((token, parameters) => …)`, with one parameter per coupled token, is also accepted).",
-        "`tokens` is a tuple of exactly `arity` tokens of THIS place (`const [token] = tokens;` for arity 1, `const [a, b] = tokens;` for arity 2) — NOT all tokens of the place, NOT other places' tokens.",
+        "Function body ending in `return`, with the input and `parameters` ambient (the module form `export default Dynamics((token, parameters) => …)`, with one parameter per coupled token, is also accepted).",
+        "With `arity` 1 the input is `token`, ONE token of THIS place (`return { level: -token.level };`), and `tokens` is NOT defined. With `arity` 2 and above the input is `tokens`, a tuple of exactly `arity` tokens of THIS place (`const [a, b] = tokens;`). Neither is all tokens of the place, and neither holds other places' tokens.",
         "MUST return real-valued derivatives (i.e. dx/dt, NOT the new value): one record for arity 1, an array of `arity` records (one per token, in order) above that.",
         "Integer and boolean elements are discrete and remain unchanged by dynamics.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",

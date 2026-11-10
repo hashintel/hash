@@ -158,10 +158,11 @@ export type DifferentialEquation = {
   colorId: ID | null;
   code: string;
   /**
-   * How many tokens the equation couples, a positive integer `n`. The code
-   * sees `tokens` as a tuple of exactly `n` tokens of the colour and returns
-   * their derivatives: one record for arity 1, an array of `n` records (one
-   * per token, in order) above that. The simulator applies it to every
+   * How many tokens the equation couples, a positive integer `n`. With an
+   * arity of 1 the code sees that token as `token` and returns its
+   * derivative record. Above that it sees `tokens`, a tuple of exactly `n`
+   * tokens of the colour, and returns an array of `n` records, one per
+   * token in order. The simulator applies it to every
    * unordered combination of `n` distinct tokens of the place, in index
    * order, and sums the contributions.
    */

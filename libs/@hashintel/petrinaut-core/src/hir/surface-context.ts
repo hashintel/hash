@@ -110,8 +110,9 @@ export type HirDynamicsContext = {
   /** Attributes of the color the differential equation is attached to. */
   elements: HirTokenElementInfo[];
   /**
-   * The equation's arity (`DifferentialEquation.arity`): `tokens` is a tuple
-   * of exactly this many tokens and the result one record (arity 1) or an
+   * The equation's arity (`DifferentialEquation.arity`): the function takes
+   * a tuple of exactly this many tokens, which a bare body reads as `token`
+   * (arity 1) or `tokens`, and the result is one record (arity 1) or an
    * array of `arity` records.
    */
   arity: number;

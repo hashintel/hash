@@ -30,6 +30,7 @@ import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,
   detectUserCodeForm,
+  dynamicsInputName,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "./user-code-form";
@@ -55,8 +56,9 @@ export type LowerTypeScriptOptions = {
   /**
    * The dynamics equation's arity (`HirDynamicsContext.arity`). With it,
    * the module form declares one parameter per coupled token followed by an
-   * optional `parameters`; the bare-body form is unchanged (`tokens` is the
-   * tuple). Ignored for other surfaces.
+   * optional `parameters`, and the bare-body form sees `token` for an
+   * arity of 1 and the `tokens` tuple above that. Ignored for other
+   * surfaces.
    */
   arity?: number;
 };
@@ -358,6 +360,11 @@ class Lowering {
    * surface's ambient names as the wrapper's parameters. Spans are still
    * relative to the wrapped text — the caller shifts them back onto the raw
    * user body.
+   *
+   * An equation over one token is wrapped as `(token, parameters) => …`:
+   * the function still takes the one-element tuple every equation takes,
+   * and `token` is bound from it the way the module form binds its token
+   * parameter.
    */
   lowerDualFormBareBody(surface: DualFormSurfaceKind): HirFunction {
     const [statement, ...rest] = this.sourceFile.statements;
@@ -383,8 +390,9 @@ class Lowering {
         span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
       });
     }
-    const inputName = AMBIENT_INPUT_NAMES[surface];
     const [inputParam, parametersParam] = arrow.parameters;
+    const singleToken = surface === "dynamics" && this.options.arity === 1;
+    const inputName = singleToken ? "__tokens" : AMBIENT_INPUT_NAMES[surface];
     const scope: HirLoweringScope = {
       locals: new Set([inputName]),
       distributionLocals: new Set(),
@@ -394,7 +402,14 @@ class Lowering {
       scenarioAliases: new Map(),
       scenarioName: null,
     };
-    const body = this.lowerBlock(arrowBody, scope);
+    const tokenBindings = singleToken
+      ? [this.tokenBinding(inputParam!, 0, inputName, scope)]
+      : [];
+    const body = this.withTokenBindings(
+      arrow,
+      tokenBindings,
+      this.lowerBlock(arrowBody, scope),
+    );
     return {
       hirVersion: 1,
       surface,
@@ -604,27 +619,9 @@ class Lowering {
           params.push(this.bindInputParameter(parameter, "__input", scope));
           continue;
         }
-        const bound = this.bindInputParameter(
-          parameter,
-          `__token${index}`,
-          scope,
+        tokenBindings.push(
+          this.tokenBinding(parameter, index, tokensName, scope),
         );
-        tokenBindings.push({
-          name: bound.name,
-          nameSpan: bound.span,
-          value: this.make(parameter, {
-            kind: "indexAccess",
-            target: this.make(parameter, {
-              kind: "localRef",
-              name: tokensName,
-            }),
-            index: this.make(parameter, {
-              kind: "numberLit",
-              value: index,
-              raw: String(index),
-            }),
-          }),
-        });
         continue;
       }
       if (ts.isIdentifier(parameter.name)) {
@@ -660,28 +657,13 @@ class Lowering {
       );
     }
 
-    const lowered = ts.isBlock(fnArg.body)
-      ? this.lowerBlock(fnArg.body, scope)
-      : this.lowerExpr(fnArg.body, scope);
-    // A token parameter the body never reads gets no binding, so declaring
-    // one only to satisfy the arity is not an unused binding.
-    const referenced = new Set<string>();
-    walkHir(lowered, (node) => {
-      if (node.kind === "localRef") {
-        referenced.add(node.name);
-      }
-    });
-    const usedTokenBindings = tokenBindings.filter((binding) =>
-      referenced.has(binding.name),
+    const body = this.withTokenBindings(
+      fnArg,
+      tokenBindings,
+      ts.isBlock(fnArg.body)
+        ? this.lowerBlock(fnArg.body, scope)
+        : this.lowerExpr(fnArg.body, scope),
     );
-    const body =
-      usedTokenBindings.length === 0
-        ? lowered
-        : this.make(fnArg, {
-            kind: "let",
-            bindings: usedTokenBindings,
-            body: lowered,
-          });
 
     return {
       hirVersion: 1,
@@ -690,6 +672,54 @@ class Lowering {
       body,
       span: this.spanOf(fnArg),
     };
+  }
+
+  /**
+   * Binds the token parameter of an equation to the element at `index` of
+   * the tuple `tokensName` that the function takes.
+   */
+  private tokenBinding(
+    parameter: ts.ParameterDeclaration,
+    index: number,
+    tokensName: string,
+    scope: HirLoweringScope,
+  ): HirLetBinding {
+    const bound = this.bindInputParameter(parameter, `__token${index}`, scope);
+    return {
+      name: bound.name,
+      nameSpan: bound.span,
+      value: this.make(parameter, {
+        kind: "indexAccess",
+        target: this.make(parameter, { kind: "localRef", name: tokensName }),
+        index: this.make(parameter, {
+          kind: "numberLit",
+          value: index,
+          raw: String(index),
+        }),
+      }),
+    };
+  }
+
+  /**
+   * `body` behind the token bindings it reads. A token the body never reads
+   * gets no binding, so declaring one only to satisfy the arity is not an
+   * unused binding.
+   */
+  private withTokenBindings(
+    anchor: ts.Node,
+    bindings: HirLetBinding[],
+    body: HirExpr,
+  ): HirExpr {
+    const referenced = new Set<string>();
+    walkHir(body, (node) => {
+      if (node.kind === "localRef") {
+        referenced.add(node.name);
+      }
+    });
+    const used = bindings.filter((binding) => referenced.has(binding.name));
+    return used.length === 0
+      ? body
+      : this.make(anchor, { kind: "let", bindings: used, body });
   }
 
   /** A scope with nothing in it: the start of a function. */
@@ -2215,6 +2245,7 @@ function lowerWrappedBodyToHir(
   prefix: string,
   suffix: string,
   lower: (lowering: Lowering) => HirFunction,
+  options: LowerTypeScriptOptions = {},
 ): LowerTypeScriptResult {
   const wrapped = prefix + code + suffix;
   const sourceFile = ts.createSourceFile(
@@ -2236,7 +2267,7 @@ function lowerWrappedBodyToHir(
   }
 
   try {
-    const fn = lower(new Lowering(sourceFile, surface));
+    const fn = lower(new Lowering(sourceFile, surface, options));
     shiftWrappedFunctionSpans(fn, code.length, prefix.length);
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
@@ -2249,8 +2280,15 @@ function lowerWrappedBodyToHir(
 
 /** Parsing wrapper for the bare-body form of a dynamics/lambda/kernel
  * surface: the ambient names become the wrapper arrow's parameters. */
-function bareBodyPrefix(surface: DualFormSurfaceKind): string {
-  return `(${AMBIENT_INPUT_NAMES[surface]}, parameters) => {\n`;
+function bareBodyPrefix(
+  surface: DualFormSurfaceKind,
+  arity: number | undefined,
+): string {
+  const inputName =
+    surface === "dynamics"
+      ? dynamicsInputName(arity)
+      : AMBIENT_INPUT_NAMES[surface];
+  return `(${inputName}, parameters) => {\n`;
 }
 
 const BARE_BODY_SUFFIX = "\n}";
@@ -2319,9 +2357,10 @@ export function lowerTypeScriptToHir(
     return lowerWrappedBodyToHir(
       code,
       surface,
-      bareBodyPrefix(dualFormSurface),
+      bareBodyPrefix(dualFormSurface, options.arity),
       BARE_BODY_SUFFIX,
       (lowering) => lowering.lowerDualFormBareBody(dualFormSurface),
+      options,
     );
   }
 

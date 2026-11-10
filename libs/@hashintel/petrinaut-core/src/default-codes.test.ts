@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { generateDefaultDifferentialEquationCode } from "./default-codes";
-import { compileHirArtifacts } from "./hir";
+import {
+  DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  generateDefaultDifferentialEquationCode,
+} from "./default-codes";
+import { compileHirArtifacts, lowerTypeScriptToHir } from "./hir";
 
 import type { Color, SDCPN } from "./types/sdcpn";
 
@@ -54,7 +57,22 @@ describe("generateDefaultDifferentialEquationCode", () => {
 
   it("destructures the single token of an arity-1 equation", () => {
     expect(generateDefaultDifferentialEquationCode(body, 1)).toContain(
-      "const [token] = tokens;\nconst { x, alive } = token;",
+      "const { x, alive } = token;",
     );
   });
+
+  it.each([
+    ["generated", generateDefaultDifferentialEquationCode(body, 1)],
+    ["fallback", DEFAULT_DIFFERENTIAL_EQUATION_CODE],
+  ])(
+    "reads `token` and never the `tokens` tuple in the %s arity-1 template",
+    (_label, code) => {
+      expect(code).not.toMatch(/\btokens\b/);
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 1 });
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.message),
+      ).toEqual([]);
+      expect(result.ok).toBe(true);
+    },
+  );
 });

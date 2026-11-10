@@ -12,6 +12,7 @@ import {
 import {
   AMBIENT_INPUT_NAMES,
   buildLambdaContext,
+  dynamicsInputName,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -132,13 +133,15 @@ function dualFormCodeFile(options: {
   modulePrefixLines: string[];
   /** Import lines for the types the body wrapper's signature references. */
   bodyImportLines: string[];
+  /** Name of the ambient input object, when it is not the surface's usual one. */
+  inputName?: string;
   /** TypeScript type of the ambient input object. */
   inputType: string;
   /** Declared return type of the body. */
   returnType: string;
   parametersDefsPath: string;
 }): VirtualFile {
-  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  const inputName = options.inputName ?? AMBIENT_INPUT_NAMES[options.surface];
   return applyFormWrapper({
     content: options.content,
     formWrappers: {
@@ -355,7 +358,9 @@ export function generateVirtualFiles(
       ].join("\n"),
     });
 
-    // User code file, wrapped according to its authoring form
+    // User code file, wrapped according to its authoring form. A body over
+    // one token sees it as `token`; over more, the `tokens` tuple.
+    const inputName = dynamicsInputName(arity);
     files.set(
       deCodePath,
       dualFormCodeFile({
@@ -363,13 +368,14 @@ export function generateVirtualFiles(
         surface: "dynamics",
         modulePrefixLines: [
           `import type { Dynamics } from "${deDefsPath}";`,
-          `/** @deprecated Write the function body directly; tokens and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
+          `/** @deprecated Write the function body directly; ${inputName} and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
-          `import type { Derivatives, Tokens } from "${deDefsPath}";`,
+          `import type { Derivatives, Token, Tokens } from "${deDefsPath}";`,
         ],
-        inputType: "Tokens",
+        inputName,
+        inputType: arity === 1 ? "Token" : "Tokens",
         returnType: "Derivatives",
         parametersDefsPath,
       }),

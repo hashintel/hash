@@ -295,8 +295,7 @@ return {
         code: `// Example of ODE for one satellite in orbit (simplified)
 const mu = parameters.gravitational_constant; // Gravitational parameter
 
-const [satellite] = tokens;
-const { x, y, direction, velocity } = satellite;
+const { x, y, direction, velocity } = token;
 const r = Math.hypot(x, y); // Distance to planet center
 
 // Gravitational acceleration vector (points toward origin)

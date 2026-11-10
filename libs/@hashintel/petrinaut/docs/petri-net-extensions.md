@@ -57,12 +57,12 @@ Kernel, firing rate/predicate, differential equation, visualizer, metric, and sc
 | --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
 | [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per coupled token                 |
+| [Differential equation](#differential-equations-dynamics) | `token` or `tokens`, `parameters`         | one derivative object per coupled token                 |
 | [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
 | Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
-`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `tokens` is the tuple of tokens a differential equation couples (one, usually); `state` exposes every place's tokens and counts to a metric.
+`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `token` is the token a differential equation integrates, and an equation that couples several tokens sees them as the `tokens` tuple instead; `state` exposes every place's tokens and counts to a metric.
 
 Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)` (one parameter per coupled token, then `parameters`), and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
 
@@ -82,7 +82,7 @@ return input.Queue[0].priority > parameters.threshold;
 
 If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
 
-Equations written before equations composed are converted when the net loads, whether from a file, from the browser's saved nets, or from HASH. The place's single equation becomes the first entry of its **Dynamics** list, the equation couples one token, and a body that ended in `return tokens.map(...)` over every token becomes `const [token] = tokens;` followed by the callback's own body, comments included. A body the conversion cannot keep exact, because the callback reads the index or the code reads `tokens` elsewhere, is kept as written, and a diagnostic asks for the one-token form.
+Equations written before equations composed are converted when the net loads, whether from a file, from the browser's saved nets, or from HASH. The place's single equation becomes the first entry of its **Dynamics** list, the equation couples one token, and a body that ended in `return tokens.map(...)` over every token becomes the callback's own body reading `token`, comments included. A body the conversion cannot keep exact, because the callback reads the index or the code reads `tokens` elsewhere, is kept as written, and a diagnostic asks for the one-token form.
 
 For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
 
@@ -101,11 +101,11 @@ Differential equations define how token data evolves continuously over time. The
 **Function body:**
 
 ```ts
-const [token] = tokens;
+const { x, y } = token;
 return { x: /* dx/dt */, y: /* dy/dt */ };
 ```
 
-The code is a plain function body ending in `return`, with `tokens` (a tuple holding the token being integrated) and `parameters` (the global parameters) in scope. It runs once per token in the place and returns one derivative object with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the token, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run. The module style declares the token as a parameter: `export default Dynamics((token, parameters) => ({ ... }))`.
+The code is a plain function body ending in `return`, with `token` (the token being integrated) and `parameters` (the global parameters) in scope. It runs once per token in the place and returns one derivative object with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the token, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run. The module style declares the token as a parameter: `export default Dynamics((token, parameters) => ({ ... }))`.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
@@ -113,7 +113,7 @@ The code is a plain function body ending in `return`, with `tokens` (a tuple hol
 
 ### Equations over several tokens
 
-The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body runs once per combination of that many distinct tokens, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it. The select offers one to four tokens. A file can set up to eight; a larger number is refused on import, and an equation that carries one shows a diagnostic and does not run.
+The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body sees `tokens`, a tuple of that many distinct tokens, in place of `token`. It runs once per combination, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it. The select offers one to four tokens. A file can set up to eight; a larger number is refused on import, and an equation that carries one shows a diagnostic and does not run.
 
 ```ts
 // A mutual attraction over every pair of tokens
@@ -133,7 +133,7 @@ The [GPU backend](experiments.md#compute-backend) integrates one equation over o
 
 **Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes the one-token orbit equation with a two-token mutual attraction.
 
-Files saved by earlier versions, where a place named one equation and every equation covered the whole place at once, open with that equation as the place's only term, coupling one token; their bodies, written as `tokens.map(...)`, show a diagnostic until rewritten in the form above.
+Files saved by earlier versions, where a place named one equation and every equation covered the whole place at once, open with that equation as the place's only term, coupling one token, and with their `tokens.map(...)` bodies converted as described under [Differential equations](#differential-equations-dynamics).
 
 ## Visualizer
 

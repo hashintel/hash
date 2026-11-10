@@ -31,9 +31,9 @@ const tokenParameterName = (position: number): string =>
   position < 26 ? String.fromCharCode(97 + position) : `t${position}`;
 
 /**
- * The starting code of a differential equation over `type`: a body over a
- * tuple of `arity` tokens that returns one derivative record (arity 1) or one
- * per token.
+ * The starting code of a differential equation over `type`: a body over
+ * `token` that returns its derivative record (arity 1), or a body over the
+ * `tokens` tuple that returns one record per token.
  */
 export function generateDefaultDifferentialEquationCode(
   type: Color,
@@ -58,10 +58,9 @@ ${indent}}`
     return `// This code defines the differential equation for one token of type "${
       type.name
     }".
-// \`tokens\` is a tuple holding that token, and \`parameters\` any global
-// parameters defined. It runs once per token in the place.
+// \`token\` is that token, and \`parameters\` any global parameters
+// defined. It runs once per token in the place.
 // Return the derivatives of the token's real-valued attributes.
-const [token] = tokens;
 const { ${elementNames} } = token;
 
 return ${derivativeSource("")}; ${derivativeNote}`;
@@ -87,10 +86,9 @@ ${names
 }
 
 export const DEFAULT_DIFFERENTIAL_EQUATION_CODE = `// This code defines the differential equation for one token in the place.
-// \`tokens\` is a tuple holding that token, and \`parameters\` any global
-// parameters defined. It runs once per token in the place.
+// \`token\` is that token, and \`parameters\` any global parameters
+// defined. It runs once per token in the place.
 // Return the derivatives of the token's real-valued attributes.
-const [token] = tokens;
 const { x, y } = token;
 
 return { x: 1, y: 1 }; // dx/dt = 1, dy/dt = 1`;

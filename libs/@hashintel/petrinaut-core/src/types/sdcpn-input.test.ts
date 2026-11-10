@@ -268,7 +268,7 @@ describe("normalizeSDCPN", () => {
         colorId: idOf("c1"),
         name: "Drift",
         arity: 1,
-        code: "const [token] = tokens;\nconst { level } = token;\nreturn { level: -level };",
+        code: "const { level } = token;\nreturn { level: -level };",
       },
     ]);
   });

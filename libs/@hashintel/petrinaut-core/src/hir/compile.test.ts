@@ -217,7 +217,7 @@ return [{ v: b.x - a.x }];`,
 
   it("rejects an arity-1 result that is an array", () => {
     const { failures } = compileHirArtifacts(
-      net(`return [{ v: tokens[0].x }];`, 1),
+      net(`return [{ v: token.x }];`, 1),
     );
     expect(failures[0]?.diagnostics[0]?.code).toBe("hir:dynamics-return");
     expect(failures[0]?.diagnostics[0]?.message).toContain(

@@ -597,18 +597,39 @@ export default Lambda((input, parameters) => x);`,
       expect(fn.body.kind).toBe("recordLit");
     });
 
-    it("lowers a dynamics body with the ambient tuple", () => {
+    it("lowers a one-token dynamics body with the ambient token", () => {
       const fn = lowerOk(
-        `const [token] = tokens;
-return { x: -token.x * parameters.decay };`,
+        `return { x: -token.x * parameters.decay };`,
         "dynamics",
       );
       expect(fn.surface).toBe("dynamics");
       expect(fn.params.map((parameter) => parameter.name)).toEqual([
-        "tokens",
+        "__tokens",
         "parameters",
       ]);
-      expect(fn.body.kind).toBe("let");
+      expect(fn.body).toMatchObject({
+        kind: "let",
+        bindings: [
+          {
+            name: "token",
+            value: {
+              kind: "indexAccess",
+              target: { kind: "localRef", name: "__tokens" },
+              index: { kind: "numberLit", value: 0 },
+            },
+          },
+        ],
+        body: { kind: "recordLit" },
+      });
+    });
+
+    it("binds no ambient token a one-token dynamics body never reads", () => {
+      const fn = lowerOk(`return { x: parameters.decay };`, "dynamics");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "__tokens",
+        "parameters",
+      ]);
+      expect(fn.body.kind).toBe("recordLit");
     });
 
     it("lowers the same HIR body as the equivalent module form", () => {
@@ -785,7 +806,7 @@ return total;`;
       expect(result.diagnostics[0]!.code).toBe("hir:too-many-parameters");
     });
 
-    it("leaves the bare-body form to the ambient tuple", () => {
+    it("leaves a bare body over two tokens to the ambient tuple", () => {
       const result = lowerTypeScriptToHir(
         `const [a, b] = tokens;
 return [{ x: b.x - a.x }, { x: a.x - b.x }];`,
@@ -799,6 +820,29 @@ return [{ x: b.x - a.x }, { x: a.x - b.x }];`,
         "parameters",
       ]);
       expect(result.fn.body.kind).toBe("let");
+    });
+
+    it("gives a bare body over two tokens the tuple and no ambient token", () => {
+      // The read of `tokens` comes first and resolves; `token` does not.
+      const code = `return [{ x: tokens[1].x }, { x: token.x }];`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 2 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:unknown-identifier");
+      expect(result.diagnostics[0]?.message).toContain("`token`");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("token");
+    });
+
+    it("gives a one-token bare body no ambient tuple", () => {
+      const code = `return { x: tokens[0].v };`;
+      const result = lowerTypeScriptToHir(code, "dynamics", { arity: 1 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.diagnostics[0]?.code).toBe("hir:unknown-identifier");
+      expect(result.diagnostics[0]?.message).toContain("`tokens`");
+      const { start, length } = result.diagnostics[0]!.span;
+      expect(code.slice(start, start + length)).toBe("tokens");
     });
   });
 

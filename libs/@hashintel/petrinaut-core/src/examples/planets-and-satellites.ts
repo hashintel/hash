@@ -216,8 +216,7 @@ return {
         name: "Motion",
         arity: 1,
         code: `// A body moves by its velocity; mass and radius hold.
-const [body] = tokens;
-return { x: body.vx, y: body.vy };`,
+return { x: token.vx, y: token.vy };`,
       },
       {
         id: GRAVITY_EQUATION_ID,

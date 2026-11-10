@@ -291,7 +291,7 @@ class Typechecker {
   private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        // `tokens` is a tuple of exactly `arity` tokens.
+        // The function's input is a tuple of exactly `arity` tokens.
         return {
           kind: "array",
           element: hirTokenRecordType(context.elements),

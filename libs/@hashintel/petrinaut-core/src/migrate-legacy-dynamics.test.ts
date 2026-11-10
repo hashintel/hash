@@ -13,7 +13,6 @@ const wholePlaceCode = `const k = parameters.k;
 return tokens.map(({ x }) => ({ x: -k * x }));`;
 
 const oneTokenCode = `const k = parameters.k;
-const [token] = tokens;
 const { x } = token;
 return { x: -k * x };`;
 
