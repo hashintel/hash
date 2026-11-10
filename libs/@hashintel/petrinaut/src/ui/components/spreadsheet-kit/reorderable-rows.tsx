@@ -6,9 +6,9 @@
  * that slides out of the way while another row is dragged over it, and the
  * row's gutter button takes the drag listeners through `useRowDragHandle`.
  * The owning table applies every move itself: a drop reports
- * `onMove(from, to)`, and `rowMoveStep` reads the keyboard shortcut so the
- * table can call the same move with the focused row's index. Rows keep
- * their keys across a move, so the focused element travels with its row.
+ * `onMove(from, to)`, and `rowMoveKeyDown` builds the cells' key handler,
+ * which calls the same move for the shortcut. Rows keep their keys across a
+ * move, so the focused element travels with its row.
  */
 
 import {
@@ -26,7 +26,7 @@ import {
 import { CSS as dndCss } from "@dnd-kit/utilities";
 import { createContext, use, useId } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import type { DragEndEvent, Modifier } from "@dnd-kit/core";
 import type { ReactNode } from "react";
@@ -49,7 +49,7 @@ export const useRowDragHandle = (): RowDragHandle | null => use(RowDragContext);
  * any other key, and for a key typed into a text field, where the arrows
  * belong to the caret.
  */
-export const rowMoveStep = (event: React.KeyboardEvent): -1 | 1 | null => {
+const rowMoveStep = (event: React.KeyboardEvent): -1 | 1 | null => {
   if (!event.altKey || event.metaKey || event.ctrlKey) {
     return null;
   }
@@ -59,6 +59,49 @@ export const rowMoveStep = (event: React.KeyboardEvent): -1 | 1 | null => {
   }
   return event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : null;
 };
+
+export interface RowMoveKeys {
+  /** The table's focus grid: other keys go to it, and it follows the row. */
+  grid: {
+    onKeyDown: (row: number, column: number) => React.KeyboardEventHandler;
+    onFocusCell: (row: number, column: number) => void;
+  };
+  /** Hears the moved row's new index when its gutter holds focus. */
+  setFocusedRow: (row: number) => void;
+  rowCount: number;
+  onMove: (from: number, to: number) => void;
+  /** Alt+arrow moves nothing; every key goes to the grid. */
+  readOnly?: boolean;
+}
+
+/**
+ * The key handler of the cell at `(row, column)` in a reorderable table.
+ * Alt with an arrow moves the row one place, inside the table, and keeps
+ * focus and the row highlight on it; every other key walks the grid.
+ */
+export const rowMoveKeyDown =
+  ({ grid, setFocusedRow, rowCount, onMove, readOnly = false }: RowMoveKeys) =>
+  (row: number, column: number): React.KeyboardEventHandler =>
+  (event) => {
+    const step = readOnly ? null : rowMoveStep(event);
+    if (step === null) {
+      grid.onKeyDown(row, column)(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const to = row + step;
+    if (to < 0 || to >= rowCount) {
+      return;
+    }
+    onMove(row, to);
+    grid.onFocusCell(to, column);
+    // The gutter keeps focus through the move, so no focus event follows
+    // to move the row highlight.
+    if (column === 0) {
+      setFocusedRow(to);
+    }
+  };
 
 // Keeps the dragged row on the body's vertical axis and inside its bounds.
 const restrictToRows: Modifier = ({
@@ -77,17 +120,17 @@ const restrictToRows: Modifier = ({
 export interface ReorderableRowsProps {
   /** Row ids in display order; each `ReorderableRow` names one of them. */
   ids: readonly string[];
-  /** A dropped drag: the row at `from` lands at `to`. */
+  /** A dropped drag: the row at `from` lands at `to`, both inside `ids`. */
   onMove: (from: number, to: number) => void;
   /** No drags; the rows render as plain rows. */
-  disabled?: boolean;
+  readOnly?: boolean;
   children: ReactNode;
 }
 
 export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
   ids,
   onMove,
-  disabled = false,
+  readOnly = false,
   children,
 }) => {
   const id = useId();
@@ -117,15 +160,12 @@ export const ReorderableRows: React.FC<ReorderableRowsProps> = ({
       accessibility={{
         // Portalled out: inline, the live region would be a div in a table.
         container: typeof document === "undefined" ? undefined : document.body,
-        screenReaderInstructions: {
-          draggable: "Press Alt with the up or down arrow to move the row.",
-        },
       }}
     >
       <SortableContext
         items={[...ids]}
         strategy={verticalListSortingStrategy}
-        disabled={disabled}
+        disabled={readOnly}
       >
         <tbody>{children}</tbody>
       </SortableContext>
@@ -149,13 +189,11 @@ const rowStyle = css({
 
 export interface ReorderableRowProps {
   id: string;
-  className?: string;
   children: ReactNode;
 }
 
 export const ReorderableRow: React.FC<ReorderableRowProps> = ({
   id,
-  className,
   children,
 }) => {
   const {
@@ -173,7 +211,7 @@ export const ReorderableRow: React.FC<ReorderableRowProps> = ({
     >
       <tr
         ref={setNodeRef}
-        className={cx(rowStyle, className)}
+        className={rowStyle}
         data-dragging={isDragging || undefined}
         style={{
           transform: dndCss.Translate.toString(transform),

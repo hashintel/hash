@@ -64,7 +64,7 @@ const PlaceDynamicsContent: React.FC = () => {
         terms={terms}
         equations={differentialEquations}
         candidates={candidates}
-        editable={!isReadOnly}
+        readOnly={isReadOnly}
         onChange={(dynamics) =>
           updatePlace({ placeId: place.id, update: { dynamics } })
         }

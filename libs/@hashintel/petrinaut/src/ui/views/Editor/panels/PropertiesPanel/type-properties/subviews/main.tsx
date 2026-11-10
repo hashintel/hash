@@ -83,7 +83,7 @@ const TypeMainContent: React.FC = () => {
           labelTooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; the other kinds are discrete. Drag a row's gutter, or press Alt with an arrow key, to reorder."
         >
           <DimensionsTable
-            editable={presentation.showMutationActions && !isDisabled}
+            readOnly={!presentation.showMutationActions || isDisabled}
           />
         </Form.Field>
       </Form.Section>

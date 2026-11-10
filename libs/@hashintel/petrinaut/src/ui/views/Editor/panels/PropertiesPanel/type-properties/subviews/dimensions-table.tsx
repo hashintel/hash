@@ -29,7 +29,7 @@ import { PhantomLine } from "../../../../../../components/spreadsheet-kit/phanto
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveStep,
+  rowMoveKeyDown,
 } from "../../../../../../components/spreadsheet-kit/reorderable-rows";
 import { TextCell } from "../../../../../../components/spreadsheet-kit/text-cell";
 import { useFocusGrid } from "../../../../../../worksheet/use-focus-grid";
@@ -68,12 +68,12 @@ const emptyStyle = css({
 const PHANTOM_COLUMNS = [0, 1, 2];
 
 export interface DimensionsTableProps {
-  /** Rows can be added, renamed, retyped, reordered and removed. */
-  editable: boolean;
+  /** Rows cannot be added, renamed, retyped, reordered or removed. */
+  readOnly: boolean;
 }
 
 export const DimensionsTable: React.FC<DimensionsTableProps> = ({
-  editable,
+  readOnly,
 }) => {
   const {
     type,
@@ -83,7 +83,8 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
     moveTypeElement,
   } = useTypePropertiesContext();
   const { elements } = type;
-  const { register, onKeyDown, onFocusCell, attach } = useFocusGrid();
+  const grid = useFocusGrid();
+  const { register, attach } = grid;
   const rowSelection = useRowSelection();
   const phantomActivation = useSelectFirstActivation();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
@@ -100,7 +101,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
 
   const move = (from: number, to: number) => {
     const element = elements[from];
-    if (element && from !== to && to >= 0 && to < elements.length) {
+    if (element) {
       moveTypeElement({
         typeId: type.id,
         elementId: element.elementId,
@@ -109,28 +110,13 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
     }
   };
 
-  /** Arrows walk the grid; Alt with an arrow moves the row instead. */
-  const cellKeyDown =
-    (index: number, column: number): React.KeyboardEventHandler =>
-    (event) => {
-      const step = editable ? rowMoveStep(event) : null;
-      if (step === null) {
-        onKeyDown(index, column)(event);
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      const to = index + step;
-      if (to >= 0 && to < elements.length) {
-        move(index, to);
-        onFocusCell(to, column);
-        // The gutter keeps focus through the move, so no focus event
-        // follows to move the row highlight.
-        if (column === 0) {
-          rowSelection.setFocusedRow(to);
-        }
-      }
-    };
+  const cellKeyDown = rowMoveKeyDown({
+    grid,
+    setFocusedRow: rowSelection.setFocusedRow,
+    rowCount: elements.length,
+    onMove: move,
+    readOnly,
+  });
 
   /** Arrows on a closed type select walk the grid; open, they are its own. */
   const selectCellKeyDown =
@@ -205,7 +191,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
     }
   };
 
-  if (!editable && elements.length === 0) {
+  if (readOnly && elements.length === 0) {
     return <div className={emptyStyle}>No dimensions.</div>;
   }
 
@@ -224,7 +210,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
       <ReorderableRows
         ids={elements.map((element) => element.elementId)}
         onMove={move}
-        disabled={!editable}
+        readOnly={readOnly}
       >
         {elements.map((element, index) => {
           const selected =
@@ -269,7 +255,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
                   onBlur={() => rowSelection.setFocusedRow(null)}
                   onKeyDown={cellKeyDown(index, 0)}
                   onDelete={() => deleteDimension(index)}
-                  readOnly={!editable}
+                  readOnly={readOnly}
                 />
               </td>
               <td
@@ -294,7 +280,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
                   onCancel={() => setDraft(null)}
                   cellRef={register(index, 1)}
                   onCellKeyDown={cellKeyDown(index, 1)}
-                  readOnly={!editable}
+                  readOnly={readOnly}
                 />
               </td>
               {/* The Select drops className, so its cell styles the box
@@ -331,13 +317,13 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
                     })
                   }
                   items={dimensionTypeOptions}
-                  disabled={!editable}
+                  disabled={readOnly}
                 />
               </td>
             </ReorderableRow>
           );
         })}
-        {editable ? (
+        {readOnly ? null : (
           <PhantomLine
             gutterLabel="Add a dimension from the gutter"
             onMaterialize={addDimension}
@@ -359,13 +345,13 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
                     addDimension();
                   }
                 }}
-                onKeyDown={onKeyDown(elements.length, 0)}
+                onKeyDown={grid.onKeyDown(elements.length, 0)}
               >
                 Add a dimension…
               </button>
             </td>
           </PhantomLine>
-        ) : null}
+        )}
       </ReorderableRows>
     </FormSpreadsheet>
   );

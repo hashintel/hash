@@ -29,18 +29,13 @@ import { PhantomLine } from "../../../../../../../components/spreadsheet-kit/pha
 import {
   ReorderableRow,
   ReorderableRows,
-  rowMoveStep,
+  rowMoveKeyDown,
 } from "../../../../../../../components/spreadsheet-kit/reorderable-rows";
 import { useFocusGrid } from "../../../../../../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../../../../../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../../../../../../worksheet/use-select-first";
-import {
-  addTerm,
-  describeEquationForm,
-  moveTerm,
-  removeTerm,
-  termKeys,
-} from "./compose-dynamics";
+import { tokenCountLabel } from "../../../token-count-label";
+import { addTerm, moveTerm, removeTerm, termKeys } from "./compose-dynamics";
 
 import type {
   DifferentialEquation,
@@ -83,7 +78,7 @@ const nameButtonStyle = css({
     outlineOffset: "[-2px]",
     backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.08)]",
   },
-  _disabled: { color: "neutral.s80", cursor: "default" },
+  "&[aria-disabled=true]": { color: "neutral.s80", cursor: "default" },
   "& [data-open-hint]": { display: "none", color: "neutral.s70" },
   "&:is(tr:hover *) [data-open-hint], &:focus [data-open-hint]": {
     display: "flex",
@@ -115,8 +110,8 @@ export interface DynamicsTableProps {
   equations: readonly DifferentialEquation[];
   /** The equations the trailing line offers. */
   candidates: readonly DifferentialEquation[];
-  /** Rows can be added, reordered and removed. */
-  editable: boolean;
+  /** Rows cannot be added, reordered or removed. */
+  readOnly: boolean;
   onChange: (terms: PlaceDynamicsTerm[]) => void;
   /** Open an equation's properties. */
   onOpen: (equationId: ID) => void;
@@ -126,11 +121,12 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
   terms,
   equations,
   candidates,
-  editable,
+  readOnly,
   onChange,
   onOpen,
 }) => {
-  const { register, onKeyDown, onFocusCell, attach } = useFocusGrid();
+  const grid = useFocusGrid();
+  const { register, attach } = grid;
   const rowSelection = useRowSelection();
   const nameActivation = useSelectFirstActivation();
   const phantomActivation = useSelectFirstActivation();
@@ -142,34 +138,16 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
   );
   const keys = termKeys(terms);
 
-  const move = (from: number, to: number) => {
-    if (from !== to && to >= 0 && to < terms.length) {
-      onChange(moveTerm(terms, from, to));
-    }
-  };
+  const move = (from: number, to: number) =>
+    onChange(moveTerm(terms, from, to));
 
-  /** Arrows walk the grid; Alt with an arrow moves the row instead. */
-  const cellKeyDown =
-    (index: number, column: number): React.KeyboardEventHandler =>
-    (event) => {
-      const step = editable ? rowMoveStep(event) : null;
-      if (step === null) {
-        onKeyDown(index, column)(event);
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      const to = index + step;
-      if (to >= 0 && to < terms.length) {
-        move(index, to);
-        onFocusCell(to, column);
-        // The gutter keeps focus through the move, so no focus event
-        // follows to move the row highlight.
-        if (column === 0) {
-          rowSelection.setFocusedRow(to);
-        }
-      }
-    };
+  const cellKeyDown = rowMoveKeyDown({
+    grid,
+    setFocusedRow: rowSelection.setFocusedRow,
+    rowCount: terms.length,
+    onMove: move,
+    readOnly,
+  });
 
   const remove = (index: number) => {
     onChange(removeTerm(terms, index));
@@ -192,7 +170,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
     setTimeout(() => gutterRefs.current.get(index)?.focus(), 0);
   };
 
-  const showPhantom = editable && candidates.length > 0;
+  const showPhantom = !readOnly && candidates.length > 0;
 
   return (
     <FormSpreadsheet
@@ -210,7 +188,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
           <th className={cx(labelHeaderStyle, tokensColumnStyle)}>Tokens</th>
         </tr>
       </thead>
-      <ReorderableRows ids={keys} onMove={move} disabled={!editable}>
+      <ReorderableRows ids={keys} onMove={move} readOnly={readOnly}>
         {terms.map((term, index) => {
           const equation = equations.find(
             (candidate) => candidate.id === term.differentialEquationId,
@@ -263,7 +241,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
                   onBlur={() => rowSelection.setFocusedRow(null)}
                   onKeyDown={cellKeyDown(index, 0)}
                   onDelete={() => remove(index)}
-                  readOnly={!editable}
+                  readOnly={readOnly}
                 />
               </td>
               <td className={cx(cellStyle, selected)}>
@@ -273,11 +251,13 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
                   className={nameButtonStyle}
                   aria-label={`Open ${name}`}
                   title={equation ? "Open the equation" : "Missing equation"}
-                  disabled={equation === undefined}
+                  // Not `disabled`: the cell stays in the grid, so arrows
+                  // still walk through a row whose equation is gone.
+                  aria-disabled={equation === undefined}
                   onPointerDown={nameActivation.onPointerDown}
                   onClick={(event) => {
-                    if (nameActivation.shouldActivate(event)) {
-                      onOpen(term.differentialEquationId);
+                    if (equation && nameActivation.shouldActivate(event)) {
+                      onOpen(equation.id);
                     }
                   }}
                   onKeyDown={cellKeyDown(index, 1)}
@@ -290,7 +270,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
               </td>
               <td className={cx(cellStyle, tokensColumnStyle, selected)}>
                 <div className={tokensCellStyle}>
-                  {equation ? describeEquationForm(equation) : "Missing"}
+                  {equation ? tokenCountLabel(equation.arity) : "Missing"}
                 </div>
               </td>
             </ReorderableRow>
@@ -325,7 +305,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
                     setAddMenuAnchor(event.currentTarget);
                   }
                 }}
-                onKeyDown={onKeyDown(terms.length, 0)}
+                onKeyDown={grid.onKeyDown(terms.length, 0)}
               >
                 Add an equation…
               </button>
@@ -334,7 +314,7 @@ export const DynamicsTable: React.FC<DynamicsTableProps> = ({
                   anchor={addMenuAnchor}
                   items={candidates.map((equation) => ({
                     id: equation.id,
-                    label: `${equation.name} · ${describeEquationForm(equation)}`,
+                    label: `${equation.name} · ${tokenCountLabel(equation.arity)}`,
                   }))}
                   onSelect={(id) => {
                     setAddMenuAnchor(null);

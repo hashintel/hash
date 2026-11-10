@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   addTerm,
   composableEquations,
-  describeEquationForm,
   moveTerm,
   placeTypeChange,
   removeTerm,
@@ -68,11 +67,6 @@ describe("compose-dynamics", () => {
     expect(composableEquations({ ...place, colorId: null }, equations)).toEqual(
       [],
     );
-  });
-
-  it("describes how many tokens an equation couples", () => {
-    expect(describeEquationForm({ arity: 1 })).toBe("1 token");
-    expect(describeEquationForm({ arity: 2 })).toBe("2 tokens");
   });
 
   it("clears the composed equations and switches dynamics off when the type changes", () => {

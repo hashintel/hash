@@ -1,6 +1,6 @@
 /**
- * The shared spreadsheet grammar of the ad-hoc form, mirroring the token
- * spreadsheet (`ui/components/spreadsheet.tsx`): a bordered container, a
+ * The shared spreadsheet grammar of the editor's form tables, mirroring the
+ * token spreadsheet (`ui/components/spreadsheet.tsx`): a bordered container, a
  * `border-collapse` table with 28px rows, hairline cell delimitations, a
  * gutter with a stronger right border, and a 2px blue focus outline on the
  * focused cell.

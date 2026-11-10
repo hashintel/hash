@@ -23,11 +23,11 @@ import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
-import { describeEquationForm } from "../../place-properties/subviews/place-dynamics/compose-dynamics";
+import { tokenCountLabel } from "../../token-count-label";
 import { useDiffEqPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
-import type { Color } from "@hashintel/petrinaut-core";
+import type { Color, DifferentialEquation } from "@hashintel/petrinaut-core";
 
 // the section fills the panel; the last row (Code) takes the remaining height
 const fieldsSectionStyle = css({
@@ -82,19 +82,30 @@ const arityItems = (arity: number) =>
     .toSorted((left, right) => left - right)
     .map((candidate) => ({
       value: String(candidate),
-      text: describeEquationForm({ arity: candidate }),
+      text: tokenCountLabel(candidate),
     }));
 
-/** Whether the code is still a template nobody has edited. */
-const isTemplateCode = (
-  code: string,
+/**
+ * The code the equation takes when its arity changes. How the equation sees
+ * tokens shapes its code, so a template nobody has edited is swapped for
+ * the new arity's template; edited code is kept for the author to adapt.
+ */
+const codeForArity = (
+  { code, arity: currentArity }: Pick<DifferentialEquation, "code" | "arity">,
   type: Color | undefined,
   arity: number,
-): boolean =>
-  code.trim() === "" ||
-  code === DEFAULT_DIFFERENTIAL_EQUATION_CODE ||
-  (type !== undefined &&
-    code === generateDefaultDifferentialEquationCode(type, arity));
+): string => {
+  if (type === undefined) {
+    return code;
+  }
+  const untouched =
+    code.trim() === "" ||
+    code === DEFAULT_DIFFERENTIAL_EQUATION_CODE ||
+    code === generateDefaultDifferentialEquationCode(type, currentArity);
+  return untouched
+    ? generateDefaultDifferentialEquationCode(type, arity)
+    : code;
+};
 
 const DeferredDifferentialEquationCodeField = lazy(async () => {
   const { DifferentialEquationCodeField } = await import("./code-field");
@@ -116,25 +127,14 @@ const DiffEqMainContent: React.FC = () => {
     (candidate) => candidate.id === differentialEquation.colorId,
   );
 
-  /**
-   * Changing how the equation sees tokens changes its code's shape, so an
-   * untouched template is swapped for the new form's template; edited code
-   * is kept for the author to adapt.
-   */
   const handleArityChange = (value: string) => {
     const arity = Number(value);
-    const code =
-      equationType !== undefined &&
-      isTemplateCode(
-        differentialEquation.code,
-        equationType,
-        differentialEquation.arity,
-      )
-        ? generateDefaultDifferentialEquationCode(equationType, arity)
-        : differentialEquation.code;
     updateDifferentialEquation({
       equationId: differentialEquation.id,
-      update: { arity, code },
+      update: {
+        arity,
+        code: codeForArity(differentialEquation, equationType, arity),
+      },
     });
   };
 
@@ -229,7 +229,7 @@ const DiffEqMainContent: React.FC = () => {
         </Form.Field>
 
         <Form.Field label="Tokens" size="sm">
-          <PropertyValue text={describeEquationForm(differentialEquation)}>
+          <PropertyValue text={tokenCountLabel(differentialEquation.arity)}>
             <Tooltip
               content={UI_MESSAGES.READ_ONLY_MODE}
               disableTooltip={!isReadOnly}

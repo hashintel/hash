@@ -72,11 +72,6 @@ export const composableEquations = (
           !placeUsesDifferentialEquation(place, equation.id),
       );
 
-/** How many tokens the equation couples: "1 token", "2 tokens". */
-export const describeEquationForm = (
-  equation: Pick<DifferentialEquation, "arity">,
-): string => `${equation.arity} token${equation.arity === 1 ? "" : "s"}`;
-
 /**
  * The update a change of the place's type implies, or `null` for the same
  * type: the composed equations are over the old type, so they go with it

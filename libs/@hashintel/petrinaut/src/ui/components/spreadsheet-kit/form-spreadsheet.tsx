@@ -40,7 +40,7 @@ export interface FormSpreadsheetProps {
   /** "raised" darkens the grid a step; "plain" (default) stays white. */
   tone?: "plain" | "raised";
   /** The width below which the container scrolls instead of squeezing the
-   * columns; the form's tables keep the default. */
+   * columns. */
   minWidth?: number;
   children: ReactNode;
 }

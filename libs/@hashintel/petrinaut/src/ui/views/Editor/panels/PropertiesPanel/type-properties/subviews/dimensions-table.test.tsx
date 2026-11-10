@@ -39,11 +39,11 @@ const satellite: Color = {
 /** Applies the element mutations to local state, the way the net does. */
 const Harness = ({
   type: initialType = satellite,
-  editable = true,
+  readOnly = false,
   onType,
 }: {
   type?: Color;
-  editable?: boolean;
+  readOnly?: boolean;
   onType?: (type: Color) => void;
 }) => {
   const [type, setType] = useState(initialType);
@@ -85,7 +85,7 @@ const Harness = ({
 
   return (
     <TypePropertiesContext value={value}>
-      <DimensionsTable editable={editable} />
+      <DimensionsTable readOnly={readOnly} />
     </TypePropertiesContext>
   );
 };
@@ -225,8 +225,8 @@ describe("Dimensions table", () => {
     expect(latest?.elements).toHaveLength(1);
   });
 
-  it("offers no editing when not editable", () => {
-    render(<Harness editable={false} />);
+  it("offers no editing when read-only", () => {
+    render(<Harness readOnly />);
     expect(
       screen.queryByRole("button", { name: "Add a dimension" }),
     ).toBeNull();

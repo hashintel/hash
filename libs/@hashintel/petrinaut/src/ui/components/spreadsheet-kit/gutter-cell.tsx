@@ -50,7 +50,7 @@ export interface GutterCellProps {
   /**
    * No row actions: the menu, the dots affordance, Delete and the drag
    * handle are gone, while the button stays focusable so the row can still
-   * be selected and walked (the form's run mode).
+   * be selected and walked.
    */
   readOnly?: boolean;
 }
@@ -88,8 +88,9 @@ export const GutterCell: React.FC<GutterCellProps> = ({
       className={cx(gutterButtonStyle, draggable && dragHandleButtonStyle)}
       data-dragging={draggable && dragHandle.dragging ? "" : undefined}
       aria-label={label}
-      aria-haspopup="menu"
-      aria-expanded={menuAnchor !== null}
+      aria-haspopup={readOnly ? undefined : "menu"}
+      aria-expanded={readOnly ? undefined : menuAnchor !== null}
+      aria-keyshortcuts={draggable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
       onFocus={onFocus}
       onBlur={onBlur}
       onKeyDown={(event) => {

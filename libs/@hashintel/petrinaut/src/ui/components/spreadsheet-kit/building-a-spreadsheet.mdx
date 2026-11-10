@@ -113,9 +113,9 @@ The contract the composition keeps, in exchange for the kit's behaviour:
   and shared-value lines between rows; the kit does not care, because the
   shell only owns the container and the `<table>`.
 - **Moving a row is the table's job.** `ReorderableRows` reports a drop as
-  `onMove(from, to)` and `rowMoveStep` reads Alt+arrow off a cell's key
-  event; the table applies both through its own move, with the same
-  function, so a drag and the shortcut can never disagree. Rows keyed by a
+  `onMove(from, to)`, and `rowMoveKeyDown` builds the cells' key handler,
+  which calls the same `onMove` for Alt+arrow and hands every other key to
+  the grid, so a drag and the shortcut can never disagree. Rows keyed by a
   stable id keep the focused element on the row that moved.
 
 ## What not to add here
