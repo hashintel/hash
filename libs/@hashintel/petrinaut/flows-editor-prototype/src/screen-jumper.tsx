@@ -12,6 +12,7 @@ import {
   figmaScreens,
   screenImage,
 } from "./screens";
+import { openDecisionFlags, openDecisions } from "./open-decisions";
 import { applyPalette, currentPalette, paletteNames } from "./status-colors";
 
 /** `?clean` hides the jumper, for side-by-side comparisons with Figma. */
@@ -247,6 +248,7 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
                 ))}
               </span>
             </span>
+            <OpenDecisions />
           </div>
           <div className={css({ overflowY: "auto", paddingY: "1" })}>
             {sections.map((section) => (
@@ -338,6 +340,91 @@ export const ScreenJumper = ({ current }: { current?: FigmaScreen }) => {
       {/* Dev only: ⌘K / Ctrl+K opens it; nothing shows on screen (4 Nov: the prototype is the app, not Journeys). */}
       {current ? <span hidden data-screen={current.id} /> : null}
     </div>
+  );
+};
+
+const linkButtonStyle = css({
+  textDecoration: "underline",
+  cursor: "pointer",
+  "&[aria-pressed=true]": { fontWeight: "semibold" },
+});
+
+/** Reloads with `flag` set to `value` (or removed for null), keeping every other param so takes combine. */
+const setFlags = (changes: Record<string, string | null>) => {
+  const url = new URL(globalThis.location.href);
+  for (const [flag, value] of Object.entries(changes)) {
+    if (value === null) {
+      url.searchParams.delete(flag);
+    } else {
+      url.searchParams.set(flag, value);
+    }
+  }
+  globalThis.location.assign(url);
+};
+
+/** The open inbox cards, one line each: the card's title, then its options; the default is named, the active one bold. */
+const OpenDecisions = () => {
+  const query = new URLSearchParams(globalThis.location.search);
+  const anySet = openDecisionFlags.some((flag) => query.has(flag));
+  return (
+    <details
+      data-open-decisions
+      className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}
+    >
+      <summary className={css({ cursor: "pointer" })}>
+        Open decisions ({openDecisions.length}){anySet ? " · some set" : ""}
+      </summary>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5",
+          paddingTop: "1",
+          maxHeight: "[240px]",
+          overflowY: "auto",
+        })}
+      >
+        {openDecisions.map((decision) => {
+          const current = query.get(decision.flag) ?? decision.defaultValue;
+          return (
+            <span key={`${decision.card}:${decision.flag}`} data-card={decision.card}>
+              {decision.title}:
+              {decision.options.map((option) => (
+                <span key={option.label}>
+                  {" "}
+                  <button
+                    type="button"
+                    className={linkButtonStyle}
+                    aria-pressed={current === option.value}
+                    data-flag={decision.flag}
+                    data-value={option.value ?? ""}
+                    onClick={() => setFlags({ [decision.flag]: option.value })}
+                  >
+                    {option.value === decision.defaultValue
+                      ? `${option.label} (default)`
+                      : option.label}
+                  </button>
+                </span>
+              ))}
+            </span>
+          );
+        })}
+        <span>
+          <button
+            type="button"
+            className={linkButtonStyle}
+            data-open-decisions-reset
+            onClick={() =>
+              setFlags(
+                Object.fromEntries(openDecisionFlags.map((flag) => [flag, null])),
+              )
+            }
+          >
+            Reset all
+          </button>
+        </span>
+      </div>
+    </details>
   );
 };
 

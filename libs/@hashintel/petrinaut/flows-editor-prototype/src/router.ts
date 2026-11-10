@@ -15,6 +15,8 @@
  */
 import { useSyncExternalStore } from "react";
 
+import { openDecisionFlags } from "./open-decisions";
+
 export type Route =
   | { page: "flows"; empty?: boolean }
   | { page: "newFlow" }
@@ -116,11 +118,14 @@ globalThis.addEventListener("popstate", redirectHistoryPath);
 
 /** Demo takes a page change keeps, so a take stays on while you click through. URL only, never remembered. */
 const carriedTakes = [
-  "runback",
-  "rundropdown",
-  "foreachswitch",
-  "highlightlook",
-  "runid",
+  ...new Set([
+    "runback",
+    "rundropdown",
+    "foreachswitch",
+    "highlightlook",
+    "runid",
+    ...openDecisionFlags,
+  ]),
 ];
 
 const withCarriedTakes = (path: string) => {
