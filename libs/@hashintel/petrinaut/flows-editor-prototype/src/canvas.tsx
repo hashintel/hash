@@ -137,7 +137,7 @@ type StepNode = Node<
 >;
 
 /** `?paths=i2`: Ask a person's card also draws the Otherwise port its Paths section ends on. */
-const otherwisePort = { outputName: "otherwise", label: "Otherwise" };
+const otherwisePort = { outputName: "otherwise", label: "Default" };
 
 const portRows = (step: DraftStep) => {
   if (step.kind !== "action") {

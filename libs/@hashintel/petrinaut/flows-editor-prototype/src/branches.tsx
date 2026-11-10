@@ -847,7 +847,7 @@ export const PathsSection = ({
         ))}
         <div className={pathCardStyle} data-path-card>
           <div className={pathHeadStyle}>
-            <span className={goesToStyle}>Otherwise</span>
+            <span className={goesToStyle}>Default</span>
             <span className={css({ display: "flex", minWidth: "[0]" })}>
               {goesTo("otherwise")}
             </span>
