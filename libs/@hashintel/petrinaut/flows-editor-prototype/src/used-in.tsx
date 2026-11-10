@@ -175,19 +175,17 @@ const loopsOf = (document: EditorDocument, stepId: string): string[] => {
   return loops;
 };
 
-/**
- * The playground's step tile colours (`.k-action`, `.k-orange`, `.k-start`): action steps green s20 / s100, Fetch file,
- * If and Ask a person orange s20 / s100, Start blue s20 with a neutral s100 icon.
- */
+/** A step's tile in the Used in rows: the group hue from `groupHues`, as the Steps tree draws it. Start has no step. */
 const kTile = (document: EditorDocument, id: string): React.CSSProperties => {
   const step = findStep(document, id)?.step;
-  const tone =
-    step?.kind === "action" ? getCatalogEntry(step.actionDefinitionId)?.tone : undefined;
-  return tone === "orange"
-    ? { backgroundColor: "var(--colors-orange-s20)", color: "var(--colors-orange-s100)" }
-    : step
-      ? { backgroundColor: "var(--colors-green-s20)", color: "var(--colors-green-s100)" }
-      : { backgroundColor: "var(--colors-blue-s20)", color: "var(--colors-neutral-s100)" };
+  if (!step) {
+    return treeTileColor("play");
+  }
+  const icon =
+    step.kind === "for-each"
+      ? "rotate"
+      : (getCatalogEntry(step.actionDefinitionId)?.icon ?? "cube");
+  return treeTileColor(icon);
 };
 
 /** Faint connector colour: the playground's 12 % wire for the tree, 18 % for the K3 line. */

@@ -742,6 +742,7 @@ export const groupHues: { group: string; hue: string; icons: string[] }[] = [
       "sortDown",
       "list",
       "function",
+      "diagramNested",
     ],
   },
 ];

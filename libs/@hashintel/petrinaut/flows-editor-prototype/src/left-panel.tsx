@@ -188,7 +188,7 @@ const stepLook = (step: DraftStep): { icon: IconName; tone: Tone } => {
   if (step.kind === "for-each") {
     return { icon: "rotate", tone: "green" };
   }
-  const entry = catalog.find(
+  const entry = fullCatalog.find(
     (candidate) => candidate.id === step.actionDefinitionId,
   );
   return { icon: entry?.icon ?? "cube", tone: entry?.tone ?? "green" };
