@@ -1,0 +1,40 @@
+---
+source: libs/@local/integrations/engine/tests/pipeline.rs
+expression: render_prepared(&definition).await
+---
+write-airports
+icaoCode | name | city | iataCode | icaoCode | timezone
+EDDF | Frankfurt am Main | Frankfurt | FRA | EDDF | Europe/Berlin
+EGLL | Heathrow | London | LHR | EGLL | Europe/London
+KJFK | John F Kennedy Intl | New York | JFK | KJFK | America/New_York
+OMDB | Dubai Intl | Dubai | DXB | OMDB | Asia/Dubai
+
+write-airlines
+icaoCode | name | iataCode | icaoCode
+BAW | British Airways | BA | BAW
+DLH | Lufthansa | LH | DLH
+UAE | Emirates | EK | UAE
+
+write-flights
+flightId | flightDate | flightNumber | flightStatus | flightType | iataCode | icaoCode
+BAW115-1715000000-schedule-0001 | 2024-05-06 | BA115 | Landed | Airline | BA115 | BAW115
+DLH901-1715000000-schedule-0002 | 2024-05-07 | LH901 | Active | Airline | LH901 | DLH901
+UAE5-1715000000-schedule-0003 | 2024-05-07 | EK5 | Cancelled | Airline | EK5 | UAE5
+
+flight-takes-off-from
+flightId | originIcao | departActGate | departActRunway | departDelay | departGate | departRunway | departSchedGate | departSchedRunway | departTerminal
+BAW115-1715000000-schedule-0001 | KJFK | 2024-05-06T22:05:00Z | 2024-05-06T22:15:00Z | NULL | A10 | A10 | 2024-05-06T22:00:00Z | 2024-05-06T22:10:00Z | T5
+DLH901-1715000000-schedule-0002 | EDDF | 2024-05-07T07:10:00Z | NULL | NULL | NULL | NULL | 2024-05-07T07:00:00Z | 2024-05-07T07:15:00Z | T1
+UAE5-1715000000-schedule-0003 | OMDB | NULL | NULL | NULL | NULL | NULL | 2024-05-07T09:00:00Z | NULL | NULL
+
+flight-lands-at
+flightId | destIcao | arriveActGate | arriveActRunway | arriveBaggage | arriveDelay | arriveGate | arriveRunway | arriveSchedGate | arriveSchedRunway | arriveTerminal
+BAW115-1715000000-schedule-0001 | EGLL | 2024-05-07T05:55:00Z | 2024-05-07T06:00:00Z | 5 | 120 | B22 | B22 | 2024-05-07T06:00:00Z | 2024-05-07T06:05:00Z | T5
+DLH901-1715000000-schedule-0002 | EGLL | 2024-05-07T08:40:00Z | NULL | 7 | NULL | C15 | NULL | 2024-05-07T08:30:00Z | 2024-05-07T08:35:00Z | T2
+UAE5-1715000000-schedule-0003 | EGLL | NULL | NULL | NULL | NULL | NULL | NULL | 2024-05-07T14:00:00Z | NULL | NULL
+
+flight-operated-by
+flightId | airlineIcao
+BAW115-1715000000-schedule-0001 | BAW
+DLH901-1715000000-schedule-0002 | DLH
+UAE5-1715000000-schedule-0003 | UAE

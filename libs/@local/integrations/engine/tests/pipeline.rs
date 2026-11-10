@@ -3,11 +3,12 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::{future::poll_fn, task::Poll, time::Duration};
+use core::{fmt::Write as _, future::poll_fn, task::Poll, time::Duration};
 
 use duckdb::types::Value;
 use hash_integrations_definition::{
-    CheckpointName, Definition, EntityPipeline, PrimaryKey, SourceKind,
+    Accessor, CheckpointName, ColumnName, Definition, EntityPipeline, PrimaryKey, Properties,
+    SourceKind,
 };
 use hash_integrations_engine::{
     AssertionFailure, PreparationError, PreparedSink, TableAssertions, Workspace, WorkspaceConfig,
@@ -548,182 +549,109 @@ async fn prepare_entities(workspace: &Workspace, definition: &Definition) -> Pre
     PreparedEntities { sinks, checkpoints }
 }
 
-/// Reads `columns` of each row of `table`, ordered by the first column.
-async fn read_columns(workspace: &Workspace, table: &str, columns: &[&str]) -> Vec<Vec<Value>> {
-    workspace
-        .query(
-            format!("SELECT {} FROM \"{table}\" ORDER BY 1", columns.join(", ")).into_boxed_str(),
-        )
-        .await
-        .expect("the table should be readable")
+/// Returns the columns that `properties` read, in property order.
+fn property_columns(properties: &Properties) -> impl Iterator<Item = &ColumnName> {
+    properties
         .iter()
-        .map(<[Value]>::to_vec)
-        .collect()
-}
-
-fn text_rows<const N: usize>(rows: &[[&str; N]]) -> Vec<Vec<Value>> {
-    rows.iter()
-        .map(|row| {
-            row.iter()
-                .map(|cell| Value::Text((*cell).to_owned()))
-                .collect()
+        .flat_map(|(_, accessor)| match accessor {
+            Accessor::Column(column) | Accessor::Coerce { column, .. } => [Some(column), None],
+            Accessor::Measure { amount, unit, .. } => [Some(amount), Some(unit)],
         })
-        .collect()
+        .flatten()
 }
 
-#[tokio::test]
-async fn definition_aviation_tables() {
-    let directory = TempDir::new().expect("the directory should be created");
-    let workspace = open(&directory).await;
-    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
-        .expect("the aviation definition should parse");
-    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, &definition).await;
-
-    let mut entities = BTreeMap::new();
-    for sink in &sinks {
-        entities.insert(
-            sink.step.to_string(),
-            read_columns(
-                &workspace,
-                &sink.table,
-                &[sink.sink.entity_id.as_ref(), "_content_hash IS NOT NULL"],
-            )
-            .await,
-        );
-    }
-    let hashed = |ids: &[&str]| -> Vec<Vec<Value>> {
-        ids.iter()
-            .map(|id| vec![Value::Text((*id).to_owned()), Value::Boolean(true)])
-            .collect()
-    };
-    assert_eq!(
-        entities,
-        BTreeMap::from([
-            ("sink-aircraft".to_owned(), hashed(&["N100", "SE-XXX"])),
-            ("sink-airfields".to_owned(), hashed(&["ESSA", "ESSB"])),
-        ]),
-        "every aircraft and airfield should have a content hash"
-    );
-
-    let link = definition
-        .link_pipelines()
-        .first()
-        .expect("the aviation link should exist");
-    let prepared = workspace
-        .prepare_link_pipeline(link.clone(), checkpoints)
-        .await
-        .expect("the aviation links should be prepared");
-    assert_eq!(
-        read_columns(&workspace, &prepared.table, &["TAIL", "HOME_BASE"]).await,
-        text_rows(&[["N100", "ESSA"], ["SE-XXX", "ESSA"]]),
-        "both aircraft should link to their home airfield"
-    );
-}
-
-#[tokio::test]
-async fn definition_flightaware_tables() {
-    let directory = TempDir::new().expect("the directory should be created");
-    let workspace = open(&directory).await;
-    let definition =
-        Definition::from_yaml(include_str!("../../definition/examples/flightaware.yaml"))
-            .expect("the flightaware definition should parse");
-    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, &definition).await;
-
-    let mut entities = BTreeMap::new();
-    for sink in &sinks {
-        entities.insert(
-            sink.step.to_string(),
-            read_columns(&workspace, &sink.table, &[sink.sink.entity_id.as_ref()]).await,
-        );
-    }
-    assert_eq!(
-        entities,
-        BTreeMap::from([
-            (
-                "write-airlines".to_owned(),
-                text_rows(&[["BAW"], ["DLH"], ["UAE"]])
-            ),
-            (
-                "write-airports".to_owned(),
-                text_rows(&[["EDDF"], ["EGLL"], ["KJFK"], ["OMDB"]])
-            ),
-            (
-                "write-flights".to_owned(),
-                text_rows(&[
-                    ["BAW115-1715000000-schedule-0001"],
-                    ["DLH901-1715000000-schedule-0002"],
-                    ["UAE5-1715000000-schedule-0003"],
-                ])
-            ),
-        ]),
-        "each airport and airline should appear once"
-    );
-
-    let flights = sinks
+/// Appends `title`, then `columns` of every row of `table` as text, in sorted order.
+async fn render_table(
+    rendered: &mut String,
+    workspace: &Workspace,
+    title: &str,
+    table: &str,
+    columns: &[&ColumnName],
+) {
+    let selected: Vec<_> = columns
         .iter()
-        .find(|sink| sink.step.as_ref() == "write-flights")
-        .expect("the flight sink should exist");
-    assert_eq!(
-        read_columns(
-            &workspace,
-            &flights.table,
-            &["flightNumber", "flightStatus", "flightDate"]
+        .map(|column| format!("\"{column}\"::VARCHAR"))
+        .collect();
+    let rows = workspace
+        .query(
+            format!(
+                "SELECT {} FROM \"{table}\" ORDER BY ALL",
+                selected.join(", ")
+            )
+            .into_boxed_str(),
         )
-        .await,
-        text_rows(&[
-            ["BA115", "Landed", "2024-05-06"],
-            ["EK5", "Cancelled", "2024-05-07"],
-            ["LH901", "Active", "2024-05-07"],
-        ]),
-        "the status and date should be derived from the flight's times"
-    );
+        .await
+        .expect("the table should be readable");
+    let header: Vec<_> = columns.iter().map(ToString::to_string).collect();
+    writeln!(rendered, "{title}\n{}", header.join(" | "))
+        .expect("writing to a string should succeed");
+    for row in rows.iter() {
+        let cells: Vec<_> = row
+            .iter()
+            .map(|cell| {
+                if let Value::Text(text) = cell {
+                    text.as_str()
+                } else {
+                    "NULL"
+                }
+            })
+            .collect();
+        writeln!(rendered, "{}", cells.join(" | ")).expect("writing to a string should succeed");
+    }
+    rendered.push('\n');
+}
 
-    let mut links = BTreeMap::new();
+/// Prepares the entity and link pipelines of `definition` and renders each sink and link table
+/// with the columns it writes.
+async fn render_prepared(definition: &Definition) -> String {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, definition).await;
+    let mut rendered = String::new();
+    for sink in &sinks {
+        let mut columns = vec![&sink.sink.entity_id];
+        columns.extend(property_columns(&sink.sink.properties));
+        render_table(
+            &mut rendered,
+            &workspace,
+            sink.step.as_ref(),
+            &sink.table,
+            &columns,
+        )
+        .await;
+    }
     for link in definition.link_pipelines() {
         let prepared = workspace
             .prepare_link_pipeline(link.clone(), checkpoints.clone())
             .await
             .expect("the link pipeline should be prepared");
-        links.insert(
-            link.id.to_string(),
-            read_columns(
-                &workspace,
-                &prepared.table,
-                &[link.from.column.as_ref(), link.to.column.as_ref()],
-            )
-            .await,
-        );
+        let mut columns = vec![&link.from.column, &link.to.column];
+        columns.extend(property_columns(&link.properties));
+        render_table(
+            &mut rendered,
+            &workspace,
+            link.id.as_ref(),
+            &prepared.table,
+            &columns,
+        )
+        .await;
     }
-    assert_eq!(
-        links,
-        BTreeMap::from([
-            (
-                "flight-lands-at".to_owned(),
-                text_rows(&[
-                    ["BAW115-1715000000-schedule-0001", "EGLL"],
-                    ["DLH901-1715000000-schedule-0002", "EGLL"],
-                    ["UAE5-1715000000-schedule-0003", "EGLL"],
-                ])
-            ),
-            (
-                "flight-operated-by".to_owned(),
-                text_rows(&[
-                    ["BAW115-1715000000-schedule-0001", "BAW"],
-                    ["DLH901-1715000000-schedule-0002", "DLH"],
-                    ["UAE5-1715000000-schedule-0003", "UAE"],
-                ])
-            ),
-            (
-                "flight-takes-off-from".to_owned(),
-                text_rows(&[
-                    ["BAW115-1715000000-schedule-0001", "KJFK"],
-                    ["DLH901-1715000000-schedule-0002", "EDDF"],
-                    ["UAE5-1715000000-schedule-0003", "OMDB"],
-                ])
-            ),
-        ]),
-        "each flight should link to its origin, destination and operator"
-    );
+    rendered
+}
+
+#[tokio::test]
+async fn definition_aviation_tables() {
+    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
+        .expect("the aviation definition should parse");
+    insta::assert_snapshot!(render_prepared(&definition).await);
+}
+
+#[tokio::test]
+async fn definition_flightaware_tables() {
+    let definition =
+        Definition::from_yaml(include_str!("../../definition/examples/flightaware.yaml"))
+            .expect("the flightaware definition should parse");
+    insta::assert_snapshot!(render_prepared(&definition).await);
 }
 
 #[tokio::test]
