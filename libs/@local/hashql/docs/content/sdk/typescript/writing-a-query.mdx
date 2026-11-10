@@ -3,15 +3,15 @@ title: Writing a HashQL query
 description: Build a release briefing by selecting tasks, filtering them and combining related queries.
 ---
 
-In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as an input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
+In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
 
-Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these share a common root: we must find the tasks that belong to one release. So let's just start by that!
+Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these questions share a common starting point: we must find the tasks that belong to one release. So let's start there!
 
-This guide expects that you are already [familiar with the basics of HashQL](/docs/hashql/intro), and the [Draft API of the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft).
+This guide assumes that you are already familiar with [the basics of HashQL](/docs/hashql/intro) and [the Draft API of the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft).
 
 <Callout title="Following the examples">
 
-We're working on a fictional graph database, feel free to create your own graph dev environment and seed the database withsw data, or follow along only through the guide. Creating the database is out of scope for this guide, but may be added in the future if requested.
+We're working with a fictional graph database. You are welcome to create your own graph development environment and seed the database with data, or simply follow along with the guide. Creating the database is outside the scope of this guide, but instructions may be added in the future if requested.
 
 </Callout>
 
@@ -32,7 +32,7 @@ For this walkthrough, suppose the selected graph view contains exactly these fiv
 
 These [SemType](https://semtype.org/spec) definitions describe the tasks in our example. Each task has five required properties. The Task column contains a human-readable `task-id`, such as `T-101`, and the Assigned column displays `true` as "yes" and `false` as "no".
 
-The property-types tab groups the five property definitions in an array. They reuse the standard Text and Boolean data types, with a Task status data type restricting `status` to `open`, `blocked` or `done`.
+The Property types tab groups the five property definitions in an array. They reuse the standard Text and Boolean data types, with a Task status data type restricting `status` to `open`, `blocked` or `done`.
 
 ```json tab="Entity type" tab-group="task-schema"
 {
@@ -155,17 +155,15 @@ The property-types tab groups the five property definitions in an array. They re
 
 </details>
 
-Our briefing is for the Meridian release. We're interested in tasks that are unfinished (as in their status isn't `done`), those that are blocked, and those that still need an owner. You may see that in our example the `assigned` field is a [`Boolean`] property, instead of a relationship to the person that is assigned. This is a simplification for this example. Later, we'll consider how an ownership relationship could change our queries.
+Our briefing is for the Meridian release. We're interested in tasks that are unfinished (meaning their status isn't `done`), those that are blocked, and those that still need an owner. Notice that, in our example, the `assigned` field is a [`Boolean`] property rather than a relationship to the person assigned to the task. This simplifies the example. Later, we'll consider how an ownership relationship could change our queries.
 
 ## Start with the tasks
 
-The HASH graph is bi-temporal, which means that time is tracked on two axes: transaction time, when the system recorded something, and decision time, when it was decided to be true.
+The HASH graph is bitemporal, which means that time is tracked on two axes: transaction time, when the system recorded something, and decision time, when it was decided to be true.
 
-You can think of these as a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
+You can consider these to be a Cartesian plane. Each entity version occupies a rectangle, with an interval on each axis. A query pins one axis to a timestamp and selects an interval on the other, drawing a line through that plane. Entity versions whose rectangles intersect the line belong to the selected temporal view.
 
-<TemporalAxes />
-
-Looking at _when_ is just as important as looking at _what_. We want to know the evolution of the data over time, so we can understand how it has changed. That means that the temporal axes are actually an input into the query. So let's set up the temporal input first.
+Looking at _when_ is just as important as looking at _what_. We want to understand how the data has changed over time. The temporal axes therefore form an input to the query. Let's set up that input first.
 
 ```ts title="release-briefing.ts" data-example="setup"
 import { JExpr, Program, Prelude } from "@local/hashql";
@@ -178,7 +176,7 @@ const axes = Prelude.graph.QueryTemporalAxes;
 
 <Callout>
 
-Currently the prelude is not automatically generated, you must instead reference the type yourself:
+Currently, the prelude is not automatically generated. You must reference the type yourself:
 
 ```ts
 const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
@@ -190,11 +188,11 @@ const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
 
 </Callout>
 
-[`QueryTemporalAxes`][query-temporal-axes] describes which axis is pinned to a timestamp and which varies over an interval. Our `axes` value describes this input's type, we don't set it as part of our program, because we're interested in the values at different points in time.
+[`QueryTemporalAxes`][query-temporal-axes] describes which axis is pinned to a timestamp and which varies over an interval. Our `axes` value describes the type of this input. We don't set the input's value as part of our program because we want to query the graph at different points in time.
 
 <Callout>
 
-In general, as outlined in [using the TypeScript SDK], try to remove as much variance from your programs as possible. This means that generally your program should have the temporal axes as an input.
+As outlined in [Using the TypeScript SDK], try to remove as much variance from your programs as possible. In general, this means making the temporal axes an input to your program.
 
 </Callout>
 
@@ -216,31 +214,33 @@ head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
 
-Queries inside of HashQL follow a pattern of head -> body -> tail. The head decides where we start our query, for example [`entities`][query-entities] starts a graph computation over all the entities in the knowledge graph at any given point in time. The body transforms the result (more on that later), and the tail then decides how to materialise the result (in functional programming terms, head creates an effect, body transforms the result inside of the effect, and the tail then executes the effect), for example [`collect`][query-collect] asks for those entities as a list.
+Queries in HashQL follow a head → body → tail pattern. The head determines where the query starts. For example, [`entities`][query-entities] starts a graph computation over all the entities in the knowledge graph within the selected temporal view. The body transforms the result (more on that later), and the tail determines how to materialise it. For example, [`collect`][query-collect] asks for those entities as a list.
+
+In functional programming terms, the head creates an effect, the body transforms the result within that effect, and the tail executes the effect.
 
 <Callout>
 
-Currently the only head supported is [`entities`][query-entities], and the only tail supported is [`collect`][query-collect].
+Currently, the only supported head is [`entities`][query-entities], and the only supported tail is [`collect`][query-collect].
 
 </Callout>
 
-With the query that we have now we return all the entities in the graph, but those are not the ones that we're interested in, so how do we transform our set of entities to only those that we are?
+Our query currently returns all the entities in the selected graph view, not just the ones we're interested in. How do we narrow the results to the entities we want?
 
-This is where the body operations come in. Each graph works on vertices in the knowledge graph, and each body operation transforms each vertex that we have selected, either by removing it or by keeping it. An analogy for this is the [map-reduce pattern] from functional programming. In our example, the head returns a [`Graph<Entity<?>>`][graph-type], which is a graph that only contains entities, and where the properties of it are [unknown].
+This is where body operations come in. Each graph operates on vertices in the knowledge graph, and body operations transform the selected vertices. Filtering, for example, either removes or keeps each vertex. An analogy is the [map-reduce pattern] from functional programming. In our example, the head returns a [`Graph<Entity<?>>`][graph-type]: a graph containing only entities whose properties are [unknown].
 
 <Callout>
 
-Currently the only body operation supported is [`filter`][query-filter]
+Currently, the only supported body operation is [`filter`][query-filter].
 
 </Callout>
 
-Before we start filtering, let's first take a look at how we can take a look at the query that we have written so far.
+Before we start filtering, let's look at how to inspect the query we've written so far.
 
-### Serialize the program
+### Serialise the program
 
-The [intro to the TypeScript SDK] already shows how to serialize the query program, to boil it down we first take our expression fragment (which is in itself a valid HashQL program), and mark it as a [`Program`]. We then compile it to [J-Expr] using the [`Program.compile`][program-compile] function, which may fail, for example because an identifier is not valid HashQL.
+The [intro to the TypeScript SDK] already shows how to serialise a query program. In short, we take our expression fragment (which is itself a valid HashQL program) and mark it as a [`Program`]. We then compile it to [J-Expr] using the [`Program.compile`][program-compile] function. This step may fail, for example, if an identifier is not valid in HashQL.
 
-For our example, this would look like this:
+For our example, this looks like this:
 
 ```ts title="Produce J-Expr" data-example="serialize"
 const queryText = pipe(
@@ -272,13 +272,13 @@ console.log(queryText);
 
 </details>
 
-What's important is that the program that we compiles was not executed, it was merely translated to a [`Program`] that can be run on the server. We also haven't verified that the program is truly well-formed. The TypeScript SDK tries its hardest to catch any errors at construction time, but each program still goes through a compilation step on the server, which may surface issues that are not caught by the TypeScript SDK.
+Importantly, compiling the program does not execute it. We first mark the expression fragment as a [`Program`], then translate it into J-Expr that can be sent to the server for execution. We also haven't verified that the program is fully well-formed. The TypeScript SDK aims to catch errors at construction time, but each program still goes through a compilation step on the server, which may reveal issues that the SDK doesn't catch.
 
-Let's keep this serialisation block at the end of our file, and periodically check how it changed. When we show new snippets we always replace the `briefing` declaration, while retaining the setup and any helpers we've added.
+Let's keep this serialisation block at the end of our file and periodically check how its output changes. In the following examples, replace the `briefing` declaration while retaining the setup and any helpers we've added.
 
 <Callout>
 
-For handling of [`Result`] refer to the [intro to the TypeScript SDK] or the [effect documentation].
+For guidance on handling [`Result`], refer to the [intro to the TypeScript SDK] or the [Effect documentation].
 
 </Callout>
 
