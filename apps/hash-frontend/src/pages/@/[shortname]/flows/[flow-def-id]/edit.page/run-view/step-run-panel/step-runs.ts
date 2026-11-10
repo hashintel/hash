@@ -1,4 +1,4 @@
-import { isEqual } from "lodash";
+import { isEqual, upperFirst } from "lodash";
 
 import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -112,19 +112,25 @@ export const getCommonInputs = (
 
 /**
  * The error of the run that failed last: the error status its action gave, or else its latest failed attempt's, which
- * may be retried.
+ * may be retried. `context` says what it's of, e.g. "Item 3, attempt 1 failed, retrying".
  */
 export const getLastError = (
   runs: ItemRun[],
-): { itemIndex: number | null; error: FlowRunEventError } | null => {
+): { error: FlowRunEventError; context: string | null } | null => {
   const failures = runs.flatMap(({ itemIndex, stepRun }) => {
     const error = stepRun.errorStatus ?? stepRun.lastFailure;
+    /* An open run with a failure is retrying it: `attempt` is the attempt now running, after the one that failed. */
+    const retrying = !stepRun.errorStatus && !stepRun.closedAt;
+    const parts = [
+      itemIndex === null ? null : `Item ${itemIndex + 1}`,
+      retrying ? `attempt ${stepRun.attempt - 1} failed, retrying` : null,
+    ].filter((part) => part !== null);
 
     return error
       ? [
           {
-            itemIndex,
             error,
+            context: parts.length > 0 ? upperFirst(parts.join(", ")) : null,
             /* `closedAt` is empty while the run is open. */
             at:
               [stepRun.closedAt, stepRun.startedAt].find((time) => !!time) ??
@@ -138,7 +144,7 @@ export const getLastError = (
     right.at.localeCompare(left.at),
   );
 
-  return last ? { itemIndex: last.itemIndex, error: last.error } : null;
+  return last ? { error: last.error, context: last.context } : null;
 };
 
 /** Inputs in the order the step's action lists them, then any it doesn't, in the order they came. */

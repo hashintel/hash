@@ -53,7 +53,7 @@ export const StepRunError = ({
   context,
 }: {
   message: string;
-  /** What the error is of, before its first line, e.g. "Item 3". */
+  /** What the error is of, before its first line, e.g. "Item 3" or "Attempt 1 failed, retrying". */
   context?: string;
 }) => {
   const { triggerSnackbar } = useSnackbar();

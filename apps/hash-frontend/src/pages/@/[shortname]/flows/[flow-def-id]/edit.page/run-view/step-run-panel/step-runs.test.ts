@@ -207,7 +207,7 @@ describe("getLastError", () => {
           }),
         ),
       ),
-    ).toEqual({ itemIndex: 0, error: { message: "Not found" } });
+    ).toEqual({ error: { message: "Not found" }, context: "Item 1" });
   });
 
   it("gives a run being retried its last attempt's error, and none to runs without one", () => {
@@ -223,8 +223,26 @@ describe("getLastError", () => {
           }),
         },
       ]),
-    ).toEqual({ itemIndex: null, error: { message: "Timed out" } });
+    ).toEqual({
+      error: { message: "Timed out" },
+      context: "Attempt 1 failed, retrying",
+    });
     expect(getLastError(itemRuns(stepRun("fetch~0")))).toBeNull();
+  });
+
+  it("doesn't say a run that gave up after its attempts is retrying", () => {
+    expect(
+      getLastError([
+        {
+          itemIndex: null,
+          stepRun: stepRun("fetch", {
+            status: FlowStepStatus.Failed,
+            attempt: 3,
+            lastFailure: { message: "Timed out" },
+          }),
+        },
+      ]),
+    ).toEqual({ error: { message: "Timed out" }, context: null });
   });
 
   it("times a run still open by when it started, against one that closed", () => {
@@ -246,7 +264,10 @@ describe("getLastError", () => {
           }),
         ),
       ),
-    ).toEqual({ itemIndex: 1, error: { message: "Timed out" } });
+    ).toEqual({
+      error: { message: "Timed out" },
+      context: "Item 2, attempt 1 failed, retrying",
+    });
   });
 });
 

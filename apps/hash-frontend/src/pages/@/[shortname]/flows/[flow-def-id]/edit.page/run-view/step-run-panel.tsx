@@ -282,11 +282,7 @@ export const StepRunPanel = ({
           {lastError && (
             <StepRunError
               message={lastError.error.message}
-              context={
-                lastError.itemIndex === null
-                  ? undefined
-                  : `Item ${lastError.itemIndex + 1}`
-              }
+              context={lastError.context ?? undefined}
             />
           )}
           {waiting && runPageHref && (
