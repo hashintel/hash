@@ -286,7 +286,7 @@ Currently, the only supported body operation is [`filter`][query-filter].
 
 ## Ask about one release
 
-Now that we have our data, let's narrow the result, because currently it returns all the entities in the selected graph view, but we're only really interested in tasks.
+Our query currently returns all the entities in the selected graph view, but we're only interested in tasks. Let's narrow the results:
 
 ```ts title="release-briefing.ts" data-example="filter"
 const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
@@ -308,11 +308,11 @@ const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
 
 <Callout>
 
-HashQL currently has no concept of iteration, therefore cannot model a "contains" operator, this is currently a temporary limitation that is going to be addressed in a future release. The current filter precludes any inheritance or multi-type entities.
+HashQL currently has no concept of iteration, so it cannot model a `contains` operator. This is a temporary limitation that will be addressed in a future release (H-XXX). The filter above requires an exact match on the entity type IDs, so it excludes tasks that inherit from the Task type or have additional types.
 
 </Callout>
 
-This now selects all the tasks, but we still have an issue: we're reviewing Meridian, not Northstar. So let's add a predicate that makes sure that the review is for the release we're interested in:
+This selects all the tasks, but we're reviewing Meridian, not Northstar. Let's add a predicate to select only the tasks belonging to the release we're interested in:
 
 ```ts title="release-briefing.ts" data-example="filter"
 const briefing = Draft.program(
@@ -325,14 +325,14 @@ const briefing = Draft.program(
           VersionedUrl("https://example.com/types/entity-type/task/v/1"),
         ]),
       )
-      .filter("vertex", (vertex) =>
-        $.eq(
+      .filter("vertex", (vertex) => {
+        return $.eq(
           vertex.properties.$traverse(
             "https://example.com/types/property-type/release/",
           ),
           release,
-        ),
-      )
+        );
+      })
       .collect(),
 );
 ```
@@ -342,11 +342,13 @@ const briefing = Draft.program(
 
 </details>
 
-We just added a new input, this is important and speaks to what we talked about in [Introduction to the TypeScript SDK], we are trying to not use constants, and instead configuration through inputs, because that helps us to create reusable queries that can be easily parameterized and cached.
+We've added a new input, `release`. This follows the approach discussed in [Introduction to the TypeScript SDK]: rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
 
 <Callout>
 
-The `$traverse` operator is currently not implemented, its support is tracked inside of H-XXX, traversal is untyped, and therefore suboptimal, H-XXX tracks a new polymorphic type core, which is able to narrow types, which would allow the first filter to narrow the type, such that the second filter would have the `Task` type instead of `?` and therefore be able to just access via `.` property access, and get proper types.
+The `$traverse` operator is not yet implemented; support is tracked in H-XXX. Traversal is untyped, which limits type safety.
+
+A new polymorphic type core, tracked in H-XXX, would support type narrowing. This would allow the first filter to narrow the entity type to `Task`, rather than [`?`], so the second filter could use typed property access with [`.`] instead of `$traverse`.
 
 </Callout>
 
