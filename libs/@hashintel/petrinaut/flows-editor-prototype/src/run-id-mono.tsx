@@ -119,7 +119,8 @@ export const runIdCopyTake = (): RunIdCopyTake | null => {
 const hoverWrapStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "[2px]",
+  // DS xs button: 4 px between label and icon (Aakarsh, 10 Nov).
+  gap: "1",
   verticalAlign: "middle",
   borderRadius: "md",
   "& [data-copy-id]": { opacity: "0", transition: "[opacity 120ms ease]" },
