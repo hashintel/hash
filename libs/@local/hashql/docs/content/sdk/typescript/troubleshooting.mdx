@@ -134,6 +134,38 @@ const built = Draft.program({ revision: BigInt }, ($, { revision }) => {
 
 An `as` assertion can hide a TypeScript diagnostic without constructing the missing HashQL operation. Check the value's descriptor and the method's signature before adding one.
 
+### A raw string is not my newtype [#typed-string]
+
+**Symptom:** a string looks like the identifier you want, but TypeScript rejects it where a newtype is required.
+
+**Cause:** a String-backed newtype is distinct from String. In this rejected example, `target` represents a `TaskId`, while `"task-17"` represents a plain String:
+
+```ts data-example="raw-string-rejected"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const TaskId = $.newtype("TaskId", String);
+  const target = $.let("target", TaskId("task-17"));
+  return $.eq(target, "task-17");
+});
+```
+
+The diagnostic at the comparison says the string argument is not assignable to the required expression type. Running without typechecking can still serialise this program, but the right operand remains `{"#literal":"task-17"}`. Serialisation does not construct the missing `TaskId` value.
+
+**Fix:** call the newtype's constructor for the value you want to compare:
+
+```ts data-example="typed-string"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const TaskId = $.newtype("TaskId", String);
+  const target = $.let("target", TaskId("task-17"));
+  return $.eq(target, TaskId("task-17"));
+});
+```
+
+The right operand now serialises as `["TaskId", {"#literal":"task-17"}]`. Both operands have the nominal type. Ordinary string literals remain valid where a HashQL String is expected. Wrapping the string with `$.literal`, or asserting a TypeScript type, does not replace the newtype constructor. See [Making a distinct type](/docs/hashql/intro#making-a-distinct-type-with-newtype) for the language semantics.
+
 ### My helper rejects another program's `$` [#helper-context]
 
 **Symptom:** a helper accepts the context from one program but fails after you add an input to another. The diagnostic may begin with incompatible `if(...)` return types or “two different types with this name exist”.
@@ -176,6 +208,55 @@ Both programs use the same helper without asserting that their contexts are inte
 Generated standard-library declarations are tracked in [BE-1013](https://linear.app/hash/issue/BE-1013). Application-specific property types still need their own source of truth.
 
 ## The constructed program is not what I intended [#construction-time-behaviour]
+
+### My comparison becomes a constant [#native-operators]
+
+**Symptom:** a comparison typechecks, but its generated condition is a literal Boolean rather than a comparison of the input values.
+
+**Cause:** native `===` and `!==` compare expression handles as JavaScript objects during construction. They do not construct HashQL equality or inequality. Some comparisons are rejected by TypeScript, but this one is accepted:
+
+```ts data-example="native-equality"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program(
+  { values: { left: BigInt, right: BigInt } },
+  ($, { values }) =>
+    $.if(values.left === values.right, {
+      then: () => $.literal("same"),
+      else: () => $.literal("different"),
+    }),
+);
+```
+
+The two handles are distinct objects, so the host comparison is `false`. Serialising this program produces:
+
+```json
+[
+  "::kernel::special_form::if",
+  { "#literal": false },
+  { "#literal": "same" },
+  { "#literal": "different" }
+]
+```
+
+Neither input field is read by that program. Even if the caller supplies equal values, the constructed conditional selects `"different"`.
+
+**Fix:** use [`$.eq`](/docs/hashql/sdk/typescript/reference/hashql/Program/Operators#eq) or [`$.ne`](/docs/hashql/sdk/typescript/reference/hashql/Program/Operators#ne) to construct the comparison:
+
+```ts data-example="hashql-equality"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program(
+  { values: { left: BigInt, right: BigInt } },
+  ($, { values }) =>
+    $.if($.eq(values.left, values.right), {
+      then: () => $.literal("same"),
+      else: () => $.literal("different"),
+    }),
+);
+```
+
+The condition now contains a `::core::cmp::eq` call over both input-field accesses. HashQL compares their values when the program runs. The same distinction applies to other native operators: use the SDK's arithmetic and predicate operations to construct work for HashQL.
 
 ### My TypeScript `if` always takes the same branch
 
