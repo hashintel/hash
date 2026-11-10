@@ -3,15 +3,15 @@ title: Writing a HashQL query
 description: Build a release briefing by selecting tasks, filtering them and combining related queries.
 ---
 
-In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as an input. While we could supply those values ourselves as the input, a query language that is run on the server, isn't of much use. HashQL shines through it's deep integration to be able to query and transform the outputs from the graph. So how do we move from computing with values to querying the graph?
+In [Using the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft), we built a summary of a task supplied as an input. While we could supply those values ourselves as the input, a query language that is run on the server isn't of much use. HashQL shines through its deep integration into the HASH graph and to be able to query and transform the outputs from it. So how do we move from computing with values to querying the graph?
 
-Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. These questions share a starting point: the tasks belonging to one release. We'll build that selection first, then use it to produce all three views in one HashQL program.
+Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these share a common root: we must find the tasks that belong to one release. So let's just start by that!
 
-The [language introduction](/docs/hashql/intro) explains the bindings, inputs and closures used here. As in that introduction, the tabs show the same computation through Draft, functional notation and reference notation.
+This guide expects that you are already [familiar with the basics of HashQL](/docs/hashql/intro), and the [Draft API of the TypeScript SDK](/docs/hashql/sdk/typescript/using-draft).
 
 <Callout title="Following the examples">
 
-The TypeScript examples construct and serialise programs using the current SDK. They don't connect to a database. We'll use a small fictional graph to work out what each query should return, then produce the J-Expr that a host integration can submit for execution.
+We're working on a fictional graph database, feel free to create your own graph dev environment and seed the database with your own data, or follow along only through the guide. Creating the database is out of scope for this guide, but may be added in the future, if requested.
 
 </Callout>
 
@@ -27,22 +27,37 @@ For this walkthrough, suppose the selected graph view contains exactly these fiv
 | T-104 | Publish the client package | Meridian  | done    | yes      |
 | T-105 | Refresh the demo data      | Northstar | blocked | yes      |
 
-Our review concerns Meridian. A task is unfinished if its status isn't `done`, so T-101, T-102 and T-103 belong in the briefing. T-102 is also blocked, and both T-102 and T-103 need an owner. Notice that these groups overlap: being blocked doesn't prevent a task from also being unassigned.
+<details>
+<summary>Type Definitions</summary>
 
-The `assigned` field is a Boolean property on the task. For now, it tells us whether someone has been assigned, not who that person is. Later, we'll consider how an ownership relationship could answer that second question.
+<!-- SEMTYPE TYPE DEFINITIONS -->
+
+</details>
+
+Our briefing is for the Meridian release. We're interested in tasks that are unfinished (as in their status isn't `done`), those that are blocked, and those that still need an owner. You may see that in our example the `assigned` field is a [`Boolean`] property, instead of a relationship to the person that is assigned. This is a simplification for this example. Later, we'll consider how an ownership relationship could change our queries.
 
 ## Start with the tasks
 
-A query needs both a starting collection and a temporal view. HASH preserves the history of its entities, so choosing _when_ to look is part of choosing _what_ to look at. We'll receive that temporal selection through an input called `axis`.
+The HASH graph is bi-temporal, which means that time is tracked on two axes: transaction time, so when something was inserted, and decision time, so when something was decided upon. You can think of these two as a cartesian graph, and when you select temporal axes you select a rectangle. Any entity version that falls within that rectangle is selected and subsequently queried.
 
-Create a TypeScript file in a workspace that can resolve `@local/hashql` and `effect`. Begin with the imports and a declaration of the temporal input's type:
+<!-- I believe my slides have a visualisation we can port here -->
+
+Looking at _when_ is just as important as looking at _what_. We want to know the evolution of the data over time, so we can understand how it has changed. That means that the temporal axes are actually an input into the query. So let's set up the temporal input first.
 
 ```ts title="release-briefing.ts" data-example="setup"
-import { JExpr, Program } from "@local/hashql";
+import { JExpr, Program, Prelude } from "@local/hashql";
 import type { Type } from "@local/hashql";
 import * as Draft from "@local/hashql/Draft";
 import { Option, Result, pipe } from "effect";
 
+const axes = Prelude.graph.QueryTemporalAxes;
+```
+
+<Callout>
+
+Currently the prelude is not automatically generated, you must instead reference the type yourself:
+
+```ts
 const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
   Option.getOrThrow(
     JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
@@ -50,7 +65,9 @@ const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
 );
 ```
 
-[`QueryTemporalAxes`][query-temporal-axes] is the HashQL type describing that selection. The SDK currently knows it by name rather than exposing constructors for its alternatives, so we declare a reference to the server's type. `axes` is the type descriptor. The host supplies the actual selection as `axis` when it executes the program.
+</Callout>
+
+[`QueryTemporalAxes`][query-temporal-axes] describes the selection, we have a variable axis, which can be a range, and a fixed interval for the other. This value is used to determine which one is which.
 
 Now we can construct our first query:
 
@@ -69,6 +86,8 @@ const briefing = Draft.program({ axis: axes }, ($, { axis }) =>
 head::entities(input(axis, QueryTemporalAxes))
   |> tail::collect
 ```
+
+---
 
 [`entities`][query-entities] starts a graph computation over the entities in the selected temporal view. [`collect`][query-collect] asks for those entities as a list. For our example graph, that list contains all five tasks, including the completed task and the task belonging to Northstar.
 
