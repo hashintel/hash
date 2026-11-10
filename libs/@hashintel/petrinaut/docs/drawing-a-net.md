@@ -296,7 +296,11 @@ From the top-bar menu (hamburger icon), under **Export**:
 - **JSON** / **JSON without visual info** -- the same two payloads encoded as JSON, for tools that expect it.
 - **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
-**Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- the format is detected from the content, so files exported by any Petrinaut version load the same way. If node positions are missing, an automatic layout is applied on load.
+**Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- YAML or JSON is detected from the content, so a JSON file exported by an earlier Petrinaut version loads the same way. If node positions are missing, an automatic layout is applied on load.
+
+If the file has fields this version of Petrinaut does not read, the net loads without them and a toast lists each one, for example `subnets[0].places[1].portDirection` (the `portDirection` field of the second place of the first subnet). This happens with a misspelt field in a hand-written file and with a file exported by a newer version of Petrinaut. The net can behave differently without those fields, and an export from this version writes a file without them, so check the spelling or open the file in a newer version. The toast stays open until you close it, and **Copy details** copies the list. A field that holds nothing (`null`, `[]` or `{}`) is not listed.
+
+Every exported file states its format in `version`. A net is written as `version: 1` unless it uses a field added to the format after version 1; that net is written as `version: 2`. A version of Petrinaut that reads only version 1 does not load a version 2 file without those fields: it shows **Import Error** with "Unsupported SDCPN file format version". Open the file in a newer version of Petrinaut.
 
 ## Auto-layout
 

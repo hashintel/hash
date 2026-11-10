@@ -21,7 +21,7 @@ export const snapshotErrorMessage = (code: SnapshotErrorCode): string => {
     case "invalid":
       return "This snapshot link is incomplete or invalid. Ask the sender to copy it again.";
     case "unsupported":
-      return "This snapshot uses a newer link format. Refresh Petrinaut and try again.";
+      return "This snapshot was made with a newer version of Petrinaut. Refresh Petrinaut and try again.";
     case "too-large":
       return "This snapshot is too large for a link. Share the downloaded file instead.";
     case "unavailable":

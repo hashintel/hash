@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import * as examples from "../examples/index";
 import { toPetrinautId } from "../petrinaut-id";
-import { parseSDCPNFile } from "./parse-sdcpn-file";
+import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
+import { serializeSDCPN } from "./serialize-sdcpn";
+
+import type { DocumentKeyPath } from "./key-tree";
 
 const idOf = toPetrinautId;
 
@@ -658,6 +662,265 @@ describe("parseSDCPNFile", () => {
 
       expect(result.ok).toBe(false);
     });
+
+    it("reads a version 2 file and reports the keys it does not define", () => {
+      const result = parseSDCPNFile({
+        version: 2,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        places: [{ ...minimalPlace, portDirection: "in" }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.places).toHaveLength(1);
+      expect(result.unknownKeys).toEqual([["places", 0, "portDirection"]]);
+    });
+
+    it("rejects version 3", () => {
+      const result = parseSDCPNFile({
+        version: 3,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toBe("Unsupported SDCPN file format version");
+    });
+  });
+
+  describe("unknown keys", () => {
+    const secondPlace = { ...minimalPlace, id: "p2", name: "Place 2" };
+    const subnet = {
+      id: "subnet-1",
+      name: "Subnet 1",
+      places: [minimalPlace, secondPlace],
+      transitions: [],
+    };
+    const instance = {
+      id: "instance-1",
+      name: "Instance1",
+      subnetId: "subnet-1",
+      parameterValues: {},
+      x: 0,
+      y: 0,
+    };
+    const everyLevel = {
+      version: 1,
+      meta: { generator: "Petrinaut" },
+      ...minimalSDCPN,
+      transitions: [
+        { ...minimalTransition, outputArcs: [{ placeId: "p1", weight: 1 }] },
+      ],
+      types: [
+        {
+          id: "c1",
+          name: "Colour 1",
+          elements: [{ elementId: "e1", name: "value", type: "real" }],
+        },
+      ],
+      differentialEquations: [
+        { id: "de1", name: "Equation 1", colorId: "c1", code: "" },
+      ],
+      parameters: [
+        {
+          id: "parameter-1",
+          name: "Rate",
+          variableName: "rate",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
+      scenarios: [
+        {
+          id: "scenario-1",
+          name: "Scenario 1",
+          scenarioParameters: [
+            { type: "real", identifier: "alpha", default: 1 },
+          ],
+        },
+      ],
+      metrics: [{ id: "metric-1", name: "Metric 1", code: "return 1;" }],
+      componentInstances: [instance],
+      subnets: [subnet],
+    };
+
+    const objectAt = (
+      document: unknown,
+      path: DocumentKeyPath,
+    ): Record<string, unknown> =>
+      path.reduce<unknown>(
+        (value, segment) =>
+          (value as Record<string | number, unknown>)[segment],
+        document,
+      ) as Record<string, unknown>;
+
+    const joined = (unknownKeys: ReadonlyArray<DocumentKeyPath>): string[] =>
+      unknownKeys.map((path) => path.join(".")).toSorted();
+
+    it("reports nothing for a file that uses only defined keys", () => {
+      const result = parseSDCPNFile(everyLevel);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([]);
+    });
+
+    it.each<[string, DocumentKeyPath]>([
+      ["the document", []],
+      ["the file metadata", ["meta"]],
+      ["a place", ["places", 0]],
+      ["a transition", ["transitions", 0]],
+      ["an input arc", ["transitions", 0, "inputArcs", 0]],
+      ["an output arc", ["transitions", 0, "outputArcs", 0]],
+      ["a type", ["types", 0]],
+      ["a type element", ["types", 0, "elements", 0]],
+      ["a differential equation", ["differentialEquations", 0]],
+      ["a parameter", ["parameters", 0]],
+      ["a scenario", ["scenarios", 0]],
+      ["a scenario parameter", ["scenarios", 0, "scenarioParameters", 0]],
+      ["a metric", ["metrics", 0]],
+      ["a component instance", ["componentInstances", 0]],
+      ["a subnet", ["subnets", 0]],
+      ["a place of a subnet", ["subnets", 0, "places", 1]],
+    ])("reports an unknown key on %s with its path", (_level, path) => {
+      // Through JSON: `structuredClone` would keep the place that the net and
+      // its subnet share as one object.
+      const document: unknown = JSON.parse(JSON.stringify(everyLevel));
+      objectAt(document, path).later = "value";
+
+      const result = parseSDCPNFile(document);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([[...path, "later"]]);
+    });
+
+    it("reports every unknown key of a file, and loads the net without them", () => {
+      const result = parseSDCPNFile({
+        ...everyLevel,
+        fusions: [{ id: "fusion-1", members: [] }],
+        componentInstances: [{ ...instance, implementation: "subnet-2" }],
+        subnets: [
+          {
+            ...subnet,
+            interface: true,
+            places: [minimalPlace, { ...secondPlace, portDirection: "in" }],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(joined(result.unknownKeys)).toEqual([
+        "componentInstances.0.implementation",
+        "fusions",
+        "subnets.0.interface",
+        "subnets.0.places.1.portDirection",
+      ]);
+      expect(result.sdcpn).not.toHaveProperty("fusions");
+      expect(result.sdcpn.componentInstances?.[0]).not.toHaveProperty(
+        "implementation",
+      );
+      expect(result.sdcpn.subnets?.[0]).not.toHaveProperty("interface");
+      expect(result.sdcpn.subnets?.[0]?.places[1]).not.toHaveProperty(
+        "portDirection",
+      );
+    });
+
+    it("reports an unknown key in a legacy file without `version`", () => {
+      const result = parseSDCPNFile({
+        ...minimalSDCPN,
+        places: [{ ...minimalPlace, portDirection: "in" }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([["places", 0, "portDirection"]]);
+    });
+
+    it("reports a misspelt key, which import replaces with its default", () => {
+      const { lambdaCode, ...transition } = minimalTransition;
+      const result = parseSDCPNFile({
+        version: 1,
+        ...minimalSDCPN,
+        transitions: [{ ...transition, lamdaCode: lambdaCode }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.lambdaCode).toBe("");
+      expect(result.unknownKeys).toEqual([["transitions", 0, "lamdaCode"]]);
+    });
+
+    it("leaves out an unknown key that holds nothing", () => {
+      const result = parseSDCPNFile({
+        ...everyLevel,
+        fusions: [],
+        implementations: {},
+        subnets: [{ ...subnet, fusions: [], implements: null }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([]);
+    });
+
+    it("reports nothing for a legacy file without `version`", () => {
+      const result = parseSDCPNFile(minimalSDCPN);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([]);
+    });
+
+    it("reports nothing for a hand-written file that omits optional fields", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        title: "Hand-written",
+        places: [{ id: "p1", name: "Place 1" }],
+        transitions: [
+          {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1" }],
+            outputArcs: [{ placeId: "p1" }],
+          },
+        ],
+        types: [{ id: "c1", name: "Colour 1", elements: [] }],
+        scenarios: [{ id: "scenario-1", name: "Scenario 1" }],
+        metrics: [{ id: "metric-1", name: "Metric 1" }],
+        componentInstances: [
+          { id: "instance-1", name: "Instance1", subnetId: "subnet-1" },
+        ],
+        subnets: [
+          { id: "subnet-1", name: "Subnet 1", places: [], transitions: [] },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.unknownKeys).toEqual([]);
+    });
+
+    describe.each(Object.entries(examples))(
+      "the %s example",
+      (_name, { title, petriNetDefinition }) => {
+        it.each(["yaml", "json"] as const)(
+          "reports nothing when written as %s by serializeSDCPN",
+          (format) => {
+            const result = parseSDCPNDocument(
+              serializeSDCPN({ petriNetDefinition, title, format }),
+            );
+
+            expect(result.ok).toBe(true);
+            if (!result.ok) return;
+            expect(result.unknownKeys).toEqual([]);
+          },
+        );
+      },
+    );
   });
 
   describe("invalid input", () => {

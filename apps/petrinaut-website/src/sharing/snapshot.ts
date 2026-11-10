@@ -41,6 +41,9 @@ export const parseSnapshot = (bytes: Uint8Array): Snapshot => {
     );
     const parsed = parseSDCPNFile(json);
     if (!parsed.ok) throw new SnapshotError("invalid");
+    // A newer build wrote keys this one does not read. The snapshot would
+    // open as a different net, and a refresh loads the build that reads them.
+    if (parsed.unknownKeys.length > 0) throw new SnapshotError("unsupported");
     const { title, ...definition } = parsed.sdcpn;
     return { title, definition };
   } catch (error) {

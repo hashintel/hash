@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import {
   canonicalizePetrinautIds,
   compileScenario,
-  parseSDCPNFile,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import * as coreExamples from "@hashintel/petrinaut-core/examples";
@@ -19,23 +18,20 @@ import {
   exampleCatalog,
   type ExampleCatalogEntry,
 } from "../src/examples/catalog-metadata.ts";
+import { parseModelFile } from "../src/examples/parse-model-file.ts";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const examplesDirectory = resolve(scriptDirectory, "../src/examples");
 const modelsDirectory = resolve(examplesDirectory, "models");
 const generatedDirectory = resolve(examplesDirectory, "generated");
 
-const readModelFile = async (slug: string): Promise<SDCPN> => {
-  const input = JSON.parse(
-    await readFile(resolve(modelsDirectory, `${slug}.json`), "utf8"),
-  ) as unknown;
-  const parsed = parseSDCPNFile(input);
-  if (!parsed.ok) {
-    throw new Error(`${slug}: ${parsed.error}`);
-  }
-  const { title: _title, ...definition } = parsed.sdcpn;
-  return definition;
-};
+const readModelFile = async (slug: string): Promise<SDCPN> =>
+  parseModelFile(
+    slug,
+    JSON.parse(
+      await readFile(resolve(modelsDirectory, `${slug}.json`), "utf8"),
+    ) as unknown,
+  );
 
 const loadDefinition = (entry: ExampleCatalogEntry): Promise<SDCPN> => {
   switch (entry.source.kind) {

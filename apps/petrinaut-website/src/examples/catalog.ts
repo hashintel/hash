@@ -5,7 +5,6 @@
 
 import {
   canonicalizePetrinautIds,
-  parseSDCPNFile,
   type HirArtifacts,
   type ScenarioHir,
   type SDCPN,
@@ -17,6 +16,7 @@ import {
   type ExampleSlug,
   type ModelFileExampleSlug,
 } from "./catalog-metadata";
+import { parseModelFile } from "./parse-model-file";
 
 export {
   exampleCatalog,
@@ -80,13 +80,7 @@ const runtimeLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> =
 
 const loadModelFile = async (slug: ModelFileExampleSlug): Promise<SDCPN> => {
   const module = await modelFileLoaders[slug]();
-  const parsed = parseSDCPNFile(module.default);
-  if (!parsed.ok) {
-    throw new Error(parsed.error);
-  }
-
-  const { title: _title, ...definition } = parsed.sdcpn;
-  return definition;
+  return parseModelFile(slug, module.default);
 };
 
 const loadDefinition = async (entry: ExampleCatalogEntry): Promise<SDCPN> => {
