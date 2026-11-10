@@ -11,6 +11,13 @@ export type AddNotificationInput = {
   message: string;
   tone?: NotificationTone;
   durationMs?: number;
+  /**
+   * Hands the notification, without its `action`, to the next editor on the
+   * page when the editor that raised it unmounts. That editor removes it like
+   * any other when it unmounts in turn. Use it for a notification about a
+   * document the host opens in a new editor, as an import does.
+   */
+  outlivesEditor?: boolean;
 };
 
 export type NotificationsContextValue = {

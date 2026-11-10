@@ -104,9 +104,13 @@ or boolean tags. `source` defaults to `plugin.<id>`, and `tags.pluginId` is
 always set.
 
 `notifications.add` takes an `AddNotificationInput`: a `message`, and
-optionally `detail`, `tone`, `durationMs`, `id` and `action`. A toast still on
-screen under the same `id` is not shown again. `action`, `{ label, onClick }`,
-adds a button that runs `onClick` and closes the toast.
+optionally `detail`, `tone`, `durationMs`, `id`, `action` and
+`outlivesEditor`. A toast still on screen under the same `id` is not shown
+again. `action`, `{ label, onClick }`, adds a button that runs `onClick` and
+closes the toast. An editor removes its toasts when it unmounts.
+`outlivesEditor: true` hands a toast to the next editor on the page, once and
+without its `action`, which suits a toast about a document the host opens in
+a new editor.
 
 `run` is the experiment host's `runExperiment(request, { signal, onProgress })`,
 described in [AI-created experiments](doc:react.experiment-host/ai-created-experiments).

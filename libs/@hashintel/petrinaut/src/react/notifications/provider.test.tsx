@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { use } from "react";
+import { StrictMode, use } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { NotificationsContext } from "./context";
@@ -385,4 +385,106 @@ test("leaves no notification behind for the next editor", async () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
   expect(screen.queryByText("From the first editor")).toBeNull();
+});
+
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+
+const renderNextEditor = (label: string) =>
+  render(
+    <NotificationsProvider>
+      <span>{label}</span>
+    </NotificationsProvider>,
+  );
+
+/** An editor that raises a notification outliving it, and an ordinary one. */
+const renderImportingEditor = async (onAction = vi.fn()) => {
+  const Notify = () => {
+    const { addNotification } = use(NotificationsContext);
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          addNotification({
+            action: { label: "Open the file", onClick: onAction },
+            detail: "The fields the import left out.",
+            durationMs: Infinity,
+            message: "About the imported document",
+            outlivesEditor: true,
+            tone: "neutral",
+          });
+          addNotification({ message: "About the first editor" });
+        }}
+      >
+        Notify
+      </button>
+    );
+  };
+  const editor = render(
+    <NotificationsProvider>
+      <Notify />
+    </NotificationsProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Notify" }));
+  await screen.findByText("About the imported document");
+  await screen.findByText("About the first editor");
+  return editor;
+};
+
+test("hands a notification that outlives its editor to the next editor, once", async () => {
+  const first = await renderImportingEditor();
+  first.unmount();
+
+  const second = renderNextEditor("Second editor");
+  expect(await screen.findByText("About the imported document")).toBeTruthy();
+  expect(screen.queryByText("About the first editor")).toBeNull();
+  second.unmount();
+
+  renderNextEditor("Third editor");
+  await settle();
+  expect(screen.queryByText("About the imported document")).toBeNull();
+});
+
+test("keeps a handed-over notification in an editor under StrictMode", async () => {
+  const first = await renderImportingEditor();
+  first.unmount();
+
+  render(
+    <StrictMode>
+      <NotificationsProvider>
+        <span>Second editor</span>
+      </NotificationsProvider>
+    </StrictMode>,
+  );
+  await settle();
+  expect(screen.getByText("About the imported document")).toBeTruthy();
+});
+
+test("hands a notification over without its action", async () => {
+  const first = await renderImportingEditor();
+  expect(
+    await screen.findByRole("button", { name: "Open the file" }),
+  ).toBeTruthy();
+  first.unmount();
+
+  renderNextEditor("Second editor");
+  await screen.findByText("About the imported document");
+  expect(screen.queryByRole("button", { name: "Open the file" })).toBeNull();
+});
+
+test("keeps a notification that is closing from the next editor", async () => {
+  const first = await renderImportingEditor();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Close notification" }),
+  );
+  // Shorter than the toaster's remove delay: the store still holds the toast.
+  await settle();
+  expect(notificationsToaster.getCount()).toBe(2);
+  first.unmount();
+
+  renderNextEditor("Second editor");
+  await settle();
+  expect(screen.queryByText("About the imported document")).toBeNull();
 });

@@ -29,6 +29,7 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
+import { NotificationsContext } from "../../../react/notifications/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -40,6 +41,7 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { unknownKeysNotice } from "../../file-io/unknown-keys-notice";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
@@ -211,6 +213,7 @@ const EditorViewContent = ({
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
   const assistant = useEditorAssistant();
+  const { addNotification } = use(NotificationsContext);
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
@@ -274,7 +277,7 @@ const EditorViewContent = ({
       return;
     }
 
-    const { sdcpn: loadedSDCPN, hadMissingPositions } = result;
+    const { sdcpn: loadedSDCPN, hadMissingPositions, unknownKeys } = result;
     let sdcpnToLoad = loadedSDCPN;
 
     // If any nodes were missing positions, run ELK layout BEFORE creating the net.
@@ -313,6 +316,9 @@ const EditorViewContent = ({
       petriNetDefinition: sdcpnToLoad,
     });
     clearSelection();
+    if (unknownKeys.length > 0) {
+      addNotification(unknownKeysNotice(unknownKeys));
+    }
   }
 
   const menuItems: MenuItem[] = [
