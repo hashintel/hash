@@ -480,7 +480,7 @@ The first type argument, [`Program.Prelude.Builtin`], describes the prelude decl
 
 <Callout>
 
-Both parameters are covariant. A program can therefore pass a context with additional prelude declarations or inputs, such as `requestId: String`, while keeping `TaskContext` unchanged. The names the helper requires must still have compatible types.
+The prelude parameter is covariant: a program can provide additional prelude declarations while this helper keeps its [`Program.Prelude.Builtin`] view. The declarations the helper requires must still have compatible types.
 
 </Callout>
 
