@@ -192,7 +192,7 @@ export const useRunKeys = (history: HistoryValue | null, active: boolean) => {
  * `?rundropdown=dark` (6 Nov sync): the open run has no tick, only the DS selected fill, so the menu shows one mark
  * per row. URL only, never remembered; unset keeps the tick.
  */
-const runDropdownDark = () =>
+export const runDropdownDark = () =>
   new URLSearchParams(globalThis.location.search).get("rundropdown") ===
   "dark";
 
@@ -205,7 +205,7 @@ const runMenuLabel = (run: RunRecord, now: number) => {
   return `${runLabel(run)} · ${statusText(run, now)}${outcome === "error" ? timedOut : ""}`;
 };
 
-const menuRowStyle = css({
+export const menuRowStyle = css({
   display: "inline-flex",
   alignItems: "center",
   gap: "2",
@@ -217,13 +217,13 @@ const menuRowStyle = css({
   },
 });
 
-const menuTimeStyle = css({
+export const menuTimeStyle = css({
   textStyle: "xs",
   color: "neutral.fg.subtle",
   whiteSpace: "nowrap",
 });
 
-const runArrowStyle = css({
+export const runArrowStyle = css({
   "&[class]": {
     width: "[28px]",
     minWidth: "[28px]",
@@ -232,7 +232,7 @@ const runArrowStyle = css({
   },
 });
 
-const runPickerStyle = css({
+export const runPickerStyle = css({
   "&[class]": {
     fontWeight: "medium",
     color: "neutral.fg.heading",
