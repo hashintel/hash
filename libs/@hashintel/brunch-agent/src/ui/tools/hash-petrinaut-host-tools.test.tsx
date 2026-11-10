@@ -413,7 +413,8 @@ test("petrinaut_read_guide returns the user-guide page readPetrinautDoc returns,
     ).result?.output;
   const simulation = await readPage("simulation");
   expect(simulation).toBe(readUserGuidePage("simulation"));
-  expect(String(simulation)).toContain("#");
+  expect(simulation).toBeTypeOf("string");
+  expect(simulation).toContain("#");
   expect(await readPage("ai-assistant")).toBe(
     readUserGuidePage("ai-assistant"),
   );
