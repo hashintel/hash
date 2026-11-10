@@ -65,7 +65,7 @@ jobs:
       actions: read
       contents: read
       id-token: write
-    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@41315b492dafd1dfa97eaf302f056859ae7a3778 # main
+    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@e959904550f7ce9a586f001cd05f37ce3c4af5e8 # main
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
