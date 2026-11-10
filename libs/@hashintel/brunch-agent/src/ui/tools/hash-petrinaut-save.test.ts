@@ -7,7 +7,9 @@ import { createHashPetrinautSaveTool } from "./hash-petrinaut-save";
 import type { PetrinautAiAutomaticToolExecuteParams } from "../chat/ai-automatic-tool";
 import type { BrunchHostSave } from "./brunch-mutation-approval";
 
-const params = (signal: AbortSignal): PetrinautAiAutomaticToolExecuteParams => ({
+const params = (
+  signal: AbortSignal,
+): PetrinautAiAutomaticToolExecuteParams => ({
   input: { documentId: "web~net" },
   signal,
   toolCallId: "save",
@@ -16,6 +18,12 @@ const params = (signal: AbortSignal): PetrinautAiAutomaticToolExecuteParams => (
   },
   get handle(): never {
     throw new Error("The save adapter must not read the net");
+  },
+  get document(): never {
+    throw new Error("The save adapter must not access the document");
+  },
+  get experiments(): never {
+    throw new Error("The save adapter must not run experiments");
   },
   readDiagnosticsContext: async () => "",
 });
@@ -44,7 +52,7 @@ test.each(outcomes)(
     const tool = createHashPetrinautSaveTool(hostSaveWith(save));
     const signal = new AbortController().signal;
 
-    expect(tool.toolName).toBe(brunchAgent.brunchTools.saveHashNet);
+    expect(tool.toolName).toBe(brunchAgent.brunchTools.appSaveNet);
     const execution = params(signal);
     execution.input = tool.inputParser.parse(execution.input);
     const result = await tool.execute(execution);

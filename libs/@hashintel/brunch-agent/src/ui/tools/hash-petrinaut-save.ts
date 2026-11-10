@@ -12,7 +12,7 @@ export const createHashPetrinautSaveTool = (
   hostSave: BrunchHostSave,
 ): PetrinautAiAutomaticTool =>
   definePetrinautAiAutomaticTool({
-    toolName: brunchTools.saveHashNet,
+    toolName: brunchTools.appSaveNet,
     inputParser: { parse: parseHashSaveInput },
     outputParser: { parse: (value) => value },
     execute: ({ input, signal }) => hostSave.save(input.documentId, signal),

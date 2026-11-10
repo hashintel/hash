@@ -365,7 +365,9 @@ export const useBrunchAssistant = ({
   );
   const hostSaveTool = useMemo(
     () =>
-      hostSave === undefined ? undefined : createHashPetrinautSaveTool(hostSave),
+      hostSave === undefined
+        ? undefined
+        : createHashPetrinautSaveTool(hostSave),
     [hostSave],
   );
   const processAgentSession = useProcessAgentSession({

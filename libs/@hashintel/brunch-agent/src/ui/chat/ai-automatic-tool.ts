@@ -87,6 +87,12 @@ export const definePetrinautAiAutomaticTool = <Input, Output>(
       get handle() {
         return params.handle;
       },
+      get document() {
+        return params.document;
+      },
+      get experiments() {
+        return params.experiments;
+      },
       readDiagnosticsContext: params.readDiagnosticsContext,
       toolCallId: params.toolCallId,
       signal: params.signal,

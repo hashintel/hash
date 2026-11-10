@@ -38,11 +38,8 @@ import {
 } from "@hashintel/petrinaut/react";
 
 import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
-import {
-  type BrunchHostSave,
-  createBrunchHostSaveTool,
-} from "../tools/brunch-mutation-approval";
 import { hashPetrinautHostTools } from "../tools/hash-petrinaut-host-tools";
+import { createHashPetrinautSaveTool } from "../tools/hash-petrinaut-save";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
@@ -57,6 +54,7 @@ import {
 import { createTestEditorApi } from "./testing/create-test-editor-api";
 import { TestAssistantPanel } from "./testing/test-assistant-panel";
 
+import type { BrunchHostSave } from "../tools/brunch-mutation-approval";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiInputMode,
@@ -4346,7 +4344,7 @@ describe("AiAssistantPanel composer submissions", () => {
           ...hashPetrinautHostTools.map((tool) =>
             tool === removePlaceTool ? { ...tool, execute: removePlace } : tool,
           ),
-          createBrunchHostSaveTool(hostSave),
+          createHashPetrinautSaveTool(hostSave),
           {
             toolName: "hostAutomatic",
             inputParser: { parse: (raw: unknown) => raw as { value: number } },
