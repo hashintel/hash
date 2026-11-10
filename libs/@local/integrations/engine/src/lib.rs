@@ -32,10 +32,10 @@ pub use self::{
     capture::{CaptureError, SourceCapture},
     entity_id::derive_entity_id,
     graph::{
-        Archive, ConversionFailure, DuplicateWrite, EntityUpsert, FailureReason, GraphOperation,
-        GraphPlan, LinkEndpoint, LinkUpsert, OperationKind, Payload, PlanIssue, PlannedWrite,
-        Planner, ResolvedProperties, SinkColumns, SinkRow, UnencodableRequest, UnsupportedValue,
-        integration_provenance,
+        Archive, ConversionFailure, DuplicateWrite, EntityUpsert, FailureReason, FinishedPlan,
+        GraphOperation, GraphPlan, LinkEndpoint, LinkUpsert, OperationKind, Payload, PlanIssue,
+        PlannedWrite, Planner, ResolvedProperties, SinkColumns, SinkRow, UnencodableRequest,
+        UnsupportedValue, integration_provenance,
     },
     pipeline::{
         AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,

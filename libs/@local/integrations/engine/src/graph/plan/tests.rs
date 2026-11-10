@@ -19,7 +19,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{DuplicateWrite, GraphPlan, PlannedWrite, Planner};
+use super::{DuplicateWrite, FinishedPlan, GraphPlan, PlannedWrite, Planner};
 use crate::{
     Archive, EntityUpsert, GraphOperation, OperationKind, SinkColumns, SinkRow, derive_entity_id,
     integration_provenance,
@@ -126,7 +126,7 @@ struct Target {
     entity_id: EntityId,
 }
 
-fn targets(plan: &GraphPlan) -> Vec<Target> {
+fn targets(plan: &FinishedPlan) -> Vec<Target> {
     plan.writes()
         .iter()
         .map(|write| Target {
@@ -153,7 +153,9 @@ fn requests_graph_readable() {
             sink(&definition, "entity-type/aircraft"),
             rows.iter().map(|values| SinkRow::new(&columns, values)),
         )
-        .expect("the rows should plan");
+        .expect("the rows should plan")
+        .finish()
+        .expect("each entity should be written once");
     let [write] = plan.writes() else {
         panic!("should plan one write");
     };
@@ -306,7 +308,7 @@ fn finish_duplicate_entity() {
 }
 
 /// Every request planned from a few aviation rows, and every issue, for review as a whole.
-fn render(plan: &GraphPlan) -> String {
+fn render(plan: &FinishedPlan) -> String {
     let mut rendered = String::new();
     for write in plan.writes() {
         let requests =

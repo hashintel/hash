@@ -22,7 +22,8 @@ use type_system::{
 
 pub use self::{
     plan::{
-        DuplicateWrite, GraphPlan, Payload, PlanIssue, PlannedWrite, Planner, UnencodableRequest,
+        DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlanIssue, PlannedWrite, Planner,
+        UnencodableRequest,
     },
     property::{
         ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow,

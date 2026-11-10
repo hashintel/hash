@@ -113,7 +113,8 @@ pub enum PlanIssue {
     },
 }
 
-/// The writes planned for a run, and the rows that are not written as planned.
+/// The writes planned for a run, and the rows that are not written as planned, collected until the
+/// plan is [finished](Self::finish).
 #[derive(Debug, Default)]
 pub struct GraphPlan {
     writes: Vec<PlannedWrite>,
@@ -137,7 +138,7 @@ impl GraphPlan {
     /// # Errors
     ///
     /// Returns [`DuplicateWrite`] if two writes address the same entity.
-    pub fn finish(mut self) -> Result<Self, DuplicateWrite> {
+    pub fn finish(mut self) -> Result<FinishedPlan, DuplicateWrite> {
         let mut written = HashSet::with_capacity(self.writes.len());
         if let Some(write) = self
             .writes
@@ -155,17 +156,10 @@ impl GraphPlan {
                 Uuid::from(write.entity_id.entity_uuid),
             )
         });
-        Ok(self)
-    }
-
-    #[must_use]
-    pub fn writes(&self) -> &[PlannedWrite] {
-        &self.writes
-    }
-
-    #[must_use]
-    pub fn issues(&self) -> &[PlanIssue] {
-        &self.issues
+        Ok(FinishedPlan {
+            writes: self.writes,
+            issues: self.issues,
+        })
     }
 
     /// The text identifying the record `values` describes, or `None` after reporting that the
@@ -192,6 +186,28 @@ impl GraphPlan {
                 .into_iter()
                 .map(|failure| PlanIssue::Property { entity_id, failure }),
         );
+    }
+}
+
+/// The writes planned for a run, each to a different entity and in the order the Graph must apply
+/// them, and the rows that are not written as planned.
+///
+/// Only [`GraphPlan::finish`] creates one, so nothing can be added after the writes are sorted.
+#[derive(Debug)]
+pub struct FinishedPlan {
+    writes: Vec<PlannedWrite>,
+    issues: Vec<PlanIssue>,
+}
+
+impl FinishedPlan {
+    #[must_use]
+    pub fn writes(&self) -> &[PlannedWrite] {
+        &self.writes
+    }
+
+    #[must_use]
+    pub fn issues(&self) -> &[PlanIssue] {
+        &self.issues
     }
 }
 
