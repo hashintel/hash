@@ -98,6 +98,10 @@ parameters, types, subnets, scenarios and metrics. Running simulations,
 results, assistant conversations and preferences stay behind, and later edits
 do not change a link already shared.
 
+A snapshot whose net has a field this build does not read was made by a newer
+build. `/share` refuses it and asks for a refresh, which loads the build that
+reads the field.
+
 `/share` opens the snapshot read-only and saves nothing. **Make a local copy**,
 from the same `website.local-copy` plugin as on example pages, saves it at its own
 `/local/<net id>` URL with the current view and without the fragment. Sentry

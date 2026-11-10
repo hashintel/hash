@@ -84,6 +84,25 @@ test("rejects future link formats", () => {
   );
 });
 
+test("refuses a document with a key this build does not read, as made by a newer build", () => {
+  const document = JSON.parse(
+    serializeSDCPN({
+      petriNetDefinition: snapshot.definition,
+      title: snapshot.title,
+      format: "json",
+    }),
+  ) as Record<string, unknown>;
+  const newer = JSON.stringify({
+    ...document,
+    version: 2,
+    fusions: [{ id: "fusion-1", members: [] }],
+  });
+
+  expect(() => decodeSnapshot(compressedHash(newer), brotli)).toThrow(
+    new SnapshotError("unsupported"),
+  );
+});
+
 test("rejects truncated compressed data and trailing bytes", () => {
   const hash = encodeSnapshot(snapshot, brotli);
   const bytes = Buffer.from(hash.slice("v1.br.".length), "base64url");
