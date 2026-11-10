@@ -272,14 +272,14 @@ export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
                 onClick={
                   runPath
                     ? (event) => {
-                        /* A click with a modifier is left to the ID's link, which opens a new tab; one that ends
-                           selecting text isn't a click on the row. */
-                        if (
-                          event.metaKey ||
-                          event.ctrlKey ||
-                          event.shiftKey ||
-                          window.getSelection()?.toString()
-                        ) {
+                        /* A click that ends selecting text isn't a click on the row. */
+                        if (window.getSelection()?.toString()) {
+                          return;
+                        }
+
+                        /* A click with a modifier opens the run in a new tab, as one on the ID's link does. */
+                        if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                          window.open(runPath, "_blank", "noopener");
                           return;
                         }
 
