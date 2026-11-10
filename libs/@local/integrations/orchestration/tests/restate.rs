@@ -16,7 +16,7 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 use core::{
-    future::{Future, ready},
+    future::{self, Future, ready},
     net::SocketAddr,
     num::NonZero,
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
@@ -117,8 +117,11 @@ impl TestWorker {
 
 impl Drop for TestWorker {
     fn drop(&mut self) {
+        // A runtime cannot be dropped on a thread that runs another one.
         if let Some(runtime) = self.runtime.take() {
-            runtime.shutdown_background();
+            std::thread::spawn(move || drop(runtime))
+                .join()
+                .expect("the worker's runtime should shut down");
         }
     }
 }
@@ -500,4 +503,260 @@ async fn cancel_stops_before_the_next_step() {
         .await
         .expect("cancelling an unknown run should succeed");
     worker.stop().await;
+}
+
+/// Two steps, of which the second waits until the test releases it. Counts how often the first
+/// step's body runs, which a replay must not add to. `V` is the function's version.
+struct Resumable<const V: u32> {
+    release: Notify,
+    first_runs: AtomicU32,
+}
+
+impl<const V: u32> Resumable<V> {
+    fn new() -> Arc<Self> {
+        Arc::new(Self {
+            release: Notify::new(),
+            first_runs: AtomicU32::new(0),
+        })
+    }
+}
+
+impl<const V: u32> RunFunction for Resumable<V> {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(V);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context
+            .run(step("first"), || async {
+                self.first_runs.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            })
+            .await?;
+        context
+            .run(step("wait"), || async {
+                self.release.notified().await;
+                Ok(())
+            })
+            .await
+    }
+}
+
+/// Starts a run of `function` and kills its worker while the run's second step is executing.
+async fn kill_worker_after_first_step(
+    config: &RestateConfig,
+    backend: &RestateBackend,
+    function: Arc<Resumable<1>>,
+) -> RunId {
+    let worker = TestWorker::spawn(config, function).await;
+    let run = run_id();
+    backend
+        .start(
+            run.clone(),
+            start(&admission_key(), FunctionVersion::new(1), &()),
+        )
+        .await
+        .expect("should start the run");
+    wait_until(backend, &run, |status| status.steps_recorded == 1).await;
+    drop(worker);
+    run
+}
+
+/// A worker has no identity: the run of a worker that died continues on whichever worker answers
+/// at the same URL next.
+#[tokio::test]
+async fn killed_worker_resumes_on_another() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let function = Resumable::<1>::new();
+    let run = kill_worker_after_first_step(&config, &backend, Arc::clone(&function)).await;
+
+    function.release.notify_one();
+    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Completed,
+            steps_recorded: 2
+        }
+    );
+    assert_eq!(
+        function.first_runs.load(Ordering::SeqCst),
+        1,
+        "the recorded first step should replay without running again"
+    );
+    worker.stop().await;
+}
+
+/// [`Resumable`] with its first step renamed, as a changed deployment would have it.
+struct Renamed {
+    first_runs: AtomicU32,
+}
+
+impl RunFunction for Renamed {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context
+            .run(step("primary"), || async {
+                self.first_runs.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            })
+            .await?;
+        context.run(step("wait"), || async { Ok(()) }).await
+    }
+}
+
+/// Restate refuses to replay a journal against a step with another name. It retries the run, so
+/// the run neither fails nor executes the renamed step.
+#[tokio::test]
+async fn renamed_step_does_not_complete() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let run = kill_worker_after_first_step(&config, &backend, Resumable::<1>::new()).await;
+
+    let renamed = Arc::new(Renamed {
+        first_runs: AtomicU32::new(0),
+    });
+    let _worker = TestWorker::spawn(&config, Arc::clone(&renamed)).await;
+    tokio::time::sleep(Duration::from_secs(3)).await;
+
+    assert_eq!(
+        backend.status(&run).await.expect("should read the status"),
+        Some(RunStatus {
+            phase: RunPhase::Running,
+            steps_recorded: 1
+        })
+    );
+    assert_eq!(
+        renamed.first_runs.load(Ordering::SeqCst),
+        0,
+        "the renamed step should not execute"
+    );
+}
+
+/// One step that never returns the first time it executes.
+struct HangsOnce {
+    attempts: AtomicU32,
+}
+
+impl RunFunction for HangsOnce {
+    type Input = ();
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(&self, context: &mut impl StepContext, (): ()) -> Result<(), Report<RunError>> {
+        context
+            .run(step("hang"), || async {
+                if self.attempts.fetch_add(1, Ordering::SeqCst) == 0 {
+                    future::pending::<()>().await;
+                }
+                Ok(())
+            })
+            .await
+    }
+}
+
+/// Restate aborts an attempt whose step runs past the step timeout and starts another.
+#[tokio::test]
+async fn hung_step_is_retried() {
+    let _server = lock_server();
+    let config = RestateConfig {
+        step_timeout: Duration::from_secs(2),
+        ..config()
+    };
+    let backend = RestateBackend::new(config.clone());
+    let function = Arc::new(HangsOnce {
+        attempts: AtomicU32::new(0),
+    });
+    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let run = run_id();
+
+    backend
+        .start(
+            run.clone(),
+            start(&admission_key(), HangsOnce::VERSION, &()),
+        )
+        .await
+        .expect("should start the run");
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Completed,
+            steps_recorded: 1
+        }
+    );
+    assert_eq!(function.attempts.load(Ordering::SeqCst), 2);
+    worker.stop().await;
+}
+
+/// Each version of the run function has a worker URL of its own. A run stays on the URL it
+/// started on, and new runs go to the URL registered last.
+#[tokio::test]
+async fn run_stays_on_its_version() {
+    let _server = lock_server();
+    let (config_one, config_two) = (config(), config());
+    let backend = RestateBackend::new(config_one.clone());
+    let (one, two) = (Resumable::<1>::new(), Resumable::<2>::new());
+    let (run_one, run_two) = (run_id(), run_id());
+
+    let worker_one = TestWorker::spawn(&config_one, Arc::clone(&one)).await;
+    backend
+        .start(
+            run_one.clone(),
+            start(&admission_key(), FunctionVersion::new(1), &()),
+        )
+        .await
+        .expect("should start the first run");
+    wait_until(&backend, &run_one, |status| status.steps_recorded == 1).await;
+
+    let worker_two = TestWorker::spawn(&config_two, Arc::clone(&two)).await;
+    backend
+        .start(
+            run_two.clone(),
+            start(&admission_key(), FunctionVersion::new(2), &()),
+        )
+        .await
+        .expect("should start the second run");
+    wait_until(&backend, &run_two, |status| status.steps_recorded == 1).await;
+
+    one.release.notify_one();
+    two.release.notify_one();
+    for run in [&run_one, &run_two] {
+        assert_eq!(
+            wait_until(&backend, run, finished).await.phase,
+            RunPhase::Completed,
+            "each run should finish on the version that started it"
+        );
+    }
+    assert_eq!(one.first_runs.load(Ordering::SeqCst), 1);
+    assert_eq!(two.first_runs.load(Ordering::SeqCst), 1);
+
+    let outdated = run_id();
+    backend
+        .start(
+            outdated.clone(),
+            start(&admission_key(), FunctionVersion::new(1), &()),
+        )
+        .await
+        .expect("should start the outdated run");
+    assert_eq!(
+        wait_until(&backend, &outdated, finished).await.phase,
+        RunPhase::Failed(RunFailure::Function {
+            code: "version-mismatch"
+                .parse()
+                .expect("should be a failure code"),
+        }),
+        "a run started with an old version should not execute on the new one"
+    );
+    worker_one.stop().await;
+    worker_two.stop().await;
 }

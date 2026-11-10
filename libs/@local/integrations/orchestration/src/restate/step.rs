@@ -95,6 +95,9 @@ impl<F: RunFunction + 'static> IntegrationRun<F> {
         ctx: ObjectContext<'_>,
         Json(start): Json<Start>,
     ) -> Result<(), TerminalError> {
+        if start.version != F::VERSION.get() {
+            return Err(function_failed("version-mismatch"));
+        }
         let input = start.input.decode::<F::Input>().map_err(|error| {
             tracing::error!(error = ?error, "the run's input is not the function's input");
             function_failed("invalid-input")
