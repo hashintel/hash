@@ -14,7 +14,12 @@
  *   changes nothing, one firmer turn retries the request.
  * - Turn 2 asks a question the net answers; the browser answers net reads
  *   from what turn 1 built.
- * - Turn 3, when at least three requests remain, asks for a Ledger commit.
+ * - Turn 3, when at least four requests remain, asks for one more change
+ *   and a Ledger commit; no read is prompted, so the change rests on the
+ *   view earlier turns left in context.
+ *
+ * The browser reports Brunch's revision metadata and refuses a claimed
+ * change whose `expectedRevision` the net has moved past by other means.
  *
  * Requests are counted by `count-provider-requests.ts`, preloaded into the
  * server process: one ledger line per HTTP request to the provider API (Anthropic, OpenAI or OpenRouter),
@@ -348,6 +353,7 @@ const fakeBrowser = () => {
       return { output, metadata: { documentRevision: { before } } };
     if (!netChangingTools.has(toolName)) return { output };
     const after = revision();
+    if (after !== before) producedFrom.set(after, before);
     return {
       output,
       metadata:
@@ -359,7 +365,27 @@ const fakeBrowser = () => {
             },
     };
   };
-  return { answer: answerWithMetadata, net: () => read("full") };
+  /**
+   * The panel's `acceptsRevision`: whether the net has moved since `expected`
+   * only through settled changes, walking back the revisions each produced.
+   */
+  const producedFrom = new Map<string, string>();
+  const acceptsRevision = (expected: string) => {
+    const visited = new Set<string>();
+    let current: string | undefined = revision();
+    while (current !== undefined && !visited.has(current)) {
+      if (current === expected) return true;
+      visited.add(current);
+      current = producedFrom.get(current);
+    }
+    return false;
+  };
+  return {
+    answer: answerWithMetadata,
+    acceptsRevision,
+    revision,
+    net: () => read("full"),
+  };
 };
 
 type BrowserOutcome = {
@@ -371,6 +397,10 @@ type BrowserOutcome = {
   result: number;
   output: unknown;
   metadata?: ClientToolResultMetadata["documentRevision"];
+  /** The revision the server issued a change against, from the claim. */
+  expectedRevision?: string;
+  /** The `/fail` status when the browser refused a stale change. */
+  stale?: number;
 };
 
 const reduce = async (chunks: readonly UIMessageChunk[]) => {
@@ -420,16 +450,26 @@ const drive = async () => {
   const callPath = (callId: string, step = "") =>
     `${browserCallsPrefix}/${encodeURIComponent(chatId)}/browser-calls/${encodeURIComponent(callId)}${step}`;
 
-  /** Claim (retrying a 404 while the issue commits), start and answer one call. */
+  /**
+   * Claim, start and answer one call. A claim for a call not yet issued waits
+   * on the server; retry a 404 only until the stream reports the call refused
+   * (a refused change is never issued) or 15 s pass.
+   */
+  const refusedCalls = new Set<string>();
   const playCall = async (toolCallId: string): Promise<BrowserOutcome> => {
+    const giveUpAt = Date.now() + 15_000;
     let claimed = await post(callPath(toolCallId), {
       claimant,
       binding: claimBinding,
     });
-    for (let tries = 0; claimed.status === 404 && tries < 400; tries++) {
+    while (
+      claimed.status === 404 &&
+      !refusedCalls.has(toolCallId) &&
+      Date.now() < giveUpAt
+    ) {
       // Each try waits for the one before.
       // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       // eslint-disable-next-line no-await-in-loop
       claimed = await post(callPath(toolCallId), {
         claimant,
@@ -449,6 +489,29 @@ const drive = async () => {
     const claim = claimed.body as BrowserCallClaim;
     const proof = { capability: claim.capability, binding: claim.binding };
     const started = await post(callPath(toolCallId, "/start"), proof);
+    const { expectedRevision } = claim;
+    if (
+      expectedRevision !== undefined &&
+      !browser.acceptsRevision(expectedRevision)
+    ) {
+      const failed = await post(callPath(toolCallId, "/fail"), {
+        ...proof,
+        toolName: claim.toolName,
+        canonicalInput: claim.input,
+        disposition: "stale",
+      });
+      return {
+        toolCallId,
+        toolName: claim.toolName,
+        input: claim.input,
+        claim: claimed.status,
+        start: started.status,
+        result: 0,
+        output: null,
+        expectedRevision,
+        stale: failed.status,
+      };
+    }
     const { output, metadata } = browser.answer(claim.toolName, claim.input);
     const body: BrowserCallResultBody = {
       ...proof,
@@ -467,6 +530,7 @@ const drive = async () => {
       result: resulted.status,
       output,
       metadata: metadata?.documentRevision,
+      ...(expectedRevision === undefined ? {} : { expectedRevision }),
     };
   };
 
@@ -489,6 +553,16 @@ const drive = async () => {
     });
     const chunks: UIMessageChunk[] = [];
     const calls: Promise<BrowserOutcome>[] = [];
+    const toolNames = new Map<string, string>();
+    const toolErrors: {
+      toolCallId: string;
+      toolName?: string;
+      error: string;
+    }[] = [];
+    const serverCalls = new Map<
+      string,
+      { toolName: string; input: unknown; output?: unknown }
+    >();
     let aborted: string | undefined;
     const abort = (why: string) => {
       if (aborted !== undefined) return;
@@ -513,12 +587,31 @@ const drive = async () => {
           chunk.providerExecuted !== true
         )
           calls.push(playCall(chunk.toolCallId));
+        if (chunk.type === "tool-input-available") {
+          toolNames.set(chunk.toolCallId, chunk.toolName);
+          if (chunk.providerExecuted === true)
+            serverCalls.set(chunk.toolCallId, {
+              toolName: chunk.toolName,
+              input: chunk.input,
+            });
+        }
+        if (chunk.type === "tool-output-available") {
+          const serverCall = serverCalls.get(chunk.toolCallId);
+          if (serverCall !== undefined) serverCall.output = chunk.output;
+        }
         if (chunk.type === "error") print(`  error chunk: ${chunk.errorText}`);
         if (
           chunk.type === "tool-output-error" ||
           chunk.type === "tool-input-error"
-        )
+        ) {
+          refusedCalls.add(chunk.toolCallId);
+          toolErrors.push({
+            toolCallId: chunk.toolCallId,
+            toolName: toolNames.get(chunk.toolCallId),
+            error: chunk.errorText,
+          });
           print(`  ${chunk.type} ${chunk.toolCallId}: ${chunk.errorText}`);
+        }
       }
     } catch (error) {
       ending = `stream error: ${String(error)}`;
@@ -548,11 +641,16 @@ const drive = async () => {
       browserCalls: browserCalls.map(({ output, ...call }) =>
         netChangingTools.has(call.toolName) ? { ...call, output } : call,
       ),
+      toolErrors,
+      serverCalls: [...serverCalls.entries()].map(([toolCallId, call]) => ({
+        toolCallId,
+        ...call,
+      })),
       netChanged: browserCalls.some(
         ({ toolName, result, output }) =>
           netChangingTools.has(toolName) &&
           result === 200 &&
-          (output as { applied?: unknown }).applied === true,
+          (output as { applied?: unknown } | null)?.applied === true,
       ),
       renderedParts: parts.map((part) =>
         part.type === "text"
@@ -595,14 +693,14 @@ const drive = async () => {
             "Read the current net and tell me which places and transitions it has.",
           )
         : undefined;
-    if (second?.finished === true && budget - requestsUsed() >= 3)
+    if (second?.finished === true && budget - requestsUsed() >= 4)
       await runTurn(
         "Turn 3",
-        "Record in your Ledger that the system I'm describing is a single-server queue: customers wait in Queue and are handled by Serve.",
+        "Also add a place called Done and an arc from Serve to Done, then record in your Ledger that the system I'm describing is a single-server queue: customers wait in Queue, are handled by Serve, and end up in Done.",
       );
     else
       print(
-        "\nTurn 3 skipped: an earlier turn failed or fewer than three requests remain.",
+        "\nTurn 3 skipped: an earlier turn failed or fewer than four requests remain.",
       );
   } finally {
     server.signal("SIGTERM");
@@ -732,8 +830,14 @@ const checkBrowser = () => {
     ["addPlace", { id: "queue", name: "Queue" }],
     ["readNetStructure", {}],
   ];
+  const start = browser.revision();
   for (const [toolName, input] of steps)
     show(toolName, browser.answer(toolName, input));
+  show("acceptsRevision", {
+    start: browser.acceptsRevision(start),
+    current: browser.acceptsRevision(browser.revision()),
+    unknown: browser.acceptsRevision("elsewhere"),
+  });
 };
 
 if (process.env.SMOKE_BROWSER_CHECK === "1") checkBrowser();
