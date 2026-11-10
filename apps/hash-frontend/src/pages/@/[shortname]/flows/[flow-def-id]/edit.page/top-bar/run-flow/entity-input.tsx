@@ -25,9 +25,11 @@ const maxEntities = 500;
 
 const typeTitleText = css({
   color: "fg.subtle",
-  ml: "2",
+  ml: "1",
   whiteSpace: "nowrap",
 });
+
+type EntityOption = { label: string; typeTitle: string };
 
 /**
  * The entities in the web to pick from, by label: not archived, and not drafts or links. The typed text is matched
@@ -35,7 +37,7 @@ const typeTitleText = css({
  * comes from whichever property its type labels it with, or else a fallback.
  */
 const useWebEntities = (webId: WebId) => {
-  const { data, loading } = useQuery<
+  const { data, loading, error } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
@@ -68,7 +70,7 @@ const useWebEntities = (webId: WebId) => {
   });
 
   const { options, more } = useMemo((): {
-    options: Map<EntityId, { label: string; typeTitle: string }>;
+    options: Map<EntityId, EntityOption>;
     more: boolean;
   } => {
     if (!data) {
@@ -103,16 +105,25 @@ const useWebEntities = (webId: WebId) => {
     };
   }, [data]);
 
-  const items = useMemo(
-    () =>
-      [...options].map(([entityId, { label }]) => ({
-        value: entityId,
-        text: label,
-      })),
-    [options],
-  );
+  const items = useMemo(() => {
+    const entityItems = [...options].map(([entityId, { label }]) => ({
+      value: entityId,
+      text: label,
+    }));
 
-  return { options, items, loading, more };
+    /* Under a heading when the web has more, so that the list doesn't pass for all of the web's entities. */
+    return more
+      ? [
+          {
+            id: "last-edited",
+            label: `Last ${maxEntities} edited`,
+            items: entityItems,
+          },
+        ]
+      : entityItems;
+  }, [options, more]);
+
+  return { options, items, loading, failed: !!error, more };
 };
 
 /** Picks an entity in the web for a flow input, or several for a list. A pick shows its label, and can be removed. */
@@ -129,19 +140,32 @@ export const EntityInput = ({
   invalid: boolean;
   onChange: (value: RunFormValue) => void;
 }) => {
-  const { options, items, loading, more } = useWebEntities(webId);
+  const { options, items, loading, failed, more } = useWebEntities(webId);
 
   const shared = {
     items,
     /* The type tells apart entities with the same label, as the search spans every type. */
-    renderItem: (entityId: EntityId) => (
-      <span>
-        {options.get(entityId)?.label ?? entityId}
-        <span className={typeTitleText}>
-          {options.get(entityId)?.typeTitle}
+    renderItem: (entityId: EntityId) => {
+      const option = options.get(entityId);
+
+      return option?.typeTitle ? (
+        <span>
+          {/* A space, not only a margin, so that the two read as separate words to a screen reader. */}
+          {option.label}{" "}
+          <span className={typeTitleText}>{option.typeTitle}</span>
         </span>
-      </span>
-    ),
+      ) : (
+        (option?.label ?? entityId)
+      );
+    },
+    /* Matches the type as well as the label, as an option shows both. */
+    filterAlgorithm: (input: string, label: string, entityId: string) => {
+      const query = input.toLowerCase();
+
+      return [label, options.get(entityId as EntityId)?.typeTitle ?? ""].some(
+        (text) => text.toLowerCase().includes(query),
+      );
+    },
     renderSelectedItem: (entityId: EntityId) =>
       options.get(entityId)?.label ?? entityId,
     loading,
@@ -152,33 +176,42 @@ export const EntityInput = ({
     } as const,
     emptyState: loading
       ? "Loading the web's entities…"
-      : "There are no entities in this web",
+      : failed
+        ? "The web's entities couldn't be loaded"
+        : "There are no entities in this web",
     noMatchMessage: (input: string) =>
       more
         ? `None of the ${maxEntities} entities last edited in this web match “${input}”`
         : `No entities match “${input}”`,
   };
 
-  return value.array ? (
-    <Combobox
-      {...shared}
-      multiple
-      required={required}
-      placeholder="Choose entities"
-      value={value.value}
-      onChange={(entityIds) =>
-        onChange({ kind: "EntityId", array: true, value: entityIds })
-      }
-    />
+  if (value.array) {
+    return (
+      <Combobox
+        {...shared}
+        multiple
+        required={required}
+        placeholder="Choose entities"
+        value={value.value}
+        onChange={(entityIds) =>
+          onChange({ kind: "EntityId", array: true, value: entityIds })
+        }
+      />
+    );
+  }
+
+  const single = {
+    ...shared,
+    placeholder: "Choose an entity",
+    value: value.value,
+    onChange: (entityId: EntityId | null) =>
+      onChange({ kind: "EntityId", array: false, value: entityId }),
+  };
+
+  /* Clearable when required too, which a single picker otherwise isn't, so that a pick can always be removed. */
+  return required ? (
+    <Combobox {...single} required clearable />
   ) : (
-    /* Not `required`, so that a pick can always be cleared. */
-    <Combobox
-      {...shared}
-      placeholder="Choose an entity"
-      value={value.value}
-      onChange={(entityId) =>
-        onChange({ kind: "EntityId", array: false, value: entityId })
-      }
-    />
+    <Combobox {...single} />
   );
 };
