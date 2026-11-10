@@ -4,6 +4,7 @@
  * fused place, and the members' attributes are reconciled.
  */
 
+import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 import { colorsStructurallyEqual } from "./check-fusions";
 
 import type {
@@ -139,18 +140,25 @@ const reconcile = (
     }
     fused.capacity = member.capacity;
   }
-  if (member.dynamicsEnabled && member.differentialEquationId) {
+  const memberEquations = getPlaceDynamicsEquationIds(member);
+  if (member.dynamicsEnabled && memberEquations.length > 0) {
+    const representativeEquations = getPlaceDynamicsEquationIds(representative);
     if (
       representative.dynamicsEnabled &&
-      representative.differentialEquationId &&
-      representative.differentialEquationId !== member.differentialEquationId
+      representativeEquations.length > 0 &&
+      (representativeEquations.length !== memberEquations.length ||
+        representativeEquations.some(
+          (equationId, index) => equationId !== memberEquations[index],
+        ))
     ) {
       throw new Error(
         `Fusion ${group.name ?? group.fusionId} joins places \`${representative.name}\` and \`${member.name}\` that run different differential equations.`,
       );
     }
     fused.dynamicsEnabled = true;
-    fused.differentialEquationId = member.differentialEquationId;
+    fused.dynamics = memberEquations.map((differentialEquationId) => ({
+      differentialEquationId,
+    }));
   }
   if (member.showAsInitialState) {
     fused.showAsInitialState = true;

@@ -83,9 +83,9 @@ the three disagreements:
   packed token layout is what has to match.
 - **Capacity**: two declared capacities that differ. A declared capacity
   beside unbounded members bounds the fused place.
-- **Dynamics**: two members that run different equations. One member's
-  equation drives the fused place; two instances of one subnet share an
-  equation and agree.
+- **Dynamics**: two members whose dynamics compose different equations. One
+  member's dynamics drive the fused place; two instances of one subnet share
+  their equations and agree.
 
 Two more conditions are reported below error severity: a fusion in which
 every member only consumes gets a warning, nothing puts tokens into it; one

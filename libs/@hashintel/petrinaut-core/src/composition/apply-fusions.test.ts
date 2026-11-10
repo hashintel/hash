@@ -9,7 +9,6 @@ const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...overrides,
@@ -140,7 +139,7 @@ describe("applyFusions", () => {
           colorId: "m1::part",
           capacity: 4,
           dynamicsEnabled: true,
-          differentialEquationId: "m1::cool",
+          dynamics: [{ differentialEquationId: "m1::cool" }],
         }),
       ],
       transitions: [],
@@ -160,7 +159,7 @@ describe("applyFusions", () => {
         colorId: "root_part",
         capacity: 4,
         dynamicsEnabled: true,
-        differentialEquationId: "m1::cool",
+        dynamics: [{ differentialEquationId: "m1::cool" }],
       },
     ]);
   });
