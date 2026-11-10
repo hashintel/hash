@@ -139,6 +139,42 @@ describe("Dimensions table", () => {
     expect(latest?.elements.at(-1)?.name).toBe("mass");
   });
 
+  it("keeps the name closed when an undo and redo mount the added row again", () => {
+    let added: Color["elements"][number] | undefined;
+    // The type comes from outside, the way the net replays its history.
+    const view = (type: Color) => {
+      const value: TypePropertiesContextValue = {
+        type,
+        updateType: vi.fn(),
+        addTypeElement: ({ element }) => {
+          added = element;
+        },
+        updateTypeElement: vi.fn(),
+        removeTypeElement: vi.fn(),
+        moveTypeElement: vi.fn(),
+      };
+      return (
+        <TypePropertiesContext value={value}>
+          <DimensionsTable readOnly={false} />
+        </TypePropertiesContext>
+      );
+    };
+    const { rerender } = render(view(satellite));
+    fireEvent.click(screen.getByRole("button", { name: "Add a dimension" }));
+    const grown = { ...satellite, elements: [...satellite.elements, added!] };
+    rerender(view(grown));
+    fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "Name of dimension 3" }),
+      { key: "Enter" },
+    );
+    expect(screen.queryByRole("textbox")).toBeNull();
+
+    rerender(view(satellite));
+    rerender(view(grown));
+    expect(listedNames()).toEqual(["x", "velocity", "dimension_1"]);
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
   it("commits a typed name as an identifier and refuses a taken one", () => {
     let latest: Color | undefined;
     render(

@@ -93,11 +93,20 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
     elementId: string;
     text: string;
   } | null>(null);
-  // The dimension just added, whose name cell opens for editing.
+  // The dimension just added, whose name cell opens for editing. `pending`
+  // marks the one change of `elements` the add is about to cause; any later
+  // change clears it, so a row an undo and redo mount again stays closed.
   const [added, setAdded] = useState<{
     elementId: string;
-    nonce: number;
+    pending: boolean;
   } | null>(null);
+  const [seenElements, setSeenElements] = useState(elements);
+  if (elements !== seenElements) {
+    setSeenElements(elements);
+    if (added !== null) {
+      setAdded(added.pending ? { ...added, pending: false } : null);
+    }
+  }
 
   const move = (from: number, to: number) => {
     const element = elements[from];
@@ -138,10 +147,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
       type: "real",
     };
     addTypeElement({ typeId: type.id, element });
-    setAdded((previous) => ({
-      elementId: element.elementId,
-      nonce: (previous?.nonce ?? 0) + 1,
-    }));
+    setAdded({ elementId: element.elementId, pending: true });
   };
 
   const deleteDimension = (index: number) => {
@@ -270,9 +276,7 @@ export const DimensionsTable: React.FC<DimensionsTableProps> = ({
                   ariaLabel={`Name of dimension ${index + 1}`}
                   error={error}
                   placeholder="dimension_name"
-                  autoEdit={
-                    added?.elementId === element.elementId ? added.nonce : 0
-                  }
+                  autoEdit={added?.elementId === element.elementId ? 1 : 0}
                   onChange={(text) =>
                     setDraft({ elementId: element.elementId, text })
                   }
