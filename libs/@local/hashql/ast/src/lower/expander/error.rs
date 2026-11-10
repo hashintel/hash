@@ -358,9 +358,19 @@ impl Display for FormatUserPath<'_, '_> {
 fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'heap>) -> String {
     use core::iter;
 
-    let path = item.absolute_path(registry).into_iter().map(Symbol::unwrap);
+    #[expect(
+        clippy::needless_collect,
+        reason = "debugging code + required for reverse"
+    )]
+    let path: Vec<_> = item
+        .absolute_path_rev(registry)
+        .map(Symbol::unwrap)
+        .collect();
 
-    iter::once("").chain(path).intersperse("::").collect()
+    iter::once("")
+        .chain(path.into_iter().rev())
+        .intersperse("::")
+        .collect()
 }
 
 struct SpellingSuggestions<'heap, I> {
