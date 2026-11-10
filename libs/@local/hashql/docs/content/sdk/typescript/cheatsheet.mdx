@@ -3,11 +3,11 @@ title: HashQL cheatsheet
 description: HashQL values, types and special forms in TypeScript (Draft), functional notation, reference notation and J-Expr, compared with TypeScript, Rust and Python.
 ---
 
-This guide is a quick reference for HashQL constructs across implementations. For each construct, you can view the equivalent in Rust, Python or TypeScript.
+This guide is a quick reference for HashQL constructs across implementations. For each construct, you can view the equivalent in Rust, Python, or TypeScript.
 
 The [literal value cheatsheet](#literal) covers the construction of values in HashQL, while the [common program patterns cheatsheet](#control-flow) covers control flow constructs and special forms.
 
-The TypeScript, Rust and Python tabs show either a program that you can run yourself to verify the output, or type declarations. Each runnable Draft example prints the J-Expr in the tab beside it. The functional and reference notations are illustrative, so the result shown for HashQL is the one the language specifies, written in reference notation. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
+The TypeScript, Rust, and Python tabs show either a program that you can run yourself to verify the output, or type declarations. The right side shows the equivalent in any of the SDKs or syntaxes that are supported, or used through the documentation. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
 
 ## At a glance [#at-a-glance]
 
@@ -22,8 +22,8 @@ The TypeScript, Rust and Python tabs show either a program that you can run your
 | [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
 | [`fn`](#fn)           | `(x: T): R -> e`       | `(fn () (x: T) R e)`  | Not available                               |
 | [`use`](#use)         | `use(path, (a: b), e)` | `(use path (a: b) e)` | `$.import(module, { a: "b" })`              |
-| [`access`](#access)   | `e.field`, `e.0`       | ``(`.` e field)``     | `e.field`, `e[0]`                           |
-| [`index`](#index)     | `e[i]`                 | `(index e i)`         | `e.$index(i)`                               |
+| [`access`](#access)   | `e.field`, `e.0`       | `(. e field)`         | `e.field`, `e[0]`                           |
+| [`index`](#index)     | `e[i]`                 | `([] e i)`            | `e.$index(i)`                               |
 | [`as`](#as)           | `e as T`               | `(as e T)`            | Not available                               |
 | [`type`](#type)       | `type T = U in e`      | `(type T U e)`        | `$.type("T", U)`                            |
 | [`newtype`](#newtype) | `newtype T = U in e`   | `(newtype T U e)`     | `$.newtype("T", U)`                         |
@@ -174,11 +174,15 @@ null
 </div>
 </SideBySide>
 
-`null` is the only value of `Null`. It is not the empty tuple `()`, and HashQL has no counterpart to TypeScript's `undefined`. Rust has no null at all. Its `None` is an absent `Option`, like HashQL's `None()`.
+<Callout>
+
+The `Null` type is a singleton, with only one value: `null`. It is expected to be removed in a future iteration of the language.
+
+</Callout>
 
 ### Structs name their fields [#struct]
 
-A struct has a fixed set of fields, each with a name and its own type. A field can hold another struct. Read a field with [access](#access-struct).
+A struct has a fixed set of fields, each with a name and type. A field can hold another struct. Read a field with [access](#access-struct).
 
 <SideBySide>
 <div>
@@ -298,7 +302,7 @@ A HashQL struct's type is its field names and their types, so any struct with th
 
 ### Tuples fix their positions [#tuple]
 
-A tuple holds a fixed number of values in order, each with its own type. Read a position with [access](#access-tuple).
+A tuple holds a fixed number of values in order, each with its type. Read a position with [access](#access-tuple).
 
 <SideBySide>
 <div>
@@ -1714,7 +1718,7 @@ console.log(text);
 ```text tab="Functional notation" tab-group="hashql-language"
 (let foo [2, 3]
   (let position 0
-    (index foo position)))
+    ([] foo position)))
 ```
 
 ```text tab="Reference notation" tab-group="hashql-language"
