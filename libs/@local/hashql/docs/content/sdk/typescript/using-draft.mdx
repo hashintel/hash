@@ -395,26 +395,22 @@ The HashQL type system modelled in TypeScript is deliberately conservative and d
 
 Let's look at an example:
 
-```ts title="Compare a nullable lookup" data-example="nullable-equality"
-import type { Type } from "@local/hashql";
-
+```ts title="Compare a nullable lookup" data-example="nullable-equality-rejected"
 const missingLabel = Draft.program({}, ($) =>
-  $.eq(
-    Program.Structural.list(String, ["review"]).$index(1n), //
-    null,
-  ),
+  $.eq(Program.Structural.list(String, ["review"]).$index(1n), null),
 );
 ```
 
-HashQL has a sophisticated type system with subtyping and inference rules, so the generated program would type-check correctly in HashQL. However, the deliberately conservative TypeScript SDK rejects this code with the following error:
+HashQL has a sophisticated type system with subtyping and inference rules, so the generated program would type-check correctly in HashQL. However, the deliberately conservative TypeScript SDK rejects the `null` argument:
 
 ```text
-[insert here]
+error TS2345: Argument of type 'null' is not assignable to parameter of type 'Any & Pick<Handle<Union<readonly [PrimitiveString, PrimitiveNull]>, never>, "~hashql/Expression" | unique symbol>'.
+  Type 'null' is not assignable to type 'Any'.
 ```
 
-This is because `$index` returns `T | Null`—in this case, `String | Null`. We compare that result against `Null`, but the TypeScript SDK requires the operands to have the same type. `String | Null` is not the same type as `Null`, even though `Null` is a subtype of `String | Null`. HashQL's type system accepts this comparison, but the SDK does not.
+This is because `$index` returns `T | Null` --- in this case, `String | Null`. We compare that result against `Null`, but the TypeScript SDK requires the operands to have the same type. `String | Null` is not the same type as `Null`, even though `Null` is a subtype of `String | Null`. HashQL's type system accepts this comparison, but the SDK does not.
 
-In cases like this, you can use [`Expression.assume`] as an escape hatch. It allows you to "lie" to the TypeScript SDK --- not the HashQL compiler --- by asserting that an expression has a particular type. This annotation only satisfies the TypeScript compiler; it does not bypass HashQL's type checking, so invalid HashQL programs will still fail to compile.
+In cases like this, you can use [`Expression.assume`] as an escape hatch. It allows you to "lie" to the TypeScript SDK (not the HashQL compiler) by asserting that an expression has a particular type. This annotation only satisfies the TypeScript compiler. It does not bypass HashQL's type checking, so invalid HashQL programs will still fail to compile.
 
 For our example, the solution is to widen the type of `null` to `String | Null` using `assume`:
 
@@ -423,17 +419,40 @@ import type { Type } from "@local/hashql";
 
 const missingLabel = Draft.program({}, ($) =>
   $.eq(
-    Program.Structural.list(String, ["review"]).$index(1n), //
+    Program.Structural.list(String, ["review"]).$index(1n),
+    // [!code focus:3]
     Program.Expression.assume<
       Type.Union<readonly [Type.PrimitiveString, Type.PrimitiveNull]>
     >()(null),
   ),
 );
+
+console.log(compile(missingLabel));
 ```
+
+<details>
+<summary>Generated J-Expr</summary>
+
+```json
+[
+  "::core::cmp::eq",
+  [
+    "::kernel::special_form::index",
+    {
+      "#list": [{ "#literal": "review" }],
+      "#type": "::kernel::type::List<::kernel::type::String>"
+    },
+    { "#literal": 1 }
+  ],
+  { "#literal": null }
+]
+```
+
+</details>
 
 <Callout>
 
-The order of types can cause a similar issue. We use tuples to represent intersections and unions, but there is no built-in way to deduplicate or sort tuple entries at the type level. You may therefore need to use [`Expression.assume`] to express the types in the required order.
+The SDK preserves the order of union and intersection members in tuple descriptors. `String | Null` and `Null | String` describe the same HashQL type, but their SDK descriptors differ. Use [`Expression.assume`] to align the descriptor when combining expressions built in different orders.
 
 </Callout>
 
