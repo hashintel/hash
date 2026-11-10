@@ -96,7 +96,6 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:typescript-syntax": 99082,
   "hir:visualizer-return": 99083,
   "hir:unknown-element": 99084,
-  "hir:dynamics-arity": 99085,
   "hir:unknown-element-attribute": 99085,
   "hir:unsafe-value": 99086,
   "hir:unknown-style-property": 99087,
@@ -107,6 +106,7 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:element-child": 99092,
   "hir:count-only-input": 99093,
   "hir:deprecated-length": 99094,
+  "hir:dynamics-arity": 99095,
 };
 
 /** Codes for syntax that still works but has a standard replacement: shown
