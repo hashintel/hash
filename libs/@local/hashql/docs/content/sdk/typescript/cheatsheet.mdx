@@ -3,17 +3,17 @@ title: HashQL cheatsheet
 description: HashQL values and special forms, with Draft constructors and comparisons to Rust, Python and TypeScript.
 ---
 
-The comparisons put a language you know on the left and HashQL on the right. Choose a tab on either side, and the choice follows you down the page. The [construction lookup](#construction) covers Draft's struct, tuple, list and dictionary constructors. Every example is a complete program. The button under it shows the program's result in place:
+This guide is a quick reference for HashQL constructs across implementations. For each construct, you can view the equivalent in Rust, Python or TypeScript.
 
-- **Recorded** results come from running that exact program. A Draft program prints the HashQL program it constructs, as J-Expr. It doesn't evaluate it.
-- **Expected** results are what the language specifies. Nothing on this page runs HashQL or queries a graph.
+The [literal value cheatsheet](#literal) covers the construction of values in HashQL, while the [common program patterns cheatsheet](#control-flow) covers control flow constructs and special forms.
 
-The [introduction](/docs/hashql/intro) explains each form in depth.
+Each example is a complete program that you can run yourself to verify the output. For convenience, the cheatsheet also shows each program’s result. Refer to the [introduction](/docs/hashql/intro) to learn more about each form.
 
 ## At a glance [#at-a-glance]
 
-| Form                  | Reference notation     | Functional notation   | Draft                                       |
+| Form                  | Reference notation     | Functional notation   | Typescript SDK                              |
 | --------------------- | ---------------------- | --------------------- | ------------------------------------------- |
+| [`struct`](#struct)   | `(x: T)`               | `(x: T)`              | `Program.Structural.struct({ x: T })`       |
 | [`let`](#let)         | `let x = e in body`    | `(let x e body)`      | `$.let("x", e)`                             |
 | [`if`](#if)           | `if c then a else b`   | `(if c a b)`          | `$.if(c, { then, else })`                   |
 | [`input`](#input)     | `input(x, T)`          | `(input x T)`         | `Draft.program({ x: T }, ($, inputs) => e)` |
