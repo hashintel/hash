@@ -43,14 +43,20 @@ export type TraceEvent = {
   /** String pool entries interned since the previous event, if any. */
   newStrings?: SimulationFrameNewStrings;
   /**
-   * Per frame place index, the solver's accumulated local error estimate
-   * for the place's continuous state since the run started, in attribute
-   * units: the sum over its integration steps of the largest error any
-   * token's attribute took in the step. Zero for a place without dynamics
-   * or one advanced exactly. Only the adaptive solver records it.
+   * What the simulator publishes about itself with this state, by name: one
+   * value per frame place index. See {@link SOLVER_ERROR_DIAGNOSTIC}.
    */
-  solverError?: Float64Array;
+  diagnostics?: Readonly<Record<string, Float64Array>>;
 };
+
+/**
+ * The diagnostic an error-controlled simulator publishes: per frame place
+ * index, its accumulated local error estimate for the place's continuous
+ * state since the run started, in attribute units. It is the sum over the
+ * place's integration steps of the largest error any token's attribute took
+ * in the step, and zero for a place without dynamics or one advanced exactly.
+ */
+export const SOLVER_ERROR_DIAGNOSTIC = "solverError";
 
 /**
  * Whether an event changes the discrete state: the initial marking or a

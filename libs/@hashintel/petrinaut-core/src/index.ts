@@ -347,10 +347,11 @@ export type {
 
 // --- Event-driven simulation (experimental) ---
 export {
+  ADAPTIVE_SIMULATOR_ID,
   createEventSimulation,
-  DEFAULT_EVENT_STEP_DT,
-  DEFAULT_REFERENCE_INTERVAL,
   DEFAULT_SOLVER_TOLERANCE,
+  FIXED_STEP_SIMULATOR_ID,
+  SOLVER_ERROR_DIAGNOSTIC,
 } from "./simulation/event-trace";
 export type {
   CreateEventSimulationConfig,
@@ -359,6 +360,8 @@ export type {
   EventSimulationEvent,
   EventSolverConfig,
   EventTraceSummary,
+  StepperParameters,
+  StepperSelection,
   TraceEvent,
   TraceEventKind,
 } from "./simulation/event-trace";

@@ -46,7 +46,11 @@ const createSource = (initial: Fake[]) => {
             kind: event.kind,
             firedTransitionIds: event.fired,
             ...(event.solverError
-              ? { solverError: Float64Array.from(event.solverError) }
+              ? {
+                  diagnostics: {
+                    solverError: Float64Array.from(event.solverError),
+                  },
+                }
               : {}),
           } as unknown as TraceEvent)
         : null;
@@ -133,7 +137,7 @@ describe("createTimelineSeriesStore", () => {
       series,
       extract,
       extractEvent: (event, seriesIndex) =>
-        event.solverError?.[seriesIndex] ?? 0,
+        event.diagnostics?.solverError?.[seriesIndex] ?? 0,
       axisMinimum: 1e-12,
     });
     const detach = store.attach();

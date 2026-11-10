@@ -7,10 +7,11 @@ import {
 } from "../../frames/internal-frame";
 import { createInMemoryEventTraceStore } from "../trace-store";
 import { createAdaptiveStepper } from "./adaptive-stepper";
+import { createTraceRecorder } from "./trace-recorder";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type { TraceEvent } from "../trace";
-import type { TraceStepResult } from "./trace-stepper";
+import type { TraceRecorder, TraceRecording } from "./trace-recorder";
 
 const realType: SDCPN["types"][number] = {
   id: "real",
@@ -187,19 +188,19 @@ const compile = (sdcpn: SDCPN) => {
   return artifacts;
 };
 
-const stepUntilOver = (
-  stepper: ReturnType<typeof createAdaptiveStepper>,
+const recordUntilOver = (
+  recorder: TraceRecorder,
   limit = 100_000,
-): { events: TraceEvent[]; last: TraceStepResult } => {
+): { events: TraceEvent[]; last: TraceRecording } => {
   const events: TraceEvent[] = [];
-  let last: TraceStepResult = {
+  let last: TraceRecording = {
     event: null,
     time: 0,
     completion: null,
     error: null,
   };
   for (let step = 0; step < limit; step++) {
-    last = stepper.step();
+    last = recorder.next();
     if (last.event) {
       events.push(last.event);
     }
@@ -242,20 +243,22 @@ describe("createAdaptiveStepper", () => {
     const sdcpn = dynamicsNet(
       "(token, parameters) => ({ x: parameters.rate })",
     );
-    const stepper = createAdaptiveStepper({
-      sdcpn,
-      hirArtifacts: compile(sdcpn),
-      initialMarking: { cell: [{ x: 0 }, { x: 1 }] },
-      parameterValues: {},
-      seed: 1,
-      maxTime: 0.35,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn,
+        hirArtifacts: compile(sdcpn),
+        initialMarking: { cell: [{ x: 0 }, { x: 1 }] },
+        parameterValues: {},
+        seed: 1,
+        maxTime: 0.35,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
     expect(stepper.dynamicsKinds.get("cell")).toBe("affine");
-    expect(Array.from(stepper.initialEvent.derivatives[0]!)).toEqual([2, 2]);
+    expect(Array.from(recorder.initialEvent.derivatives[0]!)).toEqual([2, 2]);
 
-    const { events, last } = stepUntilOver(stepper);
+    const { events, last } = recordUntilOver(recorder);
     expect(events.map((event) => event.kind)).toEqual([
       "reference",
       "reference",
@@ -267,24 +270,26 @@ describe("createAdaptiveStepper", () => {
     const [a, b] = tokenX(sdcpn, events[3]!);
     expect(a).toBeCloseTo(0.7, 12);
     expect(b).toBeCloseTo(1.7, 12);
-    expect(Array.from(events[3]!.solverError!)).toEqual([0]);
+    expect(Array.from(events[3]!.diagnostics!.solverError!)).toEqual([0]);
   });
 
   it("integrates nonlinear per-token dynamics within the tolerance and accounts for the error", () => {
     const sdcpn = dynamicsNet("(token) => ({ x: -token.x * token.x })");
-    const stepper = createAdaptiveStepper({
-      sdcpn,
-      hirArtifacts: compile(sdcpn),
-      initialMarking: { cell: [{ x: 1 }, { x: 4 }] },
-      parameterValues: {},
-      seed: 1,
-      maxTime: 2,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn,
+        hirArtifacts: compile(sdcpn),
+        initialMarking: { cell: [{ x: 1 }, { x: 4 }] },
+        parameterValues: {},
+        seed: 1,
+        maxTime: 2,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
     expect(stepper.dynamicsKinds.get("cell")).toBe("independent");
 
-    const { events, last } = stepUntilOver(stepper);
+    const { events, last } = recordUntilOver(recorder);
     expect(last.completion).toBe("maxTime");
     const final = events[events.length - 1]!;
     expect(final.time).toBe(2);
@@ -292,15 +297,15 @@ describe("createAdaptiveStepper", () => {
     const [a, b] = tokenX(sdcpn, final);
     expect(a).toBeCloseTo(1 / 3, 5);
     expect(b).toBeCloseTo(1 / 2.25, 5);
-    const errors = events.map((event) => event.solverError![0]!);
+    const errors = events.map((event) => event.diagnostics!.solverError![0]!);
     expect(errors[0]).toBeGreaterThan(0);
     for (let index = 1; index < errors.length; index++) {
       expect(errors[index]).toBeGreaterThanOrEqual(errors[index - 1]!);
     }
-    expect(final.solverError![0]).toBeLessThan(1e-4);
+    expect(final.diagnostics!.solverError![0]).toBeLessThan(1e-4);
 
     const store = createInMemoryEventTraceStore(sdcpn);
-    store.append([stepper.initialEvent, ...events]);
+    store.append([recorder.initialEvent, ...events]);
     const x = store.getStateAt(0.25)?.getPlaceTokens(sdcpn.places[0]!)[0]?.x;
     expect(x).toBeCloseTo(1 / 1.25, 3);
   });
@@ -308,19 +313,22 @@ describe("createAdaptiveStepper", () => {
   it("integrates a place as one system when an equation couples its tokens", () => {
     // Each of three tokens is in two pairs, and each pair pushes both at 1.
     const sdcpn = dynamicsNet("(a, b) => [{ x: 1 }, { x: 1 }]", 2);
-    const stepper = createAdaptiveStepper({
-      sdcpn,
-      hirArtifacts: compile(sdcpn),
-      initialMarking: { cell: [{ x: 0 }, { x: 0 }, { x: 0 }] },
-      parameterValues: {},
-      seed: 1,
-      maxTime: 1,
-      referenceInterval: 1,
-      tolerance: 1e-6,
-    });
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn,
+        hirArtifacts: compile(sdcpn),
+        initialMarking: { cell: [{ x: 0 }, { x: 0 }, { x: 0 }] },
+        parameterValues: {},
+        seed: 1,
+        maxTime: 1,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
     expect(stepper.dynamicsKinds.get("cell")).toBe("coupled");
-    const { events } = stepUntilOver(stepper);
-    const [a, b, c] = tokenX(sdcpn, events[0]!);
+    const { events } = recordUntilOver(recorder);
+    expect(events.at(-1)!.time).toBe(1);
+    const [a, b, c] = tokenX(sdcpn, events.at(-1)!);
     expect(a).toBeCloseTo(2, 9);
     expect(b).toBeCloseTo(2, 9);
     expect(c).toBeCloseTo(2, 9);
@@ -328,16 +336,18 @@ describe("createAdaptiveStepper", () => {
 
   it("fires an immediate transition without advancing time, then deadlocks", () => {
     const layout = createEngineFrameLayout(drain);
-    const stepper = createAdaptiveStepper({
-      sdcpn: drain,
-      initialMarking: { source: 3, sink: 0 },
-      parameterValues: {},
-      seed: 1,
-      maxTime: null,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
-    const { events, last } = stepUntilOver(stepper);
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn: drain,
+        initialMarking: { source: 3, sink: 0 },
+        parameterValues: {},
+        seed: 1,
+        maxTime: null,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
+    const { events, last } = recordUntilOver(recorder);
     expect(events.map((event) => event.kind)).toEqual([
       "firing",
       "firing",
@@ -360,17 +370,19 @@ describe("createAdaptiveStepper", () => {
   });
 
   it("samples firing times from the rate and keeps reference events between them", () => {
-    const stepper = createAdaptiveStepper({
-      sdcpn: poisson,
-      hirArtifacts: compile(poisson),
-      initialMarking: { sink: 0 },
-      parameterValues: {},
-      seed: 7,
-      maxTime: 40,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
-    const { events, last } = stepUntilOver(stepper);
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn: poisson,
+        hirArtifacts: compile(poisson),
+        initialMarking: { sink: 0 },
+        parameterValues: {},
+        seed: 7,
+        maxTime: 40,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
+    const { events, last } = recordUntilOver(recorder);
     expect(last.completion).toBe("maxTime");
 
     const firings = events.filter((event) => event.kind === "firing");
@@ -393,17 +405,19 @@ describe("createAdaptiveStepper", () => {
   });
 
   it("fires a predicate at the instant its condition starts to hold", () => {
-    const stepper = createAdaptiveStepper({
-      sdcpn: threshold,
-      hirArtifacts: compile(threshold),
-      initialMarking: { cell: [{ x: 0 }], done: 0 },
-      parameterValues: {},
-      seed: 1,
-      maxTime: null,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
-    const { events, last } = stepUntilOver(stepper);
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn: threshold,
+        hirArtifacts: compile(threshold),
+        initialMarking: { cell: [{ x: 0 }], done: 0 },
+        parameterValues: {},
+        seed: 1,
+        maxTime: null,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
+    const { events, last } = recordUntilOver(recorder);
     const firing = events.find((event) => event.kind === "firing");
     expect(firing).toBeDefined();
     expect(firing!.time).toBeCloseTo(0.55, 9);
@@ -416,18 +430,88 @@ describe("createAdaptiveStepper", () => {
   });
 
   it("fails a run whose immediate transition never disables", () => {
-    const stepper = createAdaptiveStepper({
-      sdcpn: stuck,
-      hirArtifacts: compile(stuck),
-      initialMarking: { hold: 1 },
-      parameterValues: {},
-      seed: 1,
-      maxTime: null,
-      referenceInterval: 0.1,
-      tolerance: 1e-6,
-    });
-    const { last } = stepUntilOver(stepper);
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn: stuck,
+        hirArtifacts: compile(stuck),
+        initialMarking: { hold: 1 },
+        parameterValues: {},
+        seed: 1,
+        maxTime: null,
+      },
+      { tolerance: 1e-6 },
+    );
+    const recorder = createTraceRecorder(stepper);
+    const { last } = recordUntilOver(recorder);
     expect(last.error).toContain("Always");
     expect(stepper.time).toBe(0);
+  });
+});
+
+describe("createAdaptiveStepper stopped at times of the caller's", () => {
+  const nonlinear = dynamicsNet("(token) => ({ x: -token.x * token.x })");
+  const create = () =>
+    createAdaptiveStepper(
+      {
+        sdcpn: nonlinear,
+        hirArtifacts: compile(nonlinear),
+        initialMarking: { cell: [{ x: 1 }] },
+        parameterValues: {},
+        seed: 1,
+        maxTime: 1,
+      },
+      { tolerance: 1e-9 },
+    );
+  const xOf = (stepper: ReturnType<typeof create>): number =>
+    tokenX(nonlinear, createTraceRecorder(stepper).initialEvent)[0]!;
+
+  it("lands on the stop exactly, keeping nothing, with the state the solver has there", () => {
+    const stepper = create();
+    const kinds: string[] = [];
+    for (;;) {
+      const advance = stepper.advance(0.25);
+      kinds.push(advance.kind);
+      if (advance.kind === "stopped") {
+        break;
+      }
+    }
+    // Two reference states on the way, then the stop between two of them.
+    expect(kinds).toEqual(["reference", "reference", "stopped"]);
+    expect(stepper.time).toBe(0.25);
+    // x' = -x² from 1 has the solution 1 / (1 + t).
+    expect(xOf(stepper)).toBeCloseTo(1 / 1.25, 8);
+
+    // A stop already reached moves nothing.
+    expect(stepper.advance(0.25)).toMatchObject({ kind: "stopped" });
+    expect(stepper.time).toBe(0.25);
+  });
+
+  it("keeps its reference states on their grid across a stop", () => {
+    const stepper = create();
+    while (stepper.advance(0.25).kind !== "stopped") {
+      // Reference states at 0.1 and 0.2.
+    }
+    expect(stepper.advance()).toMatchObject({ kind: "reference" });
+    expect(stepper.time).toBeCloseTo(0.3, 12);
+    expect(xOf(stepper)).toBeCloseTo(1 / 1.3, 8);
+  });
+
+  it("reaches the same state at the end whether or not it was stopped on the way", () => {
+    const stopped = create();
+    for (let sample = 1; sample <= 20; sample++) {
+      while (stopped.advance(sample * 0.05).kind !== "stopped") {
+        if (stopped.run.completionReason !== null) {
+          break;
+        }
+      }
+    }
+    const free = create();
+    while (free.advance().completion === null) {
+      // To the end.
+    }
+    expect(stopped.time).toBe(1);
+    expect(free.time).toBe(1);
+    expect(xOf(stopped)).toBeCloseTo(xOf(free), 8);
+    expect(xOf(free)).toBeCloseTo(0.5, 8);
   });
 });

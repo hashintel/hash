@@ -6,8 +6,10 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import {
+  ADAPTIVE_SIMULATOR_ID,
   createEventSimulation,
   createSimulation,
+  FIXED_STEP_SIMULATOR_ID,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
@@ -159,6 +161,13 @@ export function getEffectiveSelectedScenarioId(
 
   return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
+
+/**
+ * The step the event-driven engine's fixed-step solver advances by. Small
+ * enough that a firing lands close to its true time; the Time Step field
+ * belongs to the fixed-step engine.
+ */
+const EVENT_DRIVEN_FIXED_STEP_DT = 0.0001;
 
 const ZERO_FRAMES_STORE = constantStore(0);
 
@@ -672,8 +681,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }
 
       if (currentState.engine === "event-driven") {
-        // The event-driven engine takes no `dt`: its step is a worker
-        // default, and what it records is decided by what fires.
+        // The event-driven engine takes no `dt` from the Time Step field:
+        // its fixed-step solver runs at a step of its own, and what it
+        // records is decided by what fires.
         eventSim = await createEventSimulation({
           sdcpn: simulationSdcpn,
           extensions: simulationExtensions,
@@ -682,7 +692,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           parameterValues,
           seed,
           maxTime: currentState.maxTime,
-          solver: currentState.eventSolver,
+          simulator:
+            currentState.eventSolver.kind === "adaptive"
+              ? {
+                  id: ADAPTIVE_SIMULATOR_ID,
+                  parameters: { tolerance: currentState.eventSolver.tolerance },
+                }
+              : {
+                  id: FIXED_STEP_SIMULATOR_ID,
+                  parameters: { dt: EVENT_DRIVEN_FIXED_STEP_DT },
+                },
           createWorker: eventWorkerFactoryRef.current,
         });
       } else {

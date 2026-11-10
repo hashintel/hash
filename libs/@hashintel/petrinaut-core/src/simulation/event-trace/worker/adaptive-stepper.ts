@@ -13,13 +13,13 @@ import {
   createRunState,
   ensureFrameCapacity,
 } from "../../monte-carlo/run-state";
-import { computeDerivatives } from "../derivatives";
 import { classifyDynamics } from "../solver/classify-dynamics";
 import {
   createPlaceIntegrator,
   realFieldNames,
 } from "../solver/place-integrators";
-import { engineFrameFromRunFrame, touchedPlaceIndices } from "./run-frame";
+import { SOLVER_ERROR_DIAGNOSTIC } from "../trace";
+import { positiveNumberParameter } from "./run-stepper";
 import { computeFiringEffect, evaluateHazards } from "./transition-hazards";
 
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
@@ -30,15 +30,24 @@ import type {
 } from "../../monte-carlo/internal-types";
 import type { DynamicsClass } from "../solver/classify-dynamics";
 import type { PlaceIntegrator } from "../solver/place-integrators";
-import type { TraceEvent, TraceEventKind } from "../trace";
 import type {
-  TraceStepper,
-  TraceStepperConfig,
-  TraceStepResult,
-} from "./trace-stepper";
+  RunAdvance,
+  RunStepper,
+  RunStepperConfig,
+  StepperParameters,
+} from "./run-stepper";
 import type { FiringMode } from "./transition-hazards";
 
-export type AdaptiveStepperConfig = Omit<TraceStepperConfig, "stepDt"> & {
+export const ADAPTIVE_SIMULATOR_ID = "js-adaptive";
+
+/**
+ * Simulated seconds the adaptive stepper lets pass without a firing before
+ * it asks for the state to be kept, and the longest span it holds a rate
+ * for. Its own policy: no caller sets it.
+ */
+const REFERENCE_INTERVAL = 0.1;
+
+export type AdaptiveStepperParameters = {
   /**
    * The local error allowed per integration step, as a fraction of an
    * attribute's magnitude and in absolute terms near zero.
@@ -46,7 +55,17 @@ export type AdaptiveStepperConfig = Omit<TraceStepperConfig, "stepDt"> & {
   tolerance: number;
 };
 
-export interface AdaptiveStepper extends TraceStepper {
+export const readAdaptiveStepperParameters = (
+  parameters: StepperParameters,
+): AdaptiveStepperParameters => ({
+  tolerance: positiveNumberParameter(
+    ADAPTIVE_SIMULATOR_ID,
+    parameters,
+    "tolerance",
+  ),
+});
+
+export interface AdaptiveStepper extends RunStepper {
   /** How each place with dynamics advances, by place id. */
   readonly dynamicsKinds: ReadonlyMap<string, DynamicsClass["kind"]>;
 }
@@ -73,10 +92,11 @@ type PlaceDynamics = {
 /**
  * Steps a single run as a piecewise-deterministic process: between events
  * every place's continuous state is integrated by an error-controlled solver
- * over a span of at most `referenceInterval`, and firings are sampled from
- * the transitions' rates at the start of the span. Each step ends at a
- * firing or at the end of the span, and records a firing or a reference
- * event there with the solver's accumulated error per place.
+ * over a span of at most `REFERENCE_INTERVAL`, and firings are sampled from
+ * the transitions' rates at the start of the span. Each advance ends at a
+ * firing, at the end of the span, or at the time the caller stops it at;
+ * the first two are states worth keeping, published with the solver's
+ * accumulated error per place.
  *
  * Rates are held at their value from the start of the span, which is exact
  * for rates that read no continuous attribute. A predicate that starts to
@@ -87,9 +107,10 @@ type PlaceDynamics = {
  * proportion.
  */
 export function createAdaptiveStepper(
-  config: AdaptiveStepperConfig,
+  config: RunStepperConfig,
+  { tolerance }: AdaptiveStepperParameters,
 ): AdaptiveStepper {
-  const { referenceInterval, tolerance } = config;
+  const referenceInterval = REFERENCE_INTERVAL;
   const maxTime = config.maxTime;
   const run: MonteCarloRunState = createRunState(
     {
@@ -107,8 +128,8 @@ export function createAdaptiveStepper(
       dt: referenceInterval,
       maxTime: maxTime ?? Number.POSITIVE_INFINITY,
     },
-    undefined,
-    0,
+    config.runConfig,
+    config.runIndex ?? 0,
   );
   const { simulation } = run;
   const layout = simulation.frameLayout;
@@ -164,28 +185,14 @@ export function createAdaptiveStepper(
    */
   let anchorTime = 0;
   let spansSinceAnchor = 0;
-  let eventCount = 0;
+  /**
+   * Simulated time already covered of the current reference span by
+   * advances a caller stopped short. Zero while the run sits on the grid.
+   */
+  let intoSpan = 0;
   let zeroTimeFirings = 0;
   let completion: SimulationCompletionReason | null = null;
   let error: string | null = null;
-
-  const recordEvent = (
-    kind: TraceEventKind,
-    fired: readonly string[],
-  ): TraceEvent => ({
-    index: eventCount++,
-    time,
-    kind,
-    firedTransitionIds: fired,
-    touchedPlaceIndices: touchedPlaceIndices(run, fired),
-    frame: engineFrameFromRunFrame(layout, run.currentFrame),
-    derivatives: computeDerivatives(
-      layout,
-      simulation.differentialEquationFns,
-      run.currentFrame,
-    ),
-    solverError: Float64Array.from(errorByPlace),
-  });
 
   /** The next-frame buffer holding a copy of the current frame. */
   const prepareWorking = (): MonteCarloFrameBuffer => {
@@ -265,27 +272,35 @@ export function createAdaptiveStepper(
     run.currentFrame = working;
   };
 
-  const complete = (reason: SimulationCompletionReason): TraceStepResult => {
+  const complete = (reason: SimulationCompletionReason): RunAdvance => {
     completion = reason;
     run.status = "complete";
     run.completionReason = reason;
-    return { event: null, time, completion, error: null };
+    return {
+      time,
+      kind: "stopped",
+      firedTransitionIds: [],
+      completion,
+      error: null,
+    };
   };
 
   const firingResult = (
     working: MonteCarloFrameBuffer,
     mode: FiringMode,
     elapsed: number,
-  ): TraceStepResult => {
+  ): RunAdvance => {
     const fired = fire(working, mode);
     advanceTimers(fired, mode.transition.id, elapsed);
     commit(fired);
     time += elapsed;
     anchorTime = time;
     spansSinceAnchor = 0;
+    intoSpan = 0;
     return {
-      event: recordEvent("firing", [mode.transition.id]),
       time,
+      kind: "firing",
+      firedTransitionIds: [mode.transition.id],
       completion: null,
       error: null,
     };
@@ -316,7 +331,7 @@ export function createAdaptiveStepper(
     return high;
   };
 
-  const advance = (): TraceStepResult => {
+  const advance = (stopAt: number): RunAdvance => {
     run.status = "running";
     const remaining =
       maxTime === null ? Number.POSITIVE_INFINITY : maxTime - time;
@@ -340,7 +355,21 @@ export function createAdaptiveStepper(
       return complete("deadlock");
     }
 
-    const span = Math.min(referenceInterval, remaining);
+    // A firing at the stop itself has happened by now, so the state a
+    // caller sees there is the one after it.
+    const toStop = stopAt - time;
+    if (toStop <= 0) {
+      return {
+        time,
+        kind: "stopped",
+        firedTransitionIds: [],
+        completion: null,
+        error: null,
+      };
+    }
+
+    const toReference = referenceInterval - intoSpan;
+    const span = Math.min(toReference, remaining, toStop);
     let waiting = Number.POSITIVE_INFINITY;
     if (hazards.total > 0) {
       const [uniform, nextState] = nextRandom(run.rngState);
@@ -389,40 +418,72 @@ export function createAdaptiveStepper(
     advanceTimers(working, null, span);
     commit(working);
     const isFinal = maxTime !== null && span >= remaining;
+    if (!isFinal && span < toReference) {
+      // Stopped short of the span's end: nothing to keep, and the rest of
+      // the span is the next advance's.
+      intoSpan += span;
+      time = stopAt;
+      return {
+        time,
+        kind: "stopped",
+        firedTransitionIds: [],
+        completion: null,
+        error: null,
+      };
+    }
+
     spansSinceAnchor += 1;
+    intoSpan = 0;
     time = isFinal
       ? maxTime
       : anchorTime + spansSinceAnchor * referenceInterval;
-    const event = recordEvent("reference", []);
     if (isFinal) {
       completion = "maxTime";
       run.status = "complete";
       run.completionReason = "maxTime";
     }
-    return { event, time, completion, error: null };
+    return {
+      time,
+      kind: "reference",
+      firedTransitionIds: [],
+      completion,
+      error: null,
+    };
   };
 
-  const initialEvent = recordEvent("initial", []);
-
   return {
-    initialEvent,
-    stringPool: simulation.stringPool,
+    run,
     dynamicsKinds,
     get time() {
       return time;
     },
-    step() {
+    advance(stopAt = Number.POSITIVE_INFINITY) {
       if (completion !== null || error !== null) {
-        return { event: null, time, completion, error };
+        return {
+          time,
+          kind: "stopped",
+          firedTransitionIds: [],
+          completion,
+          error,
+        };
       }
       try {
-        return advance();
+        return advance(stopAt);
       } catch (caught) {
         run.status = "error";
         error = caught instanceof Error ? caught.message : String(caught);
         run.error = error;
-        return { event: null, time, completion: null, error };
+        return {
+          time,
+          kind: "stopped",
+          firedTransitionIds: [],
+          completion: null,
+          error,
+        };
       }
     },
+    diagnostics: () => ({
+      [SOLVER_ERROR_DIAGNOSTIC]: Float64Array.from(errorByPlace),
+    }),
   };
 }

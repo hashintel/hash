@@ -326,7 +326,7 @@ interval and ends at a firing or at the span's end:
   step the control allows, a discontinuous derivative's signature, are
   accepted and counted rather than failing the run.
 - **Every event carries the accumulated local error per place**
-  (`TraceEvent.solverError`): the sum over accepted steps of the largest
+  (the `solverError` entry of `TraceEvent.diagnostics`): the sum over accepted steps of the largest
   error estimate of any token's attribute, in attribute units. It is a
   running bound on what the steps themselves contributed, not the global
   error, which propagation through the dynamics can grow or shrink.

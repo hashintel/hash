@@ -3,11 +3,11 @@
  * @role Runs a net as a trace of events, one frame per firing with its derivatives, and reads the state at any time by interpolating between them
  *
  * The event-driven counterpart of the frame-per-step runtime. The worker
- * steps the fixed-step engine at a small step and records only the steps
- * where something happened; the host keeps those events and reconstructs the
- * state at any time from them, so playback addresses time rather than frame
- * indices. Everything here is its own path: nothing in the frame runtime
- * changes to make room for it.
+ * advances the run with the stepper of the simulator the host selected and
+ * records only the states that stepper finds worth keeping; the host keeps
+ * those events and reconstructs the state at any time from them, so playback
+ * addresses time rather than frame indices. Everything here is its own path:
+ * nothing in the frame runtime changes to make room for it.
  */
 
 export { createEventSimulation } from "./runtime";
@@ -27,9 +27,10 @@ export type {
   TraceEvent,
   TraceEventKind,
 } from "./trace";
-export {
-  DEFAULT_EVENT_STEP_DT,
-  DEFAULT_REFERENCE_INTERVAL,
-} from "./worker/trace-stepper";
+export { SOLVER_ERROR_DIAGNOSTIC } from "./trace";
+export { ADAPTIVE_SIMULATOR_ID } from "./worker/adaptive-stepper";
+export { FIXED_STEP_SIMULATOR_ID } from "./worker/fixed-step-stepper";
+export type { StepperParameters } from "./worker/run-stepper";
+export type { StepperSelection } from "./worker/steppers";
 export { DEFAULT_SOLVER_TOLERANCE } from "./solver/solver-config";
 export type { EventSolverConfig } from "./solver/solver-config";

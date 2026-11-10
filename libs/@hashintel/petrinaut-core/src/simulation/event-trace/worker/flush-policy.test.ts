@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   FLUSH_EVENTS,
   FLUSH_INTERVAL_MS,
-  FLUSH_STEPS,
+  FLUSH_ADVANCES,
   shouldFlush,
 } from "./flush-policy";
 
 describe("shouldFlush", () => {
   const quiet = {
-    stepsPending: 10,
+    advancesPending: 10,
     eventsPending: 1,
     msSinceFlush: 5,
     stopping: false,
@@ -18,12 +18,14 @@ describe("shouldFlush", () => {
   it("holds a small, young batch", () => {
     expect(shouldFlush(quiet)).toBe(false);
     expect(
-      shouldFlush({ ...quiet, stepsPending: 0, msSinceFlush: 10_000 }),
+      shouldFlush({ ...quiet, advancesPending: 0, msSinceFlush: 10_000 }),
     ).toBe(false);
   });
 
   it("flushes a full batch, a burst of events, or a stop", () => {
-    expect(shouldFlush({ ...quiet, stepsPending: FLUSH_STEPS })).toBe(true);
+    expect(shouldFlush({ ...quiet, advancesPending: FLUSH_ADVANCES })).toBe(
+      true,
+    );
     expect(shouldFlush({ ...quiet, eventsPending: FLUSH_EVENTS })).toBe(true);
     expect(shouldFlush({ ...quiet, stopping: true })).toBe(true);
   });

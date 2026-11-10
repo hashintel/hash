@@ -5,7 +5,12 @@ import {
   createEngineFrameLayout,
   readEngineFrame,
 } from "../../frames/internal-frame";
-import { createTraceStepper, type TraceStepResult } from "./trace-stepper";
+import { createFixedStepStepper } from "./fixed-step-stepper";
+import {
+  createTraceRecorder,
+  type TraceRecorder,
+  type TraceRecording,
+} from "./trace-recorder";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type { TraceEvent } from "../trace";
@@ -66,19 +71,19 @@ const layout = createEngineFrameLayout(drain);
 const counts = (event: TraceEvent): number[] =>
   Array.from(readEngineFrame(layout, event.frame).placeCounts);
 
-const stepUntilOver = (
-  stepper: ReturnType<typeof createTraceStepper>,
+const recordUntilOver = (
+  recorder: TraceRecorder,
   limit = 100,
-): { events: TraceEvent[]; last: TraceStepResult } => {
+): { events: TraceEvent[]; last: TraceRecording } => {
   const events: TraceEvent[] = [];
-  let last: TraceStepResult = {
+  let last: TraceRecording = {
     event: null,
     time: 0,
     completion: null,
     error: null,
   };
   for (let step = 0; step < limit; step++) {
-    last = stepper.step();
+    last = recorder.next();
     if (last.event) {
       events.push(last.event);
     }
@@ -96,26 +101,28 @@ const expectTimes = (events: TraceEvent[], times: number[]) => {
   }
 };
 
-describe("createTraceStepper", () => {
+describe("createFixedStepStepper", () => {
   it("records the initial state, one event per step with a firing, and the run's last state", () => {
-    const stepper = createTraceStepper({
-      sdcpn: drain,
-      initialMarking: { source: 3, sink: 0 },
-      parameterValues: {},
-      seed: 1,
-      maxTime: null,
-      stepDt: 0.0001,
-      referenceInterval: 0.1,
-    });
+    const stepper = createFixedStepStepper(
+      {
+        sdcpn: drain,
+        initialMarking: { source: 3, sink: 0 },
+        parameterValues: {},
+        seed: 1,
+        maxTime: null,
+      },
+      { dt: 0.0001 },
+    );
+    const recorder = createTraceRecorder(stepper);
 
-    expect(stepper.initialEvent).toMatchObject({
+    expect(recorder.initialEvent).toMatchObject({
       index: 0,
       time: 0,
       kind: "initial",
     });
-    expect(counts(stepper.initialEvent)).toEqual([3, 0]);
+    expect(counts(recorder.initialEvent)).toEqual([3, 0]);
 
-    const { events, last } = stepUntilOver(stepper);
+    const { events, last } = recordUntilOver(recorder);
 
     // Three firings drain the source, then the fourth step finds nothing
     // enabled: a deadlock, recorded as a reference event at the final time.
@@ -139,29 +146,36 @@ describe("createTraceStepper", () => {
     expect(last.completion).toBe("deadlock");
     expect(stepper.time).toBeCloseTo(0.0004, 12);
 
-    // Stepping an over run stays over.
-    expect(stepper.step()).toMatchObject({
+    // Advancing an over run stays over.
+    expect(recorder.next()).toMatchObject({
       event: null,
+      completion: "deadlock",
+    });
+    expect(stepper.advance()).toMatchObject({
+      kind: "stopped",
       completion: "deadlock",
     });
   });
 
-  it("records reference events at the configured interval and stops at max time", () => {
+  it("asks for a reference state every tenth of a simulated second and stops at max time", () => {
     const { artifacts, failures } = compileHirArtifacts(idle);
     expect(failures).toEqual([]);
 
-    const stepper = createTraceStepper({
-      sdcpn: idle,
-      hirArtifacts: artifacts,
-      initialMarking: { hold: 1 },
-      parameterValues: {},
-      seed: 1,
-      maxTime: 0.0005,
-      stepDt: 0.0001,
-      referenceInterval: 0.0002,
-    });
+    const recorder = createTraceRecorder(
+      createFixedStepStepper(
+        {
+          sdcpn: idle,
+          hirArtifacts: artifacts,
+          initialMarking: { hold: 1 },
+          parameterValues: {},
+          seed: 1,
+          maxTime: 0.25,
+        },
+        { dt: 0.05 },
+      ),
+    );
 
-    const { events, last } = stepUntilOver(stepper);
+    const { events, last } = recordUntilOver(recorder);
 
     // Nothing ever fires, so the trace is reference events alone: every two
     // steps, and one for the last state at max time.
@@ -170,10 +184,40 @@ describe("createTraceStepper", () => {
       "reference",
       "reference",
     ]);
-    expectTimes(events, [0.0002, 0.0004, 0.0005]);
+    expectTimes(events, [0.1, 0.2, 0.25]);
     expect(last.completion).toBe("maxTime");
     expect(
       events.every((event) => event.derivatives.every((d) => d === null)),
     ).toBe(true);
+  });
+});
+
+describe("createFixedStepStepper stopped at times of the caller's", () => {
+  it("stops at the last step at or before the time, keeping nothing, and resumes from there", () => {
+    const { artifacts } = compileHirArtifacts(idle);
+    const stepper = createFixedStepStepper(
+      {
+        sdcpn: idle,
+        hirArtifacts: artifacts,
+        initialMarking: { hold: 1 },
+        parameterValues: {},
+        seed: 1,
+        maxTime: 1,
+      },
+      { dt: 0.02 },
+    );
+
+    // 0.05 is between two steps: the stepper stops on the one before it.
+    expect(stepper.advance(0.05)).toMatchObject({ kind: "stopped" });
+    expect(stepper.time).toBeCloseTo(0.04, 12);
+    // A stop on a step is reached exactly.
+    expect(stepper.advance(0.06)).toMatchObject({ kind: "stopped" });
+    expect(stepper.time).toBeCloseTo(0.06, 12);
+    // A stop already reached moves nothing.
+    expect(stepper.advance(0.06)).toMatchObject({ kind: "stopped" });
+    expect(stepper.time).toBeCloseTo(0.06, 12);
+    // The reference state still comes a tenth of a second after the start.
+    expect(stepper.advance(0.5)).toMatchObject({ kind: "reference" });
+    expect(stepper.time).toBeCloseTo(0.1, 12);
   });
 });
