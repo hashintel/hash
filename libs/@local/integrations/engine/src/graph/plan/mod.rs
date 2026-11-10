@@ -41,7 +41,7 @@ pub struct PlannedWrite {
 /// of an upsert, or the archive request of an archive.
 ///
 /// Only planning creates a payload, so it always holds the JSON a write was planned with.
-#[derive(Debug, Clone, derive_more::Display)]
+#[derive(Debug, Clone)]
 pub struct Payload(Box<RawValue>);
 
 impl Payload {
