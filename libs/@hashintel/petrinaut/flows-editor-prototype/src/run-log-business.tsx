@@ -30,10 +30,13 @@ import { type RunOutputs, runOutputs } from "./run-outputs";
 export type RunLogTake = "b1" | "b2" | "b3" | "b4";
 
 export const runLogTake = (): RunLogTake | null => {
+  // B4 is the default (inbox run-log-minimal, decided); `?runlog=today` keeps the log from before.
   const take = new URLSearchParams(globalThis.location.search).get("runlog");
   return take === "b1" || take === "b2" || take === "b3" || take === "b4"
     ? take
-    : null;
+    : take === "today"
+      ? null
+      : "b4";
 };
 
 const headStyle = css({

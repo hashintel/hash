@@ -11,10 +11,13 @@ import { outcomeLabel, outcomeOf, runClock, type RunRecord } from "./run-history
 export type RunTimeTake = "t1" | "t2" | "t3" | "t4";
 
 export const runTimeTake = (): RunTimeTake | null => {
+  // t3 is the default (inbox run-bar-time, decided); `?runtime=today` keeps the bar from before.
   const value = new URLSearchParams(globalThis.location.search).get("runtime");
   return value === "t1" || value === "t2" || value === "t3" || value === "t4"
     ? value
-    : null;
+    : value === "today"
+      ? null
+      : "t3";
 };
 
 /** Whole seconds, as past runs write their length: "14s", "2m 14s", "1h 02m". */
