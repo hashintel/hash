@@ -5,7 +5,7 @@
  * `?runid=` picks the slice. Unset keeps "Run 17".
  * - a: the last 2 characters, capitals, the UI font ("A4").
  * - b: the last 4, capitals, the UI font ("3FA4").
- * - c: the last 4, lowercase, monospace ("3fa4").
+ * - c: the last 4, lowercase, in JetBrains Mono, Petrinaut's mono ("3fa4").
  * - d: the last 6, lowercase, monospace ("c03fa4").
  *
  * The top bar and the Logs table both read these, so a run has one name everywhere.
@@ -101,11 +101,30 @@ export const RunIdText = ({
   );
 };
 
-/** A run log line with its "Run 3FA4" in the `?runidmono=` take; the plain text when no take is set. */
+/** True when an ID shows in a styled face: a `?runidmono=` take, or monospace for `?runid=c|d`. */
+export const runIdStyled = () => runIdMonoTake() !== null || runIdMono();
+
+/** A line with its "Run 3FA4" in the `?runidmono=` take, or "Run 2c07" in monospace for takes c and d. */
 export const RunIdsIn = ({ text }: { text: string }) => {
   const monoTake = runIdMonoTake();
+  const take = runIdTake();
   if (!monoTake) {
-    return text;
+    if (!take || !runIdMono(take)) {
+      return text;
+    }
+    const length = sliceLength[take];
+    const pattern = new RegExp(`(?<=\\bRun )([0-9a-f]{${length}})\\b`);
+    return createElement(
+      "span",
+      null,
+      ...text
+        .split(pattern)
+        .map((part, index) =>
+          index % 2 === 1
+            ? createElement("span", { key: index, className: monoStyle }, part)
+            : part,
+        ),
+    );
   }
   const parts = text.split(/(?<=\bRun )([0-9A-Fa-f]{4})\b/);
   return createElement(

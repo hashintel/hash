@@ -26,7 +26,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { type HistoryValue, RunSwitcher } from "./history-view";
 import { cameFrom, navigate, parseRoute } from "./router";
 import { bannerAction, factsOf, outcomeOf, statusText } from "./run-history";
-import { RunIdText, runLabel } from "./run-id";
+import { runIdMono, RunIdText, runLabel } from "./run-id";
 
 export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
 export type EditorBarVariant = 1 | 2 | 3;
@@ -370,7 +370,7 @@ export const RunTopBar = ({
                     tooltip={run.when}
                     data-run-picker
                   >
-                    {runLabel(run)}
+                    {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
                   </Button>
                 }
               />

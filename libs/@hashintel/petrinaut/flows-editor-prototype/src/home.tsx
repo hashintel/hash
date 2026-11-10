@@ -3,6 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { HashShell } from "./hash-shell";
 import { RunGlyph } from "./run-glyph";
+import { RunIdsIn } from "./run-id";
 
 import type { EditorDocument } from "./document";
 import type { ItemProgress, StepState } from "./run-history";
@@ -265,7 +266,7 @@ export const Home = ({
                             state={flow.lastRun.state}
                             progress={flow.lastRun.progress}
                           />
-                          {flow.lastRun.label}
+                          <RunIdsIn text={flow.lastRun.label} />
                         </span>
                       ) : (
                         <span className={css({ color: "neutral.fg.subtle" })}>

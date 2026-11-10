@@ -55,7 +55,7 @@ const fontStacks = {
   plex: '"IBM Plex Mono", ui-monospace, monospace',
 };
 
-// The prototype loads neither face on its own: its monospace is Petrinaut's JetBrains Mono, and the DS `fonts.mono`
+// The prototype loads neither face on its own: its monospace is Petrinaut's JetBrains Mono (loaded in main.tsx), and the DS `fonts.mono`
 // token names Geist Mono without shipping its @font-face.
 const loadedFonts = new Set<MonoSpec["font"]>();
 const loadFont = (font: MonoSpec["font"]) => {

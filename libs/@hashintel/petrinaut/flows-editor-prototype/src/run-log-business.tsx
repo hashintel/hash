@@ -15,7 +15,7 @@ import { type ReactNode, useState } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { runLabel } from "./run-id";
+import { runIdMono, RunIdText, runLabel } from "./run-id";
 import { RunGlyph } from "./run-glyph";
 import {
   factsOf,
@@ -353,7 +353,7 @@ const Head = ({
             color: "neutral.fg.heading",
           })}
         >
-          {runLabel(run)}
+          {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
         </span>
         <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
           {runWhen(run)}

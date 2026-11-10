@@ -13,8 +13,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { RunIdText, runLabel } from "./run-id";
-import { runIdMonoTake } from "./run-id-mono";
+import { runIdMono, runIdStyled, RunIdText, runLabel } from "./run-id";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
 import { flattenSteps, START_ID, stepLabel } from "./document";
@@ -285,7 +284,7 @@ export const RunSwitcher = ({
               size={14}
             />
             <span>
-              {runIdMonoTake() ? (
+              {runIdStyled() ? (
                 <>
                   <RunIdText run={candidate} prefix />
                   {runMenuLabel(candidate, now).slice(runLabel(candidate).length)}
@@ -352,7 +351,7 @@ export const RunSwitcher = ({
                 tooltip={withTime ? undefined : run.when}
                 data-run-picker
               >
-                {runIdMonoTake() ? (
+                {runIdStyled() ? (
                   <>
                     <RunIdText run={run} prefix />
                     {withTime ? ` · ${run.when}` : null}
@@ -477,7 +476,7 @@ const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
             paddingLeft: "6",
           })}
         >
-          Started {runLabel(run)}
+          Started {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
         </span>
       </div>
       <Section title="Trigger">
