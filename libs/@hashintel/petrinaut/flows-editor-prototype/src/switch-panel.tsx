@@ -46,7 +46,8 @@ import {
   regionValues,
   switchTake,
 } from "./switch-flags";
-import { InlineRename, keyStyle, PropertyRow, Section } from "./ui";
+import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
+import { keyStyle, PropertyRow, Section } from "./ui";
 
 type Port = { outputName: string; label: string };
 
@@ -273,7 +274,7 @@ const PathName = ({
 }) => {
   const rename = useRenamePath(stepId);
   return renamable ? (
-    <InlineRename
+    <ToggleableTextInput
       value={port.label}
       label={`${port.label} path name`}
       className={cx(renameStyle, heading && headingRenameStyle)}

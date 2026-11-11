@@ -35,7 +35,8 @@ import { useRunView } from "./history-view";
 import { pathsTake } from "./paths-flags";
 import { useLocation } from "./router";
 import { pathRenamable } from "./switch-flags";
-import { InlineRename, PropertyRow, Section } from "./ui";
+import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
+import { PropertyRow, Section } from "./ui";
 import { UsedInBlock, useOldUsedIn } from "./used-in";
 
 /** The output a step branches on, per action. The engine models the values as ports. */
@@ -325,7 +326,7 @@ const IfPathName = ({
     return <span>{port.label}</span>;
   }
   return (
-    <InlineRename
+    <ToggleableTextInput
       value={port.label}
       label={`${port.label} path name`}
       className={ifRenameStyle}

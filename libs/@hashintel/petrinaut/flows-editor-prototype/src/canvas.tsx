@@ -111,7 +111,8 @@ import {
   triggerNoneTake,
   useShowTriggers,
 } from "./trigger-flags";
-import { InlineRename, Toast } from "./ui";
+import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
+import { Toast } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;
@@ -1277,7 +1278,7 @@ const CardText = ({
       <CardTitle title={title} />
     )}
     {onDescription ? (
-      <InlineRename
+      <ToggleableTextInput
         compact
         value={description ?? ""}
         placeholder="Add a description…"

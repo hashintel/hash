@@ -47,7 +47,8 @@ import {
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, isTyping, organize } from "./toolbar";
-import { InlineRename, Toast } from "./ui";
+import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
+import { Toast } from "./ui";
 import {
   DraftSaveNote,
   PublishButton,
@@ -115,7 +116,7 @@ const FlowTitle = ({
 }: {
   name: string;
   onRename: (name: string) => void;
-}) => <InlineRename value={name} onSave={onRename} label="Flow name" />;
+}) => <ToggleableTextInput value={name} onSave={onRename} label="Flow name" />;
 
 /** Editor take 3's muted line: the version menu, a dot, and the run count. */
 const versionLineStyle = css({
