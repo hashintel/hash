@@ -135,8 +135,6 @@ const InputField = ({
   </Form.Field>
 );
 
-const listFormat = new Intl.ListFormat("en");
-
 const RunFlowDialog = ({
   webId,
   name,
@@ -196,11 +194,7 @@ const RunFlowDialog = ({
     >
       <Dialog.Header
         title={ranInputs ? "Re-run flow" : "Run flow"}
-        description={
-          ranInputs
-            ? `Saves your edits, then runs “${name}” as it is now in this web. The form starts with this run's inputs.`
-            : `Saves your edits, then runs “${name}” in this web.`
-        }
+        description={`Saves your edits, then runs “${name}” in this web.`}
       />
       <Dialog.Body>
         <div className={dialogBody}>
@@ -221,9 +215,7 @@ const RunFlowDialog = ({
                 The flow's inputs have changed since this run
               </Banner.Title>
               <Banner.Description>
-                {`This run's ${changedInputLabels.length === 1 ? "value" : "values"} for ${listFormat.format(
-                  changedInputLabels.map((label) => `“${label}”`),
-                )} ${changedInputLabels.length === 1 ? "isn't" : "aren't"} filled in.`}
+                Not filled in: {changedInputLabels.join(", ")}
               </Banner.Description>
             </Banner>
           )}
