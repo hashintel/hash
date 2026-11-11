@@ -374,6 +374,7 @@ export {
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
   createWebGpuFixedStepSimulator,
+  DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   defaultSimulatorParameters,
   defineSimulator,
   jsAdaptiveSimulatorManifest,
@@ -387,6 +388,7 @@ export {
 } from "./simulation/simulators";
 export type {
   CountStatistics,
+  ExperimentBackendSimulatorOptions,
   ExperimentReader,
   JsAdaptiveSimulatorOptions,
   JsFixedStepSimulatorOptions,

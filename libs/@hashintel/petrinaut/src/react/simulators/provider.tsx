@@ -23,8 +23,9 @@ export type SimulatorsProviderProps = React.PropsWithChildren<{
    */
   runWorkerFactory?: WorkerFactory;
   /**
-   * Builds a worker of the pool an experiment's runs are split across. Read
-   * once, when the provider mounts.
+   * Builds a worker of the pool an experiment's runs are split across. It
+   * has to host the simulators' steppers, as the worker of
+   * `createMonteCarloWorker` does. Read once, when the provider mounts.
    */
   experimentWorkerFactory?: WorkerFactory;
   /** Simulators the host adds after the built-in ones. */
@@ -51,7 +52,11 @@ const createBuiltInSimulators = ({
     // is a browser states the parallelism.
     shardCount: getDefaultMonteCarloShardCount(),
   }),
-  createJsAdaptiveSimulator({ createRunWorker }),
+  createJsAdaptiveSimulator({
+    createRunWorker,
+    createExperimentWorker,
+    shardCount: getDefaultMonteCarloShardCount(),
+  }),
   createWebGpuFixedStepSimulator({
     // Imported here, not at module scope, so a session that never asks for
     // the GPU never loads the shader generator.

@@ -4,8 +4,16 @@ import type { TokenRecord } from "../../types/sdcpn";
 import type { SimulationFrameReader, SimulationFrameState } from "../api";
 import type { MonteCarloRunState } from "./internal-types";
 
+/**
+ * Reads a run's current frame. `position` is where the run stands when it
+ * does not count its own frames, as a run a driver advances does not.
+ */
 export function createMonteCarloFrameReader(
   run: MonteCarloRunState,
+  position: { number: number; time: number } = {
+    number: run.frameNumber,
+    time: run.frameNumber * run.simulation.dt,
+  },
 ): SimulationFrameReader {
   const { currentFrame, simulation } = run;
   const { frameLayout } = simulation;
@@ -18,8 +26,8 @@ export function createMonteCarloFrameReader(
   };
 
   return {
-    number: run.frameNumber,
-    time: run.frameNumber * simulation.dt,
+    number: position.number,
+    time: position.time,
     getPlaceTokenCount,
     getRawView() {
       return {
@@ -91,7 +99,7 @@ export function createMonteCarloFrameReader(
       }
 
       return {
-        number: run.frameNumber,
+        number: position.number,
         places,
       };
     },

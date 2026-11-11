@@ -263,6 +263,22 @@ describe("createMonteCarloExperiment run results", () => {
     ).rejects.toThrow("3 runs");
   });
 
+  it("rejects a simulator on the local path, which hosts none", async () => {
+    await expect(
+      createMonteCarloExperiment({
+        sdcpn: empty(),
+        initialMarking: {},
+        parameterValues: {},
+        seed: 1,
+        dt: 1,
+        maxTime: 10,
+        runCount: 1,
+        metricSpecs: [],
+        simulator: { id: "js-adaptive", parameters: { tolerance: 1e-6 } },
+      }),
+    ).rejects.toThrow('Simulator "js-adaptive" is not hosted');
+  });
+
   it("stops an in-process worker's compute loop when the experiment is disposed", async () => {
     const handle = await createMonteCarloExperiment({
       createWorker: createInProcessMonteCarloWorker,

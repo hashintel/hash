@@ -37,7 +37,11 @@ export type {
   SimulatorStart,
   SimulatorStartOptions,
 } from "./simulator";
-export { simulatorFromExperimentBackend } from "./experiment-backend-simulator";
+export {
+  DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
+  simulatorFromExperimentBackend,
+} from "./experiment-backend-simulator";
+export type { ExperimentBackendSimulatorOptions } from "./experiment-backend-simulator";
 export {
   countStatisticsOfBins,
   createExperimentReader,

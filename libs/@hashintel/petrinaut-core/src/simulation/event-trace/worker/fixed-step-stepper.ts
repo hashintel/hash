@@ -1,7 +1,10 @@
 import { advanceRun } from "../../monte-carlo/advance-run";
-import { createRunState } from "../../monte-carlo/run-state";
 import { getFrameTime } from "../../monte-carlo/time";
-import { firedTransitionIds, positiveNumberParameter } from "./run-stepper";
+import {
+  createStepperRunState,
+  firedTransitionIds,
+  positiveNumberParameter,
+} from "./run-stepper";
 
 import type {
   RunAdvance,
@@ -43,31 +46,13 @@ export function createFixedStepStepper(
   config: RunStepperConfig,
   { dt }: FixedStepStepperParameters,
 ): RunStepper {
-  const run = createRunState(
-    {
-      sdcpn: config.sdcpn,
-      ...(config.extensions === undefined
-        ? {}
-        : { extensions: config.extensions }),
-      ...(config.hirArtifacts === undefined
-        ? {}
-        : { hirArtifacts: config.hirArtifacts }),
-      runCount: 1,
-      initialMarking: config.initialMarking,
-      parameterValues: config.parameterValues,
-      seed: config.seed,
-      dt,
-      maxTime: config.maxTime ?? Number.POSITIVE_INFINITY,
-    },
-    config.runConfig,
-    config.runIndex ?? 0,
-  );
+  const run = createStepperRunState(config, dt);
   const stepsPerReference = Math.max(1, Math.round(REFERENCE_INTERVAL / dt));
   /** The step whose state was last handed back as worth keeping. */
   let lastKeptStep = 0;
 
   const time = () => getFrameTime(run.frameNumber, dt);
-  const stopped = (
+  const advanceOf = (
     kind: RunAdvance["kind"],
     fired: readonly string[],
   ): RunAdvance => {
@@ -95,20 +80,20 @@ export function createFixedStepStepper(
         if (!advanceRun(run)) {
           // The run was already over, or the step failed: there is no new
           // state. The step that ended the run handed its state back.
-          return stopped("stopped", []);
+          return advanceOf("stopped", []);
         }
         const fired = firedTransitionIds(run);
         if (fired.length > 0) {
-          return stopped("firing", fired);
+          return advanceOf("firing", fired);
         }
         if (
           run.frameNumber - lastKeptStep >= stepsPerReference ||
           run.completionReason !== null
         ) {
-          return stopped("reference", []);
+          return advanceOf("reference", []);
         }
       }
-      return stopped("stopped", []);
+      return advanceOf("stopped", []);
     },
   };
 }
