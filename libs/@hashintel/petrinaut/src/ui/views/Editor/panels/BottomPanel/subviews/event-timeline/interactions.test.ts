@@ -6,6 +6,7 @@ import {
   hitTest,
   MIN_VIEW_SPAN,
   panRange,
+  resumesAfterScrub,
   zoomRange,
 } from "./interactions";
 
@@ -111,5 +112,22 @@ describe("hitTest", () => {
     expect(at(100, 241)).toBe("outside");
     expect(at(20, 100)).toBe("outside");
     expect(at(100, -1)).toBe("outside");
+  });
+});
+
+describe("resumesAfterScrub", () => {
+  it("resumes at the live edge of a run that is still computing", () => {
+    expect(
+      resumesAfterScrub({ time: 4, coveredTime: 4, runIsOver: false }),
+    ).toBe(true);
+  });
+
+  it("resumes inside a finished run, and holds at its end", () => {
+    expect(
+      resumesAfterScrub({ time: 3, coveredTime: 4, runIsOver: true }),
+    ).toBe(true);
+    expect(
+      resumesAfterScrub({ time: 4, coveredTime: 4, runIsOver: true }),
+    ).toBe(false);
   });
 });

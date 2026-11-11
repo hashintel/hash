@@ -8,6 +8,7 @@ import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
 import { EventTimelineChart } from "./chart";
+import { resumesAfterScrub } from "./interactions";
 import {
   stackTimelineData,
   type EventTimelineData,
@@ -82,12 +83,19 @@ export const TimelineFrame: React.FC<{
     hiddenTimelineSeriesIds: hiddenSeries,
     setHiddenTimelineSeriesIds: setHiddenSeries,
   } = use(EditorContext);
-  const { coveredTime, playbackStore, setTime, playbackState, play, pause } =
-    use(EventPlaybackContext);
+  const {
+    coveredTime,
+    playbackStore,
+    setTime,
+    playbackState,
+    play,
+    pause,
+    isComputeAvailable,
+  } = use(EventPlaybackContext);
 
   // Scrubbing pauses playback for the drag and resumes it on release, unless
-  // the drag ended at the live edge of a finished run, where play would
-  // start over.
+  // the drag ended at the end of a finished run, where play would start
+  // over.
   const resumeAfterScrubRef = useRef(false);
   const onScrubStart = () => {
     resumeAfterScrubRef.current = playbackState === "Playing";
@@ -100,7 +108,13 @@ export const TimelineFrame: React.FC<{
       return;
     }
     resumeAfterScrubRef.current = false;
-    if (playbackStore.get().time < coveredTime) {
+    if (
+      resumesAfterScrub({
+        time: playbackStore.get().time,
+        coveredTime,
+        runIsOver: !isComputeAvailable,
+      })
+    ) {
       void play();
     }
   };
