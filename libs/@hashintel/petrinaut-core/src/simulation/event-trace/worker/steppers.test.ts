@@ -5,7 +5,7 @@ import { compileHirArtifacts } from "../../../hir/compile";
 import { createMonteCarloSimulator } from "../../monte-carlo/monte-carlo-simulator";
 import { ADAPTIVE_SIMULATOR_ID } from "./adaptive-stepper";
 import { FIXED_STEP_SIMULATOR_ID } from "./fixed-step-stepper";
-import { createStepper } from "./steppers";
+import { createRunStepper, createStepper } from "./steppers";
 
 import type { RunStepperConfig } from "./run-stepper";
 
@@ -102,6 +102,47 @@ describe("the fixed-step stepper and an experiment", () => {
         expect(sample).toBe(60);
         break;
       }
+    }
+  });
+});
+
+describe("createRunStepper", () => {
+  const adaptive = {
+    id: ADAPTIVE_SIMULATOR_ID,
+    parameters: { tolerance: 1e-6 },
+  };
+
+  it("steps a timed net with the selected simulator", () => {
+    const stepper = createRunStepper(adaptive, config);
+    expect(stepper.diagnostics?.()).toHaveProperty("solverError");
+  });
+
+  it("steps an untimed net by steps, whichever simulator is selected", () => {
+    const untimed: RunStepperConfig["sdcpn"] = {
+      ...sdcpn,
+      places: sdcpn.places.map((place) => ({
+        ...place,
+        dynamicsEnabled: false,
+      })),
+      transitions: sdcpn.transitions.map((transition) => ({
+        ...transition,
+        lambdaType: "predicate" as const,
+        lambdaCode: "",
+      })),
+    };
+    for (const selection of [
+      adaptive,
+      { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.05 } },
+    ]) {
+      const stepper = createRunStepper(selection, {
+        ...config,
+        sdcpn: untimed,
+        hirArtifacts: compileHirArtifacts(untimed).artifacts,
+      });
+      // The step stepper publishes nothing about itself.
+      expect("diagnostics" in stepper).toBe(false);
+      expect(stepper.advance()).toMatchObject({ kind: "firing", time: 1 });
+      expect(stepper.advance()).toMatchObject({ kind: "firing", time: 2 });
     }
   });
 });

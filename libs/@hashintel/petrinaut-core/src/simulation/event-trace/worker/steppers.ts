@@ -1,3 +1,4 @@
+import { runClockOf } from "../../../net-timing";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createAdaptiveStepper,
@@ -8,6 +9,7 @@ import {
   FIXED_STEP_SIMULATOR_ID,
   readFixedStepStepperParameters,
 } from "./fixed-step-stepper";
+import { createStepStepper } from "./step-stepper";
 
 import type { MonteCarloSimulatorSelection } from "../../monte-carlo/run-driver";
 import type { RunStepper, RunStepperConfig } from "./run-stepper";
@@ -42,4 +44,20 @@ export function createStepper(
         `Simulator "${selection.id}" has no stepper in the event simulation worker`,
       );
   }
+}
+
+/**
+ * Builds the stepper of a single run, the one a person plays back.
+ *
+ * A timed net is stepped by the selected simulator. An untimed net has
+ * nothing a simulator of time could integrate or wait for, so its run is a
+ * sequence of steps whichever simulator is selected.
+ */
+export function createRunStepper(
+  selection: StepperSelection,
+  config: RunStepperConfig,
+): RunStepper {
+  return runClockOf(config.sdcpn, config.extensions) === "steps"
+    ? createStepStepper(config)
+    : createStepper(selection, config);
 }
