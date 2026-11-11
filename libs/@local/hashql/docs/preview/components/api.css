@@ -286,9 +286,8 @@
 }
 
 .prose .api-part > :first-child,
-.prose .api-part > .api-section:first-child .api-section-header,
-.prose .api-part > .api-section:first-child .api-section-title,
-.prose .api-part > .api-list:first-child .api-section-title {
+.prose .api-part > .api-section:first-child > .api-section-header,
+.prose .api-part > .api-list:first-child > .api-section-title {
   margin-top: 0;
 }
 
