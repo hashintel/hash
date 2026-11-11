@@ -174,6 +174,28 @@ try {
     3,
     "A commit and then an offer, each in its own step and with no reply, leave the turn open.",
   );
+
+  const failed = await modelCallsFor("Release needs two signatures.", [
+    proposal([
+      fauxToolCall(
+        brunchTools.ledgerCommit,
+        { entries: "not-an-array", endTurn: true },
+        { id: "commit-failed" },
+      ),
+    ]),
+    fauxAssistantMessage([offer("offer-after-failure")], {
+      stopReason: "toolUse",
+    }),
+    fauxAssistantMessage([fauxText("Noted.")]),
+  ]);
+  assert.partialDeepStrictEqual(await toolPart("commit-failed"), {
+    state: "output-error",
+  });
+  assert.equal(
+    failed,
+    3,
+    "A closing commit that failed validation leaves the turn open for a later offer.",
+  );
   process.stdout.write("OFFER_ANSWERS_PASS\n");
 } finally {
   await application.stop();
