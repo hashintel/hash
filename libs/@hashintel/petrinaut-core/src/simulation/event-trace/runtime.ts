@@ -189,7 +189,10 @@ export function createEventSimulation(
           };
           events.emit(errorEvent);
           if (!settled) {
+            // The start failed: nothing will hold the handle, so the worker
+            // is released here.
             settled = true;
+            handle.dispose();
             reject(new Error(message.message));
           }
           break;
@@ -206,14 +209,6 @@ export function createEventSimulation(
       }
       handle.dispose();
     };
-
-    if (config.signal) {
-      if (config.signal.aborted) {
-        onAbort();
-        return;
-      }
-      config.signal.addEventListener("abort", onAbort, { once: true });
-    }
 
     const send = (message: Parameters<SimulationTransport["send"]>[0]) => {
       if (!disposed) {
@@ -267,6 +262,14 @@ export function createEventSimulation(
         transport.terminate();
       },
     };
+
+    // Checked once the handle exists, so an abort that came first has
+    // something to dispose.
+    if (config.signal?.aborted) {
+      onAbort();
+      return;
+    }
+    config.signal?.addEventListener("abort", onAbort, { once: true });
 
     transport.send({
       type: "init",
