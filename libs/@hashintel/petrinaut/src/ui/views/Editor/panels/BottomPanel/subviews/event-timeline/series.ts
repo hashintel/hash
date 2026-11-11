@@ -61,16 +61,37 @@ export type EventTimelineData =
       laneLabels: string[];
     };
 
+const stackedSeriesCache = new WeakMap<
+  readonly TimelineSeriesMeta[],
+  WeakMap<ReadonlySet<string>, TimelineSeriesMeta[]>
+>();
+
 /**
  * The series a stacked chart draws: the visible ones, top band first, which
- * is the order uPlot fills bands in. Depends on the series list and the
- * hidden set alone, so it holds still while a run streams.
+ * is the order uPlot fills bands in.
+ *
+ * The same list is returned for the same series list and hidden set, so it
+ * holds still while a run streams: the chart is rebuilt when its series
+ * list changes, and the columns change on every batch.
  */
 export const stackedSeriesOf = (
   series: readonly TimelineSeriesMeta[],
   hiddenSeries: ReadonlySet<string>,
-): TimelineSeriesMeta[] =>
-  series.filter((entry) => !hiddenSeries.has(entry.seriesId)).reverse();
+): TimelineSeriesMeta[] => {
+  let byHidden = stackedSeriesCache.get(series);
+  if (!byHidden) {
+    byHidden = new WeakMap();
+    stackedSeriesCache.set(series, byHidden);
+  }
+  let stacked = byHidden.get(hiddenSeries);
+  if (!stacked) {
+    stacked = series
+      .filter((entry) => !hiddenSeries.has(entry.seriesId))
+      .reverse();
+    byHidden.set(hiddenSeries, stacked);
+  }
+  return stacked;
+};
 
 /**
  * The columns of a stacked chart: each band is its series plus every visible

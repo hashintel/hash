@@ -28,6 +28,16 @@ describe("stacking a timeline", () => {
     ).toEqual(["c", "a"]);
   });
 
+  it("returns the same list for the same series and hidden set, so the chart is not rebuilt as a run streams", () => {
+    const hidden = new Set(["b"]);
+    expect(stackedSeriesOf(series, hidden)).toBe(
+      stackedSeriesOf(series, hidden),
+    );
+    expect(stackedSeriesOf(series, new Set(["b"]))).not.toBe(
+      stackedSeriesOf(series, hidden),
+    );
+  });
+
   it("adds each series to those before it, counting a gap as nothing", () => {
     expect(stackColumns(data, series, new Set())).toEqual([
       [0, 1, 2],
