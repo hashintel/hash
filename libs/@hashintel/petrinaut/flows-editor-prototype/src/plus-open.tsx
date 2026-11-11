@@ -1,14 +1,15 @@
 /**
- * `?plusopen=a|b|c`: takes on tying the step picker to the "+" on a step's right edge. With no flag, the picker
- * opens as before: beside the + when 288 px fit inside the canvas, else below it with its left edge pulled in, where
- * the DS Menu may flip it up and away; the + fades out as the pointer leaves the card.
+ * `?plusopen=a|b|c|old`: takes on tying the step picker to the "+" on a step's right edge. `c` is the default
+ * (Aakarsh, 12 Nov). `old` is the picker as before: beside the + when 288 px fit inside the canvas, else below it with
+ * its left edge pulled in, where the DS Menu may flip it up and away; the + fades out as the pointer leaves the card.
  *
  * - `a`: the picker opens 8 px right of the +, its top edge level with the +'s; the + stays pressed while it is open.
  * - `b`: as a, with the figma-ds Popover arrow (Arrow=Left, 42156:2241) pointing at the +.
- * - `c`: as a, with a dashed ghost step where the new step lands, joined to the + by a dashed wire; the picker
- *   opens beside the ghost.
+ * - `c`: a dashed ghost step on the canvas where the new step lands (`plusLanding` in canvas.tsx: clear of every
+ *   step, inside the For each the port is in, on the port's path row), joined to the + by a dashed wire; the picker
+ *   opens beside the ghost, or under it when the + and the picker cannot both fit beside each other.
  *
- * Every take pans the canvas left, once, when the picker would not fit inside it.
+ * Every take pans the canvas, once, when the picker would not fit inside it. Panning or zooming by hand closes it.
  */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -23,11 +24,7 @@ const portalHost = () =>
 const take = new URLSearchParams(globalThis.location.search).get("plusopen");
 
 export const plusOpenTake: "a" | "b" | "c" | null =
-  take === "a" || take === "b" || take === "c" ? take : null;
-
-/** A step card and the gap after it (`document.ts` addStep), and the row a second branch drops to. */
-const columnStep = 200 + 96;
-const branchRow = 120;
+  take === "a" || take === "b" ? take : take === "old" ? null : "c";
 
 /** The picker's width with step rows (`add-node-picker.tsx`), the DS Menu's gap, and the room kept at the canvas edge. */
 const pickerWidth = 288;
@@ -39,42 +36,42 @@ const arrowOut = 12;
 const arrowHalf = 7.8;
 const arrowDown = 24;
 
-type Layout = { plus: DOMRect; ghost: DOMRect | null; zoom: number };
+type Position = "right-start" | "bottom-start";
+
+/** `position`: the picker opens beside the ghost, or under it when the + and a picker beside it cannot both fit. */
+type Layout = { plus: DOMRect; ghost: DOMRect | null; position: Position };
 
 const portAdd = (stepId: string, port: string) =>
   globalThis.document.querySelector<HTMLElement>(
     `[data-port-add="${stepId}:${port}"]`,
   );
 
+/** `c`: the ghost is a canvas node (`PLUS_GHOST_ID` in canvas.tsx), so it pans and zooms with the canvas. */
+const ghostRect = () => {
+  const rect = globalThis.document
+    .querySelector('.react-flow__node[data-id="plus-ghost"]')
+    ?.getBoundingClientRect();
+  return rect && rect.width > 0 ? rect : null;
+};
+
 const measure = (
   stepId: string,
   port: string,
-  branch: number,
-  zoom: number,
   withGhost: boolean,
+  position: Position,
 ): Layout | null => {
   const plus = portAdd(stepId, port)?.getBoundingClientRect();
-  const node = globalThis.document
-    .querySelector(`.react-flow__node[data-id="${stepId}"]`)
-    ?.getBoundingClientRect();
-  if (!plus || !node) {
+  if (!plus) {
     return null;
   }
-  return {
-    plus,
-    zoom,
-    ghost: withGhost
-      ? new DOMRect(
-          node.left + columnStep * zoom,
-          node.top + branch * branchRow * zoom,
-          200 * zoom,
-          node.height,
-        )
-      : null,
-  };
+  const ghost = withGhost ? ghostRect() : null;
+  if (withGhost && !ghost) {
+    return null;
+  }
+  return { plus, ghost, position };
 };
 
-/** The rect the menu opens beside, `right-start`: its left edge is this rect's right edge plus the DS gap. */
+/** The rect the menu opens from: beside it (`right-start`, the DS gap to its right) or under it (`bottom-start`). */
 const menuAnchor = (layout: Layout, arrow: boolean) => {
   const { plus, ghost } = layout;
   const rect = ghost
@@ -96,58 +93,46 @@ const overlayStyle = css({
   zIndex: "[5]",
 });
 
-const ghostStyle = css({
-  position: "fixed",
-  pointerEvents: "none",
-  zIndex: "[5]",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "dashed",
-  borderColor: "[var(--flows-ghost-border)]",
-  opacity: "[0.5]",
-});
-
-const Ghost = ({ layout }: { layout: Layout }) => {
-  const { plus, ghost, zoom } = layout;
-  if (!ghost) {
-    return null;
+/**
+ * How far to pan so the picker fits: beside the ghost (or the +) when the + stays on the canvas, else under the ghost.
+ * Positive x moves the canvas right; positive y moves it down.
+ */
+const fitShift = (
+  layout: Layout,
+  canvas: DOMRect,
+  menuHeight: number,
+  arrow: boolean,
+): { x: number; y: number; position: Position } => {
+  const { plus, ghost } = layout;
+  const left = canvas.left + canvasRoom;
+  const right = canvas.right - canvasRoom;
+  const top = canvas.top + canvasRoom;
+  const bottom = canvas.bottom - canvasRoom;
+  const opensAt = ghost ? ghost.right : plus.right + (arrow ? arrowOut - 4 : 0);
+  const anchorTop = ghost ? ghost.top : plus.top;
+  const besideWidth = opensAt + menuGap + pickerWidth - plus.left;
+  const vertical = (from: number, height: number) =>
+    from < top ? top - from : Math.min(0, bottom - (from + height));
+  if (!ghost || besideWidth <= right - left) {
+    const shortX = Math.max(0, opensAt + menuGap + pickerWidth - right);
+    const pastLeft = Math.max(0, left - plus.left);
+    return {
+      x: pastLeft > 0 ? pastLeft : -shortX,
+      y: vertical(anchorTop, menuHeight),
+      position: "right-start",
+    };
   }
-  const x1 = plus.right;
-  const y1 = plus.top + plus.height / 2;
-  const x2 = ghost.left;
-  const y2 = ghost.top + ghost.height / 2;
-  const left = Math.min(x1, x2);
-  const top = Math.min(y1, y2) - 2;
-  const width = Math.max(1, Math.abs(x2 - x1));
-  const height = Math.abs(y2 - y1) + 4;
-  const mid = (x1 + x2) / 2;
-  return (
-    <>
-      <svg
-        className={overlayStyle}
-        style={{ left, top, width, height, overflow: "visible" }}
-        aria-hidden
-      >
-        <path
-          d={`M ${x1 - left} ${y1 - top} C ${mid - left} ${y1 - top}, ${mid - left} ${y2 - top}, ${x2 - left} ${y2 - top}`}
-          fill="none"
-          stroke="rgba(0, 0, 0, 0.2)"
-          strokeWidth={1}
-          strokeDasharray="3 2"
-        />
-      </svg>
-      <div
-        className={ghostStyle}
-        style={{
-          left: ghost.left,
-          top: ghost.top,
-          width: ghost.width,
-          height: ghost.height,
-          borderRadius: 8 * zoom,
-        }}
-      />
-    </>
-  );
+  // Too narrow for both: the picker under the ghost, the ghost's left edge on the canvas.
+  const width = Math.max(ghost.width, pickerWidth);
+  const x =
+    ghost.left < left
+      ? left - ghost.left
+      : Math.min(0, right - (ghost.left + width));
+  return {
+    x,
+    y: vertical(ghost.top, ghost.height + menuGap + menuHeight),
+    position: "bottom-start",
+  };
 };
 
 /** The Popover's left arrow, drawn over the menu's edge so its border runs into the arrow's. */
@@ -203,62 +188,67 @@ const Arrow = ({ layout }: { layout: Layout }) => {
 
 /**
  * Opens the picker for a port's + in the take's place: pans the canvas so the picker fits, measures the + (and the
- * ghost), then renders `menu` against that anchor. The menu stays where it opened, as a DS Menu does.
+ * ghost), then renders `menu` against that anchor. The menu stays where it opened, as a DS Menu does; panning or
+ * zooming by hand closes it (canvas.tsx `onMoveStart`).
  */
 export const PlusOpenFrame = ({
   stepId,
   port,
-  branch,
   menuHeight,
   menu,
 }: {
   stepId: string;
   port: string;
-  /** The row the new step drops to: wires already on this port, plus one for a false port. */
-  branch: number;
   /** About how tall the picker opens, so the canvas can make room under the + before it does. */
   menuHeight: number;
-  menu: (anchor: React.RefObject<Element | null>) => React.ReactNode;
+  menu: (
+    anchor: React.RefObject<Element | null>,
+    position: Position,
+  ) => React.ReactNode;
 }) => {
   const flow = useReactFlow();
   const [layout, setLayout] = useState<Layout | null>(null);
   const [settled, setSettled] = useState(false);
   const takeNow = plusOpenTake;
   const ghostOn = takeNow === "c";
+  const arrow = takeNow === "b";
 
-  // Before it opens: pan the canvas so the picker fits right of the + (or the ghost) and below its top.
+  // Before it opens: wait for the ghost node, then pan the canvas so the picker fits beside it (or under it).
   useEffect(() => {
-    const zoom = flow.getZoom();
-    const first = measure(stepId, port, branch, zoom, ghostOn);
-    const canvas = globalThis.document
-      .querySelector(".react-flow")
-      ?.getBoundingClientRect();
-    if (!first || !canvas) {
-      return;
-    }
-    const opensAt = first.ghost
-      ? first.ghost.right
-      : first.plus.right + (takeNow === "b" ? arrowOut - 4 : 0);
-    const top = menuAnchor(first, takeNow === "b").current?.getBoundingClientRect().top ?? 0;
-    const shortX = Math.max(0, opensAt + menuGap + pickerWidth - (canvas.right - canvasRoom));
-    const shortY = Math.max(0, top + menuHeight - (canvas.bottom - canvasRoom));
-    if (shortX === 0 && shortY === 0) {
-      setLayout(first);
-      return;
-    }
-    const { x, y } = flow.getViewport();
-    void flow.setViewport({ x: x - shortX, y: y - shortY, zoom });
-    const timer = setTimeout(
-      () => setLayout(measure(stepId, port, branch, zoom, ghostOn)),
-      60,
-    );
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const open = () => {
+      const first = measure(stepId, port, ghostOn, "right-start");
+      const canvas = globalThis.document
+        .querySelector(".react-flow")
+        ?.getBoundingClientRect();
+      if (!first || !canvas) {
+        tries += 1;
+        if (tries < 20) {
+          timer = setTimeout(open, 30);
+        }
+        return;
+      }
+      const shift = fitShift(first, canvas, menuHeight, arrow);
+      if (shift.x === 0 && shift.y === 0) {
+        setLayout({ ...first, position: shift.position });
+        return;
+      }
+      const { x, y, zoom } = flow.getViewport();
+      void flow.setViewport({ x: x + shift.x, y: y + shift.y, zoom });
+      timer = setTimeout(
+        () => setLayout(measure(stepId, port, ghostOn, shift.position)),
+        60,
+      );
+    };
+    open();
     return () => clearTimeout(timer);
     // The port and its picker stay the same while it is open, so this runs once, when it opens.
-  }, [flow, stepId, port, branch, menuHeight, takeNow, ghostOn]);
+  }, [flow, stepId, port, menuHeight, ghostOn, arrow]);
 
   // Once it is open: if the menu still had to move to fit, the canvas moves the + (and the ghost) to meet it.
   useEffect(() => {
-    if (!layout || settled) {
+    if (!layout || settled || layout.position !== "right-start") {
       return;
     }
     const timer = setTimeout(() => {
@@ -266,33 +256,27 @@ export const PlusOpenFrame = ({
       const opened = globalThis.document
         .querySelector('[data-scope="menu"][data-part="content"][data-state="open"]')
         ?.getBoundingClientRect();
-      const meant = menuAnchor(layout, takeNow === "b").current?.getBoundingClientRect().top;
+      const meant = menuAnchor(layout, arrow).current?.getBoundingClientRect().top;
       if (!opened || meant === undefined || Math.abs(opened.top - meant) < 1) {
         return;
       }
       const { x, y, zoom } = flow.getViewport();
       void flow.setViewport({ x, y: y + opened.top - meant, zoom });
       setTimeout(
-        () => setLayout(measure(stepId, port, branch, zoom, ghostOn)),
+        () => setLayout(measure(stepId, port, ghostOn, layout.position)),
         60,
       );
     }, 160);
     return () => clearTimeout(timer);
-  }, [layout, settled, flow, stepId, port, branch, takeNow, ghostOn]);
+  }, [layout, settled, flow, stepId, port, ghostOn, arrow]);
 
   if (!layout || !takeNow) {
     return null;
   }
   return (
     <>
-      {createPortal(
-        <>
-          <Ghost layout={layout} />
-          {takeNow === "b" ? <Arrow layout={layout} /> : null}
-        </>,
-        portalHost(),
-      )}
-      {menu(menuAnchor(layout, takeNow === "b"))}
+      {arrow ? createPortal(<Arrow layout={layout} />, portalHost()) : null}
+      {menu(menuAnchor(layout, arrow), layout.position)}
     </>
   );
 };

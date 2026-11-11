@@ -86,6 +86,8 @@ export const tiledRowsStyle = css({
   "& [role=menuitem]:has([data-menu-row=two])": {
     "--selectable-list-item-padding-y": "5px",
   },
+  // A one-line row's 24 px tile starts on the same 16 px edge as the two-line rows' 32 px tiles (12 Nov).
+  "& [data-row-slot]": { justifyContent: "flex-start" },
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
     marginTop: "[4px]",
   },
@@ -385,7 +387,7 @@ export const MenuRow = ({
           </span>
         </span>
       ) : (
-        <span className={slotStyle} aria-hidden="true">
+        <span className={slotStyle} aria-hidden="true" data-row-slot>
           {glyph ? (
             <span className={smallTileStyle} style={tint}>
               {glyph}
@@ -436,11 +438,13 @@ const hasDescription = (item: MenuItem) =>
 export const tileMenu = (
   entries: Array<ItemOrGroup<TiledItem>>,
   lines: RowLines = "value",
+  /** Tile every row even when none has a second line (the step picker's Browse all on its own). */
+  always = false,
 ): Array<ItemOrGroup<MenuItem>> => {
   const rows = entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]));
   // A value menu with `?srcicons=` a, b or c lays out every row itself, so no row falls back to the DS layout.
   const tiles = lines === "value" ? valueTiles : undefined;
-  const tiled = tiles !== undefined || rows.some(hasDescription);
+  const tiled = always || tiles !== undefined || rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
     const { glyph, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
@@ -461,6 +465,7 @@ export const tileMenu = (
           subItems: tileMenu(
             rest.subItems as Array<ItemOrGroup<TiledItem>>,
             lines,
+            always,
           ),
         }
       : {};

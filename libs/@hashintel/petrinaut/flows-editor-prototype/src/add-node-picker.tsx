@@ -1,10 +1,6 @@
 import { useState } from "react";
 
-import {
-  Icon,
-  type ItemOrGroup,
-  type MenuItem,
-} from "@hashintel/ds-components";
+import { type ItemOrGroup } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -15,7 +11,7 @@ import {
   groupEntries,
   stepGroups,
 } from "./catalog";
-import { freeSpotRightOf } from "./canvas";
+import { freeSpotRightOf, plusLanding } from "./canvas";
 import {
   START_ID,
   addStep,
@@ -151,7 +147,7 @@ const pickerWidthStyle = css({
   "& [role=menuitem] > svg:last-child": { marginLeft: "auto" },
 });
 
-/** `?pickercolour=`: a Browse all group's neutral icon, 8 px from its name, as a DS Menu item lays them. */
+/** `?pickercolour=2`: a Browse all group's name with its swatch 8 px after it. */
 const groupRowStyle = css({
   display: "inline-flex",
   alignItems: "center",
@@ -284,7 +280,13 @@ export const AddNodePicker = ({
       after,
       parentId: parentId ?? undefined,
       position:
-        parentId && !after
+        // `?plusopen=c`: where its ghost stood.
+        plusOpenTake === "c" &&
+        !pickerTake() &&
+        picker.anchor === "port" &&
+        picker.after
+          ? plusLanding(document, picker.after, ui.collapsed)
+          : parentId && !after
           ? { x: 32 + insideCount * 300, y: 72 }
           : picker.drop &&
               !findStep(document, picker.after?.stepId ?? "")?.parentId
@@ -386,28 +388,29 @@ export const AddNodePicker = ({
           : undefined,
     onClick: () => pick(entry),
   });
-  const browseAll: MenuItem[] = stepGroups.map((group) => {
+  const browseAll: TiledItem[] = stepGroups.map((group) => {
     const groupSteps = groupEntries(group, available);
     return {
       id: `group:${group.name}`,
-      // `?pickercolour=` only: the group's icon stays neutral; 2 adds a small swatch of the hue its steps take.
+      // A one-line row: the group's icon in the 24 px tile on the menu's 16 px left edge (ledger 11 Nov ~19:20,
+      // 12 Nov). `?pickercolour=` (P-a by default) gives the icon its steps' hue; 2 adds a small swatch after the name.
+      icon: group.icon,
       ...(colour === null
-        ? { text: group.name, icon: group.icon }
+        ? { text: group.name }
         : {
-            text: (
-              <span className={groupRowStyle} data-group-row={group.name}>
-                <span style={groupHue(group)}>
-                  <Icon name={group.icon} size="sm" />
-                </span>
-                {group.name}
-                {colour === 2 ? (
+            tint: groupHue(group),
+            text:
+              colour === 2 ? (
+                <span className={groupRowStyle} data-group-row={group.name}>
+                  {group.name}
                   <span
                     className={swatchStyle}
                     style={{ backgroundColor: groupSwatch(group.name) }}
                   />
-                ) : null}
-              </span>
-            ),
+                </span>
+              ) : (
+                group.name
+              ),
           }),
       menuClassName: cx(stepSubmenuStyle, tiledRowsStyle),
       subItems:
@@ -624,13 +627,9 @@ export const AddNodePicker = ({
       <PickerRowCard ports={pickerRowTake === "card"} />
     ) : null;
 
-  // `?plusopen=a|b|c`: the picker from a port's + opens tied to the + (plus-open.tsx).
+  // `?plusopen=a|b|c` (c by default): the picker from a port's + opens tied to the + (plus-open.tsx).
   if (plusOpenTake && picker.anchor === "port" && picker.after) {
     const { stepId, port } = picker.after;
-    const branch =
-      document.wires.filter(
-        (wire) => wire.source === stepId && wire.sourcePort === port,
-      ).length + (port === "false" ? 1 : 0);
     return (
       <>
         <GroupRowTint />
@@ -638,17 +637,16 @@ export const AddNodePicker = ({
         <PlusOpenFrame
           stepId={stepId}
           port={port}
-          branch={branch}
           menuHeight={document.steps.length === 0 ? 500 : 340}
-          menu={(plusAnchor) => (
+          menu={(plusAnchor, position) => (
             <OpenMenu
               anchor={plusAnchor}
               label="Add node"
-              position="right-start"
+              position={position}
               className={menuClassName}
               onClose={close}
               header={header}
-              items={tileMenu(items, "step")}
+              items={tileMenu(items, "step", true)}
             />
           )}
         />
@@ -684,7 +682,7 @@ export const AddNodePicker = ({
         }
         onClose={close}
         header={header}
-        items={tileMenu(items, "step")}
+        items={tileMenu(items, "step", true)}
       />
     </>
   );

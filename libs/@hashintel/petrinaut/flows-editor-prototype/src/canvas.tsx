@@ -97,6 +97,7 @@ import {
   triggerLabel,
 } from "./run-history";
 import { plusOpenTake } from "./plus-open";
+import { pickerTake } from "./step-picker";
 import { describeSource } from "./shapes";
 import {
   failedOutlineColor,
@@ -136,6 +137,7 @@ type StepNode = Node<
   | "ghostNote"
   | "flowOutputs"
   | "pathPill"
+  | "plusGhost"
 >;
 
 /** `?paths=i2`: Ask a person's card also draws the Otherwise port its Paths section ends on. */
@@ -216,6 +218,9 @@ const groupSize = (document: EditorDocument, step: DraftStep) => {
   };
 };
 
+/** J1.13: a folded For each is its header alone, 240 wide, a step card's height. */
+const FOLDED_GROUP = { width: 240, height: 58 };
+
 /** The gap kept around a step placed for the user, and how far down it moves to find room. */
 const placeGap = 24;
 const placeStep = 40;
@@ -269,8 +274,96 @@ export const freeSpotRightOf = (
   return { x, y };
 };
 
-/** J1.13: a folded For each is its header alone, 240 wide, a step card's height. */
-const FOLDED_GROUP = { width: 240, height: 58 };
+/** The ghost step drawn where a port's + will put the new step (`?plusopen=c`), and the new step's spot. */
+export const PLUS_GHOST_ID = "plus-ghost";
+
+/**
+ * Where a step added from a port's + lands (`?plusopen=c`): one column right of the step (a For each's box is wider),
+ * on the port's row (a later path, or the If's false port, one 120 px row down), then moved down until it overlaps no
+ * step, group or Start that shares its parent. In the parent's coordinates, as `document.positions` are.
+ */
+export const plusLanding = (
+  document: EditorDocument,
+  after: { stepId: string; port: string },
+  collapsed: string[] = [],
+): { x: number; y: number } => {
+  const from = document.positions[after.stepId] ?? { x: 0, y: 0 };
+  const found = findStep(document, after.stepId);
+  const parentId = found?.parentId ?? null;
+  const sizeOf = (step: DraftStep) =>
+    step.kind !== "for-each"
+      ? { width: STEP_WIDTH, height: stepHeight(step) }
+      : collapsed.includes(step.stepId)
+        ? FOLDED_GROUP
+        : groupSize(document, step);
+  const boxes = flattenSteps(document.steps)
+    .filter((entry) => entry.parentId === parentId)
+    .map(({ step }) => ({
+      ...(document.positions[step.stepId] ?? { x: 0, y: 0 }),
+      ...sizeOf(step),
+    }));
+  if (parentId === null && document.positions[START_ID]) {
+    boxes.push({
+      ...document.positions[START_ID],
+      width: STEP_WIDTH,
+      height: STEP_HEIGHT,
+    });
+  }
+  const ports = found ? portRows(found.step) : null;
+  const pathIndex = Math.max(
+    0,
+    ports?.findIndex((port) => port.outputName === after.port) ?? 0,
+  );
+  const row = after.port === "false" ? Math.max(1, pathIndex) : pathIndex;
+  const fromWidth = found ? sizeOf(found.step).width : STEP_WIDTH;
+  const x = from.x + fromWidth + 96;
+  const overlaps = (y: number) =>
+    boxes.some(
+      (box) =>
+        x < box.x + box.width + placeGap &&
+        x + STEP_WIDTH + placeGap > box.x &&
+        y < box.y + box.height + placeGap &&
+        y + STEP_HEIGHT + placeGap > box.y,
+    );
+  let y = from.y + row * 120;
+  while (overlaps(y)) {
+    y += placeStep;
+  }
+  return { x, y };
+};
+
+/** The document with a placeholder step at the + landing spot, so a For each it lands in grows around it. */
+const withPlusGhost = (
+  document: EditorDocument,
+  after: { stepId: string; port: string },
+  collapsed: string[],
+): EditorDocument => {
+  const parentId = findStep(document, after.stepId)?.parentId ?? null;
+  const ghost: DraftStep = {
+    kind: "action",
+    stepId: PLUS_GHOST_ID,
+    actionDefinitionId: PLUS_GHOST_ID,
+    description: "",
+    inputs: {},
+  };
+  const insert = (steps: DraftStep[]): DraftStep[] =>
+    steps.map((step) =>
+      step.kind !== "for-each"
+        ? step
+        : step.stepId === parentId
+          ? { ...step, steps: [...step.steps, ghost] }
+          : { ...step, steps: insert(step.steps) },
+    );
+  return {
+    ...document,
+    steps: parentId === null ? [...document.steps, ghost] : insert(document.steps),
+    positions: {
+      ...document.positions,
+      [PLUS_GHOST_ID]: plusLanding(document, after, collapsed),
+    },
+  };
+};
+
 
 /** The steps inside folded For each boxes, which the canvas leaves out. */
 const hiddenSteps = (document: EditorDocument, collapsed: string[]) => {
@@ -1975,6 +2068,32 @@ const GhostTriggerView = ({ id, selected }: NodeProps<StepNode>) => {
   );
 };
 
+/** `?plusopen=c`: the dashed card where the step picked from a port's + will go, at the ghost triggers' 50%. */
+const plusGhostStyle = css({
+  width: "[200px]",
+  height: "[59px]",
+  backgroundColor: "neutral.bgSolid.min",
+  borderWidth: "thin",
+  borderStyle: "dashed",
+  borderColor: "[var(--flows-ghost-border)]",
+  borderRadius: "lg",
+  opacity: "[0.5]",
+  pointerEvents: "none",
+});
+
+const PlusGhostView = () => (
+  <div className={plusGhostStyle} data-plus-ghost>
+    <Handle
+      id="in"
+      type="target"
+      position={Position.Left}
+      className={handleStyle}
+      style={{ visibility: "hidden", top: STEP_HEIGHT / 2 }}
+      isConnectable={false}
+    />
+  </div>
+);
+
 /* ----------------------------------------------------------------------------------------------------------------
  * Trigger takes (`trigger-flags.ts`): the ghost layouts, the number-based nodes and the no-trigger warning
  * ------------------------------------------------------------------------------------------------------------- */
@@ -2658,6 +2777,7 @@ const nodeTypes = {
     <FlowOutputsCard selected={selected} />
   ),
   pathPill: PathPillNodeView,
+  plusGhost: PlusGhostView,
 };
 
 const wireLabelStyle = css({
@@ -3235,11 +3355,38 @@ export const FlowCanvas = ({
     };
   }, [ui.canvasMenu, setUi]);
 
+  // `?plusopen=c`: while the picker from a port's + is open, a ghost step holds the spot the new step lands in.
+  const plusAfter =
+    plusOpenTake === "c" &&
+    !readOnly &&
+    !pickerTake() &&
+    ui.picker?.anchor === "port" &&
+    !ui.picker.feed
+      ? ui.picker.after
+      : undefined;
+  const plusFrom = plusAfter
+    ? findStep(document, plusAfter.stepId)?.step
+    : undefined;
+  const dragged = {
+    ...document,
+    positions: { ...document.positions, ...dragPositions },
+  };
   const stepNodes = toNodes(
-    { ...document, positions: { ...document.positions, ...dragPositions } },
+    plusAfter ? withPlusGhost(dragged, plusAfter, ui.collapsed ?? []) : dragged,
     ui.selectedId,
     ui.collapsed,
     ui.selectedIds,
+  ).map((node) =>
+    node.id === PLUS_GHOST_ID
+      ? {
+          ...node,
+          type: "plusGhost" as const,
+          selectable: false,
+          draggable: false,
+          deletable: false,
+          focusable: false,
+        }
+      : node,
   );
   const start = document.positions[START_ID] ?? { x: 360, y: 220 };
   const flowTriggers = useFlowTriggers();
@@ -3329,6 +3476,29 @@ export const FlowCanvas = ({
             },
           }))),
     ...toEdges(document, ui.collapsed),
+    ...(plusAfter
+      ? [
+          {
+            id: "plus-ghost-wire",
+            source:
+              nodePathsTake === "pills" &&
+              plusFrom &&
+              portRows(plusFrom)
+                ? pillId(plusAfter.stepId, plusAfter.port)
+                : plusAfter.stepId,
+            sourceHandle: plusAfter.port,
+            target: PLUS_GHOST_ID,
+            targetHandle: "in",
+            selectable: false,
+            focusable: false,
+            style: {
+              stroke: "rgba(0, 0, 0, 0.2)",
+              strokeWidth: 1,
+              strokeDasharray: "3 2",
+            },
+          },
+        ]
+      : []),
   ];
 
   const onNodesChange = (changes: NodeChange<StepNode>[]) => {
@@ -3626,6 +3796,12 @@ export const FlowCanvas = ({
       data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
       // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
       connectOnClick={false}
+      // `?plusopen=c`: the picker stays where it opened, so panning or zooming by hand closes it and its ghost.
+      onMoveStart={(event) => {
+        if (event && plusAfter) {
+          setUi((current) => ({ ...current, picker: null }));
+        }
+      }}
       onMoveEnd={(_event, viewport) => {
         if (flowId && !readOnly) {
           saveViewport(flowId, viewport);
