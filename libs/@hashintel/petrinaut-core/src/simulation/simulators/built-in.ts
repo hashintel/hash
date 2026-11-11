@@ -45,6 +45,7 @@ export const jsFixedStepSimulatorManifest = {
   description: "Advances in steps of one size. Runs any net.",
   parameters: { dt: timeStep },
   produces: { run: true, experiment: true },
+  samplePeriodParameter: "dt",
 } as const satisfies SimulatorManifest;
 
 export const jsAdaptiveSimulatorManifest = {
@@ -85,6 +86,7 @@ export const webGpuFixedStepSimulatorManifest = {
     },
   },
   produces: { run: false, experiment: true },
+  samplePeriodParameter: "dt",
 } as const satisfies SimulatorManifest;
 
 /**

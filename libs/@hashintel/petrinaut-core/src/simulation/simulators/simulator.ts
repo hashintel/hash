@@ -121,6 +121,12 @@ export type SimulatorManifest<
   readonly description: string;
   readonly parameters: Specs;
   readonly produces: SimulatorProducts;
+  /**
+   * The key of the number parameter an experiment of this simulator is
+   * sampled at, for a simulator that steps and samples on one time step.
+   * Left out, an experiment chooses its own sample period.
+   */
+  readonly samplePeriodParameter?: keyof Specs & string;
 };
 
 export type SimulatorImplementation<
@@ -139,7 +145,8 @@ export type SimulatorRegistration<
 /**
  * Declares a simulator. The manifest comes first, so the implementation's
  * requests are typed by the parameters it declares. Throws when an enum
- * parameter defaults to a value outside its options.
+ * parameter defaults to a value outside its options, or when the sample
+ * period is not one of the number parameters.
  */
 export const defineSimulator = <const Specs extends SimulatorParameterSpecs>(
   manifest: SimulatorManifest<Specs>,
@@ -154,6 +161,15 @@ export const defineSimulator = <const Specs extends SimulatorParameterSpecs>(
         `Simulator "${manifest.id}" parameter "${key}" defaults to "${spec.default}", which is not one of its options`,
       );
     }
+  }
+  const { samplePeriodParameter } = manifest;
+  if (
+    samplePeriodParameter !== undefined &&
+    manifest.parameters[samplePeriodParameter]?.type !== "number"
+  ) {
+    throw new Error(
+      `Simulator "${manifest.id}" samples at "${samplePeriodParameter}", which is not one of its number parameters`,
+    );
   }
   return { ...manifest, ...implementation };
 };

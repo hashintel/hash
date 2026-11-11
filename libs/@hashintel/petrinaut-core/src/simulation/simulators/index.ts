@@ -43,6 +43,10 @@ export {
 } from "./experiment-backend-simulator";
 export type { ExperimentBackendSimulatorOptions } from "./experiment-backend-simulator";
 export {
+  experimentBackendOfSimulator,
+  simulatorSamplePeriod,
+} from "./simulator-experiment-backend";
+export {
   countStatisticsOfBins,
   createExperimentReader,
   placeCountMetricId,
