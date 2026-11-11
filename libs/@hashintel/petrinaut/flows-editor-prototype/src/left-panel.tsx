@@ -92,9 +92,10 @@ const rowStyle = css({
   fontWeight: "medium",
   // J1.1 (3 Nov): a row is muted; the selected one is dark, with no blue and no fill (ledger, 2 Nov).
   color: "neutral.fg.muted.hover",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  // Row hover is the figma-ds #f9f9f9 (11 Nov convergence A8).
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   _focusVisible: {
-    backgroundColor: "neutral.bg.surface.active",
+    backgroundColor: "neutral.bg.subtle.hover",
     outline: "none",
   },
   // Every row, groups and the selected one too, keeps the DS Sidebar Item's Medium (Figma, 3 Nov).

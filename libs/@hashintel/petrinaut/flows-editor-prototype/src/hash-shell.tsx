@@ -137,7 +137,7 @@ const switcherStyle = css({
   fontWeight: "medium",
   color: "neutral.fg.heading",
   cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   "& > span": {
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -170,7 +170,7 @@ const navRowStyle = css({
   cursor: "pointer",
   "& svg": { color: "neutral.fg.subtle", flexShrink: 0 },
   _hover: {
-    backgroundColor: "neutral.bg.surface.active",
+    backgroundColor: "neutral.bg.subtle.hover",
     color: "neutral.fg.heading",
   },
   "&[aria-current=page]": {

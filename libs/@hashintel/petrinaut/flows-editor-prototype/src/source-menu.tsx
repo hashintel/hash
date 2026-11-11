@@ -76,9 +76,10 @@ export const menuRowStyle = css({
     color: "neutral.fg.muted",
   },
   "& > svg:last-child:not(:first-child)": { width: "[16px]", height: "[16px]" },
-  _hover: { backgroundColor: "neutral.a35" },
-  _focusVisible: { backgroundColor: "neutral.a35", outline: "none" },
-  "&[data-active], &[data-selected]": { backgroundColor: "neutral.a35" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  _focusVisible: { backgroundColor: "neutral.bg.subtle.hover", outline: "none" },
+  "&[data-active]": { backgroundColor: "neutral.bg.subtle.hover" },
+  "&[data-selected]": { backgroundColor: "neutral.a35" },
 });
 
 /** An "@" popover row when the menu has two-line rows: the tile layout of `menu-rows.tsx`, 4 px apart. */
@@ -93,8 +94,8 @@ const tiledPopoverRowStyle = css({
   fontWeight: "[450]",
   "&:has([data-menu-row=two])": { paddingY: "[8px]" },
   "& + &": { marginTop: "[4px]" },
-  _hover: { backgroundColor: "neutral.a35" },
-  _focusVisible: { backgroundColor: "neutral.a35", outline: "none" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  _focusVisible: { backgroundColor: "neutral.bg.subtle.hover", outline: "none" },
 });
 
 /** A group of rows, 4 px in, with a hairline between groups. */

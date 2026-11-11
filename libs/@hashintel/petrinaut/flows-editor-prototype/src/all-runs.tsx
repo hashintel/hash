@@ -365,7 +365,7 @@ const tableStyle = css({
     borderBottomColor: "neutral.bd.subtle",
   },
   "& tbody tr": { cursor: "pointer" },
-  "& tbody tr:hover": { backgroundColor: "neutral.bg.surface.active" },
+  "& tbody tr:hover": { backgroundColor: "neutral.bg.subtle.hover" },
 });
 
 /**
@@ -1639,7 +1639,7 @@ const failureRowStyle = css({
   textAlign: "left",
   cursor: "pointer",
   borderRadius: "md",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   // The run line is neutral, underlined on hover; the whole row opens the run, so no link blue.
   "&:hover [data-run-line]": { textDecorationLine: "underline" },
 });

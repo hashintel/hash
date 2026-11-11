@@ -381,7 +381,7 @@ const rowStyle = css({
   cursor: "pointer",
   textStyle: "sm",
   color: "neutral.fg.heading",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   "&[aria-expanded=true]": { backgroundColor: "neutral.bgSolid.surface" },
 });
 

@@ -303,7 +303,7 @@ const rowStyle = css({
   cursor: "pointer",
   textStyle: "sm",
   color: "neutral.fg.heading",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   "&[aria-expanded=true]": { backgroundColor: "neutral.bgSolid.surface" },
 });
 
@@ -1261,7 +1261,7 @@ const tableStyle = css({
   },
   "& tr[data-row]": {
     cursor: "pointer",
-    _hover: { backgroundColor: "neutral.bg.surface.active" },
+    _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   },
   "& tr[aria-expanded=true] td": {
     backgroundColor: "neutral.bgSolid.surface",
@@ -1545,7 +1545,7 @@ const pickerRowStyle = css({
   cursor: "pointer",
   textStyle: "sm",
   color: "neutral.fg.heading",
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   "&[aria-current=true]": { backgroundColor: "neutral.bgSolid.surface" },
 });
 
