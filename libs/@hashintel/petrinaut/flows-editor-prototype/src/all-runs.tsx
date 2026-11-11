@@ -649,10 +649,8 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          Runs
-        </span>
-        <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
-          {runs.length} runs
+          {/* A heading with a count reads "Name · N" (11 Nov convergence A15). */}
+          Runs · {runs.length}
         </span>
       </div>
       <div
@@ -1747,7 +1745,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          All {runs.length} runs
+          All runs · {runs.length}
         </span>
         {tilesTake ? (
           <StatTiles
