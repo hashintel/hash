@@ -7061,6 +7061,8 @@ dependencies = [
  "hash-telemetry",
  "mimalloc",
  "serde",
+ "serde_json",
+ "similar-asserts",
  "simple-mermaid",
  "tokio",
  "type-system",

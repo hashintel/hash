@@ -29,7 +29,9 @@ simple-mermaid = { workspace = true }
 uuid           = { workspace = true, features = ["v5"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+serde_json      = { workspace = true }
+similar-asserts = { workspace = true }
+tokio           = { workspace = true, features = ["macros", "rt"] }
 
 [lints]
 workspace = true

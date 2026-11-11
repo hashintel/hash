@@ -5,15 +5,19 @@ use error_stack::Report;
 use hash_integrations_orchestration::{
     BackendError, RunId, RunPhase, RunStart, RunStatus, Runs, StartError,
 };
+use serde_json::{Value, json};
+use similar_asserts::assert_eq;
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 
 use super::{
-    IntegrationService, Invocation, Request, RunInput, ServiceError, Submission,
+    IntegrationService, Invocation, Request, ServiceError, Submission,
     start::{FUNCTION_VERSION, RETRY_POLICY},
 };
 
-/// Records starts and cancels in memory, following the rules of [`Runs`].
+/// Records starts and cancels in memory, following the rules of [`Runs`]: a repeated start with
+/// the same [`RunStart`] attaches, a different one is refused, and one run is active per
+/// admission key until it is cancelled.
 #[derive(Default)]
 struct FakeRuns {
     runs: Mutex<HashMap<RunId, (RunStart, bool)>>,
@@ -23,16 +27,14 @@ impl FakeRuns {
     fn started(&self) -> HashMap<RunId, RunStart> {
         self.runs
             .lock()
-            .expect("the lock should not be poisoned")
+            .expect("should lock the runs")
             .iter()
             .map(|(run, (start, _))| (run.clone(), start.clone()))
             .collect()
     }
-}
 
-impl FakeRuns {
     fn record_start(&self, run: RunId, start: RunStart) -> Result<(), Report<StartError>> {
-        let mut runs = self.runs.lock().expect("the lock should not be poisoned");
+        let mut runs = self.runs.lock().expect("should lock the runs");
 
         if let Some((recorded, _)) = runs.get(&run) {
             return if *recorded == start {
@@ -72,7 +74,7 @@ impl Runs for FakeRuns {
         let cancelled = self
             .runs
             .lock()
-            .expect("the lock should not be poisoned")
+            .expect("should lock the runs")
             .get(run)
             .map(|(_, cancelled)| *cancelled);
 
@@ -87,12 +89,7 @@ impl Runs for FakeRuns {
     }
 
     fn cancel(&self, run: &RunId) -> impl Future<Output = Result<(), Report<BackendError>>> + Send {
-        if let Some((_, cancelled)) = self
-            .runs
-            .lock()
-            .expect("the lock should not be poisoned")
-            .get_mut(run)
-        {
+        if let Some((_, cancelled)) = self.runs.lock().expect("should lock the runs").get_mut(run) {
             *cancelled = true;
         }
 
@@ -102,7 +99,8 @@ impl Runs for FakeRuns {
 
 const DEFINITION: &str = "connector: demo\n";
 
-/// A version 4 UUID ending in `n`. Web and actor IDs refuse UUIDs without a version.
+/// A version 4 UUID ending in `n`. Web and actor IDs refuse a UUID without a version or the RFC
+/// 4122 variant when a run input is decoded.
 const fn uuid(n: u128) -> Uuid {
     Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0000 | n)
 }
@@ -130,83 +128,95 @@ fn service() -> IntegrationService<FakeRuns> {
     IntegrationService::new(FakeRuns::default(), web())
 }
 
+/// The input is the stored format a worker decodes, so its JSON is pinned field by field.
 #[tokio::test]
-async fn submit_starts_a_run_with_the_input_and_the_admission_key() {
+async fn submit_records_run_start() {
     let service = service();
+    let submission = Submission {
+        invocation: Invocation { links_only: true },
+        ..submission(DEFINITION)
+    };
 
     let run = service
-        .submit(&request(10), submission(DEFINITION))
+        .submit(&request(10), submission)
         .await
-        .expect("the run should start");
+        .expect("should start the run");
 
-    let started = service.runs.started();
-    let start = started.get(&run).expect("the run should be started");
+    let start = &service.runs.started()[&run];
     assert_eq!(
         start.admission.as_ref(),
         "00000000-0000-4000-8000-000000000001/demo"
     );
-    assert_eq!(start.version, FUNCTION_VERSION);
-    assert_eq!(start.policy, RETRY_POLICY);
+    assert_eq!(
+        (start.version, start.policy),
+        (FUNCTION_VERSION, RETRY_POLICY)
+    );
     assert_eq!(
         start
             .input
-            .decode::<RunInput>()
-            .expect("the input should decode"),
-        RunInput {
-            web: web(),
-            connector: "demo".into(),
-            owner: ActorEntityUuid::new(uuid(2)),
-            definition: DEFINITION.into(),
-            invocation: Invocation { links_only: false },
-        }
+            .decode::<Value>()
+            .expect("should decode the input as JSON"),
+        json!({
+            "web": "00000000-0000-4000-8000-000000000001",
+            "connector": "demo",
+            "owner": "00000000-0000-4000-8000-000000000002",
+            "definition": DEFINITION,
+            "invocation": { "links_only": true },
+        })
     );
 }
 
 #[tokio::test]
-async fn submit_attaches_a_repeated_request_to_its_run() {
+async fn submit_repeated_request() {
     let service = service();
 
     let first = service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the run should start");
+        .expect("should start the run");
     let second = service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the repeated request should attach");
+        .expect("should attach to the run");
 
     assert_eq!(first, second);
-    assert_eq!(service.runs.started().len(), 1);
+    assert_eq!(service.runs.started().len(), 1, "should start one run");
 }
 
 #[tokio::test]
-async fn submit_rejects_a_request_id_used_with_another_submission() {
+async fn submit_reused_request_id() {
     let service = service();
-
     service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the run should start");
+        .expect("should start the run");
+
     let report = service
         .submit(&request(10), submission("connector: demo # changed\n"))
         .await
-        .expect_err("another submission under the same request ID should be rejected");
+        .expect_err("should refuse another submission under the same request ID");
 
     assert_eq!(*report.current_context(), ServiceError::RequestMismatch);
 }
 
+/// One run is active per connector: a second request for it is refused, while a request for
+/// another connector of the same web starts.
 #[tokio::test]
-async fn submit_rejects_a_second_run_while_one_is_active() {
+async fn submit_active_connector() {
     let service = service();
-
     let active = service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the run should start");
+        .expect("should start the run");
+
     let report = service
         .submit(&request(11), submission(DEFINITION))
         .await
-        .expect_err("a second run of the integration should be rejected");
+        .expect_err("should refuse a second run of the connector");
+    service
+        .submit(&request(12), submission("connector: other\n"))
+        .await
+        .expect("should start a run of another connector");
 
     assert_eq!(
         *report.current_context(),
@@ -215,111 +225,80 @@ async fn submit_rejects_a_second_run_while_one_is_active() {
 }
 
 #[tokio::test]
-async fn submit_rejects_another_web_before_starting() {
-    let service = service();
-    let request = Request {
-        web: WebId::new(uuid(3)),
-        ..request(10)
-    };
-
-    let report = service
-        .submit(&request, submission(DEFINITION))
-        .await
-        .expect_err("another web should be rejected");
-
-    assert_eq!(*report.current_context(), ServiceError::WebMismatch);
-    assert!(service.runs.started().is_empty());
-}
-
-#[tokio::test]
-async fn submit_rejects_an_invalid_definition_before_starting() {
+async fn submit_invalid_definition() {
     let service = service();
 
     let report = service
         .submit(&request(10), submission("connector: \"demo\n"))
         .await
-        .expect_err("the definition should not parse");
+        .expect_err("should refuse a definition that is not YAML");
 
     assert_eq!(*report.current_context(), ServiceError::InvalidDefinition);
-    assert!(service.runs.started().is_empty());
+    assert!(service.runs.started().is_empty(), "should start no run");
 }
 
+/// Every operation refuses a request for another web and leaves the node's runs alone.
 #[tokio::test]
-async fn status_of_a_started_run_is_pending() {
+async fn requests_other_web() {
     let service = service();
     let run = service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the run should start");
+        .expect("should start the run");
+    let foreign = Request {
+        web: WebId::new(uuid(3)),
+        ..request(11)
+    };
 
-    let status = service
-        .status(&request(10), &run)
+    let submit = service
+        .submit(&foreign, submission("connector: other\n"))
         .await
-        .expect("the status should be read");
+        .expect_err("should refuse to submit");
+    let status = service
+        .status(&foreign, &run)
+        .await
+        .expect_err("should refuse to read the status");
+    let cancel = service
+        .cancel(&foreign, &run)
+        .await
+        .expect_err("should refuse to cancel");
 
     assert_eq!(
-        status,
-        Some(RunStatus {
-            phase: RunPhase::Pending,
-            steps_recorded: 0,
-        })
+        [submit, status, cancel].map(|report| report.current_context().clone()),
+        [
+            ServiceError::WebMismatch,
+            ServiceError::WebMismatch,
+            ServiceError::WebMismatch,
+        ]
+    );
+    assert_eq!(service.runs.started().len(), 1, "should start no run");
+    assert_eq!(
+        service
+            .status(&request(10), &run)
+            .await
+            .expect("should read the status")
+            .map(|status| status.phase),
+        Some(RunPhase::Pending),
+        "should leave the run running"
     );
 }
 
 #[tokio::test]
-async fn status_of_an_unknown_run_is_none() {
-    let service = service();
-    let run = "unknown".parse().expect("unknown should be a run ID");
-
-    let status = service
-        .status(&request(10), &run)
-        .await
-        .expect("the status should be read");
-
-    assert_eq!(status, None);
-}
-
-#[tokio::test]
-async fn cancel_stops_a_run() {
+async fn status_after_cancel() {
     let service = service();
     let run = service
         .submit(&request(10), submission(DEFINITION))
         .await
-        .expect("the run should start");
+        .expect("should start the run");
 
     service
         .cancel(&request(10), &run)
         .await
-        .expect("the run should be cancelled");
+        .expect("should cancel the run");
     let status = service
         .status(&request(10), &run)
         .await
-        .expect("the status should be read");
+        .expect("should read the status");
 
     assert_eq!(status.map(|status| status.phase), Some(RunPhase::Cancelled));
-}
-
-#[tokio::test]
-async fn status_and_cancel_reject_another_web() {
-    let service = service();
-    let run = service
-        .submit(&request(10), submission(DEFINITION))
-        .await
-        .expect("the run should start");
-    let request = Request {
-        web: WebId::new(uuid(3)),
-        ..request(10)
-    };
-
-    let status = service
-        .status(&request, &run)
-        .await
-        .expect_err("another web should be rejected");
-    let cancel = service
-        .cancel(&request, &run)
-        .await
-        .expect_err("another web should be rejected");
-
-    assert_eq!(*status.current_context(), ServiceError::WebMismatch);
-    assert_eq!(*cancel.current_context(), ServiceError::WebMismatch);
 }

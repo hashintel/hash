@@ -42,34 +42,33 @@ pub(crate) fn admission_key(web: WebId, connector: &ConnectorId) -> AdmissionKey
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use similar_asserts::assert_eq;
+    use type_system::principal::actor_group::WebId;
+    use uuid::{Uuid, uuid};
 
-    const WEB: Uuid = Uuid::from_u128(1);
-    const REQUEST: Uuid = Uuid::from_u128(2);
+    use super::run_id;
 
+    const WEB: Uuid = uuid!("00000000-0000-4000-8000-000000000001");
+    const REQUEST: Uuid = uuid!("00000000-0000-4000-8000-00000000000a");
+
+    /// A retry after a deploy attaches to its run only while the derivation stays the same.
     #[test]
-    fn run_id_is_the_same_for_a_repeated_request() {
+    fn run_id_pinned() {
         assert_eq!(
-            run_id(WebId::new(WEB), REQUEST),
-            run_id(WebId::new(WEB), REQUEST)
+            run_id(WebId::new(WEB), REQUEST).as_ref(),
+            "0ccc2c92-e805-5182-803d-9d6c5fb90394",
+            "the run ID should be the UUIDv5 of the web and the request under the run namespace"
         );
     }
 
     #[test]
-    fn run_id_differs_across_webs() {
+    fn run_id_per_web() {
+        let other = WebId::new(uuid!("00000000-0000-4000-8000-000000000002"));
+
         assert_ne!(
             run_id(WebId::new(WEB), REQUEST),
-            run_id(WebId::new(Uuid::from_u128(3)), REQUEST)
-        );
-    }
-
-    #[test]
-    fn admission_key_names_the_web_and_the_connector() {
-        let connector = "demo".parse().expect("demo should be a connector ID");
-
-        assert_eq!(
-            admission_key(WebId::new(WEB), &connector).as_ref(),
-            "00000000-0000-0000-0000-000000000001/demo"
+            run_id(other, REQUEST),
+            "the same request ID in two webs should start two runs"
         );
     }
 }

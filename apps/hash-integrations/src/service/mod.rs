@@ -36,7 +36,10 @@ pub(crate) enum ServiceError {
     InvalidDefinition,
     #[display("run `{active}` of this integration is still active")]
     AlreadyActive { active: RunId },
-    #[display("the request ID was used before with a different submission")]
+    #[display(
+        "the request ID was used before for a different run: another actor, definition, \
+         invocation, function version or retry policy"
+    )]
     RequestMismatch,
     #[display("the orchestration backend could not complete the request")]
     Backend,
@@ -55,12 +58,16 @@ impl<R: Runs> IntegrationService<R> {
 
     /// Starts the run of `request`, or attaches to it when the request is repeated.
     ///
+    /// A repeated request attaches only if it starts the same run: the same actor, definition and
+    /// invocation, under the same [`FUNCTION_VERSION`] and [`RETRY_POLICY`]. A retry after a
+    /// deploy that changes either fails with [`ServiceError::RequestMismatch`].
+    ///
     /// # Errors
     ///
     /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
-    /// - [`ServiceError::InvalidDefinition`] if the definition does not parse.
+    /// - [`ServiceError::InvalidDefinition`] if the definition is not a valid definition.
     /// - [`ServiceError::AlreadyActive`] if another run of the integration is active.
-    /// - [`ServiceError::RequestMismatch`] if the request ID was used with a different submission.
+    /// - [`ServiceError::RequestMismatch`] if the request ID was used before for a different run.
     /// - [`ServiceError::Backend`] if the backend could not start the run.
     pub(crate) async fn submit(
         &self,

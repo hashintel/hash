@@ -25,19 +25,20 @@ pub(crate) struct RunInput {
 pub(crate) enum RunInputError {
     #[display("the run was started for another web")]
     WebMismatch,
-    #[display("the run's definition does not parse")]
+    #[display("the run's definition is not a valid definition")]
     InvalidDefinition,
     #[display("the run's definition names another connector than the run was started for")]
     ConnectorMismatch,
 }
 
 impl RunInput {
-    /// Parses the recorded definition after checking the run belongs to `web` and its connector.
+    /// Checks the run belongs to `web`, then parses the recorded definition and checks it names
+    /// the run's connector.
     ///
     /// # Errors
     ///
     /// - [`RunInputError::WebMismatch`] if the run was started for another web.
-    /// - [`RunInputError::InvalidDefinition`] if the definition does not parse.
+    /// - [`RunInputError::InvalidDefinition`] if the definition is not a valid definition.
     /// - [`RunInputError::ConnectorMismatch`] if the definition names another connector.
     pub(crate) fn definition(&self, web: WebId) -> Result<Definition, Report<RunInputError>> {
         if self.web != web {
@@ -57,60 +58,52 @@ impl RunInput {
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
+    use similar_asserts::assert_eq;
+    use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
+    use uuid::uuid;
 
-    use super::*;
-
-    const DEFINITION: &str = "connector: demo\n";
+    use super::{Invocation, RunInput, RunInputError};
 
     fn input(definition: &str) -> RunInput {
         RunInput {
-            web: WebId::new(Uuid::from_u128(1)),
+            web: WebId::new(uuid!("00000000-0000-4000-8000-000000000001")),
             connector: "demo".into(),
-            owner: ActorEntityUuid::new(Uuid::from_u128(2)),
+            owner: ActorEntityUuid::new(uuid!("00000000-0000-4000-8000-000000000002")),
             definition: definition.into(),
             invocation: Invocation { links_only: false },
         }
     }
 
     #[test]
-    fn definition_parses_for_its_web_and_connector() {
-        let input = input(DEFINITION);
+    fn definition_matching() {
+        let input = input("connector: demo\n");
 
         let definition = input
             .definition(input.web)
-            .expect("the definition should parse");
+            .expect("should parse the definition of the run's web and connector");
 
         assert_eq!(definition.connector().as_ref(), "demo");
     }
 
     #[test]
-    fn definition_rejects_another_web() {
-        let report = input(DEFINITION)
-            .definition(WebId::new(Uuid::from_u128(3)))
-            .expect_err("another web should be rejected");
+    fn definition_other_web() {
+        let other = WebId::new(uuid!("00000000-0000-4000-8000-000000000003"));
+
+        let report = input("connector: demo\n")
+            .definition(other)
+            .expect_err("should reject a run started for another web");
 
         assert_eq!(*report.current_context(), RunInputError::WebMismatch);
     }
 
+    /// The definition names another connector than the one the run was admitted under.
     #[test]
-    fn definition_rejects_text_that_does_not_parse() {
-        let input = input("connector: \"demo\n");
-
-        let report = input
-            .definition(input.web)
-            .expect_err("the definition should not parse");
-
-        assert_eq!(*report.current_context(), RunInputError::InvalidDefinition);
-    }
-
-    #[test]
-    fn definition_rejects_another_connector() {
+    fn definition_other_connector() {
         let input = input("connector: other\n");
 
         let report = input
             .definition(input.web)
-            .expect_err("another connector should be rejected");
+            .expect_err("should reject a definition of another connector");
 
         assert_eq!(*report.current_context(), RunInputError::ConnectorMismatch);
     }
