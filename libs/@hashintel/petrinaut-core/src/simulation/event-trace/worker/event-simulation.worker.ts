@@ -244,7 +244,9 @@ runtime.onMessage((message) => {
       break;
     }
     case "demand": {
-      demandedTime = Math.max(demandedTime, message.time);
+      // The latest demand stands, also when it is lower than the one before:
+      // what is already computed stays, and the worker waits.
+      demandedTime = message.time;
       break;
     }
   }

@@ -8,6 +8,7 @@ import {
 import { createInMemoryEventTraceStore } from "../trace-store";
 import { createAdaptiveStepper } from "./adaptive-stepper";
 import { createTraceRecorder } from "./trace-recorder";
+import { evaluateHazards } from "./transition-hazards";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type { TraceEvent } from "../trace";
@@ -176,6 +177,37 @@ const stuck: SDCPN = {
     },
   ],
   types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+/** A predicate over three of a pool's tokens, which every choice of three satisfies. */
+const pool: SDCPN = {
+  places: [
+    {
+      id: "pool",
+      name: "Pool",
+      colorId: "real",
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    },
+    uncoloured("done", "Done"),
+  ],
+  transitions: [
+    {
+      id: "take",
+      name: "Take",
+      inputArcs: [{ placeId: "pool", weight: 3, type: "standard" }],
+      outputArcs: [{ placeId: "done", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda((input) => input.Pool[0].x >= 0);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+  types: [realType],
   differentialEquations: [],
   parameters: [],
 };
@@ -426,6 +458,32 @@ describe("createAdaptiveStepper", () => {
       events.filter((event) => event.kind === "reference"),
       [0.1, 0.2, 0.3, 0.4, 0.5],
     );
+    expect(last.completion).toBe("deadlock");
+  });
+
+  it("evaluates no firing mode after the first whose predicate holds", () => {
+    const stepper = createAdaptiveStepper(
+      {
+        sdcpn: pool,
+        hirArtifacts: compile(pool),
+        initialMarking: {
+          pool: Array.from({ length: 6 }, () => ({ x: 0 })),
+          done: 0,
+        },
+        parameterValues: {},
+        seed: 1,
+        maxTime: null,
+      },
+      { tolerance: 1e-6 },
+    );
+    const hazards = evaluateHazards(stepper.run, stepper.run.currentFrame);
+    // Six tokens taken three at a time make twenty modes.
+    expect(hazards.modes).toHaveLength(1);
+    expect(hazards.immediate).toBe(hazards.modes[0]);
+
+    const recorder = createTraceRecorder(stepper);
+    const { events, last } = recordUntilOver(recorder);
+    expect(events.map((event) => event.kind)).toEqual(["firing", "firing"]);
     expect(last.completion).toBe("deadlock");
   });
 

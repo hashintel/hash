@@ -36,9 +36,12 @@ export type FiringMode = {
 };
 
 export type Hazards = {
-  /** Every mode with a positive rate, in net order. */
+  /**
+   * Every mode with a positive rate, in net order. Ends at `immediate` when
+   * there is one: nothing after it is evaluated.
+   */
   modes: FiringMode[];
-  /** Sum of the finite rates. */
+  /** Sum of the finite rates in `modes`. */
   total: number;
   /** The first mode whose predicate holds, which fires without delay. */
   immediate: FiringMode | null;
@@ -100,7 +103,8 @@ const bindCombination = (
  * combination counts as a mode of its own, so a transition's rate is the
  * sum over its combinations; a lambda that reads no input token is
  * evaluated once, on the first combination, since every combination would
- * give the same rate.
+ * give the same rate. The evaluation ends at the first mode whose predicate
+ * holds, since that mode fires before any rate is drawn from.
  */
 export function evaluateHazards(
   run: MonteCarloRunState,
@@ -108,7 +112,6 @@ export function evaluateHazards(
 ): Hazards {
   const modes: FiringMode[] = [];
   let total = 0;
-  let immediate: FiringMode | null = null;
 
   for (const transitionId of run.simulation.frameLayout.transitionIds) {
     const transition = run.simulation.compiledTransitions.get(transitionId);
@@ -178,14 +181,13 @@ export function evaluateHazards(
       };
       modes.push(mode);
       if (rate === Number.POSITIVE_INFINITY) {
-        immediate ??= mode;
-      } else {
-        total += rate;
+        return { modes, total, immediate: mode };
       }
+      total += rate;
     }
   }
 
-  return { modes, total, immediate };
+  return { modes, total, immediate: null };
 }
 
 /**

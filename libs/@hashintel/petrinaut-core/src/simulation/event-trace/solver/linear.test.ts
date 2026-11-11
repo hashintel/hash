@@ -16,6 +16,11 @@ describe("matrixExponential", () => {
     );
   });
 
+  it("ends for a finite norm whose double overflows", () => {
+    const result = matrixExponential(Float64Array.of(-1.5e308), 1);
+    expect(result[0]).toBe(0);
+  });
+
   it("exponentiates a diagonal matrix entrywise", () => {
     const result = matrixExponential(Float64Array.of(1, 0, 0, -2), 2);
     expect(result[0]).toBeCloseTo(Math.E, 12);
