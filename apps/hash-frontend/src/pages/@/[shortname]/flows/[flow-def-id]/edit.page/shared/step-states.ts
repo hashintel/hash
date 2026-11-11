@@ -71,7 +71,7 @@ const countItems = (states: ItemState[]): ItemCounts => {
 
 /**
  * What a step's items add up to. Items not reached yet keep a step running while its run is `live`; once the run has
- * stopped, they never will be, so the step was skipped part way.
+ * stopped, they never will be, so the step was skipped part way, unless some of its items failed, which shows first.
  */
 const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
   const total = itemStates.reduce((sum, state) => sum + counts[state], 0);
@@ -88,15 +88,17 @@ const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
     return "notReached";
   }
 
-  if (counts.notReached > 0) {
-    return live ? "running" : "skipped";
+  if (counts.notReached > 0 && live) {
+    return "running";
   }
 
   if (counts.failed > 0) {
     return counts.done > 0 ? "doneWithFailures" : "failed";
   }
 
-  return counts.done > 0 || total === 0 ? "done" : "skipped";
+  return (counts.done > 0 && counts.notReached === 0) || total === 0
+    ? "done"
+    : "skipped";
 };
 
 /** An item's state from its steps' states for it: a failure in any step fails the item. */

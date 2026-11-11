@@ -179,6 +179,24 @@ describe("getStepRunMarks", () => {
     expect(marks.get("send")?.state).toBe("skipped");
   });
 
+  it("shows a stopped for-each step's failed items over those it never finished", () => {
+    const marks = marksOf(
+      [
+        itemRun("fetch", 0, FlowStepStatus.Failed),
+        /* A run that fails cancels the steps still in progress. */
+        itemRun("fetch", 1, FlowStepStatus.Cancelled),
+        itemRun("fetch", 2, FlowStepStatus.Completed),
+        itemRun("send", 2, FlowStepStatus.Completed),
+      ],
+      { itemCount: 3, live: false },
+    );
+
+    expect(marks.get("eachSupplier")).toEqual({
+      state: "doneWithFailures",
+      items: counts({ done: 1, failed: 1, notReached: 1 }),
+    });
+  });
+
   it("shows a for-each step whose run stopped before every item finished as skipped", () => {
     const marks = marksOf(
       [
