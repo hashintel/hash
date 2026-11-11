@@ -47,7 +47,8 @@ export function createStepper(
 }
 
 /**
- * Builds the stepper of a single run, the one a person plays back.
+ * Builds the stepper of a run: the single one a person plays back, or one
+ * of an experiment's.
  *
  * A timed net is stepped by the selected simulator. An untimed net has
  * nothing a simulator of time could integrate or wait for, so its run is a

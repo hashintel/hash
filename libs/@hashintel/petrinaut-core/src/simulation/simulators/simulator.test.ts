@@ -26,6 +26,29 @@ const requestBase: SimulationRequestBase = {
   maxTime: 10,
 };
 
+/** A net with a rate in it, so that time passes in its runs. */
+const timedNet: SDCPN = {
+  ...emptyNet,
+  transitions: [
+    {
+      id: "arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "export default Lambda(() => 1);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+};
+
+const timedRequest: SimulationRequestBase = {
+  ...requestBase,
+  sdcpn: timedNet,
+};
+
 const stepParameters = {
   dt: {
     type: "number",
@@ -233,10 +256,10 @@ describe("simulatorFromExperimentBackend", () => {
 
   it("starts the backend's experiment with the simulator's time step as its step", async () => {
     const see = vi.fn();
-    const started = await startWith(backendSeeing(see), requestBase);
+    const started = await startWith(backendSeeing(see), timedRequest);
     expect(started).toEqual({ ok: true, handle, runtimeInfo: "2 workers" });
     expect(see).toHaveBeenCalledWith({
-      sdcpn: emptyNet,
+      sdcpn: timedNet,
       initialMarking: {},
       parameterValues: {},
       seed: 1,
@@ -250,19 +273,24 @@ describe("simulatorFromExperimentBackend", () => {
   it("refuses an experiment without a time to stop at", async () => {
     const see = vi.fn();
     const started = await startWith(backendSeeing(see), {
-      ...requestBase,
+      ...timedRequest,
       maxTime: null,
     });
     expect(started).toMatchObject({
       ok: false,
-      blockers: [{ code: "experiment-needs-max-time" }],
+      blockers: [
+        {
+          code: "experiment-needs-max-time",
+          message: "An experiment needs a time to stop at",
+        },
+      ],
     });
     expect(see).not.toHaveBeenCalled();
   });
 
   it("refuses a sample period that is not the time step", async () => {
     const see = vi.fn();
-    const started = await startWith(backendSeeing(see), requestBase, 0.5);
+    const started = await startWith(backendSeeing(see), timedRequest, 0.5);
     expect(started).toMatchObject({
       ok: false,
       blockers: [
@@ -290,7 +318,7 @@ describe("simulatorFromExperimentBackend", () => {
           ],
         }),
     };
-    expect(await startWith(refusing, requestBase)).toEqual({
+    expect(await startWith(refusing, timedRequest)).toEqual({
       ok: false,
       blockers: [
         { code: "no-transitions", message: "Nothing to fire", origin: "model" },
@@ -307,7 +335,7 @@ describe("simulatorFromExperimentBackend", () => {
       },
     );
     const assessment = await simulator.assess({
-      ...requestBase,
+      ...timedRequest,
       simulatorParameters: { dt: 0.1 },
     });
     if (!assessment.eligible || !assessment.startExperiment) {
@@ -325,5 +353,97 @@ describe("simulatorFromExperimentBackend", () => {
     // Without a period of its own, the experiment samples every 0.1 s.
     await assessment.startExperiment({ runCount: 8, metricSpecs: [] });
     expect(see).toHaveBeenLastCalledWith(expect.objectContaining({ dt: 0.1 }));
+  });
+
+  describe("for an untimed net", () => {
+    const steppings = [
+      ["its own engine", { timeStepParameter: "dt" }],
+      [
+        "a hosted simulator",
+        {
+          simulatorOf: (parameters: { dt: number }) => ({
+            id: "test.solver",
+            parameters,
+          }),
+        },
+      ],
+    ] as const;
+
+    const assessWith = async (
+      stepping: (typeof steppings)[number][1],
+      see: (request: ExperimentRequest) => void,
+      request: SimulationRequestBase = requestBase,
+    ) => {
+      const assessment = await simulatorFromExperimentBackend<
+        typeof stepParameters
+      >(backendSeeing(see), stepping).assess({
+        ...request,
+        simulatorParameters: { dt: 0.1 },
+      });
+      if (!assessment.eligible || !assessment.startExperiment) {
+        throw new Error("The adapter should offer experiments");
+      }
+      return assessment.startExperiment;
+    };
+
+    it.each(steppings)(
+      "samples every step with %s, whatever the simulator steps by",
+      async (_name, stepping) => {
+        const see = vi.fn();
+        const startExperiment = await assessWith(stepping, see);
+
+        await startExperiment({ runCount: 8, metricSpecs: [] });
+        expect(see).toHaveBeenLastCalledWith(
+          expect.objectContaining({ dt: 1, maxTime: 10 }),
+        );
+
+        await startExperiment({ ...experiment, samplePeriod: 1 });
+        expect(see).toHaveBeenLastCalledWith(
+          expect.objectContaining({ dt: 1 }),
+        );
+      },
+    );
+
+    it.each(steppings)(
+      "refuses a sample period that is not a step with %s",
+      async (_name, stepping) => {
+        const see = vi.fn();
+        const startExperiment = await assessWith(stepping, see);
+
+        expect(
+          await startExperiment({ ...experiment, samplePeriod: 0.1 }),
+        ).toMatchObject({
+          ok: false,
+          blockers: [
+            {
+              code: "sample-period-differs-from-step",
+              message: "An untimed net is sampled at every step",
+            },
+          ],
+        });
+        expect(see).not.toHaveBeenCalled();
+      },
+    );
+
+    it("refuses an experiment without a step to stop at", async () => {
+      const see = vi.fn();
+      const startExperiment = await assessWith(steppings[0][1], see, {
+        ...requestBase,
+        maxTime: null,
+      });
+
+      expect(
+        await startExperiment({ runCount: 8, metricSpecs: [] }),
+      ).toMatchObject({
+        ok: false,
+        blockers: [
+          {
+            code: "experiment-needs-max-time",
+            message: "An experiment needs a step to stop at",
+          },
+        ],
+      });
+      expect(see).not.toHaveBeenCalled();
+    });
   });
 });

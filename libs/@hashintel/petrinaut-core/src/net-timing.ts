@@ -58,11 +58,17 @@ export const isTimedNet = (
  */
 export type RunClock = "time" | "steps";
 
-/** The clock a single run of the net is read against. */
+/** The clock a run of the net is read against, alone or in an experiment. */
 export const runClockOf = (
   sdcpn: Pick<SDCPN, "places" | "transitions" | "subnets">,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): RunClock => (isTimedNet(sdcpn, extensions) ? "time" : "steps");
+
+/**
+ * The spacing of an experiment's samples on a clock that counts steps: every
+ * step is sampled. A step has no part to sample between.
+ */
+export const STEP_SAMPLE_PERIOD = 1;
 
 /**
  * Whether the transition is a predicate that nothing feeds: no input arc of

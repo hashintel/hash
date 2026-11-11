@@ -228,6 +228,40 @@ describe("compileNetShader", () => {
     );
   });
 
+  it("marks a run of an untimed net deadlocked as soon as nothing fired", () => {
+    const untimed: SDCPN = {
+      places: ["source", "sink"].map((id) => ({
+        id,
+        name: id,
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      })),
+      transitions: [
+        {
+          id: "move",
+          name: "Move",
+          inputArcs: [{ placeId: "source", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "sink", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    const result = compileFor(untimed);
+    if (!result.ok) throw new Error(result.reason);
+
+    expect(result.shader.wgsl).toContain("if (!any_fired) { status = 1u; }");
+    expect(result.shader.wgsl).not.toContain("!any_fired && !any_enabled");
+  });
+
   it.each([
     ["euler", 1],
     ["rk2", 2],

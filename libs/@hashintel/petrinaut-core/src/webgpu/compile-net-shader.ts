@@ -19,6 +19,7 @@
  * live state) and `run-parameters` (per-run buffer).
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
+import { isTimedNet } from "../net-timing";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
@@ -422,8 +423,13 @@ export function compileNetShader(
       );
     }
     // A run with nothing enabled and nothing fired is deadlocked; one that
-    // reaches the frame limit is complete. Both stop consuming work.
-    push(`      if (!any_fired && !any_enabled) { status = 1u; }`);
+    // reaches the frame limit is complete. Both stop consuming work. In an
+    // untimed net nothing changes while nothing fires, so a frame that fires
+    // nothing is a deadlock whatever is enabled, as in the CPU engine.
+    const deadlocked = isTimedNet(sdcpn, extensions)
+      ? "!any_fired && !any_enabled"
+      : "!any_fired";
+    push(`      if (${deadlocked}) { status = 1u; }`);
     push(
       `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`,
     );

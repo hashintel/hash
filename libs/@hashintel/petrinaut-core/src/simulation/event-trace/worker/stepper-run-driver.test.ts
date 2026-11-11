@@ -10,6 +10,7 @@ import { createStepperRunDriverFactory } from "./stepper-run-driver";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationFrameReader } from "../../api";
 import type { MonteCarloFrameMetric } from "../../monte-carlo/metrics/types";
+import type { StepperSelection } from "./steppers";
 
 const sir = sirModel.petriNetDefinition;
 const sirConfig = {
@@ -44,6 +45,48 @@ const poisson: SDCPN = {
       outputArcs: [{ placeId: "sink", weight: 1 }],
       lambdaType: "stochastic",
       lambdaCode: "export default Lambda(() => 5);",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
+/**
+ * An untimed net. `move` drains `source` into `sink`. `never` keeps its
+ * token, and its guard never holds.
+ */
+const drain: SDCPN = {
+  places: ["source", "sink", "hold"].map((id) => ({
+    id,
+    name: id,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  })),
+  transitions: [
+    {
+      id: "move",
+      name: "Move",
+      inputArcs: [{ placeId: "source", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "sink", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+    {
+      id: "never",
+      name: "Never",
+      inputArcs: [{ placeId: "hold", weight: 1, type: "read" }],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => false);",
       transitionKernelCode: "",
       x: 0,
       y: 0,
@@ -316,5 +359,63 @@ describe("an experiment whose runs a stepper advances", () => {
     expect(sampleTimes(true)).toEqual([0, 0.1, 0.2, 0.25]);
     // The fixed-step engine takes whole steps, and its last one passes it.
     expect(sampleTimes(false)).toEqual([0, 0.1, 0.2, 0.3]);
+  });
+
+  it("steps an untimed net in steps whichever simulator is selected, as the engine does at a step of one", () => {
+    const sinkPerStep = (
+      createRunDriver?: ReturnType<typeof createStepperRunDriverFactory>,
+    ) => {
+      const { metric, samples } = readingsOf((frame) =>
+        frame.getPlaceTokenCount("sink"),
+      );
+      const simulator = createMonteCarloSimulator({
+        sdcpn: drain,
+        hirArtifacts: compileHirArtifacts(drain).artifacts,
+        initialMarking: { source: 3, sink: 0, hold: 1 },
+        parameterValues: {},
+        seed: 4,
+        // A sample per step, and a tenth step to stop at.
+        dt: 1,
+        maxTime: 10,
+        runCount: 2,
+        metrics: [metric],
+        ...(createRunDriver ? { createRunDriver } : {}),
+      });
+      simulator.runUntilComplete();
+      return {
+        samples,
+        ends: simulator
+          .getSummaries()
+          .map(({ status, completionReason }) => [status, completionReason]),
+      };
+    };
+
+    const engine = sinkPerStep();
+    // Three steps move the tokens. The fourth fires nothing and ends the
+    // run, though `never` still has its token.
+    expect(engine.samples).toEqual([
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [3, 3],
+    ]);
+    expect(engine.ends).toEqual([
+      ["complete", "deadlock"],
+      ["complete", "deadlock"],
+    ]);
+
+    // Neither simulator's own stepper is used: the adaptive one would
+    // compute the whole run at time 0, and the fixed-step one would take a
+    // hundred steps per sample.
+    const selections: StepperSelection[] = [
+      { id: ADAPTIVE_SIMULATOR_ID, parameters: { tolerance: 1e-6 } },
+      { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.01 } },
+    ];
+    for (const selection of selections) {
+      expect(sinkPerStep(createStepperRunDriverFactory(selection))).toEqual(
+        engine,
+      );
+    }
   });
 });

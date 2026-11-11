@@ -110,7 +110,9 @@ export function advanceRun(run: MonteCarloRunState): boolean {
       completeRun(run, "maxTime");
     } else if (
       firedTransitions.size === 0 &&
-      !hasStructurallyEnabledTransition(run)
+      // A timed net may fire later with nothing fired now: a rate is a
+      // chance per step. It is over once no transition has its tokens.
+      (run.endsWhenIdle || !hasStructurallyEnabledTransition(run))
     ) {
       completeRun(run, "deadlock");
     }

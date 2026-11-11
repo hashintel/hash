@@ -370,6 +370,7 @@ export {
   defaultSimulatorParameters,
   defineSimulator,
   experimentBackendOfSimulator,
+  experimentSamplePeriod,
   placeCountMetricId,
   placeCountMetricSpecs,
   resolveSimulatorParameters,
@@ -491,6 +492,7 @@ export {
   isTimedNet,
   isTimedTransition,
   runClockOf,
+  STEP_SAMPLE_PERIOD,
   type RunClock,
 } from "./net-timing";
 export { GRID_SIZE } from "./grid-size";
