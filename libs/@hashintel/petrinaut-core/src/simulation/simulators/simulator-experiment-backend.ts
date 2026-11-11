@@ -1,10 +1,6 @@
-import { resolveSimulatorParameters } from "./parameters";
+import { resolveSimulatorSelection, simulatorUnavailable } from "./simulator";
 
-import type {
-  ExperimentAssessment,
-  ExperimentBlocker,
-  ExperimentBlockers,
-} from "../../experiments/experiment-assessment";
+import type { ExperimentAssessment } from "../../experiments/experiment-assessment";
 import type {
   ExperimentBackend,
   ExperimentBackendRegistration,
@@ -36,34 +32,18 @@ export const simulatorSamplePeriod = (
   return typeof stored === "number" ? stored : spec.default;
 };
 
-const refusal = (
-  blocker: ExperimentBlocker,
-  ...rest: ExperimentBlocker[]
-): { eligible: false; blockers: ExperimentBlockers } => ({
-  eligible: false,
-  blockers: [blocker, ...rest],
-});
-
 const assessWith = async (
   registration: SimulatorRegistration,
-  simulator: Simulator,
+  simulator: Simulator | null,
   parameters: StoredSimulatorParameters,
   request: ExperimentRequest,
 ): Promise<ExperimentAssessment> => {
-  const resolved = resolveSimulatorParameters(
-    registration.parameters,
-    parameters,
-  );
+  if (!simulator) {
+    return { eligible: false, blockers: simulatorUnavailable(registration) };
+  }
+  const resolved = resolveSimulatorSelection(registration, parameters);
   if (!resolved.ok) {
-    const [first, ...rest] = resolved.problems.map(
-      ({ key, message }): ExperimentBlocker => ({
-        code: "invalid-simulator-parameter",
-        message,
-        origin: "configuration",
-        itemId: key,
-      }),
-    );
-    return refusal(first!, ...rest);
+    return { eligible: false, blockers: resolved.blockers };
   }
 
   const assessment = await simulator.assess({
@@ -85,11 +65,16 @@ const assessWith = async (
   }
   const { startExperiment } = assessment;
   if (!startExperiment) {
-    return refusal({
-      code: "simulator-computes-no-experiments",
-      message: `${registration.label} computes one run at a time`,
-      origin: "configuration",
-    });
+    return {
+      eligible: false,
+      blockers: [
+        {
+          code: "simulator-computes-no-experiments",
+          message: `${registration.label} computes one run at a time`,
+          origin: "configuration",
+        },
+      ],
+    };
   }
 
   return {
@@ -130,31 +115,19 @@ export const experimentBackendOfSimulator = (
   id: registration.id,
   label: registration.label,
   load: async (): Promise<ExperimentBackend> => {
-    if (!registration.isAvailable()) {
-      return {
-        id: registration.id,
-        label: registration.label,
-        needsHirTrees: false,
-        isAvailable: registration.isAvailable,
-        assess: () =>
-          Promise.resolve(
-            refusal({
-              code: "simulator-unavailable",
-              message: `${registration.label} cannot run in this environment`,
-              origin: "environment",
-            }),
-          ),
-      };
-    }
-    const simulator = await registration.load();
+    // A simulator this environment cannot run is not loaded: the selection
+    // reads `isAvailable` and moves on.
+    const simulator = registration.isAvailable()
+      ? await registration.load()
+      : null;
     return {
       id: registration.id,
       label: registration.label,
-      needsHirTrees: simulator.needsHirTrees,
+      needsHirTrees: simulator?.needsHirTrees ?? false,
       isAvailable: registration.isAvailable,
       assess: (request) =>
         assessWith(registration, simulator, parameters, request),
-      ...(simulator.dispose === undefined
+      ...(simulator?.dispose === undefined
         ? {}
         : { dispose: simulator.dispose }),
     };

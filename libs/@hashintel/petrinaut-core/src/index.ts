@@ -369,7 +369,6 @@ export type {
 export {
   assessSimulator,
   builtInSimulatorManifests,
-  countStatisticsOfBins,
   createExperimentReader,
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
@@ -390,10 +389,9 @@ export {
 } from "./simulation/simulators";
 export type {
   CountStatistics,
-  ExperimentBackendSimulatorOptions,
+  ExperimentBackendStepping,
   ExperimentReader,
-  JsAdaptiveSimulatorOptions,
-  JsFixedStepSimulatorOptions,
+  JsSimulatorOptions,
   ResolvedSimulatorParameters,
   SimulationRequest,
   SimulationRequestBase,

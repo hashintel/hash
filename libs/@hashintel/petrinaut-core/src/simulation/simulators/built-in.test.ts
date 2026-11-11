@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { compileHirArtifacts } from "../../hir/compile";
 import { createStepperRunDriverFactory } from "../event-trace/worker/stepper-run-driver";
@@ -6,6 +6,7 @@ import { createInProcessMonteCarloWorker } from "../monte-carlo/worker/in-proces
 import {
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
 } from "./built-in";
 import {
   createExperimentReader,
@@ -174,5 +175,40 @@ describe("the built-in simulators' experiments", () => {
       ),
     ).toHaveLength(201);
     started.handle.dispose();
+  });
+
+  it("refuses, and loads again next time, when the WebGPU backend fails to load", async () => {
+    vi.stubGlobal("navigator", { gpu: {} });
+    try {
+      const loadBackend = vi
+        .fn()
+        .mockRejectedValue(new Error("The chunk did not arrive"));
+      const registration = createWebGpuFixedStepSimulator({
+        loadBackend,
+      }) as SimulatorRegistration;
+
+      const first = await assessSimulator(registration, {}, request(true));
+      expect(first).toMatchObject({
+        ok: false,
+        blockers: [
+          {
+            code: "backend-failed-to-load",
+            origin: "environment",
+            message:
+              "The WebGPU backend could not be loaded: The chunk did not arrive",
+          },
+        ],
+      });
+      // The failure is not kept: the simulator of one load asks again.
+      const simulator = await registration.load();
+      const parameters = { dt: 0.1, odeMethod: "rk4" };
+      const base = { ...request(true), simulatorParameters: parameters };
+      loadBackend.mockClear();
+      await simulator.assess(base);
+      await simulator.assess(base);
+      expect(loadBackend).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

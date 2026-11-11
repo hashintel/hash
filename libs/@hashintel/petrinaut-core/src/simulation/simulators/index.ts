@@ -41,13 +41,12 @@ export {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   simulatorFromExperimentBackend,
 } from "./experiment-backend-simulator";
-export type { ExperimentBackendSimulatorOptions } from "./experiment-backend-simulator";
+export type { ExperimentBackendStepping } from "./experiment-backend-simulator";
 export {
   experimentBackendOfSimulator,
   simulatorSamplePeriod,
 } from "./simulator-experiment-backend";
 export {
-  countStatisticsOfBins,
   createExperimentReader,
   placeCountMetricId,
   placeCountMetricSpecs,
@@ -64,7 +63,6 @@ export {
   webGpuFixedStepSimulatorManifest,
 } from "./built-in";
 export type {
-  JsAdaptiveSimulatorOptions,
-  JsFixedStepSimulatorOptions,
+  JsSimulatorOptions,
   WebGpuFixedStepSimulatorOptions,
 } from "./built-in";
