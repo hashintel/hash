@@ -3,11 +3,11 @@ title: Writing a query
 description: Build a release briefing by selecting tasks, filtering them and combining related queries.
 ---
 
-In [Using the TypeScript SDK], we built a summary of a task supplied as input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
+In [Using the SDK], we built a summary of a task supplied as input. While we could keep supplying those values ourselves, a query language that only computes over its inputs doesn't let us ask questions of the database. HashQL's integration with the HASH graph lets us query its entities and transform the results. So how do we move from computing with values to querying the graph?
 
 Suppose we're preparing a release briefing. We want to know which tasks remain unfinished, which of those are blocked, and which still need an owner. All of these questions share a common starting point: we must find the tasks that belong to one release. So let's start there!
 
-This guide assumes that you are already familiar with [the basics of HashQL][intro] and [the Draft API of the TypeScript SDK][Using the TypeScript SDK].
+This guide assumes that you are already familiar with [the basics of HashQL][intro] and [the Draft API of the TypeScript SDK][Using the SDK].
 
 <Callout title="Following the examples">
 
@@ -193,7 +193,7 @@ const axes = Program.TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
 
 <Callout>
 
-As outlined in [Using the TypeScript SDK], try to remove as much variance from your programs as possible. In general, this means making the temporal axes an input to your program.
+As outlined in [Using the SDK], try to remove as much variance from your programs as possible. In general, this means making the temporal axes an input to your program.
 
 </Callout>
 
@@ -432,7 +432,7 @@ const briefing = Draft.program(
 );
 ```
 
-We've added a new input, `release`. This follows the approach discussed in [Using the TypeScript SDK]: rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
+We've added a new input, `release`. This follows the approach discussed in [Using the SDK]: rather than hard-coding values, we configure queries through inputs. This helps us create reusable queries that can be easily parameterised and cached.
 
 <Callout>
 
@@ -615,7 +615,7 @@ Queries in HashQL all follow the same pattern: a head starts a graph computation
 
 For a comparative view of the examples, take a look at the [cheatsheet]. The [Draft API reference] details the available API and its signatures. For a deeper explanation of how the compiler works and the motivation behind the language, see [Bilal Mahmoud's Diplomarbeit][hgres-org-hashql].
 
-[Using the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
+[Using the SDK]: /docs/hashql/sdk/typescript/using-draft
 [intro to the TypeScript SDK]: /docs/hashql/sdk/typescript/using-draft
 [`Program`]: /docs/hashql/sdk/typescript/reference/hashql/Program
 [J-Expr]: /docs/hashql/sdk/typescript/reference/hashql/JExpr
