@@ -1692,8 +1692,14 @@ const Overview = ({ history }: { history: HistoryValue }) => {
         return [
           {
             runId: run.id,
-            title: `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
-            line: `${runLabel(run)} · ${run.when} · ${statusWord(`completed, ${warningsText(facts.failures.length)}`, `Done · ${facts.failures.length} failed`)}`,
+            title: statusWord(
+              `Fetch certificate · ${facts.failures.length} of ${facts.n} failed`,
+              `Done · ${failedItemsText(run, now)}`,
+            ),
+            line: statusWord(
+              `${runLabel(run)} · ${run.when} · completed, ${warningsText(facts.failures.length)}`,
+              `${runLabel(run)} · ${run.when}`,
+            ),
           },
         ];
       }
@@ -1703,9 +1709,12 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             runId: run.id,
             title:
               facts.find === "failed"
-                ? statusWord("Find entities · timed out", "Failed at Find entities")
-                : statusWord("Quality sign-off · timed out", "Failed at Quality sign-off"),
-            line: `${runLabel(run)} · ${run.when} · ${statusWord("failed", "Failed")}`,
+                ? statusWord("Find entities · timed out", `Failed at ${failedAtStep(run, now)}`)
+                : statusWord("Quality sign-off · timed out", `Failed at ${failedAtStep(run, now)}`),
+            line: statusWord(
+              `${runLabel(run)} · ${run.when} · failed`,
+              `${runLabel(run)} · ${run.when}`,
+            ),
           },
         ];
       }
