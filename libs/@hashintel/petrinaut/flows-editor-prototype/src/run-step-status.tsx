@@ -163,7 +163,7 @@ const itemRowStyle = css({
   cursor: "pointer",
   textAlign: "left",
   "&:hover": { backgroundColor: "neutral.bg.surface.hover" },
-  "&[data-selected]": { backgroundColor: "neutral.bg.surface.active" },
+  "&[data-selected], &[data-selected]:hover": { backgroundColor: "neutral.bg.subtle.active" },
 });
 
 const branchStyle = css({

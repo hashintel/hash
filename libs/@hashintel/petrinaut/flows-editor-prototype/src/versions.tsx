@@ -14,8 +14,9 @@ import {
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { selectedLabelStyle } from "./menu-rows";
 import { RunIdsIn, runLabel } from "./run-id";
 import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
@@ -95,7 +96,7 @@ export const VersionMenu = ({
             id: `v${version.current}`,
             text: (
               <span className={menuRowStyle}>
-                <span className={menuTitleStyle}>
+                <span className={cx(menuTitleStyle, viewing === null && selectedLabelStyle)}>
                   {versionName(version.current, labelCase)}
                   <span className={stateTagStyle}>Draft</span>
                 </span>
@@ -105,7 +106,7 @@ export const VersionMenu = ({
               </span>
             ),
             selected: viewing === null,
-            selectedStyle: "tick" as const,
+            selectedStyle: "highlight" as const,
             onClick: () => setQuery("version", null),
           },
         ]
@@ -113,11 +114,12 @@ export const VersionMenu = ({
   const published = version.published.slice(0, 4).map((entry, index) => {
     const live = index === 0;
     const current = version.state === "live" && live;
+    const selected = current ? viewing === null : viewing === entry.n;
     return {
       id: `v${entry.n}`,
       text: (
         <span className={menuRowStyle}>
-          <span className={menuTitleStyle}>
+          <span className={cx(menuTitleStyle, selected && selectedLabelStyle)}>
             {entry.name && entry.name !== `v${entry.n}`
               ? `${versionName(entry.n, labelCase)} · ${entry.name}`
               : versionName(entry.n, labelCase)}
@@ -128,8 +130,8 @@ export const VersionMenu = ({
           </span>
         </span>
       ),
-      selected: current ? viewing === null : viewing === entry.n,
-      selectedStyle: "tick" as const,
+      selected,
+      selectedStyle: "highlight" as const,
       onClick: () => setQuery("version", current ? null : String(entry.n)),
     };
   });

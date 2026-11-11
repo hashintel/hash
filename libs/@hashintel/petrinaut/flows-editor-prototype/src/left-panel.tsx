@@ -91,7 +91,7 @@ const rowStyle = css({
   textStyle: "sm",
   lineHeight: "[14px]",
   fontWeight: "medium",
-  // J1.1 (3 Nov): a row is muted; the selected one is dark, with no blue and no fill (ledger, 2 Nov).
+  // J1.1 (3 Nov): a row is muted; the selected one is dark with the #f4f4f4 fill, hovered or not (ledger 11 Nov ~19:40).
   color: "neutral.fg.muted.hover",
   // Row hover is the figma-ds #f9f9f9 (11 Nov convergence A8).
   _hover: { backgroundColor: "neutral.bg.subtle.hover" },
@@ -100,7 +100,10 @@ const rowStyle = css({
     outline: "none",
   },
   // Every row, groups and the selected one too, keeps the DS Sidebar Item's Medium (Figma, 3 Nov).
-  "&[aria-current=true]": { color: "neutral.fg.heading" },
+  "&[aria-current=true], &[aria-current=true]:hover": {
+    color: "neutral.fg.heading",
+    backgroundColor: "neutral.bg.subtle.active",
+  },
 });
 
 const chevronSlotStyle = css({

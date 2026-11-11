@@ -173,8 +173,9 @@ const navRowStyle = css({
     backgroundColor: "neutral.bg.subtle.hover",
     color: "neutral.fg.heading",
   },
-  "&[aria-current=page]": {
-    backgroundColor: "neutral.bg.surface.active",
+  // Selected = the #f4f4f4 fill, hovered or not (ledger 11 Nov ~19:40).
+  "&[aria-current=page], &[aria-current=page]:hover": {
+    backgroundColor: "neutral.bg.subtle.active",
     color: "neutral.fg.heading",
     "& svg": { color: "neutral.fg.muted" },
   },

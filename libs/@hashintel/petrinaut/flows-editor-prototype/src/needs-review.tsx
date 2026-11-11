@@ -277,7 +277,7 @@ const rowStyle = css({
   color: "neutral.fg.body",
   cursor: "pointer",
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
-  "&[aria-current=true]": { backgroundColor: "neutral.bg.surface.active" },
+  "&[aria-current=true], &[aria-current=true]:hover": { backgroundColor: "neutral.bg.subtle.active" },
 });
 
 const lineStyle = css({
