@@ -75,14 +75,14 @@ export const equivalence =
 
 const modifiers = (
   source: readonly Syntax.ModifierLike[] | undefined,
-  exported: boolean,
+  { exported, defaultExport }: Pick<Spelling, "exported" | "defaultExport">,
 ): readonly Syntax.ModifierLike[] => {
   const kept = Array.filter(
     source ?? [],
     (modifier) =>
       modifier.kind !== Syntax.SyntaxKind.DeclareKeyword &&
       (modifier.kind !== Syntax.SyntaxKind.ExportKeyword || exported) &&
-      (modifier.kind !== Syntax.SyntaxKind.DefaultKeyword || exported),
+      (modifier.kind !== Syntax.SyntaxKind.DefaultKeyword || defaultExport),
   );
 
   if (
@@ -118,19 +118,6 @@ const exportName = (name: string): Syntax.ModuleExportName => {
   return Factory.createStringLiteral(name, Syntax.TokenFlags.None);
 };
 
-/** Whether `name` can name a declaration in a module, whose strict code reserves words such as `let` besides the ones every script reserves. */
-const isDeclarable = (name: string): boolean => {
-  const scanner = Syntax.createScanner(true, undefined, name);
-  const token = scanner.scan();
-
-  return (
-    Syntax.isIdentifierText(name) &&
-    scanner.scan() === Syntax.SyntaxKind.EndOfFile &&
-    (token < Syntax.SyntaxKind.FirstReservedWord ||
-      token > Syntax.SyntaxKind.LastFutureReservedWord)
-  );
-};
-
 /** Whether a reader could call, construct or read the declaration at runtime, which a type-only export takes away. */
 const declaresValue = (source: Parts.Source["node"]): boolean =>
   Syntax.isClassDeclaration(source) ||
@@ -142,9 +129,9 @@ const declaresValue = (source: Parts.Source["node"]): boolean =>
 interface Spelling {
   /** The declaration carries `export` itself. */
   readonly exported: boolean;
-  /** The public name, where the declaration takes it in place of its own. */
-  readonly name: Option.Option<Syntax.Identifier>;
-  /** The statement that exports the declaration, where the declaration cannot: a public name no declaration can carry, or a value exported type-only. */
+  /** The declaration keeps `default`, because it is the module's default export under no name of its own. */
+  readonly defaultExport: boolean;
+  /** The statement that exports the declaration, where the declaration cannot: a public name other than its own, or a value exported type-only. */
   readonly statement: Option.Option<Syntax.ExportDeclaration>;
 }
 
@@ -154,7 +141,7 @@ const spellingOf = (
 ): Spelling => {
   const declared: Spelling = {
     exported: true,
-    name: Option.none(),
+    defaultExport: true,
     statement: Option.none(),
   };
   const named = pipe(
@@ -165,7 +152,7 @@ const spellingOf = (
   );
 
   return Option.match(exported, {
-    onNone: () => ({ ...declared, exported: false }),
+    onNone: () => ({ ...declared, exported: false, defaultExport: false }),
     onSome: (entry) =>
       pipe(
         Option.all([Array.last(entry.name.path), named]),
@@ -174,13 +161,7 @@ const spellingOf = (
           onSome: ([name, original]): Spelling => {
             const typeOnly = entry.nameTypeOnlyExport && declaresValue(source);
             if (!typeOnly && name === original.text) {
-              return declared;
-            }
-            if (!typeOnly && isDeclarable(name)) {
-              return {
-                ...declared,
-                name: Option.some(Factory.createIdentifier(name)),
-              };
+              return { ...declared, defaultExport: false };
             }
 
             // The specifier names the declaration again only where the public name differs from it.
@@ -199,7 +180,7 @@ const spellingOf = (
 
             return {
               exported: false,
-              name: Option.none(),
+              defaultExport: false,
               statement: Option.some(
                 Factory.createExportDeclaration(
                   undefined,
@@ -214,7 +195,7 @@ const spellingOf = (
   });
 };
 
-/** Projects declarations by updating selected fields and retaining identifier objects. A declaration carries `export` and its public name where it can, and otherwise an export statement comes first. */
+/** Projects declarations by updating selected fields and retaining identifier objects. A declaration keeps its own name and carries `export` where its public name is that name, and otherwise an export statement follows it. */
 export const project: {
   (
     options: Options,
@@ -233,7 +214,6 @@ export const project: {
   ): Array.NonEmptyReadonlyArray<Syntax.Node> => {
     const source = part.source.node;
     const spelling = spellingOf(source, options.exported);
-    const { exported } = spelling;
     const typeOnlyExport = options.exported.pipe(
       Option.exists((entry) => entry.typeOnlyExport),
     );
@@ -252,8 +232,8 @@ export const project: {
 
       node = Factory.updateClassDeclaration(
         source,
-        modifiers(source.modifiers, exported),
-        Option.getOrElse(spelling.name, () => source.name),
+        modifiers(source.modifiers, spelling),
+        source.name,
         source.typeParameters,
         source.heritageClauses,
         members,
@@ -261,8 +241,8 @@ export const project: {
     } else if (Syntax.isInterfaceDeclaration(source)) {
       node = Factory.updateInterfaceDeclaration(
         source,
-        modifiers(source.modifiers, exported),
-        Option.getOrElse(spelling.name, () => source.name),
+        modifiers(source.modifiers, spelling),
+        source.name,
         source.typeParameters,
         source.heritageClauses,
         source.members,
@@ -270,17 +250,17 @@ export const project: {
     } else if (Syntax.isTypeAliasDeclaration(source)) {
       node = Factory.updateTypeAliasDeclaration(
         source,
-        modifiers(source.modifiers, exported),
-        Option.getOrElse(spelling.name, () => source.name),
+        modifiers(source.modifiers, spelling),
+        source.name,
         source.typeParameters,
         source.type,
       );
     } else if (Syntax.isFunctionDeclaration(source)) {
       node = Factory.updateFunctionDeclaration(
         source,
-        modifiers(source.modifiers, exported),
+        modifiers(source.modifiers, spelling),
         source.asteriskToken,
-        Option.getOrElse(spelling.name, () => source.name),
+        source.name,
         source.typeParameters,
         source.parameters,
         source.type,
@@ -288,8 +268,8 @@ export const project: {
     } else if (Syntax.isEnumDeclaration(source)) {
       node = Factory.updateEnumDeclaration(
         source,
-        modifiers(source.modifiers, exported),
-        Option.getOrElse(spelling.name, () => source.name),
+        modifiers(source.modifiers, spelling),
+        source.name,
         source.members,
       );
     } else if (
@@ -298,25 +278,14 @@ export const project: {
       Syntax.isVariableStatement(source.parent.parent)
     ) {
       const declarations = source.parent.declarations;
-      const selected = Option.match(spelling.name, {
-        onNone: () => (declarations.length === 1 ? declarations : [source]),
-        onSome: (name) => [
-          Factory.updateVariableDeclaration(
-            source,
-            name,
-            source.exclamationToken,
-            source.type,
-            source.initializer,
-          ),
-        ],
-      });
+      const selected = declarations.length === 1 ? declarations : [source];
       const list = Factory.updateVariableDeclarationList(
         source.parent,
         selected,
       );
       node = Factory.updateVariableStatement(
         source.parent.parent,
-        modifiers(source.parent.parent.modifiers, exported),
+        modifiers(source.parent.parent.modifiers, spelling),
         list,
       );
     }

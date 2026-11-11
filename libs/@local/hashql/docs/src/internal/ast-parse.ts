@@ -4,6 +4,7 @@ import {
   Chunk,
   Context,
   Effect,
+  HashMap,
   Layer,
   Option,
   flow,
@@ -236,9 +237,22 @@ const entrypoint = (
       }),
     ),
     Effect.flatMap((id) =>
-      Effect.map(AST.Store, (store) => {
-        store.entrypoint(name, id);
-      }),
+      pipe(
+        AST.entrypoints,
+        Effect.map(HashMap.findFirst((existing) => existing === id)),
+        Effect.flatMap(
+          Option.match({
+            onNone: () => AST.entrypoint(name, id),
+            onSome: ([shared]) =>
+              Effect.fail(
+                AST.ParseError.sharedEntrypoint({
+                  file: module.fileName,
+                  entrypoints: [shared, name],
+                }),
+              ),
+          }),
+        ),
+      ),
     ),
   );
 

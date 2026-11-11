@@ -1,4 +1,4 @@
-import { Array, Function, Option, String, pipe } from "effect";
+import { Array, Function, Iterable, Option, String, pipe } from "effect";
 
 import type * as AST from "../AST/index.js";
 import type * as Trait from "../Trait.js";
@@ -167,7 +167,8 @@ const text = (nodes: readonly Phrasing[]): string =>
 export const plain = (blocks: readonly Block[]): Option.Option<string> =>
   pipe(
     blocks,
-    Array.findFirst((block) => block.type === "paragraph"),
+    Iterable.takeWhile((block) => block.type !== "code"),
+    Iterable.head,
     Option.map((paragraph) => text(paragraph.children)),
   );
 
