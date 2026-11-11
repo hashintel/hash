@@ -16,6 +16,7 @@ import { getFlowInputLabel, getKindLabel } from "../shared/value-display";
 import { EntityInput } from "./run-flow/entity-input";
 import {
   getFlowInputValues,
+  getFormValuesFromRun,
   getInitialFormValues,
   getRunBlocker,
 } from "./run-flow/run-form";
@@ -134,10 +135,13 @@ const InputField = ({
   </Form.Field>
 );
 
+const listFormat = new Intl.ListFormat("en");
+
 const RunFlowDialog = ({
   webId,
   name,
   inputs,
+  ranInputs,
   saveRefusedReason,
   onRun,
   onClose,
@@ -145,11 +149,17 @@ const RunFlowDialog = ({
   webId: WebId;
   name: string;
   inputs: FlowInputDefinition[];
+  ranInputs: FlowInputValues | null;
   saveRefusedReason: string | null;
   onRun: (flowInputs: FlowInputValues) => Promise<void>;
   onClose: () => void;
 }) => {
-  const [values, setValues] = useState(() => getInitialFormValues(inputs));
+  const [{ values: initialValues, changedInputLabels }] = useState(() =>
+    ranInputs
+      ? getFormValuesFromRun(inputs, ranInputs)
+      : { values: getInitialFormValues(inputs), changedInputLabels: [] },
+  );
+  const [values, setValues] = useState(initialValues);
   const [showMissing, setShowMissing] = useState(false);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
@@ -185,8 +195,12 @@ const RunFlowDialog = ({
       shouldCloseOn={running ? "none" : "closeButtonAndOverlay"}
     >
       <Dialog.Header
-        title="Run flow"
-        description={`Saves your edits, then runs “${name}” in this web.`}
+        title={ranInputs ? "Re-run flow" : "Run flow"}
+        description={
+          ranInputs
+            ? `Saves your edits, then runs “${name}” as it is now in this web. The form starts with this run's inputs.`
+            : `Saves your edits, then runs “${name}” in this web.`
+        }
       />
       <Dialog.Body>
         <div className={dialogBody}>
@@ -198,6 +212,18 @@ const RunFlowDialog = ({
                 {saveRefusedReason?.split("\n").map((line) => (
                   <div key={line}>{line}</div>
                 ))}
+              </Banner.Description>
+            </Banner>
+          )}
+          {changedInputLabels.length > 0 && (
+            <Banner tone="neutral">
+              <Banner.Title>
+                The flow's inputs have changed since this run
+              </Banner.Title>
+              <Banner.Description>
+                {`This run's ${changedInputLabels.length === 1 ? "value" : "values"} for ${listFormat.format(
+                  changedInputLabels.map((label) => `“${label}”`),
+                )} ${changedInputLabels.length === 1 ? "isn't" : "aren't"} filled in.`}
               </Banner.Description>
             </Banner>
           )}
@@ -228,13 +254,13 @@ const RunFlowDialog = ({
               Cancel
             </Button>
             <Button
-              iconName="play"
+              iconName={ranInputs ? "rotate" : "play"}
               loading={running}
               onClick={() => {
                 void run();
               }}
             >
-              Run
+              {ranInputs ? "Re-run" : "Run"}
             </Button>
           </>
         }
@@ -245,16 +271,20 @@ const RunFlowDialog = ({
 
 /**
  * Runs the flow: a button that opens a form for the flow's inputs, disabled while the flow can't be run, saying why.
+ * Given a run's inputs, it re-runs the flow, and the form starts with them.
  */
 export const RunFlow = ({
   webId,
   editorState,
+  ranInputs = null,
   saveRefusedReason,
   onRun,
 }: {
   /** The web the flow is in, which the run is in too, and whose entities the form offers. */
   webId: WebId;
   editorState: FlowEditorState;
+  /** The inputs of the run to run again, if this re-runs one. */
+  ranInputs?: FlowInputValues | null;
   /**
    * Why the API refused the latest edits, if it did. A prop rather than part of the error `onRun` throws, as the save
    * that sets it happens inside `onRun`, which only knows that it failed.
@@ -274,18 +304,19 @@ export const RunFlow = ({
       <Button
         variant="subtle"
         size="sm"
-        iconName="play"
+        iconName={ranInputs ? "rotate" : "play"}
         disabled={blocker !== null}
         tooltip={blocker ?? undefined}
         onClick={() => setDialogOpen(true)}
       >
-        Run
+        {ranInputs ? "Re-run" : "Run"}
       </Button>
       {dialogOpen && (
         <RunFlowDialog
           webId={webId}
           name={editorState.flowDefinition.name}
           inputs={editorState.flowDefinition.inputs}
+          ranInputs={ranInputs}
           saveRefusedReason={saveRefusedReason}
           onRun={onRun}
           onClose={() => setDialogOpen(false)}

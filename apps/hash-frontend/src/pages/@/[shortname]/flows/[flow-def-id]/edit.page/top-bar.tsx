@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 import { RenameInput } from "./shared/rename-input";
 import { getShortRunId, shortRunIdFont } from "./shared/run-id";
+import { RunActions } from "./top-bar/run-actions";
 import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
@@ -182,12 +183,13 @@ export type FlowEditorView = "editor" | "logs";
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
  * runs, whether its edits are saved, Run, and its menu. Showing a run, it names the run after the flow, with the way
- * back to the flow's runs between them.
+ * back to the flow's runs between them, and has Stop or Re-run for it in place of Run.
  */
 export const TopBar = ({
   editorKey,
   webId,
   editorState,
+  flowDefinitionEntityId,
   view,
   flowRunEntityId,
   onViewChange,
@@ -208,6 +210,7 @@ export const TopBar = ({
   /** The web the flow is in. */
   webId: WebId;
   editorState: FlowEditorState;
+  flowDefinitionEntityId: EntityId;
   view: FlowEditorView;
   /** The run shown, in the Logs view. */
   flowRunEntityId: EntityId | null;
@@ -304,13 +307,25 @@ export const TopBar = ({
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
-        <RunFlow
-          key={editorKey}
-          webId={webId}
-          editorState={editorState}
-          saveRefusedReason={saveRefusedReason}
-          onRun={onRun}
-        />
+        {flowRunEntityId ? (
+          <RunActions
+            key={`${editorKey}:${flowRunEntityId}`}
+            webId={webId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        ) : (
+          <RunFlow
+            key={editorKey}
+            webId={webId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        )}
         <EllipsisMenu
           iconName="ellipsisVertical"
           size="md"
