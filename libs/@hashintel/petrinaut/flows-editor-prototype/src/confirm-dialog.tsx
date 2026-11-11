@@ -3,6 +3,12 @@
  * keeps today, where neither asks.
  * - dialog: both open the DS Dialog that Publish uses (md, the same header, Cancel then the action).
  * - undo: Archive only, with no dialog; the flow is archived at once and the figma-ds toast offers Undo.
+ *
+ * `?confirmbtn=` (with `confirm=dialog`): the main button, from figma-ds Button `198:41491`, sm. No param keeps today's
+ * black solid. Cancel is the neutral outline (`317:20688`, code-ds subtle neutral) on its left.
+ * - solid: red solid (`16967:608`), and the header icon in the danger state (Dialog `_IconState` `38569:72338`).
+ * - subtle: red subtle (`14896:22624`), the same danger icon.
+ * - outline: neutral outline (`317:20688`) and the neutral icon. The figma-ds has no red outline Button.
  */
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -10,6 +16,31 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useLocation } from "./router";
 
 export type ConfirmTake = "dialog" | "undo";
+
+export type ConfirmButtonTake = "solid" | "subtle" | "outline";
+
+export const useConfirmButtonTake = (): ConfirmButtonTake | null => {
+  const value = useLocation().query.get("confirmbtn");
+  return value === "solid" || value === "subtle" || value === "outline"
+    ? value
+    : null;
+};
+
+/** figma-ds red Button sm: the border is red a30 on both (`16967:608`, `14896:22624`); subtle's fill is red s20. */
+const redSolidStyle = css({ borderColor: "red.a30" });
+const redSubtleStyle = css({
+  borderColor: "red.a30",
+  backgroundColor: "red.s20",
+  color: "red.s90",
+});
+
+/** `_IconState` danger: the header's round icon tile in the danger state (closest tokens: red s30 fill, s90 icon). */
+const dangerHeaderStyle = css({
+  "& > div > svg:first-child": {
+    backgroundColor: "red.s30",
+    color: "red.s90",
+  },
+});
 
 export const useConfirmTake = (): ConfirmTake | null => {
   const value = useLocation().query.get("confirm");
@@ -31,29 +62,46 @@ export const ConfirmDialog = ({
   action: string;
   onClose: () => void;
   onConfirm: () => void;
-}) => (
-  <Dialog size="md" onClose={onClose} aria-label={title}>
-    <Dialog.Header title={title} iconName="info" />
-    <Dialog.Body>
-      <span className={noteStyle}>{body}</span>
-    </Dialog.Body>
-    <Dialog.Footer
-      actions={
-        <>
-          <Button size="sm" variant="subtle" tone="neutral" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            variant="solid"
-            tone="neutral"
-            data-confirm-action
-            onClick={onConfirm}
-          >
-            {action}
-          </Button>
-        </>
-      }
-    />
-  </Dialog>
-);
+}) => {
+  const buttonTake = useConfirmButtonTake();
+  const danger = buttonTake === "solid" || buttonTake === "subtle";
+  return (
+    <Dialog size="md" onClose={onClose} aria-label={title}>
+      <Dialog.Header
+        title={title}
+        iconName={danger ? "warning" : "info"}
+        {...(danger ? { className: dangerHeaderStyle } : {})}
+      />
+      <Dialog.Body>
+        <span className={noteStyle}>{body}</span>
+      </Dialog.Body>
+      <Dialog.Footer
+        actions={
+          <>
+            <Button size="sm" variant="subtle" tone="neutral" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant={
+                buttonTake === "subtle" || buttonTake === "outline"
+                  ? "subtle"
+                  : "solid"
+              }
+              tone={danger ? "error" : "neutral"}
+              {...(buttonTake === "solid"
+                ? { className: redSolidStyle }
+                : buttonTake === "subtle"
+                  ? { className: redSubtleStyle }
+                  : {})}
+              data-confirm-action
+              onClick={onConfirm}
+            >
+              {action}
+            </Button>
+          </>
+        }
+      />
+    </Dialog>
+  );
+};
