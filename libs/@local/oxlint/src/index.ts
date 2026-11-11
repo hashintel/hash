@@ -126,6 +126,7 @@ const createDefaults = (
         Object.assign(
           rules,
           defineRules({
+            "react/forbid-component-props": "allow", // A component's props type decides whether it takes `className` and `style`.
             "react/function-component-definition": [
               "deny", // Named declarations distinguish components from helper arrows.
               {
@@ -140,6 +141,10 @@ const createDefaults = (
             "react/jsx-max-depth": [
               "deny", // Deep JSX trees hide component structure.
               { max: 6 },
+            ],
+            "react/jsx-props-no-spreading": [
+              "deny", // A spread onto a DOM element can pass props the element does not know. A component's props type checks a spread onto it.
+              { custom: "ignore", html: "enforce" },
             ],
             "react/react-in-jsx-scope": "allow", // The automatic JSX runtime does not require a React import.
           }),
@@ -233,7 +238,7 @@ const createDefaults = (
             files: ["**/*.test-d.{ts,tsx}"],
             rules: {
               "vitest/prefer-expect-assertions": "allow", // type tests run through the compiler, not the runtime assertion counter.
-              "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
+              "hash/no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
               "max-lines": "allow", // one test file covers one module, so it grows with that module's cases
               "no-restricted-imports": [
@@ -254,7 +259,7 @@ const createDefaults = (
           defineOverride({
             files: ["**/*.test.{ts,tsx,mts,cts}"],
             rules: {
-              "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
+              "hash/no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
               "max-lines": "allow", // one test file covers one module, so it grows with that module's cases
             },
@@ -361,19 +366,7 @@ const createDefaults = (
         },
       ],
       "no-inline-comments": "allow", // inline comments are useful for explaining complex logic
-      "no-magic-numbers": [
-        "deny", // Keep the rule narrow with the exceptions below.
-        {
-          enforceConst: true,
-          ignore: [-2, -1, 0, 1, 2],
-          ignoreClassFieldInitialValues: true,
-          ignoreDefaultValues: true,
-          ignoreEnums: true,
-          ignoreNumericLiteralTypes: true,
-          ignoreReadonlyClassProperties: true,
-          ignoreTypeIndexes: true,
-        },
-      ],
+      "no-magic-numbers": "allow", // hash/no-magic-numbers also accepts arithmetic over literals, such as `60 * 60 * 24`.
       "no-ternary": "allow", // hash/no-complex-ternary restricts branch expressions without banning simple value selection.
       "no-undefined": "allow", // comparisons need `undefined`
       "no-warning-comments": [

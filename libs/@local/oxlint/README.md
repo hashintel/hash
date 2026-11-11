@@ -19,13 +19,13 @@ Build the package before importing it. `defineConfig` accepts every native Oxlin
 
 The shared defaults precede the supplied `extends` entries, and the package's own fields take precedence. Oxlint handles rules, categories, plugins, options and ordered overrides. The helper resolves the fields Oxlint does not inherit: `env` and `globals` merge by name, `settings` merges by plugin name, and `ignorePatterns` concatenates in inheritance order. A later plugin settings value replaces that plugin's earlier value as a whole. Nested objects and arrays are not deep-merged. Cyclic `extends` references throw. Relative paths retain Oxlint's configuration-directory semantics.
 
-The React and Next selections enable their native plugins. The React profile permits truthiness checks in `.tsx` files for conditional rendering, while `.ts` files retain `strict-boolean-expressions`. This applies to the whole TSX file, not just JSX. Next also ignores its generated `.next/**` output and `next-env.d.ts`. Vitest adds test rules and file overrides for runtime tests (`*.test.{ts,tsx,mts,cts}`) and type tests (`*.test-d.{ts,tsx}`). Effect extends the strict native Effect preset and allows its namespace imports and functional composition conventions.
+The React and Next selections enable their native plugins. The React profile permits truthiness checks in `.tsx` files for conditional rendering, while `.ts` files retain `strict-boolean-expressions`. This applies to the whole TSX file, not only JSX. The profile reports a prop spread onto a DOM element and leaves a spread onto a component to that component's props type. A file that spreads onto DOM elements on purpose disables `react/jsx-props-no-spreading` at its top. Next also ignores its generated `.next/**` output and `next-env.d.ts`. Vitest adds test rules and file overrides for runtime tests (`*.test.{ts,tsx,mts,cts}`) and type tests (`*.test-d.{ts,tsx}`). Effect extends the strict native Effect preset and allows its namespace imports and functional composition conventions.
 
 `additionalRestrictedTypes` adds messages for restricted types without replacing the built-in entries for `object`, `unknown` and `Function`. An attempt to replace one of those entries throws. `ignorePatterns` passes the package's exclusion globs to Oxlint.
 
 ## Repository rules
 
-The `hash` plugin enforces naming conventions, including mapped type parameters. Its naming fixes update references and avoid name collisions. Other rules cover JavaScript visibility and options-object parameters. Type assertions and individual lint suppressions require explanations, and a TODO comment names its ticket as `TODO(KEY-123): description`.
+The `hash` plugin enforces naming conventions, including mapped type parameters. Its naming fixes update references and avoid name collisions. A module-level `const` may use UPPER_CASE, as in `MAX_RETRIES`. This allowance covers neither a function nor a destructured name. Other rules cover JavaScript visibility, options-object parameters and unnamed numbers. Type assertions and individual lint suppressions require explanations, and a TODO comment names its ticket as `TODO(KEY-123): description`.
 
 Use `allow`, `warn` or `deny` for rule severities. The default `hash/prefer-rust-severities` rule checks literal settings and fixes equivalent ESLint aliases:
 
@@ -40,9 +40,9 @@ The fix leaves rule options and comments unchanged. Other settings, such as `rep
 The default `hash/require-rule-change-comment` rule requires an inline explanation beside a literal severity setting. For tuple settings, put the comment beside the first element:
 
 ```ts
-"no-magic-numbers": [
-  "deny", // These small constants are conventional indices and bounds.
-  { ignore: [-2, -1, 0, 1, 2] },
+"no-duplicate-imports": [
+  "deny", // Keep type-only dependencies distinct from runtime imports.
+  { allowSeparateTypeImports: true },
 ],
 ```
 
@@ -64,9 +64,10 @@ const formatter = detailed
 const label = enabled ? text`Enabled: ${name}` : text`Disabled`;
 const view = enabled ? <Active /> : <Inactive />;
 const callback = enabled ? refresh : fallback;
+const direction = ascending ? 1 : -1;
 ```
 
-The rule checks both branches, not the condition. It accepts literals, references, object and array construction, member access, constructors and templates. Computed keys, spreads, constructor arguments and template interpolations undergo the same check. JSX remains opaque. Constructors, tags and getters may execute code, so this policy does not prove that an expression is pure.
+The rule checks both branches, not the condition. It accepts literals, negative numbers, references, object and array construction, member access, constructors and templates. Computed keys, spreads, constructor arguments and template interpolations undergo the same check. JSX remains opaque. Constructors, tags and getters may execute code, so this policy does not prove that an expression is pure.
 
 Rejected examples:
 
@@ -78,7 +79,29 @@ const callback = enabled ? () => refresh() : fallback;
 
 The first two diagnostics highlight `compute()` and `loadLocale()`, respectively, and explain that a call hides conditional work. The third highlights the arrow function and suggests selecting a callback by reference. Neither example marks the whole ternary as merely “complex”. The rule reports independent problems in both branches: `{ first: loadFirst(), second: loadSecond() }` receives two findings. It stops inspecting inside a rejected expression, so `outer(inner())` receives one finding. A nested ternary inside accepted JSX still receives its own check.
 
-Calls, mutations, `await`, `yield`, `import()` expressions and further conditional evaluation require explicit control flow. The rule also rejects binary, logical and unary expressions rather than judging their complexity by length. It offers no autofix: turning a value expression into statements requires choosing where the result lives, and moving a condition inside a callback can change when it runs.
+Calls, mutations, `await`, `yield`, `import()` expressions and further conditional evaluation require explicit control flow. The rule also rejects binary, logical and unary expressions rather than judging their complexity by length. A negative number is the exception: JavaScript has no negative literals, so `-1` parses as negation of `1`. It offers no autofix: turning a value expression into statements requires choosing where the result lives, and moving a condition inside a callback can change when it runs.
+
+### Magic numbers
+
+`hash/no-magic-numbers` replaces the native `no-magic-numbers` rule. A number needs a name unless its position supplies one:
+
+- a `const` initializer
+- a default value
+- an object property or a class field
+- an enum member
+- a JSX expression
+- a literal type in a type alias, or a type index
+- an assignment to a member
+- an argument of `parseInt`
+
+The integers from -2 to 2, as numbers and as bigints, need no name anywhere. Arithmetic over number literals counts as one number, so a constant can show the arithmetic behind its value:
+
+```ts
+const SECONDS_PER_DAY = 60 * 60 * 24;
+const MEBIBYTE = 2 ** 20;
+```
+
+In `price * 1.2` the operand `price` is not a literal, which leaves `1.2` needing a name of its own. The rule reads literals alone and never resolves a name, since a constant imported from another module has no value a lint plugin can read.
 
 ## Preparation and checks
 

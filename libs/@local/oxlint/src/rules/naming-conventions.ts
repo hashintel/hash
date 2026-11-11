@@ -1,7 +1,7 @@
 /**
  * Enforces declaration-specific casing and rejects redundant kind affixes.
  *
- * Types, classes, enums and namespaces use PascalCase. Other bindings use camelCase, with either allowed for const bindings and function declarations. Imported bindings are exempt.
+ * Types, classes, enums and namespaces use PascalCase. Other bindings use camelCase, with either allowed for const bindings and function declarations. A module-level `const` may also use UPPER_CASE, the usual spelling of a constant. Imported bindings are exempt.
  *
  * Fixes rename eligible local bindings and their references, preserving property keys and explicit export names. The rule reports directly named exports and detected scope conflicts without a fix.
  *
@@ -13,6 +13,7 @@
  * @example Correct
  * ```ts
  * const userName = "Ada";
+ * const MAX_RETRIES = 3;
  * ```
  *
  * @module
@@ -327,6 +328,25 @@ const isFlexibleDefinition = (definition: Definition): boolean =>
   (definition.parent?.type === "VariableDeclaration" &&
     definition.parent.kind === "const");
 
+const isFunctionExpression = (node: ESTree.Node | null): boolean =>
+  node?.type === "ArrowFunctionExpression" ||
+  node?.type === "FunctionExpression";
+
+/**
+ * A module-level `const` may use UPPER_CASE to mark a constant (`MAX_RETRIES`). Functions keep a function's casing, and a destructured binding aliases a property instead of declaring a constant.
+ */
+const isModuleConstant = (variable: Variable): boolean =>
+  // A script declares its top-level bindings in the global scope.
+  (variable.scope.type === "module" || variable.scope.type === "global") &&
+  variable.defs.every(
+    (definition) =>
+      definition.parent?.type === "VariableDeclaration" &&
+      definition.parent.kind === "const" &&
+      definition.node.type === "VariableDeclarator" &&
+      definition.node.id.type === "Identifier" &&
+      !isFunctionExpression(definition.node.init),
+  );
+
 const startsUpperPattern = /^[$_]*\p{Lu}/u;
 
 type NamingPolicy = Casing | "camelCase or PascalCase";
@@ -335,7 +355,7 @@ type NamingPolicy = Casing | "camelCase or PascalCase";
  * The casing `variable` must follow, or `null` if the rule does not govern its name.
  *
  * Types, classes, enums and namespaces are PascalCase, `const` bindings and function
- * declarations either camelCase or PascalCase, everything else camelCase. A value merged with a
+ * declarations either camelCase or PascalCase, everything else camelCase. A module-level `const` spelled in UPPER_CASE keeps that spelling. A value merged with a
  * type (`const Schema = ...` with `type Schema = ...`) follows the type. The exporting module chooses imported names. The author may rename them on import.
  */
 const policyOf = (variable: Variable): NamingPolicy | null => {
@@ -355,6 +375,10 @@ const policyOf = (variable: Variable): NamingPolicy | null => {
     )
   ) {
     return "PascalCase";
+  }
+
+  if (isModuleConstant(variable) && isCase(variable.name, "UPPER_CASE")) {
+    return "UPPER_CASE";
   }
 
   if (variable.defs.every((definition) => isFlexibleDefinition(definition))) {

@@ -202,6 +202,52 @@ tester.run("naming-conventions/variable-casing", namingConventions, {
       errors: [error],
       output: "const { Foo_Bar: FooBar } = source;",
     },
+    // Only a module-level `const` with an identifier name and no function value may use UPPER_CASE.
+    {
+      code: "function f() { const MAX_RETRIES = 3; return MAX_RETRIES; }",
+      errors: [
+        {
+          data: {
+            casing: "camelCase or PascalCase",
+            expected: "MaxRetries",
+            name: "MAX_RETRIES",
+          },
+          messageId: "casing",
+        },
+      ],
+      output: "function f() { const MaxRetries = 3; return MaxRetries; }",
+    },
+    {
+      code: "namespace Limits { const MAX_RETRIES = 3; }",
+      errors: [error],
+      output: "namespace Limits { const MaxRetries = 3; }",
+    },
+    {
+      code: "let MAX_RETRIES = 3; MAX_RETRIES += 1;",
+      errors: [error],
+      output: "let maxRetries = 3; maxRetries += 1;",
+    },
+    {
+      code: "const HANDLE_CLICK = () => null; HANDLE_CLICK();",
+      errors: [error],
+      output: "const HandleClick = () => null; HandleClick();",
+    },
+    {
+      code: "const MAKE_USER = function () {}; MAKE_USER();",
+      errors: [error],
+      output: "const MakeUser = function () {}; MakeUser();",
+    },
+    {
+      code: "const { MAX_RETRIES } = source;",
+      errors: [error],
+      output: "const { MAX_RETRIES: MaxRetries } = source;",
+    },
+    // A doubled separator is not UPPER_CASE, so the name takes the usual fix.
+    {
+      code: "const MAX__RETRIES = 3; console.log(MAX__RETRIES);",
+      errors: [error],
+      output: "const MaxRetries = 3; console.log(MaxRetries);",
+    },
     // `let`, `var`, parameters and function expression names are camelCase only.
     {
       code: "let Counter = 0; Counter += 1;",
@@ -244,6 +290,15 @@ tester.run("naming-conventions/variable-casing", namingConventions, {
     "const MyComponent = () => null; const User = Schema.Struct({}); const { Foo } = source;",
     "function Person() {} function makePerson() { return new Person(); }",
     "function Over(value: string): void; function Over(value: unknown) {}",
+    // A module-level `const` may also be UPPER_CASE, whatever value it holds.
+    "const MAX_RETRIES = 3; export const SECONDS_PER_DAY = 60 * 60 * 24;",
+    "const DEFAULT_OPTIONS = { retries: 3 }; const NAME_PATTERN = /^a/u; const EMPTY_SET = new Set();",
+    "declare const BUILD_TIME: string;",
+    // A script declares its top-level bindings in the global scope.
+    {
+      code: "const MAX_RETRIES = 3;",
+      languageOptions: { sourceType: "script" },
+    },
   ],
 });
 

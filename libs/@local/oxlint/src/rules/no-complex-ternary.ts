@@ -3,7 +3,7 @@
  *
  * Ternaries keep value selection beside its consumer. Calls and statement bodies make the reader follow a second operation inside that expression. Use explicit branching for conditional work, and select named callbacks instead of embedding functions. Moving a condition into a callback can change when it runs, so this rule offers no autofix.
  *
- * The rule inspects both branches, leaving the condition unrestricted. It accepts literals, references, object and array construction, member access, constructors and templates. Computed keys, spreads, constructor arguments and template interpolations undergo the same inspection. JSX remains opaque. Constructors, tags and getters can execute code: this policy does not establish purity. Binary, logical and unary operations remain outside the accepted forms, regardless of length.
+ * The rule inspects both branches, leaving the condition unrestricted. It accepts literals, negative numbers, references, object and array construction, member access, constructors and templates. Computed keys, spreads, constructor arguments and template interpolations undergo the same inspection. JSX remains opaque. Constructors, tags and getters can execute code: this policy does not establish purity. Binary, logical and other unary operations remain outside the accepted forms, regardless of length.
  *
  * Each diagnostic identifies the rejected expression and explains its alternative. Inspection continues through siblings and the other branch, but stops inside a rejected expression to avoid overlapping reports. Nested ternaries inside otherwise accepted JSX receive their own inspection.
  *
@@ -14,6 +14,7 @@
  * const label = enabled ? text`Enabled: ${name}` : text`Disabled`;
  * const view = enabled ? <Active /> : <Inactive />;
  * const callback = enabled ? refresh : fallback;
+ * const direction = ascending ? 1 : -1;
  * ```
  *
  * @example Rejected
@@ -162,7 +163,19 @@ const visitors: Visitors = {
     }
   },
   ThisExpression: null,
-  UnaryExpression: "unary",
+  // JavaScript has no negative literals, so `-1` and `-1n` parse as negation of a literal.
+  *UnaryExpression(node) {
+    const { argument } = node;
+    const negativeNumber =
+      node.operator === "-" &&
+      argument.type === "Literal" &&
+      (typeof argument.value === "number" ||
+        typeof argument.value === "bigint");
+
+    if (!negativeNumber) {
+      yield { node, reason: "unary" };
+    }
+  },
   UpdateExpression: "update",
   V8IntrinsicExpression: "intrinsic",
   YieldExpression: "yield",

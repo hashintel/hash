@@ -119,6 +119,13 @@ tester.run("no-complex-ternary", noComplexTernary, {
       "binary",
     ]),
     rejects("const result = enabled ? !ready : fallback;", ["!ready", "unary"]),
+    rejects("const result = enabled ? -offset : fallback;", [
+      "-offset",
+      "unary",
+    ]),
+    rejects("const result = enabled ? +1 : fallback;", ["+1", "unary"]),
+    rejects("const result = enabled ? +'2' : fallback;", ["+'2'", "unary"]),
+    rejects("const result = enabled ? -'2' : fallback;", ["-'2'", "unary"]),
     rejects("const result = enabled ? object?.value : fallback;", [
       "object?.value",
       "optionalChain",
@@ -214,6 +221,8 @@ tester.run("no-complex-ternary", noComplexTernary, {
   valid: [
     "const result = enabled ? value : fallback;",
     "const result = enabled ? 'present' : null;",
+    "const direction = ascending ? 1 : -1;",
+    "const offset = enabled ? -1n : 0n;",
     "const options = enabled ? { [key]: value } : {};",
     "const result = enabled ? { ...defaults, values: [, value, ...rest] } : {};",
     "const result = enabled ? object.value : object[key];",
