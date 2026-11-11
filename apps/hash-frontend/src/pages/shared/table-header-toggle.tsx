@@ -11,9 +11,12 @@ import type { ReactElement } from "react";
 type TableHeaderToggleProps<Option extends string> = {
   options: {
     label: string;
-    icon: ReactElement;
+    /** Shown in place of the label, which becomes its tooltip */
+    icon?: ReactElement;
     value: Option;
   }[];
+  /** The accessible name of the group */
+  label?: string;
   setValue: (value: Option) => void;
   value: Option;
 };
@@ -25,6 +28,7 @@ type TableHeaderToggleProps<Option extends string> = {
  */
 export const TableHeaderToggle = <Option extends string>({
   options,
+  label: groupLabel = "view",
   setValue,
   value: selectedValue,
 }: TableHeaderToggleProps<Option>) => {
@@ -37,7 +41,7 @@ export const TableHeaderToggle = <Option extends string>({
           setValue(updatedValue);
         }
       }}
-      aria-label="view"
+      aria-label={groupLabel}
       size="small"
       sx={{
         gap: "3px",
@@ -56,6 +60,8 @@ export const TableHeaderToggle = <Option extends string>({
           width: "26px",
           height: "26px",
           padding: 0,
+          // A text option is as wide as its label.
+          "&[data-text]": { width: "auto", px: 1.25 },
           backgroundColor: "transparent",
           transition: ({ transitions }) =>
             transitions.create(["background-color", "box-shadow"]),
@@ -88,10 +94,15 @@ export const TableHeaderToggle = <Option extends string>({
           disableRipple
           value={optionValue}
           aria-label={label}
+          data-text={icon ? undefined : true}
         >
-          <Tooltip title={label} placement="top">
-            <Box sx={{ lineHeight: 0 }}>{icon}</Box>
-          </Tooltip>
+          {icon ? (
+            <Tooltip title={label} placement="top">
+              <Box sx={{ lineHeight: 0 }}>{icon}</Box>
+            </Tooltip>
+          ) : (
+            label
+          )}
         </ToggleButton>
       ))}
     </ToggleButtonGroup>

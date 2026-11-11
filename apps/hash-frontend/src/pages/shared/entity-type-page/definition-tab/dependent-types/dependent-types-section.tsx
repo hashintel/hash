@@ -5,9 +5,6 @@ import {
   Skeleton,
   Stack,
   Switch,
-  ToggleButton,
-  toggleButtonClasses,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -16,6 +13,7 @@ import { useId, useState } from "react";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
+import { TableHeaderToggle } from "../../../table-header-toggle";
 import { getParentVersionRows } from "./dependent-type-rows";
 import { DependentTypesByTypeTable } from "./dependent-types-by-type-table";
 import { DependentTypesByVersionTable } from "./dependent-types-by-version-table";
@@ -30,51 +28,15 @@ import type { ReactNode } from "react";
 
 type Layout = "byType" | "byVersion";
 
+const layoutOptions: { label: string; value: Layout }[] = [
+  { label: "By type", value: "byType" },
+  { label: "By version", value: "byVersion" },
+];
+
 const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
   color: palette.gray[70],
   fontSize: 14,
   lineHeight: "20px",
-});
-
-/**
- * Matches `TableHeaderToggle`: the options share a gray track and the selected
- * one is a raised white pill. MUI's default shades the selected option darker
- * gray, which reads as the unselected one on this gray section.
- */
-const layoutToggleSx: SxProps<Theme> = ({
-  palette,
-  boxShadows,
-  transitions,
-}) => ({
-  gap: "3px",
-  padding: "3px",
-  borderRadius: "8px",
-  backgroundColor: palette.gray[10],
-  border: `1px solid ${palette.gray[20]}`,
-  [`.${toggleButtonClasses.root}`]: {
-    border: "0 !important",
-    borderRadius: "6px !important",
-    margin: "0 !important",
-    padding: "2px 10px",
-    fontSize: 14,
-    lineHeight: "20px",
-    textTransform: "none",
-    color: palette.gray[70],
-    backgroundColor: "transparent",
-    transition: transitions.create(["background-color", "box-shadow", "color"]),
-    "&:hover": {
-      backgroundColor: "transparent",
-      color: palette.gray[90],
-    },
-    [`&.${toggleButtonClasses.selected}`]: {
-      color: palette.gray[90],
-      backgroundColor: palette.common.white,
-      boxShadow: boxShadows.sm,
-      "&:hover": {
-        backgroundColor: palette.common.white,
-      },
-    },
-  },
 });
 
 const InfoButton = ({ label, text }: { label: string; text: ReactNode }) => (
@@ -149,21 +111,12 @@ export const DependentTypesSection = ({
           sx={{ flexWrap: "wrap", alignItems: "center", gap: 2, mb: 1.5 }}
         >
           <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
-            <ToggleButtonGroup
-              aria-label="Table layout"
-              exclusive
-              size="small"
+            <TableHeaderToggle
+              label="Table layout"
+              options={layoutOptions}
+              setValue={setLayout}
               value={layout}
-              onChange={(_event, value: Layout | null) => {
-                if (value) {
-                  setLayout(value);
-                }
-              }}
-              sx={layoutToggleSx}
-            >
-              <ToggleButton value="byType">By type</ToggleButton>
-              <ToggleButton value="byVersion">By version</ToggleButton>
-            </ToggleButtonGroup>
+            />
             <InfoButton
               label="About the layouts"
               text={
