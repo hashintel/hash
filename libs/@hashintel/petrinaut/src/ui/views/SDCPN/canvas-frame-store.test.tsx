@@ -229,4 +229,43 @@ describe("CanvasFrameStoreProvider", () => {
     // New samples reach the places too.
     expect(sampleListeners.size).toBe(1);
   });
+
+  it("shows the actual frame in Actual mode, whatever a Stochastic simulation holds", () => {
+    const simulation = {
+      initialMarking: {},
+      stochasticRun: {
+        reader: {
+          placeCountAt: () => ({
+            runCount: 4,
+            mean: 10,
+            standardDeviation: 2,
+            bins: [],
+          }),
+        },
+        experiment: { metrics: { subscribe: () => () => {} } },
+      },
+    } as unknown as SimulationContextValue;
+    const playback = {
+      playbackStore: { get: () => ({ time: 0 }), subscribe: () => () => {} },
+    } as unknown as EventPlaybackContextValue;
+
+    render(
+      <ExecutionFrameSourceContext
+        value={{ ...emptyExecutionFrameSource, ...frame({ p1: 5 }, {}) }}
+      >
+        <EventPlaybackContext value={playback}>
+          <SimulationContext value={simulation}>
+            <EditorContext
+              value={{ globalMode: "actual" } as EditorContextValue}
+            >
+              <CanvasFrameStoreProvider>{items}</CanvasFrameStoreProvider>
+            </EditorContext>
+          </SimulationContext>
+        </EventPlaybackContext>
+      </ExecutionFrameSourceContext>,
+    );
+
+    expect(shown("p1")).toBe("5");
+    expect(shown("p2")).toBe("none");
+  });
 });

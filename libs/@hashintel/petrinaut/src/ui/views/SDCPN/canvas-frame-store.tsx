@@ -133,8 +133,10 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   const { initialMarking, stochasticRun } = use(SimulationContext);
   const { playbackStore } = use(EventPlaybackContext);
   const { globalMode } = use(EditorContext);
-  const stochasticReader = stochasticRun?.reader ?? null;
-  const stochasticExperiment = stochasticRun?.experiment ?? null;
+  // Actual mode shows the host's execution, whatever was simulated before.
+  const viewedStochasticRun = globalMode === "actual" ? null : stochasticRun;
+  const stochasticReader = viewedStochasticRun?.reader ?? null;
+  const stochasticExperiment = viewedStochasticRun?.experiment ?? null;
 
   // Filled on the first render, so the first paint already carries the
   // marking and the viewed frame rather than gaining them a frame later.
