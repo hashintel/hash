@@ -25,6 +25,7 @@ mod sources;
 mod sql;
 mod storage;
 mod variant_name;
+mod work;
 mod workspace;
 
 pub use self::{
@@ -44,6 +45,7 @@ pub use self::{
         ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
         Format, S3Bucket,
     },
+    work::{RecordError, StateVersion, StateVersionId, StateVersionRef, StateVersionV1},
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,
