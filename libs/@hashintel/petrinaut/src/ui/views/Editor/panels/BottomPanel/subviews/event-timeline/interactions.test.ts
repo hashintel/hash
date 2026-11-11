@@ -32,6 +32,13 @@ describe("zoomRange", () => {
       max: 10,
     });
   });
+
+  it("holds still when the span is already the narrowest", () => {
+    const narrowest = { min: 4, max: 4 + MIN_VIEW_SPAN };
+    const zoomed = zoomRange(narrowest, 0.5, 4 + MIN_VIEW_SPAN, 10);
+    expect(zoomed.min).toBeCloseTo(narrowest.min);
+    expect(zoomed.max).toBeCloseTo(narrowest.max);
+  });
 });
 
 describe("panRange", () => {

@@ -30,18 +30,22 @@ export const clampRange = (
   return { min: boundedMin, max: boundedMin + boundedSpan };
 };
 
-/** The range scaled by `factor` about `pivot`, a time that stays put. */
+/**
+ * The range scaled by `factor` about `pivot`, a time that stays put. A zoom
+ * the span's limits stop part of the way moves the range only as far as the
+ * span changed, so zooming in at the narrowest span holds still.
+ */
 export const zoomRange = (
   range: TimeRange,
   factor: number,
   pivot: number,
   domain: number,
-): TimeRange =>
-  clampRange(
-    pivot - (pivot - range.min) * factor,
-    (range.max - range.min) * factor,
-    domain,
-  );
+): TimeRange => {
+  const span = range.max - range.min;
+  const { min, max } = clampRange(0, span * factor, domain);
+  const applied = span > 0 ? (max - min) / span : 1;
+  return clampRange(pivot - (pivot - range.min) * applied, max - min, domain);
+};
 
 /** The range moved by `shift` seconds. */
 export const panRange = (
