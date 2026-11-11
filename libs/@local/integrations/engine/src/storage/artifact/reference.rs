@@ -33,7 +33,12 @@ impl Format {
 /// Stored as `{"version":"v1","value":{…}}`. A reference that was read back is checked against its
 /// key and bytes when it is materialized.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "version", content = "value", rename_all = "lowercase")]
+#[serde(
+    tag = "version",
+    content = "value",
+    rename_all = "lowercase",
+    deny_unknown_fields
+)]
 pub enum ArtifactRef {
     V1(ArtifactRefV1),
 }

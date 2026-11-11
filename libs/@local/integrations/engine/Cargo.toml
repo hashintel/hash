@@ -18,7 +18,7 @@ type-system                  = { workspace = true, public = true }
 duckdb   = { workspace = true, public = true, features = ["appender-arrow", "bundled", "json"] }
 serde    = { workspace = true, public = true, features = ["derive"] }
 tempfile = { workspace = true, public = true }
-uuid     = { workspace = true, public = true, features = ["v4", "v5"] }
+uuid     = { workspace = true, public = true, features = ["serde", "v4", "v5"] }
 
 # Private workspace dependencies
 hash-graph-store = { workspace = true }
