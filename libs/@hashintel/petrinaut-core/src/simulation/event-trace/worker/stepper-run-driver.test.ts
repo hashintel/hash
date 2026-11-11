@@ -151,4 +151,61 @@ describe("an experiment whose runs a stepper advances", () => {
     }
     expect(first.getRunSummary(0).completionReason).toBe("maxTime");
   });
+
+  it("gives a worker's runs their own positions and the experiment's seeds", () => {
+    const createRunDriver = createStepperRunDriverFactory({
+      id: FIXED_STEP_SIMULATOR_ID,
+      parameters: { dt: 0.05 },
+    });
+    const whole = createMonteCarloSimulator({
+      ...sirConfig,
+      dt: 0.05,
+      createRunDriver,
+    });
+    // The last two of the six runs, as a second worker would be dealt them.
+    const shard = createMonteCarloSimulator({
+      ...sirConfig,
+      dt: 0.05,
+      runCount: 2,
+      runIndexOffset: 4,
+      createRunDriver,
+    });
+
+    const shardRuns = shard.getSummaries();
+    // Metrics index their per-run storage by this position.
+    expect(shardRuns.map((run) => run.index)).toEqual([0, 1]);
+    expect(shardRuns.map((run) => run.seed)).toEqual(
+      whole
+        .getSummaries()
+        .slice(4)
+        .map((run) => run.seed),
+    );
+  });
+
+  it("reports the time an adaptive run has reached", () => {
+    const simulator = createMonteCarloSimulator({
+      sdcpn: poisson,
+      hirArtifacts: compileHirArtifacts(poisson).artifacts,
+      initialMarking: { sink: 0 },
+      parameterValues: {},
+      seed: 4,
+      dt: 0.25,
+      maxTime: 2,
+      runCount: 3,
+      createRunDriver: createStepperRunDriverFactory({
+        id: ADAPTIVE_SIMULATOR_ID,
+        parameters: { tolerance: 1e-6 },
+      }),
+    });
+    simulator.advanceAll();
+    simulator.advanceAll();
+    expect(simulator.getRunSummary(0)).toMatchObject({
+      frameNumber: 2,
+      currentTime: 0.5,
+    });
+    expect(simulator.getRunSnapshot(2)).toMatchObject({
+      frameNumber: 2,
+      currentTime: 0.5,
+    });
+  });
 });

@@ -9,25 +9,19 @@ import {
   hasStructurallyEnabledTransition,
   mergeTokenAdditions,
 } from "../../monte-carlo/frame-operations";
-import {
-  createRunState,
-  ensureFrameCapacity,
-} from "../../monte-carlo/run-state";
+import { ensureFrameCapacity } from "../../monte-carlo/run-state";
 import { classifyDynamics } from "../solver/classify-dynamics";
 import {
   createPlaceIntegrator,
   realFieldNames,
 } from "../solver/place-integrators";
 import { SOLVER_ERROR_DIAGNOSTIC } from "../trace";
-import { positiveNumberParameter } from "./run-stepper";
+import { createStepperRunState, positiveNumberParameter } from "./run-stepper";
 import { computeFiringEffect, evaluateHazards } from "./transition-hazards";
 
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
 import type { MonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";
-import type {
-  MonteCarloRunState,
-  PlaceID,
-} from "../../monte-carlo/internal-types";
+import type { PlaceID } from "../../monte-carlo/internal-types";
 import type { DynamicsClass } from "../solver/classify-dynamics";
 import type { PlaceIntegrator } from "../solver/place-integrators";
 import type {
@@ -113,27 +107,10 @@ export function createAdaptiveStepper(
   config: RunStepperConfig,
   { tolerance }: AdaptiveStepperParameters,
 ): AdaptiveStepper {
-  const referenceInterval = REFERENCE_INTERVAL;
   const maxTime = config.maxTime;
-  const run: MonteCarloRunState = createRunState(
-    {
-      sdcpn: config.sdcpn,
-      ...(config.extensions === undefined
-        ? {}
-        : { extensions: config.extensions }),
-      ...(config.hirArtifacts === undefined
-        ? {}
-        : { hirArtifacts: config.hirArtifacts }),
-      runCount: 1,
-      initialMarking: config.initialMarking,
-      parameterValues: config.parameterValues,
-      seed: config.seed,
-      dt: referenceInterval,
-      maxTime: maxTime ?? Number.POSITIVE_INFINITY,
-    },
-    config.runConfig,
-    config.runIndex ?? 0,
-  );
+  // The run state wants a step for the fixed-step loop, which this stepper
+  // never runs.
+  const run = createStepperRunState(config, REFERENCE_INTERVAL);
   const { simulation } = run;
   const layout = simulation.frameLayout;
 
@@ -371,7 +348,7 @@ export function createAdaptiveStepper(
       };
     }
 
-    const toReference = referenceInterval - intoSpan;
+    const toReference = REFERENCE_INTERVAL - intoSpan;
     const span = Math.min(toReference, remaining, toStop);
     let waiting = Number.POSITIVE_INFINITY;
     if (hazards.total > 0) {
@@ -439,7 +416,7 @@ export function createAdaptiveStepper(
     intoSpan = 0;
     time = isFinal
       ? maxTime
-      : anchorTime + spansSinceAnchor * referenceInterval;
+      : anchorTime + spansSinceAnchor * REFERENCE_INTERVAL;
     if (isFinal) {
       completion = "maxTime";
       run.status = "complete";

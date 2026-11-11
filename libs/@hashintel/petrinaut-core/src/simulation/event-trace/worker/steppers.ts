@@ -9,18 +9,14 @@ import {
   readFixedStepStepperParameters,
 } from "./fixed-step-stepper";
 
-import type {
-  RunStepper,
-  RunStepperConfig,
-  StepperParameters,
-} from "./run-stepper";
+import type { MonteCarloSimulatorSelection } from "../../monte-carlo/run-driver";
+import type { RunStepper, RunStepperConfig } from "./run-stepper";
 
-/** Which simulator steps a run, and with what parameter values. */
-export type StepperSelection = {
-  /** The id of a simulator whose stepper this worker hosts. */
-  id: string;
-  parameters: StepperParameters;
-};
+/**
+ * Which simulator steps a run, and with what parameter values: the id of a
+ * simulator whose stepper this worker hosts.
+ */
+export type StepperSelection = MonteCarloSimulatorSelection;
 
 /**
  * Builds the stepper of the selected simulator. Throws for a simulator this

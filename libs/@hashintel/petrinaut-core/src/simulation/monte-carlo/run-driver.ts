@@ -12,6 +12,8 @@ import type { MonteCarloRunConfig, MonteCarloSimulatorConfig } from "./types";
 export type MonteCarloRunDriver = {
   /** The run's state, in the buffers the metrics read. */
   readonly run: MonteCarloRunState;
+  /** Simulation time the run has reached. */
+  readonly time: number;
   /**
    * Brings the run to `time`, or to its end when that comes first. The run's
    * status tells the simulator which.

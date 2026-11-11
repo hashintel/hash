@@ -24,13 +24,17 @@ export const createStepperRunDriverFactory =
       parameterValues: config.parameterValues ?? {},
       seed: config.seed ?? 1,
       maxTime: config.maxTime,
-      // The seed derives from the run's place in the whole experiment, so a
-      // shard computes the runs it was dealt and no others.
-      runIndex: (config.runIndexOffset ?? 0) + index,
+      runIndex: index,
+      ...(config.runIndexOffset === undefined
+        ? {}
+        : { runIndexOffset: config.runIndexOffset }),
       ...(runConfig === undefined ? {} : { runConfig }),
     });
     return {
       run: stepper.run,
+      get time() {
+        return stepper.time;
+      },
       advanceTo(time) {
         for (;;) {
           const advance = stepper.advance(time);

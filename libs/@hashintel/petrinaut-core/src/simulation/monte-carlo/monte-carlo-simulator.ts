@@ -155,21 +155,45 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
    * Returns a stable summary for one run without exposing its frame buffer.
    */
   getRunSummary(index: number): MonteCarloRunSummary {
-    return summarizeRun(this.getRun(index));
+    return this.#summarize(this.getRun(index), index);
   }
 
   /**
    * Returns a run summary plus current place token counts.
    */
   getRunSnapshot(index: number): MonteCarloRunSnapshot {
-    return getRunSnapshot(this.getRun(index));
+    return {
+      ...getRunSnapshot(this.getRun(index)),
+      ...this.#drivenPosition(index),
+    };
   }
 
   /**
    * Returns stable summaries for all runs.
    */
   getSummaries(): MonteCarloRunSummary[] {
-    return this.#runs.map((run) => summarizeRun(run));
+    return this.#runs.map((run, index) => this.#summarize(run, index));
+  }
+
+  #summarize(run: MonteCarloRunState, index: number): MonteCarloRunSummary {
+    return { ...summarizeRun(run), ...this.#drivenPosition(index) };
+  }
+
+  /**
+   * Where a driven run stands: the time its driver reached, and the last
+   * sample at or before it. A run the simulator steps itself counts its own
+   * frames, so nothing is overridden for it.
+   */
+  #drivenPosition(
+    index: number,
+  ): Pick<MonteCarloRunSummary, "frameNumber" | "currentTime"> | undefined {
+    const driver = this.#drivers?.[index];
+    return driver
+      ? {
+          frameNumber: Math.floor(driver.time / this.#samplePeriod + 1e-9),
+          currentTime: driver.time,
+        }
+      : undefined;
   }
 
   /**
