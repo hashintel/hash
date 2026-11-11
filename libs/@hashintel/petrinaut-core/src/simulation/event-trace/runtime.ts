@@ -73,8 +73,6 @@ export interface EventSimulation {
 
   run(this: void): void;
   pause(this: void): void;
-  /** Discards the run. A later `run()` needs a new simulation. */
-  reset(this: void): void;
   /** Lets the worker compute until the trace covers `time`. */
   demand(this: void, time: number): void;
 
@@ -230,15 +228,6 @@ export function createEventSimulation(
         send({ type: "start" });
       },
       pause: () => send({ type: "pause" }),
-      reset() {
-        if (disposed) {
-          return;
-        }
-        send({ type: "stop" });
-        store.clear();
-        trace.set(EMPTY_SUMMARY);
-        status.set("Ready");
-      },
       demand: (time) => send({ type: "demand", time }),
       getEvent: (index) => store.getEvent(index),
       findEventIndexAt: (time) => store.findIndexAt(time),
