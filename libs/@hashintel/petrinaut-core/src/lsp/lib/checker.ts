@@ -14,6 +14,10 @@ import {
 import { lowerAndCheck } from "../../hir/compile";
 import { inferMetricShape } from "../../hir/metric-shape";
 import { getHirDiagnosticsForItem } from "./check-hir";
+import {
+  sourcePredicateDiagnostic,
+  sourcePredicatesOfTimedNet,
+} from "./check-net-timing";
 import { getItemFilePath } from "./file-paths";
 
 import type { HirSurfaceContext } from "../../hir";
@@ -129,6 +133,10 @@ export function checkSDCPN(
     }
   }
 
+  const sourcePredicates = new Set(
+    sourcePredicatesOfTimedNet(sdcpn, extensions),
+  );
+
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
     const availability = getTransitionLogicAvailability(
@@ -137,25 +145,36 @@ export function checkSDCPN(
       extensions,
     );
 
-    if (availability.lambda) {
-      // Check Lambda code
-      const lambdaFilePath = getItemFilePath("transition-lambda-code", {
-        transitionId: transition.id,
-      });
-      const lambdaDiagnostics = collectItemDiagnostics(
-        server,
-        lambdaFilePath,
-        buildLambdaContext(sdcpn, transition, extensions),
-      );
+    // The lambda's file carries the transition's firing diagnostics, the
+    // structural one included, which holds whether or not the code is shown.
+    const lambdaFilePath = getItemFilePath("transition-lambda-code", {
+      transitionId: transition.id,
+    });
+    const lambdaDiagnostics = [
+      ...(sourcePredicates.has(transition)
+        ? [
+            sourcePredicateDiagnostic(
+              transition,
+              server.getUserContent(lambdaFilePath) ?? "",
+            ),
+          ]
+        : []),
+      ...(availability.lambda
+        ? collectItemDiagnostics(
+            server,
+            lambdaFilePath,
+            buildLambdaContext(sdcpn, transition, extensions),
+          )
+        : []),
+    ];
 
-      if (lambdaDiagnostics.length > 0) {
-        itemDiagnostics.push({
-          itemId: transition.id,
-          itemType: "transition-lambda",
-          filePath: lambdaFilePath,
-          diagnostics: lambdaDiagnostics,
-        });
-      }
+    if (lambdaDiagnostics.length > 0) {
+      itemDiagnostics.push({
+        itemId: transition.id,
+        itemType: "transition-lambda",
+        filePath: lambdaFilePath,
+        diagnostics: lambdaDiagnostics,
+      });
     }
 
     if (availability.transitionKernel) {
