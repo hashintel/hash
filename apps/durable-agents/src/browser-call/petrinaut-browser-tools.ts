@@ -14,9 +14,9 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   netReaderDescriptions,
-  netReaderInputSchema,
   type NetReaderLevel,
   netReaderToolNames,
+  vNetReaderInput,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -58,7 +58,7 @@ const netReaderTools = (
   defineWaitingBrowserTool({
     name: netReaderToolNames[level],
     description: netReaderDescriptions[level],
-    parameters: withoutDialect(toJsonSchema(netReaderInputSchema)),
+    parameters: withoutDialect(toJsonSchema(vNetReaderInput)),
   }),
 );
 

@@ -48,7 +48,7 @@ import { Pool } from "pg";
 import {
   type BrowserCallClaim,
   type BrowserContext,
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
@@ -235,7 +235,7 @@ const drive = async () => {
 
   try {
     print(
-      `Tool ${toolName}: browserToolMutatesDocument = ${browserToolMutatesDocument(toolName)}`,
+      `Tool ${toolName}: documentRevision = ${browserToolFacts(toolName).documentRevision}`,
     );
     print(`Conversation ${chatId}, schema ${conversationSchema(chatId)}\n`);
 

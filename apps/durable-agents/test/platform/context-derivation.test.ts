@@ -40,6 +40,7 @@ import { parseClientToolResultMetadata } from "@hashintel/brunch-agent";
 import {
   bindBrowserDocument,
   browserCallExtension,
+  type BrowserCallResult,
   BrowserCallsDoc,
   claimBrowserCall,
   finishBrowserCall,
@@ -70,7 +71,6 @@ const place = {
   name: "Dryer",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -170,8 +170,8 @@ const answer = async (
   harness: Harness,
   conversationId: ConversationId,
   toolCallId: string,
-  output: unknown,
-  metadata?: unknown,
+  output: BrowserCallResult["output"],
+  metadata?: BrowserCallResult["metadata"],
 ) => {
   await vi.waitFor(async () => {
     const calls = (

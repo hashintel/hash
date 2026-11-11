@@ -21,8 +21,7 @@ import {
 
 import {
   browserExecutedToolNames,
-  browserToolMutatesDocument,
-  isNetObservationTool,
+  browserToolFacts,
   type NetStructure,
   parseClientToolResultMetadata,
   parsePetrinautUserMessageBody,
@@ -79,8 +78,9 @@ const netResultView = (
   metadata: unknown,
 ): NetResultView | undefined => {
   if (!browserExecutedToolNames.has(toolName)) return undefined;
-  if (isNetObservationTool(toolName)) return { kind: "read" };
-  if (!browserToolMutatesDocument(toolName)) return undefined;
+  const { observesNet, documentRevision } = browserToolFacts(toolName);
+  if (observesNet) return { kind: "read" };
+  if (documentRevision !== "change") return undefined;
   const parsed = parseClientToolResultMetadata(metadata);
   return parsed?.documentRevision.after === undefined ||
     parsed.readBack === undefined

@@ -28,7 +28,6 @@ const place: Place = {
   name: "Dryer",
   colorId: "type-load",
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
