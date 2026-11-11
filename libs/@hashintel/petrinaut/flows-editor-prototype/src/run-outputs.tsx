@@ -53,6 +53,7 @@ import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
+import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { RunIdsIn, runLabel } from "./run-id";
 import { TextLink } from "./text-link";
 import {
@@ -995,7 +996,8 @@ const EmailRow = ({
   );
 };
 
-/** A file with its drawn first page (today's row, and every take's PDF row). */
+/** A file as the figma-ds `_File` row: its drawn first page cropped into the 28 px square, the name and size, and
+ * what it says on the second line (the recorded gap). */
 const PageRow = ({
   file,
   tag,
@@ -1005,28 +1007,19 @@ const PageRow = ({
   tag?: string;
   onOpen: () => void;
 }) => (
-  <button
-    type="button"
-    className={cx(
-      rowButtonStyle,
-      css({ width: "[calc(100% + 16px)]" }),
-      tag &&
-        css({
-          gridTemplateColumns: "[auto 1fr auto]",
-          "& > span:nth-child(2)": { minWidth: "[0]" },
-        }),
-    )}
+  <DsFileRow
     data-output-file={file.kind}
+    preview={<Page file={file} width={28} framed={false} />}
+    name={fileTitle(file)}
+    size={
+      file.kind === "certificate"
+        ? `${file.sizeKb} KB`
+        : `sent ${file.sentAt.slice(0, 5)}`
+    }
+    detail={fileDetail(file)}
+    aside={tag}
     onClick={onOpen}
-  >
-    <Page file={file} width={44} />
-    <span>
-      <span className={titleLineStyle}>{fileTitle(file)}</span>
-      <span className={metaLineStyle}>{fileMeta(file)}</span>
-      <span className={metaLineStyle}>{fileDetail(file)}</span>
-    </span>
-    {tag ? <span className={typeTagStyle}>{tag}</span> : null}
-  </button>
+  />
 );
 
 const FileRow = ({
