@@ -5,6 +5,7 @@
 //! later run addresses the same entities, and operations carry the Graph's own property and
 //! provenance types, so they convert to Graph requests without reshaping.
 
+mod property;
 #[cfg(test)]
 mod tests;
 
@@ -18,6 +19,9 @@ use type_system::{
     provenance::{OriginProvenance, OriginType, SourceProvenance, SourceType},
 };
 
+pub use self::property::{
+    ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow, UnsupportedValue,
+};
 use crate::derive_entity_id;
 
 /// Creates or updates an entity with an ID derived from its source record.

@@ -2,6 +2,7 @@
   "package": "hash-integrations-engine",
   "dependencies": [
     "error-stack",
+    "hash-codec",
     "hash-crypto",
     "hash-graph-store",
     "hash-graph-temporal-versioning",
