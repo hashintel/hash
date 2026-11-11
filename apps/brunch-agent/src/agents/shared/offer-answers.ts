@@ -1,5 +1,4 @@
 import { defineTool } from "@flue/runtime";
-import * as v from "valibot";
 
 import {
   brunchTools,
@@ -9,7 +8,7 @@ import {
   zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
-import { repliesWith, turnPartsWith } from "./ledger-tools.ts";
+import { closesWithCommit } from "./ledger-tools.ts";
 
 const kindUses = Object.entries(questionKinds).map(
   ([kind, { use }]) => `${kind} ${use}`,
@@ -23,24 +22,6 @@ export const offerAnswersToolDescription = [
   `Never offer choices on ${neverOffer.join(", nor on ")}.`,
   "The user can always answer in their own words.",
 ].join(" ");
-
-const vClosingCommitPart = v.object({
-  toolName: v.literal(brunchTools.ledgerCommit),
-  input: v.object({ endTurn: v.literal(true) }),
-  output: v.optional(v.object({ status: v.literal("recorded") })),
-});
-
-/**
- * Whether the turn closes as `ledger_commit` would: it has replied by this
- * call, and holds a commit with `endTurn` still running in this batch or
- * already recorded. Without the reply this call keeps the turn open, so the
- * user still gets one.
- */
-const closesWithCommit = (history: LedgerHistory, toolCallId: string) =>
-  repliesWith(history, toolCallId) &&
-  turnPartsWith(history, toolCallId).some((part) =>
-    v.is(vClosingCommitPart, part),
-  );
 
 /**
  * Buttons and fields beneath the reply for the questions it asks. Returns at
@@ -58,7 +39,8 @@ export const createOfferAnswersTool = (
       return {
         output: { offered: data.questions.length },
         // Flue ends a batch only when every call in it terminates, so the
-        // closing commit's own result decides whether this turn ends.
+        // closing commit's own result decides whether this turn ends. Without
+        // a reply this call keeps the turn open, so the user still gets one.
         terminate: closesWithCommit(history, toolCallId),
       };
     },
