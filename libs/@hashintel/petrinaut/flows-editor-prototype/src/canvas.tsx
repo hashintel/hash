@@ -2786,8 +2786,8 @@ const touching =
     ids.includes(wire.source) || ids.includes(wire.target);
 
 /**
- * The canvas's right-click menus. J1.16 a step: Disconnect from previous, Disconnect all, then Delete step (⌫), as
- * Backspace does (3 Nov). A box selection: Disconnect all. J1.20 a connection: Disconnect, Insert step here. J1.21 a
+ * The canvas's right-click menus. J1.16 a step: Disconnect from previous, Disconnect all, then Delete step, as
+ * Backspace does (3 Nov); menus show no shortcut glyphs (12 Nov). A box selection: Disconnect all. J1.20 a connection: Disconnect, Insert step here. J1.21 a
  * port: Disconnect, Disconnect all. Connections and ports have no Delete (2 Nov).
  */
 const useCanvasMenuItems = (
@@ -2897,7 +2897,6 @@ const useCanvasMenuItems = (
               id: "delete",
               text: "Delete step",
               icon: "trash",
-              suffix: "⌫",
               onClick: () => {
                 setDocument((current) => removeStep(current, menu.stepId));
                 setUi((current) => ({
