@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen", "build:reference"]
+      "dependsOn": ["codegen"]
     },
     "codegen": {
       "dependsOn": ["@local/hashql#build"],
