@@ -5,8 +5,10 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 
 import {
   cellSx,
+  firstCellSx,
   formatVersions,
   toggleRowSx,
+  treeCellSx,
 } from "./dependent-types-table-layout";
 import {
   ExpandChevron,
@@ -24,7 +26,9 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-const gridTemplateColumns = "240px minmax(0, 1fr) 128px";
+const versionColumnWidth = 240;
+
+const gridTemplateColumns = `${versionColumnWidth}px minmax(0, 400px) 128px minmax(0, 1fr)`;
 
 const innerCellSx = { ...cellSx, pl: 1.5 } as const;
 
@@ -53,6 +57,7 @@ const DependentTypeSubRow = ({
   return (
     <NestedRow
       gridTemplateColumns={gridTemplateColumns}
+      treeLeft={versionColumnWidth}
       last={last}
       openButton={
         <OpenTypeButton
@@ -64,8 +69,8 @@ const DependentTypeSubRow = ({
         />
       }
     >
-      <Box sx={cellSx} />
-      <Box sx={{ ...innerCellSx, maxWidth: 1, display: "flex" }}>
+      <Box sx={firstCellSx} />
+      <Box sx={{ ...treeCellSx, maxWidth: 1, display: "flex" }}>
         <Tooltip
           title={description}
           open={hovered || focused}
@@ -118,7 +123,7 @@ const ParentVersionTableRow = ({
           aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
           onClick={() => setExpanded(!expanded)}
         >
-          <Box sx={{ ...cellSx, maxWidth: 1 }}>
+          <Box sx={{ ...firstCellSx, maxWidth: 1 }}>
             <TypeLabel
               entityType={parent}
               former={false}
@@ -128,8 +133,8 @@ const ParentVersionTableRow = ({
           </Box>
           <Box
             sx={{
-              ...innerCellSx,
-              gridColumn: "2 / 4",
+              ...treeCellSx,
+              gridColumn: "2 / -1",
               maxWidth: 1,
               display: "flex",
               alignItems: "baseline",
@@ -163,7 +168,7 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        <ExpandChevron expanded={expanded} />
+        <ExpandChevron expanded={expanded} left={versionColumnWidth} />
       </Box>
       {expanded ? (
         <Box role="group" aria-label={`Types that extend ${parentLabel}`}>
@@ -199,13 +204,15 @@ export const DependentTypesByVersionTable = ({
   <>
     <TableCard>
       <HeaderRow gridTemplateColumns={gridTemplateColumns}>
-        <Box sx={{ ...cellSx, overflow: "hidden", textOverflow: "ellipsis" }}>
+        <Box
+          sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
+        >
           <Box component="span" sx={{ fontWeight: 700 }}>
             {entityType.schema.title}
           </Box>{" "}
           version
         </Box>
-        <Box sx={innerCellSx}>Extended by</Box>
+        <Box sx={treeCellSx}>Extended by</Box>
         <Box sx={innerCellSx}>Versions</Box>
       </HeaderRow>
       {parentVersionRows.map((parentVersionRow) => (

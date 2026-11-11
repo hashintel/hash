@@ -9,6 +9,8 @@ import {
   openColumnWidth,
   rowHeight,
   rowToggleClassName,
+  treeGutterWidth,
+  treeLineOffset,
   visuallyHidden,
 } from "./dependent-types-table-layout";
 
@@ -167,15 +169,22 @@ export const RowToggle = ({
   />
 );
 
-/** The chevron at the left of an expandable row, turned down while the row is expanded. */
-export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
+/** The chevron at the start of an expandable row's second column, turned down while the row is expanded. */
+export const ExpandChevron = ({
+  expanded,
+  left,
+}: {
+  expanded: boolean;
+  /** The width of the row's first column. */
+  left: number;
+}) => (
   <Box
     aria-hidden
     sx={({ palette }) => ({
       position: "absolute",
-      left: 0,
+      left,
       top: 0,
-      width: 28,
+      width: treeLineOffset * 2,
       height: rowHeight,
       display: "flex",
       alignItems: "center",
@@ -196,13 +205,13 @@ export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
 );
 
 /** The vertical line and elbow that join a nested row to the row above it. */
-const TreeLines = ({ last }: { last: boolean }) => (
+const TreeLines = ({ last, left }: { last: boolean; left: number }) => (
   <>
     <Box
       aria-hidden
       sx={({ palette }) => ({
         position: "absolute",
-        left: 14,
+        left: left + treeLineOffset,
         top: 0,
         width: "1px",
         height: last ? 21 : rowHeight,
@@ -214,9 +223,9 @@ const TreeLines = ({ last }: { last: boolean }) => (
       aria-hidden
       sx={({ palette }) => ({
         position: "absolute",
-        left: 14,
+        left: left + treeLineOffset,
         top: 20,
-        width: 11,
+        width: treeGutterWidth - treeLineOffset,
         height: "1px",
         background: palette.gray[40],
         pointerEvents: "none",
@@ -228,11 +237,14 @@ const TreeLines = ({ last }: { last: boolean }) => (
 /** A row inside an expanded row: its cells, its open button, and the tree lines that join it to the row above. */
 export const NestedRow = ({
   gridTemplateColumns,
+  treeLeft,
   last,
   openButton,
   children,
 }: {
   gridTemplateColumns: string;
+  /** The width of the row's first column, after which the tree lines start. */
+  treeLeft: number;
   /** Whether this is the expanded row's last nested row, where the tree line ends. */
   last: boolean;
   openButton: ReactNode;
@@ -248,7 +260,7 @@ export const NestedRow = ({
   >
     <Box sx={rowGridSx(gridTemplateColumns)}>{children}</Box>
     {openButton}
-    <TreeLines last={last} />
+    <TreeLines last={last} left={treeLeft} />
   </Box>
 );
 
