@@ -26,7 +26,7 @@ import { Mail, Paperclip } from "lucide-react";
  * The History Outputs column lists only the outputs flagged "Show in run history" (`document.flaggedOutputs`).
  *
  * Where the viewer opens sits behind ?outputs=inline|expand|modal (inbox `picks/outputs-container`), read from the URL
- * only; no param is the modal. Inline swaps the right column (the run's step panel, or History's overview) for the
+ * only; no param is expand. Inline swaps the right column (the run's step panel, or History's overview) for the
  * list with a back arrow; expand adds a wide, non-modal side sheet. The loop step's outputs (suppliers, certificates
  * and emails) are the mixed list the three are compared on.
  *
@@ -2451,18 +2451,19 @@ const flaggedView = (
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
- * Where the viewer opens (inbox `picks/outputs-container`), ?outputs=inline|expand|modal from the URL only; no param
- * is today's modal until Aakarsh picks.
+ * Where the viewer opens (inbox `picks/outputs-container`), ?outputs=inline|expand|modal from the URL only. No param
+ * is expand (11 Nov convergence A16): a document opens full height in the panel, a list in the 640 px sheet, and
+ * nothing opens as a centred modal.
  * - inline: the right column swaps to the output list with a back arrow (Attio's run panel); a file previews there.
  * - expand: inline, plus an expand control that opens a wide side sheet; the canvas and run stay in view beside it.
- * - modal: today's take, a dialog over everything.
+ * - modal: the old take, a dialog over everything.
  * ------------------------------------------------------------------------------------------------------------- */
 
 export type OutputsContainer = "inline" | "expand" | "modal";
 
 export const useOutputsContainer = (): OutputsContainer => {
   const value = useLocation().query.get("outputs")?.toLowerCase();
-  return value === "inline" || value === "expand" ? value : "modal";
+  return value === "inline" || value === "modal" ? value : "expand";
 };
 
 /** The right column the viewer swaps into: History's overview, or the run view's step panel. */
@@ -2594,6 +2595,22 @@ const columnBodyStyle = css({
   flexDirection: "column",
   gap: "6",
   padding: "6",
+});
+
+/**
+ * fh2 (ledger 10 Nov 15:33): the document full height in the panel, on the Flows grey stage (neutral.s20), edge to
+ * edge; its facts follow below.
+ */
+const documentStageStyle = css({
+  flexShrink: 0,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "flex-start",
+  minHeight: "[calc(100vh - 220px)]",
+  marginX: "[-24px]",
+  paddingX: "6",
+  paddingY: "6",
+  backgroundColor: "neutral.s20",
 });
 
 const headBlockStyle = css({
@@ -2997,7 +3014,9 @@ const OutputColumn = ({
                 {fileMeta(file)} · {file.supplier}
               </span>
             </div>
-            <Page file={file} width={width - 48} />
+            <div className={documentStageStyle} data-document-stage>
+              <Page file={file} width={width - 48} />
+            </div>
             <FileFacts file={file} run={run} />
             <span className={css({ display: "flex", gap: "1.5" })}>
               <FileActions file={file} />

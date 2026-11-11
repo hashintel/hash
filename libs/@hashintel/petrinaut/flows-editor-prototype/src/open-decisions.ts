@@ -72,9 +72,9 @@ export const openDecisions: OpenSwitch[] = [
     flag: "outputs",
     defaultValue: null,
     options: [
-      { label: "modal", value: null },
+      { label: "inline + expand", value: null },
+      { label: "modal", value: "modal" },
       { label: "inline", value: "inline" },
-      { label: "inline + expand", value: "expand" },
     ],
   },
   {
