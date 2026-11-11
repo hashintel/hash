@@ -41,7 +41,13 @@ import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side"
 import { RunIdText } from "./run-id";
 import { type Certificate, Page } from "./run-outputs";
 import { tileColor } from "./status-colors";
-import { HueHeader, PropertyRow, Section, sectionTitleStyle } from "./ui";
+import {
+  HueHeader,
+  kindGroupOf,
+  PropertyRow,
+  Section,
+  sectionTitleStyle,
+} from "./ui";
 import { useEscapeCloses } from "./use-escape-closes";
 
 /* ----------------------------------------------------------------------------------------------------------------
@@ -494,11 +500,12 @@ const QuestionList = ({
 /** The H4 header of the step the question is about, with the open-in-inbox icon at its right. */
 const StepHeader = ({ request }: { request: R2Request }) => {
   const { icon, kind } = useStepFacts(request.stepId);
-  const { step, item } = splitPath(request);
+  const { step } = splitPath(request);
+  const group = kindGroupOf(icon);
   return (
     <div className={css({ display: "flex", alignItems: "flex-start", gap: "2" })}>
       <div className={css({ flex: "1", minWidth: "[0]" })}>
-        {/* Kind on top, name below, as every panel header (H4 + k3; 11 Nov convergence A18). */}
+        {/* Kind on top, "Group · name" below, as every panel header (k3); what it is about shows in the context. */}
         <HueHeader icon={icon} title={<span>{kind}</span>}>
           <span
             className={css({
@@ -509,7 +516,7 @@ const StepHeader = ({ request }: { request: R2Request }) => {
               textOverflow: "ellipsis",
             })}
           >
-            {[step, item].filter(Boolean).join(" · ")}
+            {[group, step].filter(Boolean).join(" · ")}
           </span>
         </HueHeader>
       </div>
