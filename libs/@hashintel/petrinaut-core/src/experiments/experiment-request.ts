@@ -12,6 +12,7 @@ import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
+import type { MonteCarloSimulatorSelection } from "../simulation/monte-carlo/run-driver";
 import type { SDCPN } from "../types/sdcpn";
 
 /**
@@ -61,4 +62,10 @@ export type ExperimentRequest = {
    * caller compiles once for whichever backends it is about to ask.
    */
   readonly hirArtifacts?: HirArtifacts;
+  /**
+   * The simulator that advances each run between samples, for a backend
+   * whose workers host it. Left out, a backend runs its own engine and `dt`
+   * is its step; given, `dt` is the sample period alone.
+   */
+  readonly simulator?: MonteCarloSimulatorSelection;
 };

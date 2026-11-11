@@ -32,6 +32,7 @@ import type {
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type { MonteCarloSimulatorSelection } from "../run-driver";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,
@@ -94,6 +95,12 @@ type CreateMonteCarloExperimentBaseConfig = {
    * runs as one shard.
    */
   shardCount?: number;
+  /**
+   * The simulator that advances each run between samples, when it is not
+   * the fixed-step engine. The workers have to host it; `dt` is then the
+   * sample period alone.
+   */
+  simulator?: MonteCarloSimulatorSelection;
   signal?: AbortSignalLike;
 };
 
@@ -813,6 +820,9 @@ export function createMonteCarloExperiment(
           ),
           batchSize: config.batchSize,
           metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
+          ...(config.simulator === undefined
+            ? {}
+            : { simulator: config.simulator }),
         });
       }
     } catch (error) {

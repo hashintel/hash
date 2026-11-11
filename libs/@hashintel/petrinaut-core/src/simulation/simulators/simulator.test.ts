@@ -177,7 +177,7 @@ describe("simulatorFromExperimentBackend", () => {
   ) => {
     const simulator = simulatorFromExperimentBackend<typeof stepParameters>(
       backend,
-      (parameters) => parameters.dt,
+      { timeStepOf: (parameters) => parameters.dt },
     );
     const assessment = await simulator.assess({
       ...request,
@@ -255,5 +255,34 @@ describe("simulatorFromExperimentBackend", () => {
         { code: "no-transitions", message: "Nothing to fire", origin: "model" },
       ],
     });
+  });
+
+  it("hosts another simulator's runs in the backend's workers, at whatever period the experiment samples", async () => {
+    const see = vi.fn();
+    const simulator = simulatorFromExperimentBackend<typeof stepParameters>(
+      backendSeeing(see),
+      {
+        simulatorOf: (parameters) => ({ id: "test.solver", parameters }),
+      },
+    );
+    const assessment = await simulator.assess({
+      ...requestBase,
+      simulatorParameters: { dt: 0.1 },
+    });
+    if (!assessment.eligible || !assessment.startExperiment) {
+      throw new Error("The adapter should offer experiments");
+    }
+
+    await assessment.startExperiment({ ...experiment, samplePeriod: 0.5 });
+    expect(see).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        dt: 0.5,
+        simulator: { id: "test.solver", parameters: { dt: 0.1 } },
+      }),
+    );
+
+    // Without a period of its own, the experiment samples every 0.1 s.
+    await assessment.startExperiment({ runCount: 8, metricSpecs: [] });
+    expect(see).toHaveBeenLastCalledWith(expect.objectContaining({ dt: 0.1 }));
   });
 });

@@ -10,6 +10,7 @@ import { getFrameTime } from "./time";
 
 import type { MonteCarloRunState } from "./internal-types";
 import type { MonteCarloFrameMetric } from "./metrics/types";
+import type { MonteCarloRunDriver } from "./run-driver";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunSnapshot,
@@ -28,6 +29,11 @@ import type {
  */
 class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   readonly #runs: MonteCarloRunState[];
+  /** The runs' drivers, when something other than the fixed step advances them. */
+  readonly #drivers: readonly MonteCarloRunDriver[] | null;
+  /** Simulated seconds between two samples. */
+  readonly #samplePeriod: number;
+  readonly #maxTime: number;
   readonly #metrics: readonly MonteCarloFrameMetric[];
   readonly #placeIds: readonly string[];
   readonly #placeNames: readonly string[];
@@ -54,9 +60,19 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
       );
     }
 
-    this.#runs = Array.from({ length: config.runCount }, (_, index) =>
-      createRunState(config, config.runs?.[index], index),
-    );
+    const { createRunDriver } = config;
+    this.#drivers = createRunDriver
+      ? Array.from({ length: config.runCount }, (_, index) =>
+          createRunDriver(config, config.runs?.[index], index),
+        )
+      : null;
+    this.#runs = this.#drivers
+      ? this.#drivers.map((driver) => driver.run)
+      : Array.from({ length: config.runCount }, (_, index) =>
+          createRunState(config, config.runs?.[index], index),
+        );
+    this.#samplePeriod = config.dt;
+    this.#maxTime = config.maxTime;
     const firstRun = this.#runs[0]!;
     this.#metrics = config.metrics ?? [];
     this.#placeIds = firstRun.simulation.frameLayout.placeIds;
@@ -74,16 +90,31 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   }
 
   /**
-   * Advances every active run by at most one frame.
+   * Advances every active run by at most one frame: one fixed step, or with
+   * drivers the stretch to the next sample time.
    *
    * Complete and errored runs are skipped, so repeated calls can drive the
    * simulator until all runs finish without reallocating orchestration state.
    */
   advanceAll(): MonteCarloAdvanceResult {
     let advancedRuns = 0;
-    for (const run of this.#runs) {
-      if (advanceRun(run)) {
-        advancedRuns++;
+    if (this.#drivers) {
+      const sampleTime = getFrameTime(
+        this.#frameNumber + 1,
+        this.#samplePeriod,
+      );
+      for (const driver of this.#drivers) {
+        const { status } = driver.run;
+        if (status !== "complete" && status !== "error") {
+          driver.advanceTo(sampleTime);
+          advancedRuns++;
+        }
+      }
+    } else {
+      for (const run of this.#runs) {
+        if (advanceRun(run)) {
+          advancedRuns++;
+        }
       }
     }
 
@@ -101,8 +132,16 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   runUntilComplete(
     options: MonteCarloRunUntilCompleteOptions = {},
   ): MonteCarloAdvanceResult {
+    // A driven run counts its own steps, so the samples it takes to reach
+    // the end are counted from the sample period instead.
     const maxBatches =
-      options.maxBatches ?? Math.max(1, this.#runs[0]!.maxFrameNumber + 1);
+      options.maxBatches ??
+      Math.max(
+        1,
+        (this.#drivers
+          ? Math.ceil(this.#maxTime / this.#samplePeriod)
+          : this.#runs[0]!.maxFrameNumber) + 1,
+      );
     let result = summarizeRuns(this.#runs, 0);
 
     for (let batch = 0; batch < maxBatches && !result.allFinished; batch++) {
@@ -158,7 +197,7 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
     for (const metric of this.#metrics) {
       metric.observeFrame({
         frameNumber: this.#frameNumber,
-        time: getFrameTime(this.#frameNumber, this.#runs[0]!.simulation.dt),
+        time: getFrameTime(this.#frameNumber, this.#samplePeriod),
         runCount: this.#runs.length,
         activeRunCount,
         completedRunCount,

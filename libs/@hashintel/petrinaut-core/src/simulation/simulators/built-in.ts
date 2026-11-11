@@ -63,7 +63,7 @@ export const jsAdaptiveSimulatorManifest = {
       scale: "log",
     },
   },
-  produces: { run: true, experiment: false },
+  produces: { run: true, experiment: true },
 } as const satisfies SimulatorManifest;
 
 export const webGpuFixedStepSimulatorManifest = {
@@ -167,7 +167,7 @@ export const createJsFixedStepSimulator = (
             ? {}
             : { batchSize: options.batchSize }),
         }),
-        (parameters) => parameters.dt,
+        { timeStepOf: (parameters) => parameters.dt },
       );
       return Promise.resolve({
         needsHirTrees: experiments.needsHirTrees,
@@ -196,34 +196,67 @@ export const createJsFixedStepSimulator = (
 export type JsAdaptiveSimulatorOptions = {
   /** Builds the worker a single run is stepped in. */
   createRunWorker: WorkerFactory;
+  /**
+   * Builds a worker of the pool an experiment's runs are split across. It
+   * has to host the simulator's stepper, as the worker of
+   * `createMonteCarloWorker` does.
+   */
+  createExperimentWorker: WorkerFactory;
+  /** Workers per experiment. Defaults to the pool's own choice. */
+  shardCount?: number;
+  batchSize?: number;
 };
 
-/** The error-controlled solver in JS. Single runs only, for now. */
+/**
+ * The error-controlled solver in JS: single runs, and experiments whose runs
+ * are each stepped by the solver and stopped at every sample time.
+ */
 export const createJsAdaptiveSimulator = (
   options: JsAdaptiveSimulatorOptions,
 ): SimulatorRegistration<typeof jsAdaptiveSimulatorManifest.parameters> =>
   defineSimulator(jsAdaptiveSimulatorManifest, {
     isAvailable: () => true,
-    load: () =>
-      Promise.resolve({
+    load: () => {
+      const experiments = simulatorFromExperimentBackend<
+        typeof jsAdaptiveSimulatorManifest.parameters
+      >(
+        createWorkerPoolExperimentBackend({
+          createWorker: options.createExperimentWorker,
+          ...(options.shardCount === undefined
+            ? {}
+            : { shardCount: options.shardCount }),
+          ...(options.batchSize === undefined
+            ? {}
+            : { batchSize: options.batchSize }),
+        }),
+        {
+          simulatorOf: (parameters) =>
+            stepperSelection(ADAPTIVE_SIMULATOR_ID, parameters),
+        },
+      );
+      return Promise.resolve({
         // The solver classifies each place's dynamics from its HIR.
         needsHirTrees: true,
-        assess: (request) =>
-          Promise.resolve({
-            eligible: true,
-            notes: [],
-            startRun: (startOptions) =>
-              startEventSimulationRun(
-                request,
-                stepperSelection(
-                  ADAPTIVE_SIMULATOR_ID,
-                  request.simulatorParameters,
-                ),
-                options.createRunWorker,
-                startOptions,
-              ),
-          }),
-      }),
+        assess: async (request) => {
+          const assessment = await experiments.assess(request);
+          return assessment.eligible
+            ? {
+                ...assessment,
+                startRun: (startOptions) =>
+                  startEventSimulationRun(
+                    request,
+                    stepperSelection(
+                      ADAPTIVE_SIMULATOR_ID,
+                      request.simulatorParameters,
+                    ),
+                    options.createRunWorker,
+                    startOptions,
+                  ),
+              }
+            : assessment;
+        },
+      });
+    },
   });
 
 export type WebGpuFixedStepSimulatorOptions = {
@@ -258,14 +291,11 @@ export const createWebGpuFixedStepSimulator = (
           const { odeMethod } = request.simulatorParameters;
           let simulator = byMethod.get(odeMethod);
           if (!simulator) {
-            simulator = options
-              .loadBackend({ odeMethod })
-              .then((backend) =>
-                simulatorFromExperimentBackend<Specs>(
-                  backend,
-                  (parameters) => parameters.dt,
-                ),
-              );
+            simulator = options.loadBackend({ odeMethod }).then((backend) =>
+              simulatorFromExperimentBackend<Specs>(backend, {
+                timeStepOf: (parameters) => parameters.dt,
+              }),
+            );
             byMethod.set(odeMethod, simulator);
           }
           return (await simulator).assess(request);

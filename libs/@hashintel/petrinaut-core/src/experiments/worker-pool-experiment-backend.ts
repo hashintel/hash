@@ -69,6 +69,9 @@ const assess = (
           ...(request.hirArtifacts === undefined
             ? {}
             : { hirArtifacts: request.hirArtifacts }),
+          ...(request.simulator === undefined
+            ? {}
+            : { simulator: request.simulator }),
           createWorker: options.createWorker,
           ...(options.shardCount === undefined
             ? {}
