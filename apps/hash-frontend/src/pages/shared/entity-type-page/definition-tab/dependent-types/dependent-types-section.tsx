@@ -28,10 +28,20 @@ import type { ReactNode } from "react";
 
 type Layout = "byType" | "byVersion";
 
-const layoutOptions: { label: string; value: Layout }[] = [
-  { label: "By type", value: "byType" },
-  { label: "By version", value: "byVersion" },
-];
+const layoutOptions = (
+  [
+    { label: "By type", value: "byType" },
+    { label: "By version", value: "byVersion" },
+  ] as const
+).map(({ label, value }) => ({
+  content: (
+    <Box component="span" sx={{ px: 1.25 }}>
+      {label}
+    </Box>
+  ),
+  label,
+  value,
+}));
 
 const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
   color: palette.gray[70],

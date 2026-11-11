@@ -6,13 +6,13 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 type TableHeaderToggleProps<Option extends string> = {
   options: {
+    /** The option's accessible name */
     label: string;
-    /** Shown in place of the label, which becomes its tooltip */
-    icon?: ReactElement;
+    content: ReactNode;
     value: Option;
   }[];
   /** The accessible name of the group */
@@ -55,13 +55,11 @@ export const TableHeaderToggle = <Option extends string>({
           border: "0 !important",
           borderRadius: "6px !important",
           margin: "0 !important",
-          // A fixed square so every selected pill is 1:1.
-          minWidth: 0,
-          width: "26px",
+          // At least square, so an icon's selected pill is 1:1. Wider content,
+          // such as a text label, sets its own width.
+          minWidth: "26px",
           height: "26px",
           padding: 0,
-          // A text option is as wide as its label.
-          "&[data-text]": { width: "auto", px: 1.25 },
           backgroundColor: "transparent",
           transition: ({ transitions }) =>
             transitions.create(["background-color", "box-shadow"]),
@@ -88,23 +86,32 @@ export const TableHeaderToggle = <Option extends string>({
         },
       }}
     >
-      {options.map(({ icon, label, value: optionValue }) => (
+      {options.map(({ content, label, value: optionValue }) => (
         <ToggleButton
           key={optionValue}
           disableRipple
           value={optionValue}
           aria-label={label}
-          data-text={icon ? undefined : true}
         >
-          {icon ? (
-            <Tooltip title={label} placement="top">
-              <Box sx={{ lineHeight: 0 }}>{icon}</Box>
-            </Tooltip>
-          ) : (
-            label
-          )}
+          {content}
         </ToggleButton>
       ))}
     </ToggleButtonGroup>
   );
 };
+
+/**
+ * An icon option's content for `TableHeaderToggle`, with its label as a
+ * tooltip.
+ */
+export const TableHeaderToggleIcon = ({
+  icon,
+  label,
+}: {
+  icon: ReactElement;
+  label: string;
+}) => (
+  <Tooltip title={label} placement="top">
+    <Box sx={{ lineHeight: 0 }}>{icon}</Box>
+  </Tooltip>
+);
