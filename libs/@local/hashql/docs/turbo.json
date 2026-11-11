@@ -19,7 +19,7 @@
     "build:reference": {
       "dependsOn": ["railroad-plugin#build:wasm", "^manifest"],
       "outputs": ["reference/dist/**"],
-      "inputs": ["reference/**"]
+      "inputs": ["reference/**", "!reference/dist/**"]
     },
     "dev:reference": {
       "cache": false,
