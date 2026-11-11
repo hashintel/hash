@@ -141,6 +141,28 @@ export const stackedBandValue = (
   return top - (typeof below === "number" ? below : 0);
 };
 
+/**
+ * The band of a stacked chart that holds `value` at `row`, numbered from 1
+ * as uPlot numbers series, or null above the stack and below zero. The
+ * columns run top band first, each the height its band reaches.
+ */
+export const stackedBandAt = (
+  data: uPlot.AlignedData,
+  row: number,
+  value: number,
+): number | null => {
+  if (value < 0) {
+    return null;
+  }
+  for (let seriesIndex = data.length - 1; seriesIndex >= 1; seriesIndex--) {
+    const top = data[seriesIndex]?.[row];
+    if (typeof top === "number" && value <= top) {
+      return seriesIndex;
+    }
+  }
+  return null;
+};
+
 export const findFiringNear = (
   firings: readonly FiringMark[],
   time: number,

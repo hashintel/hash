@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { stackColumns, stackedBandValue, stackedSeriesOf } from "./series";
+import {
+  stackColumns,
+  stackedBandAt,
+  stackedBandValue,
+  stackedSeriesOf,
+} from "./series";
 
 import type { TimelineSeriesMeta } from "../simulation-timeline/types";
 import type uPlot from "uplot";
@@ -62,5 +67,15 @@ describe("stacking a timeline", () => {
     expect(stackedBandValue(stacked, 2, 1)).toBe(20);
     expect(stackedBandValue(stacked, 3, 2)).toBe(3);
     expect(stackedBandValue(stacked, 4, 0)).toBeUndefined();
+  });
+
+  it("finds the band that holds a value, not the one whose edge is nearest", () => {
+    // Bands at row 0, top first: c reaches 111, b reaches 11, a reaches 1.
+    const stacked = stackColumns(data, series, new Set());
+    expect(stackedBandAt(stacked, 0, 0.5)).toBe(3);
+    expect(stackedBandAt(stacked, 0, 1.2)).toBe(2);
+    expect(stackedBandAt(stacked, 0, 12)).toBe(1);
+    expect(stackedBandAt(stacked, 0, 112)).toBeNull();
+    expect(stackedBandAt(stacked, 0, -1)).toBeNull();
   });
 });
