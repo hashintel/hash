@@ -122,22 +122,21 @@ export function affinePropagator(
 
 /**
  * Applies a propagator from `affinePropagator` to the `dimension` values of
- * `state` starting at `start`, in place.
+ * `state`, in place.
  */
 export function applyAffinePropagator(
   propagator: Float64Array,
   dimension: number,
   state: Float64Array,
-  start = 0,
 ): void {
   const size = dimension + 1;
   const next = new Float64Array(dimension);
   for (let row = 0; row < dimension; row++) {
     let sum = propagator[row * size + dimension]!;
     for (let column = 0; column < dimension; column++) {
-      sum += propagator[row * size + column]! * state[start + column]!;
+      sum += propagator[row * size + column]! * state[column]!;
     }
     next[row] = sum;
   }
-  state.set(next, start);
+  state.set(next);
 }

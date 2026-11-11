@@ -50,8 +50,8 @@ describe("affinePropagator", () => {
       },
       1.5,
     );
-    const state = Float64Array.of(10, 20, 30, 40);
-    applyAffinePropagator(propagator, 2, state, 2);
-    expect(Array.from(state)).toEqual([10, 20, 33, 38.5]);
+    const state = Float64Array.of(30, 40);
+    applyAffinePropagator(propagator, 2, state);
+    expect(Array.from(state)).toEqual([33, 38.5]);
   });
 });

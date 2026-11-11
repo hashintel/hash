@@ -18,8 +18,6 @@ import type { AffineSystem } from "./linear";
 import type { Rk45Integrator, Rk45Tolerance } from "./rk45";
 
 export type PlaceIntegrator = {
-  /** How the place's tokens advance, for diagnostics. */
-  readonly kind: DynamicsClass["kind"];
   /**
    * Advances the `count` tokens packed in `bytes` by `span` in place and
    * returns the local error incurred: the sum over the solver's steps of the
@@ -94,7 +92,6 @@ const createCoupledIntegrator = (
   let nextStep: number | undefined;
 
   return {
-    kind: "coupled",
     integrate(bytes, count, span) {
       const dimension = count * offsets.length;
       if (dimension === 0 || span <= 0) {
@@ -148,7 +145,6 @@ const createIndependentIntegrator = (
   let nextStep: number | undefined;
 
   return {
-    kind: "independent",
     integrate(bytes, count, span) {
       if (dimension === 0 || count === 0 || span <= 0) {
         return 0;
@@ -214,7 +210,6 @@ const createAffineIntegrator = (
   let propagator: Float64Array = new Float64Array(0);
 
   return {
-    kind: "affine",
     integrate(bytes, count, span) {
       if (dimension === 0 || count === 0 || span <= 0) {
         return 0;
