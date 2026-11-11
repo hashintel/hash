@@ -40,6 +40,7 @@ import {
 } from "./run-history";
 import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
 import { selectedLabel } from "./menu-rows";
+import { ShowAllRow } from "./show-all-row";
 import { RunOutputsCell } from "./run-outputs";
 import { StatTiles, statTilesTake } from "./stat-tiles";
 import {
@@ -904,15 +905,12 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           </tbody>
         </Table>
         {runsPage === "p1" && !allFit && !older ? (
-          <div className={footerStyle} data-runs-footer>
-            <button
-              type="button"
-              className={footerLinkStyle}
-              onClick={() => setOlder(true)}
-            >
-              Show all {total} runs
-            </button>
-          </div>
+          <ShowAllRow
+            className={css({ paddingX: "6" })}
+            total={total}
+            noun="runs"
+            onClick={() => setOlder(true)}
+          />
         ) : null}
         {runsPage === "p2" && shownCount < total ? (
           <div className={footerStyle} data-runs-footer>

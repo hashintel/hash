@@ -56,6 +56,7 @@ import { RunGlyph } from "./run-glyph";
 import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { Table } from "./ds-parts/table";
 import { RunIdsIn, runLabel } from "./run-id";
+import { ShowAllRow } from "./show-all-row";
 import { TextLink } from "./text-link";
 import {
   clockPlus,
@@ -112,7 +113,7 @@ export const useEdgeCase = (): number | null => {
  * How a list of more than one type moves between types (inbox `picks/entity-types`). Decided 5 Nov: b, type tabs
  * ("Suppliers 14 · Distributors 6") above the list, in every container (inline column, side sheet, modal); a single
  * type draws no tabs. The two not picked stay behind ?entityswitch=a|c, read from the URL only:
- * a. Stacked sections: a heading and count per type, scroll moves between them, each with "+ N more".
+ * a. Stacked sections: a heading and count per type, scroll moves between them, each with "Show all N".
  * c. A type filter in the list header: "All types ▾", or one type (the inline column only).
  */
 export type EntitySwitchTake = "a" | "b" | "c";
@@ -1107,27 +1108,6 @@ const heroStyle = css({
   "& [data-page-preview]": { alignSelf: "center" },
 });
 
-const MoreButton = ({
-  hidden,
-  open,
-  onToggle,
-}: {
-  hidden: number;
-  open: boolean;
-  onToggle: () => void;
-}) =>
-  hidden > 0 || open ? (
-    <Button
-      size="xs"
-      variant="ghost"
-      tone="neutral"
-      className={css({ alignSelf: "flex-start", marginLeft: "[-6px]" })}
-      onClick={onToggle}
-    >
-      {open ? "Show fewer" : `+ ${hidden} more`}
-    </Button>
-  ) : null;
-
 const failureRowStyle = css({
   display: "grid",
   gridTemplateColumns: "[16px 1fr]",
@@ -1165,7 +1145,9 @@ const FileList = ({
   linkOut,
   footer,
   flagged,
+  noun,
   onOpen,
+  onShowAll,
 }: {
   take: StepOutputsTake;
   files: OutputFile[];
@@ -1173,9 +1155,16 @@ const FileList = ({
   linkOut: React.ReactNode;
   footer?: string;
   flagged?: boolean;
+  /** What "Show all N …" calls the files, plural. */
+  noun: string;
   onOpen: (index: number) => void;
+  /** Opens every file as a list in the 640 px sheet. */
+  onShowAll: () => void;
 }) => {
-  const [all, setAll] = useState(false);
+  const showAll = (shownCount: number) =>
+    files.length > shownCount ? (
+      <ShowAllRow total={files.length} noun={noun} onClick={onShowAll} />
+    ) : null;
   if (files.length === 0) {
     return (
       <Block title={title} flagged={flagged}>
@@ -1184,7 +1173,7 @@ const FileList = ({
     );
   }
   if (take === "b") {
-    const shown = all ? files : files.slice(0, 4);
+    const shown = files.slice(0, 4);
     return (
       <Block title={title} flagged={flagged} action={linkOut}>
         <div
@@ -1204,18 +1193,14 @@ const FileList = ({
             />
           ))}
         </div>
-        <MoreButton
-          hidden={files.length - shown.length}
-          open={all}
-          onToggle={() => setAll(!all)}
-        />
+        {showAll(shown.length)}
         {footer ? <span className={quietStyle}>{footer}</span> : null}
       </Block>
     );
   }
   if (take === "c") {
     const [first, ...rest] = files;
-    const shown = all ? rest : rest.slice(0, 2);
+    const shown = rest.slice(0, 2);
     return (
       <Block title={title} flagged={flagged} action={linkOut}>
         <button
@@ -1246,16 +1231,12 @@ const FileList = ({
             />
           ))}
         </div>
-        <MoreButton
-          hidden={rest.length - shown.length}
-          open={all}
-          onToggle={() => setAll(!all)}
-        />
+        {showAll(shown.length + 1)}
         {footer ? <span className={quietStyle}>{footer}</span> : null}
       </Block>
     );
   }
-  const shown = all ? files : files.slice(0, take === "d" ? 2 : 4);
+  const shown = files.slice(0, take === "d" ? 2 : 4);
   return (
     <Block title={title} flagged={flagged} action={linkOut}>
       <div
@@ -1269,11 +1250,7 @@ const FileList = ({
           />
         ))}
       </div>
-      <MoreButton
-        hidden={files.length - shown.length}
-        open={all}
-        onToggle={() => setAll(!all)}
-      />
+      {showAll(shown.length)}
       {footer ? <span className={quietStyle}>{footer}</span> : null}
     </Block>
   );
@@ -2051,7 +2028,7 @@ const FailureTable = ({ failures }: { failures: StepFailure[] }) => (
   </div>
 );
 
-/** Rows a type's wide table shows before "+ N more". */
+/** Rows a type's wide table shows before "Show all N" (the sheet shows every row). */
 const widePeek = 5;
 
 /** Outputs of several types, wide: A, a table per type with its own columns; B, one table with a Type column. */
@@ -2059,10 +2036,13 @@ const MixedBody = ({
   view,
   outputs,
   onChange,
+  full = false,
 }: {
   view: MixedView;
   outputs: RunOutputs;
   onChange: (next: ViewerState) => void;
+  /** The 640 px sheet is where "Show all N" leads, so it shows every row. */
+  full?: boolean;
 }) => {
   const take = useEntityTypesTake();
   const tabbed = useEntitySwitch() === "b" && view.groups.length > 1;
@@ -2163,7 +2143,7 @@ const MixedBody = ({
       </div>
     );
   }
-  // A: one table per type, cut to a few rows until "+ N more"; with tabs, only the picked type's.
+  // A: one table per type, cut to a few rows until "Show all N"; with tabs, only the picked type's.
   return (
     <div data-entity-table="a">
       {tabbed ? (
@@ -2183,7 +2163,7 @@ const MixedBody = ({
       ).map((group) => {
         const all = shownAll.includes(group.type);
         const size = groupSize(group);
-        const shown = all ? size : Math.min(size, widePeek);
+        const shown = all || full ? size : Math.min(size, widePeek);
         return (
           <section
             key={group.type}
@@ -2233,19 +2213,16 @@ const MixedBody = ({
                 )}
               />
             )}
-            <div className={css({ paddingX: "3", paddingBottom: "2" })}>
-              <MoreButton
-                hidden={size - shown}
-                open={all}
-                onToggle={() =>
-                  setShownAll((open) =>
-                    open.includes(group.type)
-                      ? open.filter((other) => other !== group.type)
-                      : [...open, group.type],
-                  )
+            {shown < size ? (
+              <ShowAllRow
+                className={css({ paddingX: "3" })}
+                total={size}
+                noun={groupLabel[group.type][1].toLowerCase()}
+                onClick={() =>
+                  setShownAll((open) => [...open, group.type])
                 }
               />
-            </div>
+            ) : null}
           </section>
         );
       })}
@@ -2258,13 +2235,20 @@ const ListWide = ({
   view,
   outputs,
   onChange,
+  full,
 }: {
   view: EntitiesView | MixedView;
   outputs: RunOutputs;
   onChange: (next: ViewerState) => void;
+  full?: boolean;
 }) =>
   view.kind === "mixed" ? (
-    <MixedBody view={view} outputs={outputs} onChange={onChange} />
+    <MixedBody
+      view={view}
+      outputs={outputs}
+      onChange={onChange}
+      {...(full ? { full } : {})}
+    />
   ) : (
     <EntityBody view={view} outputs={outputs} onChange={onChange} />
   );
@@ -2697,7 +2681,7 @@ const listStackStyle = css({
   gap: "1",
 });
 
-/** How many rows a group shows before "+ N more". */
+/** How many rows a group shows before "Show all N". */
 const groupPeek = 5;
 
 /** ?entityswitch=c: the filter trigger reads as the list's header, a quiet chevron after it. */
@@ -2728,9 +2712,12 @@ const flatPeek = 12;
 const ColumnList = ({
   view,
   onOpen,
+  onShowAll,
 }: {
   view: EntitiesView | MixedView;
   onOpen: (next: ViewerState) => void;
+  /** Opens the 640 px sheet; without it, "Show all N" shows the rest in place. */
+  onShowAll?: () => void;
 }) => {
   const take = useEntityTypesTake();
   const edge = useEdgeCase() !== null;
@@ -2784,11 +2771,12 @@ const ColumnList = ({
     return (
       <div ref={listRef} className={listStackStyle} data-column-list="b">
         {all ? items : items.slice(0, flatPeek)}
-        <MoreButton
-          hidden={all ? 0 : Math.max(0, items.length - flatPeek)}
-          open={all}
-          onToggle={() => toggle("flat")}
-        />
+        {!all && items.length > flatPeek ? (
+          <ShowAllRow
+            total={items.length}
+            onClick={onShowAll ?? (() => toggle("flat"))}
+          />
+        ) : null}
       </div>
     );
   }
@@ -2900,11 +2888,13 @@ const ColumnList = ({
                         />
                       ))}
             </div>
-            <MoreButton
-              hidden={size - shown}
-              open={all}
-              onToggle={() => toggle(group.type)}
-            />
+            {shown < size ? (
+              <ShowAllRow
+                total={size}
+                noun={groupLabel[group.type][1].toLowerCase()}
+                onClick={onShowAll ?? (() => toggle(group.type))}
+              />
+            ) : null}
           </section>
         );
       })}
@@ -3004,7 +2994,11 @@ const OutputColumn = ({
                 <RunIdsIn text={`${runLabel(run)} · ${run.when}`} />
               </span>
             </div>
-            <ColumnList view={view} onOpen={onPush} />
+            <ColumnList
+              view={view}
+              onOpen={onPush}
+              {...(onExpand ? { onShowAll: onExpand } : {})}
+            />
           </>
         )}
       </div>
@@ -3094,7 +3088,7 @@ const OutputSheet = ({
             <FileWide file={file} run={run} narrow />
           ) : view.kind === "files" ? null : (
             <div className={css({ marginX: "[-12px]" })}>
-              <ListWide view={view} outputs={outputs} onChange={onPush} />
+              <ListWide view={view} outputs={outputs} onChange={onPush} full />
             </div>
           )}
         </div>
@@ -3153,6 +3147,13 @@ export const useOutputViewer = (
     setStack([next]);
     collapse();
   };
+  /** "Show all N" (11 Nov, inbox conv-overflow): the list opens in the 640 px sheet; without the sheet, in the column. */
+  const openAll = (next: ViewerState) => {
+    setStack([next]);
+    if (container === "expand") {
+      expand();
+    }
+  };
   const push = (next: ViewerState) => setStack((current) => [...current, next]);
   const replace = (next: ViewerState) =>
     setStack((current) => [...current.slice(0, -1), next]);
@@ -3163,12 +3164,13 @@ export const useOutputViewer = (
   };
   const view = stack.at(-1);
   if (!view || !outputs) {
-    return { open, container, node: null };
+    return { open, openAll, container, node: null };
   }
   if (container === "modal") {
     return {
       open,
       container,
+      openAll,
       node:
         view.kind === "files" ? (
           <FileModal
@@ -3202,6 +3204,7 @@ export const useOutputViewer = (
   };
   return {
     open,
+    openAll,
     container,
     node: (
       <>
@@ -3487,7 +3490,7 @@ export const StepOutputs = ({
   const typesTake = useEntityTypesTake();
   const { document } = useEditor();
   const anchor = useRef<HTMLDivElement>(null);
-  const { open, node } = useOutputViewer(outputs, anchor);
+  const { open, openAll, node } = useOutputViewer(outputs, anchor);
   const views = entityViews(outputs, typesTake);
   const flags = flaggedOutputsOf(document);
   const flagged = (outputName: string) =>
@@ -3608,7 +3611,16 @@ export const StepOutputs = ({
                 ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
                 : undefined
             }
+            noun="certificates"
             onOpen={openFiles(files, "Fetch certificate")}
+            onShowAll={() =>
+              openAll({
+                kind: "mixed",
+                title: plural(files.length, "certificate"),
+                from: "Fetch certificate",
+                groups: [{ type: "Certificate", files }],
+              })
+            }
           />
         );
         const failures = <Failures failures={outputs.failures} />;
@@ -3700,7 +3712,16 @@ export const StepOutputs = ({
                   ? `${plural(skipped, "supplier")} skipped: no certificate to send`
                   : undefined
               }
+              noun="emails"
               onOpen={openFiles(files, "Send review email")}
+              onShowAll={() =>
+                openAll({
+                  kind: "mixed",
+                  title: plural(files.length, "email"),
+                  from: "Send review email",
+                  groups: [{ type: "Email", files }],
+                })
+              }
             />
             {take === "d" && files[0] ? (
               <Block title="Text · email body">
