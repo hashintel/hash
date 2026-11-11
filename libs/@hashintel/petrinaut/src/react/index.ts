@@ -113,6 +113,16 @@ export type {
   SimulationCompiler,
   SimulationProviderProps,
 } from "./simulation/provider";
+// A `SimulationProvider` starts its runs on the simulators the nearest
+// `SimulatorsProvider` registers, so a host that mounts one mounts both.
+export { SimulatorsContext } from "./simulators/context";
+export type {
+  SimulationMode,
+  SimulatorSelection,
+  SimulatorsContextValue,
+} from "./simulators/context";
+export { SimulatorsProvider } from "./simulators/provider";
+export type { SimulatorsProviderProps } from "./simulators/provider";
 
 // --- User settings ---
 // A host mounts the provider above `Petrinaut` to read and change the
