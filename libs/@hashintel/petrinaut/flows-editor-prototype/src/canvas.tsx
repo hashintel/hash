@@ -112,7 +112,7 @@ import {
   useShowTriggers,
 } from "./trigger-flags";
 import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
-import { Toast } from "./ui";
+import { Toast } from "./ds-parts/toast";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;

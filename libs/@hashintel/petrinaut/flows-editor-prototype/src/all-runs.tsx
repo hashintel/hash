@@ -75,7 +75,7 @@ import {
 } from "./runs-columns";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
-import { Toast } from "./ui";
+import { Toast } from "./ds-parts/toast";
 
 import type { HistoryValue } from "./history-view";
 

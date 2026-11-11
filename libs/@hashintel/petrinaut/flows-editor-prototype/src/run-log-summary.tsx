@@ -24,7 +24,7 @@ import {
   signOffAt,
   suppliers,
 } from "./run-history";
-import { Toast } from "./ui";
+import { Toast } from "./ds-parts/toast";
 
 export type LogSummaryTake = "v1" | "v2" | "v3";
 

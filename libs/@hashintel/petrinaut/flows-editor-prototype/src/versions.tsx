@@ -21,7 +21,8 @@ import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
 import { triggerNoneTake } from "./trigger-flags";
 import { NoTriggerWarning } from "./trigger-none";
-import { Toast } from "./ui";
+import { InlineBanner } from "./ds-parts/inline-banner";
+import { Toast } from "./ds-parts/toast";
 
 import type { FlowVersion } from "./seed-flows";
 
@@ -634,17 +635,6 @@ const bannerStyle = css({
   left: "4",
   right: "4",
   zIndex: "[5]",
-  display: "flex",
-  alignItems: "center",
-  gap: "3",
-  paddingX: "4",
-  paddingY: "2.5",
-  borderRadius: "lg",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  backgroundColor: "neutral.bgSolid.min",
-  textStyle: "sm",
 });
 
 export const VersionBanner = ({
@@ -661,31 +651,27 @@ export const VersionBanner = ({
   const draft =
     version.state === "draft" ? version.current : version.current + 1;
   return (
-    <div className={bannerStyle} role="status" data-version-banner>
-      <Icon name="info" size="sm" />
-      <span className={css({ flex: "1", minWidth: "[0]" })}>
-        <span
-          className={css({ fontWeight: "medium", color: "neutral.fg.heading" })}
-        >
-          Viewing {versionName(viewing, labelCase)} · read-only
+    <InlineBanner
+      className={bannerStyle}
+      role="status"
+      data-version-banner
+      title={`Viewing ${versionName(viewing, labelCase)} · read-only`}
+      description={`Published ${entry?.at ?? ""} by ${entry?.by ?? ""}. Your edits stay in the ${versionName(draft, labelCase)} draft.`}
+      action={
+        <span className={css({ display: "flex", gap: "2" })}>
+          <Button size="sm" variant="ghost" tone="neutral" onClick={onRestore}>
+            Restore this version
+          </Button>
+          <Button
+            size="sm"
+            variant="subtle"
+            tone="neutral"
+            onClick={() => setQuery("version", null)}
+          >
+            Back to draft
+          </Button>
         </span>
-        <span className={css({ color: "neutral.fg.subtle" })}>
-          {" "}
-          · Published {entry?.at ?? ""} by {entry?.by ?? ""}. Your edits stay in
-          the {versionName(draft, labelCase)} draft.
-        </span>
-      </span>
-      <Button size="sm" variant="ghost" tone="neutral" onClick={onRestore}>
-        Restore this version
-      </Button>
-      <Button
-        size="sm"
-        variant="subtle"
-        tone="neutral"
-        onClick={() => setQuery("version", null)}
-      >
-        Back to draft
-      </Button>
-    </div>
+      }
+    />
   );
 };

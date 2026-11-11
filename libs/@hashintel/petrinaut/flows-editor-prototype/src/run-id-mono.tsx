@@ -21,7 +21,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CODE_FONT_FAMILY } from "../../src/ui/constants/fonts";
 
-import { Toast } from "./ui";
+import { Toast } from "./ds-parts/toast";
 
 export type RunIdMonoTake = "a" | "b" | "d" | "e" | "f";
 
