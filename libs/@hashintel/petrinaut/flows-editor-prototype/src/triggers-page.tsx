@@ -911,6 +911,22 @@ const usePage = (routeFlowId: string | null) => {
     }));
     setOpened(null);
   };
+  const setVersion = (id: string, version: string) =>
+    setData((current) => ({
+      ...current,
+      triggers: current.triggers.map((trigger) =>
+        trigger.id === id ? { ...trigger, version } : trigger,
+      ),
+    }));
+  const remove = (id: string) => {
+    setData((current) => ({
+      ...current,
+      triggers: current.triggers.filter((trigger) => trigger.id !== id),
+    }));
+    if (opened === id) {
+      setOpened(null);
+    }
+  };
   return {
     ...data,
     add,
@@ -929,6 +945,8 @@ const usePage = (routeFlowId: string | null) => {
     saveDraft,
     saveEdit,
     flip,
+    setVersion,
+    remove,
   };
 };
 
@@ -1259,11 +1277,126 @@ const rowsStyle = css({
     cursor: "pointer",
     _hover: { backgroundColor: "neutral.bg.subtle.hover" },
   },
+  "& tr[data-row]:hover [data-row-menu]": { opacity: "1" },
   "& tr[aria-expanded=true] td": {
     backgroundColor: "neutral.bgSolid.surface",
     borderBottomColor: "[transparent]",
   },
 });
+
+/** The row menu shows on hover, on focus, or while it is open; it takes no room from the Status words. */
+const rowMenuCellStyle = css({
+  width: "[56px]",
+  textAlign: "right",
+  "& [data-row-menu]": { opacity: "0" },
+  "& [data-row-menu]:focus-visible": { opacity: "1" },
+  "& [data-row-menu][aria-expanded=true]": { opacity: "1" },
+});
+
+const versionCellStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+});
+
+/** A faint hint, as quiet as the Web column: the pinned version is older than the flow's newest. */
+const newerHintStyle = css({
+  all: "unset",
+  cursor: "pointer",
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
+  textUnderlineOffset: "[3px]",
+  _hover: { color: "neutral.fg.muted", textDecorationLine: "underline" },
+  _focusVisible: { textDecorationLine: "underline" },
+});
+
+/** Every version of a flow, newest first: "v5", "v4" … "v1". */
+const versionsOf = (flow: PageFlow) => {
+  const newest = Number(flow.latest.replace("v", ""));
+  return Array.from({ length: newest }, (_, index) => `v${newest - index}`);
+};
+
+const stopRowClick = (event: React.SyntheticEvent) => event.stopPropagation();
+
+/** The pinned version, chosen in the row (11 Nov sync: inline editing), with a hint when a newer one is out. */
+const VersionCell = ({ page, trigger, flow }: { page: Page; trigger: PageTrigger; flow: PageFlow }) => (
+  // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the dropdown's clicks off the row
+  <span className={versionCellStyle} onClick={stopRowClick}>
+    <span className={css({ width: "[96px]", flexShrink: 0 })}>
+      <Select
+        required
+        size="sm"
+        variant="subtle"
+        width="fullWidth"
+        aria-label={`${trigger.label} flow version`}
+        items={items(versionsOf(flow))}
+        value={trigger.version}
+        onChange={(version) => {
+          if (version) {
+            page.setVersion(trigger.id, version);
+          }
+        }}
+      />
+    </span>
+    {trigger.version === flow.latest ? null : (
+      <button
+        type="button"
+        className={newerHintStyle}
+        onClick={() => page.setVersion(trigger.id, flow.latest)}
+      >
+        Upgrade to {flow.latest}
+      </button>
+    )}
+  </span>
+);
+
+/** Edit, turn on or off, delete: what the page can already do to a row. */
+const RowMenu = ({ page, row }: { page: Page; row: Row }) => {
+  const on = page.on[row.id] ?? false;
+  const offWord =
+    row.kind === "trigger" && row.trigger.kind === "responsive" ? "Pause" : "Turn off";
+  const name = row.kind === "manual" ? `Manual runs for ${row.flow.name}` : row.trigger.label;
+  return (
+    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the menu's clicks off the row
+    <span onClick={stopRowClick}>
+      <Menu
+        position="bottom-end"
+        items={[
+          ...(row.kind === "trigger"
+            ? [{ id: "edit", text: "Edit", onClick: () => page.open(row.id) }]
+            : []),
+          {
+            id: "flip",
+            text: on ? offWord : "Turn on",
+            onClick: () => {
+              // A schedule with a next run asks first, on its opened row (the switch's confirm).
+              if (on && row.kind === "trigger" && row.trigger.kind === "schedule" && row.trigger.nextRun) {
+                page.open(row.id);
+                page.setConfirming(row.id);
+                return;
+              }
+              page.flip(row.id, !on);
+            },
+          },
+          ...(row.kind === "trigger"
+            ? [{ id: "delete", text: "Delete", onClick: () => page.remove(row.id) }]
+            : []),
+        ]}
+        trigger={
+          <Button
+            size="xs"
+            variant="ghost"
+            tone="neutral"
+            iconName="ellipsis"
+            aria-label={`${name} actions`}
+            data-row-menu
+          />
+        }
+      />
+    </span>
+  );
+};
 
 type Row =
   | { kind: "manual"; id: string; flow: PageFlow }
@@ -1392,18 +1525,19 @@ const Take2 = ({
         <Table className={rowsStyle}>
           <thead>
             <tr>
-              <th>Trigger</th>
               <th>Flow</th>
+              <th>Trigger</th>
               <th>Web</th>
               <th>Flow version</th>
               <th>Status</th>
+              <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
             {page.draft ? (
               <>
                 <tr aria-expanded>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <span
                       className={css({
                         display: "flex",
@@ -1420,7 +1554,7 @@ const Take2 = ({
                   </td>
                 </tr>
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <div className={css({ paddingLeft: "8" })}>
                       <PanelForm page={page} trigger={null} pickFlow />
                     </div>
@@ -1438,6 +1572,7 @@ const Take2 = ({
                   data-trigger-row={row.id}
                   {...rowProps(open, () => page.open(open ? null : row.id))}
                 >
+                  <td>{row.flow.name}</td>
                   <td>
                     <span
                       className={css({
@@ -1461,12 +1596,13 @@ const Take2 = ({
                         : row.trigger.label}
                     </span>
                   </td>
-                  <td>{row.flow.name}</td>
                   <td className={css({ color: "neutral.fg.subtle!" })}>
                     {row.kind === "trigger" ? row.trigger.web : ""}
                   </td>
-                  <td className={css({ color: "neutral.fg.subtle!" })}>
-                    {row.kind === "trigger" ? row.trigger.version : ""}
+                  <td>
+                    {row.kind === "trigger" ? (
+                      <VersionCell page={page} trigger={row.trigger} flow={row.flow} />
+                    ) : null}
                   </td>
                   <td>
                     <span
@@ -1499,10 +1635,13 @@ const Take2 = ({
                       ) : null}
                     </span>
                   </td>
+                  <td className={rowMenuCellStyle}>
+                    <RowMenu page={page} row={row} />
+                  </td>
                 </tr>,
                 open && row.kind === "trigger" ? (
                   <tr key={`${row.id}:form`}>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <div className={css({ paddingLeft: "8" })}>
                         <PanelForm page={page} trigger={row.trigger} />
                       </div>
