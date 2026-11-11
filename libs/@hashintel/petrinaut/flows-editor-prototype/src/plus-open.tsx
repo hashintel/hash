@@ -16,6 +16,10 @@ import { createPortal } from "react-dom";
 import { useReactFlow } from "@xyflow/react";
 import { css } from "@hashintel/ds-helpers/css";
 
+/** Inside the app root, where the DS tokens and fonts are defined; the body has neither. */
+const portalHost = () =>
+  globalThis.document.querySelector(".petrinaut-root") ?? globalThis.document.body;
+
 const take = new URLSearchParams(globalThis.location.search).get("plusopen");
 
 export const plusOpenTake: "a" | "b" | "c" | null =
@@ -286,7 +290,7 @@ export const PlusOpenFrame = ({
           <Ghost layout={layout} />
           {takeNow === "b" ? <Arrow layout={layout} /> : null}
         </>,
-        globalThis.document.body,
+        portalHost(),
       )}
       {menu(menuAnchor(layout, takeNow === "b"))}
     </>
