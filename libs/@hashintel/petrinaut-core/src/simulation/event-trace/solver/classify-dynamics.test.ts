@@ -120,6 +120,28 @@ return { x: 2 * x };`);
     });
   });
 
+  it("evaluates a local once however many later locals read it", () => {
+    const doublings = Array.from(
+      { length: 60 },
+      (_, index) => `const a${index + 1} = a${index} + a${index};`,
+    ).join(" ");
+    const chain = term(
+      `export default Dynamics((token, parameters) => { const a0 = parameters.rate; ${doublings} return { x: a60 * token.x + a60 }; });`,
+    );
+    let reads = 0;
+    const parameters = {
+      get rate() {
+        reads += 1;
+        return 1;
+      },
+    };
+    expect(coefficients([chain], parameters)).toEqual({
+      x: { constant: 2 ** 60, x: 2 ** 60 },
+      y: { constant: 0 },
+    });
+    expect(reads).toBe(1);
+  });
+
   it("is independent for a nonlinear term in the token's attributes", () => {
     const sine = term(
       "export default Dynamics((token) => ({ x: Math.sin(token.x) }));",

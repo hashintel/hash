@@ -80,6 +80,34 @@ const childScope = (scope: Scope): Scope => ({
   locals: new Map(scope.locals),
 });
 
+/** `value`, computed once for each parameters object it is given. */
+const oncePerParameters = (value: ConstantFn): ConstantFn => {
+  let computedFor: ParameterReader | null = null;
+  let computed = 0;
+  return (parameters) => {
+    if (parameters !== computedFor) {
+      computed = value(parameters);
+      computedFor = parameters;
+    }
+    return computed;
+  };
+};
+
+/**
+ * A local's form, each of its terms computed once per run: every read of
+ * the local shares that value, so locals built from earlier locals cost one
+ * evaluation each instead of one per path through the chain.
+ */
+const sharedForm = (form: AffineForm): AffineForm => ({
+  constant: oncePerParameters(form.constant),
+  coefficients: new Map(
+    [...form.coefficients].map(([field, coefficient]) => [
+      field,
+      oncePerParameters(coefficient),
+    ]),
+  ),
+});
+
 /**
  * Records one `let` binding in the scope: an alias of the token when its
  * value reads the token, otherwise the form of its value.
@@ -95,7 +123,8 @@ const bindLocal = (
     scope.locals.delete(name);
   } else {
     scope.tokenAliases.delete(name);
-    scope.locals.set(name, form());
+    const bound = form();
+    scope.locals.set(name, bound && sharedForm(bound));
   }
 };
 

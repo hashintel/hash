@@ -15,6 +15,8 @@ export type StepTargetTrace = {
  * Only discrete events count: the initial state and the firings. Reference
  * frames, which the trace keeps for the continuous evolution, are stepped
  * over. Stepping back from between two events lands on the earlier one first.
+ * Stepping back from a time several events share passes all of them: the
+ * viewed time is what a step moves, and theirs is the one already viewed.
  */
 export const findStepTargetIndex = (
   trace: StepTargetTrace,
@@ -25,6 +27,9 @@ export const findStepTargetIndex = (
   if (direction === 1) {
     return trace.findDiscreteEventAfter(current);
   }
-  const atEvent = trace.getEvent(current)?.time === time;
-  return trace.findDiscreteEventAtOrBefore(atEvent ? current - 1 : current);
+  let target = trace.findDiscreteEventAtOrBefore(current);
+  while (target !== null && trace.getEvent(target)?.time === time) {
+    target = trace.findDiscreteEventAtOrBefore(target - 1);
+  }
+  return target;
 };
