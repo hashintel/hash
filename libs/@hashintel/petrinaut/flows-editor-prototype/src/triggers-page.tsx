@@ -936,7 +936,6 @@ const ManualSwitch = ({ page, flow }: { page: Page; flow: PageFlow }) => {
         flexShrink: 0,
       })}
     >
-      <span className={subtleText}>{on ? "On" : "Off"}</span>
       <Toggle
         size="sm"
         aria-label={`Manual runs for ${flow.name}`}
@@ -1487,7 +1486,8 @@ const Take2 = ({
                         gap: "3",
                       })}
                     >
-                      {row.kind === "manual" ? (
+                      {/* A grey word at rest, the switch alone on the opened row (11 Nov convergence A14). */}
+                      {open ? null : row.kind === "manual" ? (
                         <span className={subtleText}>{on ? "On" : "Off"}</span>
                       ) : (
                         <Status trigger={row.trigger} on={on} />
@@ -1724,12 +1724,15 @@ const Take3 = ({ page }: { page: Page }) => {
                               minWidth: "[88px]",
                             })}
                           >
-                            <Status
-                              trigger={trigger}
-                              on={page.on[trigger.id] ?? false}
-                            />
+                            {open ? (
+                              switchFor(page, trigger)
+                            ) : (
+                              <Status
+                                trigger={trigger}
+                                on={page.on[trigger.id] ?? false}
+                              />
+                            )}
                           </span>
-                          {open ? switchFor(page, trigger) : null}
                         </div>
                         {open ? (
                           <div className={css({ paddingLeft: "7" })}>
