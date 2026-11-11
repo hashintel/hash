@@ -72,6 +72,15 @@ const scoped = (
     ),
   );
 
+/** The entrypoint a package-qualified reference starts at, which is its package name and import path together. */
+export const entrypointOf = (
+  destination: DocDeclarationReference,
+): Option.Option<string> =>
+  Option.map(
+    Option.fromUndefinedOr(destination.packageName),
+    (name) => `${name}${destination.importPath ?? ""}`,
+  );
+
 /** What a TSDoc declaration reference names. A package-qualified reference starts at that entrypoint, any other in the scope. */
 export const reference =
   (scope: Scope) =>
@@ -82,16 +91,12 @@ export const reference =
         Option.fromUndefinedOr(member.memberIdentifier?.identifier),
       ),
       Option.all,
-      Option.flatMap((path) => {
-        if (destination.packageName === undefined) {
-          return scoped(scope, path);
-        }
-
-        return named(scope.catalogue, {
-          entrypoint: `${destination.packageName}${destination.importPath ?? ""}`,
-          path,
-        });
-      }),
+      Option.flatMap((path) =>
+        Option.match(entrypointOf(destination), {
+          onNone: () => scoped(scope, path),
+          onSome: (entrypoint) => named(scope.catalogue, { entrypoint, path }),
+        }),
+      ),
     );
 
 /** The path a code span spells when it is a qualified name, such as `Tools.make` or `Tools.make()`. */

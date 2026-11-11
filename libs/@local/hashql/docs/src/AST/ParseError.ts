@@ -11,6 +11,10 @@ const Reason = Schema.TaggedUnion({
   UnsupportedMerge: { name: Schema.String, kinds: Schema.Array(Schema.String) },
   UnresolvedReference: { file: Schema.String, text: Schema.String },
   UnreservedReference: { name: Schema.String, owner: Schema.String },
+  SharedEntrypoint: {
+    file: Schema.String,
+    entrypoints: Schema.Array(Schema.String),
+  },
 });
 
 /** Parsing stops for missing or unsupported declaration input. */
@@ -31,6 +35,8 @@ export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
         `Unresolved reference ${text} in ${file}`,
       UnreservedReference: ({ name, owner }) =>
         `Reference to ${name} before ${owner} reserved its node`,
+      SharedEntrypoint: ({ file, entrypoints }) =>
+        `Entrypoints ${entrypoints.join(", ")} share ${file}`,
     });
   }
 }
@@ -76,3 +82,10 @@ export const unresolvedReference = (fields: {
   readonly text: string;
 }): ParseError =>
   ParseError.make({ reason: { _tag: "UnresolvedReference", ...fields } });
+
+/** An entrypoint names a module another entrypoint already names. */
+export const sharedEntrypoint = (fields: {
+  readonly file: string;
+  readonly entrypoints: readonly string[];
+}): ParseError =>
+  ParseError.make({ reason: { _tag: "SharedEntrypoint", ...fields } });

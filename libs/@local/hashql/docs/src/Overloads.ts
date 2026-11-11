@@ -1,11 +1,11 @@
 import { Array, Function, Option, Result, Struct, pipe } from "effect";
 
+import * as Parts from "./internal/parts.js";
 import * as References from "./internal/references.js";
 import * as Prose from "./Prose.js";
 import * as Tree from "./Tree/index.js";
 
 import type * as AST from "./AST/index.js";
-import type * as Parts from "./internal/parts.js";
 import type { DocSection } from "@microsoft/tsdoc";
 import type { Equivalence } from "effect";
 
@@ -134,26 +134,44 @@ const blockOf =
       Result.map((blocks) => ({ origin, blocks })),
     );
 
+/** What each overload's comment documents about the names it declares. An overload that takes another's comment leaves out a parameter or type parameter it does not declare. */
 const documentedOf = (
   entries: readonly Overload[],
-  context: Prose.Context,
+  { ast, content }: Context,
 ): Result.Result<Documented[], Prose.ProseError> =>
   pipe(
     entries,
-    Array.flatMap(({ index, comment }) =>
+    Array.flatMap((entry) =>
       pipe(
-        comment,
+        entry.comment,
         Option.map((documentation) =>
           Result.gen(function* () {
-            const distil = blockOf(context);
+            const distil = blockOf(content);
+            const declared = Parts.declared(
+              ast,
+              Option.getOrElse(
+                entry.call,
+                (): Parts.Source => entry.part.source,
+              ),
+            );
 
             return {
-              index,
+              index: entry.index,
               parameters: yield* Result.all(
-                Array.map(documentation.parameters, distil),
+                Array.map(
+                  Array.filter(documentation.parameters, ({ name }) =>
+                    declared.parameters.includes(name),
+                  ),
+                  distil,
+                ),
               ),
               typeParameters: yield* Result.all(
-                Array.map(documentation.typeParameters, distil),
+                Array.map(
+                  Array.filter(documentation.typeParameters, ({ name }) =>
+                    declared.typeParameters.includes(name),
+                  ),
+                  distil,
+                ),
               ),
               returns: yield* Result.transposeOption(
                 Option.map(documentation.returns, distil),
@@ -457,7 +475,7 @@ export const collect: {
 } = Function.dual(2, (parts: readonly Parts.Part[], context: Context) =>
   Result.gen(function* () {
     const entries = entriesOf(parts, context.ast);
-    const documented = yield* documentedOf(entries, context.content);
+    const documented = yield* documentedOf(entries, context);
 
     return {
       entries,

@@ -11,6 +11,8 @@ import {
   pipe,
 } from "effect";
 
+import * as LinkLookup from "./internal/link-lookup.js";
+
 import type * as AST from "./AST/index.js";
 import type * as Tree from "./Tree/index.js";
 import type * as TSDoc from "@microsoft/tsdoc";
@@ -63,7 +65,7 @@ const labelText = (
   );
 };
 
-/** A link without text reads as the declaration it names, member path included. */
+/** A link without text reads as the declaration it names, member path included, and a link to an entrypoint as the entrypoint's name. */
 const labelOf = (
   link: TSDoc.DocLinkTag,
 ): (Tree.Prose.Text | Tree.Prose.InlineCode)[] => {
@@ -78,21 +80,25 @@ const labelOf = (
     ];
   }
 
-  const members = pipe(
+  const label = pipe(
     destination.memberReferences,
     Array.map((member) =>
       Option.fromUndefinedOr(member.memberIdentifier?.identifier),
     ),
     Option.all,
+    Option.flatMap((path) => {
+      if (Array.isReadonlyArrayNonEmpty(path)) {
+        return Option.some(Array.join(path, "."));
+      }
+
+      return LinkLookup.entrypointOf(destination);
+    }),
   );
 
   return [
     {
       type: "inlineCode",
-      value: Option.match(members, {
-        onNone: () => destination.emitAsTsdoc(),
-        onSome: Array.join("."),
-      }),
+      value: Option.getOrElse(label, () => destination.emitAsTsdoc()),
       origin: link,
     },
   ];

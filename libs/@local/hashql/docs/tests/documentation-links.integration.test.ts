@@ -9,6 +9,12 @@ import type { DocNode } from "@microsoft/tsdoc";
 
 const prelude = `export declare namespace Tools { export interface Item {} export function make(): Item; }`;
 
+/** A public model whose private base is a trait documented by `comment`. */
+const privateTrait = (comment: string): string => `${prelude}
+/** ${comment} @trait */ interface Hidden {}
+interface Model extends Hidden {}
+export { Model };`;
+
 /** The links below `node`. */
 const tagsIn = (node: DocNode): readonly DocLinkTag[] => {
   if (node instanceof DocLinkTag) {
@@ -241,6 +247,28 @@ export declare class Model extends Base { merge(other: Model): Model; }
 /** {@link Tools.make} then \`Tools.make()\`. */ export type Use = string;`,
       });
       expect(linksOf(reference)).toHaveLength(1);
+    }),
+  );
+
+  it.effect(
+    "private_trait",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Effect.flip(
+          Reference.success({
+            source: privateTrait("Use `Tools.make()`."),
+            configuration: "render-tsdoc.json",
+          }),
+        ),
+      ).toMatchObject({
+        _tag: "DocumentationError",
+        reason: { _tag: "UnlinkedName" },
+      });
+      yield* Reference.success({
+        source: privateTrait("Use {@link Tools.make}."),
+        configuration: "render-tsdoc.json",
+      });
     }),
   );
 

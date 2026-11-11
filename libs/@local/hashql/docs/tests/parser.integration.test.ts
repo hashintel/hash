@@ -175,6 +175,26 @@ describe("parser", () => {
   );
 
   it.effect(
+    "shared_entrypoint",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* parse({ source: "export interface Box {}" }, [
+        "fixture",
+        "again",
+      ]);
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          reason: {
+            _tag: "SharedEntrypoint",
+            entrypoints: ["fixture", "again"],
+          },
+        },
+      });
+    }),
+  );
+
+  it.effect(
     "documentation_attachment",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

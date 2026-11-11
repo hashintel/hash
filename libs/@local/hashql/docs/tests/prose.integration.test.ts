@@ -190,6 +190,15 @@ describe("prose", () => {
   );
 
   it.effect(
+    "module_label",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { blocks } = yield* described("/** {@link @scope/pkg#} */");
+      expect(Tree.Prose.plain(blocks)).toStrictEqual(Option.some("@scope/pkg"));
+    }),
+  );
+
+  it.effect(
     "escaped_text",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
