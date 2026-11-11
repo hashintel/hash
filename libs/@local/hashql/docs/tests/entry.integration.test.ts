@@ -20,18 +20,20 @@ const ownOf = (reference: Reference.Reference, name: string): Tree.Export.Own =>
     Option.getOrThrow,
   );
 
-/** The syntax every declaration of the export `name` shows. */
+/** The syntax every declaration of the export at `path` shows. */
 const syntaxOf = (
   reference: Reference.Reference,
-  name: string,
+  path: readonly string[],
 ): readonly Node[] =>
   pipe(
-    Option.toArray(ownOf(reference, name).signatures),
+    HashMap.get(reference.document.entries, Reference.id(reference, path)),
+    Option.flatMap(({ signatures }) => signatures),
+    Option.toArray,
     Array.flatMap(({ children }) => children),
     Array.flatMap(({ syntax }) => syntax),
   );
 
-/** A class's name and modifiers, or the names an export statement exports, as `local public` pairs. */
+/** A class's name and modifiers, or the names an export statement exports, as `local public` pairs, each marked where it is type-only. */
 const shapeOf = (node: Node): readonly (string | number)[] => {
   if (isClassDeclaration(node)) {
     return [
@@ -46,11 +48,11 @@ const shapeOf = (node: Node): readonly (string | number)[] => {
     isNamedExports(node.exportClause)
   ) {
     return [
-      "export",
+      node.isTypeOnly ? "export type" : "export",
       ...Array.map(
         node.exportClause.elements,
-        ({ propertyName, name }) =>
-          `${propertyName?.text ?? name.text} ${name.text}`,
+        ({ isTypeOnly, propertyName, name }) =>
+          `${isTypeOnly ? "type " : ""}${propertyName?.text ?? name.text} ${name.text}`,
       ),
     ];
   }
@@ -202,7 +204,7 @@ layer(Reference.layer({ source: Reference.source }), {
         source:
           "declare class Internal { clone(): Internal; }\nexport { Internal as Public };",
       });
-      const syntax = syntaxOf(reference, "Public");
+      const syntax = syntaxOf(reference, ["Public"]);
       expect(Array.map(syntax, shapeOf)).toStrictEqual([
         ["class", "Internal"],
         ["export", "Internal Public"],
@@ -231,13 +233,99 @@ layer(Reference.layer({ source: Reference.source }), {
           "renamed.d.ts": "export default class Hidden {}",
         },
       });
-      expect(Array.map(syntaxOf(reference, "Original"), shapeOf)).toStrictEqual(
-        [["class", "Original", SyntaxKind.ExportKeyword]],
-      );
-      expect(Array.map(syntaxOf(reference, "Renamed"), shapeOf)).toStrictEqual([
+      expect(
+        Array.map(syntaxOf(reference, ["Original"]), shapeOf),
+      ).toStrictEqual([["class", "Original", SyntaxKind.ExportKeyword]]);
+      expect(
+        Array.map(syntaxOf(reference, ["Renamed"]), shapeOf),
+      ).toStrictEqual([
         ["class", "Hidden"],
         ["export", "Hidden Renamed"],
       ]);
+    }),
+  );
+
+  it.effect.each<
+    readonly [
+      Reference.Options,
+      readonly string[],
+      readonly (readonly (string | number)[])[],
+    ]
+  >([
+    [
+      { source: "export default class Original {}\nexport { Original };" },
+      ["default"],
+      [
+        ["class", "Original", SyntaxKind.ExportKeyword],
+        ["export", "Original default"],
+      ],
+    ],
+    [
+      {
+        source:
+          "declare class Internal {}\nexport { Internal as Public, Internal as Other };",
+      },
+      ["Public"],
+      [
+        ["class", "Internal"],
+        ["export", "Internal Public", "Internal Other"],
+      ],
+    ],
+    [
+      {
+        source:
+          "declare class Value {}\nexport { Value };\nexport type { Value as Shape };",
+      },
+      ["Value"],
+      [
+        ["class", "Value", SyntaxKind.ExportKeyword],
+        ["export type", "Value Shape"],
+      ],
+    ],
+    [
+      {
+        source:
+          "declare class Value {}\nexport { Value as Other };\nexport type { Value as Shape };",
+      },
+      ["Other"],
+      [
+        ["class", "Value"],
+        ["export", "Value Other", "type Value Shape"],
+      ],
+    ],
+    [
+      {
+        source:
+          "declare class Value {}\nexport type { Value, Value as Shape };",
+      },
+      ["Value"],
+      [
+        ["class", "Value"],
+        ["export type", "Value Value", "Value Shape"],
+      ],
+    ],
+    [
+      {
+        source: 'export type * as Values from "./values.js";',
+        files: {
+          "values.d.ts":
+            "export declare class Value {}\nexport { Value as Again };",
+        },
+      },
+      ["Values", "Value"],
+      [
+        ["class", "Value"],
+        ["export type", "Value Value", "Value Again"],
+      ],
+    ],
+  ])(
+    "export_names_%#",
+    Effect.fnUntraced(function* ([options, path, expected]) {
+      expect.hasAssertions();
+      const reference = yield* Reference.success(options);
+      expect(Array.map(syntaxOf(reference, path), shapeOf)).toStrictEqual(
+        expected,
+      );
     }),
   );
 

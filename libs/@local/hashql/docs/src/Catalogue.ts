@@ -173,14 +173,17 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
   };
 };
 
-/** Resolves a finite export path, including paths that cross a namespace cycle more than once. */
-export const lookup: {
-  (name: Name): (catalogue: Catalogue) => Option.Option<Entry>;
-  (catalogue: Catalogue, name: Name): Option.Option<Entry>;
-} = Function.dual(2, (catalogue: Catalogue, name: Name) =>
+/** The declaration a finite export path ends at, and whether an export along the path is type-only. A path may cross a namespace cycle more than once. */
+const walk = (
+  ast: AST.Store["Service"],
+  name: Name,
+): Option.Option<{
+  readonly id: DeclarationId;
+  readonly typeOnlyExport: boolean;
+}> =>
   Option.gen(function* () {
-    const { ast } = catalogue;
     let id = yield* HashMap.get(ast.entrypoints, name.entrypoint);
+    let typeOnlyExport = false;
 
     for (const member of name.path) {
       const namespaceId = yield* ast.get(id).namespace;
@@ -194,8 +197,53 @@ export const lookup: {
       );
 
       id = alias.target;
+      typeOnlyExport ||= alias.typeOnlyExport;
     }
 
-    return yield* HashMap.get(catalogue.byId, id);
-  }),
+    return { id, typeOnlyExport };
+  });
+
+/** Resolves a finite export path, including paths that cross a namespace cycle more than once. */
+export const lookup: {
+  (name: Name): (catalogue: Catalogue) => Option.Option<Entry>;
+  (catalogue: Catalogue, name: Name): Option.Option<Entry>;
+} = Function.dual(2, (catalogue: Catalogue, name: Name) =>
+  Option.flatMap(walk(catalogue.ast, name), ({ id }) =>
+    HashMap.get(catalogue.byId, id),
+  ),
+);
+
+/** One name a namespace exports a declaration under. */
+export interface ExportName {
+  readonly name: string;
+  /** An export on the path to the name is type-only. */
+  readonly typeOnlyExport: boolean;
+}
+
+/** Every name the namespace holding an entry's canonical name exports its declaration under, in declaration order. An entrypoint's own entry has none. */
+export const namesOf: {
+  (entry: Entry): (ast: AST.Store["Service"]) => readonly ExportName[];
+  (ast: AST.Store["Service"], entry: Entry): readonly ExportName[];
+} = Function.dual(2, (ast: AST.Store["Service"], entry: Entry) =>
+  pipe(
+    Array.init(entry.name.path),
+    Option.flatMap((path) =>
+      walk(ast, { entrypoint: entry.name.entrypoint, path }),
+    ),
+    Option.flatMap(({ id, typeOnlyExport }) =>
+      Option.map(ast.get(id).namespace, (namespace) =>
+        pipe(
+          ast.get(namespace).exports,
+          Array.fromIterable,
+          Array.map(ast.get),
+          Array.filter(({ target }) => target === entry.id),
+          Array.map((alias): ExportName => ({
+            name: alias.name,
+            typeOnlyExport: typeOnlyExport || alias.typeOnlyExport,
+          })),
+        ),
+      ),
+    ),
+    Option.getOrElse((): readonly ExportName[] => []),
+  ),
 );
