@@ -12,8 +12,9 @@ export const formatVersions = (firstVersion: number, lastVersion: number) =>
 export const formatVersionList = (versions: number[]) =>
   versions.map((version) => `v${version}`).join(", ");
 
+/** A cell, whose left padding is the gap between content-sized columns. */
 export const cellSx = {
-  pl: 3.5,
+  pl: 3,
   pr: 1,
   minWidth: 0,
   whiteSpace: "nowrap",
@@ -48,10 +49,21 @@ export const visuallyHidden = {
   border: 0,
 } as const;
 
+/** A box that spans the table's grid and lays its children on the table's columns. */
+export const subgridRowSx = {
+  display: "grid",
+  gridTemplateColumns: "subgrid",
+  gridColumn: "1 / -1",
+} as const;
+
 export const rowToggleClassName = "dependent-type-row-toggle";
+
+/** The grid that holds a table's header and rows. */
+export const tableGridClassName = "dependent-types-table-grid";
 
 /** The box around an expandable row, which highlights the row's toggle while any part of the row is hovered. */
 export const toggleRowSx: SxProps<Theme> = ({ palette }) => ({
+  ...subgridRowSx,
   position: "relative",
   height: rowHeight,
   [`&:hover .${rowToggleClassName}`]: { background: palette.gray[10] },

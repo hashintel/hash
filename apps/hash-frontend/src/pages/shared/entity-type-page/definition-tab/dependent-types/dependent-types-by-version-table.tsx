@@ -7,6 +7,8 @@ import {
   cellSx,
   firstCellSx,
   formatVersions,
+  subgridRowSx,
+  tableGridClassName,
   toggleRowSx,
   treeCellSx,
 } from "./dependent-types-table-layout";
@@ -26,11 +28,8 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-const versionColumnWidth = 240;
-
-const gridTemplateColumns = `${versionColumnWidth}px minmax(0, 400px) 128px minmax(0, 1fr)`;
-
-const innerCellSx = { ...cellSx, pl: 1.5 } as const;
+const gridTemplateColumns =
+  "fit-content(240px) max-content max-content minmax(0, 1fr)";
 
 const countLabel = (count: number) =>
   count === 1 ? "1 type" : `${count} types`;
@@ -56,8 +55,6 @@ const DependentTypeSubRow = ({
 
   return (
     <NestedRow
-      gridTemplateColumns={gridTemplateColumns}
-      treeLeft={versionColumnWidth}
       last={last}
       openButton={
         <OpenTypeButton
@@ -87,7 +84,7 @@ const DependentTypeSubRow = ({
           </Box>
         </Tooltip>
       </Box>
-      <Box sx={innerCellSx}>
+      <Box sx={cellSx}>
         {ranges
           .map((range) => formatVersions(range.firstVersion, range.lastVersion))
           .join(", ")}
@@ -115,10 +112,9 @@ const ParentVersionTableRow = ({
   const titles = types.map(({ row }) => row.entityType.schema.title).join(", ");
 
   return (
-    <Box>
+    <Box sx={subgridRowSx}>
       <Box sx={toggleRowSx}>
         <RowToggle
-          gridTemplateColumns={gridTemplateColumns}
           aria-expanded={expanded}
           aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
           onClick={() => setExpanded(!expanded)}
@@ -134,7 +130,7 @@ const ParentVersionTableRow = ({
           <Box
             sx={{
               ...treeCellSx,
-              gridColumn: "2 / -1",
+              gridColumn: "2 / -2",
               maxWidth: 1,
               display: "flex",
               alignItems: "baseline",
@@ -168,10 +164,14 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        <ExpandChevron expanded={expanded} left={versionColumnWidth} />
+        <ExpandChevron expanded={expanded} />
       </Box>
       {expanded ? (
-        <Box role="group" aria-label={`Types that extend ${parentLabel}`}>
+        <Box
+          sx={subgridRowSx}
+          role="group"
+          aria-label={`Types that extend ${parentLabel}`}
+        >
           {types.map((type, index) => (
             <DependentTypeSubRow
               key={type.row.entityType.schema.$id}
@@ -202,8 +202,8 @@ export const DependentTypesByVersionTable = ({
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
   <>
-    <TableCard>
-      <HeaderRow gridTemplateColumns={gridTemplateColumns}>
+    <TableCard gridTemplateColumns={gridTemplateColumns}>
+      <HeaderRow>
         <Box
           sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
         >
@@ -213,7 +213,17 @@ export const DependentTypesByVersionTable = ({
           version
         </Box>
         <Box sx={treeCellSx}>Extended by</Box>
-        <Box sx={innerCellSx}>Versions</Box>
+        <Box
+          sx={{
+            ...cellSx,
+            // Only an expanded row puts values in this column.
+            [`.${tableGridClassName}:not(:has([role="group"])) &`]: {
+              visibility: "hidden",
+            },
+          }}
+        >
+          Versions
+        </Box>
       </HeaderRow>
       {parentVersionRows.map((parentVersionRow) => (
         <ParentVersionTableRow
