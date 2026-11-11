@@ -1,7 +1,11 @@
 {
   "package": "hash-integrations",
   "dependencies": [
-    "hash-telemetry"
+    "error-stack",
+    "hash-integrations-definition",
+    "hash-integrations-orchestration",
+    "hash-telemetry",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
