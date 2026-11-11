@@ -46,6 +46,7 @@ import { OpenMenu } from "./open-menu";
 import { kindIcon } from "./kind-icon";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { iconStroke } from "./thin-icons";
+import { treeTileColor } from "./status-colors";
 import { kindLabel } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -175,6 +176,19 @@ const kindPhrase = (kinds: readonly string[], array: boolean) => {
   return /^[aeiou]/.test(name) ? `an ${name}` : `a ${name}`;
 };
 
+/** Whether two sources point at the same value, whatever order their keys were written in. */
+const sameSource = (left: unknown, right: unknown) => {
+  const sorted = (value: unknown): unknown =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(
+          Object.entries(value as Record<string, unknown>)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, inner]) => [key, sorted(inner)]),
+        )
+      : value;
+  return JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
+};
+
 const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   if (option.source.kind === "flow-input") {
     // A flow input lives on Start: Start's outline play icon (J3 · B1).
@@ -289,6 +303,8 @@ type SourceGroup = {
     icon?: IconName;
     /** A type glyph the DS icon set lacks (Link for a URL). */
     glyph?: React.ReactElement;
+    /** A step's own hue on its tile (AP G77: step tiles keep their hue). */
+    tint?: React.CSSProperties;
     selected?: boolean;
     disabled?: boolean;
     hint?: string;
@@ -353,6 +369,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       description: item.description,
       icon: item.icon,
       glyph: item.glyph,
+      tint: item.tint,
       selected: item.selected,
       suffix: item.suffix,
       selectedStyle: "highlight" as const,
@@ -631,6 +648,10 @@ export const SourceMenu = ({
         text: listsOnly ? option.ownerLabel : option.label,
         description: listsOnly ? listName(option) : option.ownerLabel,
         icon: ownerIcon(document, option).icon,
+        ...(option.source.kind === "step-output"
+          ? { tint: treeTileColor(ownerIcon(document, option).icon) }
+          : {}),
+        selected: current !== undefined && sameSource(current, option.source),
         hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
         onPick: () => onPick(option.source),
       }));
