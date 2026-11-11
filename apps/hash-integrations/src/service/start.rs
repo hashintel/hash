@@ -34,6 +34,10 @@ pub(crate) fn run_id(web: WebId, request: Uuid) -> RunId {
 }
 
 /// Returns the key that allows one active run per integration of `web`.
+///
+/// Artifact storage names the same integration as `sha256("{web}:{connector}")`. The two spellings
+/// never meet: admission keys cannot contain `:`, and the plain form stays readable in the backend.
+/// Both must be built from the same web and connector.
 pub(crate) fn admission_key(web: WebId, connector: &ConnectorId) -> AdmissionKey {
     format!("{web}/{connector}")
         .parse()
