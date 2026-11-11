@@ -1,5 +1,9 @@
 import { format, isSameDay, isSameYear, subDays } from "date-fns";
 
+import { runStates } from "./run-state";
+
+import type { RunState } from "./run-state";
+
 /** When something in a run happened: "Today, 08:15", "Yesterday, 08:15", "5 Nov, 08:15" or "18 Nov 2025, 08:15". */
 export const formatRunTime = (date: Date, now: Date) => {
   const time = format(date, "HH:mm");
@@ -39,4 +43,18 @@ export const formatDuration = (milliseconds: number) => {
   return minutes > 0
     ? `${minutes}m ${twoDigits(seconds % 60)}s`
     : `${seconds}s`;
+};
+
+/** How long a run took, or has taken so far while it runs. `null` for a run that stopped with no end recorded. */
+export const getRunDuration = (
+  run: { state: RunState; startedAt: Date; endedAt: Date | null },
+  now: Date,
+) => {
+  if (run.endedAt) {
+    return run.endedAt.getTime() - run.startedAt.getTime();
+  }
+
+  return runStates[run.state].tab === "running"
+    ? now.getTime() - run.startedAt.getTime()
+    : null;
 };

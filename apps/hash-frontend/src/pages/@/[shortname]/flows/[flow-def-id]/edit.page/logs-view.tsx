@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useAuthenticatedUser } from "../../../../../shared/auth-info-context";
 import { toRunRow } from "./logs-view/run-list";
 import { RunsTable } from "./logs-view/runs-table";
-import { useFlowRuns } from "./logs-view/use-flow-runs";
+import { useFlowRuns } from "./shared/use-flow-runs";
 
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 

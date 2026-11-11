@@ -1,8 +1,13 @@
 import { getShortRunId } from "../shared/run-id";
-import { getRunState, runStates, runStatesByUrgency } from "./run-state";
+import {
+  getRunState,
+  runStates,
+  runStatesByUrgency,
+} from "../shared/run-state";
+import { getRunDuration } from "../shared/run-times";
 
-import type { FlowRunSummary } from "../../../../../../../graphql/api-types.gen";
-import type { RunState, RunTab } from "./run-state";
+import type { RunState, RunTab } from "../shared/run-state";
+import type { RunSummary } from "../shared/use-flow-runs";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection } from "@hashintel/ds-components";
 
@@ -21,18 +26,6 @@ export type RunRow = {
   webShortname: string | null;
 };
 
-export type RunSummary = Pick<
-  FlowRunSummary,
-  | "flowRunEntityId"
-  | "flowScheduleId"
-  | "webId"
-  | "status"
-  | "startedAt"
-  | "closedAt"
-  | "updatedAt"
-  | "openInputRequests"
->;
-
 export const toRunRow = (
   run: RunSummary,
   webShortname: string | null,
@@ -45,17 +38,6 @@ export const toRunRow = (
   endedAt: run.closedAt ? new Date(run.closedAt) : null,
   webShortname,
 });
-
-/** How long a run took, or has taken so far while it runs. `null` for a run that stopped with no end recorded. */
-export const getRunDuration = (row: RunRow, now: Date) => {
-  if (row.endedAt) {
-    return row.endedAt.getTime() - row.startedAt.getTime();
-  }
-
-  return runStates[row.state].tab === "running"
-    ? now.getTime() - row.startedAt.getTime()
-    : null;
-};
 
 /** Which runs to show. An empty list of states matches every state, and a `null` trigger every trigger. */
 export type RunFilters = { states: RunState[]; trigger: RunTrigger | null };

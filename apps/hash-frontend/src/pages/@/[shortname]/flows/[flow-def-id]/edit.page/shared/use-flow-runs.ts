@@ -6,14 +6,26 @@ import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types"
 import { getFlowDefinitionRunsQuery } from "../../../../../../../graphql/queries/knowledge/flow.queries";
 
 import type {
+  FlowRunSummary,
   GetFlowDefinitionRunsQuery,
   GetFlowDefinitionRunsQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
-import type { RunSummary } from "./run-list";
 import type { ApolloQueryResult, QueryOptions } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 
 const refreshInterval = 10_000;
+
+/** A run as the flow's list of runs has it. */
+export type RunSummary = Pick<
+  FlowRunSummary,
+  | "flowRunEntityId"
+  | "flowScheduleId"
+  | "webId"
+  | "status"
+  | "startedAt"
+  | "closedAt"
+  | "openInputRequests"
+>;
 
 export type FlowRuns =
   | { status: "loading" }
