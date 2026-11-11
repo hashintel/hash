@@ -11,6 +11,7 @@ import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
 import { EventTimelineChart } from "./chart";
 import { MIN_VIEW_SPAN } from "./interactions";
+import { stackColumns, stackedSeriesOf } from "./series";
 import {
   useEventTimelineData,
   type TimeRange,
@@ -53,6 +54,8 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   const {
     hiddenTimelineSeriesIds: hiddenSeries,
     setHiddenTimelineSeriesIds: setHiddenSeries,
+    timelineChartType: chartType,
+    timelineView,
   } = use(EditorContext);
   const {
     petriNetDefinition: { transitions },
@@ -110,13 +113,38 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
     transitions.map((transition) => [transition.id, transition.name]),
   );
 
+  // Stacking adds series up, which means something for counts and for a
+  // metric; the solver's error per place is read off each line on its own,
+  // and firings are marks. The series list is derived apart from the
+  // columns: it holds still while the run streams, and the chart is rebuilt
+  // when it changes.
+  const stackable =
+    chartType === "stacked" &&
+    data !== null &&
+    data.kind !== "lanes" &&
+    timelineView.kind !== "solver-error"
+      ? data
+      : null;
+  const stackedSeries = stackable
+    ? stackedSeriesOf(stackable.series, hiddenSeries)
+    : null;
+  const chartData =
+    stackable && stackedSeries
+      ? {
+          ...stackable,
+          series: stackedSeries,
+          data: stackColumns(stackable.data, stackable.series, hiddenSeries),
+          stacked: true as const,
+        }
+      : data;
+
   return (
     <div className={containerStyle} ref={containerRef}>
       {metricError ? (
         <span className={messageStyle} style={{ color: "#b91c1c" }}>
           {metricError}
         </span>
-      ) : data === null || eventCount === 0 ? (
+      ) : data === null || chartData === null || eventCount === 0 ? (
         <span className={messageStyle}>No simulation data available</span>
       ) : (
         <>
@@ -133,7 +161,7 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
             )}
             <EventTimelineChart
               className={chartAreaStyle}
-              data={data}
+              data={chartData}
               firings={firings}
               references={references}
               transitionNames={transitionNames}
