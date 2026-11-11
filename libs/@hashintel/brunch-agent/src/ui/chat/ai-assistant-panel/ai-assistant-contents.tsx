@@ -83,6 +83,8 @@ export type AiAssistantContentsProps = {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
+  /** Sends a quick answer as the next message; the composer's text stays. */
+  onSendAnswer?: (answer: string) => void;
   onRetryPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
@@ -266,6 +268,7 @@ export const AiAssistantContents = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
+  onSendAnswer,
   onRetryPrompt,
   onStop,
   onSubmit,
@@ -456,7 +459,7 @@ export const AiAssistantContents = ({
     onInteractiveToolSubmit,
     onSelectToolTarget,
     onRetryMessage,
-    onSendAnswer: onSendPrompt,
+    onSendAnswer,
     onDraftAnswer,
   });
   useEffect(() => {
@@ -464,7 +467,7 @@ export const AiAssistantContents = ({
       onInteractiveToolSubmit,
       onSelectToolTarget,
       onRetryMessage,
-      onSendAnswer: onSendPrompt,
+      onSendAnswer,
       onDraftAnswer,
     };
   });

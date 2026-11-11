@@ -6871,6 +6871,71 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
   };
 
+  test("a clicked answer is sent without taking the text already typed in the composer", async () => {
+    const { requestMessages, transport } = offerReplies([
+      {
+        kind: "choose",
+        label: "Batch start",
+        options: ["Starts when both are available", "Must be rescheduled"],
+      },
+    ]);
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Batches wait for material.",
+    });
+    const answer = await screen.findByRole("button", {
+      name: "Must be rescheduled",
+    });
+    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, {
+      target: { value: "Also, operators change at six." },
+    });
+    fireEvent.click(answer);
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+    await screen.findByRole("button", { name: "Must be rescheduled" });
+
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Must be rescheduled" }],
+    });
+    expect(composer.value).toBe("Also, operators change at six.");
+  });
+
+  test("a clicked answer that fails to send leaves the typed text as it was", async () => {
+    const { requestMessages, transport } = offerReplies([
+      {
+        kind: "choose",
+        label: "Batch start",
+        options: ["Starts when both are available", "Must be rescheduled"],
+      },
+    ]);
+    const sendOffer = transport.sendMessages;
+    transport.sendMessages = vi.fn((options) =>
+      requestMessages.length === 0
+        ? sendOffer(options)
+        : Promise.reject(new Error("Answer rejected.")),
+    );
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Batches wait for material.",
+    });
+    const answer = await screen.findByRole("button", {
+      name: "Must be rescheduled",
+    });
+    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, {
+      target: { value: "Also, operators change at six." },
+    });
+    fireEvent.click(answer);
+
+    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
+    expect(composer.value).toBe("Also, operators change at six.");
+  });
+
   test("answers sent together are the message typing them sends, and the Ledger reads the same turn", async () => {
     const { requestMessages, transport } = offerReplies([
       {

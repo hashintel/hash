@@ -5678,13 +5678,13 @@ describe("offered answers", () => {
   const renderOffer = (
     props: Partial<Parameters<typeof AiAssistantContents>[0]> = {},
   ) => {
-    const onSendPrompt = vi.fn<(prompt: string) => void>();
+    const onSendAnswer = vi.fn<(answer: string) => void>();
     const view = render(
       <AiAssistantContents
         input=""
         messages={[opening, asking]}
         onInputChange={noop}
-        onSendPrompt={onSendPrompt}
+        onSendAnswer={onSendAnswer}
         onStop={noop}
         onSubmit={noop}
         presentation="brunch"
@@ -5692,18 +5692,18 @@ describe("offered answers", () => {
         {...props}
       />,
     );
-    return { ...view, onSendPrompt };
+    return { ...view, onSendAnswer };
   };
   const card = () =>
     screen.queryByRole("group", { name: "Quarantined shipment" });
 
   test("shows beneath the latest reply and sends a click as the next message", () => {
-    const { onSendPrompt } = renderOffer();
+    const { onSendAnswer } = renderOffer();
     expect(card()).not.toBeNull();
     fireEvent.click(
       screen.getByRole("button", { name: "Drops out until released" }),
     );
-    expect(onSendPrompt).toHaveBeenCalledExactlyOnceWith(
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
       "Drops out until released",
     );
   });
@@ -5761,7 +5761,7 @@ describe("offered answers", () => {
     const typed =
       "1. Summer peak case: last July's incident\n2. Model boundary: chillers and BMS\n3. What else judges it: energy cost\n4. Time to spend:";
     const onInputChange = vi.fn<(value: string) => void>();
-    const { onSendPrompt } = renderOffer({
+    const { onSendAnswer } = renderOffer({
       input: typed,
       messages: [opening, askingOpening],
       onInputChange,
@@ -5775,6 +5775,6 @@ describe("offered answers", () => {
     expect(document.activeElement).toBe(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
     );
-    expect(onSendPrompt).not.toHaveBeenCalled();
+    expect(onSendAnswer).not.toHaveBeenCalled();
   });
 });
