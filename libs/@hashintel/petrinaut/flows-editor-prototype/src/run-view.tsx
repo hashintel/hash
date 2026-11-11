@@ -21,11 +21,11 @@ import {
   Icon,
   type IconName,
   SegmentedControl,
-  Select,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { getCatalogEntry } from "./catalog";
 import { type DraftStep, findStep, stepLabel } from "./document";
 import { useEditor } from "./editor-context";

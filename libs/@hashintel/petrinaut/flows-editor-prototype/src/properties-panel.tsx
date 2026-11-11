@@ -5,13 +5,13 @@ import {
   Icon,
   NumberInput,
   SegmentedControl,
-  Select,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
+import { Select } from "./fill-select";
 import { BranchRows, PathsSection } from "./branches";
 import { namedPorts, switchTake } from "./switch-flags";
 import { SwitchSections } from "./switch-panel";

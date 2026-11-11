@@ -8,11 +8,11 @@ import {
   type ItemOrGroup,
   Menu,
   type MenuItem,
-  Select,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   collapsePath,

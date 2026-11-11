@@ -14,7 +14,6 @@ import {
   Icon,
   type IconName,
   Menu,
-  Select,
   Toggle,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -37,6 +36,7 @@ import {
   stepLabel,
   updateStep,
 } from "./document";
+import { Select } from "./fill-select";
 import { useEditor } from "./editor-context";
 import {
   conditionLayout,

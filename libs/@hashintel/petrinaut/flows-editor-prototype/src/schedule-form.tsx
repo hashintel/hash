@@ -21,10 +21,10 @@ import {
   NumberInput,
   Popover,
   SegmentedControl,
-  Select,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { DatePopover } from "./date-picker";
 
 export type ScheduleFormTake = "g1" | "g2";

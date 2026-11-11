@@ -16,7 +16,6 @@ import { useRef, useState } from "react";
 import {
   Icon,
   NumberInput,
-  Select,
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
@@ -28,6 +27,7 @@ import {
   relativeLabel,
   relativeRowStyle,
 } from "./date-picker";
+import { Select } from "./fill-select";
 import { mockEntities, mockEntityTypes } from "./mock-graph";
 import { selectTriggerStyle } from "./ui";
 

@@ -19,10 +19,10 @@ import {
   Chip,
   Icon,
   type IconName,
-  Select,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { getCatalogEntry } from "./catalog";
 import {
   findStep,

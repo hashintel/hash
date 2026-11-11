@@ -26,12 +26,12 @@ import {
   Popover,
   PortalContainerContext,
   SegmentedControl,
-  Select,
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { emptyDocument } from "./document";
 import { flowTriggersOf } from "./flow-triggers";
 import { Table } from "./ds-parts/table";

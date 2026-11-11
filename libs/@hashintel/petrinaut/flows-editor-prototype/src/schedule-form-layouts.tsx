@@ -20,10 +20,10 @@ import {
   Icon,
   NumberInput,
   Radio,
-  Select,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { DatePopover } from "./date-picker";
 import {
   dayLetter,

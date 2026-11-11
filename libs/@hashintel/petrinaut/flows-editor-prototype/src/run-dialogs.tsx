@@ -6,11 +6,11 @@ import {
   Icon,
   NumberInput,
   Popover,
-  Select,
   TextInput,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Select } from "./fill-select";
 import { useEditor } from "./editor-context";
 import { findEntityType, mockEntities } from "./mock-graph";
 import { TypedValue } from "./typed-value";
