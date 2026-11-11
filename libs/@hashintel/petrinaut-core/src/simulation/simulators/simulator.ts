@@ -262,15 +262,22 @@ export const assessSimulator = async (
   }
   const simulator = await registration.load();
   const dispose = () => simulator.dispose?.();
-  const requestBase =
-    typeof request === "function" ? await request(simulator) : request;
-  const assessment = await simulator.assess({
-    ...requestBase,
-    simulatorParameters: resolved.values,
-  });
-  if (!assessment.eligible) {
+  try {
+    const requestBase =
+      typeof request === "function" ? await request(simulator) : request;
+    const assessment = await simulator.assess({
+      ...requestBase,
+      simulatorParameters: resolved.values,
+    });
+    if (assessment.eligible) {
+      return { ok: true, offer: assessment, dispose };
+    }
     dispose();
     return { ok: false, blockers: assessment.blockers };
+  } catch (error) {
+    // Building the request can fail, or be abandoned: nothing was offered,
+    // so nothing else will release the simulator.
+    dispose();
+    throw error;
   }
-  return { ok: true, offer: assessment, dispose };
 };
