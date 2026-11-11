@@ -35,13 +35,15 @@ const fixture = Effect.fnUntraced(function* (
   };
 });
 
-const printed = ({
-  exported,
-  parts,
-}: Fixture): ReturnType<typeof Signature.print> => {
-  const part = Array.head(parts).pipe(Option.getOrThrow);
+const exportedOf = ({ ast, exported }: Fixture): Syntax.Exported => ({
+  entry: exported,
+  names: Catalogue.namesOf(ast, exported),
+});
+
+const printed = (input: Fixture): ReturnType<typeof Signature.print> => {
+  const part = Array.head(input.parts).pipe(Option.getOrThrow);
   return Signature.print(
-    Syntax.project(part, { exported: Option.some(exported) }),
+    Syntax.project(part, { exported: Option.some(exportedOf(input)) }),
   );
 };
 
@@ -106,7 +108,7 @@ layer(TypeScript.Api.layer, { excludeTestServices: true })(
         const input = yield* fixture("export type Ref = string;", "Ref");
         const part = Array.head(input.parts).pipe(Option.getOrThrow);
         const projected = Syntax.project(part, {
-          exported: Option.some(input.exported),
+          exported: Option.some(exportedOf(input)),
         });
         expect(projected[0]).toBe(part.source.node);
         expect(projected).not.toHaveProperty("text");
@@ -181,7 +183,9 @@ layer(TypeScript.Api.layer, { excludeTestServices: true })(
           "infer",
         );
         const signature = yield* printed(input);
-        expect(signature.text).toBe('export const infer: "_";');
+        expect(signature.text).toBe(
+          'const inferred: "_";\nexport { inferred as infer };',
+        );
       }),
     );
 
@@ -344,7 +348,7 @@ layer(TypeScript.Api.layer, { excludeTestServices: true })(
         const api = yield* TypeScript.Api.Api;
         const part = Array.head(input.parts).pipe(Option.getOrThrow);
         const result = yield* Signature.print(
-          Syntax.project(part, { exported: Option.some(input.exported) }),
+          Syntax.project(part, { exported: Option.some(exportedOf(input)) }),
         ).pipe(
           Effect.provideService(TypeScript.Api.Api, {
             ...api,

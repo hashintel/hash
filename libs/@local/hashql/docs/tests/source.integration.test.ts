@@ -159,7 +159,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("source", (it) => {
       const fs = yield* FileSystem.FileSystem;
       yield* fs.writeFileString(
         `${directory}/exports.json`,
-        '[["@first/pkg", "index.d.ts"], ["@second/pkg", "index.d.ts"]]',
+        '[["fixture", "index.d.ts"], ["Fixture", "other.d.ts"]]',
+      );
+      yield* fs.writeFileString(
+        `${directory}/other.d.ts`,
+        "/** Other. @module */ export declare const other: number;",
       );
       yield* Effect.promise(() =>
         expect(

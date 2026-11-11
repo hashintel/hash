@@ -227,12 +227,14 @@ First call.
 
 ```ts
 export function choose(input: Value): Value;
+export { choose as again };
 ```
 
 (2) · [Source](index.d.ts#L15)
 
 ```ts
 export function choose(input: readonly Value[]): readonly Value[];
+export { choose as again };
 ```
 
 **Parameters**
