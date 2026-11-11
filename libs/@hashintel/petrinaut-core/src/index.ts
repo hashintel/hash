@@ -347,10 +347,11 @@ export type {
 
 // --- Event-driven simulation (experimental) ---
 export {
+  ADAPTIVE_SIMULATOR_ID,
   createEventSimulation,
-  DEFAULT_EVENT_STEP_DT,
-  DEFAULT_REFERENCE_INTERVAL,
   DEFAULT_SOLVER_TOLERANCE,
+  FIXED_STEP_SIMULATOR_ID,
+  SOLVER_ERROR_DIAGNOSTIC,
 } from "./simulation/event-trace";
 export type {
   CreateEventSimulationConfig,
@@ -359,9 +360,52 @@ export type {
   EventSimulationEvent,
   EventSolverConfig,
   EventTraceSummary,
+  StepperParameters,
+  StepperSelection,
   TraceEvent,
   TraceEventKind,
 } from "./simulation/event-trace";
+
+// --- Simulators (experimental) ---
+export {
+  assessSimulator,
+  builtInSimulatorManifests,
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
+  defaultSimulatorParameters,
+  defineSimulator,
+  jsAdaptiveSimulatorManifest,
+  jsFixedStepSimulatorManifest,
+  resolveSimulatorParameters,
+  simulatorFromExperimentBackend,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
+  webGpuFixedStepSimulatorManifest,
+} from "./simulation/simulators";
+export type {
+  JsAdaptiveSimulatorOptions,
+  JsFixedStepSimulatorOptions,
+  ResolvedSimulatorParameters,
+  SimulationRequest,
+  SimulationRequestBase,
+  Simulator,
+  SimulatorAssessment,
+  SimulatorExperimentRequest,
+  SimulatorImplementation,
+  SimulatorManifest,
+  SimulatorOffer,
+  SimulatorParameterProblem,
+  SimulatorParameterSpec,
+  SimulatorParameterSpecs,
+  SimulatorParameterValues,
+  SimulatorProducts,
+  SimulatorRegistration,
+  SimulatorSelectionOutcome,
+  SimulatorStart,
+  SimulatorStartOptions,
+  StoredSimulatorParameters,
+  WebGpuFixedStepSimulatorOptions,
+} from "./simulation/simulators";
 
 // --- Playback ---
 export {

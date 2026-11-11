@@ -11,8 +11,8 @@ import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
-import type { EventSolverConfig } from "../solver/solver-config";
 import type { TraceEvent } from "../trace";
+import type { StepperSelection } from "./steppers";
 
 //
 // Host → Worker
@@ -28,12 +28,8 @@ export type EventSimulationInitMessage = {
   /** Simulation time the run stops at. Null runs until deadlock or stop. */
   maxTime: number | null;
   hirArtifacts?: HirArtifacts;
-  /** The engine step the run advances by. Events land on multiples of it. */
-  stepDt?: number;
-  /** Longest stretch of simulated time between two recorded frames. */
-  referenceInterval?: number;
-  /** How the run advances between events; the fixed-step stepper when absent. */
-  solver?: EventSolverConfig;
+  /** The simulator whose stepper advances the run, with its parameter values. */
+  simulator: StepperSelection;
 };
 
 export type EventSimulationStartMessage = { type: "start" };

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../../hir/compile";
 import { createInMemoryEventTraceStore } from "../trace-store";
-import { createTraceStepper } from "./trace-stepper";
+import { createFixedStepStepper } from "./fixed-step-stepper";
+import { createTraceRecorder } from "./trace-recorder";
 
 import type { SDCPN } from "../../../types/sdcpn";
 
@@ -64,27 +65,30 @@ const growth: SDCPN = {
   ],
 };
 
-describe("createTraceStepper with dynamics", () => {
+describe("createFixedStepStepper with dynamics", () => {
   it("records each token's derivative on every event, and the store interpolates between them", () => {
     const { artifacts, failures } = compileHirArtifacts(growth);
     expect(failures).toEqual([]);
 
-    const stepper = createTraceStepper({
-      sdcpn: growth,
-      hirArtifacts: artifacts,
-      initialMarking: { cell: [{ x: 0 }] },
-      parameterValues: {},
-      seed: 1,
-      maxTime: 0.0005,
-      stepDt: 0.0001,
-      referenceInterval: 0.0002,
-    });
-    expect(Array.from(stepper.initialEvent.derivatives[0]!)).toEqual([2]);
+    const recorder = createTraceRecorder(
+      createFixedStepStepper(
+        {
+          sdcpn: growth,
+          hirArtifacts: artifacts,
+          initialMarking: { cell: [{ x: 0 }] },
+          parameterValues: {},
+          seed: 1,
+          maxTime: 0.25,
+        },
+        { dt: 0.05 },
+      ),
+    );
+    expect(Array.from(recorder.initialEvent.derivatives[0]!)).toEqual([2]);
 
     const store = createInMemoryEventTraceStore(growth);
-    store.append([stepper.initialEvent]);
+    store.append([recorder.initialEvent]);
     for (;;) {
-      const result = stepper.step();
+      const result = recorder.next();
       if (result.event) {
         store.append([result.event]);
       }
@@ -97,7 +101,7 @@ describe("createTraceStepper with dynamics", () => {
       { length: store.count() },
       (_, index) => store.getEvent(index)!.time,
     );
-    expect(times).toEqual([0, 0.0002, 0.0004, 0.0005]);
+    expect(times).toEqual([0, 0.1, 0.2, 0.25]);
     for (let index = 0; index < store.count(); index++) {
       expect(Array.from(store.getEvent(index)!.derivatives[0]!)).toEqual([2]);
     }
@@ -106,8 +110,8 @@ describe("createTraceStepper with dynamics", () => {
       store.getStateAt(time)?.getPlaceTokens(growth.places[0]!)[0]?.x;
     // Recorded by the engine's Euler steps at the events, and by the Hermite
     // curve (a straight line here, both slopes being equal) in between.
-    expect(x(0.0002)).toBeCloseTo(0.0004, 12);
-    expect(x(0.0003)).toBeCloseTo(0.0006, 12);
-    expect(x(0.0005)).toBeCloseTo(0.001, 12);
+    expect(x(0.1)).toBeCloseTo(0.2, 12);
+    expect(x(0.15)).toBeCloseTo(0.3, 12);
+    expect(x(0.25)).toBeCloseTo(0.5, 12);
   });
 });

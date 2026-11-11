@@ -1,5 +1,7 @@
 import { use, useEffect, useState, useSyncExternalStore } from "react";
 
+import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
+
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -30,7 +32,7 @@ const solverErrorExtractor = (
     const placeIndex = placeIndices[seriesIndex];
     return placeIndex === undefined
       ? Number.NaN
-      : (event.solverError?.[placeIndex] ?? 0);
+      : (event.diagnostics?.[SOLVER_ERROR_DIAGNOSTIC]?.[placeIndex] ?? 0);
   };
 };
 

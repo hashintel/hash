@@ -25,7 +25,6 @@ import type {
   SimulationTransport,
   WorkerFactory,
 } from "../api";
-import type { EventSolverConfig } from "./solver/solver-config";
 import type {
   EventSimulationErrorEvent,
   EventSimulationEvent,
@@ -33,11 +32,12 @@ import type {
   TraceEvent,
 } from "./trace";
 import type { ToEventMainMessage } from "./worker/messages";
+import type { StepperSelection } from "./worker/steppers";
 
 /**
  * Per-run configuration of an event-driven run. The run is configured by
- * what it should record, not by a time step: the engine step and the
- * reference interval are tuning, with defaults in the worker.
+ * what computes it: a simulator and that simulator's parameter values. How
+ * time advances and which states are recorded are the simulator's business.
  */
 export type EventSimulationConfig = {
   sdcpn: SDCPN;
@@ -48,12 +48,8 @@ export type EventSimulationConfig = {
   /** Simulation time the run stops at. Null runs until deadlock or stop. */
   maxTime: number | null;
   hirArtifacts?: HirArtifacts;
-  /** The engine step the run advances by; events land on multiples of it. */
-  stepDt?: number;
-  /** Longest stretch of simulated time between two recorded frames. */
-  referenceInterval?: number;
-  /** How the run advances between events; the fixed-step stepper when absent. */
-  solver?: EventSolverConfig;
+  /** The simulator whose stepper advances the run, with its parameter values. */
+  simulator: StepperSelection;
   /** Optional cancellation. Aborting tears down the simulation. */
   signal?: AbortSignalLike;
 };
@@ -269,9 +265,7 @@ export function createEventSimulation(
       seed: config.seed,
       maxTime: config.maxTime,
       hirArtifacts: config.hirArtifacts,
-      stepDt: config.stepDt,
-      referenceInterval: config.referenceInterval,
-      solver: config.solver,
+      simulator: config.simulator,
     });
   });
 }
