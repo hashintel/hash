@@ -20,7 +20,7 @@ export const runTimeTake = (): RunTimeTake | null => {
       : "t3";
 };
 
-/** Whole seconds, as past runs write their length: "14s", "2m 14s", "1h 02m". */
+/** Whole seconds, as past runs write their length: "14 s", "2m 14s", "1h 02m". */
 const clockText = (seconds: number) => {
   const whole = Math.floor(seconds);
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -28,7 +28,7 @@ const clockText = (seconds: number) => {
     ? `${Math.floor(whole / 3600)}h ${pad(Math.floor((whole % 3600) / 60))}m`
     : whole >= 60
       ? `${Math.floor(whole / 60)}m ${pad(whole % 60)}s`
-      : `${whole}s`;
+      : `${whole} s`;
 };
 
 const parts = (run: Pick<RunRecord, "when">) => {
@@ -74,11 +74,8 @@ export const liveTail = (run: RunRecord, now: number) => {
   return word ? `${word} · ${runLength(run, now)}` : null;
 };
 
-/** t3: "Started 08:15 · 1m 52s", "Started 2 Nov · 48h 02m". */
+/** t3: duration first, then when it started (5 Nov, L424): "1m 52s · Today, 08:15", "12 s · 5 Nov, 14:02". */
 export const startedLine = (run: RunRecord, now: number) => {
-  const { day, time } = parts(run);
-  const at =
-    day === "Today" ? time : day === "Yesterday" ? `${day} ${time}` : day;
   const length = runLength(run, now);
-  return length ? `Started ${at} · ${length}` : `Started ${at}`;
+  return length ? `${length} · ${run.when}` : run.when;
 };

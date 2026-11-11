@@ -166,7 +166,7 @@ const seconds = (duration: string) => {
 
 const roughly = (total: number) =>
   total < 90
-    ? `${Math.round(total)}s`
+    ? `${Math.round(total)} s`
     : `${Math.round(total / 60)}m`;
 
 /** The usual run: the median of the scheduled runs that completed. */

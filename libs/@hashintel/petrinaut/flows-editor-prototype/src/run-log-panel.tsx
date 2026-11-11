@@ -318,9 +318,13 @@ export const flashLogRows = (stepId: string) => {
   }, 1400);
 };
 
-/** "5 m 00 s" → "5m 00s", as the spec writes durations. */
-const tight = (duration: string) =>
-  duration.replace(/ (m|s|h)\b/g, "$1").replace(" total", "");
+/** "5 m 00 s" → "5m 00s", as the spec writes durations; a single unit keeps its space ("1.2 s", L424). */
+const tight = (duration: string) => {
+  const text = duration.replace(" total", "");
+  return /\d (h|m)\b.*\d/.test(text)
+    ? text.replace(/ (m|s|h)\b/g, "$1")
+    : text;
+};
 
 export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const { run, now } = history;
