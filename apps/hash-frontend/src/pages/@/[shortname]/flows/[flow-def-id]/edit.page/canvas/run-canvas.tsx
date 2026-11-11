@@ -129,13 +129,22 @@ const FlowRunCanvas = ({
     };
   }, [flowDefinition]);
 
+  /* As in the editor: fitting leaves the cards clear of the panel. */
+  const fitPadding = useMemo(
+    () =>
+      coveredRight > 0
+        ? ({ x: "5%", y: "5%", right: `${coveredRight + 24}px` } as const)
+        : undefined,
+    [coveredRight],
+  );
+
   const fittedRef = useRef(false);
   useEffect(() => {
     if (nodesInitialized && !fittedRef.current) {
       fittedRef.current = true;
-      void fitView({ maxZoom: 1 });
+      void fitView({ maxZoom: 1, padding: fitPadding });
     }
-  }, [nodesInitialized, fitView]);
+  }, [nodesInitialized, fitView, fitPadding]);
 
   useStepFocus(focusRequest, coveredRight);
   useSelectedStepInView(selectedStepIds, coveredRight);
@@ -307,14 +316,19 @@ const FlowRunCanvas = ({
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} />
-          <MiniMap position="top-right" pannable zoomable />
+          <MiniMap
+            position="top-right"
+            pannable
+            zoomable
+            style={{ marginRight: coveredRight + 15 }}
+          />
         </ReactFlow>
         <Panel position="bottom-center">
           <CanvasToolbar
             tool={tool}
             onToolChange={setTool}
             editing={null}
-            fitPadding={undefined}
+            fitPadding={fitPadding}
           />
         </Panel>
       </div>
