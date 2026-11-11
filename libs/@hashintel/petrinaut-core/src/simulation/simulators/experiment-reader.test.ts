@@ -155,4 +155,32 @@ describe("createExperimentReader", () => {
     expect(reader.metricFrames(metricId)).toHaveLength(1);
     expect(reader.metricFrameAt(metricId, 5)).toBe(refined[0]);
   });
+
+  it("starts over when an earlier frame is replaced and the last one is kept", () => {
+    const experiment = stepExperiment();
+    experiment.step();
+    let state = experiment.store.get();
+    const reader = createExperimentReader({
+      get: () => state,
+      subscribe: () => () => {},
+    });
+    const [place] = sdcpn.places;
+    const metricId = placeCountMetricId(place!.id);
+    const replacedAt = state.frames.findIndex(
+      (frame) => frame.metricId === metricId && frame.frameNumber === 0,
+    );
+    expect(replacedAt).toBeLessThan(state.frames.length - 1);
+    expect(reader.metricFrameAt(metricId, 0)).toBe(state.frames[replacedAt]);
+
+    // A backend that refines an earlier sample publishes an array as long
+    // as the one before, ending in the same frame.
+    const refined = { ...state.frames[replacedAt]!, runSampleCount: 999 };
+    state = {
+      ...state,
+      frames: state.frames.map((frame, at) =>
+        at === replacedAt ? refined : frame,
+      ),
+    };
+    expect(reader.metricFrameAt(metricId, 0)).toBe(refined);
+  });
 });

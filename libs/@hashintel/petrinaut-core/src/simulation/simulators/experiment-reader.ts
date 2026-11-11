@@ -105,14 +105,14 @@ const NO_FRAMES: readonly MonteCarloUserDefinedMetricFrame[] = [];
  *
  * The store publishes one flat array that grows by appending; the reader
  * keeps the frames by metric and by sample, extending what it has when the
- * array only grew and starting over when it was replaced, as a backend that
- * refines its samples does.
+ * array only grew and starting over when a frame it holds was replaced, as
+ * a backend that refines its samples does.
  */
 export const createExperimentReader = (
   metrics: ReadableStore<MonteCarloExperimentMetrics>,
 ): ExperimentReader => {
-  let indexedCount = 0;
-  let lastIndexed: MonteCarloUserDefinedMetricFrame | null = null;
+  /** The published array the index was last brought up to. */
+  let indexed: readonly MonteCarloUserDefinedMetricFrame[] = NO_FRAMES;
   let byMetric = new Map<string, MonteCarloUserDefinedMetricFrame[]>();
   const statistics = new WeakMap<
     MonteCarloUserDefinedMetricFrame,
@@ -121,14 +121,18 @@ export const createExperimentReader = (
 
   const index = (): Map<string, MonteCarloUserDefinedMetricFrame[]> => {
     const { frames } = metrics.get();
+    if (frames === indexed) {
+      return byMetric;
+    }
+    // A refinement may replace any frame and keep the rest, the last one
+    // included, so every frame already indexed is checked, once per array.
     const grewOnly =
-      frames.length >= indexedCount &&
-      (indexedCount === 0 || frames[indexedCount - 1] === lastIndexed);
+      frames.length >= indexed.length &&
+      indexed.every((frame, at) => frames[at] === frame);
     if (!grewOnly) {
       byMetric = new Map();
-      indexedCount = 0;
     }
-    for (let at = indexedCount; at < frames.length; at++) {
+    for (let at = grewOnly ? indexed.length : 0; at < frames.length; at++) {
       const frame = frames[at]!;
       let series = byMetric.get(frame.metricId);
       if (!series) {
@@ -139,8 +143,7 @@ export const createExperimentReader = (
       // delivered again replaces the one before it.
       series[frame.frameNumber] = frame;
     }
-    indexedCount = frames.length;
-    lastIndexed = frames[frames.length - 1] ?? null;
+    indexed = frames;
     return byMetric;
   };
 
