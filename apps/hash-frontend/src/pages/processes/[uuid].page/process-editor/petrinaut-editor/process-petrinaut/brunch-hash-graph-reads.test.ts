@@ -50,12 +50,13 @@ const linkEndpoints = [
 
 const oneLinkDeep = [{ edges: forward }, { edges: backward }, ...linkEndpoints];
 
-test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts", () => {
+test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts, with its types resolved", () => {
   expect(hashEntityReadRequest({})).toMatchObject({
     filter: { all: notArchived },
     traversalPaths: oneLinkDeep,
     includeDrafts: false,
     includePermissions: false,
+    includeEntityTypes: "resolved",
   });
 });
 
@@ -231,38 +232,78 @@ const entity = ({
 });
 
 const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
-/** Alice's supplier, matched, and the link the traversal reached from it. */
-const response = {
-  queryEntitySubgraph: {
-    subgraph: {
-      roots: [
-        { baseId: "alice-web~supplier", revisionId: "2026-10-26T00:00:00Z" },
-      ],
-      vertices: {
-        "alice-web~supplier": {
-          "2026-10-26T00:00:00Z": entity({
-            entityId: "alice-web~supplier",
-            editionId: "edition-2",
-            properties: { [nameUrl]: "Acme Parts" },
-          }),
-        },
-        "alice-web~link": {
-          "2026-10-25T00:00:00Z": entity({
-            entityId: "alice-web~link",
-            editionId: "edition-7",
-            properties: {},
-            linkData: {
-              leftEntityId: "alice-web~supplier",
-              rightEntityId: "alice-web~product",
-            },
-          }),
+const supplierTypeId = "https://hash.ai/@alice/types/entity-type/supplier/v/1";
+const hasTypeId = "https://hash.ai/@h/types/entity-type/has/v/1";
+const closedType = ($id: string, title: string, labelProperty?: string) => ({
+  schema: {
+    properties: {},
+    allOf: [{ $id, title, allOf: [{ $id, depth: 0, labelProperty }] }],
+  },
+});
+const propertyType = ($id: string, title: string, description?: string) => ({
+  $id,
+  title,
+  ...(description === undefined ? {} : { description }),
+});
+const closedTypes = {
+  [supplierTypeId]: closedType(supplierTypeId, "Supplier", nameUrl),
+  [hasTypeId]: closedType(hasTypeId, "Has"),
+};
+/**
+ * Alice's supplier, matched, and the link the traversal reached from it,
+ * with the closed types given.
+ */
+const responseWith = (closedMultiEntityTypes: object) =>
+  ({
+    queryEntitySubgraph: {
+      closedMultiEntityTypes,
+      definitions: {
+        dataTypes: {},
+        entityTypes: {},
+        propertyTypes: {
+          [`${nameUrl}v/1`]: propertyType(`${nameUrl}v/1`, "Old name"),
+          [`${nameUrl}v/2`]: propertyType(
+            `${nameUrl}v/2`,
+            "Name",
+            "What it's called.",
+          ),
+          // A property no returned entity carries is left out.
+          "https://hash.ai/@alice/types/property-type/unused/v/1": propertyType(
+            "https://hash.ai/@alice/types/property-type/unused/v/1",
+            "Unused",
+          ),
         },
       },
-      edges: {},
-      temporalAxes: {},
+      subgraph: {
+        roots: [
+          { baseId: "alice-web~supplier", revisionId: "2026-10-26T00:00:00Z" },
+        ],
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "edition-2",
+              properties: { [nameUrl]: "Acme Parts" },
+            }),
+          },
+          "alice-web~link": {
+            "2026-10-25T00:00:00Z": entity({
+              entityId: "alice-web~link",
+              editionId: "edition-7",
+              properties: {},
+              linkData: {
+                leftEntityId: "alice-web~supplier",
+                rightEntityId: "alice-web~product",
+              },
+            }),
+          },
+        },
+        edges: {},
+        temporalAxes: {},
+      },
     },
-  },
-} as unknown as QueryEntitySubgraphQuery;
+  }) as unknown as QueryEntitySubgraphQuery;
+const response = responseWith(closedTypes);
 
 const runTool = (
   tool: PetrinautAiAutomaticTool,
@@ -291,6 +332,19 @@ test("the read runs the request it built and returns each entity from its own ed
     expect.any(AbortSignal),
   );
   expect(output).toEqual({
+    propertyTypes: [
+      { baseUrl: nameUrl, propertyTypeId: `${nameUrl}v/1`, title: "Old name" },
+      {
+        baseUrl: nameUrl,
+        propertyTypeId: `${nameUrl}v/2`,
+        title: "Name",
+        description: "What it's called.",
+      },
+    ],
+    entityTypes: [
+      { entityTypeId: supplierTypeId, title: "Supplier" },
+      { entityTypeId: hasTypeId, title: "Has" },
+    ],
     entities: [
       {
         entityId: "alice-web~supplier",
@@ -299,6 +353,7 @@ test("the read runs the request it built and returns each entity from its own ed
         entityTypeIds: [
           "https://hash.ai/@alice/types/entity-type/supplier/v/1",
         ],
+        label: "Acme Parts",
         properties: { [nameUrl]: "Acme Parts" },
         draft: false,
         matched: true,
@@ -308,6 +363,7 @@ test("the read runs the request it built and returns each entity from its own ed
         editionId: "edition-7",
         webId: "alice-web",
         entityTypeIds: ["https://hash.ai/@h/types/entity-type/has/v/1"],
+        label: "Has-lin",
         properties: {},
         draft: false,
         matched: false,
@@ -317,6 +373,125 @@ test("the read runs the request it built and returns each entity from its own ed
         },
       },
     ],
+  });
+});
+
+test("the host preserves both returned property versions with their distinct units", async () => {
+  const durationUrl = "https://hash.ai/@alice/types/property-type/duration/";
+  const mixedResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      definitions: {
+        ...response.queryEntitySubgraph.definitions,
+        propertyTypes: {
+          [`${durationUrl}v/1`]: propertyType(
+            `${durationUrl}v/1`,
+            "Duration",
+            "Elapsed time in days.",
+          ),
+          [`${durationUrl}v/2`]: propertyType(
+            `${durationUrl}v/2`,
+            "Duration",
+            "Elapsed time in hours.",
+          ),
+        },
+      },
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "edition-2",
+              properties: { [durationUrl]: 5 },
+            }),
+          },
+          "alice-web~other": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~other",
+              editionId: "edition-other",
+              properties: { [durationUrl]: 120 },
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+  expect(await run(() => Promise.resolve(mixedResponse), {})).toMatchObject({
+    propertyTypes: [
+      {
+        baseUrl: durationUrl,
+        propertyTypeId: `${durationUrl}v/1`,
+        title: "Duration",
+        description: "Elapsed time in days.",
+      },
+      {
+        baseUrl: durationUrl,
+        propertyTypeId: `${durationUrl}v/2`,
+        title: "Duration",
+        description: "Elapsed time in hours.",
+      },
+    ],
+    entities: [
+      { properties: { [durationUrl]: 5 } },
+      { properties: { [durationUrl]: 120 } },
+    ],
+  });
+});
+
+test("nested property definitions retain units through arrays without defining opaque JSON keys", async () => {
+  const durationUrl = "https://hash.ai/@alice/types/property-type/duration/";
+  const properties = {
+    [nameUrl]: "Acme Parts",
+    "https://hash.ai/@alice/types/property-type/order/": {
+      items: [{ [durationUrl]: 5, note: "opaque", duration: 1 }],
+    },
+  };
+  const nestedResponse = {
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      definitions: {
+        ...response.queryEntitySubgraph.definitions,
+        propertyTypes: {
+          ...response.queryEntitySubgraph.definitions?.propertyTypes,
+          [`${durationUrl}v/1`]: propertyType(
+            `${durationUrl}v/1`,
+            "Duration",
+            "Elapsed time in days.",
+          ),
+        },
+      },
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        vertices: {
+          "alice-web~supplier": {
+            "2026-10-26T00:00:00Z": entity({
+              entityId: "alice-web~supplier",
+              editionId: "edition-2",
+              properties,
+            }),
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntitySubgraphQuery;
+  const output = await run(() => Promise.resolve(nestedResponse), {});
+  expect(output).toMatchObject({
+    propertyTypes: [
+      { baseUrl: nameUrl, propertyTypeId: `${nameUrl}v/1`, title: "Old name" },
+      {
+        baseUrl: nameUrl,
+        propertyTypeId: `${nameUrl}v/2`,
+        title: "Name",
+        description: "What it's called.",
+      },
+      {
+        baseUrl: durationUrl,
+        title: "Duration",
+        description: "Elapsed time in days.",
+      },
+    ],
+    entities: [{ properties }],
   });
 });
 
@@ -563,6 +738,35 @@ test("a query that fails because the call was cancelled still rejects", async ()
     return Promise.reject(aborted);
   });
   await expect(runTool(tool, {}, controller.signal)).rejects.toBe(aborted);
+});
+
+test("each entity is labelled from its closed type, and an entity whose closed type the response lacks has no label", async () => {
+  const onlySupplierClosed = responseWith({
+    [supplierTypeId]: closedTypes[supplierTypeId],
+  });
+  const output = await run(() => Promise.resolve(onlySupplierClosed), {});
+  expect(output).toMatchObject({
+    entityTypes: [{ entityTypeId: supplierTypeId, title: "Supplier" }],
+    entities: [
+      { entityId: "alice-web~supplier", label: "Acme Parts" },
+      { entityId: "alice-web~link" },
+    ],
+  });
+  expect(output).not.toHaveProperty(["entities", 1, "label"]);
+});
+
+test("the agent's own keys, such as which values it shows in full, are accepted and don't change what is read", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  const input = { entityIds: ["alice-web~supplier"] };
+  const output = await run(query, {
+    ...input,
+    fullValuesFor: ["alice-web~supplier"],
+  });
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(input),
+    expect.any(AbortSignal),
+  );
+  expect(output).toEqual(await run(query, input));
 });
 
 test("an input the agent's contract doesn't allow is refused before any query", async () => {

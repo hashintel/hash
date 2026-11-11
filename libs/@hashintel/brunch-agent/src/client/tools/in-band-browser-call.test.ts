@@ -168,6 +168,30 @@ const createCalls = (
     acceptsRevision: () => true,
   });
 
+test.each([undefined, { invalid: undefined }, [NaN], new Date()])(
+  "a non-JSON result fails before HTTP serialization: %s",
+  async (output) => {
+    const posted = stubIssuingFetch();
+    await expect(
+      createCalls().run(
+        {
+          toolCallId: "call",
+          toolName: "addPlace",
+          input,
+          signal: new AbortController().signal,
+        },
+        async () => output,
+      ),
+    ).rejects.toThrow("Expected a JSON value");
+    expect(posted).toEqual([
+      {
+        url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
+        disposition: "failed",
+      },
+    ]);
+  },
+);
+
 test("a call that throws once executed is reported failed", async () => {
   const posted = stubIssuingFetch();
   const failure = new Error("executor failed");

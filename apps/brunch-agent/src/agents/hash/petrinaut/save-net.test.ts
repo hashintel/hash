@@ -21,6 +21,7 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import {
   type BrowserCallClaim,
+  type ClientToolResult,
   type BrowserCallFailureDisposition,
   brunchTools,
   canonicalContent,
@@ -167,7 +168,7 @@ test("a save with no view of the net in context is refused as not started and ne
  */
 const saveAfterRead = async (
   settle:
-    | { readonly output: unknown }
+    | { readonly output: ClientToolResult["output"] }
     | { readonly disposition: BrowserCallFailureDisposition },
 ) => {
   const chat = conversation();

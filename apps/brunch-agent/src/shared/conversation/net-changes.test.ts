@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { generatedArcId } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { queryBasis } from "../../agents/petrinaut/tools/query-basis.ts";
+import { queryBasis } from "../../agents/shared/query-basis.ts";
 import {
   isAppliedChange,
   latestNetDefinition,

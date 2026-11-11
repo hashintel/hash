@@ -90,6 +90,8 @@ export const brunchRoutes = {
   agents: "/agents",
   /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
   petrinautAgent: "petrinaut",
+  /** The HASH agent's route, which HASH's process page talks to. */
+  hashAgent: "hash",
   /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
   browserCalls: "browser-calls",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */

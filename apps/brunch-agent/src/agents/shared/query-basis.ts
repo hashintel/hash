@@ -18,7 +18,7 @@ import {
   netCalls,
   type NetCall,
   type NetElement,
-} from "../../../shared/conversation/net-changes.ts";
+} from "../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {

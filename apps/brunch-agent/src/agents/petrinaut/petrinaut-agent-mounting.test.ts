@@ -20,8 +20,8 @@ import {
 import {
   commitToolDescription,
   compileToolDescription,
-} from "./tools/ledger.ts";
-import { queryBasisToolDescription } from "./tools/query-basis.ts";
+} from "../shared/ledger-tools.ts";
+import { queryBasisToolDescription } from "../shared/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,

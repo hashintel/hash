@@ -45,8 +45,8 @@ const observed = vi.hoisted(() => ({
   /** Failures to report from inside the editor and from Brunch's hook. */
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
-  /** The HASH host tools the page gives Brunch. */
-  hashHostTools: [{ toolName: "query_hash_entities" }],
+  /** The HASH graph reads the page gives Brunch. */
+  hashGraphReadTools: [{ toolName: "query_hash_entities" }],
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
@@ -136,7 +136,7 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => {
 });
 
 vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
-  useBrunchHashHostTools: () => observed.hashHostTools,
+  useBrunchHashGraphReadTools: () => observed.hashGraphReadTools,
 }));
 
 vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
@@ -281,7 +281,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   });
   // The page's graph reads, then the agent's save through the editor's Save.
   expect(lastBrunchInput()?.hostTools).toEqual([
-    ...observed.hashHostTools,
+    ...observed.hashGraphReadTools,
     expect.objectContaining({ toolName: brunchTools.saveHashNet }),
   ]);
   expect(identityRequests).toEqual([

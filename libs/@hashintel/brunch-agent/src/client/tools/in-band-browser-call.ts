@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 import {
   agentOwnershipHeaders,
   browserExecutedToolInputParsers,
@@ -7,6 +9,8 @@ import {
   canonicalContent,
   hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
+
+import { vBrowserToolResult } from "../../client-tools/browser-tool-result";
 
 import type { BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
@@ -177,6 +181,10 @@ export const createInBandBrowserCalls = (input: {
         clearInterval(lease);
         if (call.signal.aborted) return;
         const metadata = input.metadataFor(call.toolCallId, output);
+        const result = v.parse(vBrowserToolResult, {
+          output,
+          ...(metadata === undefined ? {} : { metadata }),
+        });
         const response = await request(url, {
           method: "POST",
           headers: { ...headers, "content-type": "application/json" },
@@ -185,8 +193,7 @@ export const createInBandBrowserCalls = (input: {
             binding: claimed.binding,
             toolName: call.toolName,
             canonicalInput: claimed.input,
-            output,
-            ...(metadata === undefined ? {} : { metadata }),
+            ...result,
           } satisfies BrowserCallResultBody),
           signal: call.signal,
         });

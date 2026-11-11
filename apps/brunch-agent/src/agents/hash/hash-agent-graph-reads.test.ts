@@ -21,6 +21,7 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import {
   type BrowserCallClaim,
+  type ClientToolResult,
   browserNetToolNames,
   brunchTools,
   canonicalContent,
@@ -31,6 +32,7 @@ import {
   failBrowserCall,
   settleBrowserCall,
 } from "../../shared/conversation/browser-call-rendezvous.ts";
+import { hashEntityReadEmptyNote } from "./tools/hash-graph-reads.ts";
 
 // Only the Flue build packages skills; the read doesn't depend on their content.
 vi.mock("./skills/eliciting/SKILL.md", () => ({
@@ -132,6 +134,7 @@ const claimed = async (
 const readInput = { entityTypes: ["Supplier"], traversalDepth: 1 };
 const supplier = {
   entityId: "alice-web~supplier",
+  label: "Acme Parts",
   editionId: "edition-1",
   webId: "alice-web",
   entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/1"],
@@ -141,6 +144,35 @@ const supplier = {
   draft: false,
   matched: true,
 };
+const supplierRead = {
+  propertyTypes: [
+    {
+      baseUrl: "https://hash.ai/@alice/types/property-type/name/",
+      propertyTypeId: "https://hash.ai/@alice/types/property-type/name/v/1",
+      title: "Name",
+    },
+  ],
+  entityTypes: [
+    {
+      entityTypeId: "https://hash.ai/@alice/types/entity-type/supplier/v/1",
+      title: "Supplier",
+    },
+  ],
+  entities: [supplier],
+};
+/** What the model is shown of `supplierRead`. */
+const supplierText = [
+  "entities: 1",
+  "properties:",
+  "  name (https://hash.ai/@alice/types/property-type/name/v/1): Name",
+  "entity types:",
+  "  Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
+  "entities:",
+  '- Supplier "Acme Parts"',
+  "  entityId: alice-web~supplier",
+  "  editionId: edition-1",
+  '  name: "Acme Parts"',
+].join("\n");
 
 test("the agent offers the read, issues it as a read in a fresh conversation, and the model next sees what the page returned", async () => {
   const chat = conversation();
@@ -181,16 +213,16 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
       binding: claim.binding,
       toolName: brunchTools.queryHashEntities,
       canonicalInput: claim.input,
-      output: { entities: [supplier] },
+      output: supplierRead,
       metadata: { documentRevision: { before: "r1" } },
     }),
   ).toBe("settled");
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
   expect(declared).toContain(brunchTools.queryHashEntities);
-  // The model sees the page's entities, edition evidence included, and none
-  // of the browser sidecar.
-  expect(seen).toBe(JSON.stringify({ entities: [supplier] }));
+  // The model sees the page's entities as compact text, edition evidence
+  // included, and none of the browser sidecar.
+  expect(seen).toBe(supplierText);
   expect(browserNetToolNames.has(brunchTools.queryHashEntities)).toBe(false);
 });
 
@@ -248,13 +280,13 @@ test("a step proposing the read beside a net read issues both to the browser, an
       binding: entityClaim.binding,
       toolName: brunchTools.queryHashEntities,
       canonicalInput: entityClaim.input,
-      output: { entities: [supplier] },
+      output: supplierRead,
       metadata: { documentRevision: { before: "r1" } },
     }),
   ).toBe("settled");
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(seenEntities).toBe(JSON.stringify({ entities: [supplier] }));
+  expect(seenEntities).toBe(supplierText);
   expect(JSON.parse(seenNet ?? "null")).toEqual(outline);
 });
 
@@ -287,11 +319,11 @@ test("a read that finds nothing the user may see shows the model the empty resul
     binding: claim.binding,
     toolName: brunchTools.queryHashEntities,
     canonicalInput: claim.input,
-    output: { entities: [] },
+    output: { propertyTypes: [], entityTypes: [], entities: [] },
   });
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(JSON.parse(seen ?? "null")).toEqual({ entities: [] });
+  expect(seen).toBe(hashEntityReadEmptyNote);
 });
 
 test("a read the page fails reaches the model as a tool error that left the document unchanged", async () => {
@@ -333,8 +365,12 @@ test("a read the page fails reaches the model as a tool error that left the docu
 const readOnce = async (
   toolName: string,
   input: Parameters<typeof fauxToolCall>[1],
-  output: unknown,
-): Promise<{ claim: BrowserCallClaim; declared: string[]; seen: unknown }> => {
+  output: ClientToolResult["output"],
+): Promise<{
+  claim: BrowserCallClaim;
+  declared: string[];
+  seen: string | undefined;
+}> => {
   const chat = conversation();
   let seen: string | undefined;
   let declared: string[] = [];
@@ -370,7 +406,7 @@ const readOnce = async (
     }),
   ).toBe("settled");
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
-  return { claim, declared, seen: JSON.parse(seen ?? "null") };
+  return { claim, declared, seen };
 };
 
 const supplierType = {
@@ -411,7 +447,17 @@ test("the entity type read is offered, issued as a read in a fresh conversation 
     binding: claim.binding,
   });
   expect(declared).toContain(brunchTools.queryHashEntityTypes);
-  expect(seen).toEqual({ entityTypes: [supplierType] });
+  expect(seen).toBe(
+    [
+      "entity types: 1",
+      "- Supplier: https://hash.ai/@alice/types/entity-type/supplier/v/1",
+      "  description: Someone who supplies parts.",
+      "  properties:",
+      "    name: Name",
+      "  links:",
+      "    Supplies: https://hash.ai/@alice/types/entity-type/supplies/v/1 -> https://hash.ai/@alice/types/entity-type/product/v/1",
+    ].join("\n"),
+  );
 });
 
 test("the web read is offered, issued as a read in a fresh conversation, and the model next sees the page's webs", async () => {
@@ -431,24 +477,63 @@ test("the web read is offered, issued as a read in a fresh conversation, and the
     binding: claim.binding,
   });
   expect(declared).toContain(brunchTools.queryHashWebs);
-  expect(seen).toEqual({ webs });
+  expect(seen).toBe(
+    [
+      "webs: 2",
+      '- user "Alice" @alice webId: alice-web',
+      '- organization "Acme" @acme webId: org-web',
+    ].join("\n"),
+  );
+});
+
+test("an entity read asking for an entity's full values is issued as asked, and the model next sees the value in full", async () => {
+  const definitionUrl =
+    "https://hash.ai/@h/types/property-type/definition-object/";
+  const definition = {
+    places: Array.from({ length: 100 }, (_, index) => `place-${index}`),
+  };
+  const net = {
+    ...supplier,
+    entityId: "alice-web~net",
+    properties: { [definitionUrl]: definition },
+  };
+  const output = { propertyTypes: [], entityTypes: [], entities: [net] };
+  const input = { entityIds: [net.entityId], fullValuesFor: [net.entityId] };
+
+  const { claim, seen } = await readOnce(
+    brunchTools.queryHashEntities,
+    input,
+    output,
+  );
+  expect(claim.input).toEqual(input);
+  expect(seen).toContain(`definition_object: ${JSON.stringify(definition)}`);
+
+  // Without asking, the same value is summarised.
+  const compact = await readOnce(
+    brunchTools.queryHashEntities,
+    { entityIds: [net.entityId] },
+    output,
+  );
+  expect(compact.seen).toMatch(
+    /definition_object: <object, [\d.]+ KB: 100 places>/,
+  );
 });
 
 test.each([
-  [brunchTools.queryHashEntities, readInput, { entities: [supplier] }],
+  [brunchTools.queryHashEntities, readInput, supplierRead],
   [brunchTools.queryHashEntityTypes, {}, { entityTypes: [supplierType] }],
 ])(
   "%s settled as truncated tells the model more may match than it shows",
   async (toolName, input, output) => {
-    const { seen } = await readOnce(toolName, input, {
+    const note = "More may match than shown; narrow the filter.";
+    const truncated = await readOnce(toolName, input, {
       ...output,
       truncated: true,
     });
-    expect(seen).toEqual({
-      ...output,
-      truncated: true,
-      note: "More may match than shown; narrow the filter.",
-    });
+    expect(truncated.seen?.split("\n")[1]).toBe(note);
+
+    const whole = await readOnce(toolName, input, output);
+    expect(whole.seen).not.toContain(note);
   },
 );
 
@@ -462,7 +547,7 @@ test.each([
     const { seen } = await readOnce(toolName, input, {
       error: "Response not successful: GraphQL error",
     });
-    expect(seen).toEqual({
+    expect(JSON.parse(seen ?? "null")).toEqual({
       error: "Response not successful: GraphQL error",
       note: "The read failed; the document is unchanged.",
     });

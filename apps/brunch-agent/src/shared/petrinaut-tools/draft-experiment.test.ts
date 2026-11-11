@@ -9,7 +9,7 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { createDraftExperimentTool } from "./draft-experiment.ts";
 
-import type { BrowserToolExecutor } from "./petrinaut-construction.ts";
+import type { BrowserToolExecutor } from "../conversation/browser-tool-executor.ts";
 
 const experiment = {
   name: "Vans on the parcel route",

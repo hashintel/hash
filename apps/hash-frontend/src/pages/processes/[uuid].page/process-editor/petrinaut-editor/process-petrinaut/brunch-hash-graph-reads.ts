@@ -4,16 +4,20 @@ import * as z from "zod";
 
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
+  type ClosedMultiEntityType,
   type EntityId,
   type VersionedUrl,
+  extractBaseUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
   deserializeQueryEntitySubgraphResponse,
+  getClosedMultiEntityTypeFromMap,
   type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateEntityEditionFilter,
@@ -39,6 +43,7 @@ import type {
   EntityTraversalPath,
   Filter,
 } from "@local/hash-graph-client";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 /**
  * The input Brunch's HASH agent issues for its entity read. The agent's
@@ -50,6 +55,7 @@ const zHashEntityReadInput = z.object({
   entityIds: z.array(z.string()).optional(),
   traversalDepth: z.number().int().min(0).max(3).optional(),
   includeDrafts: z.boolean().optional(),
+  // Keys only the agent reads, such as how it shows the result, are stripped.
 });
 
 /** An entity read as the agent issued it to the page, narrowed. */
@@ -161,6 +167,9 @@ export const hashEntityReadRequest = (
     ),
     includeDrafts: input.includeDrafts === true || namesDraft,
     includePermissions: false,
+    // The entities' types, closed and resolved, for the titles and
+    // descriptions of their types and properties.
+    includeEntityTypes: "resolved",
   };
 };
 
@@ -173,22 +182,52 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 const truncatedWhen = (cursor: unknown) =>
   cursor === undefined || cursor === null ? {} : { truncated: true as const };
 
+/** The closed type of an entity with these types, if the response has it. */
+const closedTypeIn = (
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+): ClosedMultiEntityType | undefined => {
+  try {
+    return getClosedMultiEntityTypeFromMap(
+      closedMultiEntityTypes,
+      entityTypeIds,
+    );
+  } catch {
+    return undefined;
+  }
+};
+
+/** Collect actual keys, including nested objects and arrays; definitions remain authoritative. */
+const collectPropertyKeys = (value: unknown, found: Set<string>) => {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectPropertyKeys(item, found);
+    }
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      found.add(key);
+      collectPropertyKeys(item, found);
+    }
+  }
+};
+
 /**
  * Every entity edition in the response, each described only from itself, so
- * its edition id is the edition whose properties it carries. An entity
- * archived through its `archived` property, as pages are, is left out: the
- * request's filter applies only to the matches, not to the entities reached
- * by following links. Given `onlyDrafts`, retain named drafts and draft links
- * whose endpoint is a named draft, without expanding that set. Other drafts
- * are left out; links to excluded entities keep their endpoint ids.
+ * its edition id is the edition whose properties it carries, and labelled
+ * where its closed type was resolved; and the title and description of each
+ * candidate property definition matched by a returned key, and the title of each type. An entity archived through
+ * its `archived` property, as pages are, is left out: the request's filter
+ * applies only to the matches, not to the entities reached by following links.
+ * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
+ * a named draft, without expanding that set. Other drafts are left out;
+ * links to excluded entities keep their endpoint ids.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
   onlyDrafts?: ReadonlySet<EntityId>,
 ) => {
-  const { subgraph, cursor } = deserializeQueryEntitySubgraphResponse(
-    response.queryEntitySubgraph,
-  );
+  const { subgraph, closedMultiEntityTypes, definitions, cursor } =
+    deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
   const matched = new Set(
     getRoots(subgraph).map(({ metadata }) => metadata.recordId.editionId),
   );
@@ -204,9 +243,52 @@ export const hashEntityReadResult = (
           (onlyDrafts.has(linkData.leftEntityId) ||
             onlyDrafts.has(linkData.rightEntityId)))
       );
-    });
+    })
+    .map((entity) => ({
+      entity,
+      closedType: closedTypeIn(
+        closedMultiEntityTypes,
+        entity.metadata.entityTypeIds,
+      ),
+    }));
+
+  // Key matches select candidate definitions, not ownership or applicability.
+  // Preserve every returned version rather than choosing one global definition.
+  const usedBaseUrls = new Set<string>();
+  for (const { entity } of entities) {
+    collectPropertyKeys(entity.properties, usedBaseUrls);
+  }
+  const propertyTypes = Object.values(definitions?.propertyTypes ?? {}).flatMap(
+    ({ $id, title, description }) => {
+      const baseUrl = extractBaseUrl($id);
+      return usedBaseUrls.has(baseUrl)
+        ? [
+            {
+              baseUrl,
+              propertyTypeId: $id,
+              title,
+              description,
+            },
+          ]
+        : [];
+    },
+  );
+  const typeTitles = new Map(
+    entities.flatMap(({ closedType }) =>
+      (closedType?.allOf ?? []).map(({ $id, title }) => [$id, title] as const),
+    ),
+  );
+  const usedTypeIds = new Set(
+    entities.flatMap(({ entity }) => entity.metadata.entityTypeIds),
+  );
+
   return {
-    entities: entities.map((entity) => {
+    propertyTypes,
+    entityTypes: [...usedTypeIds].flatMap((entityTypeId) => {
+      const title = typeTitles.get(entityTypeId);
+      return title === undefined ? [] : [{ entityTypeId, title }];
+    }),
+    entities: entities.map(({ entity, closedType }) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
       return {
@@ -214,6 +296,9 @@ export const hashEntityReadResult = (
         editionId,
         webId: extractWebIdFromEntityId(entityId),
         entityTypeIds: entity.metadata.entityTypeIds,
+        ...(closedType === undefined
+          ? {}
+          : { label: generateEntityLabel(closedType, entity) }),
         properties: entity.properties,
         draft: extractDraftIdFromEntityId(entityId) !== undefined,
         matched: matched.has(editionId),
@@ -446,10 +531,10 @@ export const createHashWebReadTool = (
 });
 
 /**
- * The host tools HASH gives Brunch, bound to the page's Apollo client and
+ * The HASH graph reads the page gives Brunch, bound to the page's Apollo client and
  * signed-in user. The list keeps its identity while the user is refetched.
  */
-export const useBrunchHashHostTools =
+export const useBrunchHashGraphReadTools =
   (): readonly PetrinautAiAutomaticTool[] => {
     const apolloClient = useApolloClient();
     const { authenticatedUser } = useAuthInfo();

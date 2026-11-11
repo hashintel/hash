@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
-import { projectBrunchContext } from "./context-projection";
+import {
+  createBrunchContextProjection,
+  projectBrunchContext,
+} from "./context-projection";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 
@@ -74,6 +80,56 @@ test("projects in-band canonical output without exposing host sidecars or alteri
   assert(JSON.stringify(input).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
+});
+
+const hashRead = (output: unknown): ContextProjectionEntry => ({
+  id: "hash-read",
+  message: {
+    role: "toolResult",
+    toolCallId: "h1",
+    toolName: brunchTools.queryHashEntities,
+    isError: false,
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          brunchBrowserResult: true,
+          output,
+          metadata: sidecar,
+        }),
+      },
+    ],
+  },
+});
+
+const contentOf = (entry: ContextProjectionEntry | undefined) =>
+  entry?.message.role === "toolResult" && entry.message.content;
+
+const projectHashReads = createBrunchContextProjection({
+  textResultToolNames: new Set([brunchTools.queryHashEntities]),
+});
+
+test("a read rendered as text reaches the model as that text where the agent names it", () => {
+  const rendered = 'entities: 1\n- Supplier "Acme"\n  entityId: web~acme';
+  const read = hashRead(rendered);
+  const [projected] = projectHashReads([read]);
+  expect(contentOf(projected)).toEqual([{ type: "text", text: rendered }]);
+  // A projection that names no text-result tools, as the Petrinaut agent's
+  // does, still shows every output as JSON.
+  expect(contentOf(projectBrunchContext([read])[0])).toEqual([
+    { type: "text", text: JSON.stringify(rendered) },
+  ]);
+});
+
+test("a failed read of a text-result tool reaches the model as its error and note in JSON", () => {
+  const failure = {
+    error: "Response not successful: GraphQL error",
+    note: "The read failed; the document is unchanged.",
+  };
+  const [projected] = projectHashReads([hashRead(failure)]);
+  expect(contentOf(projected)).toEqual([
+    { type: "text", text: JSON.stringify(failure) },
+  ]);
 });
 
 test("user messages and server tool results pass through unchanged", () => {
