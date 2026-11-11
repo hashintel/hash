@@ -47,6 +47,9 @@ export const ADAPTIVE_SIMULATOR_ID = "js-adaptive";
  */
 const REFERENCE_INTERVAL = 0.1;
 
+/** The error per step the adaptive simulator's `tolerance` defaults to. */
+export const DEFAULT_SOLVER_TOLERANCE = 1e-6;
+
 export type AdaptiveStepperParameters = {
   /**
    * The local error allowed per integration step, as a fraction of an
