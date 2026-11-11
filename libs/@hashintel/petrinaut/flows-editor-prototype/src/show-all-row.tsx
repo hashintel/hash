@@ -28,7 +28,8 @@ export const ShowAllRow = ({
   onClick,
   className,
 }: {
-  total: number;
+  /** A number, or one already formatted ("1,284"). */
+  total: number | string;
   /** What the list holds, plural ("runs", "certificates"); left out, the row reads "Show all N". */
   noun?: string;
   onClick: () => void;

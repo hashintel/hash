@@ -16,6 +16,7 @@ import { Fragment, useState } from "react";
 
 import {
   Button,
+  Drawer,
   Icon,
   type IconName,
   SegmentedControl,
@@ -25,6 +26,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { navigate, parseRoute } from "./router";
+import { ShowAllRow } from "./show-all-row";
 import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
@@ -757,24 +759,54 @@ const scaleGroups: {
   },
 ];
 
-const showMoreStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  minHeight: "[36px]",
-  paddingLeft: "7",
-  textStyle: "sm",
-  color: "neutral.fg.subtle",
-});
+/** One trigger in the panel at scale, and in the sheet "Show all N" opens. */
+const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
+  <div
+    className={cx(rowStyle, css({ cursor: "default" }))}
+    data-trigger-row={row.id}
+  >
+    <span
+      className={css({
+        display: "inline-flex",
+        color: "neutral.fg.muted",
+      })}
+    >
+      <Icon name={iconFor[row.kind]} size="sm" />
+    </span>
+    <span
+      className={css({
+        flex: "1",
+        minWidth: "[0]",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      })}
+    >
+      {row.label}
+      {row.web ? (
+        <span className={css({ color: "neutral.fg.subtle" })}>
+          {" "}
+          · {row.web}
+        </span>
+      ) : null}
+    </span>
+    <span className={stateStyle}>{row.on ? "On" : "Paused"}</span>
+  </div>
+);
+
+/** What "Show all N" calls each group's triggers. */
+const showAllNoun: Record<FlowTrigger["kind"], string> = {
+  schedule: "schedules",
+  responsive: "triggers",
+};
 
 const TriggersPanelAtScale = () => {
   const [manual, setManual] = useState(false);
   const [filter, setFilter] = useState<ScaleFilter>("all");
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
-  const [shownPerGroup, setShownPerGroup] = useState<Record<string, number>>(
-    {},
-  );
+  /** The group "Show all N" opened in the 640 px sheet (11 Nov ~22:30 overflow pick). */
+  const [sheetKind, setSheetKind] = useState<FlowTrigger["kind"] | null>(null);
   const term = query.trim().toLowerCase();
   const keeps = (row: ScaleRow) =>
     (filter === "all" || (filter === "on") === row.on) &&
@@ -797,6 +829,7 @@ const TriggersPanelAtScale = () => {
     (sum, group) => sum + group.rows.length,
     0,
   );
+  const sheetGroup = shownGroups.find((group) => group.kind === sheetKind);
   const total =
     scaleTotals.schedule.on +
     scaleTotals.schedule.paused +
@@ -956,7 +989,7 @@ const TriggersPanelAtScale = () => {
           if (group.rows.length === 0) {
             return null;
           }
-          const limit = term === "" ? (shownPerGroup[group.kind] ?? 4) : 50;
+          const limit = term === "" ? 4 : 50;
           const rows = group.rows.slice(0, limit);
           return (
             <div
@@ -967,62 +1000,14 @@ const TriggersPanelAtScale = () => {
                 {group.label} · {formatCount(group.total)}
               </span>
               {rows.map((row) => (
-                <div
-                  key={row.id}
-                  className={cx(rowStyle, css({ cursor: "default" }))}
-                  data-trigger-row={row.id}
-                >
-                  <span
-                    className={css({
-                      display: "inline-flex",
-                      color: "neutral.fg.muted",
-                    })}
-                  >
-                    <Icon name={iconFor[row.kind]} size="sm" />
-                  </span>
-                  <span
-                    className={css({
-                      flex: "1",
-                      minWidth: "[0]",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    })}
-                  >
-                    {row.label}
-                    {row.web ? (
-                      <span className={css({ color: "neutral.fg.subtle" })}>
-                        {" "}
-                        · {row.web}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className={stateStyle}>{row.on ? "On" : "Paused"}</span>
-                </div>
+                <ScaleTriggerRow key={row.id} row={row} />
               ))}
               {term === "" && group.total > rows.length ? (
-                <span className={showMoreStyle}>
-                  Showing {formatCount(rows.length)} of{" "}
-                  {formatCount(group.total)}
-                  {group.rows.length > rows.length ? (
-                    <button
-                      type="button"
-                      className={css({
-                        color: "neutral.fg.muted",
-                        textDecoration: "underline",
-                        cursor: "pointer",
-                      })}
-                      onClick={() =>
-                        setShownPerGroup((current) => ({
-                          ...current,
-                          [group.kind]: limit + 10,
-                        }))
-                      }
-                    >
-                      Show more
-                    </button>
-                  ) : null}
-                </span>
+                <ShowAllRow
+                  total={formatCount(group.total)}
+                  noun={showAllNoun[group.kind]}
+                  onClick={() => setSheetKind(group.kind)}
+                />
               ) : null}
             </div>
           );
@@ -1050,6 +1035,49 @@ const TriggersPanelAtScale = () => {
           <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
         </span>
       </div>
+      {sheetGroup ? (
+        <Drawer
+          size="md"
+          position="right"
+          variant="plain"
+          showBackdrop={false}
+          shouldCloseOn="none"
+          onClose={() => setSheetKind(null)}
+          aria-label={`${sheetGroup.label} · ${formatCount(sheetGroup.total)}`}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              setSheetKind(null);
+            }
+          }}
+        >
+          <Drawer.Header
+            title={`${sheetGroup.label} · ${formatCount(sheetGroup.total)}`}
+            actions={
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                iconName="collapse"
+                aria-label="Back to the panel"
+                tooltip="Back to the panel · Esc"
+                onClick={() => setSheetKind(null)}
+              />
+            }
+          />
+          <Drawer.Body>
+            <div
+              className={css({ display: "flex", flexDirection: "column" })}
+              data-triggers-sheet={sheetGroup.kind}
+            >
+              {sheetGroup.rows.map((row) => (
+                <ScaleTriggerRow key={row.id} row={row} />
+              ))}
+            </div>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
     </>
   );
 };
