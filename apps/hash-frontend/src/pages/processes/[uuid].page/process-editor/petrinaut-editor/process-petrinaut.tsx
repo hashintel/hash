@@ -70,8 +70,9 @@ const noNetSwitchingError = () => {
 /**
  * Brunch's origin and the signed-in account's actor key, from Brunch, or
  * `null` while it loads, when nobody with a completed signup is signed in,
- * when this deployment has no Brunch, or when the request failed. Requested
- * again whenever the signed-in account changes.
+ * when this deployment has no Brunch, when Brunch declines the session, or
+ * when the request failed; only a failure is reported. Requested again
+ * whenever the signed-in account changes.
  */
 const useBrunchConnection = (): {
   readonly origin: string;
@@ -97,9 +98,15 @@ const useBrunchConnection = (): {
     void (async () => {
       try {
         const response = await fetch(brunchIdentityEndpoint(origin), {
+          cache: "no-store",
           credentials: "include",
           signal: controller.signal,
         });
+        // Brunch declining this session is an answer, not a failure: the
+        // page just doesn't offer the assistant.
+        if (response.status === 401) {
+          return;
+        }
         if (!response.ok) {
           throw new Error(
             `The Brunch identity request failed with status ${response.status}`,

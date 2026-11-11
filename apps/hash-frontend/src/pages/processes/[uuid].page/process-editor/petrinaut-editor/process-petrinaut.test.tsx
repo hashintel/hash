@@ -225,8 +225,8 @@ test("asks Brunch itself for the actor key, with the user's session, and talks t
   await settleIdentity();
 
   expect(fetchMock).toHaveBeenCalledWith(
-    "https://brunch.test/hash/identity",
-    expect.objectContaining({ credentials: "include" }),
+    "https://brunch.test/agents/hash/identity",
+    expect.objectContaining({ cache: "no-store", credentials: "include" }),
   );
   await waitFor(() =>
     expect(observed.brunchInputs.at(-1)).toMatchObject({
@@ -254,7 +254,18 @@ test.each([
   expect(captureException).not.toHaveBeenCalled();
 });
 
-test.each([401, 503])(
+test("Brunch declining the session offers no Brunch and reports nothing", async () => {
+  identityResponse = () => Promise.resolve(new Response(null, { status: 401 }));
+  renderEditor({ savedEntityId, readonly: false });
+
+  await settleIdentity();
+
+  expect(captureException).not.toHaveBeenCalled();
+  expect(observed.brunchInputs).toHaveLength(0);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
+});
+
+test.each([403, 503])(
   "a %s from Brunch's identity route is reported, and offers no Brunch",
   async (status) => {
     identityResponse = () => Promise.resolve(new Response(null, { status }));

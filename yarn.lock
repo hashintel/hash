@@ -409,7 +409,6 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/flue-aisdk-transport": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
-    "@local/hash-isomorphic-utils": "workspace:*"
     "@local/pi-faux-providers": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"

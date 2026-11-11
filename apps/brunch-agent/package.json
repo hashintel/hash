@@ -47,7 +47,6 @@
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "@local/hash-backend-utils": "workspace:*",
-    "@local/hash-isomorphic-utils": "workspace:*",
     "@opentelemetry/api": "1.9.1",
     "hono": "4.13.13",
     "pg": "8.23.0",

@@ -96,9 +96,10 @@ export const brunchRoutes = {
   hashAgent: "hash",
   /**
    * Answers `{ actorKey }` for the HASH session the request carries, which
-   * HASH's process page needs to address the user's conversations.
+   * HASH's process page needs to address the user's conversations. Under the
+   * HASH agent's mount, so no further path needs opening to reach Brunch.
    */
-  hashIdentity: "/hash/identity",
+  hashIdentity: "/agents/hash/identity",
   /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
   browserCalls: "browser-calls",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */

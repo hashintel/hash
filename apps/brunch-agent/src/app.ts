@@ -9,6 +9,7 @@ import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 
 import {
   browserExecutedToolNames,
@@ -73,8 +74,13 @@ instrument({
   interceptor: (_operation, _context, next) => next(),
   dispose() {},
 });
+const production = process.env.NODE_ENV === "production";
 const mountedAgents = agents.filter(
-  ({ devOnly }) => devOnly !== true || process.env.NODE_ENV !== "production",
+  ({ devOnly, productionSwitch }) =>
+    !production ||
+    (devOnly !== true &&
+      (productionSwitch === undefined ||
+        process.env[productionSwitch] === "true")),
 );
 const mountedAgentNames = new Set(
   mountedAgents.map(({ agent }) => agent.agentName),
@@ -300,11 +306,25 @@ const resolveSessionActor = hashSessionActor({
 });
 const hashTurnWindows: TurnWindows = new Map();
 // The signed-in user's actor key, which the page needs to address their
-// conversations and which tells it Brunch will serve them.
-app.use(brunchRoutes.hashIdentity, hashCors, resolveSessionActor);
-app.get(brunchRoutes.hashIdentity, (context) =>
-  context.json({ actorKey: context.get("hashSessionActorKey") }),
-);
+// conversations and which tells it Brunch will serve them. It sits under the
+// HASH agent's mount, so the ingress rule for the agents covers it, and is
+// registered before that mount: its ownership guard would read `identity` as
+// a conversation instance.
+if (mountedAgents.some(({ route }) => route === brunchRoutes.hashAgent)) {
+  app.use(brunchRoutes.hashIdentity, hashCors, resolveSessionActor);
+  app.get(brunchRoutes.hashIdentity, (context) => {
+    // The answer names the session's user, so no cache may keep it.
+    context.header("Cache-Control", "no-store");
+    return context.json({ actorKey: context.get("hashSessionActorKey") });
+  });
+}
+// A request body is held whole before any route reads it: the ownership
+// guard and the browser-call routes parse it before the turn limit counts it.
+// The hash-api hop the HASH route replaced applied the same limit.
+const agentBodyLimit = bodyLimit({
+  maxSize: 16 * 1024 * 1024,
+  onError: (context) => context.json({ error: "request too large" }, 413),
+});
 for (const { route, aliases = [], agent } of mountedAgents) {
   const broadcaster = liveToolBroadcasters.get(agent.agentName);
   if (broadcaster === undefined)
@@ -313,6 +333,7 @@ for (const { route, aliases = [], agent } of mountedAgents) {
   for (const segment of [route, ...aliases]) {
     const mount = `${brunchRoutes.agents}/${segment}`;
     app.use(`${mount}/*`, sessionActor ? hashCors : agentCors);
+    app.use(`${mount}/*`, agentBodyLimit);
     if (sessionActor) app.use(`${mount}/*`, resolveSessionActor);
     app.use(
       `${mount}/*`,

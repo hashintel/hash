@@ -165,10 +165,11 @@ export const parseCorsAllowedOrigins = (
  * CORS for one agent's routes. With `sessionCredentials`, for the HASH route
  * alone: the allowed origins may send the user's HASH session cookie and read
  * the answers to it, so that list holds HASH's exact origins and nothing else.
- * Every request under the agent's mount must carry the conversation header,
- * so a page on another origin, even one the cookie's domain covers, is
- * stopped at the preflight before Brunch acts on it. The identity route needs
- * no header but changes nothing, and CORS keeps its answer from such a page.
+ * Every request under the agent's mount but the identity route must carry
+ * the conversation header, so a page on another origin, even one the
+ * cookie's domain covers, is stopped at the preflight before Brunch acts on
+ * it. The identity route needs no header but changes nothing, and CORS keeps
+ * its answer from such a page.
  */
 export const createAgentCors = (
   allowedOrigins: readonly string[],

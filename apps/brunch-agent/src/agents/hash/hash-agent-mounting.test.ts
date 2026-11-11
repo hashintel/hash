@@ -159,44 +159,15 @@ const ownerSession = "owner-session";
 const sessionCookie = (value = ownerSession) => ({
   cookie: `${hashSessionCookie}=${value}`,
 });
-const shortnameUrl = "https://hash.ai/@h/types/property-type/shortname/";
-const displayNameUrl =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/";
 /**
- * hash-api's answer to `me` for a user in `webId`, whose entity carries
- * `properties` (by default a completed signup's shortname and display name).
+ * hash-api's answer to `sessionAccount` for a user in `webId`, by default one
+ * who has completed signup.
  */
-const me = (
-  webId: string,
-  properties: object = { [shortnameUrl]: "alice", [displayNameUrl]: "Alice" },
-) => {
-  const entityId = `${webId}~user-entity`;
-  return {
-    status: 200,
-    body: {
-      data: {
-        me: {
-          subgraph: {
-            roots: [{ baseId: entityId, revisionId: "revision" }],
-            vertices: {
-              [entityId]: {
-                revision: {
-                  kind: "entity",
-                  inner: {
-                    metadata: { recordId: { entityId, editionId: "edition" } },
-                    properties,
-                  },
-                },
-              },
-            },
-            edges: {},
-          },
-        },
-      },
-    },
-  };
-};
-/** hash-api's answer to `me` without a session it signs in. */
+const me = (webId: string, accountSignupComplete = true) => ({
+  status: 200,
+  body: { data: { sessionAccount: { webId, accountSignupComplete } } },
+});
+/** hash-api's answer to `sessionAccount` without a session it signs in. */
 const signedOut = {
   status: 200,
   body: {
@@ -260,14 +231,10 @@ beforeEach(() => {
   hashApi.answers.clear();
   hashApi.answers.set(sessionCookie().cookie, me(ownerWebId));
   hashApi.answers.set(sessionCookie("other-session").cookie, me("account-2"));
-  // Signed in, mid-signup: no shortname yet, or a blank display name.
+  // Signed in, but signup isn't complete by hash-api's rule.
   hashApi.answers.set(
-    sessionCookie("no-shortname").cookie,
-    me(ownerWebId, { [displayNameUrl]: "Alice" }),
-  );
-  hashApi.answers.set(
-    sessionCookie("blank-display-name").cookie,
-    me(ownerWebId, { [shortnameUrl]: "alice", [displayNameUrl]: "" }),
+    sessionCookie("mid-signup").cookie,
+    me(ownerWebId, false),
   );
   mounted.initialData = undefined;
   mounted.body = "Four agents";
@@ -650,10 +617,15 @@ test("the Petrinaut routes admit the actor header alone or its former name alone
   ).toEqual(expect.arrayContaining(["x-brunch-actor", "x-brunch-principal"]));
 });
 
-test.each(["test", "production"])(
-  "under NODE_ENV=%s the app serves the HASH agent under /agents/hash with the user's session and the Petrinaut agent under its routes",
-  async (nodeEnv) => {
+test.each([
+  ["test", undefined],
+  ["production", "true"],
+])(
+  "under NODE_ENV=%s (HASH agent switch %s) the app serves the HASH agent under /agents/hash with the user's session and the Petrinaut agent under its routes",
+  async (nodeEnv, hashAgentEnabled) => {
     vi.stubEnv("NODE_ENV", nodeEnv);
+    if (hashAgentEnabled !== undefined)
+      vi.stubEnv(brunchEnv.hashAgentEnabled, hashAgentEnabled);
     const { PetrinautAgent } = await import("../petrinaut/agent.ts");
     expect(await served("hash")).toEqual({
       status: 200,
@@ -849,8 +821,7 @@ test("a browser call issued by one agent is unknown on another agent's routes an
 const wrongCredentials = {
   none: {},
   "a session hash-api doesn't sign in": sessionCookie("unknown"),
-  "an account with no shortname yet": sessionCookie("no-shortname"),
-  "an account with a blank display name": sessionCookie("blank-display-name"),
+  "an account mid-signup": sessionCookie("mid-signup"),
   "an empty session cookie": sessionCookie(""),
   "the session's value under another cookie": {
     cookie: `other=${ownerSession}`,
@@ -960,7 +931,7 @@ test("the HASH route refuses every request without a signed-in session of a comp
 });
 
 test("an account that completes signup is served on its next request", async () => {
-  const midSignup = sessionCookie("no-shortname");
+  const midSignup = sessionCookie("mid-signup");
   expect(
     (
       await served(brunchRoutes.hashAgent, {
@@ -1094,7 +1065,7 @@ test("hash-api's answers are reused for 30 seconds per session, under a digest o
   expect(hashApi.calls).toMatchObject([
     { path: "POST /graphql", cookie: sessionCookie().cookie },
   ]);
-  expect(hashApi.calls[0]?.query).toMatch(/\bme \{/u);
+  expect(hashApi.calls[0]?.query).toMatch(/\bsessionAccount \{/u);
   // Another session has its own entry.
   await served(brunchRoutes.hashAgent, {
     ...agentOwnershipHeaders(identity),
@@ -1114,7 +1085,7 @@ test("hash-api's answers are reused for 30 seconds per session, under a digest o
   // A refusal is never reused: a signed-out or mid-signup session is asked
   // about again.
   hashApi.calls.length = 0;
-  for (const session of ["unknown", "no-shortname"]) {
+  for (const session of ["unknown", "mid-signup"]) {
     await served(brunchRoutes.hashAgent, sessionCookie(session));
     await served(brunchRoutes.hashAgent, sessionCookie(session));
   }
@@ -1142,7 +1113,7 @@ test("no session reaches the logs or an answer", async () => {
     vi.spyOn(logger, level),
   );
   const bodies = await Promise.all(
-    ["hash-api-fault", "unknown", "no-shortname", ownerSession].map(
+    ["hash-api-fault", "unknown", "mid-signup", ownerSession].map(
       async (session) =>
         (
           await served(brunchRoutes.hashAgent, {
@@ -1299,12 +1270,17 @@ test("the identity route answers the session's actor key, to HASH's origins alon
       status: response.status,
       body: (await response.json()) as unknown,
       origin: response.headers.get("access-control-allow-origin"),
+      cacheControl: response.headers.get("cache-control"),
     };
   };
+  expect(brunchRoutes.hashIdentity).toBe(
+    `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/identity`,
+  );
   expect(await identityAnswer(sessionCookie())).toEqual({
     status: 200,
     body: { actorKey: identity.actorKey },
     origin: hashOrigin,
+    cacheControl: "no-store",
   });
   for (const [credential, headers] of Object.entries(wrongCredentials))
     expect((await identityAnswer(headers)).status, credential).toBe(401);
@@ -1318,6 +1294,54 @@ test("the identity route answers the session's actor key, to HASH's origins alon
     ).body,
   ).toEqual({ actorKey: "hash:account-2" });
 });
+
+test.each([undefined, "", "false", "1"])(
+  "a production server with the HASH agent switch %j serves neither the HASH agent nor its identity route, and still serves the Petrinaut agent",
+  async (hashAgentEnabled) => {
+    vi.stubEnv("NODE_ENV", "production");
+    if (hashAgentEnabled !== undefined)
+      vi.stubEnv(brunchEnv.hashAgentEnabled, hashAgentEnabled);
+    const { default: app } = await import("../../app.ts");
+    expect((await served(brunchRoutes.hashAgent)).status).toBe(404);
+    expect(
+      (
+        await app.fetch(
+          new Request(`http://brunch.test${brunchRoutes.hashIdentity}`, {
+            headers: sessionCookie(),
+          }),
+        )
+      ).status,
+    ).toBe(404);
+    expect((await served(brunchRoutes.petrinautAgent)).status).toBe(200);
+    expect(hashApi.calls).toEqual([]);
+  },
+);
+
+test.each([brunchRoutes.hashAgent, brunchRoutes.petrinautAgent])(
+  "the %s route refuses a body over 16 MB with 413 before reading it",
+  async (segment) => {
+    const { default: app } = await import("../../app.ts");
+    const request = (bytes: number) =>
+      app.fetch(
+        new Request(
+          `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
+          {
+            method: "POST",
+            headers: {
+              ...agentOwnershipHeaders(identity),
+              ...callerHeaders(segment),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ kind: "user", body: "x".repeat(bytes) }),
+          },
+        ),
+      );
+    const tooLarge = await request(16 * 1024 * 1024);
+    expect(tooLarge.status).toBe(413);
+    expect(await tooLarge.json()).toEqual({ error: "request too large" });
+    expect((await request(1024)).status).not.toBe(413);
+  },
+);
 
 test("each user may start 30 turns a minute; nothing else counts, and other users and their reads are unaffected", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });

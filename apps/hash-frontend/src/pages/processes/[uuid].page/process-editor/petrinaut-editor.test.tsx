@@ -296,7 +296,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(lastBrunchInput()?.hostSave).toBeDefined();
   expect(identityRequests).toEqual([
     {
-      url: "https://brunch.test/hash/identity",
+      url: "https://brunch.test/agents/hash/identity",
       credentials: "include",
     },
   ]);

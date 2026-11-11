@@ -31,6 +31,12 @@ export const brunchEnv = {
    * user's session cookie. Blank grants no cross-origin access to that route.
    */
   hashCorsAllowedOrigins: "BRUNCH_HASH_CORS_ALLOWED_ORIGINS",
+  /**
+   * `true` mounts the HASH agent's route and identity route on a production
+   * server; anything else leaves them off there. Development and tests mount
+   * them regardless.
+   */
+  hashAgentEnabled: "BRUNCH_HASH_AGENT_ENABLED",
   panelPort: "BRUNCH_PANEL_PORT",
   /** The dedicated Postgres fields; the SQLite store rejects every one of them. */
   postgres: {
