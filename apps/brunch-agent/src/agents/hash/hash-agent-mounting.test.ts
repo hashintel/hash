@@ -280,6 +280,9 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       "petrinaut_set_net_title",
       "petrinaut_layout_auto",
       "petrinaut_create_experiment",
+      // A fusion's members are added and removed one at a time.
+      "petrinaut_create_fusion_member",
+      "petrinaut_remove_fusion_member",
       ...[
         "place",
         "transition",
@@ -292,6 +295,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
         "metric",
         "subnet",
         "component",
+        "fusion",
       ].flatMap((kind) =>
         ["create", "update", "remove"].map(
           (verb) => `petrinaut_${verb}_${kind}`,
