@@ -29,6 +29,8 @@ let recorder: TraceRecorder | null = null;
 let stringPool: StringPool | null = null;
 let status: "ready" | "running" | "complete" | "error" | null = null;
 let isRunning = false;
+/** The compute loop in charge; an older one stops when it wakes. */
+let currentLoop = 0;
 /** The time the host last asked for; nothing is computed past it. */
 let demandedTime = 0;
 /** Pool entries already shipped; id 0 (`""`) is pre-seeded on both sides. */
@@ -89,8 +91,13 @@ const withStringsDelta = (event: TraceEvent): TraceEvent => {
   return newStrings ? { ...event, newStrings } : event;
 };
 
-const computeLoop = async (): Promise<void> => {
-  while (isRunning && recorder) {
+/**
+ * Advances the run while it is wanted. `loop` names this loop: a pause and a
+ * start while it waits would otherwise leave two loops on one recorder, so a
+ * loop that is no longer the current one stops.
+ */
+const computeLoop = async (loop: number): Promise<void> => {
+  while (isRunning && recorder && loop === currentLoop) {
     if (recorder.time >= demandedTime) {
       flushIfDue(false);
       await runtime.delay(10);
@@ -198,7 +205,21 @@ runtime.onMessage((message) => {
       }
       isRunning = true;
       status = "running";
-      void computeLoop();
+      currentLoop += 1;
+      computeLoop(currentLoop).catch((error: unknown) => {
+        // The stepper reports its own failures. What reaches here failed
+        // around it, such as the derivatives recorded with an event.
+        isRunning = false;
+        status = "error";
+        runtime.postMessage({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "The event simulation failed",
+          itemId: null,
+        });
+      });
       break;
     }
     case "pause": {

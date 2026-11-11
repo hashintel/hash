@@ -22,10 +22,10 @@ export interface TraceRecorder {
   /** Simulation time the run has reached. */
   readonly time: number;
   /**
-   * Advances the stepper once and encodes the state it stopped at, when the
-   * stepper wants it kept. `stopAt` is passed through to the stepper.
+   * Advances the stepper once, to wherever it stops of its own accord, and
+   * encodes the state it stopped at.
    */
-  next(stopAt?: number): TraceRecording;
+  next(): TraceRecording;
 }
 
 /**
@@ -69,8 +69,8 @@ export function createTraceRecorder(stepper: RunStepper): TraceRecorder {
     get time() {
       return stepper.time;
     },
-    next(stopAt) {
-      const advance = stepper.advance(stopAt);
+    next() {
+      const advance = stepper.advance();
       return {
         event:
           advance.kind === "stopped"
