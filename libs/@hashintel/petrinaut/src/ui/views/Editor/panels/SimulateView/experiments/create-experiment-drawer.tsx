@@ -73,7 +73,7 @@ import { ConstraintsSection } from "./create-experiment-drawer/constraints-secti
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
   resolveExperimentSimulator,
-  samplePeriodError,
+  experimentSimulatorError,
 } from "./create-experiment-drawer/experiment-simulator-draft";
 import { ExperimentSimulatorFields } from "./create-experiment-drawer/experiment-simulator-fields";
 import {
@@ -1084,7 +1084,7 @@ export const CreateExperimentDrawer = ({
 
   const formError =
     metricFormError ??
-    samplePeriodError(experimentSimulator) ??
+    experimentSimulatorError(experimentSimulator) ??
     objectiveError ??
     constraintLspError ??
     (sweepSummary?.error ? sweepSummary.text : null);

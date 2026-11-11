@@ -9,6 +9,7 @@ import {
 } from "../../../../../../../react/simulators/context";
 import {
   SimulatorParameterInput,
+  SimulatorParameterLabel,
   visibleSimulatorParameters,
 } from "../../../../../../components/simulator-parameter-input";
 import {
@@ -105,10 +106,7 @@ export const ExperimentSimulatorFields: React.FC<{
                     htmlFor={id}
                     title={spec.description}
                   >
-                    {spec.label}
-                    {spec.type === "number" && spec.unit ? (
-                      <span className={unitStyle}> ({spec.unit})</span>
-                    ) : null}
+                    <SimulatorParameterLabel spec={spec} />
                   </label>
                   <SimulatorParameterInput
                     id={id}

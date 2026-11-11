@@ -11,7 +11,7 @@ import {
 import {
   EMPTY_EXPERIMENT_SIMULATOR,
   resolveExperimentSimulator,
-  samplePeriodError,
+  experimentSimulatorError,
   withSimulatorParameter,
   type SimulatorRefusals,
 } from "./experiment-simulator-draft";
@@ -127,7 +127,7 @@ describe("resolveExperimentSimulator", () => {
       none,
     );
     expect(resolved.selection).toBeNull();
-    expect(samplePeriodError(resolved)).toBe(
+    expect(experimentSimulatorError(resolved)).toBe(
       "No simulator can run this experiment",
     );
   });
@@ -163,7 +163,7 @@ describe("withSimulatorParameter", () => {
   });
 });
 
-describe("samplePeriodError", () => {
+describe("experimentSimulatorError", () => {
   it("asks for a positive spacing from a simulator that has no time step", () => {
     const resolve = (samplePeriod: string) =>
       resolveExperimentSimulator(
@@ -175,11 +175,11 @@ describe("samplePeriodError", () => {
         simulators,
         none,
       );
-    expect(samplePeriodError(resolve("0.5"))).toBeNull();
-    expect(samplePeriodError(resolve("0"))).toBe(
+    expect(experimentSimulatorError(resolve("0.5"))).toBeNull();
+    expect(experimentSimulatorError(resolve("0"))).toBe(
       "Sample every must be a positive number",
     );
-    expect(samplePeriodError(resolve(""))).toBe(
+    expect(experimentSimulatorError(resolve(""))).toBe(
       "Sample every must be a positive number",
     );
   });

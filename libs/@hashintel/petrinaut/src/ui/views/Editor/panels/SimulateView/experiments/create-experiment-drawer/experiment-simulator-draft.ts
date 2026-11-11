@@ -4,13 +4,13 @@
  */
 import {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
-  resolveSimulatorParameters,
   simulatorSamplePeriod,
   type SimulatorRegistration,
   type StoredSimulatorParameters,
 } from "@hashintel/petrinaut-core";
 
 import { findSimulator } from "../../../../../../../react/simulators/context";
+import { acceptsSimulatorParameter } from "../../../../../../components/simulator-parameter-input";
 
 import type {
   SimulatorSelection,
@@ -111,8 +111,8 @@ export const resolveExperimentSimulator = (
 };
 
 /**
- * The draft with one parameter of a simulator set. A value the simulator's
- * spec rejects is not stored, so the fields never hold what could not run.
+ * The draft with one parameter of a simulator set, or the draft as it was
+ * when the simulator's spec rejects the value.
  */
 export const withSimulatorParameter = (
   draft: ExperimentSimulatorDraft,
@@ -120,21 +120,22 @@ export const withSimulatorParameter = (
   current: StoredSimulatorParameters,
   key: string,
   value: number | boolean | string,
-): ExperimentSimulatorDraft => {
-  const next = { ...current, [key]: value };
-  return resolveSimulatorParameters(registration.parameters, next).ok
+): ExperimentSimulatorDraft =>
+  acceptsSimulatorParameter(registration.parameters, current, key, value)
     ? {
         ...draft,
         parametersBySimulator: {
           ...draft.parametersBySimulator,
-          [registration.id]: next,
+          [registration.id]: { ...current, [key]: value },
         },
       }
     : draft;
-};
 
-/** What is wrong with the draft's sample period, or null. */
-export const samplePeriodError = (
+/**
+ * What stops the experiment from running on the resolved simulator, or
+ * null: no simulator takes it, or its samples have no positive spacing.
+ */
+export const experimentSimulatorError = (
   resolved: ResolvedExperimentSimulator,
 ): string | null => {
   if (!resolved.registration) {

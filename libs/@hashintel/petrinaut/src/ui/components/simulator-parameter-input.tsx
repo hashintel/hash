@@ -1,10 +1,16 @@
 import { NumberInput, Select, Toggle } from "@hashintel/ds-components";
-
-import type {
-  SimulatorParameterSpec,
-  SimulatorParameterSpecs,
-  StoredSimulatorParameters,
+import { css } from "@hashintel/ds-helpers/css";
+import {
+  resolveSimulatorParameters,
+  type SimulatorParameterSpec,
+  type SimulatorParameterSpecs,
+  type StoredSimulatorParameters,
 } from "@hashintel/petrinaut-core";
+
+const unitStyle = css({
+  fontWeight: "normal",
+  color: "neutral.fg.subtle",
+});
 
 /**
  * The parameters of a spec a form shows for the values it holds: every one
@@ -26,6 +32,30 @@ export const visibleSimulatorParameters = (
       condition.in.includes(controlling)
     );
   });
+
+/**
+ * Whether a spec takes `value` for `key` beside the values it already holds.
+ * A form stores only what it takes, so its fields never hold what could not
+ * run.
+ */
+export const acceptsSimulatorParameter = (
+  specs: SimulatorParameterSpecs,
+  values: StoredSimulatorParameters,
+  key: string,
+  value: number | boolean | string,
+): boolean => resolveSimulatorParameters(specs, { ...values, [key]: value }).ok;
+
+/** A parameter's name as a field's label reads, a number's unit after it. */
+export const SimulatorParameterLabel: React.FC<{
+  spec: SimulatorParameterSpec;
+}> = ({ spec }) => (
+  <>
+    {spec.label}
+    {spec.type === "number" && spec.unit ? (
+      <span className={unitStyle}> ({spec.unit})</span>
+    ) : null}
+  </>
+);
 
 /**
  * The control a parameter spec asks for: a toggle, a select or a number
