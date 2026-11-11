@@ -1,4 +1,5 @@
 import type { CanvasNode, CanvasPoint } from "../../../../canvas-scene";
+import type { Position } from "@xyflow/react";
 
 export type OutlineNode = {
   position: CanvasPoint;
@@ -7,7 +8,31 @@ export type OutlineNode = {
   cornerRadius: number;
 };
 
+/** Where an arc meets an endpoint, and the direction it leaves in. */
+export type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
+
 export type OutlineArcPath = [path: string, labelX: number, labelY: number];
+
+// Keyed by React Flow's side names, so this module needs only its types.
+const sideNormals: Record<`${Position}`, CanvasPoint> = {
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+  top: { x: 0, y: -1 },
+  bottom: { x: 0, y: 1 },
+};
+
+/**
+ * A point an arc ends at rather than an outline: a subnet port's handle, which
+ * the arc leaves along the side it sits on, or the pointer, which has none.
+ */
+export const fixedEndpoint = (
+  x: number,
+  y: number,
+  side?: Position,
+): FixedEndpoint => ({
+  point: { x, y },
+  normal: side ? sideNormals[side] : { x: 0, y: 0 },
+});
 
 export const getOutlineNode = (node: CanvasNode): OutlineNode | null =>
   node.kind === "componentInstance"
@@ -23,7 +48,7 @@ export const getOutlineNode = (node: CanvasNode): OutlineNode | null =>
 export const getOutlineAttachment = (
   node: OutlineNode,
   direction: CanvasPoint,
-): { point: CanvasPoint; normal: CanvasPoint } => {
+): FixedEndpoint => {
   const length = Math.hypot(direction.x, direction.y);
   const unit =
     length > 0
@@ -78,31 +103,38 @@ export const getOutlineAttachment = (
   };
 };
 
+const attach = (
+  endpoint: OutlineNode | FixedEndpoint,
+  direction: CanvasPoint,
+): FixedEndpoint =>
+  "position" in endpoint ? getOutlineAttachment(endpoint, direction) : endpoint;
+
+const centerOf = (endpoint: OutlineNode | FixedEndpoint): CanvasPoint =>
+  "position" in endpoint ? endpoint.position : endpoint.point;
+
 export const getOutlineArcPath = (
-  source: OutlineNode,
-  target: OutlineNode | CanvasPoint,
+  source: OutlineNode | FixedEndpoint,
+  target: OutlineNode | FixedEndpoint,
   hasReverseArc = false,
 ): OutlineArcPath => {
-  const targetCenter = "position" in target ? target.position : target;
+  const sourceCenter = centerOf(source);
+  const targetCenter = centerOf(target);
   const direction = {
-    x: targetCenter.x - source.position.x,
-    y: targetCenter.y - source.position.y,
+    x: targetCenter.x - sourceCenter.x,
+    y: targetCenter.y - sourceCenter.y,
   };
   if (direction.x === 0 && direction.y === 0) {
     direction.x = 1;
   }
   const lane = hasReverseArc ? 0.3 : 0;
-  const sourceAttachment = getOutlineAttachment(source, {
+  const sourceAttachment = attach(source, {
     x: direction.x - direction.y * lane,
     y: direction.y + direction.x * lane,
   });
-  const targetAttachment =
-    "position" in target
-      ? getOutlineAttachment(target, {
-          x: -direction.x - direction.y * lane,
-          y: -direction.y + direction.x * lane,
-        })
-      : { point: target, normal: { x: 0, y: 0 } };
+  const targetAttachment = attach(target, {
+    x: -direction.x - direction.y * lane,
+    y: -direction.y + direction.x * lane,
+  });
   const start = sourceAttachment.point;
   const end = targetAttachment.point;
   const controlDistance = Math.min(

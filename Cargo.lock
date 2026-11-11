@@ -7057,6 +7057,7 @@ dependencies = [
  "hash-telemetry",
  "mimalloc",
  "simple-mermaid",
+ "tokio",
 ]
 
 [[package]]
@@ -7089,12 +7090,14 @@ dependencies = [
  "duckdb",
  "error-stack",
  "futures-util",
+ "hash-codec",
  "hash-crypto",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-integrations-definition",
  "hash-middleware",
  "hex",
+ "insta",
  "object_store",
  "opentelemetry",
  "opentelemetry_sdk",

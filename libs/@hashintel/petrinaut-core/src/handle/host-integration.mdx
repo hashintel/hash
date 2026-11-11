@@ -167,13 +167,12 @@ Required fields for a plain net:
 | Arc        | `placeId` (or an explicit `endpoint`)             |
 
 Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
-`type: "standard"`, place `colorId: null`, `dynamicsEnabled: false`, and
-`differentialEquationId: null`,
+`type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
 Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
-place `isPort`, `visualizerCode`, `showAsInitialState`) pass through only when
-present, so a normalized document compares equal to what the editor itself
+place `isPort`, `dynamics`, `visualizerCode`, `showAsInitialState`) pass
+through only when present, so a normalized document compares equal to what the editor itself
 produces (`isSDCPNEqual`).
 
 Arcs name their target place in one of two forms. `placeId` is the shorthand
@@ -235,7 +234,7 @@ Every event it emits carries `source: "local"`, and it has no method for
 injecting an external update. Two consequences:
 
 - To save, subscribe and persist `event.next` (the local-storage demo in
-  `apps/petrinaut-website` saves on every event; the HASH frontend embed
+  `apps/petrinaut-website` saves on every event; the HASH process editor
   deep-compares against the last saved snapshot to drive a dirty flag and an
   explicit save button).
 - To load different content, create a new handle and pass it to the component.
@@ -443,12 +442,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                                                                                   | Where                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
-| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
-| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-chrome-plugin.tsx`      |
+| Pattern                                                                                                                   | Where                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor.tsx`                                  |
+| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                                   |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                                           |
+| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor/process-petrinaut/top-bar-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an
 external store has shipped yet, which is part of why the contract still has

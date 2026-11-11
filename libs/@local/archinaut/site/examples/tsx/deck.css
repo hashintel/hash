@@ -1,0 +1,132 @@
+/* Styles every slide of this deck shares, loaded with the deck. */
+
+.deck .tsx-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  list-style: none;
+}
+
+.deck .tsx-cards li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--pnd-radius);
+  background: var(--chip-bg);
+  font-size: 1.25rem;
+}
+
+.deck .tsx-cards span {
+  color: var(--text-secondary);
+}
+
+.tsx-sort {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3rem;
+  width: 100%;
+  height: 20rem;
+}
+
+.tsx-sort__bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 8rem;
+  padding-bottom: 1rem;
+  border-radius: var(--pnd-radius-sm) var(--pnd-radius-sm) 0 0;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  font-family: var(--pnd-font-mono);
+  font-size: 2rem;
+  transition: background-color 200ms ease;
+}
+
+.tsx-sort__bar[data-compared="true"] {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-color: var(--accent);
+}
+
+.tsx-growth {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 50rem;
+  margin: 0 auto;
+}
+
+.tsx-growth svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.tsx-growth__axis {
+  stroke: var(--chip-border);
+  stroke-width: 2;
+}
+
+.tsx-growth__curve {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.tsx-growth__control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.tsx-growth__control input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.tsx-growth__control output {
+  min-width: 3ch;
+  font-family: var(--pnd-font-mono);
+  color: var(--text-primary);
+}
+
+.tsx-fill {
+  width: 100%;
+  height: 2.5rem;
+  overflow: hidden;
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  background: var(--chip-bg);
+}
+
+.tsx-fill__bar {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.tsx-fill[data-state="running"] .tsx-fill__bar {
+  animation: tsx-fill 2s ease-in-out forwards;
+}
+
+.tsx-fill[data-state="done"] .tsx-fill__bar {
+  width: 100%;
+}
+
+@keyframes tsx-fill {
+  to {
+    width: 100%;
+  }
+}
+
+/* Without motion the bar fills at once, and its end still moves the deck on. */
+@media (prefers-reduced-motion: reduce) {
+  .tsx-fill[data-state="running"] .tsx-fill__bar {
+    animation-duration: 1ms;
+  }
+}

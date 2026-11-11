@@ -86,7 +86,6 @@ afterEach(cleanup);
  */
 const renderAssistant = (messages: readonly PetrinautAiMessage[]) => {
   const assistant: PetrinautAiAssistant = {
-    presentation: "brunch",
     messages: [...messages],
     resolveToolPresentation: resolveBrunchToolPresentation,
     transport: {

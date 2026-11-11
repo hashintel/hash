@@ -159,7 +159,7 @@ describe("useAutosavedFlowEditor", () => {
     });
   });
 
-  it("reloads the flow when it changed elsewhere, retrying a failed reload, and saves the next edit against the reloaded edition", async () => {
+  it("reloads the flow when it changed elsewhere, retrying a failed reload, reports the dropped edits from flush, and saves the next edit against the reloaded edition", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValueOnce(new FlowChangedElsewhereError())
@@ -181,7 +181,11 @@ describe("useAutosavedFlowEditor", () => {
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
     expect(result.current.status).toBe("failed");
 
-    await act(() => result.current.flush());
+    let flushed: boolean | undefined;
+    await act(async () => {
+      flushed = await result.current.flush();
+    });
+    expect(flushed).toBe(false);
     expect(reloadFlow).toHaveBeenCalledTimes(2);
     expect(result.current.changedElsewhere).toBe(true);
     expect(result.current.status).toBe("saved");

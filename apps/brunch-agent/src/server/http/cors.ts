@@ -13,6 +13,7 @@ const AGENT_CORS_REQUEST_HEADERS = [
   brunchHeaders.conversation,
 ];
 // No upstream package exports this complete set, so keep the browser-response list local.
+// hash-api's Brunch proxy (`apps/hash-api/src/brunch-agent/setup-brunch-agent-proxy.ts`) mirrors it by hand.
 const AGENT_CORS_RESPONSE_HEADERS = [
   "flue-error-ref",
   "Stream-Next-Offset",

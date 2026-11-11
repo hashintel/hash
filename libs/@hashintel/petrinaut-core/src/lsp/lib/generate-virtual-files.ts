@@ -1,6 +1,7 @@
 import ts from "@typescript/typescript6";
 
 import { getArcEndpoint } from "../../arc-endpoints";
+import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -10,6 +11,8 @@ import {
 } from "../../extensions";
 import {
   AMBIENT_INPUT_NAMES,
+  buildLambdaContext,
+  dynamicsInputName,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -130,13 +133,15 @@ function dualFormCodeFile(options: {
   modulePrefixLines: string[];
   /** Import lines for the types the body wrapper's signature references. */
   bodyImportLines: string[];
+  /** Name of the ambient input object, when it is not the surface's usual one. */
+  inputName?: string;
   /** TypeScript type of the ambient input object. */
   inputType: string;
   /** Declared return type of the body. */
   returnType: string;
   parametersDefsPath: string;
 }): VirtualFile {
-  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  const inputName = options.inputName ?? AMBIENT_INPUT_NAMES[options.surface];
   return applyFormWrapper({
     content: options.content,
     formWrappers: {
@@ -161,6 +166,18 @@ function dualFormCodeFile(options: {
  * Scope separator for component instance place names
  */
 const SCOPE_SEPARATOR = "::";
+
+/**
+ * The part of `input.<Place>` every input place has, declared once in the
+ * lambda and kernel definition files.
+ */
+const INPUT_COUNT_TYPE_DECLARATION = [
+  `/** An input place of this transition, named so editor messages say which. */`,
+  `type InputCount<_Place extends string> = {`,
+  `  /** How many tokens the place holds when the transition is evaluated, including the ones this firing would consume. */`,
+  `  readonly count: number;`,
+  `};`,
+].join("\n");
 
 /**
  * Gets the display name for a place referenced by an arc, using scoped names for component ports.
@@ -305,7 +322,25 @@ export function generateVirtualFiles(
         })
       : null;
 
-    // Type definitions file
+    // Type definitions file. The equation sees `tokens` as a tuple of
+    // `arity` tokens and returns one record (arity 1) or a tuple of records;
+    // its module form declares one parameter per token.
+    const tokenType = sanitizedColorId ? `Color_${sanitizedColorId}` : "number";
+    const tuple = (element: string, count: number): string =>
+      `[${Array.from({ length: count }, () => element).join(", ")}]`;
+    // A net from a host can carry any number here; the checker reports an
+    // arity outside the supported range, and these types stay small.
+    const arity = isSupportedArity(de.arity) ? de.arity : 1;
+    const tokensType = tuple("Token", arity);
+    const derivativesType =
+      arity === 1 ? "Derivative" : tuple("Derivative", arity);
+    const dynamicsFunctionParameters = [
+      ...Array.from(
+        { length: arity },
+        (_, position) => `token${position}: Token`,
+      ),
+      "parameters: Parameters",
+    ].join(", ");
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
@@ -313,17 +348,19 @@ export function generateVirtualFiles(
           ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
           : "",
         ``,
-        sanitizedColorId
-          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `export type Tokens = Array<number>;`,
+        `export type Token = ${tokenType};`,
+        `export type Tokens = ${tokensType};`,
         color
           ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
           : `export type Derivative = Record<string, never>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
+        `export type Derivatives = ${derivativesType};`,
+        `export type Dynamics = (fn: (${dynamicsFunctionParameters}) => Derivatives) => void;`,
       ].join("\n"),
     });
 
-    // User code file, wrapped according to its authoring form
+    // User code file, wrapped according to its authoring form. A body over
+    // one token sees it as `token`; over more, the `tokens` tuple.
+    const inputName = dynamicsInputName(arity);
     files.set(
       deCodePath,
       dualFormCodeFile({
@@ -331,14 +368,15 @@ export function generateVirtualFiles(
         surface: "dynamics",
         modulePrefixLines: [
           `import type { Dynamics } from "${deDefsPath}";`,
-          `/** @deprecated Write the function body directly; tokens and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
+          `/** @deprecated Write the function body directly; ${inputName} and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
-          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+          `import type { Derivatives, Token, Tokens } from "${deDefsPath}";`,
         ],
-        inputType: "Tokens",
-        returnType: "Derivative[]",
+        inputName,
+        inputType: arity === 1 ? "Token" : "Tokens",
+        returnType: "Derivatives",
         parametersDefsPath,
       }),
     );
@@ -366,41 +404,38 @@ export function generateVirtualFiles(
       transitionId: transition.id,
     });
 
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs.
-    // resolveArcPlace handles both regular place arcs and componentPort arcs.
+    // Build the input type from the same context the HIR checks against:
+    // one property per input-arc place. A place that delivers tokens is a
+    // tuple of the arc's weight plus `.count`; any other (uncoloured, or
+    // joined by an inhibitor arc) exposes `.count` alone.
     const inputTypeImports: string[] = [];
     const inputTypeProperties: string[] = [];
+    const lambdaContext = buildLambdaContext(sdcpn, transition, extensions);
+    const inputBindings = new Map(
+      lambdaContext.inputPlaces.map((binding) => [binding.name, binding]),
+    );
 
-    for (const arc of transition.inputArcs) {
-      // Inhibitor arcs never deliver tokens to the transition, so they should
-      // not contribute to the input type. Read arcs do deliver tokens and are
-      // typed like standard input arcs.
-      if (arc.type === "inhibitor") {
+    for (const { name } of lambdaContext.inputCounts) {
+      const binding = inputBindings.get(name);
+      if (!binding) {
+        inputTypeProperties.push(`  "${name}": InputCount<"${name}">;`);
         continue;
       }
-      const place = resolveArcPlace(arc);
-      if (!extensions.colors || !place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
+      const sanitizedColorId = sanitizeColorId(binding.colorId);
       const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
+        colorId: binding.colorId,
       });
       // Only add import if not already present (multiple arcs may share the same color)
       const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
       if (!inputTypeImports.includes(importStatement)) {
         inputTypeImports.push(importStatement);
       }
-      const tokenTuple = Array.from({ length: arc.weight })
+      const tokenTuple = Array.from({ length: binding.tokenCount })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
-      const placeDisplayName = getPlaceDisplayNameForArc(arc, sdcpn);
-      inputTypeProperties.push(`  "${placeDisplayName}": [${tokenTuple}];`);
+      inputTypeProperties.push(
+        `  "${name}": [${tokenTuple}] & InputCount<"${name}">;`,
+      );
     }
 
     // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs.
@@ -470,6 +505,7 @@ export function generateVirtualFiles(
           `import type { Parameters } from "${parametersDefsPath}";`,
           ...allImports,
           ``,
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
         ].join("\n"),
@@ -502,6 +538,7 @@ export function generateVirtualFiles(
           ...allImports,
           ``,
           ...outputTokenTypeAliases.values(),
+          INPUT_COUNT_TYPE_DECLARATION,
           `export type Input = ${inputType};`,
           `export type Output = ${outputType};`,
           `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,

@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -18,15 +18,15 @@ const bound = {
 
 describe("Petrinaut catalogue", () => {
   test("admits no initial data or initial data carrying a document binding", () => {
-    expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
-    expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+    expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
+    expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
     const withIncarnation = {
       binding: { ...bound.binding, incarnationId: "document" },
     };
-    expect(v.parse(sdcpnInitialDataSchema, withIncarnation)).toEqual(
+    expect(v.parse(vSdcpnInitialData, withIncarnation)).toEqual(
       withIncarnation,
     );
-    expect(v.safeParse(sdcpnInitialDataSchema, {}).success).toBe(false);
+    expect(v.safeParse(vSdcpnInitialData, {}).success).toBe(false);
   });
   test("mounts the complete async canonical catalogue for a bound conversation", () => {
     expect(CANONICAL_PETRINAUT_TOOL_NAMES).toEqual(

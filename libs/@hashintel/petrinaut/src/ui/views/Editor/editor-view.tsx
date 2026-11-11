@@ -17,8 +17,11 @@ import {
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
+  planetsAndSatellites,
   probabilisticSatellitesSDCPN,
   productionMachines,
+  satellitesWithAttraction,
+  sirMassActionModel,
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
@@ -403,6 +406,14 @@ const EditorViewContent = ({
                 },
               },
               {
+                id: "load-example-sir-mass-action",
+                text: "SIR Mass-Action Model",
+                onClick: () => {
+                  createNewNet(sirMassActionModel);
+                  clearSelection();
+                },
+              },
+              {
                 id: "load-example-cafe-queue",
                 text: "Café Queue",
                 onClick: () => {
@@ -447,6 +458,22 @@ const EditorViewContent = ({
                 text: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-satellites-attraction",
+                text: "Satellites with Attraction",
+                onClick: () => {
+                  createNewNet(satellitesWithAttraction);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-planets-and-satellites",
+                text: "Planets and Satellites",
+                onClick: () => {
+                  createNewNet(planetsAndSatellites);
                   clearSelection();
                 },
               },

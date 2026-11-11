@@ -30,13 +30,13 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
   brunchTools,
-  draftPetrinautExperimentInputSchema,
+  zDraftPetrinautExperimentInput,
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { createBrunchContextProjection } from "../src/shared/context-projection.ts";
+import { browserResultEnvelope } from "../src/shared/conversation/browser-tool-executor.ts";
 import { createDraftExperimentTool } from "../src/shared/petrinaut-tools/draft-experiment.ts";
-import { browserResultEnvelope } from "../src/shared/petrinaut-tools/petrinaut-construction.ts";
 
 type Step = (context: TranscriptContext) => AssistantMessage;
 
@@ -95,13 +95,13 @@ let validations = 0;
 /** The draft schema, counting each authoritative validation. */
 const countedDraftSchema = {
   "~standard": {
-    ...draftPetrinautExperimentInputSchema["~standard"],
+    ...zDraftPetrinautExperimentInput["~standard"],
     validate: (value: unknown) => {
       validations += 1;
-      return draftPetrinautExperimentInputSchema["~standard"].validate(value);
+      return zDraftPetrinautExperimentInput["~standard"].validate(value);
     },
   },
-} as unknown as typeof draftPetrinautExperimentInputSchema;
+} as unknown as typeof zDraftPetrinautExperimentInput;
 
 let pendingRuns = 0;
 const neverSettles: ToolInputSchema = {
@@ -562,7 +562,7 @@ describe("native tool schemas through the Flue/Pi tool loop", () => {
       declarations.find((tool) => tool.name === name)?.parameters;
     expect(declared("referenced_input")).toEqual(referencedDeclaration);
     expect(declared(brunchTools.draftPetrinautExperiment)).toEqual(
-      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+      zDraftPetrinautExperimentInput["~standard"].jsonSchema.input({
         target: "draft-2020-12",
       }),
     );

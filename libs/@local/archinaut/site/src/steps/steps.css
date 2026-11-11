@@ -1,0 +1,315 @@
+/*
+ * The parts that steps bring in, on a slide and on a docs page alike, and
+ * the frame of a docs page's `Steps` block.
+ */
+
+.deck-reveal {
+  transition: opacity 250ms ease;
+}
+
+.deck-reveal[data-visible="false"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/*
+ * A part that morphs between steps. A view transition captures one box, so
+ * the part is never split across lines; its animation is in transitions.css.
+ */
+.deck-morph {
+  display: inline-block;
+  view-transition-class: deck-morph;
+}
+
+/* One side of a swap: no space while hidden, a short fade when it arrives. */
+.deck-only[data-visible="false"] {
+  display: none;
+}
+
+.deck-only[data-visible="true"] {
+  animation: deck-only-in 250ms ease;
+}
+
+@keyframes deck-only-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media print, (prefers-reduced-motion: reduce) {
+  .deck-only[data-visible="true"] {
+    animation: none;
+  }
+}
+
+/*
+ * A stepped part of a drawing, `DiagramPart`. Hidden, it keeps its place.
+ * Drawn, its lines run from start to end and the arrowhead lands last; the
+ * animation fills backwards only, so a dashed line gets its dashes back
+ * when it ends. A flow runs dashes along its lines; a focus fades every
+ * other part of the drawing, but not what the focused part sits in or
+ * holds; a token travels a line once and stops at its end.
+ */
+.deck-part {
+  transition: opacity 250ms ease;
+}
+
+.deck-part[data-visible="false"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.deck-part[data-drawing="true"]
+  :is(path, line, polyline, polygon, rect, circle, ellipse):not(.deck-token) {
+  animation: deck-draw 700ms ease-out backwards;
+}
+
+@keyframes deck-draw {
+  from {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: var(--deck-length);
+    marker-end: none;
+  }
+  99% {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: 0;
+    marker-end: none;
+  }
+  to {
+    stroke-dasharray: var(--deck-length) var(--deck-length);
+    stroke-dashoffset: 0;
+  }
+}
+
+.deck-part[data-flowing="true"] :is(path, line, polyline):not(.deck-token) {
+  stroke-dasharray: 7 5;
+  animation: deck-flow 600ms linear infinite;
+}
+
+@keyframes deck-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.pnd-diagram:has(.deck-part[data-focused="true"])
+  .deck-part:not(
+    [data-focused="true"],
+    [data-focused="true"] *,
+    :has([data-focused="true"])
+  ) {
+  opacity: 0.15;
+}
+
+/* A token waits hidden, travels for 900ms, and stays, or goes if handed on. */
+.deck-token {
+  fill: var(--text-primary, currentColor);
+  offset-rotate: 0deg;
+  offset-distance: 100%;
+  animation:
+    deck-token 900ms ease-in-out var(--deck-wait) backwards,
+    deck-token-wait 1ms var(--deck-wait) backwards;
+}
+
+.deck-token[data-handed-on="true"] {
+  animation:
+    deck-token 900ms ease-in-out var(--deck-wait) backwards,
+    deck-token-wait 1ms var(--deck-wait) backwards,
+    deck-token-gone 1ms calc(var(--deck-wait) + 900ms) forwards;
+}
+
+@keyframes deck-token {
+  from {
+    offset-distance: 0%;
+  }
+}
+
+@keyframes deck-token-wait {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes deck-token-gone {
+  to {
+    opacity: 0;
+  }
+}
+
+@media print, (prefers-reduced-motion: reduce) {
+  .deck-part,
+  .deck-part * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/*
+ * A docs page's `Steps` block, which plays itself, and its controls: a
+ * slider through the steps with a mark for each, and a replay button at
+ * its right. The controls stay faint until the pointer is over the block
+ * or one of them has focus, and fade in over 300ms. Replay fades out while
+ * the block plays.
+ */
+.steps {
+  position: relative;
+}
+
+.steps__controls {
+  --steps-thumb: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--sl-color-gray-3, currentColor);
+  opacity: 0.18;
+  transition: opacity 300ms ease;
+}
+
+.steps:hover .steps__controls,
+.steps__controls:focus-within {
+  opacity: 1;
+}
+
+/* The docs' spacing between blocks of prose would push the button down. */
+.steps__controls > :is(.steps__track, .steps__replay) {
+  margin: 0;
+}
+
+.steps__track {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  height: 1.5rem;
+}
+
+/* A mark per step, under the slider, centred where the thumb stops. */
+.steps__marks {
+  position: absolute;
+  inset: 0 calc(var(--steps-thumb) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.steps__marks span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sl-color-bg, Canvas);
+  box-shadow: inset 0 0 0 1px currentColor;
+  transition: background-color 200ms ease;
+}
+
+.steps__marks span[data-reached="true"] {
+  background: currentColor;
+}
+
+.steps__slider {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.steps__slider:focus-visible {
+  outline: none;
+}
+
+.steps__slider::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    currentColor var(--steps-progress),
+    color-mix(in srgb, currentColor 40%, transparent) var(--steps-progress)
+  );
+}
+
+.steps__slider::-moz-range-track {
+  height: 1px;
+  background: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.steps__slider::-moz-range-progress {
+  height: 1px;
+  background: currentColor;
+}
+
+.steps__slider::-webkit-slider-thumb {
+  width: var(--steps-thumb);
+  height: var(--steps-thumb);
+  margin-top: calc(var(--steps-thumb) / -2 + 0.5px);
+  border-radius: 50%;
+  background: currentColor;
+  appearance: none;
+  transition: transform 150ms ease;
+}
+
+.steps__slider::-moz-range-thumb {
+  width: var(--steps-thumb);
+  height: var(--steps-thumb);
+  border: none;
+  border-radius: 50%;
+  background: currentColor;
+  transition: transform 150ms ease;
+}
+
+.steps__slider:is(:hover, :focus-visible)::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+
+.steps__slider:is(:hover, :focus-visible)::-moz-range-thumb {
+  transform: scale(1.3);
+}
+
+.steps__slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.steps__slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.steps__replay {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    opacity 250ms ease,
+    visibility 0s,
+    background-color 150ms ease;
+}
+
+.steps__replay:hover,
+.steps__replay:focus-visible {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  outline: none;
+}
+
+.steps__replay[data-available="false"] {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 250ms ease,
+    visibility 0s 250ms;
+}
+
+@media print {
+  .steps__controls {
+    display: none;
+  }
+}

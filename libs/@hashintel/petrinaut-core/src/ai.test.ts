@@ -194,7 +194,6 @@ describe("Petrinaut AI core exports", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -246,7 +245,6 @@ describe("Petrinaut AI core exports", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     });
@@ -267,7 +265,6 @@ describe("Petrinaut AI core exports", () => {
         name: "Queue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       }),

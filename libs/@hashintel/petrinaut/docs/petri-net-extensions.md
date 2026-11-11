@@ -10,7 +10,7 @@ By default, places hold **untyped tokens** -- they only track a count. Tokens ar
 
 To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
 
-Each dimension has one of five value types, chosen with the dropdown next to the dimension's name:
+Each dimension has one of five value types, chosen in the **Type** column of the **Dimensions** table:
 
 - **Real** -- a continuous number. This is the only kind of dimension that differential equations (dynamics) can update.
 - **Integer** -- a whole number. Values are rounded when stored, and are exact up to ±2^53 (about 9 quadrillion); beyond that they lose precision.
@@ -25,7 +25,7 @@ Integer, Boolean, UUID, and String dimensions are **discrete**: their values onl
 1. Open the **Token Types** group in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
-4. Add dimensions, giving each a name and a value type.
+4. Add dimensions in the **Dimensions** table: click **Add a dimension…** on its last line, type the name (it becomes an identifier such as `position_x`), press Enter, then pick the type. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder. The `⋯` menu on a row's number removes it; a type keeps at least one dimension.
 
 <img width="1707" height="1058" alt="token-type" src="https://github.com/user-attachments/assets/eb88fbc9-828e-4f12-842a-968fa86b2038" />
 
@@ -57,14 +57,14 @@ Kernel, firing rate/predicate, differential equation, visualizer, metric, and sc
 | --------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
 | [Transition kernel](#transition-kernel)                   | `input`, `parameters`                     | tokens for each typed output place, keyed by place name |
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
-| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`                    | one derivative object per token                         |
+| [Differential equation](#differential-equations-dynamics) | `token` or `tokens`, `parameters`         | one derivative object per coupled token                 |
 | [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
 | Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
-`input` is the tokens from the transition's typed input places, keyed by place name; `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
+`input` holds one entry per input place of the transition, keyed by place name: the tokens it delivers and the place's token count (see [Reading input places](#reading-input-places)); `token` is the token a differential equation integrates, and an equation that couples several tokens sees them as the `tokens` tuple instead; `state` exposes every place's tokens and counts to a metric.
 
-Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)`, and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
+Legacy `TransitionKernel(...)`, `Lambda(...)`, `Dynamics(...)` (one parameter per coupled token, then `parameters`), and `Visualization(...)` exports still run. Deprecation hints explain how to migrate them to function bodies.
 
 ### Migrating older code
 
@@ -82,6 +82,8 @@ return input.Queue[0].priority > parameters.threshold;
 
 If the callback renamed or destructured its arguments, keep equivalent local bindings using the ambient variables before the body. For example, replace a kernel parameter `{ Queue: queue }` with `const { Queue: queue } = input;`.
 
+Equations written before equations composed are converted when the net loads, whether from a file, from the browser's saved nets, or from HASH. The place's single equation becomes the first entry of its **Dynamics** list, the equation couples one token, and a body that ended in `return tokens.map(...)` over every token becomes the callback's own body reading `token`, comments included. A body the conversion cannot keep exact, because the callback reads the index or the code reads `tokens` elsewhere, is kept as written, and a diagnostic asks for the one-token form.
+
 For visualizers, replace the root `<svg>` and its closing tag with `<Visualizer.Svg>`. Move `style.backgroundColor` to the `backgroundColor` property, retain an explicit `viewBox` when the drawing needs fixed coordinates, and remove root `width`, `height`, `style`, `borderRadius`, and `preserveAspectRatio`. Move inherited paint or text styles such as `fill` and `fontSize` to a child `<g>`. Nested legacy SVG viewports retain their sizing and clipping; do not nest `Visualizer.Svg`.
 
 Use function bodies and `Visualizer.Svg` for new code, including AI-generated code. Preserve the drawing’s behavior when migrating older code.
@@ -93,22 +95,45 @@ Differential equations define how token data evolves continuously over time. The
 **Setup:**
 
 1. Create a differential equation in the **Differential Equations** group (left sidebar).
-2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
-3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place. Click **View equation** below the dropdown to open its definition.
+2. Give it a name, associate it with a **type** (the equation applies to tokens of that type) and choose how many **Tokens** it couples (one, usually).
+3. Select a place of that type and add the equation from the **Add an equation…** line of its **Dynamics** section. The switch in the section header runs or pauses the place's dynamics. Click a listed equation to open its properties and code.
 
 **Function body:**
 
 ```ts
-return tokens.map(({ x, y }) => {
-  return { x: /* dx/dt */, y: /* dy/dt */ };
-});
+const { x, y } = token;
+return { x: /* dx/dt */, y: /* dy/dt */ };
 ```
 
-The code is a plain function body ending in `return`, with `tokens` (the current token values) and `parameters` (the global parameters) in scope. Older documents may wrap the same code as `export default Dynamics((tokens, parameters) => { ... })`; that form still works. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
+The code is a plain function body ending in `return`, with `token` (the token being integrated) and `parameters` (the global parameters) in scope. It runs once per token in the place and returns one derivative object with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the token, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run. The module style declares the token as a parameter: `export default Dynamics((token, parameters) => ({ ... }))`.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
-**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update satellite position and velocity each step.
+**Example:** in [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher), the orbital dynamics equation computes gravitational acceleration to update a satellite's position and velocity each step.
+
+### Equations over several tokens
+
+The **Tokens** select in the equation's properties sets how many tokens the equation couples. With **2 tokens** and above, the body sees `tokens`, a tuple of that many distinct tokens, in place of `token`. It runs once per combination, taken in the place's order, and returns an array with one derivative object per token in the same order. The simulator adds every combination's contribution to each token's derivative, so a pairwise force written once pulls on both tokens of every pair. A place holding fewer tokens than the equation couples gets no contribution from it. The select offers one to four tokens. A file can set up to eight; a larger number is refused on import, and an equation that carries one shows a diagnostic and does not run.
+
+```ts
+// A mutual attraction over every pair of tokens
+const k = parameters.attraction_constant;
+const [a, b] = tokens;
+const dx = b.x - a.x;
+return [{ vx: k * dx }, { vx: -k * dx }];
+```
+
+Switching the number of tokens replaces the starting template; code you have edited is kept for you to adapt. In the module style the equation declares one parameter per token: `export default Dynamics((a, b, parameters) => [ ... ])`.
+
+### Composing equations
+
+A place can run several equations at once: its **Dynamics** section lists them in a table, in order. **Add an equation…** on the last line offers the type's equations not listed yet. Drag a row by its number, or focus one of its cells and press **Alt** with the up or down arrow, to reorder; the `⋯` menu on a row's number opens or removes the equation, and **Delete** on the number removes it too. Each step, every listed equation's derivatives are summed before the integration step, so an orbit equation over one token and an attraction over every pair combine into one motion. Removing an equation from the net removes it from every place that composed it, and changing a place's type clears its list.
+
+The [GPU backend](experiments.md#compute-backend) integrates one equation over one token per place; a net that composes several, or couples several tokens, runs on the CPU, and the backend names the place.
+
+**Example:** [Satellites with Attraction](examples.md#satellites-with-attraction) composes the one-token orbit equation with a two-token mutual attraction.
+
+Files saved by earlier versions, where a place named one equation and every equation covered the whole place at once, open with that equation as the place's only term, coupling one token, and with their `tokens.map(...)` bodies converted as described under [Differential equations](#differential-equations-dynamics).
 
 ## Visualizer
 
@@ -154,6 +179,8 @@ Visualizers support the [expression subset](#supported-code-subset), token colle
 
 Types are inferred. The [code editor](code-editor.md) reports errors as you type. Imports, hooks, arbitrary function calls, scripts, HTML, event handlers, and external URLs are rejected. Visualizer errors do not stop simulation.
 
+Attribute and style values support CSS colors, gradients, shapes, math, transforms, and local references such as `url(#marker)`. Image-loading functions, escaped external URLs, and unsupported CSS functions are rejected, including values computed from tokens or parameters. Text children are unaffected.
+
 Older `Visualization(...)` wrappers and native `<svg>` remain supported with deprecation hints. See [Migrating older code](#migrating-older-code).
 
 See [Satellites](examples.md#probabilistic-satellite-launcher) for a centered scene and [Supply Chain](examples.md#supply-chain-with-disruption) for responsive charts.
@@ -174,14 +201,28 @@ return {
 
 The code is a plain function body ending in `return`, with `input` and `parameters` in scope. Older documents may wrap the same code as `export default TransitionKernel((input, parameters) => { ... })`; that form still works.
 
-`input` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, plain text for String dimensions (the editor requires the field; a value that is missing at runtime falls back to the empty string), and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID/String) dimensions get new values.
+`input` is keyed by **place name** (see [Reading input places](#reading-input-places)). For a typed place, the value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, plain text for String dimensions (the editor requires the field; a value that is missing at runtime falls back to the empty string), and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID/String) dimensions get new values.
 
-Two important asymmetries:
+**Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
 
-- **Uncoloured input places and inhibitor arcs are not included in `input`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
-- **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
+### Reading input places
 
-Tokens from **read arcs** are included in `input` like standard input arcs, but are not consumed when the transition fires. Tokens from inhibitor arcs are not included.
+Every place joined to the transition by an input arc -- standard, read or inhibitor, typed or not -- appears in `input` under its name. Output-only places do not appear.
+
+| Input place                        | `input.Place[0]`, `input.Place[1]`, ...                     | `input.Place.count`     |
+| ---------------------------------- | ----------------------------------------------------------- | ----------------------- |
+| Typed, on a standard or read arc   | the tokens the transition takes, one per unit of arc weight | the place's token count |
+| Uncoloured, or on an inhibitor arc | not available                                               | the place's token count |
+
+`input.Place.count` is how many tokens the place holds when the transition is evaluated, including the ones this firing would consume. It is the same whichever tokens the transition picks, so a rate can follow the marking. A mass-action rate, for example, multiplies a rate constant by the counts of the input places:
+
+```ts
+return parameters.beta * input.Susceptible.count * input.Infected.count;
+```
+
+Tokens from **read arcs** are delivered like standard input arcs, but are not consumed when the transition fires. Inhibitor arcs deliver no tokens, but their place's count is readable.
+
+`input.Place.length` still works but is deprecated: it is the arc weight, a constant. The editor strikes it through; write the number instead, or read `.count` for the place's token count.
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
@@ -246,7 +287,7 @@ The function returns a **number** representing the average firing rate per secon
 return parameters.rate;
 ```
 
-The same `input` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `input` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
+The same `input` rules from the [Transition kernel](#transition-kernel) section apply (see [Reading input places](#reading-input-places)). A rate can read the token counts of its input places, which is how to write mass-action and other population-dependent rates: `parameters.gamma * input.Infected.count` fires more often the more tokens Infected holds. The rate is the transition's total rate, not a rate per token. A transition with **no input arcs** therefore sees an empty `input` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
 
 ## Inhibitor arcs
 
@@ -289,8 +330,8 @@ Dynamics, firing-rate, transition-kernel, metric and visualizer code is compiled
 
 - `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
 - Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
-- Token access (`input.Place[0].attr`, `.length`) and `Distribution.*` constructors (with `.map` transforms).
+- Token access (`input.Place[0].attr`), input place counts (`input.Place.count`), and `Distribution.*` constructors (with `.map` transforms). `input.Place.length` is deprecated (see [Reading input places](#reading-input-places)).
 - Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`. On the GPU, `.reduce(...)` over one place's tokens compiles to a loop; `.concat(...)` keeps a metric on the CPU.
-- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number). Net parameters are available ambiently as `parameters.<variable name>` (scenario parameters are not).
+- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number). `state.places.<Name>.tokens.length` is deprecated: read `state.places.<Name>.count`. Net parameters are available ambiently as `parameters.<variable name>` (scenario parameters are not).
 
 Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. Visualizers add JSX elements from a fixed SVG set, template literals, `.filter`, `.slice` and `.toFixed`; see [Visualizer](#visualizer). This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.

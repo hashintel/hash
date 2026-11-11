@@ -112,9 +112,11 @@ fn classify_non_reducible_multi_bb() {
     assert_eq!(ReductionKind::of(&body), None);
 }
 
-/// Tests that a body with non-trivial operations (Binary, Unary, etc.) is not reducible.
+/// A single binary operation with trivial prelude is a [`TrivialClosure`].
+///
+/// [`TrivialClosure`]: ReductionKind::TrivialClosure
 #[test]
-fn classify_non_reducible_non_trivial_op() {
+fn classify_trivial_closure_binary() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
@@ -124,6 +126,56 @@ fn classify_non_reducible_non_trivial_op() {
 
         bb0() {
             x = load 1;
+            y = bin.== x 2;
+            return y;
+        }
+    });
+
+    assert_eq!(
+        ReductionKind::of(&body),
+        Some(ReductionKind::TrivialClosure)
+    );
+}
+
+/// A single unary operation with trivial prelude is a [`TrivialClosure`].
+///
+/// [`TrivialClosure`]: ReductionKind::TrivialClosure
+#[test]
+fn classify_trivial_closure_unary() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            x = load 1;
+            result = un.neg x;
+            return result;
+        }
+    });
+
+    assert_eq!(
+        ReductionKind::of(&body),
+        Some(ReductionKind::TrivialClosure)
+    );
+}
+
+/// A binary operation with a non-trivial prelude (contains a call) is not reducible.
+#[test]
+fn classify_non_reducible_non_trivial_prelude() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let def_id = DefId::new(5);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Bool;
+
+        bb0() {
+            x = apply def_id;
             y = bin.== x 2;
             return y;
         }
@@ -635,6 +687,101 @@ fn inline_indirect_closure() {
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
         "inline_indirect_closure",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests inlining a trivial closure containing a single binary operation.
+///
+/// body0 is a two-argument function that performs a single comparison and returns the result.
+/// body1 calls body0. After reduction, the binary operation is spliced directly into body1.
+#[test]
+fn inline_trivial_closure_binary() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body0 = body!(interner, env; fn@0/2 -> Bool {
+        decl lhs: Int, rhs: Int, result: Bool;
+
+        bb0() {
+            result = bin.== lhs rhs;
+            return result;
+        }
+    });
+
+    let body1 = body!(interner, env; fn@1/0 -> Bool {
+        decl a: Int, b: Int, result: Bool;
+
+        bb0() {
+            a = load 1;
+            b = load 2;
+            result = apply (body0.id), a, b;
+            return result;
+        }
+    });
+
+    let mut bodies = [body0, body1];
+    assert_admin_reduction_pass(
+        "inline_trivial_closure_binary",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests transitive reduction: a forwarding closure calling a trivial closure.
+///
+/// body0 is a trivial closure (single binary op). body1 forwards to body0. body2 calls body1.
+/// After reduction in postorder, both layers collapse and body2 contains the binary op directly.
+#[test]
+fn inline_trivial_closure_transitive() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body0 = body!(interner, env; fn@0/2 -> Bool {
+        decl lhs: Int, rhs: Int, result: Bool;
+
+        bb0() {
+            result = bin.> lhs rhs;
+            return result;
+        }
+    });
+
+    let body1 = body!(interner, env; fn@1/2 -> Bool {
+        decl x: Int, y: Int, result: Bool;
+
+        bb0() {
+            result = apply (body0.id), x, y;
+            return result;
+        }
+    });
+
+    let body2 = body!(interner, env; fn@2/0 -> Bool {
+        decl a: Int, b: Int, result: Bool;
+
+        bb0() {
+            a = load 10;
+            b = load 20;
+            result = apply (body1.id), a, b;
+            return result;
+        }
+    });
+
+    let mut bodies = [body0, body1, body2];
+    assert_admin_reduction_pass(
+        "inline_trivial_closure_transitive",
         &mut bodies,
         &mut MirContext {
             heap: &heap,

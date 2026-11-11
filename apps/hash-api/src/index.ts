@@ -43,6 +43,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   getHashClientTypeFromRequest,
   getUserAgentFromRequest,
@@ -71,6 +72,10 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
+import {
+  getBrunchAgentOrigin,
+  setupBrunchAgentProxy,
+} from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
@@ -93,6 +98,7 @@ import {
 import {
   isDevEnv,
   isProdEnv,
+  isStagingEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
@@ -414,9 +420,10 @@ const main = async () => {
     res.type("application/health+json").status(200).send({ status: "pass" });
   });
 
-  if (isProdEnv && !isSelfHostedInstance) {
+  if ((isProdEnv || isStagingEnv) && !isSelfHostedInstance) {
     /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     * Hosted production and staging sit behind Cloudflare, so take the client
+     * IP from the Cloudflare-set header.
      */
     Object.defineProperty(app.request, "ip", {
       configurable: true,
@@ -704,7 +711,7 @@ const main = async () => {
     if (req.ip) {
       /**
        * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
-       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in hosted production and staging).
        * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
        */
       scope.setContext("request", { ip: req.ip });
@@ -802,6 +809,12 @@ const main = async () => {
   setupFlowRunRecordHandler(app);
 
   setupAnalysisHandler(app, keyv);
+
+  setupBrunchAgentProxy(app, {
+    logger,
+    origin: getBrunchAgentOrigin(),
+    publicOrigin: apiOrigin,
+  });
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());

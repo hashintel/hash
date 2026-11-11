@@ -5,7 +5,7 @@ import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 import { buildRunPacket, type StreamEvent } from "./build-run-packet.ts";
 import { renderRunPacket } from "./render-run-packet.ts";
 
-import type { LoggedSubmissionChronology } from "./parse-chronology-log.ts";
+import type { LoggedSubmissionChronology } from "../../../src/server/telemetry-readback.ts";
 
 const t0 = Date.parse("2026-10-15T10:00:00.000Z");
 
@@ -101,37 +101,31 @@ const chronology: LoggedSubmissionChronology = {
     {
       turnId: "turn-1",
       purpose: "agent",
+      provider: null,
+      requestedModel: null,
+      responseModel: null,
       // With the run's start, so deltas from either origin coincide.
       startedAt: new Date(t0 + 100).toISOString(),
+      retryOf: null,
       timeToFirstEventMs: 1_000,
       durationMs: 9_000,
       terminal: "turn",
       isError: false,
+      error: null,
       inputTokens: 3,
-      cacheReadTokens: 1_000,
       outputTokens: 200,
-      requestShape: null,
-      responseShape: null,
       toolCalls: [
         {
           toolCallId: "call-place",
-          toolName: "addPlace",
           firstDeltaMs: 6_000,
           lastDeltaMs: 6_500,
-          deltaCount: 10,
           argumentChars: 40,
-          maxGapMs: 100,
-          lastDeltaToTerminalMs: 0,
         },
         {
           toolCallId: "call-commit",
-          toolName: "ledger_commit",
           firstDeltaMs: 6_600,
           lastDeltaMs: 8_900,
-          deltaCount: 300,
           argumentChars: 3_600,
-          maxGapMs: 100,
-          lastDeltaToTerminalMs: 0,
         },
       ],
     },
@@ -383,7 +377,7 @@ test("an unsettled exchange is counted but left out of the time sums, and the pa
     skipped: { batches: 1, events: 0, chronologyLines: 0 },
   });
 
-  expect(packet.version).toBe(2);
+  expect(packet.version).toBe(3);
   expect(packet.sources.skipped).toEqual({
     batches: 1,
     events: 0,
@@ -401,7 +395,7 @@ test("an unsettled exchange is counted but left out of the time sums, and the pa
 
   const markdown = renderRunPacket(packet);
   expect(markdown).toContain(
-    "- Incomplete run: 1 exchange never settled, left out of the time sums; 1 stream batch unreadable, skipped.",
+    "- Incomplete run: 1 exchange never settled, left out of the time sums; 2 exchanges without a chronology line, left out of the argument-streaming and model-request totals; 1 stream batch unreadable, skipped.",
   );
   expect(markdown).toContain("| 3 (unsettled) |");
 });
@@ -415,6 +409,91 @@ test("without a chronology, argument streaming is unknown rather than zero", () 
   // The db's tool calls arrive with the completed message, so the step's
   // output is only known to start at its end.
   expect(packet.exchanges[0]?.steps[0]?.beforeOutputMs).toBe(9_000);
+  expect(packet.summary.modelRequests).toBeNull();
+  expect(renderRunPacket(packet)).toContain(
+    "- Model requests: unknown without a server-log chronology",
+  );
+});
+
+test("model requests name their provider and model, and count the failed ones and their retries", () => {
+  const [requested] = chronology.turns;
+  if (!requested) throw new Error("fixture has no turn");
+  const packet = buildRunPacket({
+    ...input,
+    chronology: new Map([
+      [
+        "sub-1",
+        {
+          ...chronology,
+          turns: [
+            {
+              ...requested,
+              turnId: "turn-0",
+              provider: "anthropic",
+              requestedModel: "claude-sonnet-4-6",
+              timeToFirstEventMs: null,
+              isError: true,
+              retryOf: null,
+              error: { type: "model_stream_idle", code: "model_stream_idle" },
+              toolCalls: [],
+            },
+            {
+              ...requested,
+              provider: "anthropic",
+              requestedModel: "claude-sonnet-4-6",
+              retryOf: "turn-0",
+              error: null,
+            },
+          ],
+        },
+      ],
+    ]),
+  });
+
+  expect(packet.exchanges[0]?.modelRequests).toEqual([
+    {
+      turnId: "turn-0",
+      purpose: "agent",
+      model: "anthropic/claude-sonnet-4-6",
+      timeToFirstEventMs: null,
+      retryOf: null,
+      error: "model_stream_idle",
+    },
+    {
+      turnId: "turn-1",
+      purpose: "agent",
+      model: "anthropic/claude-sonnet-4-6",
+      timeToFirstEventMs: 1_000,
+      retryOf: "turn-0",
+      error: null,
+    },
+  ]);
+  expect(packet.summary.modelRequests).toEqual({
+    total: 2,
+    byModel: { "anthropic/claude-sonnet-4-6": 2 },
+    retries: 1,
+    failed: 1,
+    errors: { model_stream_idle: 1 },
+  });
+  const markdown = renderRunPacket(packet);
+  expect(markdown).toContain(
+    "- Model requests: 2 (anthropic/claude-sonnet-4-6 ×2); 1 retries, 1 failed (model_stream_idle ×1)",
+  );
+  expect(markdown).toMatch(/\| 1 \| [^|]+ \| [^|]+ \| 2 \| 1 \|/);
+});
+
+test("an exchange whose chronology line was not kept has unknown model requests, and the totals say they cover fewer exchanges", () => {
+  const packet = buildRunPacket(input);
+
+  expect(packet.exchanges[1]?.modelRequests).toBeNull();
+  expect(packet.summary.exchangesWithChronology).toBe(1);
+  const markdown = renderRunPacket(packet);
+  expect(markdown).toContain(
+    "1 exchange without a chronology line, left out of the argument-streaming and model-request totals",
+  );
+  expect(markdown).toMatch(
+    /\| 2 \(no outcome\) \| [^|]+ \| [^|]+ \| 1 \| – \|/,
+  );
 });
 
 test("a skill activated again is a reload, marked when a compaction came between", () => {
@@ -471,26 +550,20 @@ const chronologyTurn = (
 ): LoggedSubmissionChronology["turns"][number] => ({
   turnId,
   purpose: "agent",
-  ...(startedAt === undefined
-    ? {}
-    : { startedAt: new Date(t0 + startedAt).toISOString() }),
+  provider: null,
+  requestedModel: null,
+  responseModel: null,
+  startedAt:
+    startedAt === undefined ? null : new Date(t0 + startedAt).toISOString(),
+  retryOf: null,
   timeToFirstEventMs: null,
   durationMs: 0,
   terminal: "turn",
   isError: false,
+  error: null,
   inputTokens: null,
-  cacheReadTokens: null,
   outputTokens: null,
-  requestShape: null,
-  responseShape: null,
-  toolCalls: toolCalls.map((call) => ({
-    ...call,
-    toolName: "addPlace",
-    deltaCount: 2,
-    argumentChars: 10,
-    maxGapMs: 0,
-    lastDeltaToTerminalMs: 0,
-  })),
+  toolCalls: toolCalls.map((call) => ({ ...call, argumentChars: 10 })),
 });
 
 // Each turn starts after its step's request: 500 ms after the run starts,

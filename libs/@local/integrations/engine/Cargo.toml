@@ -21,6 +21,7 @@ tempfile = { workspace = true, public = true }
 uuid     = { workspace = true, public = true, features = ["v4", "v5"] }
 
 # Private workspace dependencies
+hash-codec       = { workspace = true, features = ["numeric"] }
 hash-graph-store = { workspace = true }
 hash-middleware  = { workspace = true }
 
@@ -28,7 +29,7 @@ hash-middleware  = { workspace = true }
 arrow-array    = { workspace = true }
 backon         = { workspace = true, features = ["std", "tokio-sleep"] }
 bytes          = { workspace = true }
-derive_more    = { workspace = true, features = ["display", "error"] }
+derive_more    = { workspace = true, features = ["display", "error", "from", "into"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc", "serde"] }
 object_store   = { workspace = true, features = ["aws", "fs"] }
@@ -37,7 +38,7 @@ parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
 serde_json     = { workspace = true, features = ["raw_value"] }
 simple-mermaid = { workspace = true }
-time           = { workspace = true, features = ["parsing"] }
+time           = { workspace = true, features = ["formatting", "macros", "parsing"] }
 tokio          = { workspace = true, features = ["fs", "io-util", "net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
@@ -47,6 +48,7 @@ zeroize        = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 
 axum                   = { workspace = true, features = ["http1", "tokio"] }
+insta                  = { workspace = true }
 opentelemetry_sdk      = { workspace = true, features = ["metrics", "testing"] }
 pretty_assertions      = { workspace = true }
 proptest               = { workspace = true, features = ["attr-macro", "std"] }

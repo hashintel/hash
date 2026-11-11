@@ -14,7 +14,6 @@ const definition: SDCPN = canonicalizePetrinautIds({
   places: [
     {
       colorId: null,
-      differentialEquationId: null,
       dynamicsEnabled: false,
       id: "place__buffer",
       name: "Buffer",

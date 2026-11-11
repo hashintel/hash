@@ -1,6 +1,8 @@
 import type { HashIconName } from "../hash-icon";
 
 export const descriptions = {
+  mcpServer:
+    "The official Model Context Protocol mark for an MCP server or connection. Its original paths and stroke proportions stay fixed across weights and variants.",
   differentialEquation:
     "A derivative written as d/dt for rates of change. On hover, the numerator and denominator move apart around the fraction bar.",
   equationCurve:
@@ -58,7 +60,11 @@ export const descriptions = {
   breakpointLine:
     "A breakpoint marker beside lines of code. On hover, the marker contracts and the marked line shifts slightly to the right.",
   testTube:
-    "A tilted test tube with a checkmark for an experiment or test. On hover, its liquid level shifts sideways and the checkmark pulses briefly.",
+    "A tilted test tube for an experiment or a test without a result. On hover, its liquid level shifts sideways.",
+  testTubeCheck:
+    "A tilted test tube with a checkmark for a successful test. On hover, its liquid level shifts sideways and the checkmark pulses briefly.",
+  testTubeCross:
+    "A tilted test tube with a cross for a failed test. On hover, its liquid level shifts sideways and the cross pulses briefly.",
   testCheck:
     "A clipboard with a checkmark for a validation result. On hover, the checkmark grows briefly inside the fixed clipboard.",
   agent:
@@ -98,6 +104,9 @@ export const descriptions = {
   copy: "Two overlapping sheets for copying an item. The front sheet shifts down and right on hover.",
   download:
     "An arrow entering a tray for downloading a file. The arrow moves downward on hover.",
+  link: "Two joined chain links for a hyperlink or section anchor. On hover, the links grow slightly together.",
+  linkBroken:
+    "Two separated chain ends for a broken link or disconnected relationship. On hover, the chain ends grow slightly together.",
   externalLink:
     "An arrow leaving a square for opening an external destination. The arrow shifts up and right on hover.",
   ellipsis:

@@ -35,7 +35,6 @@ const place: Place = {
   y: 0,
   colorId: color.id,
   dynamicsEnabled: false,
-  differentialEquationId: null,
 };
 const source = (label: string) =>
   `return <Visualizer.Svg viewBox="0 0 400 200"><text>${label}</text></Visualizer.Svg>;`;

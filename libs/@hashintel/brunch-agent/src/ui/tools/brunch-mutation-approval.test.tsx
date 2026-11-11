@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent";
+import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
 import {
   createJsonDocHandle,
   createPetrinaut,
@@ -20,6 +20,9 @@ import {
   createBrunchMutationApprovalCoordinator,
   createBrunchMutationApprovalInteractiveTools,
   createBrunchMutationApprovalWidget,
+  createBrunchSaveApprovalWidget,
+  type BrunchHostSave,
+  type ReadBrunchDocumentSaveState,
 } from "./brunch-mutation-approval";
 
 import type { FlueClient } from "@flue/sdk";
@@ -117,6 +120,9 @@ describe("Brunch destructive edit approval", () => {
     expect(
       screen.getByText(/associated arcs or references may also be removed/iu),
     ).not.toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Always allow", "Deny"]);
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
 
     await expect(decision).resolves.toEqual({ decision: "allow" });
@@ -275,13 +281,100 @@ describe("Brunch destructive edit approval", () => {
   });
 });
 
+describe("Brunch save approval card", () => {
+  test("names the net and its last save, and offers only Allow and Deny", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const decision = coordinator.request({
+      toolCallId: "save-1",
+      toolName: brunchTools.appSaveNet,
+      signal: new AbortController().signal,
+    });
+    const lastSavedTime = "2026-10-24T00:00:00.000Z";
+    const readSaveState = vi.fn<ReadBrunchDocumentSaveState>(() => ({
+      title: "Replenishment",
+      lastSavedTime,
+      refusal: null,
+    }));
+    const SaveCard = createBrunchSaveApprovalWidget(coordinator, readSaveState);
+    render(
+      <SaveCard
+        input={{ documentId: "web~net" }}
+        state="awaiting"
+        submit={vi.fn()}
+        toolCallId="save-1"
+      />,
+    );
+
+    expect(readSaveState).toHaveBeenCalledWith("web~net");
+    expect(
+      screen.getByText("Save \u2018Replenishment\u2019 as a new version?"),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        /every unsaved edit in the editor, yours and the assistant/iu,
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        `Last saved ${new Date(lastSavedTime).toLocaleString()}`,
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Deny"]);
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+
+    await expect(decision).resolves.toEqual({
+      decision: "deny",
+      reason: "The user declined this save; nothing was saved.",
+    });
+  });
+
+  test("a save that names no document is refused before it can wait for approval", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = vi.spyOn(coordinator, "request");
+    await expect(
+      createBrunchMutationAdmission(coordinator, {
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      })({
+        toolCallId: "save-1",
+        toolName: brunchTools.appSaveNet,
+        input: {},
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  test("is offered only by a host that can save", () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const names = (hostSave?: BrunchHostSave) =>
+      createBrunchMutationApprovalInteractiveTools(
+        createBrunchMutationApprovalComponents(coordinator, hostSave),
+        new Set(),
+      ).map(({ toolName }) => toolName);
+    expect(names()).not.toContain(brunchTools.appSaveNet);
+    expect(
+      names({
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      }),
+    ).toContain(brunchTools.appSaveNet);
+  });
+});
+
 describe("Brunch destructive edit approval on in-band browser calls", () => {
   const binding = {
     conversationId: "conversation",
     documentId: "document",
   };
 
-  const issuedCalls = (toolName: string, input: unknown) => {
+  const issuedCalls = (
+    toolName: string,
+    input: unknown,
+    hostSave?: BrunchHostSave,
+  ) => {
     const posted: unknown[] = [];
     vi.stubGlobal(
       "fetch",
@@ -310,11 +403,163 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       binding,
       metadataFor: () => undefined,
       prepareInput,
-      admit: createBrunchMutationAdmission(coordinator),
+      admit: createBrunchMutationAdmission(coordinator, hostSave),
       acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
   };
+
+  const saveInput = { documentId: "web~net" };
+  /** A host that can save, whose save state refuses with `refusal`. */
+  const saveState = (refusal: string | null = null) => ({
+    read: vi.fn<ReadBrunchDocumentSaveState>(() => ({
+      title: "Replenishment",
+      lastSavedTime: "2026-10-24T00:00:00.000Z",
+      refusal,
+    })),
+    // The page's save, which the in-band call runs through `execute` here.
+    save: vi.fn<BrunchHostSave["save"]>(),
+  });
+  const runSave = (
+    calls: ReturnType<typeof issuedCalls>["calls"],
+    execute: (issuedInput: unknown) => Promise<unknown>,
+    signal = new AbortController().signal,
+  ) =>
+    calls.run(
+      {
+        toolCallId: "save-1",
+        toolName: brunchTools.appSaveNet,
+        input: saveInput,
+        signal,
+      },
+      execute,
+    );
+
+  test("a declined save settles as not applied and never runs the save", async () => {
+    const hostSave = saveState();
+    const { calls, coordinator, posted, prepareInput } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      hostSave,
+    );
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    expect(hostSave.read).toHaveBeenCalledWith("web~net");
+    coordinator.resolve("save-1", "deny");
+
+    await run;
+    expect(execute).not.toHaveBeenCalled();
+    expect(prepareInput).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "The user declined this save; nothing was saved.",
+        },
+      }),
+    ]);
+  });
+
+  test("a save the host refuses settles as not started with its reason, before any card", async () => {
+    const { calls, coordinator, posted } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState("A save of this net is already in progress."),
+    );
+    const request = vi.spyOn(coordinator, "request");
+    const execute = vi.fn(async () => ({ saved: true }));
+
+    await runSave(calls, execute);
+    expect(request).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "A save of this net is already in progress.",
+        },
+      }),
+    ]);
+  });
+
+  test("an allowed save runs once and reports its own result", async () => {
+    const { calls, coordinator, posted, prepareInput } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const saved = {
+      status: "saved",
+      decisionTime: "2026-10-24T01:00:00.000Z",
+      title: "Replenishment",
+      stillDirty: false,
+    };
+    const execute = vi.fn(async () => saved);
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    coordinator.resolve("save-1", "allow");
+
+    await run;
+    expect(execute).toHaveBeenCalledExactlyOnceWith(saveInput);
+    expect(prepareInput).toHaveBeenCalledOnce();
+    expect(posted).toEqual([expect.objectContaining({ output: saved })]);
+  });
+
+  test("Always allow for destructive edits never admits a save without its card", async () => {
+    const { calls, coordinator } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const removal = coordinator.request({
+      toolCallId: "remove-1",
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+    coordinator.resolve("remove-1", "always-allow");
+    await expect(removal).resolves.toEqual({ decision: "allow" });
+
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    expect(execute).not.toHaveBeenCalled();
+    coordinator.resolve("save-1", "allow");
+    await run;
+    expect(execute).toHaveBeenCalledOnce();
+
+    // The destructive Always allow still stands.
+    await expect(
+      coordinator.request({
+        toolCallId: "remove-2",
+        toolName: "removePlace",
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toEqual({ decision: "allow" });
+  });
+
+  test("a save the conversation stops while it waits settles as stopped, not started", async () => {
+    const { calls, coordinator, posted } = issuedCalls(
+      brunchTools.appSaveNet,
+      saveInput,
+      saveState(),
+    );
+    const execute = vi.fn(async () => ({ saved: true }));
+    const run = runSave(calls, execute);
+    await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
+    coordinator.close();
+
+    await run;
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted).toEqual([
+      expect.objectContaining({
+        output: {
+          status: "not-started",
+          reason: "The save was stopped before approval; nothing was saved.",
+        },
+      }),
+    ]);
+  });
 
   test("a denied removal settles as not applied without running", async () => {
     const input = { placeId: "queue" };
@@ -421,7 +666,6 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       name: "Place",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };

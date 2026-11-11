@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
 import { projectBrunchContext } from "./context-projection";
 
@@ -74,6 +77,40 @@ test("projects in-band canonical output without exposing host sidecars or alteri
   assert(JSON.stringify(input).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
+});
+
+const hashRead = (output: unknown): ContextProjectionEntry => ({
+  id: "hash-read",
+  message: {
+    role: "toolResult",
+    toolCallId: "h1",
+    toolName: brunchTools.hashQueryEntities,
+    isError: false,
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          brunchBrowserResult: true,
+          output,
+          metadata: sidecar,
+        }),
+      },
+    ],
+  },
+});
+
+const contentOf = (entry: ContextProjectionEntry | undefined) =>
+  entry?.message.role === "toolResult" && entry.message.content;
+
+test("a failed read of a text-result tool reaches the model as its error and note in JSON", () => {
+  const failure = {
+    error: "Response not successful: GraphQL error",
+    note: "The read failed; the document is unchanged.",
+  };
+  const [projected] = projectBrunchContext([hashRead(failure)]);
+  expect(contentOf(projected)).toEqual([
+    { type: "text", text: JSON.stringify(failure) },
+  ]);
 });
 
 test("user messages and server tool results pass through unchanged", () => {

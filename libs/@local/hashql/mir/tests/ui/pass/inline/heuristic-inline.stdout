@@ -103,13 +103,13 @@ fn {closure#10}(%0: ()) -> Boolean {
     let %2: Boolean
 
     bb0(): {
-        %1 = apply ({closure#7} as FnPtr) ()
+        %1 = input LOAD flag
 
         switchInt(%1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %2 = apply ({closure#7} as FnPtr) ()
+        %2 = input LOAD flag
 
         return %2
     }
@@ -164,45 +164,21 @@ thunk load_flag:0() -> () -> Boolean {
 fn {closure#10}(%0: ()) -> Boolean {
     let %1: Boolean
     let %2: Boolean
-    let %3: ()
-    let %4: Boolean
-    let %5: ()
-    let %6: Boolean
 
     bb0(): {
-        %5 = ()
+        %1 = input LOAD flag
 
-        goto -> bb6()
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %3 = ()
+        %2 = input LOAD flag
 
-        goto -> bb4()
+        return %2
     }
 
     bb2(): {
         return false
-    }
-
-    bb3(%2): {
-        return %2
-    }
-
-    bb4(): {
-        %4 = input LOAD flag
-
-        goto -> bb3(%4)
-    }
-
-    bb5(%1): {
-        switchInt(%1) -> [0: bb2(), 1: bb1()]
-    }
-
-    bb6(): {
-        %6 = input LOAD flag
-
-        goto -> bb5(%6)
     }
 }
 
@@ -221,10 +197,6 @@ thunk use_flag:0() -> () -> Boolean {
     let %1: ()
     let %2: Boolean
     let %3: Boolean
-    let %4: ()
-    let %5: Boolean
-    let %6: ()
-    let %7: Boolean
 
     bb0(): {
         %1 = ()
@@ -237,38 +209,18 @@ thunk use_flag:0() -> () -> Boolean {
     }
 
     bb2(): {
-        %6 = ()
+        %2 = input LOAD flag
 
-        goto -> bb8()
+        switchInt(%2) -> [0: bb4(), 1: bb3()]
     }
 
     bb3(): {
-        %4 = ()
+        %3 = input LOAD flag
 
-        goto -> bb6()
+        goto -> bb1(%3)
     }
 
     bb4(): {
         goto -> bb1(false)
-    }
-
-    bb5(%3): {
-        goto -> bb1(%3)
-    }
-
-    bb6(): {
-        %5 = input LOAD flag
-
-        goto -> bb5(%5)
-    }
-
-    bb7(%2): {
-        switchInt(%2) -> [0: bb4(), 1: bb3()]
-    }
-
-    bb8(): {
-        %7 = input LOAD flag
-
-        goto -> bb7(%7)
     }
 }

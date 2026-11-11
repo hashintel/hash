@@ -2,8 +2,9 @@ import * as v from "valibot";
 
 import { vObligation } from "./construction/obligations";
 import { vReflection } from "./construction/reflections";
-import { vClaim } from "./elicitation/claims";
-import { vEntity, vEntityUpdate } from "./elicitation/entities";
+import { vClaimWith } from "./elicitation/claims";
+import { vEntityWith, vEntityUpdateWith } from "./elicitation/entities";
+import { vOrigin } from "./shared/epistemics";
 import { entityIdGrammar } from "./shared/references";
 
 const vEntityUpdateRoute = v.pipe(
@@ -16,18 +17,21 @@ const vEntityUpdateRoute = v.pipe(
   ),
 );
 
-export const vLedgerEntry = v.pipe(
-  v.union([
-    v.strictTuple([v.literal("entity/create"), vEntity]),
-    v.strictTuple([vEntityUpdateRoute, vEntityUpdate]),
-    v.strictTuple([v.literal("claim/create"), vClaim]),
-    v.strictTuple([v.literal("reflection/create"), vReflection]),
-    v.strictTuple([v.literal("obligation/create"), vObligation]),
-  ]),
-  v.description(
-    "Exactly two members: [route, payload]. The route names the record type, the operation and, for updates, the target address. Do not add an ID, index or turn member.",
-  ),
-);
+const vLedgerEntryWith = (origin: typeof vOrigin) =>
+  v.pipe(
+    v.union([
+      v.strictTuple([v.literal("entity/create"), vEntityWith(origin)]),
+      v.strictTuple([vEntityUpdateRoute, vEntityUpdateWith(origin)]),
+      v.strictTuple([v.literal("claim/create"), vClaimWith(origin)]),
+      v.strictTuple([v.literal("reflection/create"), vReflection]),
+      v.strictTuple([v.literal("obligation/create"), vObligation]),
+    ]),
+    v.description(
+      "Exactly two members: [route, payload]. The route names the record type, the operation and, for updates, the target address. Do not add an ID, index or turn member.",
+    ),
+  );
+
+export const vLedgerEntry = vLedgerEntryWith(vOrigin);
 
 export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
 
@@ -96,31 +100,39 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
   return undefined;
 };
 
-export const vLedgerAppend = v.pipe(
-  v.strictObject({
-    entries: v.pipe(
-      v.array(vLedgerEntry),
-      v.rawCheck(({ dataset, addIssue }) => {
-        if (!dataset.typed) return;
-        const message = localReferenceProblem(dataset.value);
-        if (message !== undefined) addIssue({ message });
-      }),
-      v.description(
-        "An ordered queue of [route, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
-      ),
-    ),
-    endTurn: v.optional(
-      v.pipe(
-        v.boolean(),
+/**
+ * A Ledger batch schema whose entries describe origin with `origin`. It
+ * accepts exactly the batches {@link vLedgerAppend} does; only the
+ * descriptions a model reads differ.
+ */
+export const vLedgerAppendWith = (origin: typeof vOrigin) =>
+  v.pipe(
+    v.strictObject({
+      entries: v.pipe(
+        v.array(vLedgerEntryWith(origin)),
+        v.rawCheck(({ dataset, addIssue }) => {
+          if (!dataset.typed) return;
+          const message = localReferenceProblem(dataset.value);
+          if (message !== undefined) addIssue({ message });
+        }),
         v.description(
-          "True when this call closes the exchange: once the batch is recorded, the turn ends without another response. A refused batch leaves the turn open for its repair.",
+          "An ordered queue of [route, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
         ),
       ),
+      endTurn: v.optional(
+        v.pipe(
+          v.boolean(),
+          v.description(
+            "True when this call closes the exchange: once the batch is recorded, the turn ends without another response. A refused batch leaves the turn open for its repair.",
+          ),
+        ),
+      ),
+    }),
+    v.description(
+      "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Every committed batch stays in the Ledger's log; its map shows the current records.",
     ),
-  }),
-  v.description(
-    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Every committed batch stays in the Ledger's log; its map shows the current records.",
-  ),
-);
+  );
+
+export const vLedgerAppend = vLedgerAppendWith(vOrigin);
 
 export type LedgerAppend = v.InferOutput<typeof vLedgerAppend>;

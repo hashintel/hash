@@ -4,8 +4,8 @@ import { generateText, Output } from "ai";
 import {
   createVoiceMediationHandler,
   voiceMediationInstructions,
-  voiceBriefExtractionSchema,
-  voiceWrapUpResponseSchema,
+  zVoiceBriefExtraction,
+  zVoiceWrapUpResponse,
 } from "@hashintel/brunch-agent/server";
 
 import { stockAssistantModel } from "../../src/shared/stock-assistant-model.js";
@@ -31,14 +31,14 @@ export default {
         return (
           await generateText({
             ...options,
-            output: Output.object({ schema: voiceBriefExtractionSchema }),
+            output: Output.object({ schema: zVoiceBriefExtraction }),
           })
         ).output;
       }
       return (
         await generateText({
           ...options,
-          output: Output.object({ schema: voiceWrapUpResponseSchema }),
+          output: Output.object({ schema: zVoiceWrapUpResponse }),
         })
       ).output;
     },

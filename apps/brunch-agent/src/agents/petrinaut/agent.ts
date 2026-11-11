@@ -18,12 +18,12 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -112,7 +112,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
-            const expected = browserToolMutatesDocument(toolName)
+            const expected = browserToolFacts(toolName).requiresFreshView
               ? expectedNetRevision(
                   await history(),
                   toolCallId,
@@ -149,4 +149,4 @@ export function PetrinautAgent({ id }: AgentProps) {
  * of this agent takes its own.
  */
 PetrinautAgent.agentName = "brunch-chat-agent";
-PetrinautAgent.initialData = sdcpnInitialDataSchema;
+PetrinautAgent.initialData = vSdcpnInitialData;

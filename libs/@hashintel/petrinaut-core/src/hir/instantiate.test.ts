@@ -22,6 +22,7 @@ const callLambda = (
     new Uint8Array(0),
     new Int32Array(0),
     new Int32Array(0),
+    new Float64Array(0),
   );
 
 describe("instantiate parameter binding", () => {

@@ -23,7 +23,6 @@ const placeInput = {
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -130,6 +129,7 @@ test("every Brunch request, the live-tool stream included, goes through the host
     binding,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
     fetch: hostFetch,
   });

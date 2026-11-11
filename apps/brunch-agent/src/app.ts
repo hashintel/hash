@@ -12,9 +12,9 @@ import { Hono } from "hono";
 
 import {
   browserExecutedToolNames,
+  browserToolFacts,
   brunchRoutes,
   brunchTools,
-  netReaderToolNames,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
@@ -40,7 +40,10 @@ import {
 import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createModelCallScope } from "./server/model-call-scope.ts";
-import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import {
+  chronologyLogMessage,
+  createTurnChronologyObserver,
+} from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
@@ -95,8 +98,7 @@ const liveToolBroadcasters = new Map(
 for (const { agent } of mountedAgents) {
   const turnChronologyObserver = createTurnChronologyObserver(
     agent.agentName,
-    (chronology) =>
-      logger.info("[brunch] flue.submission chronology", chronology),
+    (chronology) => logger.info(chronologyLogMessage, chronology),
   );
   instrument({
     key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),
@@ -184,18 +186,24 @@ const mixedToolNames = new Set([
   ...browserExecutedToolNames,
   brunchTools.ping,
   brunchTools.ledgerCommit,
+  // The Ledger map and the basis query under each agent's name.
   brunchTools.ledgerCompile,
+  brunchTools.ledgerQuery,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.queryBasis,
+  brunchTools.ledgerQueryBasis,
 ]);
+/** Every read of the net, whichever agent's. */
+const netReadToolNames = [...browserExecutedToolNames].filter(
+  (toolName) => browserToolFacts(toolName).observesNet,
+);
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
-  [
-    brunchTools.queryBasis,
-    [getLatestNetDefinitionToolName, ...Object.values(netReaderToolNames)],
-  ],
+  [brunchTools.queryBasis, netReadToolNames],
+  [brunchTools.ledgerQueryBasis, netReadToolNames],
   [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
+  [brunchTools.ledgerQuery, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],
 ]);
 const registerAdmittedProvider = (provider: Provider) => {

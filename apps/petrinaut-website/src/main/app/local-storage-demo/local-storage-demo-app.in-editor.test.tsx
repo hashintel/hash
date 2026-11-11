@@ -83,6 +83,13 @@ beforeAll(preloadMonaco, 30_000);
 // server starts lazily and can finish loading after the editor unmounts.
 afterEach(cleanup);
 
+// The panel drops a definitely refused message, so tests that read the sent
+// prompt on screen fail admission ambiguously instead.
+const ambiguousAdmissionFailure = () =>
+  new FlueApiError(503, "Prompt test admission unavailable");
+const ambiguousNotice =
+  "The agent may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.";
+
 test("empty-canvas and composer text share one Brunch conversation and its budget and words", async () => {
   const entries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -122,10 +129,11 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
       ],
     }),
   );
-  // Refuse admission at the network boundary: no paid model call, and the
-  // editor must surface the failure without duplicating the prompt.
+  // Fail admission at the network boundary: no paid model call, and the
+  // editor must surface the failure without duplicating the prompt. The
+  // failure is ambiguous so the prompt stays on screen to be read.
   const send = vi.fn<FlueClient["send"]>(async () => {
-    throw new FlueApiError(400, "Prompt test refusal");
+    throw ambiguousAdmissionFailure();
   });
   client.current = {
     send,
@@ -174,11 +182,7 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
   expect(send.mock.calls[0]?.[0].initialData).toMatchObject({
     binding: { documentId: netId, conversationId },
   });
-  expect(
-    await screen.findByText(
-      "The agent rejected the message before admission (HTTP 400).",
-    ),
-  ).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
   expect(screen.getByText("Model RelayDesk", { selector: "div" })).toBeTruthy();
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" })),
@@ -254,11 +258,13 @@ const stubBrowser = ({ voice = false }: { voice?: boolean } = {}) => {
   );
 };
 
-/** A Flue client that refuses every message at admission, as the first test's does. */
-const refusingFlueClient = () => {
+/** A Flue client that fails every message at admission, refusing it unless told otherwise. */
+const refusingFlueClient = (
+  failure: unknown = new FlueApiError(400, "Prompt test refusal"),
+) => {
   client.create.mockClear();
   const send = vi.fn<FlueClient["send"]>(async () => {
-    throw new FlueApiError(400, "Prompt test refusal");
+    throw failure;
   });
   client.current = {
     send,
@@ -358,6 +364,10 @@ test("a saved Brunch choice makes Brunch's plugin the editor's assistant, with P
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" })),
   );
   const panel = screen.getByRole("complementary", { name: "AI assistant" });
+  // The website opts into its demo starters through the real hook and plugin.
+  expect(panel.textContent).toContain("Supply chain");
+  expect(panel.textContent).toContain("Epidemic");
+  expect(panel.textContent).toContain("Surprise me");
   // Brunch's chat, with its Ledger beside the transcript, fills the panel.
   expect(within(panel).getByRole("tab", { name: /Ledger/u })).toBeTruthy();
   expect(
@@ -504,13 +514,13 @@ test("opening another net gives it its own Brunch conversation, without resendin
     title: "Second process",
   });
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
-  const send = refusingFlueClient();
+  const send = refusingFlueClient(ambiguousAdmissionFailure());
   render(<Shell initialNetId={firstNetId} />);
 
   await sendFirstPrompt("Model the first queue");
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
   expect(bindingOf(send, 0)).toMatchObject({ documentId: firstNetId });
-  expect(await screen.findByText(refusalNotice)).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
 
   await act(async () => openNet.current(secondNetId));
   await vi.waitFor(() =>
@@ -550,11 +560,11 @@ test("switching to Petrinaut AI and back through the palette hands the panel ove
   stubBrowser();
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
-  const send = refusingFlueClient();
+  const send = refusingFlueClient(ambiguousAdmissionFailure());
   render(<Shell initialNetId={netId} />);
   await sendFirstPrompt("Model a queue");
   await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
-  expect(await screen.findByText(refusalNotice)).toBeTruthy();
+  expect(await screen.findByText(ambiguousNotice)).toBeTruthy();
   // The refusal is an editor notification, which outlives the assistant; the
   // conversation is the panel's.
   const panel = () =>

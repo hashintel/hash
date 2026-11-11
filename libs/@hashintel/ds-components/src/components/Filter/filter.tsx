@@ -14,6 +14,12 @@ import { flushSync } from "react-dom";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import {
+  SelectableList,
+  type Item,
+  type ItemOrGroup,
+} from "../../primitives/SelectableList/selectable-list";
+import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
+import {
   flashInvalidInput,
   isRejectedNumberInputKey,
   preventAutocompleteProps,
@@ -21,12 +27,6 @@ import {
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import {
-  SelectableList,
-  type Item,
-  type ItemOrGroup,
-} from "../../util/SelectableList/selectable-list";
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
 import { Menu, type MenuItem } from "../Menu/menu";
 import { Select } from "../Select/select";

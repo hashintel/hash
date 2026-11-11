@@ -39,18 +39,17 @@ import {
   type PetrinautAiMutationToolName,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
-  setNetTitleToolInputSchema,
   setNetTitleToolName,
-  type ApplyAutoLayoutResult,
 } from "@hashintel/petrinaut-core";
 import { formatReadOnlyReason } from "@hashintel/petrinaut/react";
 import {
-  describeRefusal,
-  type EditResult,
   useAssistantPanel,
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
+import { hashPetrinautPrimaryOperation } from "../../hash/petrinaut-tools";
+import { browserToolFacts } from "../../petrinaut/browser-executed-tools";
 import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
@@ -64,6 +63,10 @@ import {
   AiAssistantEditorApiContext,
   type AiAssistantEditorApi,
 } from "./ai-assistant-panel/editor-api";
+import {
+  applyPetrinautAiCommand,
+  executeSetNetTitle,
+} from "./ai-assistant-panel/editor-commands";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import {
   getInteractiveTool,
@@ -107,6 +110,10 @@ export type {
 // Owned helpers Brunch's tools use beside the chat, which imports them too.
 export { ExperimentExecutionCard } from "./ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
 export { executePetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
+export {
+  applyPetrinautAiCommand,
+  executeSetNetTitle,
+} from "./ai-assistant-panel/editor-commands";
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -540,34 +547,6 @@ export const addMappedToolOutput = async ({
   }
 };
 
-const applyPetrinautAiCommand = async ({
-  aiToolCall,
-  applyAutoLayout,
-}: {
-  aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
-  /** The plugin's layout edit, which frames the result once drawn. */
-  applyAutoLayout: () => Promise<EditResult<ApplyAutoLayoutResult>>;
-}): Promise<AiToolOutput> => {
-  // Exhaustive switch over AiCommandActionName — extending the AI command
-  // surface will surface a TypeScript error here until the new case is added.
-  switch (aiToolCall.toolName) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    case "applyAutoLayout": {
-      const result = await applyAutoLayout();
-      if (!result.applied) {
-        return toBlockedOutput(result.reason);
-      }
-      return toPetrinautAiToolOutput(
-        summarizeApplyAutoLayout({ commitCount: result.value.commitCount }),
-      );
-    }
-    default: {
-      const unhandledToolName: never = aiToolCall.toolName;
-      return unhandledToolName;
-    }
-  }
-};
-
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
   /** The Brunch plugin's `api`: the chat's only way into the editor. */
@@ -704,6 +683,9 @@ const ConversationAiAssistantPanel = ({
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
+  // The user message added before the host admitted it. The AI SDK keeps that
+  // message when the send fails, so a definite refusal must remove it here.
+  const unadmittedUserMessageIdRef = useRef<string | null>(null);
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
       sendMessages: async (options) => {
@@ -711,6 +693,7 @@ const ConversationAiAssistantPanel = ({
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
         pendingSubmissionRecoveryRef.current = null;
+        unadmittedUserMessageIdRef.current = null;
         return stream;
       },
       reconnectToStream: (options) =>
@@ -1017,13 +1000,33 @@ const ConversationAiAssistantPanel = ({
         }
         const abortController = new AbortController();
         automaticToolAbortsRef.current.add(abortController);
+        // One of HASH's experiment tools holds its call open while the run
+        // lasts, as `createExperiment`'s does, so the composer shows it.
+        const runsExperiment =
+          hashPetrinautPrimaryOperation(toolCall.toolName) ===
+          createExperimentToolName;
+        if (runsExperiment) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: true },
+          }));
+        }
+        const endExperiment = () => {
+          if (!runsExperiment) return;
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: false },
+          }));
+        };
         let output: unknown;
         try {
-          const toolInput = automaticTool.inputSchema.parse(toolCall.input);
-          output = automaticTool.outputSchema.parse(
+          const toolInput = automaticTool.inputParser.parse(toolCall.input);
+          output = automaticTool.outputParser.parse(
             await automaticTool.execute({
               input: toolInput,
               edit: document.edit,
+              document,
+              experiments,
               handle,
               readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
@@ -1032,8 +1035,10 @@ const ConversationAiAssistantPanel = ({
           );
         } catch (error) {
           automaticToolAbortsRef.current.delete(abortController);
+          endExperiment();
           throw error;
         }
+        endExperiment();
         automaticToolAbortsRef.current.delete(abortController);
         if (abortController.signal.aborted) {
           pendingAutomaticToolCallExecutionsRef.current.delete(
@@ -1148,38 +1153,10 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
-      const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
-        toolCall.input,
-      );
-      const previousTitle = document.title.get();
-      // The plugin refuses without a host title setter, or while read-only.
-      const renamed = document.setTitle(parsedSetNetTitleInput.title);
-      if (!renamed.applied) {
-        await addAutomaticToolOutput({
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output:
-            renamed.reason.kind === "no-title-setter"
-              ? ({
-                  applied: false,
-                  reason: describeRefusal(renamed.reason),
-                } satisfies AiToolOutput)
-              : toBlockedOutput(renamed.reason),
-        });
-        return;
-      }
-
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: {
-          applied: true,
-          title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
-          detail:
-            previousTitle && previousTitle !== parsedSetNetTitleInput.title
-              ? `Previous title: ${previousTitle}`
-              : undefined,
-        } satisfies AiToolOutput,
+        output: executeSetNetTitle({ input: toolCall.input, document }),
       });
       return;
     }
@@ -1262,6 +1239,8 @@ const ConversationAiAssistantPanel = ({
   };
 
   const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
+  /** In-band calls whose execution has not begun, by tool call id. */
+  const unstartedBrowserCallsRef = useRef(new Map<string, AbortController>());
   const executeIssuedBrowserCall = (
     toolCall: Parameters<
       ChatOnToolCallCallback<PetrinautAiMessage>
@@ -1276,7 +1255,15 @@ const ConversationAiAssistantPanel = ({
       yieldLane = resolve;
     });
     let experimentExecuting = false;
+    const forgetUnstarted = () => {
+      if (
+        unstartedBrowserCallsRef.current.get(toolCall.toolCallId) === controller
+      )
+        unstartedBrowserCallsRef.current.delete(toolCall.toolCallId);
+    };
+    unstartedBrowserCallsRef.current.set(toolCall.toolCallId, controller);
     const execute = async (issuedInput: unknown) => {
+      forgetUnstarted();
       const outputs: unknown[] = [];
       const execution = executeToolCall(
         { toolCall: { ...toolCall, input: issuedInput } as typeof toolCall },
@@ -1284,8 +1271,8 @@ const ConversationAiAssistantPanel = ({
           outputs.push(output);
         },
       );
-      if (toolCall.toolName === createExperimentToolName) {
-        // The source was captured on entry; simulation need not hold the lane.
+      // A run that captured its source on entry need not hold the lane.
+      if (browserToolFacts(toolCall.toolName).releasesDocumentLane) {
         experimentExecuting = true;
         yieldLane();
       }
@@ -1313,7 +1300,10 @@ const ConversationAiAssistantPanel = ({
     // Rejections have a terminal server failure; they do not strand later issued calls.
     inBandDocumentLaneRef.current = laneYielded;
     void scheduled
-      .finally(() => automaticToolAbortsRef.current.delete(controller))
+      .finally(() => {
+        forgetUnstarted();
+        automaticToolAbortsRef.current.delete(controller);
+      })
       .catch((error: unknown) => {
         // A started experiment reports even after Stop, as its simulation does.
         if (!controller.signal.aborted || experimentExecuting)
@@ -1380,12 +1370,32 @@ const ConversationAiAssistantPanel = ({
         chatError instanceof Error ? chatError : new Error(String(chatError));
       reportOperationalFailure(submissionError, "stream");
       setStreamError(submissionError);
+      const unadmittedUserMessageId = unadmittedUserMessageIdRef.current;
+      unadmittedUserMessageIdRef.current = null;
+      // Only a definite refusal proves the message was never admitted. Any
+      // other failure keeps it, since a retry reuses its delivery identity.
+      if (
+        unadmittedUserMessageId !== null &&
+        chatError instanceof FlueChatAdmissionError &&
+        chatError.failure.kind === "rejected"
+      ) {
+        setMessages((currentMessages) =>
+          currentMessages.filter(
+            (message) =>
+              !(
+                message.id === unadmittedUserMessageId &&
+                message.role === "user"
+              ),
+          ),
+        );
+      }
       const recoverPendingSubmission = pendingSubmissionRecoveryRef.current;
       pendingSubmissionRecoveryRef.current = null;
       recoverPendingSubmission?.();
     },
     onFinish: ({ messages: finishedMessages, isAbort, isError }) => {
       pendingSubmissionRecoveryRef.current = null;
+      unadmittedUserMessageIdRef.current = null;
       const termination = automaticToolTerminationRef.current;
       const failed =
         termination?.generation === submissionGenerationRef.current &&
@@ -1525,6 +1535,28 @@ const ConversationAiAssistantPanel = ({
       toolHostIdentityRef.current = null;
     };
   }, [addToolOutput, conversationId, sendMessage]);
+  // The server can settle an issued call itself, as when it refuses one
+  // before issuing it. A call whose output has arrived before its execution
+  // began stops claiming: there is nothing left for this page to run.
+  useEffect(() => {
+    const unstarted = unstartedBrowserCallsRef.current;
+    if (unstarted.size === 0) return;
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (
+          !isToolUIPart(part) ||
+          (part.state !== "output-available" &&
+            part.state !== "output-error" &&
+            part.state !== "output-denied")
+        )
+          continue;
+        const controller = unstarted.get(part.toolCallId);
+        if (controller === undefined) continue;
+        unstarted.delete(part.toolCallId);
+        controller.abort();
+      }
+    }
+  }, [messages]);
   useEffect(() => {
     if (
       chatStatus !== "ready" ||
@@ -1701,12 +1733,11 @@ const ConversationAiAssistantPanel = ({
     ) {
       setPrimaryAttention(true);
       setAttentionAnnouncement(
-        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode, aiAssistant.presentation)} needs your attention`,
+        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode)} needs your attention`,
       );
     }
     conversationWasBusyRef.current = isBusy;
   }, [
-    aiAssistant.presentation,
     aiAssistant.primaryLabel,
     hostTabSelected,
     interactionMode,
@@ -1790,6 +1821,14 @@ const ConversationAiAssistantPanel = ({
           aiAssistant.automaticTools,
         );
         if (!isStatic && !isAutomaticDynamic) continue;
+        // A tool the in-band path owns runs only there, behind its admission
+        // check; running it here as well would bypass consent.
+        if (
+          aiAssistant.inBandBrowserTools?.has(
+            isAutomaticDynamic ? part.toolName : getStaticToolName(part),
+          )
+        )
+          continue;
 
         const toolCall = isAutomaticDynamic
           ? {
@@ -1891,6 +1930,7 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.automaticTools,
     aiAssistant.followMessages,
+    aiAssistant.inBandBrowserTools,
     automaticToolTurnIsTerminatedRef,
     chatStatus,
     conversationId,
@@ -2108,6 +2148,7 @@ const ConversationAiAssistantPanel = ({
       abortAndClear(automaticToolAbortsRef.current);
       explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
+      unadmittedUserMessageIdRef.current = messageId;
       await submitMessage({
         id: messageId,
         ...(source === "voice" ? { metadata: { source } } : {}),
@@ -2413,12 +2454,15 @@ const ConversationAiAssistantPanel = ({
     submitUserText,
   ]);
 
-  // Chips are only meaningful before a conversation has begun — once the
-  // user has typed or the AI has replied, they've signalled what they want
-  // and the chips become noise.
+  // Host starters disappear after the first turn; model-review chips remain
+  // available whenever the net has content.
   const hasConversation = messages.length > 0;
 
-  const promptChips = selectPromptChips({ hasConversation, isNetEmpty });
+  const promptChips = selectPromptChips({
+    hasConversation,
+    isNetEmpty,
+    starterChips: aiAssistant.starterChips,
+  });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
@@ -2624,7 +2668,6 @@ const ConversationAiAssistantPanel = ({
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
-      presentation={aiAssistant.presentation}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}

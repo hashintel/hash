@@ -14,7 +14,6 @@ const place = (id: string, name: string): Place => ({
   description: undefined,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });

@@ -5,3 +5,6 @@ dist/
 # authored pages in `content/`, so committing it would mean reviewing the same
 # change twice and resolving conflicts in generated files.
 bundle/
+
+# Slide decks, kept local for now: talks to reuse, not samples to version.
+slides/

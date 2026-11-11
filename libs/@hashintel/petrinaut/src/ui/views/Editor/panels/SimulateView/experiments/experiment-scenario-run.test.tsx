@@ -50,7 +50,6 @@ const place = (index: number) => ({
   colorId: null,
   dynamicsEnabled: false,
   showAsInitialState: true,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });

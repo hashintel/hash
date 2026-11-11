@@ -31,7 +31,7 @@ The order is fixed, and several surprising behaviours follow from it.
     { label: "Max time", note: "Reached? Return without computing." },
     {
       label: "Dynamics",
-      note: "Decode tokens, call the user function, apply Euler `x += dx·dt` to real slots.",
+      note: "Call each place's derivative over its packed tokens, apply Euler `x += dx·dt` to real slots.",
     },
     {
       label: "Transitions",
@@ -47,6 +47,14 @@ The order is fixed, and several surprising behaviours follow from it.
 
 Discrete derivatives are forced to zero in step 2; removals compact the buffer
 and additions append in step 3.
+
+A place's derivative is one function over its token region
+(`DifferentialEquationFn`). A place that composes several equations gets one
+program per equation and `compose-derivatives.ts` sums their results; every
+equation is a program over every combination of `arity` tokens, emitted as
+nested loops by `hir/emit-buffer-js.ts`, one loop for the usual arity of one.
+The engines, the Monte Carlo run and the event trace see only the summed
+function.
 
 Dynamics run before transitions, so a transition sees token values already
 advanced by this step's integration. Timers only advance on a step where nothing

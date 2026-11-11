@@ -13,22 +13,31 @@ use crate::{
 };
 
 /// Converts a column's value before it is written as a property.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+///
+/// Displays as what the coercion reads, such as `a date`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 #[repr(u8)]
 pub enum Coercion {
     /// Converts to a calendar date.
+    #[display("a date")]
     Date,
     /// Converts to a time of day.
+    #[display("a time")]
     Time,
     /// Converts to `true` or `false`.
+    #[display("a boolean")]
     Boolean,
     /// Converts to a number.
+    #[display("a number")]
     Number,
     /// Converts to a whole number.
+    #[display("an integer")]
     Integer,
     /// Converts to a year.
+    #[display("a year")]
     Year,
     /// Removes leading and trailing whitespace.
+    #[display("text")]
     Trim,
 }
 

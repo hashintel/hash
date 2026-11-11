@@ -1,17 +1,15 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import {
-  Button,
-  Chip,
-  Dialog,
-  EllipsisMenu,
-  TextInput,
-} from "@hashintel/ds-components";
+import { Button, Chip, Dialog, EllipsisMenu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { RenameInput } from "./shared/rename-input";
+import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const topBar = css({
   display: "flex",
@@ -32,7 +30,6 @@ const titleGroup = css({
   gap: "2",
   minWidth: "0",
 });
-const flowName = css({ fontWeight: "medium", minWidth: "0" });
 const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
@@ -68,65 +65,6 @@ const SaveStatus = ({
         </Chip>
       );
   }
-};
-
-/**
- * The flow's name, editable when clicked. Escape, or leaving it blank or unchanged, keeps the name the flow has, which
- * a reload after a conflict may have changed meanwhile.
- */
-const FlowName = ({
-  name,
-  onRename,
-}: {
-  name: string;
-  onRename: (name: string) => void;
-}) => {
-  const [editing, setEditing] = useState<{
-    from: string;
-    typed: string;
-  } | null>(null);
-  const cancelledRef = useRef(false);
-
-  return (
-    <TextInput
-      variant="subtle"
-      size="sm"
-      width="fitContent"
-      showEditIcon
-      aria-label="Flow name"
-      placeholder="Untitled flow"
-      className={flowName}
-      value={editing?.typed ?? name}
-      onFocus={() => setEditing({ from: name, typed: name })}
-      onChange={(typed) =>
-        setEditing((current) => current && { ...current, typed })
-      }
-      onKeyDown={(event) => {
-        if (
-          (event.key !== "Enter" && event.key !== "Escape") ||
-          event.nativeEvent.isComposing
-        ) {
-          return;
-        }
-
-        cancelledRef.current = event.key === "Escape";
-
-        if (event.currentTarget instanceof HTMLElement) {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const renamed = editing?.typed.trim();
-
-        if (!cancelledRef.current && renamed && renamed !== editing?.from) {
-          onRename(renamed);
-        }
-
-        cancelledRef.current = false;
-        setEditing(null);
-      }}
-    />
-  );
 };
 
 const ArchiveFlowDialog = ({
@@ -221,24 +159,36 @@ const LeaveFlowDialog = ({
 );
 
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, Run, and its menu.
  */
 export const TopBar = ({
-  name,
+  editorKey,
+  editorState,
   onRename,
   saveStatus,
-  editsRefused,
+  saveRefusedReason,
   onRetrySave,
+  onRun,
   onArchive,
   onLeave,
   onLeaveWithoutSaving,
 }: {
-  name: string;
+  /**
+   * Changes when the flow is reloaded after changing elsewhere, closing a run form filled in for the flow as it was.
+   * The rest of the bar keeps its state, e.g. the leave confirmation for a leave that the reload interrupted.
+   */
+  editorKey: number;
+  editorState: FlowEditorState;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
-  /** Whether the API refused the latest edits. */
-  editsRefused: boolean;
+  /** Why the API refused the latest edits, if it did. */
+  saveRefusedReason: string | null;
   onRetrySave: () => void;
+  /**
+   * Saves any edits not saved yet, then starts a run with these inputs and opens it. Throws, saying why, if the edits
+   * couldn't be saved or the run didn't start.
+   */
+  onRun: (flowInputs: FlowInputValues) => Promise<void>;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
   /**
@@ -249,6 +199,7 @@ export const TopBar = ({
   /** Leaves the editor for the flows page, dropping any edits not saved yet. */
   onLeaveWithoutSaving: () => void;
 }) => {
+  const { name } = editorState.flowDefinition;
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -280,10 +231,21 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <FlowName name={name} onRename={onRename} />
+        <RenameInput
+          value={name}
+          placeholder="Untitled flow"
+          ariaLabel="Flow name"
+          onRename={onRename}
+        />
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        <RunFlow
+          key={editorKey}
+          editorState={editorState}
+          saveRefusedReason={saveRefusedReason}
+          onRun={onRun}
+        />
         <EllipsisMenu
           iconName="ellipsisVertical"
           size="md"
@@ -302,7 +264,7 @@ export const TopBar = ({
           name={name}
           onArchive={onArchive}
           onClose={() => setArchiveDialogOpen(false)}
-          editsRefused={editsRefused}
+          editsRefused={saveRefusedReason !== null}
         />
       )}
       {leaveDialogOpen && (

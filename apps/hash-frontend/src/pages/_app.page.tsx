@@ -11,10 +11,11 @@ import "react-resizable/css/styles.css";
 import "./globals.scss";
 import "./prism.css";
 import "./ds-components-styles.gen.css";
+import { ApolloError } from "@apollo/client";
 import { ApolloProvider } from "@apollo/client/react";
 import { CacheProvider } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { ErrorBoundary, getClient } from "@sentry/nextjs";
+import { captureException, ErrorBoundary, getClient } from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
 import { Suspense, useEffect, useState } from "react";
@@ -41,7 +42,6 @@ import { PropertyTypesContextProvider } from "../shared/property-types-context-p
 import { RoutePageInfoProvider } from "../shared/routing";
 import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
-import { reportIframeReactError } from "./processes/shared/iframe-error-reporter";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthInfoProvider } from "./shared/auth-info-provider";
@@ -246,52 +246,10 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-const PETRINAUT_EMBED_PATHNAME = "/processes/[uuid]/embed";
-
-/**
- * Minimal `_app` shell for the Petrinaut embed route.
- */
-const PetrinautEmbedAppShell: FunctionComponent<AppProps> = ({
-  Component,
-  pageProps,
-  emotionCache = clientSideEmotionCache,
-}) => (
-  <Suspense>
-    <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>
-        <ErrorBoundary
-          beforeCapture={(scope) => {
-            scope.setTag("error-boundary", "_app-embed");
-          }}
-          /**
-           * Forward into the host's Sentry. The boundary's local
-           * captureException is a no-op here because Sentry isn't
-           * initialised inside the embed iframe (see
-           * `instrumentation-client.ts`).
-           */
-          onError={(error) => reportIframeReactError(error)}
-          fallback={ErrorFallback}
-        >
-          <Component {...pageProps} />
-        </ErrorBoundary>
-      </ThemeProvider>
-    </CacheProvider>
-    {globalStyles}
-  </Suspense>
-);
-
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const {
-    initialAuthenticatedUserSubgraph,
-    user,
-    router: { pathname },
-  } = props;
-
-  if (pathname === PETRINAUT_EMBED_PATHNAME) {
-    return <PetrinautEmbedAppShell {...props} />;
-  }
+  const { initialAuthenticatedUserSubgraph, user } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -316,6 +274,20 @@ const publiclyAccessiblePagePathnames = [
 ];
 
 const redirectIfAuthenticatedPathnames = ["/signup"];
+
+const hasKratosSessionCookie = (cookie?: string) =>
+  cookie
+    ?.split(";")
+    .some((pair) => pair.trimStart().startsWith("ory_kratos_session=")) ??
+  false;
+
+/** The API answers `me` with `FORBIDDEN` when the session is missing or expired. */
+const isUnauthenticatedError = (error: unknown) =>
+  error instanceof ApolloError &&
+  error.graphQLErrors.length > 0 &&
+  error.graphQLErrors.every(
+    ({ extensions }) => extensions.code === "FORBIDDEN",
+  );
 
 const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
   oryKratosClient
@@ -381,36 +353,38 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   Apollo's dedup key ignores `context` and would otherwise leak one
    *   user's data into another concurrent SSR request.
    */
-  const initialAuthenticatedUserSubgraph = await apolloClient
-    .query<MeQuery>({
-      query: meQuery,
-      context: { headers: { cookie } },
-    })
-    .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity<User>>>(
-        data.me.subgraph,
-      ),
-    )
-    .catch(() => undefined);
+  const initialAuthenticatedUserSubgraph =
+    /**
+     * On the server the forwarded `cookie` header is the only credential, so
+     * without a session cookie `me` can only fail. In the browser the session
+     * cookie is HTTP-only and sent by the Apollo client itself.
+     */
+    req && !hasKratosSessionCookie(cookie)
+      ? undefined
+      : await apolloClient
+          .query<MeQuery>({
+            query: meQuery,
+            context: { headers: { cookie } },
+          })
+          .then(({ data, errors }) => {
+            if (errors) {
+              throw new ApolloError({ graphQLErrors: errors });
+            }
+
+            return mapGqlSubgraphFieldsFragmentToSubgraph<
+              EntityRootType<HashEntity<User>>
+            >(data.me.subgraph);
+          })
+          .catch((error: unknown) => {
+            if (!isUnauthenticatedError(error)) {
+              captureException(error);
+            }
+            return undefined;
+          });
 
   const userEntity = initialAuthenticatedUserSubgraph
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
-
-  if (pathname === PETRINAUT_EMBED_PATHNAME) {
-    if (userEntity) {
-      /**
-       * Don't inject user data into the Petrinaut embed route.
-       */
-      return {};
-    }
-    return {
-      redirectTo: redirectInGetInitialProps({
-        appContext,
-        location: `/signin?return_to=${req?.url ?? asPath}`,
-      }),
-    };
-  }
 
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {

@@ -28,10 +28,27 @@ export const brunchProductName = "brunch";
  */
 export const brunchTools = {
   activateSkill: "activate_skill",
+  /**
+   * HASH's process page saves the open net as a new version, once the person
+   * approves it, through the editor's own Save.
+   */
+  appSaveNet: "app_save_net",
   draftPetrinautExperiment: "draft_petrinaut_experiment",
+  /** HASH's process page reads entities from the graph as the signed-in user. */
+  hashQueryEntities: "hash_query_entities",
+  /** HASH's process page reads the entity types the signed-in user can see. */
+  hashQueryEntityTypes: "hash_query_entity_types",
+  /** HASH's process page lists the signed-in user's own and org webs. */
+  hashQueryWebs: "hash_query_webs",
   ledgerCommit: "ledger_commit",
+  /** The Petrinaut agent's Ledger map; the HASH agent's is `ledgerQuery`. */
   ledgerCompile: "ledger_compile",
+  /** The HASH agent's Ledger map, the same tool as `ledgerCompile`. */
+  ledgerQuery: "ledger_query",
+  /** The HASH agent's basis query, the same tool as `queryBasis`. */
+  ledgerQueryBasis: "ledger_query_basis",
   ping: "ping",
+  /** The Petrinaut agent's basis query; the HASH agent's is `ledgerQueryBasis`. */
   queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",
   task: "task",
@@ -68,6 +85,8 @@ export const brunchRoutes = {
   agents: "/agents",
   /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
   petrinautAgent: "petrinaut",
+  /** The HASH agent's route, which HASH's process page talks to. */
+  hashAgent: "hash",
   /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
   browserCalls: "browser-calls",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */

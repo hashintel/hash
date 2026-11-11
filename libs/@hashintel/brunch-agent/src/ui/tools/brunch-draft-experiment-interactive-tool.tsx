@@ -1,13 +1,13 @@
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   brunchTools,
   canonicalContent,
   type DraftPetrinautExperimentInput,
-  draftPetrinautExperimentInputSchema,
+  zDraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
-  draftPetrinautExperimentOutputSchema,
+  zDraftPetrinautExperimentOutput,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
@@ -19,7 +19,6 @@ import {
 } from "@hashintel/petrinaut/react";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
-import { canonicalPetrinautClientToolNames } from "../../client/tools/brunch-client-tools";
 import { ExperimentExecutionCard } from "../chat/ai-assistant-panel";
 import {
   definePetrinautAiInteractiveTool,
@@ -185,9 +184,9 @@ export const resolveDraftAuthorityFromHistory = async (
   // The draft must follow a net read with no document change after it.
   const relevant = calls.filter(
     (call) =>
-      canonicalPetrinautClientToolNames.has(call.toolName) &&
+      browserToolFacts(call.toolName).runsOnNet &&
       (call.toolName === getLatestNetDefinitionToolName ||
-        browserToolMutatesDocument(call.toolName)),
+        browserToolFacts(call.toolName).documentRevision === "change"),
   );
   const latest = relevant.at(-1);
   if (
@@ -827,8 +826,8 @@ export const createBrunchDraftExperimentInteractiveTool = ({
   >({
     toolName: brunchTools.draftPetrinautExperiment,
     placement: "card",
-    inputSchema: draftPetrinautExperimentInputSchema,
-    outputSchema: draftPetrinautExperimentOutputSchema,
+    inputParser: zDraftPetrinautExperimentInput,
+    outputParser: zDraftPetrinautExperimentOutput,
     component: (props) => (
       <WithBrunchEditorApi>
         {(api) => (

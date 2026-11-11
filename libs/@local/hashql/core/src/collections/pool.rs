@@ -43,6 +43,9 @@
 //! assert_eq!(vec2.len(), 0);
 //! ```
 
+use alloc::alloc::Global;
+use core::alloc::Allocator;
+
 use crate::id::{Id, bit_vec::MixedBitSet};
 
 /// Trait for defining how objects are recycled, created, and prepared in a pool.
@@ -234,13 +237,13 @@ pub trait Recycler<T> {
 /// // Pool now contains 2 recycled vectors ready for reuse
 /// ```
 #[derive(Debug)]
-pub struct Pool<T, R> {
-    free: Vec<T>,
+pub struct Pool<T, R, A: Allocator = Global> {
+    free: Vec<T, A>,
     recycler: R,
     capacity: usize,
 }
 
-impl<T, R> Pool<T, R> {
+impl<T, R> Pool<T, R, Global> {
     /// Creates a new pool with the specified capacity and a default recycler.
     ///
     /// The `capacity` parameter sets the maximum number of objects that will be
@@ -278,16 +281,30 @@ impl<T, R> Pool<T, R> {
     /// let mut pool = MixedBitSetPool::<VarId>::with_recycler(5, recycler);
     /// ```
     pub fn with_recycler(capacity: usize, recycler: R) -> Self {
+        Self::with_recycler_in(capacity, recycler, Global)
+    }
+}
+
+impl<T, R, A: Allocator> Pool<T, R, A> {
+    pub fn new_in(capacity: usize, alloc: A) -> Self
+    where
+        R: Default,
+    {
+        Self::with_recycler_in(capacity, R::default(), alloc)
+    }
+
+    pub fn with_recycler_in(capacity: usize, recycler: R, alloc: A) -> Self {
         Self {
-            free: Vec::with_capacity(capacity),
+            free: Vec::with_capacity_in(capacity, alloc),
             recycler,
             capacity,
         }
     }
 }
 
-impl<T, R> Pool<T, R>
+impl<T, R, A> Pool<T, R, A>
 where
+    A: Allocator,
     R: Recycler<T>,
 {
     /// Changes the pool's capacity, adjusting internal storage as needed.
@@ -673,4 +690,4 @@ where
 /// // Return to pool for reuse
 /// pool.release(bitset);
 /// ```
-pub type MixedBitSetPool<I> = Pool<MixedBitSet<I>, MixedBitSetRecycler>;
+pub type MixedBitSetPool<I, A = Global> = Pool<MixedBitSet<I>, MixedBitSetRecycler, A>;

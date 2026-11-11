@@ -1,11 +1,11 @@
 import { upperFirst } from "lodash";
 
-import { Chip, Form, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Form, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getStepDisplay } from "../shared/step-display";
+import { getKindIcon, getKindLabel } from "../shared/value-display";
 import { getStepName } from "./shared/find-step";
-import { getKindIcon, getKindLabel } from "./shared/value-display";
+import { StepChips } from "./shared/step-chips";
 
 import type {
   PayloadKind,
@@ -34,11 +34,23 @@ const summary = css({
 });
 const chips = css({
   display: "none",
-  flexWrap: "wrap",
-  gap: "1",
-  _groupHover: { display: "flex" },
-  _groupFocusWithin: { display: "flex" },
+  _groupHover: { display: "block" },
+  _groupFocusWithin: { display: "block" },
 });
+
+/*
+ * The star sits at the row's end: the field puts `labelActions` in a wrapper after the used-by text, so the wrapper
+ * is pushed along the row. An output that isn't a flow output shows its star only while its row is hovered or
+ * focused. The row's root is `display: contents` in a `Form.Section`, which `:hover` and `:focus-within` don't mind,
+ * as they match by the tree, not by boxes.
+ */
+const usedByRow = css({
+  "& :has(> [data-flow-output])": { marginLeft: "auto" },
+  "& [data-flow-output='false']": { opacity: "0" },
+  "&:hover [data-flow-output]": { opacity: "1" },
+  "&:focus-within [data-flow-output]": { opacity: "1" },
+});
+const flowOutputToggle = css({ display: "flex" });
 
 const getUsedBySummary = (names: string[]) => {
   const named = names.slice(0, namedStepCount).join(", ");
@@ -51,22 +63,45 @@ const getUsedBySummary = (names: string[]) => {
  * A value a step gives, or a flow input: its name after an icon for its type, with the type on hover, and the steps
  * that use it, named in a line that turns into a chip per step on hover. `shape` is `null` while the type isn't known,
  * e.g. for an output that takes its kind from an input that isn't picked yet.
+ *
+ * Given `flowOutput`, a star at the end of the row marks or unmarks the value as one of the flow's outputs, which show
+ * in its runs' results.
  */
 export const UsedByField = ({
   name,
   shape,
   usedBy,
+  flowOutput,
 }: {
   name: string;
   shape: { payloadKind: PayloadKind; array: boolean } | null;
   usedBy: StepDefinition<string>[];
+  flowOutput?: { marked: boolean; onToggle: () => void };
 }) => {
   const usedByNames = usedBy.map(getStepName);
 
   return (
     <Form.Field
+      className={usedByRow}
       layout="inline"
       as="legend"
+      labelActions={
+        flowOutput && (
+          <span
+            data-flow-output={flowOutput.marked}
+            className={flowOutputToggle}
+          >
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName={flowOutput.marked ? "starFilled" : "star"}
+              tooltip="Show in run results"
+              aria-pressed={flowOutput.marked}
+              onClick={flowOutput.onToggle}
+            />
+          </span>
+        )
+      }
       label={
         <span className={nameWithType}>
           <Tooltip
@@ -104,15 +139,7 @@ export const UsedByField = ({
             {getUsedBySummary(usedByNames)}
           </span>
           <span className={chips}>
-            {usedBy.map((step) => (
-              <Chip
-                key={step.stepId}
-                size="md"
-                prefix={{ iconName: getStepDisplay(step).icon }}
-              >
-                {getStepName(step)}
-              </Chip>
-            ))}
+            <StepChips steps={usedBy} />
           </span>
         </span>
       )}

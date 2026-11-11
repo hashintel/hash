@@ -7,7 +7,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { LinearLogo } from "../../../shared/icons/linear-logo";
+import { linearIntegrationMarkPath } from "../integrations.page/integration-icon-paths";
 import { SettingsTable } from "../shared/settings-table";
 import { SettingsTableCell } from "../shared/settings-table-cell";
 import { useLinearIntegrations } from "./linear/use-linear-integrations";
@@ -49,7 +49,14 @@ export const UserConnectedIntegrations = () => {
               <TableRow key={integration.entity.entityId}>
                 <SettingsTableCell>
                   <Stack direction="row" alignItems="center" gap={1}>
-                    <LinearLogo sx={{ fontSize: 16 }} /> Linear
+                    <Box
+                      component="img"
+                      src={linearIntegrationMarkPath}
+                      alt=""
+                      width={16}
+                      height={16}
+                    />{" "}
+                    Linear
                   </Stack>
                 </SettingsTableCell>
                 <SettingsTableCell>

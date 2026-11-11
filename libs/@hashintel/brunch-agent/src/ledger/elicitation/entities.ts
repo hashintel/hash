@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
 import {
-  epistemicFields,
+  epistemicFieldsWith,
   resolveStatus,
   vOrigin,
   vStatus,
@@ -91,7 +91,7 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("target"),
       v.description(
-        "Output: a desired value of a metric that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric and its desired value.",
+        "Output: a desired value of a metric that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric, its desired value and when it must be reached, with the event a window starts from, e.g. 'within 54 hours of signed pickup'. While the USER has not said when, an open claim says so; a figure for the whole run, such as an average or a total, has no 'when'.",
       ),
     ),
     v.pipe(
@@ -121,13 +121,13 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("threshold"),
       v.description(
-        "Output: a bound a run's outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric and its bound. A level at which the operation itself acts is a rule.",
+        "Output: a bound a run's outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric, its bound and when it must hold, in the USER's units: throughout the run, within a window of a named event ('below 9.5 MW within 5 minutes of each utility loss'), or until something happens, and whether that must happen. While the USER has not said when, an open claim says so; a bare bound is not 'throughout the run', and a figure for the whole run, such as an average or a total, has no 'when'. A level at which the operation itself acts is a rule.",
       ),
     ),
     v.pipe(
       v.literal("horizon"),
       v.description(
-        "Scope: a simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration.",
+        "Scope: a simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration. A restriction the USER says holds \"always\" or \"never\", with no shorter period, holds throughout it.",
       ),
     ),
     v.pipe(
@@ -154,38 +154,44 @@ export const vEntityKind = v.pipe(
   ),
 );
 
-export const vEntity = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    ...epistemicFields,
-    ...resolvesField,
-  }),
-  resolveStatus(),
-  v.description(
-    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
-  ),
-);
+export const vEntityWith = (origin: typeof vOrigin) =>
+  v.pipe(
+    v.strictObject({
+      name: vEntityName,
+      kind: vEntityKind,
+      ...epistemicFieldsWith(origin),
+      ...resolvesField,
+    }),
+    resolveStatus(),
+    v.description(
+      "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
+    ),
+  );
+
+export const vEntity = vEntityWith(vOrigin);
 
 /** An entity/update payload: it replaces every field, so no field defaults. */
-export const vEntityUpdate = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    origin: v.pipe(
-      vOrigin,
-      v.description("Where the entity's account now comes from. Required."),
+export const vEntityUpdateWith = (origin: typeof vOrigin) =>
+  v.pipe(
+    v.strictObject({
+      name: vEntityName,
+      kind: vEntityKind,
+      origin: v.pipe(
+        origin,
+        v.description("Where the entity's account now comes from. Required."),
+      ),
+      status: v.pipe(
+        vStatus,
+        v.description("Whether the USER now agrees to the entity. Required."),
+      ),
+      ...resolvesField,
+    }),
+    v.description(
+      "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
     ),
-    status: v.pipe(
-      vStatus,
-      v.description("Whether the USER now agrees to the entity. Required."),
-    ),
-    ...resolvesField,
-  }),
-  v.description(
-    "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
-  ),
-);
+  );
+
+export const vEntityUpdate = vEntityUpdateWith(vOrigin);
 
 export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;

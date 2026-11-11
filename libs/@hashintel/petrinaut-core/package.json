@@ -101,6 +101,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@csstools/css-tokenizer": "4.0.2",
     "@noble/hashes": "2.0.1",
     "elkjs": "0.11.0",
     "immer": "10.1.3",

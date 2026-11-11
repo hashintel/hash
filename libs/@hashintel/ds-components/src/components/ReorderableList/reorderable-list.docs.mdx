@@ -1,0 +1,492 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { Select } from "../Select/select";
+import { TextInput } from "../TextInput/text-input";
+import { ReorderableList } from "./reorderable-list";
+
+<Meta title="Docs/ReorderableList" />
+
+export const meta = {
+  title: "ReorderableList",
+  description:
+    "A vertical list whose rows users rearrange by dragging a handle.",
+  alternativeNames: ["SortableList", "DraggableList", "Reorder"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/ReorderableList/reorderable-list.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-reorderablelist--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul",
+  },
+  related: ["SortMenu"],
+};
+
+export const Column = ({ children }) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+      width: "100%",
+      maxWidth: 560,
+    }}
+  >
+    {children}
+  </div>
+);
+
+export const applyOrder = (rows, orderedIds) =>
+  orderedIds.flatMap((id) => rows.filter((row) => row.id === id));
+
+export const rowNameStyle = {
+  fontSize: 14,
+  fontWeight: 500,
+  flexGrow: 1,
+};
+
+export const heroCode = `import { useState } from "react";
+
+import { ReorderableList } from "@hashintel/ds-components";
+
+const initialProperties = [
+  { id: "full-name", name: "Full name" },
+  { id: "email", name: "Email address" },
+  { id: "website", name: "Website" },
+];
+
+export const VisiblePropertiesList = () => {
+  const [properties, setProperties] = useState(initialProperties);
+
+  return (
+    <ReorderableList
+      aria-label="Visible properties"
+      onChange={(orderedIds) =>
+        setProperties((current) =>
+          orderedIds.flatMap((id) =>
+            current.filter((property) => property.id === id),
+          ),
+        )
+      }
+    >
+      {properties.map((property) => (
+        <ReorderableList.Item
+          key={property.id}
+          id={property.id}
+          label={property.name}
+        >
+          {property.name}
+        </ReorderableList.Item>
+      ))}
+    </ReorderableList>
+  );
+};`;
+
+export const HeroDemo = () => {
+  const [properties, setProperties] = useState([
+    { id: "full-name", name: "Full name" },
+    { id: "email", name: "Email address" },
+    { id: "website", name: "Website" },
+  ]);
+  return (
+    <Column>
+      <ReorderableList
+        aria-label="Visible properties"
+        onChange={(orderedIds) =>
+          setProperties((current) => applyOrder(current, orderedIds))
+        }
+      >
+        {properties.map((property) => (
+          <ReorderableList.Item
+            key={property.id}
+            id={property.id}
+            label={property.name}
+          >
+            <span style={rowNameStyle}>{property.name}</span>
+          </ReorderableList.Item>
+        ))}
+      </ReorderableList>
+    </Column>
+  );
+};
+
+# ReorderableList
+
+A vertical list whose rows users rearrange by dragging a handle.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage code={heroCode}>
+  <HeroDemo />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { ReorderableList } from "@hashintel/ds-components";
+
+export const VisibleColumnsList = ({ columns, onChange }) => (
+  <ReorderableList aria-label="Visible columns" onChange={onChange}>
+    {columns.map((column) => (
+      <ReorderableList.Item
+        key={column.id}
+        id={column.id}
+        label={column.name}
+      >
+        {column.name}
+      </ReorderableList.Item>
+    ))}
+  </ReorderableList>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use ReorderableList for short collections whose order the user chooses and the product preserves — mapping rows, visible columns, pipeline steps.",
+    "Keep rows a single line where possible — compact rows make the drag target obvious and the drop position easy to judge.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use it to order items by a property (name, date, relevance), that's sorting. Use SortMenu or a sortable column header.",
+    "Don't use it to move items between two lists or into groups. It reorders within a single list only.",
+    "Avoid it for lists that scroll several screens. Dragging across them is slow. Consider offering explicit move-to-top/bottom actions.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<ReorderableList onChange={onChange}>
+  <ReorderableList.Item id="row-1" label="Row one">
+    {/* row content */}
+  </ReorderableList.Item>
+</ReorderableList>
+```
+
+Each item renders its drag handle automatically; the item's children fill the
+rest of the row.
+
+## Examples
+
+### Basic
+
+The order is controlled: render the items in your state's order and update
+that state in `onChange`, which receives the full id list in its new order.
+
+<Stage code={heroCode}>
+  <HeroDemo />
+</Stage>
+
+export const DisabledDemo = () => {
+  const [columns, setColumns] = useState([
+    { id: "entity", name: "Entity", pinned: true },
+    { id: "created-at", name: "Created at", pinned: false },
+    { id: "last-edited", name: "Last edited", pinned: false },
+  ]);
+  return (
+    <Column>
+      <ReorderableList aria-label="Data sources" disabled onChange={noop}>
+        <ReorderableList.Item id="google-sheets" label="Google Sheets">
+          <span style={rowNameStyle}>Google Sheets</span>
+        </ReorderableList.Item>
+        <ReorderableList.Item id="postgres" label="Postgres">
+          <span style={rowNameStyle}>Postgres</span>
+        </ReorderableList.Item>
+      </ReorderableList>
+      <ReorderableList
+        aria-label="Table columns"
+        onChange={(orderedIds) =>
+          setColumns((current) => applyOrder(current, orderedIds))
+        }
+      >
+        {columns.map((column) => (
+          <ReorderableList.Item
+            key={column.id}
+            id={column.id}
+            label={column.name}
+            disabled={column.pinned}
+          >
+            <span style={rowNameStyle}>{column.name}</span>
+            {column.pinned ? (
+              <span style={{ fontSize: 14, color: "#91A5BA" }}>Pinned</span>
+            ) : null}
+          </ReorderableList.Item>
+        ))}
+      </ReorderableList>
+    </Column>
+  );
+};
+
+export const disabledCode = `{/* Whole list: no row can move */}
+<ReorderableList aria-label="Data sources" disabled onChange={onChange}>
+  <ReorderableList.Item id="google-sheets" label="Google Sheets">
+    Google Sheets
+  </ReorderableList.Item>
+  <ReorderableList.Item id="postgres" label="Postgres">
+    Postgres
+  </ReorderableList.Item>
+</ReorderableList>
+
+{/* Single item: the pinned row stays put, the rest reorder */}
+<ReorderableList aria-label="Table columns" onChange={onChange}>
+  {columns.map((column) => (
+    <ReorderableList.Item
+      key={column.id}
+      id={column.id}
+      label={column.name}
+      disabled={column.pinned}
+    >
+      {column.name}
+    </ReorderableList.Item>
+  ))}
+</ReorderableList>`;
+
+### Disabled
+
+`disabled` on the list freezes the whole order; `disabled` on a single item
+pins that row while the others still move around it.
+
+<Stage code={disabledCode}>
+  <DisabledDemo />
+</Stage>
+
+export const plainCode = `<ReorderableList
+  variant="plain"
+  aria-label="Sidebar sections"
+  onChange={onChange}
+>
+  {sections.map((section) => (
+    <ReorderableList.Item
+      key={section.id}
+      id={section.id}
+      label={section.name}
+    >
+      {section.name}
+    </ReorderableList.Item>
+  ))}
+</ReorderableList>`;
+
+export const PlainDemo = () => {
+  const [sections, setSections] = useState([
+    { id: "pinned", name: "Pinned" },
+    { id: "recents", name: "Recently visited" },
+    { id: "types", name: "Types" },
+    { id: "flows", name: "Flows" },
+  ]);
+  return (
+    <Column>
+      <ReorderableList
+        variant="plain"
+        aria-label="Sidebar sections"
+        onChange={(orderedIds) =>
+          setSections((current) => applyOrder(current, orderedIds))
+        }
+      >
+        {sections.map((section) => (
+          <ReorderableList.Item
+            key={section.id}
+            id={section.id}
+            label={section.name}
+          >
+            <span style={rowNameStyle}>{section.name}</span>
+          </ReorderableList.Item>
+        ))}
+      </ReorderableList>
+    </Column>
+  );
+};
+
+### Plain variant
+
+`variant="card"` (the default) frames each row; `variant="plain"` drops the
+chrome so your own row design — or bare text — provides the visuals.
+
+<Stage code={plainCode}>
+  <PlainDemo />
+</Stage>
+
+export const rowContentCode = `<ReorderableList
+  aria-label="Output channel mappings"
+  onChange={onChange}
+>
+  {channels.map((channel) => (
+    <ReorderableList.Item
+      key={channel.id}
+      id={channel.id}
+      label={channel.key}
+    >
+      <TextInput
+        value={channel.key}
+        onChange={(key) => updateChannel(channel.id, { key })}
+        size="sm"
+      />
+      <Select
+        items={sourceItems}
+        value={channel.source}
+        onChange={(source) => updateChannel(channel.id, { source })}
+        size="sm"
+      />
+      <span style={{ flexGrow: 1 }} />
+      <Button
+        variant="linkSubtle"
+        tone="neutral"
+        size="sm"
+        iconName="close"
+        aria-label={\`Remove \${channel.key}\`}
+        onClick={() => removeChannel(channel.id)}
+      />
+    </ReorderableList.Item>
+  ))}
+</ReorderableList>`;
+
+export const RowContentDemo = () => {
+  const [channels, setChannels] = useState([
+    { id: "channel-r", key: "r", source: "colour-channel" },
+    { id: "channel-g", key: "g", source: "colour-channel" },
+    { id: "channel-b", key: "b", source: "colour-channel" },
+  ]);
+  const updateChannel = (id, patch) =>
+    setChannels((current) =>
+      current.map((channel) =>
+        channel.id === id ? { ...channel, ...patch } : channel,
+      ),
+    );
+  return (
+    <Column>
+      <ReorderableList
+        aria-label="Output channel mappings"
+        onChange={(orderedIds) =>
+          setChannels((current) => applyOrder(current, orderedIds))
+        }
+      >
+        {channels.map((channel) => (
+          <ReorderableList.Item
+            key={channel.id}
+            id={channel.id}
+            label={channel.key}
+          >
+            <span style={{ width: 120, flexShrink: 0, display: "flex" }}>
+              <TextInput
+                value={channel.key}
+                onChange={(key) => updateChannel(channel.id, { key })}
+                size="sm"
+              />
+            </span>
+            <span style={{ width: 180, flexShrink: 0, display: "flex" }}>
+              <Select
+                items={[
+                  { value: "colour-channel", text: "Colour channel" },
+                  { value: "constant", text: "Constant" },
+                  { value: "expression", text: "Expression" },
+                ]}
+                value={channel.source}
+                onChange={(source) => {
+                  if (source !== null) {
+                    updateChannel(channel.id, { source });
+                  }
+                }}
+                size="sm"
+              />
+            </span>
+            <span style={{ flexGrow: 1 }} />
+            <Button
+              variant="linkSubtle"
+              tone="neutral"
+              size="sm"
+              iconName="close"
+              aria-label={`Remove ${channel.key}`}
+              onClick={noop}
+            />
+          </ReorderableList.Item>
+        ))}
+      </ReorderableList>
+    </Column>
+  );
+};
+
+### Interactive row content
+
+Rows take arbitrary children, and inputs, selects, and buttons inside them
+stay fully usable — dragging only ever starts from the handle.
+
+<Stage code={rowContentCode}>
+  <RowContentDemo />
+</Stage>
+
+## Behavior
+
+- The order is controlled: the list never moves rows itself. Apply the
+  `onChange` results to your state, or the rows spring back on drop.
+- Dragging starts only from the handle and is locked to the list's vertical
+  axis and bounds, so row content keeps its own pointer interactions.
+- Dropping outside a valid position, or pressing Escape mid-drag, cancels the
+  reorder.
+- In a scrollable container, dragging toward an edge scrolls the list.
+
+## Accessibility
+
+Reordering is fully keyboard-operable through the handle, and every pick-up,
+move, and drop is announced to screen readers with the row's position.
+
+### What ReorderableList provides
+
+- Each handle is a real button named "Reorder \{label\}", with instructions
+  for operating it attached via `aria-describedby`.
+- Announcements name rows by `label` and speak positions ("Email address
+  moved to position 2 of 3").
+
+### What you must do
+
+- Write each item's required `label` as a user would name the row (ex: "Email
+  address", not an id).
+- Give the list an `aria-label` (or `aria-labelledby`) describing the
+  collection.
+
+### Keyboard
+
+| Key | Action |
+| --- | --- |
+| <kbd>Tab</kbd> | Focus a row's drag handle |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> | Pick up the row; press again to drop it |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move the picked-up row |
+| <kbd>Esc</kbd> | Cancel and restore the original position |
+
+## API reference
+
+### ReorderableList
+
+<PropsTable
+  of={ReorderableList}
+  defaults={{ variant: '"card"', disabled: "false" }}
+/>
+
+### ReorderableList.Item
+
+<PropsTable of={ReorderableList.Item} />

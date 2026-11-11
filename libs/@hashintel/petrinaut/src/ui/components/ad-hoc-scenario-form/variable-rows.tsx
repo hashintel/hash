@@ -11,7 +11,7 @@
  * worksheet member past the edges.
  */
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -19,18 +19,9 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
-import { adHocVariableKey } from "./dependency-highlight";
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
 import {
-  AdHocFormContext,
-  adHocIntervalSelection,
-  adHocSelectionApplies,
-  adHocSelectionText,
-} from "./form-context";
-import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
-import {
-  cellButtonStyle,
   cellErrorUnderlineStyle,
-  cellInputStyle,
   cellSelectStyle,
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
@@ -39,10 +30,18 @@ import {
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
-} from "./spreadsheet/form-table";
-import { GutterCell } from "./spreadsheet/gutter-cell";
-import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
-import { PhantomLine } from "./spreadsheet/phantom-line";
+} from "../spreadsheet-kit/form-table";
+import { GutterCell } from "../spreadsheet-kit/gutter-cell";
+import { OptimizeToggle } from "../spreadsheet-kit/optimize-toggle";
+import { PhantomLine } from "../spreadsheet-kit/phantom-line";
+import { TextCell } from "../spreadsheet-kit/text-cell";
+import { adHocVariableKey } from "./dependency-highlight";
+import {
+  AdHocFormContext,
+  adHocIntervalSelection,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
@@ -72,133 +71,6 @@ const exposeCellStyle = css({
   paddingX: "1",
   textAlign: "center",
 });
-
-const nameButtonHeightStyle = css({
-  height: "[28px]",
-});
-
-interface NameCellProps {
-  value: string;
-  ariaLabel: string;
-  error: string | undefined;
-  /** Enters edit mode when this becomes a fresh non-zero nonce. */
-  autoEdit: number;
-  onChange: (name: string) => void;
-  /** The row holds focus (name cell focused or in edit). */
-  onFocusChange: (focused: boolean) => void;
-  cellRef: (element: HTMLElement | null) => void;
-  onCellKeyDown: React.KeyboardEventHandler;
-}
-
-/**
- * The variable-name cell, with the same selection model as the value cells:
- * a pointer click selects, a second click (or a double-click, or Enter)
- * edits, and Enter or Escape leaves the edit back to the selected cell.
- */
-const NameCell: React.FC<NameCellProps> = ({
-  value,
-  ariaLabel,
-  error,
-  autoEdit,
-  onChange,
-  onFocusChange,
-  cellRef,
-  onCellKeyDown,
-}) => {
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const activation = useSelectFirstActivation();
-  const [editing, setEditing] = useState(autoEdit > 0);
-  const [seenAutoEdit, setSeenAutoEdit] = useState(autoEdit);
-  if (autoEdit !== seenAutoEdit) {
-    setSeenAutoEdit(autoEdit);
-    if (autoEdit > 0) {
-      setEditing(true);
-    }
-  }
-
-  const closeEdit = () => {
-    setEditing(false);
-    setTimeout(() => buttonRef.current?.focus(), 0);
-  };
-
-  // Escape leaves the edit. Handled natively at window capture, because the
-  // form root swallows in-form Escapes there (to spare the host drawer)
-  // before React's delegated handlers would run; registered while editing —
-  // after the root's listener — so it still sees the swallowed event.
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    if (!editing) {
-      return;
-    }
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && event.target === inputRef.current) {
-        setEditing(false);
-        setTimeout(() => buttonRef.current?.focus(), 0);
-      }
-    };
-    window.addEventListener("keydown", onEscape, true);
-    return () => window.removeEventListener("keydown", onEscape, true);
-  }, [editing]);
-
-  if (editing) {
-    return (
-      <input
-        ref={(element) => {
-          inputRef.current = element;
-          cellRef(element);
-        }}
-        className={cellInputStyle}
-        aria-label={ariaLabel}
-        title={error}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            closeEdit();
-            return;
-          }
-          onCellKeyDown(event);
-        }}
-        onBlur={() => {
-          setEditing(false);
-          onFocusChange(false);
-        }}
-        onFocus={(event) => {
-          event.target.select();
-          onFocusChange(true);
-        }}
-        // eslint-disable-next-line jsx-a11y/no-autofocus -- entering edit mode is an explicit intent
-        autoFocus
-      />
-    );
-  }
-
-  return (
-    <button
-      ref={(element) => {
-        buttonRef.current = element;
-        cellRef(element);
-      }}
-      type="button"
-      className={cx(cellButtonStyle, nameButtonHeightStyle)}
-      aria-label={ariaLabel}
-      title={error}
-      onFocus={() => onFocusChange(true)}
-      onBlur={() => onFocusChange(false)}
-      onPointerDown={activation.onPointerDown}
-      onClick={(event) => {
-        if (activation.shouldActivate(event)) {
-          setEditing(true);
-        }
-      }}
-      onKeyDown={onCellKeyDown}
-    >
-      <span>{value}</span>
-    </button>
-  );
-};
 
 export interface VariableRowsProps {
   scopeLabel: string;
@@ -367,7 +239,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   rowHighlight,
                 )}
               >
-                <NameCell
+                <TextCell
                   value={variable.name}
                   ariaLabel={`Name of variable ${index + 1} (${scopeLabel})`}
                   error={nameError}

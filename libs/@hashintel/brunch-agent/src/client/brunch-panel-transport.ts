@@ -24,6 +24,7 @@ import type {
 import type {
   BrowserContext,
   InterviewBudgetLevel,
+  VersionLoad,
 } from "@hashintel/brunch-agent";
 import type {
   FlueChatResponseMessageCompletedEvent,
@@ -363,6 +364,8 @@ export const createBrunchPanelTransport = (
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
     /** The host's canonical count, shared with the estimate above the composer. */
     readonly interviewRepliesAsked?: number;
+    /** The host's latest version load, sent with every message while it stands. */
+    readonly versionLoad?: VersionLoad;
     readonly onAdmission?: (admission: AgentSendResult) => void;
     /**
      * The user sent a turn of their own, typed or of comments: called once its
@@ -400,6 +403,9 @@ export const createBrunchPanelTransport = (
         const submissionContext = petrinautSubmissionContext({
           ...(budget === undefined ? {} : { interviewBudget: budget }),
           words,
+          ...(options?.versionLoad === undefined
+            ? {}
+            : { versionLoad: options.versionLoad }),
         });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter

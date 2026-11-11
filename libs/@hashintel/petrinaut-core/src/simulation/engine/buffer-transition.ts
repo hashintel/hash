@@ -44,6 +44,22 @@ export function fillPlaceBases(
 }
 
 /**
+ * Fills `inputCounts` with the live token count of each input arc's place,
+ * in arc order — the emitter's `inputCounts[arc]` reads for
+ * `input.<name>.count`. Runs once per transition evaluation: a count is the
+ * same for every token combination.
+ */
+export function fillInputCounts(
+  inputCounts: Float64Array,
+  places: readonly { count: number }[],
+): void {
+  for (const [arcIndex, place] of places.entries()) {
+    // eslint-disable-next-line no-param-reassign -- writes into the reusable scratch buffer
+    inputCounts[arcIndex] = place.count;
+  }
+}
+
+/**
  * Flattens one enumerated combination's selected token indices into the
  * reusable `indices` array, in slot order (per colored non-inhibitor input
  * arc, `weight` slots each). Returns `false` on slot-count mismatch (stale
@@ -134,6 +150,7 @@ export function executeBufferKernel(args: {
     kernelStagingViews.u64,
     kernelStagingViews.u8,
     sink,
+    transition.inputCounts,
   );
 
   const add: Record<string, Uint8Array[]> = {};

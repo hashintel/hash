@@ -36,7 +36,7 @@ const sdcpn = {
       name: "Source",
       colorId: "order",
       dynamicsEnabled: true,
-      differentialEquationId: "dyn",
+      dynamics: [{ differentialEquationId: "dyn" }],
       x: 0,
       y: 0,
     },
@@ -45,7 +45,6 @@ const sdcpn = {
       name: "Target",
       colorId: "order",
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 100,
       y: 0,
     },
@@ -76,11 +75,10 @@ const sdcpn = {
       id: "dyn",
       name: "Drift",
       colorId: "order",
-      code: `export default Dynamics((tokens, parameters) =>
-  tokens.map(({ x, active }) => ({
-    x: active ? parameters.speed * x : 0,
-  }))
-);`,
+      arity: 1,
+      code: `export default Dynamics(({ x, active }, parameters) => ({
+  x: active ? parameters.speed * x : 0,
+}));`,
     },
   ],
   parameters: [
@@ -163,15 +161,16 @@ describe("compileHirArtifacts", () => {
     }).toMatchInlineSnapshot(`
       {
         "dynamics": {
+          "arity": 1,
           "source": "(placeBytes, numberOfTokens) => {
         "use strict";
         const f64 = new Float64Array(placeBytes.buffer, placeBytes.byteOffset, placeBytes.byteLength >> 3);
         const u64 = new BigUint64Array(placeBytes.buffer, placeBytes.byteOffset, placeBytes.byteLength >> 3);
         const u8 = placeBytes;
         const out = new Float64Array(numberOfTokens * 1);
-        for (let __i = 0; __i < numberOfTokens; __i++) {
-          const __b = __i * 24;
-          out[__i * 1 + 0] = ((u8[__b + 16] !== 0) ? (__params["speed"] * f64[(__b) >> 3]) : 0);
+        for (let __i0 = 0; __i0 < numberOfTokens; __i0++) {
+          const __b0 = __i0 * 24;
+          out[__i0 * 1 + 0] += ((u8[__b0 + 16] !== 0) ? (__params["speed"] * f64[(__b0) >> 3]) : 0);
         }
         return out;
       }",
@@ -179,7 +178,7 @@ describe("compileHirArtifacts", () => {
         "kernel": {
           "inputSlotCount": 1,
           "outputByteCount": 24,
-          "source": "(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink) => {
+          "source": "(f64, u64, u8, placeBases, indices, outF64, outU64, outU8, __sink, inputCounts) => {
         outF64[0] = (f64[(placeBases[0] + indices[0] * 24) >> 3] + __params["bump"]);
         outU8[16] = (false) ? 1 : 0;
         outU64[1] = BigInt(__pool.intern("done"));
@@ -187,7 +186,7 @@ describe("compileHirArtifacts", () => {
         },
         "lambda": {
           "inputSlotCount": 1,
-          "source": "(f64, u64, u8, placeBases, indices) => {
+          "source": "(f64, u64, u8, placeBases, indices, inputCounts) => {
         return ((u8[placeBases[0] + indices[0] * 24 + 16] !== 0) && (f64[(placeBases[0] + indices[0] * 24) >> 3] >= __params["threshold"]));
       }",
         },
@@ -239,9 +238,16 @@ describe("compileHirArtifacts", () => {
       { x: 4, active: false, status: "queued" },
     ]) {
       const views = packToken(token, pool);
-      expect(buffer(views.f64, views.u64, views.u8, placeBases, indices)).toBe(
-        reference({ Source: [token] }, parameters),
-      );
+      expect(
+        buffer(
+          views.f64,
+          views.u64,
+          views.u8,
+          placeBases,
+          indices,
+          new Float64Array(1),
+        ),
+      ).toBe(reference({ Source: [token] }, parameters));
     }
   });
 });

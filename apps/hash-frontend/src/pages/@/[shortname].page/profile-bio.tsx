@@ -187,7 +187,7 @@ export const ProfileBio: FunctionComponent<{
       >
         {profile.hasBio && profileBioContents && (isEditing || !isBioEmpty) ? (
           <BlockLoadedProvider>
-            <UserBlocksProvider value={{}}>
+            <UserBlocksProvider>
               <Box
                 sx={{
                   flexGrow: 1,

@@ -1,20 +1,26 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { Form, Icon, TextInput } from "@hashintel/ds-components";
+import { Button, Form, Icon, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
+import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { getNameLabel } from "./shared/name-label";
 import { getStepDisplay, startDisplay } from "./shared/step-display";
 import { getFieldProblems } from "./step-panel/field-problems";
+import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
-import { getActionDefinition } from "./step-panel/input-sources";
+import {
+  getActionDefinition,
+  getNewFlowInput,
+} from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
 import { findStep } from "./step-panel/shared/find-step";
 import { UsedByField } from "./step-panel/used-by-field";
 import { indexValueUses } from "./step-panel/value-uses";
 
 import type { IconName } from "@hashintel/ds-components";
+import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
   FlowEditor,
   FlowEditorState,
@@ -73,6 +79,7 @@ const heading = css({
 const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
 const section = css({ display: "flex", flexDirection: "column", gap: "2" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
+const addInputButton = css({ alignSelf: "flex-start" });
 
 const PanelHeader = ({
   icon,
@@ -107,13 +114,25 @@ const PanelSection = ({
   </section>
 );
 
+/** What "Add input" adds: a required text input, which any step input that takes text can use. */
+const newInputTarget: ConnectionTarget = {
+  oneOfPayloadKinds: ["Text"],
+  array: false,
+  required: true,
+};
+
 const StartPanel = ({
+  editor,
   flowDefinition,
   stepsUsing,
 }: {
+  editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   stepsUsing: StepsUsing;
 }) => {
+  /* The input "Add input" added last, whose label is ready to type in. */
+  const [addedName, setAddedName] = useState<string | null>(null);
+
   /* Names should be unique, but a loaded flow may repeat one (reported as `duplicateInputName`), so a repeat is
    * keyed by how many times its name came before. */
   const timesSeen = new Map<string, number>();
@@ -127,28 +146,44 @@ const StartPanel = ({
     };
   });
 
+  const addInput = () => {
+    const input = getNewFlowInput({
+      flowDefinition,
+      inputName: "newInput",
+      target: newInputTarget,
+    });
+
+    if (input) {
+      editor.addFlowInput(input);
+      setAddedName(input.name);
+    }
+  };
+
   return (
     <aside className={panel} aria-label="Start">
       <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
         <span className={fixedDescription}>{startDisplay.description}</span>
       </PanelHeader>
       <PanelSection title="Inputs">
-        {inputs.length === 0 ? (
-          <span className={empty}>No inputs yet</span>
-        ) : (
-          <Form.Section>
-            {inputs.map(
-              ({ input: { name, label, payloadKind, array }, key }) => (
-                <UsedByField
-                  key={key}
-                  name={label ?? getNameLabel(name)}
-                  shape={{ payloadKind, array }}
-                  usedBy={stepsUsing({ kind: "flow-input", inputName: name })}
-                />
-              ),
-            )}
-          </Form.Section>
-        )}
+        {inputs.length === 0 && <span className={empty}>No inputs yet</span>}
+        {inputs.map(({ input, key }) => (
+          <FlowInputCard
+            key={key}
+            editor={editor}
+            input={input}
+            usedBy={stepsUsing({ kind: "flow-input", inputName: input.name })}
+            autoFocus={input.name === addedName}
+          />
+        ))}
+        <Button
+          variant="subtle"
+          size="sm"
+          iconName="plus"
+          className={addInputButton}
+          onClick={addInput}
+        >
+          Add input
+        </Button>
       </PanelSection>
     </aside>
   );
@@ -179,10 +214,22 @@ const SelectedStepPanel = ({
       : undefined;
   const shapes = createStepShapeResolver(flowDefinition);
 
-  const outputNames =
-    step.kind === "for-each"
-      ? [step.collect.as]
-      : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
+  /* Which outputs can be flow outputs is checked once per edit, as the editor checks the definition, not per render. */
+  const { outputNames, availableToFlow } = useMemo(() => {
+    const names =
+      step.kind === "for-each"
+        ? [step.collect.as]
+        : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
+
+    return {
+      outputNames: names,
+      availableToFlow: getOutputsAvailableToFlow(
+        flowDefinition,
+        step.stepId,
+        names,
+      ),
+    };
+  }, [actionDefinition, flowDefinition, step]);
 
   const { byInputName, stepProblems } = getFieldProblems(
     problemsByStepId.get(step.stepId) ?? [],
@@ -238,18 +285,38 @@ const SelectedStepPanel = ({
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
           <Form.Section>
-            {outputNames.map((outputName) => (
-              <UsedByField
-                key={outputName}
-                name={getNameLabel(outputName)}
-                shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                usedBy={stepsUsing({
-                  kind: "step-output",
-                  stepId: step.stepId,
-                  outputName,
-                })}
-              />
-            ))}
+            {outputNames.map((outputName) => {
+              const marked = flowDefinition.outputs.some(
+                (output) =>
+                  output.stepId === step.stepId &&
+                  output.outputName === outputName,
+              );
+
+              return (
+                <UsedByField
+                  key={outputName}
+                  name={getNameLabel(outputName)}
+                  shape={shapes.getStepOutputShape(step.stepId, outputName)}
+                  usedBy={stepsUsing({
+                    kind: "step-output",
+                    stepId: step.stepId,
+                    outputName,
+                  })}
+                  /* One that's marked but isn't available, e.g. inside a for-each step, can still be unmarked. */
+                  flowOutput={
+                    marked || availableToFlow.includes(outputName)
+                      ? {
+                          marked,
+                          onToggle: () =>
+                            marked
+                              ? editor.unmarkFlowOutput(step.stepId, outputName)
+                              : editor.markFlowOutput(step.stepId, outputName),
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
           </Form.Section>
         </PanelSection>
       )}
@@ -278,7 +345,11 @@ export const StepPanel = ({
 
   if ("start" in subject) {
     return (
-      <StartPanel flowDefinition={flowDefinition} stepsUsing={stepsUsing} />
+      <StartPanel
+        editor={editor}
+        flowDefinition={flowDefinition}
+        stepsUsing={stepsUsing}
+      />
     );
   }
 

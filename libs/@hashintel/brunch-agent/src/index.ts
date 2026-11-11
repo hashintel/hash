@@ -16,6 +16,39 @@ export {
 } from "./constants";
 export * from "./conversation-identity";
 export * from "./client-tools";
+export {
+  hashEntityReadDefaultTraversalDepth,
+  vHashEntityReadInput,
+  hashEntityReadMaxTraversalDepth,
+  vHashEntityReadResult,
+  vHashEntityTypeReadInput,
+  vHashEntityTypeReadResult,
+  vHashReadFailure,
+  vHashWebReadInput,
+  vHashWebReadResult,
+  parseHashEntityReadInput,
+  parseHashEntityTypeReadInput,
+  parseHashWebReadInput,
+  type HashEntityReadInput,
+  type HashEntityReadResult,
+  type HashEntityTypeReadInput,
+  type HashEntityTypeReadResult,
+  type HashReadFailure,
+  type HashWebReadResult,
+} from "./hash/graph-reads";
+export {
+  vHashSaveInput,
+  parseHashSaveInput,
+  parseHashSaveOutcome,
+  type HashSaveOutcome,
+} from "./hash/save";
+export {
+  hashPetrinautPrimaryOperation,
+  hashPetrinautTools,
+  hashProcessEditorId,
+  isHashPetrinautToolName,
+  type HashPetrinautToolName,
+} from "./hash/petrinaut-tools";
 export * from "./ledger";
 export {
   canonicalContent,
@@ -23,9 +56,10 @@ export {
   type ClientToolResultMetadata,
 } from "./petrinaut/browser-metadata";
 export {
-  browserExecutedToolInputSchemas,
   browserExecutedToolNames,
-  browserNetToolNames,
+  browserToolFacts,
+  canonicalCallsOf,
+  type CanonicalPetrinautCall,
 } from "./petrinaut/browser-executed-tools";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
@@ -40,11 +74,11 @@ export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,
   type PetrinautSubmissionContext,
+  type VersionLoad,
 } from "./petrinaut/submission-context";
 export {
-  isNetObservationTool,
   netReaderDescriptions,
-  netReaderInputSchema,
+  vNetReaderInput,
   netReaderToolNames,
   parseNetReaderInput,
   netStructureOf,
@@ -60,20 +94,18 @@ export {
   type ArcElement,
 } from "./petrinaut/net-element-ids";
 export {
-  browserToolMutatesDocument,
   netElementKinds,
-  petrinautToolTargets,
   petrinautToolEffects,
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";
 export {
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
   type BrowserContext,
   type SdcpnInitialData,
 } from "./petrinaut/initial-data";
 export {
-  draftPetrinautExperimentInputSchema,
-  draftPetrinautExperimentOutputSchema,
+  zDraftPetrinautExperimentInput,
+  zDraftPetrinautExperimentOutput,
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";

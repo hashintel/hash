@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
@@ -31,7 +31,6 @@ import {
   type PromptChip,
 } from "./ai-assistant-contents/prompt-chips";
 import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
-import { StockTranscript } from "./ai-assistant-contents/stock-transcript";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
 import { useAiAssistantEditorApi } from "./editor-api";
@@ -59,7 +58,6 @@ export type AiAssistantContentsProps = {
   onHostTabSelectedChange?: (selected: boolean) => void;
   primaryAttention?: boolean;
   primaryLabel?: string;
-  presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
   renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   hiddenToolNames?: ReadonlySet<string>;
@@ -129,23 +127,16 @@ const headerButtonStyle = css({
   },
 });
 
-const messagesStyle = cva({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "3",
-    flex: "[1]",
-    minHeight: "[0]",
-    overflowY: "auto",
-    padding: "3",
-    overscrollBehavior: "contain",
-  },
-  variants: {
-    presentation: {
-      stock: {},
-      brunch: { paddingBottom: "4" },
-    },
-  },
+const messagesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  flex: "[1]",
+  minHeight: "[0]",
+  overflowY: "auto",
+  padding: "3",
+  paddingBottom: "4",
+  overscrollBehavior: "contain",
 });
 
 const emptyStyle = css({
@@ -162,17 +153,6 @@ const emptyStyle = css({
   fontWeight: "medium",
   lineHeight: "[20px]",
   padding: "[20px]",
-});
-
-const workingStatusStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  alignSelf: "flex-start",
-  paddingX: "2",
-  color: "neutral.s80",
-  fontSize: "sm",
-  fontWeight: "medium",
 });
 
 const composerWrapStyle = css({
@@ -251,11 +231,7 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
 export const getTranscriptLabel = (
   primaryLabel: string | undefined,
   inputMode: PetrinautAiInputMode,
-  presentation: NonNullable<PetrinautAiAssistant["presentation"]> = "stock",
-) =>
-  presentation === "brunch" && inputMode === "voice"
-    ? "Voice"
-    : (primaryLabel ?? "AI");
+) => (inputMode === "voice" ? "Voice" : (primaryLabel ?? "AI"));
 
 /** `alerts` with `message` appended, unless it is already there. */
 const withVoiceAlert = (alerts: string[], message: string): string[] =>
@@ -295,7 +271,6 @@ export const AiAssistantContents = ({
   onSubmit,
   promptChips,
   primaryLabel,
-  presentation = "stock",
   primaryAttention = false,
   status,
   stopped = false,
@@ -318,14 +293,9 @@ export const AiAssistantContents = ({
   const voiceSessionWarningMessage = useVoiceSessionWarningMessage();
   const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
-  const isBrunchChat = presentation === "brunch";
   // Brunch's host tab (the Ledger) is for review: composing stays in Chat.
-  const reviewingHostTab = isBrunchChat && showingHostTab;
-  const transcriptLabel = getTranscriptLabel(
-    primaryLabel,
-    inputMode,
-    presentation,
-  );
+  const reviewingHostTab = showingHostTab;
+  const transcriptLabel = getTranscriptLabel(primaryLabel, inputMode);
   const awaitingDecision =
     !stopped &&
     messages.some(
@@ -344,13 +314,11 @@ export const AiAssistantContents = ({
     Object.values(experimentStates ?? {}).some(
       (experimentState) => experimentState.active,
     );
-  const composerHint = isBrunchChat
-    ? awaitingDecision
-      ? "Waiting for your decision"
-      : experimentRunning
-        ? "Experiment running"
-        : undefined
-    : undefined;
+  const composerHint = awaitingDecision
+    ? "Waiting for your decision"
+    : experimentRunning
+      ? "Experiment running"
+      : undefined;
 
   const voiceDockRef = useRef<HTMLDivElement>(null);
   // The plugin panel owns placement, width and resizing.
@@ -434,8 +402,6 @@ export const AiAssistantContents = ({
     }
     distanceFromEndRef.current =
       node.scrollHeight - node.scrollTop - node.clientHeight;
-    // The stock transcript always follows new output.
-    if (!isBrunchChat) return;
     // The smooth follow scroll only moves down, and can trail an end that
     // grows mid-animation; only the reader moving up stops following.
     if (distanceFromEndRef.current <= 96) {
@@ -461,8 +427,7 @@ export const AiAssistantContents = ({
     onSendPrompt !== undefined &&
     promptChips !== undefined &&
     promptChips.length > 0;
-  const suppressChips =
-    isBrunchChat && (isBusy || experimentRunning || awaitingDecision);
+  const suppressChips = isBusy || experimentRunning || awaitingDecision;
 
   const onRetryMessage = (messageId: string) => {
     if (isBusy || voiceHandoffPending) return;
@@ -588,25 +553,24 @@ export const AiAssistantContents = ({
               {
                 id: aiTabId,
                 title: transcriptLabel,
-                mark: isBrunchChat ? (
+                mark:
                   inputMode === "voice" ? (
                     <AiVoiceModeIcon size={12} />
                   ) : (
                     <ChatTabMark />
-                  )
-                ) : undefined,
+                  ),
                 attention: { marker: primaryAttention },
               },
               {
                 id: hostTabId,
                 title: additionalTab.label,
-                mark: isBrunchChat ? <Icon name="bars" size="xs" /> : undefined,
+                mark: <Icon name="bars" size="xs" />,
                 attention: { count: hostAttentionCount },
               },
             ]}
             activeTabId={showingHostTab ? hostTabId : aiTabId}
             announcement={attentionAnnouncement}
-            styleVariant={isBrunchChat ? "pill" : "default"}
+            styleVariant="pill"
             onTabChange={(tabId) => {
               const selected = tabId === hostTabId;
               setInternalHostTabSelected(selected);
@@ -625,7 +589,7 @@ export const AiAssistantContents = ({
           role={additionalTab ? "tabpanel" : undefined}
           aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
           hidden={showingHostTab}
-          className={`${messagesStyle({ presentation })} ${panelContentStyle({
+          className={`${messagesStyle} ${panelContentStyle({
             visible: !showingHostTab,
           })}`}
           data-testid="ai-transcript"
@@ -635,32 +599,20 @@ export const AiAssistantContents = ({
           {messages.length === 0 && (
             <div className={emptyStyle}>
               <AiAssistantIcon size={28} />
-              <div>
-                Ask AI to create a Petri net, explain or revise the current
-                model.
-              </div>
+              <div>Describe your process, or ask about the current model.</div>
             </div>
           )}
-          {isBrunchChat ? (
-            <BrunchTranscript
-              {...transcriptProps}
-              stopped={stopped}
-              noReply={noReply}
-              busy={isBusy}
-              canRetry={
-                onRetryPrompt !== undefined && !isBusy && !voiceHandoffPending
-              }
-              renderSystemMessage={renderSystemMessage}
-              voice={inputMode === "voice"}
-            />
-          ) : (
-            <StockTranscript
-              {...transcriptProps}
-              stopped={stopped && !error}
-              noReply={noReply}
-              busy={isBusy}
-            />
-          )}
+          <BrunchTranscript
+            {...transcriptProps}
+            stopped={stopped}
+            noReply={noReply}
+            busy={isBusy}
+            canRetry={
+              onRetryPrompt !== undefined && !isBusy && !voiceHandoffPending
+            }
+            renderSystemMessage={renderSystemMessage}
+            voice={inputMode === "voice"}
+          />
         </div>
 
         {additionalTab && (
@@ -669,7 +621,7 @@ export const AiAssistantContents = ({
             role="tabpanel"
             aria-labelledby={`tab-${hostTabId}`}
             hidden={!showingHostTab}
-            className={`${messagesStyle({ presentation })} ${panelContentStyle({
+            className={`${messagesStyle} ${panelContentStyle({
               visible: showingHostTab,
             })}`}
           >
@@ -677,20 +629,8 @@ export const AiAssistantContents = ({
           </div>
         )}
 
-        {isBrunchChat && showingHostTab && (
+        {showingHostTab && (
           <BrunchResponseStatus busy={isBusy} workingLabel={workingLabel} />
-        )}
-
-        {!isBrunchChat && isBusy && workingLabel && (
-          <div
-            className={workingStatusStyle}
-            role="status"
-            aria-live="polite"
-            data-testid="ai-working-status"
-          >
-            <LoadingSpinner aria-hidden="true" size="xs" variant="bars" />
-            <span>{workingLabel}</span>
-          </div>
         )}
 
         {voiceMode && (
@@ -720,11 +660,10 @@ export const AiAssistantContents = ({
               {showChips && (
                 <div
                   className={css({
-                    display: "contents",
-                    '&[data-brunch="true"]': { display: "block" },
+                    display: "block",
                     '&[data-suppressed="true"]': { visibility: "hidden" },
                   })}
-                  data-brunch={isBrunchChat || undefined}
+                  data-brunch
                   data-suppressed={suppressChips || undefined}
                   aria-hidden={suppressChips || undefined}
                   inert={suppressChips}
@@ -734,7 +673,6 @@ export const AiAssistantContents = ({
                     disabled={isBusy}
                     onDismiss={() => setChipsDismissed(true)}
                     onSelect={(prompt) => onSendPrompt(prompt)}
-                    presentation={presentation}
                   />
                 </div>
               )}
@@ -742,7 +680,6 @@ export const AiAssistantContents = ({
                 busy={isBusy}
                 control={composerControl}
                 disabled={voiceHandoffPending}
-                hasHistory={messages.length > 0}
                 hint={composerHint}
                 input={input}
                 inputRef={inputRef}
@@ -751,7 +688,6 @@ export const AiAssistantContents = ({
                 onInputModeChange={onInputModeChange}
                 onStop={onStop}
                 onSubmit={onSubmit}
-                presentation={presentation}
                 textEntry={!reviewingHostTab}
                 voiceModeAvailable={voiceModeAvailable}
               />

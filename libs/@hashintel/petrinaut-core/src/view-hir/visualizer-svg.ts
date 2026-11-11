@@ -69,7 +69,8 @@ export const parseVisualizerSvgOptions = (
           return {
             ok: false,
             attribute,
-            message: "Background color cannot reference a remote URL.",
+            message:
+              "Background color contains unsupported CSS or an external resource.",
           };
         }
         options.backgroundColor = value;

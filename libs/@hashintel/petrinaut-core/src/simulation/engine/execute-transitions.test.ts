@@ -54,7 +54,6 @@ function makePlace(id: string, name: string, colorId: string | null): Place {
     name,
     colorId,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   };

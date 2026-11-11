@@ -78,8 +78,9 @@ export type CompiledTransition = {
    * so the enablement check costs nothing for nets that do not use capacities.
    */
   capacityConstraints: readonly TransitionCapacityConstraint[];
-  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
-   * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
+  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices, inputCounts) =>
+   * number | boolean` (token format v2 packed structs); parameters/pool
+   * pre-bound. */
   lambdaFn: HirCompiledBufferLambda;
   /**
    * The lambda's result cannot depend on which tokens a combination selects —
@@ -98,6 +99,9 @@ export type CompiledTransition = {
   /** Reusable scratch: one selected token index per input token slot (sum of
    * those arcs' weights — see `hir/surface-context.ts` slot layout). */
   indices: Int32Array;
+  /** Reusable scratch: the live token count of each input arc's place, in
+   * `inputPlaces` order, read by `input.<name>.count`. */
+  inputCounts: Float64Array;
   /** Reusable kernel output staging: colored output arcs place-major, tokens
    * back-to-back (`strideBytes` each). */
   kernelStaging: Uint8Array;

@@ -29,7 +29,7 @@ const fullNet: SDCPN = {
       name: "Place1",
       colorId: "c1",
       dynamicsEnabled: true,
-      differentialEquationId: "de1",
+      dynamics: [{ differentialEquationId: "de1" }],
       x: 10,
       y: 20,
     },
@@ -38,7 +38,6 @@ const fullNet: SDCPN = {
       name: "Place2",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 30,
       y: 40,
     },
@@ -66,7 +65,7 @@ const fullNet: SDCPN = {
     },
   ],
   differentialEquations: [
-    { id: "de1", name: "Equation1", colorId: "c1", code: "dx = -x;" },
+    { arity: 1, id: "de1", name: "Equation1", colorId: "c1", code: "dx = -x;" },
   ],
   parameters: [
     {
@@ -309,7 +308,6 @@ describe("parseClipboardPayload", () => {
             name: "Place 1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -350,7 +348,6 @@ describe("parseClipboardPayload", () => {
             name: "Place 1",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },

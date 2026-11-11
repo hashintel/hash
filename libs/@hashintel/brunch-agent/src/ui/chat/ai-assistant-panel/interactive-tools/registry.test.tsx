@@ -5,7 +5,7 @@ import { getInteractiveTool, resolveDynamicInteractiveTool } from "./registry";
 
 const hostTool = definePetrinautAiInteractiveTool({
   toolName: "confirmRelease",
-  inputSchema: {
+  inputParser: {
     parse: (raw: unknown) => {
       if (
         typeof raw !== "object" ||
@@ -17,7 +17,7 @@ const hostTool = definePetrinautAiInteractiveTool({
       return raw as { question: string };
     },
   },
-  outputSchema: {
+  outputParser: {
     parse: (raw: unknown) => raw as { approved: boolean },
   },
   component: () => null,
@@ -34,8 +34,8 @@ describe("interactive tool registry", () => {
     const parse = vi.fn((input: unknown) => input);
     const conditional = definePetrinautAiInteractiveTool({
       toolName: "mutate",
-      inputSchema: { parse },
-      outputSchema: { parse: (output: unknown) => output },
+      inputParser: { parse },
+      outputParser: { parse: (output: unknown) => output },
       shouldHandle: ({ toolCallId }) => toolCallId === "mutate-call",
       component: () => null,
     });
@@ -55,8 +55,8 @@ describe("interactive tool registry", () => {
   test("lets a host predicate tell apart calls with identical inputs", () => {
     const waiting = definePetrinautAiInteractiveTool({
       toolName: "mutate",
-      inputSchema: { parse: (input: unknown) => input },
-      outputSchema: { parse: (output: unknown) => output },
+      inputParser: { parse: (input: unknown) => input },
+      outputParser: { parse: (output: unknown) => output },
       shouldHandle: ({ toolCallId }) => toolCallId === "waiting",
       component: () => null,
     });
@@ -76,12 +76,12 @@ describe("interactive tool registry", () => {
   test("validates selected calls when resolving them, not during lookup", () => {
     const conditional = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (): { question: string } => {
           throw new Error("Expected a question");
         },
       },
-      outputSchema: { parse: (output: unknown) => output },
+      outputParser: { parse: (output: unknown) => output },
       shouldHandle: () => true,
       component: () => null,
     });
@@ -113,7 +113,7 @@ describe("interactive tool registry", () => {
   test("validates composer text mappings against the tool schemas", () => {
     const mappedTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => {
           if (
             typeof raw !== "object" ||
@@ -125,7 +125,7 @@ describe("interactive tool registry", () => {
           return raw as { question: string };
         },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => {
           if (
             typeof raw !== "object" ||
@@ -159,8 +159,8 @@ describe("interactive tool registry", () => {
 
     const invalidOutputTool = definePetrinautAiInteractiveTool({
       toolName: "invalidAnswer",
-      inputSchema: { parse: () => ({ question: "Question" }) },
-      outputSchema: {
+      inputParser: { parse: () => ({ question: "Question" }) },
+      outputParser: {
         parse: () => {
           throw new Error("Expected an answer");
         },
@@ -198,8 +198,8 @@ describe("interactive tool registry", () => {
   test("reports a registered host tool that declines a call as declined", () => {
     const declining = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: (input: unknown) => input },
-      outputSchema: { parse: (output: unknown) => output },
+      inputParser: { parse: (input: unknown) => input },
+      outputParser: { parse: (output: unknown) => output },
       shouldHandle: () => false,
       component: () => null,
     });
@@ -228,8 +228,8 @@ describe("interactive tool registry", () => {
   test("fails loudly when a host conflicts with a built-in tool", () => {
     const conflictingTool = definePetrinautAiInteractiveTool({
       toolName: "applyAutoLayout",
-      inputSchema: { parse: vi.fn((raw: unknown) => raw) },
-      outputSchema: { parse: vi.fn((raw: unknown) => raw) },
+      inputParser: { parse: vi.fn((raw: unknown) => raw) },
+      outputParser: { parse: vi.fn((raw: unknown) => raw) },
       component: () => null,
     });
 

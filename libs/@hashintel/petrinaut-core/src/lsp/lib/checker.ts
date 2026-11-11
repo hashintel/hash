@@ -105,7 +105,7 @@ export function checkSDCPN(
     const allDiagnostics = collectItemDiagnostics(
       server,
       filePath,
-      de.colorId ? buildDynamicsContext(sdcpn, de.colorId, extensions) : null,
+      buildDynamicsContext(sdcpn, de, extensions),
     );
 
     if (allDiagnostics.length > 0) {

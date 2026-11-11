@@ -126,7 +126,6 @@ const ToolItem = ({
     return (
       <InteractiveToolItem
         onInteractiveToolSubmit={onInteractiveToolSubmit}
-        presentation="brunch"
         tool={tool}
       />
     );
