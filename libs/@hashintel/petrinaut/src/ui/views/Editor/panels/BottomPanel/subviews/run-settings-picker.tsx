@@ -108,8 +108,10 @@ const STEP_BY_STEP = "Step by step";
  * nothing in the panel moves. While a simulation exists the mode is locked
  * and the popover is read, not edited.
  *
- * A Quick Simulation of an untimed net is stepped, not simulated over time,
- * so the trigger says so in place of the simulator and its values.
+ * An untimed net is stepped, not simulated over time. A Quick simulation
+ * of one uses no simulator, so the trigger says Step by step in its place.
+ * A Stochastic simulation still computes its runs on the simulator, so the
+ * trigger keeps its name and says step by step in place of its values.
  */
 export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
   locked,
@@ -122,14 +124,15 @@ export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
   const [open, setOpen] = useState(false);
 
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const stepped = clock === "steps";
-  const simulatorName = stepped
+  const unused = clock === "steps" && mode === "quick";
+  const simulatorName = unused
     ? STEP_BY_STEP
     : (selected?.label ?? "No simulator");
-  const details = stepped
+  const details = unused
     ? ""
     : summarizeRunSettings({
         mode,
+        clock,
         specs: selected?.parameters ?? {},
         parameters: simulatorSelection.parameters,
         runs,

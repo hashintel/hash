@@ -38,6 +38,24 @@ const sdcpn: SDCPN = {
   scenarios: [],
 };
 
+/** The net with a rate in it, so that time passes in its runs. */
+const timedSdcpn: SDCPN = {
+  ...sdcpn,
+  transitions: [
+    {
+      id: "arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "return 1;",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+};
+
 const sdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
   existingNets: [],
@@ -236,7 +254,7 @@ describe("SimulationProvider on a registered simulator", () => {
     expect(getValue().eventSimulation?.status).toBe(handle.status);
   });
 
-  it("counts steps for a Quick Simulation of an untimed net, and time otherwise", () => {
+  it("counts steps for an untimed net in either mode, and time for a timed one", () => {
     const simulator = makeSimulator({
       id: "test.plain",
       needsHirTrees: false,
@@ -245,27 +263,14 @@ describe("SimulationProvider on a registered simulator", () => {
 
     const untimed = renderProvider([simulator.registration]);
     expect(untimed.getValue().clock).toBe("steps");
-    // Many runs are compared at the same times, so they keep a clock.
+    // Many runs of an untimed net are compared at the same steps.
     act(() => untimed.getValue().setMode("stochastic"));
-    expect(untimed.getValue().clock).toBe("time");
+    expect(untimed.getValue().clock).toBe("steps");
     cleanup();
 
-    const timed = renderProvider([simulator.registration], {
-      ...sdcpn,
-      transitions: [
-        {
-          id: "arrive",
-          name: "Arrive",
-          inputArcs: [],
-          outputArcs: [],
-          lambdaType: "stochastic",
-          lambdaCode: "return 1;",
-          transitionKernelCode: "",
-          x: 0,
-          y: 0,
-        },
-      ],
-    });
+    const timed = renderProvider([simulator.registration], timedSdcpn);
+    expect(timed.getValue().clock).toBe("time");
+    act(() => timed.getValue().setMode("stochastic"));
     expect(timed.getValue().clock).toBe("time");
   });
 
@@ -425,21 +430,19 @@ describe("SimulationProvider on a registered simulator", () => {
 });
 
 describe("SimulationProvider in Stochastic mode", () => {
-  const withPlaces: SDCPN = {
-    ...sdcpn,
-    places: [
-      {
-        id: "queue",
-        name: "Queue",
-        colorId: null,
-        dynamicsEnabled: false,
-        x: 0,
-        y: 0,
-      },
-    ],
-  };
+  const queue: SDCPN["places"] = [
+    {
+      id: "queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      x: 0,
+      y: 0,
+    },
+  ];
+  const withPlaces: SDCPN = { ...timedSdcpn, places: queue };
 
-  const stochastic = () => {
+  const stochastic = (net: SDCPN = withPlaces) => {
     const experiment = makeExperiment();
     const requested = vi.fn<(request: SimulatorExperimentRequest) => void>();
     const simulator = makeSimulator({
@@ -451,7 +454,7 @@ describe("SimulationProvider in Stochastic mode", () => {
         return Promise.resolve({ ok: true, handle: experiment });
       },
     });
-    const rendered = renderProvider([simulator.registration], withPlaces);
+    const rendered = renderProvider([simulator.registration], net);
     return { experiment, requested, simulator, ...rendered };
   };
 
@@ -483,6 +486,7 @@ describe("SimulationProvider in Stochastic mode", () => {
     expect(getValue().stochasticRun).toMatchObject({
       runCount: 250,
       seed: 3,
+      clock: "time",
       maxTime: 12,
       samplePeriod: 0.1,
       kept: false,
@@ -499,6 +503,25 @@ describe("SimulationProvider in Stochastic mode", () => {
     act(() => getValue().run());
     expect(experiment.start).toHaveBeenCalledTimes(1);
     expect(getValue().state).toBe("Running");
+  });
+
+  it("samples an untimed net at every step, and counts the experiment in steps", async () => {
+    const { requested, getValue } = stochastic({ ...sdcpn, places: queue });
+
+    act(() => getValue().setMode("stochastic"));
+    act(() => getValue().setMaxTime(7.5));
+    await act(() => getValue().initialize({ seed: 3 }));
+
+    expect(requested).toHaveBeenCalledWith(
+      expect.objectContaining({ samplePeriod: 1 }),
+    );
+    // The runs stop at the first step at or past the end.
+    expect(getValue().stochasticRun).toMatchObject({
+      clock: "steps",
+      maxTime: 8,
+      samplePeriod: 1,
+    });
+    expect(getValue().clock).toBe("steps");
   });
 
   it("gives a Stochastic simulation an end time when none was set", () => {

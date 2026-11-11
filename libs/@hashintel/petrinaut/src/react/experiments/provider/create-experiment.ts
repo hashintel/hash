@@ -2,14 +2,15 @@ import {
   compileScenario,
   constraintLabel,
   experimentBackendOfSimulator,
+  experimentSamplePeriod,
   getOwn,
   prepareScenarioCompiler,
   synthesizeAdHocOptimization,
-  simulatorSamplePeriod,
   synthesizeAdHocScenario,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
   type InitialMarking,
   type PetrinautExtensionSettings,
+  type RunClock,
   type Scenario,
   type ScenarioParameter,
   type SDCPN,
@@ -383,6 +384,7 @@ const idleSweepState = (
 export const newExperimentRecord = ({
   id,
   input,
+  clock,
   scenarioName,
   axes,
   fixedScenarioValues,
@@ -390,6 +392,8 @@ export const newExperimentRecord = ({
 }: {
   id: string;
   input: CreateExperimentInput;
+  /** What the experiment's positions count, as its net says. */
+  clock: RunClock;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
   fixedScenarioValues: Readonly<Record<string, number>>;
@@ -402,8 +406,10 @@ export const newExperimentRecord = ({
   scenarioName,
   runCount: input.runCount,
   seed: input.seed,
+  clock,
   dt: input.dt,
-  maxTime: input.maxTime,
+  // A run in steps stops at the first step at or past its end.
+  maxTime: clock === "steps" ? Math.ceil(input.maxTime) : input.maxTime,
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
@@ -559,14 +565,16 @@ const experimentSimulatorSelection = (
  * spacing of its samples.
  *
  * A simulator that samples at its time step fixes the spacing; any other
- * takes the one asked for. A fixed-step simulator that is not the default is
- * followed by the default one at the same step, so a net the GPU cannot take
- * still runs. The default is the simulator a Stochastic simulation starts
- * on.
+ * takes the one asked for. On a clock of steps every simulator samples at
+ * each step. A simulator that fixes the spacing and is not the default is
+ * followed by the default one at the same spacing, so a net the GPU cannot
+ * take still runs. The default is the simulator a Stochastic simulation
+ * starts on.
  */
 export const experimentSimulatorBackends = (
   simulators: SimulatorsContextValue,
   input: Pick<CreateExperimentInput, "simulator" | "computeBackend" | "dt">,
+  clock: RunClock,
 ): {
   registrations: ExperimentBackendRegistration[];
   samplePeriod: number;
@@ -579,7 +587,11 @@ export const experimentSimulatorBackends = (
   if (!registration) {
     throw new Error(`Simulator "${selection.simulatorId}" is not registered`);
   }
-  const timeStep = simulatorSamplePeriod(registration, selection.parameters);
+  const timeStep = experimentSamplePeriod(
+    clock,
+    registration,
+    selection.parameters,
+  );
   const samplePeriod = timeStep ?? input.dt;
   const registrations = [
     experimentBackendOfSimulator(registration, selection.parameters),
@@ -590,16 +602,21 @@ export const experimentSimulatorBackends = (
     simulators.registrations,
     fallbackSelection.simulatorId,
   );
+  // A run in steps reads no time step, so any simulator can stand in.
+  const fallbackTimeStep =
+    clock === "steps" ? undefined : fallback?.samplePeriodParameter;
   if (
     timeStep !== null &&
     fallback !== undefined &&
     fallback.id !== registration.id &&
-    fallback.samplePeriodParameter !== undefined
+    (clock === "steps" || fallbackTimeStep !== undefined)
   ) {
     registrations.push(
       experimentBackendOfSimulator(fallback, {
         ...fallbackSelection.parameters,
-        [fallback.samplePeriodParameter]: samplePeriod,
+        ...(fallbackTimeStep === undefined
+          ? {}
+          : { [fallbackTimeStep]: samplePeriod }),
       }),
     );
   }

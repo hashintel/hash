@@ -21,6 +21,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
+  runClockOf,
   synthesizeAdHocOptimization,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
@@ -873,6 +874,9 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
+  // An untimed net's runs count steps: the form asks for a step to end at,
+  // and shows no parameter of how a simulator advances time.
+  const clock = runClockOf(petriNetDefinition, extensions);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
@@ -1071,6 +1075,7 @@ export const CreateExperimentDrawer = ({
     simulatorDraft,
     simulators,
     simulatorRefusals,
+    clock,
   );
 
   const objectiveExecution = {
@@ -1349,15 +1354,24 @@ export const CreateExperimentDrawer = ({
                         <label
                           className={labelStyle}
                           htmlFor="experiment-max-time"
+                          title={
+                            clock === "steps"
+                              ? "This net is untimed: its runs are fired step by step, and every step is sampled."
+                              : undefined
+                          }
                         >
-                          Max time (s)
+                          {clock === "steps" ? "End at step" : "Max time (s)"}
                         </label>
                         <NumberInput
                           htmlForId="experiment-max-time"
-                          aria-label="Max time (seconds)"
+                          aria-label={
+                            clock === "steps"
+                              ? "Step the runs end at"
+                              : "Max time (seconds)"
+                          }
                           size="sm"
-                          min={0}
-                          step="any"
+                          min={clock === "steps" ? 1 : 0}
+                          step={clock === "steps" ? 1 : "any"}
                           value={maxTime === "" ? null : Number(maxTime)}
                           onChange={(nextMaxTime) =>
                             setMaxTime(

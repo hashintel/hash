@@ -178,12 +178,16 @@ export const RunSettingsPopoverContent: React.FC<{
     setMaxTime,
   } = use(SimulationContext);
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const parameters = selected
-    ? visibleSimulatorParameters(
-        selected.parameters,
-        simulatorSelection.parameters,
-      )
-    : [];
+  const stepped = clock === "steps";
+  // A simulator's parameters say how it advances time, which a run in steps
+  // has none of.
+  const parameters =
+    selected && !stepped
+      ? visibleSimulatorParameters(
+          selected.parameters,
+          simulatorSelection.parameters,
+        )
+      : [];
   const hasFields = parameters.length > 0 || mode === "stochastic";
   const pickable = locked
     ? []
@@ -331,22 +335,37 @@ export const RunSettingsPopoverContent: React.FC<{
             />
             <label htmlFor={END_TIME_ID}>
               <span className={fieldLabelStyle}>
-                <span>
-                  End time<span className={unitStyle}> (s)</span>
-                </span>
-                <PointerHelpTooltip content="The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end." />
+                {stepped ? (
+                  <span>End at step</span>
+                ) : (
+                  <span>
+                    End time<span className={unitStyle}> (s)</span>
+                  </span>
+                )}
+                <PointerHelpTooltip
+                  content={
+                    stepped
+                      ? "The step every run stops at. Runs are compared at the same steps, so a Stochastic simulation needs an end."
+                      : "The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end."
+                  }
+                />
               </span>
             </label>
             <NumberInput
               htmlForId={END_TIME_ID}
               size="xs"
               width="xs"
-              min={0}
-              step="any"
+              min={stepped ? 1 : 0}
+              step={stepped ? 1 : "any"}
               hideStepper
-              value={maxTime}
+              // A run in steps stops at the first step at or past its end.
+              value={stepped && maxTime !== null ? Math.ceil(maxTime) : maxTime}
               onChange={(next) => {
-                if (next !== null && next > 0) {
+                if (
+                  next !== null &&
+                  next > 0 &&
+                  (!stepped || Number.isInteger(next))
+                ) {
                   setMaxTime(next);
                 }
               }}
@@ -361,8 +380,10 @@ export const RunSettingsPopoverContent: React.FC<{
     <Popover.Body key="stepped" className={sectionStyle}>
       <div role="note" className={steppedNoteStyle}>
         This net is untimed: no transition has a stochastic rate and no place
-        has dynamics. A Quick simulation fires it step by step, and the
-        simulator below is not used.
+        has dynamics.{" "}
+        {mode === "quick"
+          ? "A Quick simulation fires it step by step, and the simulator below is not used."
+          : "A Stochastic simulation fires every run step by step. The simulator below computes the runs, and its parameters are not used."}
       </div>
     </Popover.Body>
   );
@@ -379,7 +400,7 @@ export const RunSettingsPopoverContent: React.FC<{
     <Popover.Container className={containerStyle}>
       {[
         <Popover.Header key="header" title="Simulator" />,
-        ...(clock === "steps" ? [steppedPanel] : []),
+        ...(stepped ? [steppedPanel] : []),
         simulatorsPanel,
         ...(hasFields ? [fieldsPanel] : []),
         ...(locked ? [lockedPanel] : []),

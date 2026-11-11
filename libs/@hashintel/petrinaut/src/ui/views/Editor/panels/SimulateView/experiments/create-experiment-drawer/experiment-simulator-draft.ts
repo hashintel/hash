@@ -4,7 +4,8 @@
  */
 import {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
-  simulatorSamplePeriod,
+  experimentSamplePeriod,
+  type RunClock,
   type SimulatorRegistration,
   type StoredSimulatorParameters,
 } from "@hashintel/petrinaut-core";
@@ -58,11 +59,17 @@ export type ResolvedExperimentSimulator = {
   /** What `createExperiment` takes; null when no simulator can run it. */
   readonly selection: SimulatorSelection | null;
   /**
-   * The simulator's time step when it samples at one. The Sample every
+   * What the experiment's positions count. On a clock of steps the
+   * simulator's parameters are not used, and their fields do not show.
+   */
+  readonly clock: RunClock;
+  /**
+   * The spacing the experiment is held to: one step on a clock of steps,
+   * else the simulator's time step when it samples at one. The Sample every
    * field shows only without it.
    */
   readonly timeStep: number | null;
-  /** The spacing of the samples: the time step, or the field's value. */
+  /** The spacing of the samples: the fixed one, or the field's value. */
   readonly samplePeriod: number;
 };
 
@@ -71,11 +78,14 @@ export type ResolvedExperimentSimulator = {
  * otherwise the default, so a net edited until the picked simulator refuses
  * it neither shows that simulator as chosen nor submits it. The default is
  * the one a Stochastic simulation starts on.
+ *
+ * `clock` is what the net's runs count: time unless the net is untimed.
  */
 export const resolveExperimentSimulator = (
   draft: ExperimentSimulatorDraft,
   simulators: SimulatorsContextValue,
   refusals: SimulatorRefusals,
+  clock: RunClock = "time",
 ): ResolvedExperimentSimulator => {
   const fallback = simulators.defaultSelections.stochastic;
   const allowed = (simulatorId: string | null) =>
@@ -96,7 +106,7 @@ export const resolveExperimentSimulator = (
       }
     : {};
   const timeStep = registration
-    ? simulatorSamplePeriod(registration, parameters)
+    ? experimentSamplePeriod(clock, registration, parameters)
     : null;
 
   return {
@@ -105,6 +115,7 @@ export const resolveExperimentSimulator = (
     selection: registration
       ? { simulatorId: registration.id, parameters }
       : null,
+    clock,
     timeStep,
     samplePeriod: timeStep ?? Number(draft.samplePeriod),
   };

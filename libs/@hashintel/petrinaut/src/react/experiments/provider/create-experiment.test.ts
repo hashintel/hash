@@ -245,6 +245,7 @@ describe("newExperimentRecord", () => {
   it("copies the constraints, the policy and the scenario values onto the record", () => {
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input: {
         ...input,
         constraints: [parameterConstraint, stateConstraint],
@@ -268,6 +269,7 @@ describe("newExperimentRecord", () => {
   it("records no constraints and no policy when the input carries none", () => {
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input,
       scenarioName: null,
       axes: [],
@@ -279,6 +281,22 @@ describe("newExperimentRecord", () => {
     expect(record.constraints).toEqual([]);
     expect(record.constraintPolicy).toBeNull();
     expect(record.scenarioParameterValues).toEqual({});
+  });
+
+  it("records the clock, and ends a run in steps at the first step at or past its end", () => {
+    const recordOn = (clock: "time" | "steps") =>
+      newExperimentRecord({
+        id: "experiment",
+        clock,
+        input: { ...input, maxTime: 9.5 },
+        scenarioName: null,
+        axes: [],
+        fixedScenarioValues: {},
+        scenario: null,
+      });
+
+    expect(recordOn("time")).toMatchObject({ clock: "time", maxTime: 9.5 });
+    expect(recordOn("steps")).toMatchObject({ clock: "steps", maxTime: 10 });
   });
 });
 
@@ -343,6 +361,7 @@ describe("createExperimentRequestBuilder", () => {
     ]);
     const record = newExperimentRecord({
       id: "experiment",
+      clock: "time",
       input: constrainedInput,
       scenarioName: null,
       axes: [],
@@ -444,6 +463,7 @@ describe("experimentSimulatorBackends", () => {
         },
       },
       { dt: 0.2 },
+      "time",
     );
     expect(samplePeriod).toBe(0.2);
 
@@ -459,5 +479,68 @@ describe("experimentSimulatorBackends", () => {
       metricSpecs: [],
     });
     expect(assessed).toHaveBeenCalledWith({ dt: 0.2, method: "euler" });
+  });
+
+  describe("with a simulator that is not the default", () => {
+    const stepped = (id: string) =>
+      defineSimulator(
+        {
+          id,
+          label: id,
+          description: "For tests.",
+          parameters: {
+            dt: {
+              type: "number",
+              label: "Time step",
+              default: 0.1,
+              min: 0,
+              exclusiveMin: true,
+            },
+          },
+          produces: { run: false, experiment: true },
+          samplePeriodParameter: "dt",
+        },
+        {
+          isAvailable: () => true,
+          load: () => Promise.reject(new Error("never loaded")),
+        },
+      ) as SimulatorRegistration;
+    const simulators = {
+      registrations: [stepped("test.picked"), stepped("test.default")],
+      defaultSelections: {
+        quick: { simulatorId: "test.default" },
+        stochastic: { simulatorId: "test.default", parameters: { dt: 0.5 } },
+      },
+    };
+    const picked = {
+      simulator: { simulatorId: "test.picked", parameters: { dt: 0.25 } },
+      dt: 2,
+    };
+
+    it("samples at its time step, and follows it with the default one", () => {
+      const { registrations, samplePeriod } = experimentSimulatorBackends(
+        simulators,
+        picked,
+        "time",
+      );
+      expect(samplePeriod).toBe(0.25);
+      expect(registrations.map(({ id }) => id)).toEqual([
+        "test.picked",
+        "test.default",
+      ]);
+    });
+
+    it("samples every step on a clock of steps, and still follows it with the default one", () => {
+      const { registrations, samplePeriod } = experimentSimulatorBackends(
+        simulators,
+        picked,
+        "steps",
+      );
+      expect(samplePeriod).toBe(1);
+      expect(registrations.map(({ id }) => id)).toEqual([
+        "test.picked",
+        "test.default",
+      ]);
+    });
   });
 });

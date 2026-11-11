@@ -11,7 +11,7 @@ import {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   placeCountMetricSpecs,
   runClockOf,
-  simulatorSamplePeriod,
+  experimentSamplePeriod,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
@@ -924,11 +924,19 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       };
       if (currentState.mode === "stochastic") {
         const metricSpecs = placeCountMetricSpecs(simulationSdcpn.places);
+        const experimentClock = runClockOf(
+          simulationSdcpn,
+          simulationExtensions,
+        );
         // Named to the simulator rather than left to it, so the samples are
         // spaced as playback and a kept experiment say they are.
         const samplePeriod =
           (registration
-            ? simulatorSamplePeriod(registration, selection.parameters)
+            ? experimentSamplePeriod(
+                experimentClock,
+                registration,
+                selection.parameters,
+              )
             : null) ?? DEFAULT_EXPERIMENT_SAMPLE_PERIOD;
         const experiment = await startSimulatorExperiment(
           registration,
@@ -941,8 +949,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           reader: createExperimentReader(experiment.metrics),
           runCount: currentState.runs,
           seed,
-          // An experiment without an end is refused before it starts.
-          maxTime: maxTime ?? 0,
+          clock: experimentClock,
+          // An experiment without an end is refused before it starts. A run
+          // in steps stops at the first step at or past its end.
+          maxTime:
+            experimentClock === "steps"
+              ? Math.ceil(maxTime ?? 0)
+              : (maxTime ?? 0),
           samplePeriod,
           metricSpecs,
           simulator: selection,
@@ -1269,11 +1282,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         : null,
   );
 
-  // The run says what its positions count. Before one exists the net does:
-  // a Quick Simulation of an untimed net is a sequence of steps.
+  // The run or the experiment says what its positions count. Before one
+  // exists the net does: an untimed net is simulated in steps in either mode.
   const clock =
     eventSimulation?.clock ??
-    (mode === "quick" ? runClockOf(petriNetDefinition, extensions) : "time");
+    stochastic?.run.clock ??
+    runClockOf(petriNetDefinition, extensions);
 
   const contextValue: SimulationContextValue = {
     state: simulationState,

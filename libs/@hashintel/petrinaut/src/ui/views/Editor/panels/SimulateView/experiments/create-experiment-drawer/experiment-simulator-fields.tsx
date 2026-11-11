@@ -44,6 +44,9 @@ const SAMPLE_PERIOD_ID = "experiment-sample-period";
  * samples for a simulator that has no time step to sample at. A simulator
  * that cannot run the experiment is listed, greyed, with the reason beside
  * its name.
+ *
+ * On a clock of steps the simulator alone shows: its parameters say how it
+ * advances time, and every step is sampled.
  */
 export const ExperimentSimulatorFields: React.FC<{
   draft: ExperimentSimulatorDraft;
@@ -52,7 +55,7 @@ export const ExperimentSimulatorFields: React.FC<{
   onChange: (draft: ExperimentSimulatorDraft) => void;
 }> = ({ draft, resolved, refusals, onChange }) => {
   const { registrations } = use(SimulatorsContext);
-  const { registration, parameters, timeStep } = resolved;
+  const { registration, parameters, clock, timeStep } = resolved;
   const refusedIds = (pending: boolean) =>
     registrations
       .filter(({ id }) => refusals.get(id)?.pending === pending)
@@ -95,7 +98,7 @@ export const ExperimentSimulatorFields: React.FC<{
           onChange={(simulatorId) => onChange({ ...draft, simulatorId })}
         />
       </div>
-      {registration
+      {registration && clock === "time"
         ? visibleSimulatorParameters(registration.parameters, parameters).map(
             ([key, spec]) => {
               const id = `experiment-simulator-${registration.id}-${key}`;

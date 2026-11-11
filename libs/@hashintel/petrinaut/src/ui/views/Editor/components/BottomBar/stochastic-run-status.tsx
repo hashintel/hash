@@ -60,6 +60,7 @@ export const StochasticRunStatus: React.FC<{ run: StochasticRun }> = ({
       scenarioName,
       runCount: run.runCount,
       seed: run.seed,
+      clock: run.clock,
       dt: run.samplePeriod,
       maxTime: run.maxTime,
       metricSpecs: run.metricSpecs,

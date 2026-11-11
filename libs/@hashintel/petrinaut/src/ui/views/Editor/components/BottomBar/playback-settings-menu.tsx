@@ -158,6 +158,7 @@ const CLOCK_SETTINGS = {
     endLabel: "End at fixed time",
     endUnit: "s",
     endInputLabel: "Maximum simulation time in seconds",
+    endNeeded: "A Stochastic simulation needs an end time",
     endMin: 0.1,
     endStep: 0.1,
     shownEnd: (maxTime: number) => maxTime,
@@ -170,6 +171,7 @@ const CLOCK_SETTINGS = {
     endLabel: "End at step",
     endUnit: "",
     endInputLabel: "Step the run ends at",
+    endNeeded: "A Stochastic simulation needs a step to end at",
     endMin: 1,
     endStep: 1,
     // A run stops at the first step at or past its end.
@@ -427,7 +429,7 @@ export const PlaybackSettingsMenu = ({
                           hasSimulation
                             ? "Reset simulation to change stopping conditions"
                             : needsEndTime
-                              ? "A Stochastic simulation needs an end time"
+                              ? settings.endNeeded
                               : undefined
                         }
                       >
