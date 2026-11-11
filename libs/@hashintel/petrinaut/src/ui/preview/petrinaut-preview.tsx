@@ -23,6 +23,7 @@ import {
   type ActualModeContextValue,
   createJsonDocHandle,
   createPetrinaut,
+  FIXED_STEP_SIMULATOR_ID,
   type Petrinaut as PetrinautInstance,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -38,6 +39,7 @@ import {
   PetrinautDocumentProvider,
 } from "../../react/petrinaut-provider-layers";
 import { SimulationProvider } from "../../react/simulation/provider";
+import { SimulatorsProvider } from "../../react/simulators/provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
 import {
@@ -359,18 +361,29 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
           <PetrinautPresentationProvider profile="preview">
             {quickSimulation && simulationCompiler ? (
               <NotificationsProvider>
-                <SimulationProvider
+                <SimulatorsProvider
                   key={runSettingsKey}
-                  compiler={simulationCompiler}
-                  initialConfiguration={{
-                    dt: quickSimulation.dt,
-                    maxTime: quickSimulation.maxTime,
+                  runWorkerFactory={quickSimulation.workerFactory}
+                  defaultSelections={{
+                    quick: {
+                      simulatorId: FIXED_STEP_SIMULATOR_ID,
+                      ...(quickSimulation.dt === undefined
+                        ? {}
+                        : { parameters: { dt: quickSimulation.dt } }),
+                    },
                   }}
-                  requireScenario
-                  workerFactory={quickSimulation.workerFactory}
                 >
-                  {canvas}
-                </SimulationProvider>
+                  <SimulationProvider
+                    compiler={simulationCompiler}
+                    initialConfiguration={{
+                      engine: "event-driven",
+                      maxTime: quickSimulation.maxTime,
+                    }}
+                    requireScenario
+                  >
+                    {canvas}
+                  </SimulationProvider>
+                </SimulatorsProvider>
               </NotificationsProvider>
             ) : (
               canvas

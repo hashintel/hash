@@ -38,6 +38,11 @@ export type SimulatorsProviderProps = React.PropsWithChildren<{
   experimentShardCount?: number;
   /** Simulators the host adds after the built-in ones. */
   registrations?: readonly SimulatorRegistration[];
+  /**
+   * What a mode starts a session on, for a host that fixes it: the modes
+   * named here replace the defaults.
+   */
+  defaultSelections?: Partial<SimulatorsContextValue["defaultSelections"]>;
 }>;
 
 const DEFAULT_SELECTIONS: SimulatorsContextValue["defaultSelections"] = {
@@ -93,6 +98,7 @@ export const SimulatorsProvider: React.FC<SimulatorsProviderProps> = ({
   experimentWorkerFactory,
   experimentShardCount,
   registrations: hostRegistrations,
+  defaultSelections,
 }) => {
   const [{ builtIns, experimentWorkers }] = useState(() => {
     // The simulators never inspect the host, so the piece that knows this is
@@ -122,7 +128,9 @@ export const SimulatorsProvider: React.FC<SimulatorsProviderProps> = ({
     registrations: hostRegistrations
       ? [...builtIns, ...hostRegistrations]
       : builtIns,
-    defaultSelections: DEFAULT_SELECTIONS,
+    defaultSelections: defaultSelections
+      ? { ...DEFAULT_SELECTIONS, ...defaultSelections }
+      : DEFAULT_SELECTIONS,
   };
 
   return <SimulatorsContext value={value}>{children}</SimulatorsContext>;
