@@ -1,15 +1,17 @@
-# Third-party artwork notices
+# Integration artwork notices
 
-Brand names, marks, and logos belong to their respective owners. The package's MIT/Apache licenses apply to its implementation; they do not grant rights to third-party trademarks or replace the owners' brand-use terms.
+This directory contains 40 light app tiles and one Linear mark exported from `@hashintel/salt-brands`. The source revision, individual artwork sources, checksums and applicable collection-license files are recorded in `sources.json`.
 
-## Integration artwork
+Brand names, marks and logos belong to their respective owners. Collection licenses do not grant trademark rights or replace the owners' brand-use terms.
 
-The existing HASH integration artwork comes from `hashintel/internal-sites` (AGPL-3.0). Additional vector artwork comes from the brands' sites and the linked archives. The `gilbarbara/logos` collection uses CC0; `pheralb/svgl`, `devicons/devicon`, and `edent/SuperTinyIcons` use MIT. Those collection licenses do not grant trademark rights. The package preserves the artwork's provenance below.
+## Included collection artwork
 
-Gmail full-logo files embed authentic PNG artwork. Microsoft Teams combines its product mark with outlined Segoe UI Semibold lettering, matching the other Microsoft product logos. Veeva Vault pairs its mark with the Veeva corporate wordmark. BigQuery and Redshift use archived product lock-ups. Apple, Apple Notes, and Apple Health have no verified separate full-logo assets and expose only mark and tile variants.
+| Source collection          | Included artwork                                                                     | License                                                |
+| -------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| HASH integration catalogue | 35 app tiles identified by `hashintel/internal-sites` source URLs in `sources.json`. | [GNU AGPL 3.0](licenses/integrations-catalog-AGPL.txt) |
+| gilbarbara/logos           | Linear app tile and mark; PostgreSQL app tile.                                       | [CC0 1.0](licenses/logos-CC0.txt)                      |
+| svgl                       | Granola app tile. Copyright (c) 2022 Pablo Hdez.                                     | [MIT](licenses/svgl-MIT.txt)                           |
 
-Celonis, Veeva Vault, Oracle, Messenger, Instagram, Zoom, and GitHub lock-ups combine the sourced mark and wordmark; they are compositions, not downloaded complete lock-ups. The Celonis and Oracle marks omit their embedded lettering to avoid repeating the name. Their original mark assets remain available in the mark and tile variants.
+Bounds, light-theme colors and app-tile composition are adaptations. The Microsoft Teams app tile uses the product mark sourced through Wikimedia Commons. The Messenger app tile uses Meta's brand artwork. Their source URLs are retained in `sources.json`; the collection licenses above do not apply to these two marks.
 
-Teams, Word, Outlook, Excel, PowerPoint, OneNote, and OneDrive use Microsoft's October 2025 product marks. Copilot uses the two-part 2026 mark, verified against [Microsoft's design announcement](https://microsoft.design/articles/more-than-a-mark/) and live product site. These marks are distributed via Wikimedia Commons (marked PD-textlogo there). Their full-logo compositions use the product names outlined in [Microsoft's Segoe UI Semibold 5.32](https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2). They follow the Teams layout and light/dark text treatment; they are not downloaded official lock-ups. Only the lettering outlines ship, not the font.
-
-This directory is a pinned subset of `@hashintel/salt-brands`. Individual asset provenance and checksums are retained in `sources.json`. Applicable collection licenses are retained in `licenses/`.
+The complete catalogue's notices are maintained in `salt-brands`. This snapshot retains the notices for the artwork distributed here.
