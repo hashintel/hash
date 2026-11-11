@@ -96,7 +96,7 @@ export const useRestUsedIn = (): RestUsedIn | null => {
 const useUsedIcon = (): IconName =>
   useLocation().query.get("usedicon") === "pipe" ? "inputPipe" : "arrowUpRight";
 
-type Use = { stepId: string; inputs: string[] };
+export type Use = { stepId: string; inputs: string[] };
 
 const sameOutput =
   (stepId: string, outputName: string) => (source: StepInputSource | undefined) =>
@@ -116,8 +116,13 @@ export const usesOf = (
   document: EditorDocument,
   stepId: string,
   outputName: string,
+): Use[] => usesMatching(document, sameOutput(stepId, outputName));
+
+/** The steps that read any value `match` accepts (a step output, a flow input), as `usesOf` lists them. */
+export const usesMatching = (
+  document: EditorDocument,
+  match: (source: StepInputSource | undefined) => boolean,
 ): Use[] => {
-  const match = sameOutput(stepId, outputName);
   const byStep = new Map<string, Set<string>>();
   const add = (userId: string, input: string) => {
     const inputs = byStep.get(userId) ?? new Set<string>();
@@ -2108,3 +2113,63 @@ export const UsedInBlock = ({
   );
 };
 
+
+/**
+ * "Used in N" for a value that is not an output row (a flow input, the For each's collected list): the same words as
+ * the output rows' r1 label, opening the same flat `Step › Input` rows (11 Nov convergence A1).
+ */
+export const UsedInList = ({ uses, iconOf }: { uses: Use[]; iconOf: (id: string) => IconName }) => {
+  const { document, setUi } = useEditor();
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const usedProp = useUsedProp();
+  if (uses.length === 0) {
+    return null;
+  }
+  const nameOf = (id: string) => {
+    const step = findStep(document, id)?.step;
+    return step ? stepLabel(step) : id;
+  };
+  const hover = (id: string | null) => setUi((current) => ({ ...current, hoverSourceId: id }));
+  return (
+    <div className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })} data-used-list>
+      <button
+        type="button"
+        className={`${restLabelStyle} ${css({ alignSelf: "flex-start", marginLeft: "[-6px]" })}`}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {`Used in ${String(uses.length)}`}
+      </button>
+      {open ? (
+        <div className={usedRowsStyle} data-used-names data-prop={usedProp === "right" ? undefined : usedProp}>
+          {uses.map((use) => (
+            <button
+              key={use.stepId}
+              type="button"
+              className={`${flatRowStyle} ${css({ marginLeft: "[-6px]", width: "[calc(100% + 6px)]" })}`}
+              data-pinned={pinned === use.stepId || undefined}
+              onPointerEnter={() => hover(use.stepId)}
+              onPointerLeave={() => hover(pinned)}
+              onClick={() => {
+                if (pinned === use.stepId) {
+                  setPinned(null);
+                  setUi((current) => ({ ...current, selectedId: use.stepId, openField: null, hoverSourceId: null }));
+                } else {
+                  setPinned(use.stepId);
+                  hover(use.stepId);
+                }
+              }}
+            >
+              <UsedRowContent
+                lead={<NameLead look="u1a" icon={iconOf(use.stepId)} tile={treeTileColor(iconOf(use.stepId))} />}
+                name={nameOf(use.stepId)}
+                input={use.inputs.join(", ")}
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};

@@ -78,6 +78,7 @@ import {
 } from "./mock-triggers";
 import { OutputRows } from "./outputs";
 import { RunPanel } from "./run-view";
+import { UsedInList, usesMatching } from "./used-in";
 import {
   acceptedKinds,
   describeSource,
@@ -103,7 +104,6 @@ import {
   panelKindTake,
   PropertyRow,
   Section,
-  ChipRow,
   SourceChip,
   SourceSelectTrigger,
   titleFieldStyle,
@@ -194,7 +194,7 @@ const nodeLook = (
 /** An empty value ("Ends here", "Not used yet"): the value's size, in the subtle colour of an empty state. */
 const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
 
-/** "Used by" chips: which steps read a value (D26 A, folded into D27 A). */
+/** "Used in N": which steps read a value, opening their `Step › Input` rows (11 Nov convergence A1; was "Used by" chips). */
 const UsedBy = ({
   match,
   quiet = false,
@@ -203,34 +203,12 @@ const UsedBy = ({
   /** Show nothing, rather than "Not used yet", when no step reads the value. */
   quiet?: boolean;
 }) => {
-  const { document, setUi } = useEditor();
-  const users = usersOf(document, match);
-  if (users.length === 0) {
+  const { document } = useEditor();
+  const uses = usesMatching(document, (source) => source !== undefined && match(source));
+  if (uses.length === 0) {
     return quiet ? null : <span className={emptyValueStyle}>Not used yet</span>;
   }
-  return (
-    <ChipRow
-      names={users.map((userId) => {
-        const user = findStep(document, userId)?.step;
-        return user ? stepLabel(user) : userId;
-      })}
-    >
-      {users.map((userId) => {
-        const user = findStep(document, userId)?.step;
-        return (
-          <SourceChip
-            key={userId}
-            icon={nodeLook(document, userId).icon}
-            onClick={() =>
-              setUi((ui) => ({ ...ui, selectedId: userId, openField: null }))
-            }
-          >
-            {user ? stepLabel(user) : userId}
-          </SourceChip>
-        );
-      })}
-    </ChipRow>
-  );
+  return <UsedInList uses={uses} iconOf={(id) => nodeLook(document, id).icon} />;
 };
 
 /**
@@ -1340,7 +1318,7 @@ const RunFormFields = () => {
             (source) =>
               source.kind === "flow-input" && source.inputName === input.name,
           ).length > 0 ? (
-            <PropertyRow label="Used by">
+            <PropertyRow label="">
               <UsedBy
                 quiet
                 match={(source) =>
