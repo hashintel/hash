@@ -118,6 +118,7 @@ const makeSimulator = ({
   startExperiment?: SimulatorOffer["startExperiment"];
 }) => {
   const assessed = vi.fn<(request: SimulationRequest) => void>();
+  const disposed = vi.fn();
   const registration = defineSimulator(
     {
       id,
@@ -139,6 +140,7 @@ const makeSimulator = ({
       load: () =>
         Promise.resolve({
           needsHirTrees,
+          dispose: disposed,
           assess: (request) => {
             assessed(request);
             return Promise.resolve({
@@ -151,7 +153,11 @@ const makeSimulator = ({
         }),
     },
   );
-  return { assessed, registration: registration as SimulatorRegistration };
+  return {
+    assessed,
+    disposed,
+    registration: registration as SimulatorRegistration,
+  };
 };
 
 const renderProvider = (
@@ -317,6 +323,30 @@ describe("SimulationProvider on a registered simulator", () => {
       "Place Queue has no tokens to start from",
     );
     expect(getValue().error).toBe("Place Queue has no tokens to start from");
+    expect(getValue().eventSimulation).toBeNull();
+  });
+
+  it("releases the simulator when its start throws instead of returning a promise", async () => {
+    const throwing = makeSimulator({
+      id: "test.throwing",
+      needsHirTrees: false,
+      start: () => {
+        throw new Error("No worker could be built");
+      },
+    });
+    const { getValue } = renderProvider([throwing.registration]);
+
+    let failure: unknown = null;
+    await act(async () => {
+      await getValue()
+        .initialize({ seed: 1 })
+        .catch((caught: unknown) => {
+          failure = caught;
+        });
+    });
+
+    expect((failure as Error).message).toBe("No worker could be built");
+    expect(throwing.disposed).toHaveBeenCalledTimes(1);
     expect(getValue().eventSimulation).toBeNull();
   });
 

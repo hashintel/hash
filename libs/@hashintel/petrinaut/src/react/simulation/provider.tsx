@@ -239,10 +239,14 @@ const startedOrThrow = async <Handle extends { dispose(this: void): void }>(
     release();
     throw new Error(notOffered);
   }
-  const started = await start().catch((error: unknown) => {
+  let started: SimulatorStart<Handle>;
+  try {
+    // A start may throw before it returns its promise, as well as reject.
+    started = await start();
+  } catch (error) {
     release();
     throw error;
-  });
+  }
   if (!started.ok) {
     release();
     throw new Error(refusalMessage(started.blockers));
