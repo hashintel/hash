@@ -29,7 +29,7 @@ import type {
 } from "@blockprotocol/type-system";
 
 const gridTemplateColumns =
-  "fit-content(240px) max-content max-content minmax(0, 1fr)";
+  "fit-content(240px) fit-content(600px) max-content minmax(0, 1fr)";
 
 const countLabel = (count: number) =>
   count === 1 ? "1 type" : `${count} types`;
