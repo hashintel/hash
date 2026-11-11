@@ -68,7 +68,11 @@ const rootStyle = css({
 const scenarioRowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  // The run settings drop to a line of their own when the two no longer
+  // fit: a simulator can bring several fields.
+  flexWrap: "wrap",
+  columnGap: "2",
+  rowGap: "1.5",
   flexShrink: 0,
   // Small right inset so the row's controls don't hug the panel edge,
   // matching the form's columns below.
@@ -83,7 +87,8 @@ const scenarioPickerGroupStyle = css({
   alignItems: "center",
   gap: "2",
   flex: "[1]",
-  minWidth: "[0]",
+  // Wide enough to read a scenario's name beside its buttons.
+  minWidth: "[240px]",
   maxWidth: "[420px]",
 });
 
@@ -92,9 +97,13 @@ const scenarioPickerGroupStyle = css({
 const runSettingsInlineStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "4",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  columnGap: "4",
+  rowGap: "1.5",
   marginLeft: "auto",
-  flexShrink: 0,
+  // On a line of its own, the fields wrap among themselves.
+  maxWidth: "[100%]",
 });
 
 const scenarioLabelStyle = css({

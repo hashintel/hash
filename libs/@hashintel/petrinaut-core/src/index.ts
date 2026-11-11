@@ -369,6 +369,8 @@ export type {
 export {
   assessSimulator,
   builtInSimulatorManifests,
+  countStatisticsOfBins,
+  createExperimentReader,
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
   createWebGpuFixedStepSimulator,
@@ -376,12 +378,16 @@ export {
   defineSimulator,
   jsAdaptiveSimulatorManifest,
   jsFixedStepSimulatorManifest,
+  placeCountMetricId,
+  placeCountMetricSpecs,
   resolveSimulatorParameters,
   simulatorFromExperimentBackend,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
   webGpuFixedStepSimulatorManifest,
 } from "./simulation/simulators";
 export type {
+  CountStatistics,
+  ExperimentReader,
   JsAdaptiveSimulatorOptions,
   JsFixedStepSimulatorOptions,
   ResolvedSimulatorParameters,

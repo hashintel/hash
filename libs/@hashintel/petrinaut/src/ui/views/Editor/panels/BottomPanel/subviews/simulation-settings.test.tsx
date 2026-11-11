@@ -169,8 +169,15 @@ const simulationContextValue: SimulationContextValue = {
   engine: "fixed-step",
   simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
   eventSimulation: null,
+  mode: "quick",
+  runs: 100,
+  stochasticRun: null,
+  playbackSource: null,
   selectSimulator: () => {},
   setSimulatorParameter: () => {},
+  setMode: () => {},
+  setRuns: () => {},
+  keepStochasticRun: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},
   pause: () => {},
@@ -253,7 +260,13 @@ const Providers = ({
   <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
     <SDCPNContext value={sdcpnContextValue}>
       <SimulatorsContext
-        value={{ registrations, defaultSimulatorId: "test.stepped" }}
+        value={{
+          registrations,
+          defaultSelections: {
+            quick: { simulatorId: "test.stepped" },
+            stochastic: { simulatorId: "test.stepped" },
+          },
+        }}
       >
         <SimulationContext value={{ ...simulationContextValue, ...simulation }}>
           {children}

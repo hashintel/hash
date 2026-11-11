@@ -31,6 +31,12 @@ export type SimulatorsProviderProps = React.PropsWithChildren<{
   registrations?: readonly SimulatorRegistration[];
 }>;
 
+const DEFAULT_SELECTIONS: SimulatorsContextValue["defaultSelections"] = {
+  quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+  // The step experiments have always started on.
+  stochastic: { simulatorId: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.1 } },
+};
+
 const createBuiltInSimulators = ({
   createRunWorker,
   createExperimentWorker,
@@ -80,7 +86,7 @@ export const SimulatorsProvider: React.FC<SimulatorsProviderProps> = ({
     registrations: hostRegistrations
       ? [...builtIns, ...hostRegistrations]
       : builtIns,
-    defaultSimulatorId: FIXED_STEP_SIMULATOR_ID,
+    defaultSelections: DEFAULT_SELECTIONS,
   };
 
   return <SimulatorsContext value={value}>{children}</SimulatorsContext>;

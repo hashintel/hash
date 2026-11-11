@@ -19,6 +19,7 @@ export type {
 import type {
   AdHocScenarioState,
   Constraint,
+  MonteCarloExperiment,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
@@ -256,6 +257,24 @@ export function getExperimentElapsedMs(
   return Math.max(0, (experiment.finishedAt ?? now) - experiment.startedAt);
 }
 
+/** An experiment something else started, handed over to be listed. */
+export type AdoptExperimentInput = {
+  name: string;
+  /** The experiment, started by its previous owner. */
+  handle: MonteCarloExperiment;
+  /** The model snapshot its runs compute. */
+  definition: SDCPN;
+  scenarioId: string | null;
+  scenarioName: string | null;
+  runCount: number;
+  seed: number;
+  /** The spacing of its samples, in simulated seconds. */
+  dt: number;
+  maxTime: number;
+  metricSpecs: readonly ExperimentMetricSpecInput[];
+  computeBackend: ExperimentComputeBackend;
+};
+
 export type ExperimentsContextValue = {
   experiments: readonly ExperimentRecord[];
   selectedExperimentId: string | null;
@@ -270,6 +289,12 @@ export type ExperimentsContextValue = {
     input: CreateExperimentInput,
     options?: CreateExperimentOptions,
   ) => Promise<ExperimentRecord>;
+  /**
+   * Lists an experiment that is already computing, or has finished, and
+   * takes over its handle: from here on it is cancelled, removed and
+   * disposed like one this provider created.
+   */
+  adoptExperiment: (input: AdoptExperimentInput) => ExperimentRecord;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection up to the run count. */
@@ -297,6 +322,11 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
     Promise.reject(
       new Error("createExperiment was called outside an ExperimentsProvider"),
     ),
+  adoptExperiment: () => {
+    throw new Error(
+      "adoptExperiment was called outside an ExperimentsProvider",
+    );
+  },
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
@@ -317,6 +347,7 @@ export type ExperimentsActionsValue = Pick<
   ExperimentsContextValue,
   | "setSelectedExperimentId"
   | "createExperiment"
+  | "adoptExperiment"
   | "cancelExperiment"
   | "removeExperiment"
   | "setSweepSelection"

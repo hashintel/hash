@@ -5,13 +5,15 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
 import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
+import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
 import { EventTimelineChart } from "./chart";
 import { MIN_VIEW_SPAN } from "./interactions";
-import { stackColumns, stackedSeriesOf } from "./series";
+import { stackTimelineData } from "./series";
+import { StochasticTimeline } from "./stochastic-content";
 import {
   useEventTimelineData,
   type TimeRange,
@@ -48,7 +50,7 @@ const messageStyle = css({
  * range, click to view that time, scroll sideways to pan, pinch or wheel to
  * zoom.
  */
-export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
+const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   showLegend = true,
 }) => {
   const {
@@ -118,24 +120,12 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
   // and firings are marks. The series list is derived apart from the
   // columns: it holds still while the run streams, and the chart is rebuilt
   // when it changes.
-  const stackable =
+  const chartData =
     chartType === "stacked" &&
     data !== null &&
     data.kind !== "lanes" &&
     timelineView.kind !== "solver-error"
-      ? data
-      : null;
-  const stackedSeries = stackable
-    ? stackedSeriesOf(stackable.series, hiddenSeries)
-    : null;
-  const chartData =
-    stackable && stackedSeries
-      ? {
-          ...stackable,
-          series: stackedSeries,
-          data: stackColumns(stackable.data, stackable.series, hiddenSeries),
-          stacked: true as const,
-        }
+      ? stackTimelineData(data, hiddenSeries)
       : data;
 
   return (
@@ -190,5 +180,18 @@ export const EventTimeline: React.FC<{ showLegend?: boolean }> = ({
         </>
       )}
     </div>
+  );
+};
+
+/**
+ * The Timeline of whatever Play computed: one run's events, or a Stochastic
+ * simulation's counts across runs.
+ */
+export const EventTimeline: React.FC<{ showLegend?: boolean }> = (props) => {
+  const { mode } = use(SimulationContext);
+  return mode === "stochastic" ? (
+    <StochasticTimeline {...props} />
+  ) : (
+    <RunTimeline {...props} />
   );
 };

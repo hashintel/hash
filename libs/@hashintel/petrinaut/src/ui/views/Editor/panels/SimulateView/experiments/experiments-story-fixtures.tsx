@@ -761,6 +761,9 @@ export function FakeExperimentsProvider({
       setExperiments((current) => [experiment, ...current]);
       return Promise.resolve(experiment);
     },
+    adoptExperiment: () => {
+      throw new Error("Nothing adopts an experiment here");
+    },
     cancelExperiment: (experimentId) => {
       setExperiments((current) =>
         current.map((experiment) =>

@@ -14,6 +14,7 @@ import {
   type WorkerFactory,
   type MinimalNetMetadata,
   type SDCPN,
+  type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -92,6 +93,11 @@ export type PetrinautProps = {
    */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
+   * Simulators the host adds to the built-in ones, for Quick Simulation,
+   * Stochastic mode and experiments alike. Define them at module scope.
+   */
+  simulators?: readonly SimulatorRegistration[];
+  /**
    * Optional language-server worker factory. Same intent as
    * `simulationWorkerFactory` — host-supplied LSP worker, typically via
    * `?worker` against the host's own copy of the worker source.
@@ -131,6 +137,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
+  simulators,
   lspWorkerFactory,
   navigation,
   presentationProfile = "editor",
@@ -162,6 +169,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         netManagement={netManagement}
         simulationWorkerFactory={simulationWorkerFactory}
         monteCarloWorkerFactory={monteCarloWorkerFactory}
+        simulators={simulators}
         lspWorkerFactory={lspWorkerFactory}
         navigation={navigation}
       >

@@ -62,6 +62,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   const {
     engine,
     eventSimulation,
+    playbackSource,
     dt,
     state: simulationState,
     initialize,
@@ -87,10 +88,10 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     (snapshot) => snapshot.mode,
   );
 
-  const trace = useStore(eventSimulation?.trace ?? EMPTY_TRACE_STORE);
-  const coreStatus = useStore(eventSimulation?.status ?? EMPTY_STATUS_STORE);
+  const trace = useStore(playbackSource?.coverage ?? EMPTY_TRACE_STORE);
+  const coreStatus = useStore(playbackSource?.status ?? EMPTY_STATUS_STORE);
   const simulationDone =
-    eventSimulation !== null &&
+    playbackSource !== null &&
     (coreStatus === "Complete" || coreStatus === "Error");
   const { coveredTime, eventCount } = trace;
 
@@ -114,7 +115,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   // worth a message. A change of mode demands afresh, which is what takes
   // the worker's target back down from the max mode's.
   useEffect(() => {
-    if (!isActive || !eventSimulation || mode === "viewOnly") {
+    if (!isActive || !playbackSource || mode === "viewOnly") {
       return;
     }
     const lead = EVENT_PLAY_MODE_LEAD[mode];
@@ -123,21 +124,21 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
       const target = snapshot.time + lead;
       if (target >= demanded + DEMAND_STEP) {
         demanded = target;
-        eventSimulation.demand(target);
+        playbackSource.demand(target);
       }
     };
     demand(playback.state.get());
     return playback.state.subscribe(demand);
-  }, [eventSimulation, isActive, mode, playback]);
+  }, [isActive, mode, playback, playbackSource]);
 
   // Discarding the run returns playback to the start. A run is only ever
   // replaced through a discard, so this also covers a new run; starting one
   // from no run keeps the play the user just pressed.
   useEffect(() => {
-    if (eventSimulation === null) {
+    if (playbackSource === null) {
       playback.stop();
     }
-  }, [eventSimulation, playback]);
+  }, [playback, playbackSource]);
 
   // The rAF loop while playing: advance the viewed time by wall-clock time.
   useEffect(() => {

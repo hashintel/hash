@@ -16,8 +16,9 @@ import { SimulatorsProvider } from "./simulators/provider";
 
 import type { NetManagement } from "./net-management-context";
 import type {
-  Petrinaut,
   LspWorkerFactory,
+  Petrinaut,
+  SimulatorRegistration,
   WorkerFactory,
 } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
@@ -42,7 +43,16 @@ export type PetrinautProviderProps = {
    * with the same role and default as `simulationWorkerFactory`.
    */
   eventSimulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional factory for a worker of the pool an experiment's runs are split
+   * across, with the same role and default as `eventSimulationWorkerFactory`.
+   */
   monteCarloWorkerFactory?: WorkerFactory;
+  /**
+   * Simulators the host adds to the built-in ones. They are listed after
+   * them wherever a simulator is picked.
+   */
+  simulators?: readonly SimulatorRegistration[];
   /**
    * Optional language-server worker factory. Same shape as
    * `simulationWorkerFactory` — provided when the host needs to bundle the
@@ -70,6 +80,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   simulationWorkerFactory,
   eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
+  simulators,
   lspWorkerFactory,
   navigation,
   children,
@@ -92,6 +103,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             <SimulatorsProvider
               runWorkerFactory={eventSimulationWorkerFactory}
               experimentWorkerFactory={monteCarloWorkerFactory}
+              registrations={simulators}
             >
               {/* The editor's Quick Simulation runs on a registered simulator. */}
               <SimulationProvider

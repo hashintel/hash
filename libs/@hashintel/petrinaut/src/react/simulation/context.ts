@@ -4,6 +4,10 @@ import {
   type AdHocScenarioState,
   type CompiledScenarioResult,
   type EventSimulation,
+  type ExperimentReader,
+  type MonteCarloExperiment,
+  type MonteCarloMetricSpec,
+  type SimulationState as CoreSimulationState,
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
@@ -13,7 +17,7 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
-import type { SimulatorSelection } from "../simulators/context";
+import type { SimulationMode, SimulatorSelection } from "../simulators/context";
 
 /**
  * Which runtime a Quick Simulation runs on. A host sets it once, when it
@@ -58,6 +62,41 @@ export type SimulationState =
  * Instead, use `getFrame()` to access individual frames through a
  * `SimulationFrameReader`.
  */
+/**
+ * What playback moves a viewed time over, whichever mode computed it: how
+ * far the time may go, whether more is coming, and a way to ask for more.
+ */
+export type PlaybackSource = {
+  readonly coverage: ReadableStore<{
+    /** Recorded states to view. Zero until the first one arrives. */
+    eventCount: number;
+    /** Simulation time the viewed time may reach. */
+    coveredTime: number;
+  }>;
+  readonly status: ReadableStore<CoreSimulationState>;
+  /** Asks for the computation to cover `time`. A no-op when it runs freely. */
+  demand(time: number): void;
+};
+
+/** The experiment a Stochastic simulation computes, as the editor holds it. */
+export type StochasticRun = {
+  readonly experiment: MonteCarloExperiment;
+  /** The experiment's metric frames, read by time. */
+  readonly reader: ExperimentReader;
+  readonly runCount: number;
+  readonly seed: number;
+  readonly maxTime: number;
+  /** The metrics the experiment computes: a token count per place. */
+  readonly metricSpecs: readonly MonteCarloMetricSpec[];
+  /** The simulator that computes it, as selected when it started. */
+  readonly simulator: SimulatorSelection;
+  /**
+   * True once something else took the experiment over. Discarding the
+   * simulation then lets go of it without stopping it.
+   */
+  readonly kept: boolean;
+};
+
 export type SimulationContextValue = {
   // State values
   /**
@@ -103,11 +142,25 @@ export type SimulationContextValue = {
   /** The runtime a run uses, fixed by the host. */
   engine: SimulationEngine;
   /**
-   * The simulator the next event-driven run is computed by, with its
-   * parameter values. Changing either discards the current run; the
-   * fixed-step engine ignores it.
+   * What Play computes on the event-driven engine: one run, or many.
+   * Changing it discards the current run.
+   */
+  mode: SimulationMode;
+  /**
+   * The simulator the next event-driven run is computed by in the current
+   * mode, with its parameter values. Each mode keeps its own. Changing
+   * either discards the current run; the fixed-step engine ignores it.
    */
   simulatorSelection: SimulatorSelection;
+  /** Runs a Stochastic simulation computes. */
+  runs: number;
+  /** The Stochastic simulation's experiment while one exists; null otherwise. */
+  stochasticRun: StochasticRun | null;
+  /**
+   * What playback moves over: the run's events in Quick mode, the
+   * experiment's samples in Stochastic mode. Null without a run.
+   */
+  playbackSource: PlaybackSource | null;
   /**
    * The event-driven run's handle while `engine` is `event-driven` and a run
    * exists; null otherwise. Playback over events reads the trace through it.
@@ -200,6 +253,14 @@ export type SimulationContextValue = {
   setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
+  setMode: (mode: SimulationMode) => void;
+  setRuns: (runs: number) => void;
+  /**
+   * Marks the Stochastic simulation's experiment as taken over by a caller:
+   * it stays on the canvas, and discarding the simulation no longer stops
+   * it.
+   */
+  keepStochasticRun: () => void;
   /** Switches simulator, restoring the parameter values last used with it. */
   selectSimulator: (simulatorId: string) => void;
   setSimulatorParameter: (
@@ -262,7 +323,11 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   maxTime: null,
   totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   engine: "fixed-step",
+  mode: "quick",
   simulatorSelection: { simulatorId: "", parameters: {} },
+  runs: 100,
+  stochasticRun: null,
+  playbackSource: null,
   eventSimulation: null,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
@@ -273,6 +338,9 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
+  setMode: () => {},
+  setRuns: () => {},
+  keepStochasticRun: () => {},
   selectSimulator: () => {},
   setSimulatorParameter: () => {},
   setMaxTime: () => {},

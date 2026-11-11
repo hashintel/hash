@@ -316,6 +316,9 @@ const TestProviders = ({
           value={{
             setSelectedExperimentId,
             createExperiment,
+            adoptExperiment: () => {
+              throw new Error("Nothing adopts an experiment here");
+            },
             cancelExperiment: () => {},
             removeExperiment,
             setSweepSelection: () => {},
