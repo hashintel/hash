@@ -14,7 +14,9 @@
     "LICENSE",
     "LICENSE-APACHE.md",
     "LICENSE-MIT.md",
-    "README.md"
+    "README.md",
+    "THIRD-PARTY-NOTICES.md",
+    "licenses"
   ],
   "type": "module",
   "sideEffects": false,
