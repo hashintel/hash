@@ -87,6 +87,62 @@ describe("EventPlaybackProvider", () => {
     expect(playback().playbackState).toBe("Stopped");
   });
 
+  it("joins a start already under way when Play is pressed again", async () => {
+    let finish: (started: boolean) => void = () => {};
+    const initialize = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const run = vi.fn();
+    const { playback } = mount({ initialize, run });
+
+    let presses: Promise<void>[] = [];
+    act(() => {
+      presses = [playback().play(), playback().play()];
+    });
+    expect(initialize).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finish(true);
+      await Promise.all(presses);
+    });
+    expect(initialize).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(playback().playbackState).toBe("Playing");
+  });
+
+  it("starts the run itself when the start it joined was overtaken", async () => {
+    const finishers: ((started: boolean) => void)[] = [];
+    const initialize = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishers.push(resolve);
+        }),
+    );
+    const run = vi.fn();
+    const { playback } = mount({ initialize, run });
+
+    let presses: Promise<void>[] = [];
+    act(() => {
+      presses = [playback().play(), playback().play()];
+    });
+    await act(async () => {
+      finishers[0]!(false);
+      await presses[0];
+    });
+    expect(initialize).toHaveBeenCalledTimes(2);
+    expect(run).not.toHaveBeenCalled();
+
+    await act(async () => {
+      finishers[1]!(true);
+      await presses[1];
+    });
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(playback().playbackState).toBe("Playing");
+  });
+
   it("asks the run for the viewed time plus the mode's lead, and for nothing in view-only mode", () => {
     const source = runningSource();
     const pause = vi.fn();

@@ -3,7 +3,7 @@
  * @role Drives the viewed time over a run or an experiment and asks the worker to compute ahead of it
  */
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createEventPlayback,
@@ -173,14 +173,43 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     }
   };
 
+  /** The start under way, resolving to whether it started a run. */
+  const startingRef = useRef<Promise<boolean> | null>(null);
+
+  const startRun = async (): Promise<boolean> => {
+    // A change of configuration can overtake the start: there is then no
+    // run to play.
+    if (await initialize({ seed: PETRINAUT_DEFAULT_SEED })) {
+      runSimulation();
+      playback.play();
+      return true;
+    }
+    return false;
+  };
+
   const play = async () => {
     if (simulationState === "NotRun") {
-      // A change of configuration can overtake the start: there is then no
-      // run to play.
-      if (await initialize({ seed: PETRINAUT_DEFAULT_SEED })) {
-        runSimulation();
-        playback.play();
+      // Play pressed again while a start is under way joins it: a second
+      // start would supersede the first and compile the net again. A start
+      // that was overtaken started nothing, so the press then starts the
+      // run itself, unless another press already has. One that failed has
+      // reported why.
+      let joined = startingRef.current;
+      while (joined) {
+        if (await joined.catch(() => true)) {
+          return;
+        }
+        joined = startingRef.current;
       }
+      const starting = startRun();
+      startingRef.current = starting;
+      // `.finally` rather than `try`/`finally`, which React Compiler does
+      // not compile without a `catch`.
+      await starting.finally(() => {
+        if (startingRef.current === starting) {
+          startingRef.current = null;
+        }
+      });
       return;
     }
     if (modeRef.current !== "viewOnly") {
