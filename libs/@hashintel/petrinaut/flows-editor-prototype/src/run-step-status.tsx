@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
 import { RunGlyph } from "./run-glyph";
+import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import {
   clockPlus,
   findSpan,
@@ -177,8 +178,10 @@ const branchStyle = css({
 const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
   const failure = facts.failures.find((entry) => entry.item === item);
   const state = itemState(facts, item);
+  const side = useStatusSide();
   return (
-    <div className={branchStyle}>
+    // Marks on the right: the step names indent 24 px under the item name and their marks share the items' column.
+    <div className={branchStyle} style={side === "right" ? { paddingLeft: 24 } : undefined}>
       {branchSteps.map(([id, title]) => {
         const stepState: StepState =
           state === "failed"
@@ -199,8 +202,19 @@ const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
               textStyle: "sm",
               color: "neutral.fg.body",
             })}
+            style={side === "right" ? { gridTemplateColumns: "1fr 16px" } : undefined}
           >
-            <RunGlyph state={stepState} size={12} />
+            {side ? (
+              <span
+                className={statusSlotStyle}
+                data-status-slot={side}
+                style={side === "right" ? { gridColumn: 2, gridRow: 1 } : undefined}
+              >
+                <RunGlyph state={stepState} size={STATUS_MARK_SIZE} />
+              </span>
+            ) : (
+              <RunGlyph state={stepState} size={12} />
+            )}
             <span>
               {title}
               {stepState === "failed" && failure ? (
@@ -225,6 +239,7 @@ export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
     ),
   ];
   const [selected, setSelected] = useState<number | null>(failedItems[0] ?? null);
+  const side = useStatusSide();
   const nextFailed = () => {
     if (failedItems.length === 0) {
       return;
@@ -257,8 +272,20 @@ export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
               className={itemRowStyle}
               data-selected={selected === item ? true : undefined}
               onClick={() => setSelected(selected === item ? null : item)}
+              // Marks on the right: name, then the reason, then the mark's 16 px slot at the far right.
+              style={side === "right" ? { gridTemplateColumns: "1fr auto 16px" } : undefined}
             >
-              <RunGlyph state={state} size={12} tooltip={false} />
+              {side ? (
+                <span
+                  className={statusSlotStyle}
+                  data-status-slot={side}
+                  style={side === "right" ? { gridColumn: 3, gridRow: 1 } : undefined}
+                >
+                  <RunGlyph state={state} size={STATUS_MARK_SIZE} tooltip={false} />
+                </span>
+              ) : (
+                <RunGlyph state={state} size={12} tooltip={false} />
+              )}
               <span>{suppliers[item] ?? `Item ${item + 1}`}</span>
               <span className={quietLineStyle}>
                 {failure ? reasonText(failure.reason) : ""}

@@ -188,6 +188,17 @@ export const openDecisions: OpenSwitch[] = [
       { label: "chevron + rail", value: "rail" },
     ],
   },
+  {
+    card: "conv-status-mark-side",
+    title: "Run lists · status mark side",
+    flag: "statusside",
+    defaultValue: null,
+    options: [
+      { label: "today", value: null },
+      { label: "all left", value: "left" },
+      { label: "all right", value: "right" },
+    ],
+  },
 ];
 
 /** Every flag above, so a page change keeps them and Reset all clears them. */

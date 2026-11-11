@@ -17,6 +17,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { runIdMono, RunIdText, runLabel } from "./run-id";
 import { RunGlyph } from "./run-glyph";
+import { STATUS_MARK_SIZE, useStatusSide } from "./status-side";
 import {
   factsOf,
   outcomeOf,
@@ -305,18 +306,30 @@ const Line = ({
   right?: ReactNode;
   open?: boolean;
   onToggle?: () => void;
-}) => (
+}) => {
+  const side = useStatusSide();
+  // Marks on the right: the text, then the count and chevron, then the mark's 16 px slot as the last column. The DOM
+  // order stays mark-first so a two-line row still centres its mark on the first line.
+  const markRight = side === "right";
+  return (
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- the chevron button is the keyboard control
   <div
     className={lineStyle}
     data-toggle={onToggle ? true : undefined}
     onClick={onToggle}
+    style={markRight ? { gridTemplateColumns: "1fr auto 16px" } : undefined}
   >
-    <span className={markStyle}>
-      {glyph ? <RunGlyph state={glyph} size={12} /> : null}
+    <span
+      className={markStyle}
+      data-status-slot={side ?? undefined}
+      style={markRight ? { gridColumn: 3, gridRow: 1 } : undefined}
+    >
+      {glyph ? <RunGlyph state={glyph} size={side ? STATUS_MARK_SIZE : 12} /> : null}
     </span>
-    <span className={lineTextStyle}>{children}</span>
-    <span className={rightStyle}>
+    <span className={lineTextStyle} style={markRight ? { gridColumn: 1, gridRow: 1 } : undefined}>
+      {children}
+    </span>
+    <span className={rightStyle} style={markRight ? { gridColumn: 2, gridRow: 1 } : undefined}>
       {onToggle ? (
         <span
           className={css({ display: "inline-flex", alignItems: "center", gap: "1" })}
@@ -329,7 +342,8 @@ const Line = ({
       )}
     </span>
   </div>
-);
+  );
+};
 
 const Head = ({
   run,

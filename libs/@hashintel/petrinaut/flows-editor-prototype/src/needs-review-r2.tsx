@@ -37,6 +37,7 @@ import {
   useWaitingRun,
 } from "./needs-review";
 import { RunGlyph } from "./run-glyph";
+import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
 import { type Certificate, Page } from "./run-outputs";
 import { tileColor } from "./status-colors";
@@ -346,6 +347,16 @@ const QuestionRow = ({
   const { step, item } = splitPath(request);
   const { answers } = useReview();
   const answered = Boolean(answerOf(request, answers));
+  const side = useStatusSide();
+  const sideMark = (
+    <span className={statusSlotStyle} data-status-slot={side}>
+      <RunGlyph
+        state={answered ? "done" : "needsReview"}
+        size={STATUS_MARK_SIZE}
+        tooltip={false}
+      />
+    </span>
+  );
   return (
     <button
       type="button"
@@ -356,6 +367,7 @@ const QuestionRow = ({
       data-control-check="skip"
       onClick={onPick}
     >
+      {side === "left" ? sideMark : null}
       <RowTile icon={icon} twoLine={!oneLine} tint={tileColor(icon)} />
       <span className={css({ flex: "1", minWidth: "[0]" })}>
         {oneLine ? (
@@ -368,13 +380,17 @@ const QuestionRow = ({
           </>
         )}
       </span>
-      <span className={css({ display: "inline-flex", flexShrink: 0 })}>
-        <RunGlyph
-          state={answered ? "done" : "needsReview"}
-          size={12}
-          tooltip={false}
-        />
-      </span>
+      {side === "left" ? null : side === "right" ? (
+        sideMark
+      ) : (
+        <span className={css({ display: "inline-flex", flexShrink: 0 })}>
+          <RunGlyph
+            state={answered ? "done" : "needsReview"}
+            size={12}
+            tooltip={false}
+          />
+        </span>
+      )}
     </button>
   );
 };
@@ -390,6 +406,7 @@ const QuestionList = ({
   const { shown, open, answers } = useShown();
   const pick = usePick();
   const [showAnswered, setShowAnswered] = useState(false);
+  const side = useStatusSide();
   const answered = r2Requests.filter((request) =>
     Boolean(answerOf(request, answers)),
   );
@@ -444,6 +461,8 @@ const QuestionList = ({
           data-control-check="skip"
           onClick={() => setShowAnswered((value) => !value)}
         >
+          {/* Marks on the left: an empty slot keeps the chevron in the tiles' column. */}
+          {side === "left" ? <span className={statusSlotStyle} /> : null}
           <span
             className={css({
               display: "inline-flex",

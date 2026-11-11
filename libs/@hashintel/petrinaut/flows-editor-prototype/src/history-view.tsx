@@ -21,6 +21,7 @@ import { flattenSteps, START_ID, stepLabel } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
 import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
+import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { runOutputs, StepOutputs } from "./run-outputs";
 import { ForEachItems, StepStatusLines } from "./run-step-status";
 import type { StepState } from "./run-history";
@@ -272,9 +273,19 @@ export const RunSwitcher = ({
   time?: string;
 }) => {
   const { run, runs, now } = history;
+  const side = useStatusSide();
   if (!run) {
     return null;
   }
+  const runMark = (candidate: RunRecord) => (
+    <RunGlyph
+      state={outcomeState[outcomeOf(candidate, now)]}
+      progress={runProgress(candidate, now)}
+      warnings={outcomeOf(candidate, now) === "warnings"}
+      run
+      size={side ? STATUS_MARK_SIZE : 14}
+    />
+  );
   const runsGroup = {
     id: "runs",
     label: "Runs · newest first",
@@ -285,13 +296,13 @@ export const RunSwitcher = ({
         id: `run-${candidate.id}`,
         text: (
           <span className={menuRowStyle}>
-            <RunGlyph
-              state={outcomeState[outcomeOf(candidate, now)]}
-              progress={runProgress(candidate, now)}
-              warnings={outcomeOf(candidate, now) === "warnings"}
-              run
-              size={14}
-            />
+            {side === "right" ? null : side === "left" ? (
+              <span className={statusSlotStyle} data-status-slot={side}>
+                {runMark(candidate)}
+              </span>
+            ) : (
+              runMark(candidate)
+            )}
             <span>
               {/* No copy icon in the run menu: too cramped there (Aakarsh, 10 Nov). */}
               {selectedLabel(
@@ -306,7 +317,17 @@ export const RunSwitcher = ({
             </span>
           </span>
         ),
-        suffix: <span className={menuTimeStyle}>{candidate.when}</span>,
+        suffix:
+          side === "right" ? (
+            <span className={css({ display: "inline-flex", alignItems: "center", gap: "2" })}>
+              <span className={menuTimeStyle}>{candidate.when}</span>
+              <span className={statusSlotStyle} data-status-slot={side}>
+                {runMark(candidate)}
+              </span>
+            </span>
+          ) : (
+            <span className={menuTimeStyle}>{candidate.when}</span>
+          ),
         selected: candidate.id === run.id,
         selectedStyle: "highlight" as const,
         onClick: () => history.open(candidate.id),

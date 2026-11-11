@@ -51,7 +51,9 @@ import { useFlowOutputTake, useRunStars, useStarCopy } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
 import { useWaitingStepIds } from "./needs-review";
 import { useLocation } from "./router";
+import { RunGlyph } from "./run-glyph";
 import { cellText, StatusCell } from "./status-cell";
+import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { treeTileColor } from "./status-colors";
 import { InlineStepPicker, pickerTake } from "./step-picker";
 
@@ -288,6 +290,71 @@ const FlowList = ({
       />
     );
   };
+  // ?statusside=left|right: the glyph in its own 16 px slot. Left, the slot is the row's first column and the tree
+  // indents after it, so the marks stay in one column; right, the slot is the last column after the row's text.
+  const sideFlag = useStatusSide();
+  const side = inRun ? sideFlag : null;
+  const statusOf = (stepId: string): StepRun =>
+    waiting.has(stepId)
+      ? { state: "needsReview", count: "Waiting" }
+      : statusFor!(stepId);
+  const sideGlyph = (stepId?: string) => {
+    if (!stepId) {
+      return <span className={statusSlotStyle} />;
+    }
+    const status = statusOf(stepId);
+    const partial =
+      rowText === "c" &&
+      status.state === "done" &&
+      status.progress !== undefined &&
+      status.progress.done < status.progress.total;
+    return (
+      <span className={statusSlotStyle} data-status-slot={side}>
+        <RunGlyph
+          state={partial ? "doneWithFailures" : status.state}
+          progress={status.progress}
+          detail={status.state === "failed" ? status.count : undefined}
+          size={STATUS_MARK_SIZE}
+        />
+      </span>
+    );
+  };
+  const sideText = (stepId: string) => {
+    const status = statusOf(stepId);
+    const text = rowText === "b" || rowText === "c" ? undefined : cellText(status);
+    if (!text) {
+      return null;
+    }
+    const isWord = status.state === "failed" || status.state === "needsReview";
+    return (
+      <span
+        className={
+          rowText === "a" || (rowText === "d" && !isWord)
+            ? `${countStyle} ${onRowHoverStyle}`
+            : countStyle
+        }
+        data-row-text
+      >
+        {text}
+      </span>
+    );
+  };
+  /** What a run row shows before its chevron (the left slot) and after its label (text, then the right slot). */
+  const lead = (stepId?: string) => (side === "left" ? sideGlyph(stepId) : null);
+  const trail = (stepId: string) =>
+    side === null ? (
+      mark(stepId)
+    ) : (
+      <>
+        {sideText(stepId)}
+        {side === "right" ? sideGlyph(stepId) : null}
+      </>
+    );
+  /** The row's indent: on the button today, after the left slot with marks on the left. */
+  const indent = (depth: number) =>
+    side === "left"
+      ? { button: { paddingLeft: 4 }, chevron: { marginLeft: depth * 16 } }
+      : { button: { paddingLeft: 4 + depth * 16 }, chevron: undefined };
   // Shared with the canvas: a For each closed here folds its box there too (J1.13).
   const closed = ui.collapsed ?? [];
   const setClosed = (next: string[] | ((current: string[]) => string[])) =>
@@ -320,7 +387,8 @@ const FlowList = ({
   ): React.ReactNode[] =>
     steps.flatMap((step) => {
       const look = stepLook(step);
-      const pad = { paddingLeft: 4 + depth * 16 };
+      const pad = indent(depth).button;
+      const chevronPad = indent(depth).chevron;
       if (step.kind === "for-each") {
         const open = !closed.includes(step.stepId);
         const inside = flattenSteps(step.steps).length;
@@ -335,8 +403,10 @@ const FlowList = ({
             data-flow-row={step.stepId}
             onClick={() => select(step.stepId)}
           >
+            {lead(step.stepId)}
             <span
               className={chevronSlotStyle}
+              style={chevronPad}
               role="presentation"
               onClick={(event) => {
                 event.stopPropagation();
@@ -353,7 +423,7 @@ const FlowList = ({
             <span className={labelStyle}>{stepLabel(step)}</span>
             {flowMark(step.stepId)}
             {statusFor
-              ? mark(step.stepId)
+              ? trail(step.stepId)
               : groupCount(inside === 1 ? "1 step" : `${inside} steps`)}
           </button>
         );
@@ -370,11 +440,12 @@ const FlowList = ({
           title={`${stepTitle(step)} · ${stepLabel(step)}`}
           onClick={() => select(step.stepId)}
         >
-          <span className={chevronSlotStyle} />
+          {lead(step.stepId)}
+          <span className={chevronSlotStyle} style={chevronPad} />
           <Tile icon={look.icon} tone={look.tone} />
           <span className={labelStyle}>{stepLabel(step)}</span>
           {flowMark(step.stepId)}
-          {mark(step.stepId)}
+          {statusFor ? trail(step.stepId) : null}
         </button>,
       ];
     });
@@ -423,7 +494,7 @@ const FlowList = ({
           key={key}
           type="button"
           className={rowStyle}
-          style={{ paddingLeft: 4 + depth * 16 }}
+          style={indent(depth).button}
           aria-expanded={open}
           onClick={() =>
             setClosed((current) =>
@@ -431,7 +502,8 @@ const FlowList = ({
             )
           }
         >
-          <span className={chevronSlotStyle}>
+          {lead()}
+          <span className={chevronSlotStyle} style={indent(depth).chevron}>
             <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
           </span>
           <Tile icon="diagramNested" tone="neutral" />
@@ -472,12 +544,13 @@ const FlowList = ({
           aria-current={ui.selectedId === START_ID || undefined}
           onClick={() => select(START_ID)}
         >
+          {lead(START_ID)}
           <span className={chevronSlotStyle} />
           <Tile icon="play" tone="neutral" />
           <span className={labelStyle}>
             {document.startDescription || "Flow inputs"}
           </span>
-          {mark(START_ID)}
+          {statusFor ? trail(START_ID) : null}
         </button>
         {withParallel(document.steps, 0)}
         {flowTake === 4 || flowTake === 5 ? (
