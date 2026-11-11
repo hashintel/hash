@@ -90,10 +90,23 @@ fn parse_name(value: &str) -> Result<Box<str>, InvalidName> {
 }
 
 /// Identifies an integration within its web.
+///
+/// Stored as the name; a stored name is checked like a parsed one.
 #[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    derive_more::AsRef,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[as_ref(forward)]
+#[serde(try_from = "Box<str>")]
 pub struct ConnectorId(Box<str>);
 
 impl FromStr for ConnectorId {
@@ -101,6 +114,15 @@ impl FromStr for ConnectorId {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         parse_name(value).map(Self)
+    }
+}
+
+impl TryFrom<Box<str>> for ConnectorId {
+    type Error = InvalidName;
+
+    fn try_from(value: Box<str>) -> Result<Self, Self::Error> {
+        parse_name(&value)?;
+        Ok(Self(value))
     }
 }
 

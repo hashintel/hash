@@ -45,7 +45,10 @@ pub use self::{
         ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
         Format, S3Bucket,
     },
-    work::{RecordError, StateVersion, StateVersionId, StateVersionRef, StateVersionV1},
+    work::{
+        EventId, RecordError, StatePhase, StateVersion, StateVersionId, StateVersionRef,
+        StateVersionV1, WorkId, WorkKind, WorkManifest, WorkManifestV1,
+    },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,

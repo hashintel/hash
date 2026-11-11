@@ -6,13 +6,18 @@ use super::{RecordError, StateVersionId, content_digest};
 use crate::ArtifactRef;
 
 // Origin: `StateVersion` in labs `pocs/integrations_rs/src/orchestrator/work.rs`, without its
-// phase, definition digest, schema versions and timestamps.
+// stored ID, planner and schema versions, or snapshot timestamp.
 /// What one run produced: its source state and the Graph projection it plans.
 ///
 /// Stored as `{"version":"v1","value":{…}}`. The ID is computed from the content, so it is not
 /// stored in the record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "version", content = "value", rename_all = "lowercase")]
+#[serde(
+    tag = "version",
+    content = "value",
+    rename_all = "lowercase",
+    deny_unknown_fields
+)]
 pub enum StateVersion {
     V1(StateVersionV1),
 }
@@ -25,6 +30,7 @@ pub struct StateVersionV1 {
     pub owner: Uuid,
     /// The state the run started from, or `None` for the first state of an integration.
     pub parent: Option<StateVersionRef>,
+    pub phase: StatePhase,
     /// One more than the parent's generation, or 1 for the first state.
     pub generation: u64,
     /// The DuckDB snapshot of the run's workspace.
@@ -33,6 +39,23 @@ pub struct StateVersionV1 {
     pub captures: Vec<ArtifactRef>,
     /// What the Graph holds once this state is applied.
     pub desired_projection: ArtifactRef,
+    /// The digest of the integration definition that planned the projection.
+    #[serde(with = "hex::serde")]
+    pub definition_digest: [u8; 32],
+    /// How `definition_digest` was computed.
+    pub definition_digest_encoding_version: u32,
+}
+
+// Origin: `StatePhaseV1` in labs `pocs/integrations_rs/src/orchestrator/work.rs`, without the
+// `Stream` phase it reserves and rejects.
+/// The pipelines a run committed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StatePhase {
+    /// Only source pipelines.
+    SourcesCommitted,
+    /// Link pipelines as well.
+    LinksCommitted,
 }
 
 /// Points at a stored state version.
@@ -44,6 +67,7 @@ pub struct StateVersionRef {
 }
 
 impl StateVersion {
+    /// Identifies the state version by its content.
     #[must_use]
     pub fn id(&self) -> StateVersionId {
         StateVersionId(content_digest("state-version:v1", self))

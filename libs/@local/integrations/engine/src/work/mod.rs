@@ -1,3 +1,4 @@
+mod manifest;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -6,7 +7,10 @@ use error_stack::{Report, ResultExt as _};
 use hash_crypto::digest::Sha256;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-pub use self::state::{StateVersion, StateVersionRef, StateVersionV1};
+pub use self::{
+    manifest::{WorkKind, WorkManifest, WorkManifestV1},
+    state::{StatePhase, StateVersion, StateVersionRef, StateVersionV1},
+};
 
 /// The largest record that is decoded, in bytes.
 const MAX_RECORD_BYTES: usize = 256 * 1024;
@@ -17,8 +21,20 @@ const MAX_RECORD_BYTES: usize = 256 * 1024;
 #[display("{}", hex::encode(_0))]
 pub struct StateVersionId(#[serde(with = "hex::serde")] [u8; 32]);
 
-// Origin: `canonical_digest` in labs `pocs/integrations_rs/src/orchestrator/ids.rs`, which is
-// `content_digest_bytes` in `durable-kernel`.
+/// Identifies a work manifest by the work it delivers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display)]
+#[serde(transparent)]
+#[display("{}", hex::encode(_0))]
+pub struct WorkId(#[serde(with = "hex::serde")] [u8; 32]);
+
+/// Identifies a journal event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display)]
+#[serde(transparent)]
+#[display("{}", hex::encode(_0))]
+pub struct EventId(#[serde(with = "hex::serde")] [u8; 32]);
+
+// Origin: `canonical_digest` in labs `pocs/integrations_rs/src/orchestrator/ids.rs`, which this
+// repository's `durable-kernel` has as `content_digest_bytes`.
 /// Hashes `domain`, a zero byte and `value` as JSON.
 ///
 /// Field order is part of the digest, so it must stay stable for stored records.
