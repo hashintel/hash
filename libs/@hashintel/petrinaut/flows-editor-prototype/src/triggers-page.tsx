@@ -436,6 +436,15 @@ const TriggerSwitch = ({
               in progress finish.
             </span>
             <span className={css({ display: "flex", gap: "2" })}>
+              {/* Cancel, then the main action, as every figma-ds footer (11 Nov convergence A7). */}
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="neutral"
+                onClick={() => onConfirm(false)}
+              >
+                Keep on
+              </Button>
               <Button
                 size="sm"
                 variant="solid"
@@ -446,14 +455,6 @@ const TriggerSwitch = ({
                 }}
               >
                 Turn off
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                tone="neutral"
-                onClick={() => onConfirm(false)}
-              >
-                Keep on
               </Button>
             </span>
           </div>
@@ -711,6 +712,9 @@ const TriggerForm = ({
         </span>
         <span />
         <span className={css({ display: "flex", gap: "2", paddingTop: "3" })}>
+          <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
+            Cancel
+          </Button>
           <Button
             size="sm"
             variant="solid"
@@ -718,9 +722,6 @@ const TriggerForm = ({
             onClick={() => onSave(valuesToSave())}
           >
             {trigger ? "Save" : "Add trigger"}
-          </Button>
-          <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
-            Cancel
           </Button>
         </span>
       </div>

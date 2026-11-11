@@ -317,11 +317,11 @@ const Actions = ({
   onCancel: () => void;
 }) => (
   <span className={css({ display: "flex", gap: "2" })}>
-    <Button size="sm" variant="solid" tone="neutral" onClick={onSave}>
-      {saveLabel}
-    </Button>
     <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
       Cancel
+    </Button>
+    <Button size="sm" variant="solid" tone="neutral" onClick={onSave}>
+      {saveLabel}
     </Button>
   </span>
 );
