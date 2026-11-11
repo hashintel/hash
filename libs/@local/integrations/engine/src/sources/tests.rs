@@ -177,8 +177,6 @@ async fn open_workspace(directory: &Path, name: &str) -> Workspace {
 async fn capture_retry_and_restore(#[case] s3: bool) {
     let directory = TempDir::new().expect("should create source storage");
     let minio = if s3 { Some(minio().await) } else { None };
-    // In S3 each reader stages in its own temporary directory, so the restore has to download
-    // the capture.
     let captures = || match &minio {
         Some((_, port)) => s3_storage(*port, directory.path()),
         None => ArtifactStorage::local(&directory.path().join("captures"))
@@ -198,11 +196,14 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
         &fingerprint(source),
     );
     let earlier = captures();
+    let staging = earlier
+        .stage()
+        .expect("should create the earlier run's staging");
     let workspace = open_workspace(directory.path(), "run.duckdb").await;
     let capture = workspace
         .capture(
             "SELECT 7 AS id, 'initial' AS value".into(),
-            earlier.staging_file(Format::Parquet),
+            ArtifactStorage::staging_file(staging.path(), Format::Parquet),
         )
         .await
         .expect("should publish the earlier capture");
@@ -229,9 +230,10 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
         .capture_sources(&restored, &definition, run, &NoSecrets)
         .await
         .expect("should reuse a capture without contacting the source or secret store");
+    drop(reader);
     let tables = SourceReader::stage_sources(&restored, &definition, &captures)
         .await
-        .expect("should stage a restored capture");
+        .expect("should stage a restored capture after its reader is dropped");
     assert_eq!(tables.len(), 1, "should stage one source");
     let rows = restored
         .query(

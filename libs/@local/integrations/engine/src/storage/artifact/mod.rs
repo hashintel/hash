@@ -30,12 +30,13 @@ const UPLOAD_CONCURRENCY: usize = 4;
 /// Stores artifacts: files written once and addressed by their content.
 ///
 /// An artifact's key is derived from its SHA-256 digest, so two writers of one key write the
-/// same bytes, and storing needs no conditional write. Dropping the storage deletes the staging
-/// directory, so materialized artifacts can be read only while the storage exists.
+/// same bytes, and storing needs no conditional write. Each run stages its files in its own
+/// directory under the staging root, which is deleted when the run drops it.
 #[derive(Debug)]
 pub struct ArtifactStorage {
     store: Arc<dyn ObjectStore>,
-    staging: TempDir,
+    /// The directory that run staging directories are created in.
+    staging: PathBuf,
     /// The local directory artifacts are kept or staged in.
     directory: PathBuf,
 }
@@ -47,25 +48,37 @@ impl ArtifactStorage {
     ///
     /// Returns [`ArtifactError::Write`] if `root` or its staging directory cannot be created.
     pub fn local(root: &Path) -> Result<Self, Report<ArtifactError>> {
-        let (store, staging) = local::open(root)?;
+        let staging = root.join(".staging");
+        fs::create_dir_all(&staging).change_context(ArtifactError::Write)?;
         Ok(Self {
-            store: Arc::new(store),
+            store: Arc::new(local::open(root)?),
             staging,
             directory: root.to_owned(),
         })
     }
 
-    /// Keeps artifacts in `bucket`, materialized into `staging`.
+    /// Keeps artifacts in `bucket`, materialized into run directories under `staging`.
     ///
     /// # Errors
     ///
-    /// Returns [`ArtifactError::Read`] if the bucket's URI or credentials are invalid.
-    pub fn s3(bucket: &S3Bucket, staging: TempDir) -> Result<Self, Report<ArtifactError>> {
+    /// Returns [`ArtifactError::Read`] if the bucket's URI or credentials are invalid, or
+    /// [`ArtifactError::Write`] if `staging` cannot be created.
+    pub fn s3(bucket: &S3Bucket, staging: &Path) -> Result<Self, Report<ArtifactError>> {
+        fs::create_dir_all(staging).change_context(ArtifactError::Write)?;
         Ok(Self {
             store: s3::open(bucket)?,
-            directory: staging.path().to_owned(),
-            staging,
+            staging: staging.to_owned(),
+            directory: staging.to_owned(),
         })
+    }
+
+    /// Creates a staging directory for one run, deleted when it is dropped.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ArtifactError::Write`] if the directory cannot be created.
+    pub(crate) fn stage(&self) -> Result<TempDir, Report<ArtifactError>> {
+        TempDir::new_in(&self.staging).change_context(ArtifactError::Write)
     }
 
     /// Returns the canonical path of the local directory artifacts are kept or staged in.
@@ -75,14 +88,12 @@ impl ArtifactStorage {
             .change_context(ArtifactError::Read)
     }
 
-    /// Returns a new path in staging for a writer to publish a file of `format` to.
+    /// Returns a new path in `staging` for a writer to publish a file of `format` to.
     ///
     /// Each call returns a different path, so a file left by a failed attempt never blocks the
     /// next one.
-    pub(crate) fn staging_file(&self, format: Format) -> PathBuf {
-        self.staging
-            .path()
-            .join(format!("{}.{}", Uuid::new_v4(), format.extension()))
+    pub(crate) fn staging_file(staging: &Path, format: Format) -> PathBuf {
+        staging.join(format!("{}.{}", Uuid::new_v4(), format.extension()))
     }
 
     // Origin: `ArtifactStore::publish` in labs `pocs/integrations_rs/src/blob.rs`, without its
@@ -119,8 +130,8 @@ impl ArtifactStorage {
 
     // Origin: `ArtifactStore::materialize_guarded` in labs `pocs/integrations_rs/src/blob.rs`,
     // without its shared cache, eviction locks and disk limits.
-    /// Downloads the artifact to a local file, checks it against its reference, and returns the
-    /// file's path.
+    /// Downloads the artifact to a file in `staging`, checks it against its reference, and returns
+    /// the file's path.
     ///
     /// # Errors
     ///
@@ -131,11 +142,12 @@ impl ArtifactStorage {
     pub async fn materialize(
         &self,
         artifact: &ArtifactRef,
+        staging: &Path,
     ) -> Result<PathBuf, Report<ArtifactError>> {
         if !artifact.is_addressed() {
             return Err(Report::new(ArtifactError::Mismatch));
         }
-        let target = self.staging.path().join(artifact.key());
+        let target = staging.join(artifact.key());
         // Only verified downloads are kept, so a file at the target is the artifact.
         if target.is_file() {
             return Ok(target);

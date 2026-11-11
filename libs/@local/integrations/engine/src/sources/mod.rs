@@ -12,6 +12,7 @@ use std::path::{Component, Path, PathBuf};
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{Definition, SourceKind, SourceName};
+use tempfile::TempDir;
 use uuid::Uuid;
 
 use self::fingerprint::fingerprint;
@@ -144,6 +145,13 @@ impl CaptureStore {
     }
 }
 
+/// The captures of one run's sources, staged in a directory that is deleted when they are dropped.
+#[derive(Debug)]
+pub struct SourceCaptures {
+    captures: BTreeMap<SourceName, SourceCapture>,
+    _staging: TempDir,
+}
+
 /// Captures all live sources of a run before its pipelines execute.
 #[derive(Debug)]
 pub struct SourceReader {
@@ -175,8 +183,13 @@ impl SourceReader {
         definition: &Definition,
         run: CaptureRun,
         resolver: &impl SecretStore,
-    ) -> Result<BTreeMap<SourceName, SourceCapture>, Report<SourceError>> {
+    ) -> Result<SourceCaptures, Report<SourceError>> {
         let namespace = ArtifactNamespace::new(run.web, definition.connector());
+        let staging = self
+            .store
+            .captures
+            .stage()
+            .change_context(SourceError::Write)?;
         let mut captures = BTreeMap::new();
         for (name, source) in definition.sources() {
             if source.checkpoint().is_some() {
@@ -190,14 +203,14 @@ impl SourceReader {
                 .change_context(SourceError::Read)?
             {
                 let path = storage
-                    .materialize(&artifact)
+                    .materialize(&artifact, staging.path())
                     .await
                     .change_context(SourceError::Read)?;
                 let capture = SourceCapture::open(path).change_context(SourceError::Read)?;
                 captures.insert(name.clone(), capture);
                 continue;
             }
-            let target = storage.staging_file(Format::Parquet);
+            let target = ArtifactStorage::staging_file(staging.path(), Format::Parquet);
             let capture = match &source.kind {
                 SourceKind::Sql { query, .. } => workspace
                     .capture(query.as_ref().into(), target)
@@ -248,7 +261,10 @@ impl SourceReader {
             }
             captures.insert(name.clone(), capture);
         }
-        Ok(captures)
+        Ok(SourceCaptures {
+            captures,
+            _staging: staging,
+        })
     }
 
     /// Loads captures and adds the snapshot metadata consumed by pipeline preparation.
@@ -263,7 +279,7 @@ impl SourceReader {
     pub async fn stage_sources(
         workspace: &Workspace,
         definition: &Definition,
-        captures: &BTreeMap<SourceName, SourceCapture>,
+        captures: &SourceCaptures,
     ) -> Result<BTreeMap<SourceName, Box<str>>, Report<SourceError>> {
         let mut tables = BTreeMap::new();
         for (name, source) in definition.sources() {
@@ -271,6 +287,7 @@ impl SourceReader {
                 continue;
             };
             let capture = captures
+                .captures
                 .get(name)
                 .ok_or_else(|| Report::new(SourceError::Load))?;
             let raw = format!("_capture/{name}");

@@ -57,13 +57,9 @@ pub(crate) fn bucket(port: u16) -> S3Bucket {
     }
 }
 
-/// S3 storage that stages in a new temporary directory under `parent`.
+/// S3 storage that stages under `parent`.
 pub(crate) fn s3_storage(port: u16, parent: &Path) -> ArtifactStorage {
-    ArtifactStorage::s3(
-        &bucket(port),
-        TempDir::new_in(parent).expect("should create the staging directory"),
-    )
-    .expect("should create S3 storage")
+    ArtifactStorage::s3(&bucket(port), &parent.join("staging")).expect("should create S3 storage")
 }
 
 /// Local storage under `directory`, or S3 storage staging there if MinIO runs on `port`.
@@ -200,7 +196,7 @@ async fn s3_errors_are_not_missing_bindings() {
             secret: Secret::from_vec(b"wrong".to_vec()),
             ..bucket(port)
         },
-        TempDir::new_in(directory.path()).expect("should create the staging directory"),
+        &directory.path().join("staging"),
     )
     .expect("should create S3 storage");
 
@@ -248,8 +244,9 @@ async fn artifacts_round_trip_through_new_staging(#[case] s3: bool) {
     );
 
     let restore = storage(port, directory.path());
+    let staging = restore.stage().expect("should create the run's staging");
     let path = restore
-        .materialize(&artifact)
+        .materialize(&artifact, staging.path())
         .await
         .expect("should materialize the artifact");
     assert!(
@@ -298,7 +295,7 @@ async fn materialize_rejects_a_changed_artifact() {
 
     let error = ArtifactStorage::local(&root)
         .expect("should create local storage")
-        .materialize(&artifact)
+        .materialize(&artifact, directory.path())
         .await
         .expect_err("should reject bytes that do not match the reference");
     assert!(
@@ -339,7 +336,7 @@ async fn references_round_trip_through_json() {
     let restore = ArtifactStorage::local(&directory.path().join("artifacts"))
         .expect("should create local storage");
     let path = restore
-        .materialize(&restored)
+        .materialize(&restored, directory.path())
         .await
         .expect("should materialize the read-back reference");
     assert_eq!(fs::read(path).expect("should read the artifact"), b"{}");
@@ -380,7 +377,7 @@ async fn materialize_rejects_unaddressed_references(#[case] tamper: fn(&mut Valu
 
     let error = ArtifactStorage::local(&directory.path().join("artifacts"))
         .expect("should create local storage")
-        .materialize(&artifact)
+        .materialize(&artifact, directory.path())
         .await
         .expect_err("should reject a key not addressed by the reference");
     assert!(
@@ -432,7 +429,7 @@ async fn s3_errors_are_not_missing_or_mismatching_artifacts() {
             secret: Secret::from_vec(b"wrong".to_vec()),
             ..bucket(port)
         },
-        TempDir::new_in(directory.path()).expect("should create the staging directory"),
+        &directory.path().join("staging"),
     )
     .expect("should create S3 storage");
 
@@ -449,7 +446,7 @@ async fn s3_errors_are_not_missing_or_mismatching_artifacts() {
         "a failed existence check should be a read error, not a missing artifact"
     );
     let error = storage
-        .materialize(&artifact)
+        .materialize(&artifact, directory.path())
         .await
         .expect_err("should fail when the bucket cannot be read");
     assert!(
@@ -461,11 +458,10 @@ async fn s3_errors_are_not_missing_or_mismatching_artifacts() {
 #[test]
 fn staging_files_are_unique() {
     let directory = TempDir::new().expect("should create a directory");
-    let storage = storage(None, directory.path());
 
     assert_ne!(
-        storage.staging_file(Format::Parquet),
-        storage.staging_file(Format::Parquet),
+        ArtifactStorage::staging_file(directory.path(), Format::Parquet),
+        ArtifactStorage::staging_file(directory.path(), Format::Parquet),
         "a file left by a failed attempt should not block the next attempt"
     );
 }

@@ -38,7 +38,7 @@ pub use self::{
     progress::{Progress, ProgressSnapshot},
     sources::{
         CaptureLimits, CaptureRun, CaptureStore, GraphVaultConfig, GraphVaultSecretStore,
-        SecretStore, SecretValue, SourceError, SourceReader,
+        SecretStore, SecretValue, SourceCaptures, SourceError, SourceReader,
     },
     storage::{
         ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
