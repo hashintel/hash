@@ -22,6 +22,7 @@ import { setQuery, useLocation } from "./router";
 import { triggerNoneTake } from "./trigger-flags";
 import { NoTriggerWarning } from "./trigger-none";
 import { InlineBanner } from "./ds-parts/inline-banner";
+import { SaveStatusIndicator } from "./ds-parts/save-status-indicator";
 import { Toast } from "./ds-parts/toast";
 
 import type { FlowVersion } from "./seed-flows";
@@ -210,25 +211,6 @@ export const VersionButton = ({
  * today's stronger failed-text red. URL only.
  * ------------------------------------------------------------------------------------------------------------- */
 
-const saveNoteStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  textStyle: "sm",
-  color: "neutral.fg.subtle",
-  whiteSpace: "nowrap",
-  transition: "[opacity 600ms ease-out]",
-});
-
-const saveErrorStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  textStyle: "sm",
-  color: "[var(--flows-failed-text)]",
-  whiteSpace: "nowrap",
-});
-
 /** Retry 2: the icon in the text's flow and colour, no chrome, as part of the message. */
 const inlineRetryStyle = css({
   display: "inline-flex",
@@ -367,48 +349,45 @@ export const DraftSaveNote = ({ document }: { document: unknown }) => {
   }
   if (phase === "failed") {
     return (
-      <span
-        className={saveErrorStyle}
-        style={
+      <SaveStatusIndicator
+        status="error"
+        errorColor={
           query.get("errortext") === "s85"
-            ? { color: "var(--flows-failed-mark)" }
+            ? "var(--flows-failed-mark)"
             : undefined
         }
-        role="alert"
         data-draft-save="error"
-      >
-        <Icon name="warning" size="sm" />
-        Couldn&apos;t save your changes
-        <RetryControl
-          // MOCK: a retry saves.
-          onRetry={() => {
-            setPhase("saved");
-            setSavedAt(Date.now());
-            setFlash(true);
-          }}
-        />
-      </span>
+        retry={
+          <RetryControl
+            // MOCK: a retry saves.
+            onRetry={() => {
+              setPhase("saved");
+              setSavedAt(Date.now());
+              setFlash(true);
+            }}
+          />
+        }
+      />
     );
   }
   if (take === "steady") {
     return (
-      <span className={saveNoteStyle} aria-live="polite" data-draft-save={phase}>
-        {phase === "saving" ? "Saving…" : "Saved"}
-      </span>
+      <SaveStatusIndicator
+        status={phase === "saving" ? "saving" : "saved"}
+        data-draft-save={phase}
+      />
     );
   }
   if (take === "dei") {
     const shown = phase === "saved" && flash;
     return (
-      <span
-        className={saveNoteStyle}
+      <SaveStatusIndicator
+        status="saved"
+        savedText="Draft saved"
         // In at once, out over 600 ms.
         style={{ opacity: shown ? 1 : 0, transition: shown ? "none" : undefined }}
-        aria-live="polite"
         data-draft-save={shown ? "saved" : "idle"}
-      >
-        Draft saved
-      </span>
+      />
     );
   }
   return null;
