@@ -14,7 +14,6 @@ export type StepState =
   /** A step that ran per item, with some items done and some failed. */
   | "doneWithFailures"
   | "failed"
-  | "abandoned"
   | "skipped";
 
 /** The state of one item of a for-each step, or of a step inside one for one item. */
@@ -39,8 +38,9 @@ const stateOfStatus: Record<FlowStepStatus, ItemState> = {
   [FlowStepStatus.InformationRequired]: "needsReview",
   [FlowStepStatus.Failed]: "failed",
   [FlowStepStatus.TimedOut]: "failed",
-  [FlowStepStatus.CancelRequested]: "abandoned",
-  [FlowStepStatus.Cancelled]: "abandoned",
+  /* A step cancelled with its run never finished, so it reads as one that didn't run. */
+  [FlowStepStatus.CancelRequested]: "skipped",
+  [FlowStepStatus.Cancelled]: "skipped",
   [FlowStepStatus.Skipped]: "skipped",
 };
 
@@ -51,7 +51,6 @@ const itemStates: ItemState[] = [
   "needsReview",
   "running",
   "skipped",
-  "abandoned",
   "notReached",
 ];
 
@@ -69,7 +68,7 @@ const countItems = (states: ItemState[]): ItemCounts => {
 
 /**
  * What a step's items add up to. Items not reached yet keep a step running while its run is `live`; once the run has
- * stopped, they never will be, so the step was abandoned part way.
+ * stopped, they never will be, so the step was skipped part way.
  */
 const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
   const total = itemStates.reduce((sum, state) => sum + counts[state], 0);
@@ -87,11 +86,7 @@ const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
   }
 
   if (counts.notReached > 0) {
-    return live ? "running" : "abandoned";
-  }
-
-  if (counts.abandoned > 0) {
-    return "abandoned";
+    return live ? "running" : "skipped";
   }
 
   if (counts.failed > 0) {
@@ -199,7 +194,7 @@ export const getStepRunMarks = ({
     );
 
     for (const { stepId, stateByItem } of innerSteps) {
-      /* The steps after a failed one wait on it and never start, so its item leaves them neither running nor abandoned. */
+      /* The steps after a failed one wait on it and never start, so its item leaves them neither running nor skipped. */
       const reachableStates = stateByItem.filter(
         (state, itemIndex) => state !== "notReached" || !itemFailed[itemIndex],
       );
@@ -229,7 +224,7 @@ export const getStepRunMarks = ({
 
     /* Once started, it's under way until its items are, even before any of them has. */
     marks.set(step.stepId, {
-      state: state === "notReached" ? (live ? "running" : "abandoned") : state,
+      state: state === "notReached" ? (live ? "running" : "skipped") : state,
       items: counts,
     });
   }

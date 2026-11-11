@@ -4,7 +4,7 @@ import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CollapseButton } from "../shared/collapse-button";
-import { CornerMark, StatusBar } from "../shared/run-marks";
+import { StatusBar, StepStateText } from "../shared/run-marks";
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
 import { useCanvasActions } from "./canvas-actions";
@@ -174,7 +174,7 @@ const featuredStar = css({ display: "flex", color: "fg.muted" });
 
 /**
  * What a card's title row ends with. Editing, the step's problems; in a run, a star if it has a featured output, then
- * its state.
+ * its state as text for screen readers, which the card's status bar shows to everyone else.
  */
 const TitleMarks = ({
   problems,
@@ -190,7 +190,7 @@ const TitleMarks = ({
           <Icon name="starFilled" size="xs" alt="Shown in run results" />
         </span>
       )}
-      <CornerMark state={run.mark.state} />
+      <StepStateText state={run.mark.state} />
     </>
   ) : (
     <ProblemsMarker problems={problems} />

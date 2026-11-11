@@ -54,7 +54,6 @@ const counts = (partial: Partial<ItemCounts>): ItemCounts => ({
   needsReview: 0,
   running: 0,
   skipped: 0,
-  abandoned: 0,
   notReached: 0,
   ...partial,
 });
@@ -161,7 +160,23 @@ describe("getStepRunMarks", () => {
     expect(marks.get("eachSupplier")?.state).toBe("needsReview");
   });
 
-  it("shows a for-each step whose run stopped before every item finished as abandoned", () => {
+  it("shows a cancelled step, or one being cancelled, as skipped", () => {
+    const marks = marksOf(
+      [
+        stepRun("find", FlowStepStatus.Cancelled),
+        itemRun("fetch", 0, FlowStepStatus.CancelRequested),
+      ],
+      { itemCount: 1, live: false },
+    );
+
+    expect(marks.get("find")).toEqual({ state: "skipped", items: null });
+    expect(marks.get("fetch")).toEqual({
+      state: "skipped",
+      items: counts({ skipped: 1 }),
+    });
+  });
+
+  it("shows a for-each step whose run stopped before every item finished as skipped", () => {
     const marks = marksOf(
       [
         itemRun("fetch", 0, FlowStepStatus.Completed),
@@ -172,10 +187,10 @@ describe("getStepRunMarks", () => {
     );
 
     expect(marks.get("eachSupplier")).toEqual({
-      state: "abandoned",
-      items: counts({ done: 1, abandoned: 1, notReached: 1 }),
+      state: "skipped",
+      items: counts({ done: 1, skipped: 1, notReached: 1 }),
     });
-    expect(marks.get("send")?.state).toBe("abandoned");
+    expect(marks.get("send")?.state).toBe("skipped");
   });
 
   it("shows a for-each step with no items as done, and its steps as skipped", () => {

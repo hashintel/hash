@@ -1,4 +1,3 @@
-import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getBarSegments } from "./step-states";
@@ -13,7 +12,6 @@ const stepStateLabels: Record<StepState, string> = {
   done: "Done",
   doneWithFailures: "Done with failures",
   failed: "Failed",
-  abandoned: "Abandoned",
   skipped: "Skipped",
 };
 
@@ -24,7 +22,6 @@ const glyphColors: Record<StepState, string> = {
   done: css({ color: "status.success.fg.muted" }),
   doneWithFailures: css({ color: "status.success.fg.muted" }),
   failed: css({ color: "status.error.fg.muted" }),
-  abandoned: css({ color: "fg.subtle" }),
   skipped: css({ color: "fg.subtle" }),
 };
 
@@ -32,10 +29,6 @@ const glyph = css({ flexShrink: "0", overflow: "visible" });
 /* The design system's own keyframes, as its loading spinner uses. */
 const spinning = css({
   animation: "rotateRight 1.2s linear infinite",
-  _motionReduce: { animation: "none" },
-});
-const pulsing = css({
-  animation: "pulse 2s ease-in-out infinite",
   _motionReduce: { animation: "none" },
 });
 const failedArc = css({ stroke: "status.error.fg.muted" });
@@ -72,7 +65,6 @@ const glyphPaths: Record<StepState, ReactNode> = {
     </>
   ),
   failed: <path d="M4.875 4.875 L11.125 11.125 M11.125 4.875 L4.875 11.125" />,
-  abandoned: <path d="M5.25 8H10.75" />,
   skipped: <path d="M10.75 5.25 L5.25 10.75" />,
 };
 
@@ -110,43 +102,20 @@ export const RunGlyph = ({
   );
 };
 
-const cornerMark = css({
-  position: "relative",
-  display: "flex",
-  flexShrink: "0",
-});
-const asksForLook = new Set<StepState>(["needsReview", "failed"]);
-/* One ring leaves the glyph as the step starts running, then it's still. */
-const ping = css({
+/* As the design system hides its own text for screen readers. */
+const visuallyHidden = css({
   position: "absolute",
-  inset: "0.5",
-  borderRadius: "full",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "status.info.fg.muted",
-  pointerEvents: "none",
-  /* The design system has no ping keyframes, so Panda's are used. */
-  animation: "ping 1s cubic-bezier(0, 0, 0.2, 1) 1 forwards",
-  _motionReduce: { display: "none" },
+  width: "[1px]",
+  height: "[1px]",
+  overflow: "clip",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
 });
 
-/**
- * The state glyph in a card's corner, with its tooltip: a running step pings once, and one that needs review or failed
- * pulses a "!". Nothing for a step not reached.
- */
-export const CornerMark = ({ state }: { state: StepState }) =>
-  state === "notReached" ? null : (
-    <Tooltip position="top" content={stepStateLabels[state]}>
-      <span
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable so the state can be read from the keyboard
-        tabIndex={0}
-        className={cx(cornerMark, asksForLook.has(state) && pulsing)}
-      >
-        <RunGlyph state={state} exclaim />
-        {state === "running" && <span className={ping} />}
-      </span>
-    </Tooltip>
-  );
+/** A step's state as text for screen readers only, for a card: its status bar is all that shows the state. */
+export const StepStateText = ({ state }: { state: StepState }) => (
+  <span className={visuallyHidden}>{stepStateLabels[state]}</span>
+);
 
 const segmentColors: Record<ItemState, string> = {
   done: css({ bg: "status.success.bg.solid" }),
@@ -154,7 +123,6 @@ const segmentColors: Record<ItemState, string> = {
   needsReview: css({ bg: "status.warning.bg.solid" }),
   running: css({ bg: "status.info.bg.solid" }),
   skipped: css({ bg: "bd.strong" }),
-  abandoned: css({ bg: "bd.solid" }),
   notReached: css({ bg: "bd.subtle" }),
 };
 
