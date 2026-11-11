@@ -298,9 +298,9 @@ interactive trace.
 
 ### Prototype: the adaptive solver
 
-The `adaptive` solver of the event-driven engine
-(`event-trace/worker/adaptive-stepper.ts`, behind **Solver** in Simulation
-Settings) is the first cut of the flow regime, built to measure before the
+The adaptive stepper
+(`event-trace/worker/adaptive-stepper.ts`, the **JS adaptive** simulator in
+Simulation Settings) is the first cut of the flow regime, built to measure before the
 hazard integration above lands. One step spans at most the reference
 interval and ends at a firing or at the span's end:
 
@@ -465,6 +465,100 @@ and AnyLogic offers its datasets either at a recurrence time or at events;
 the trace keeps events and makes the grid a view.
 
 ## Interfaces
+
+### As built: simulators
+
+The contract that exists in code is the
+[simulators layer](layer:core.simulation.simulators). It replaces the
+simulation backend contract proposed in the next section, which is kept for
+the reasoning behind it.
+
+A **simulator** computes a net one way. A host registers it as a manifest
+plus an implementation:
+
+```ts
+type SimulatorManifest = {
+  id: string;
+  label: string;
+  description: string;
+  /** Flat and keyed: number, integer, boolean or enum, each with a default. */
+  parameters: SimulatorParameterSpecs;
+  produces: { run: boolean; experiment: boolean };
+  /** The number parameter an experiment is sampled at, when there is one. */
+  samplePeriodParameter?: string;
+};
+
+type Simulator = {
+  needsHirTrees: boolean;
+  assess(request: SimulationRequest): Promise<SimulatorAssessment>;
+  dispose?(): void;
+};
+
+type SimulatorOffer = {
+  eligible: true;
+  notes: readonly ExperimentNote[];
+  startRun?(options?): Promise<SimulatorStart<EventSimulation>>;
+  startExperiment?(
+    experiment: SimulatorExperimentRequest,
+    options?,
+  ): Promise<SimulatorStart<MonteCarloExperiment>>;
+};
+```
+
+The manifest is plain data, so a picker lists simulators and draws their
+parameter fields without loading one. `assess` decides from the net and the
+parameters alone and acquires nothing. An eligible assessment offers up to two
+starts:
+
+- **A run** is one trajectory, recorded as the events of [The trace](#the-trace)
+  and read back at any time. Quick Simulation plays it.
+- **An experiment** is many runs, read back as metric frames on a sample grid.
+  Stochastic mode and the Experiments view read it.
+
+Nothing ties a run to an experiment, and nothing compares two simulators: each
+does its best within its own constraints. The request carries no time step and
+no reference interval. A time step is a parameter of the simulators that have
+one, and where a simulator records its reference frames is its own policy,
+a constant of 0.1 simulated seconds in both JS steppers today.
+
+| Simulator           | Parameters        | Run | Experiment | How it computes                                                                  |
+| ------------------- | ----------------- | --- | ---------- | -------------------------------------------------------------------------------- |
+| `js-fixed-step`     | `dt`              | yes | yes        | The fixed-step engine. A run records its firing steps plus reference frames.     |
+| `js-adaptive`       | `tolerance`       | yes | yes        | The stepper of [Prototype: the adaptive solver](#prototype-the-adaptive-solver). |
+| `webgpu-fixed-step` | `dt`, `odeMethod` | no  | yes        | The fixed-step engine in a compute shader, every run at once.                    |
+
+Both JS simulators implement one worker-side interface, `RunStepper`: the
+run's state in the buffers the engine already uses, and `advance(stopAt?)`,
+which moves to the next firing, the next reference frame or the stop time.
+Two hosts drive it:
+
+- **The event simulation worker** never passes a stop time, because a demand
+  must not change the adaptive stepper's random draws. A recorder encodes
+  each advance as a trace event, with the stepper's diagnostics, such as the
+  solver's error per place.
+- **The experiment worker** builds a run driver from the simulator the
+  request names and advances every run to each sample time, where the
+  metric accumulators observe all of them at one grid index. With the
+  fixed-step stepper the experiment is the one the engine computes, run for
+  run.
+
+An experiment's `dt` is its **sample period**. A simulator that names a
+`samplePeriodParameter` steps and samples on that parameter and refuses another
+period. The adaptive simulator takes any period, 0.1 s by default.
+
+Two adapters join this contract to the experiment backends of
+[Backend selection](doc:core.experiments/backend-selection):
+
+- `simulatorFromExperimentBackend` makes a simulator's experiments out of a
+  backend: the worker pool for the JS simulators, the WebGPU backend for the
+  third.
+- `experimentBackendOfSimulator` binds a registration to parameter values and
+  offers it as a backend registration, so the selection walk, its fallback and
+  a sweep's per-batch assessment run any registered simulator.
+
+In the editor the [simulators context](layer:react.simulators) carries the
+registrations. Quick Simulation and Stochastic mode each keep a selection for
+the session, and Create Experiment holds one per form.
 
 ### Simulation backend contract
 
