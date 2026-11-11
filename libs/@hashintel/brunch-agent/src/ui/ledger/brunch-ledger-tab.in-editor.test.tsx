@@ -232,7 +232,6 @@ test("after a version load, the Ledger marks the reflection on an element the op
                 name: "Reservoir",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 x: 0,
                 y: 0,
               },

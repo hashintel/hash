@@ -526,7 +526,6 @@ const handEdit = (handle: PetrinautDocHandle) =>
         name: "Hand place",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });

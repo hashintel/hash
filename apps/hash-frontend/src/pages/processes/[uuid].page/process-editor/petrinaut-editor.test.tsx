@@ -595,7 +595,6 @@ const editNet = (name: string) =>
         name,
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       });
