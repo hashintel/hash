@@ -749,7 +749,22 @@ const ActionSections = ({
               { kind: "step-output", stepId: step.stepId, outputName },
               step.stepId,
             );
-            return shape ? kindLabel(shape.payloadKind, shape.array) : null;
+            if (!shape) {
+              return null;
+            }
+            // A list of entities names its type, as the source menu does: "List of Suppliers".
+            const entityType = shape.array
+              ? findEntityType(
+                  entityTypeOf(
+                    document,
+                    { kind: "step-output", stepId: step.stepId, outputName },
+                    step.stepId,
+                  ) ?? "",
+                )
+              : undefined;
+            return entityType
+              ? `List of ${entityType.pluralTitle}`
+              : kindLabel(shape.payloadKind, shape.array);
           }}
           iconOf={(id) => nodeLook(document, id).icon}
         />
@@ -1129,7 +1144,7 @@ const RunFormFields = () => {
           ? {
               ...choice,
               text: input.array
-                ? `List of ${entityType.title}`
+                ? `List of ${entityType.pluralTitle}`
                 : entityType.title,
             }
           : choice,

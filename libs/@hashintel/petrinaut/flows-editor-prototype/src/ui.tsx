@@ -78,13 +78,23 @@ const kindNames: Partial<Record<EditorPayloadKind, string>> = {
   PropertyObjectWithMetadata: "Properties",
 };
 
-/** A payload kind as people read it, for hovers: "List of Entity". */
+/** A list of a type, one wording everywhere (11 Nov convergence A3): "List of Suppliers", "List of Entities". */
+export const listOf = (name: string) => {
+  const plural = /[^aeiou]y$/i.test(name)
+    ? `${name.slice(0, -1)}ies`
+    : /(s|x|ch|sh)$/i.test(name) || /text$/i.test(name)
+      ? name
+      : `${name}s`;
+  return `List of ${plural}`;
+};
+
+/** A payload kind as people read it, for hovers: "List of Entities". */
 export const kindLabel = (kind: string | undefined, array = false) => {
   const name = kind
     ? (kindNames[kind as EditorPayloadKind] ??
       kind.replace(/([a-z])([A-Z])/g, "$1 $2"))
     : "Any";
-  return array ? `List of ${name}` : name;
+  return array ? listOf(name) : name;
 };
 
 /** Figma ↳ Current panels: 12 px medium, muted, sentence case. */

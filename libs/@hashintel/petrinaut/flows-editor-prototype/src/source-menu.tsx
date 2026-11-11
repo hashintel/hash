@@ -618,8 +618,8 @@ export const SourceMenu = ({
   const listName = (option: SourceOption) => {
     const type = findEntityType(
       entityTypeOf(document, option.source, stepId),
-    )?.title;
-    return type ? `List of ${type}s` : option.label;
+    )?.pluralTitle;
+    return type ? `List of ${type}` : option.label;
   };
   const optionItems = (group: SourceOption["group"]) =>
     (listsOnly ? options.toReversed() : options)
