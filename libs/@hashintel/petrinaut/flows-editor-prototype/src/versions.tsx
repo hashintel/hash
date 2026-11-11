@@ -16,6 +16,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { RunIdsIn, runLabel } from "./run-id";
 import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
 import { triggerNoneTake } from "./trigger-flags";
@@ -508,7 +509,11 @@ const PublishDialog = ({
           <span className={noteStyle}>
             {liveRun === null
               ? "Runs in progress finish on the version they started on."
-              : `Run ${liveRun} is in progress and will finish on v${live ?? next}.`}
+              : (
+                <RunIdsIn
+                  text={`${runLabel({ id: liveRun })} is in progress and will finish on v${live ?? next}.`}
+                />
+              )}
           </span>
         </div>
       </Dialog.Body>

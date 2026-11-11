@@ -38,7 +38,7 @@ import {
   warningsOf,
   warningsText,
 } from "./run-history";
-import { runId, runIdMono, RunIdsIn, RunIdText, runLabel } from "./run-id";
+import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
 import { selectedLabel } from "./menu-rows";
 import { RunOutputsCell } from "./run-outputs";
 import { StatTiles, statTilesTake } from "./stat-tiles";
@@ -878,7 +878,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       color: "neutral.fg.heading",
                     })}
                   >
-                    {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)} · {run.when}
+                    <RunIdText run={run} prefix /> · {run.when}
                   </td>
                 )}
                 <td>

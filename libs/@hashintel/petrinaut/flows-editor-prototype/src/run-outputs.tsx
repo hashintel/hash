@@ -53,6 +53,7 @@ import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
+import { RunIdsIn, runLabel } from "./run-id";
 import {
   clockPlus,
   factsOf,
@@ -1678,7 +1679,11 @@ const FileModal = ({
     >
       <Dialog.Header
         title={fileHeading(file)}
-        description={`${fileMeta(file)} · ${file.supplier} · Run ${run.id}`}
+        description={
+          <RunIdsIn
+            text={`${fileMeta(file)} · ${file.supplier} · ${runLabel(run)}`}
+          />
+        }
         actions={
           <span className={headerActionsStyle} data-output-modal-actions>
             <FileNav view={view} onChange={onChange} />
@@ -1899,9 +1904,9 @@ const EntityTable = ({
   </div>
 );
 
-/** "For each supplier · Run 16 · Today, 08:15"; a run's own outputs say where they are listed instead. */
+/** "For each supplier · Run 2C07 · Today, 08:15"; a run's own outputs say where they are listed instead. */
 const sourceLine = (from: string, run: RunRecord) =>
-  `${from === `Run ${run.id} outputs` ? "Shown in Logs" : from} · Run ${run.id} · ${run.when}`;
+  `${from === `${runLabel(run)} outputs` ? "Shown in Logs" : from} · ${runLabel(run)} · ${run.when}`;
 
 type EntitiesView = Extract<ViewerState, { kind: "entities" }>;
 type MixedView = Extract<ViewerState, { kind: "mixed" }>;
@@ -2338,7 +2343,7 @@ const ListModal = ({
   <Dialog size="lg" variant="plain" onClose={onClose} aria-label={view.title}>
     <Dialog.Header
       title={view.title}
-      description={sourceLine(view.from, run)}
+      description={<RunIdsIn text={sourceLine(view.from, run)} />}
       actions={<OpenInEntities />}
     />
     <Dialog.Body>
@@ -2464,7 +2469,7 @@ const flaggedView = (
   return {
     kind: "mixed",
     title: groupsCount(groups),
-    from: `Run ${outputs.run.id} outputs`,
+    from: `${runLabel(outputs.run)} outputs`,
     groups,
     ...(focus ? { focus } : {}),
   };
@@ -3028,7 +3033,7 @@ const OutputColumn = ({
             <div className={headBlockStyle}>
               <span className={strongTitleStyle}>{view.title}</span>
               <span className={quietStyle}>
-                Run {run.id} · {run.when}
+                <RunIdsIn text={`${runLabel(run)} · ${run.when}`} />
               </span>
             </div>
             <ColumnList view={view} onOpen={onPush} />
@@ -3089,8 +3094,8 @@ const OutputSheet = ({
         }
         description={
           file
-            ? `${fileMeta(file)} · ${file.supplier} · Run ${run.id}`
-            : sourceLine(view.from, run)
+            ? <RunIdsIn text={`${fileMeta(file)} · ${file.supplier} · ${runLabel(run)}`} />
+            : <RunIdsIn text={sourceLine(view.from, run)} />
         }
         actions={
           <span className={headerActionsStyle} data-output-sheet-actions>

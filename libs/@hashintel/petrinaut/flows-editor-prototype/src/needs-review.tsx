@@ -30,6 +30,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { RunIdsIn, runLabel } from "./run-id";
 import { getCatalogEntry } from "./catalog";
 import { findStep } from "./document";
 import { useEditor } from "./editor-context";
@@ -842,7 +843,11 @@ const RequestHeader = ({
         >
           <span className={labelStyle}>{step}</span>
           <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-            {[item, `Run 17 · ${request.asked}`].filter(Boolean).join(" · ")}
+            <RunIdsIn
+              text={[item, `${runLabel({ id: 17 })} · ${request.asked}`]
+                .filter(Boolean)
+                .join(" · ")}
+            />
           </span>
         </span>
         {needsReviewTake === "link" ? (
@@ -1080,7 +1085,7 @@ const InboxDetail = ({ request }: { request: ReviewRequest }) => {
           >
             <span className={labelStyle}>{step}</span>
             <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-              {[flowName, "Run 17", item, request.asked]
+              {[flowName, runLabel({ id: 17 }), item, request.asked]
                 .filter(Boolean)
                 .join(" · ")}
             </span>
@@ -1146,7 +1151,7 @@ export const ReviewInbox = () => {
               color: "neutral.fg.subtle",
             })}
           >
-            {flowName} · Run 17
+            <RunIdsIn text={`${flowName} · ${runLabel({ id: 17 })}`} />
           </div>
           <RequestList
             currentId={shown?.id}
