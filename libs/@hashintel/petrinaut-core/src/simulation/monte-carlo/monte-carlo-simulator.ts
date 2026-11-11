@@ -236,11 +236,18 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
           }
         },
         forEachRunFrame: (visitor) => {
-          for (const run of this.#runs) {
+          for (const [index, run] of this.#runs.entries()) {
+            const driven = this.#drivenPosition(index);
             visitor({
               runIndex: run.index,
               status: run.status,
-              frame: createMonteCarloFrameReader(run),
+              frame: createMonteCarloFrameReader(
+                run,
+                driven && {
+                  number: driven.frameNumber,
+                  time: driven.currentTime,
+                },
+              ),
             });
           }
         },

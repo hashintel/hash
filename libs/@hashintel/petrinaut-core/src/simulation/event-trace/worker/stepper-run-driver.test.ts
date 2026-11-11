@@ -8,6 +8,8 @@ import { FIXED_STEP_SIMULATOR_ID } from "./fixed-step-stepper";
 import { createStepperRunDriverFactory } from "./stepper-run-driver";
 
 import type { SDCPN } from "../../../types/sdcpn";
+import type { SimulationFrameReader } from "../../api";
+import type { MonteCarloFrameMetric } from "../../monte-carlo/metrics/types";
 
 const sir = sirModel.petriNetDefinition;
 const sirConfig = {
@@ -51,6 +53,38 @@ const poisson: SDCPN = {
   differentialEquations: [],
   parameters: [],
 };
+
+/** What every run's frame reads at each sample, as a metric is shown it. */
+const readingsOf = <Reading>(
+  read: (frame: SimulationFrameReader) => Reading,
+) => {
+  const samples: Reading[][] = [];
+  const metric: MonteCarloFrameMetric = {
+    observeFrame: ({ forEachRunFrame }) => {
+      const sample: Reading[] = [];
+      forEachRunFrame(({ frame }) => sample.push(read(frame)));
+      samples.push(sample);
+    },
+  };
+  return { metric, samples };
+};
+
+const adaptivePoisson = (metric: MonteCarloFrameMetric, runCount: number) =>
+  createMonteCarloSimulator({
+    sdcpn: poisson,
+    hirArtifacts: compileHirArtifacts(poisson).artifacts,
+    initialMarking: { sink: 0 },
+    parameterValues: {},
+    seed: 4,
+    dt: 0.25,
+    maxTime: 2,
+    runCount,
+    metrics: [metric],
+    createRunDriver: createStepperRunDriverFactory({
+      id: ADAPTIVE_SIMULATOR_ID,
+      parameters: { tolerance: 1e-6 },
+    }),
+  });
 
 describe("an experiment whose runs a stepper advances", () => {
   it("is the experiment the fixed-step engine computes, when the stepper is that engine's", () => {
@@ -207,5 +241,26 @@ describe("an experiment whose runs a stepper advances", () => {
       frameNumber: 2,
       currentTime: 0.5,
     });
+  });
+
+  it("shows a metric the sample and the time an adaptive run has reached", () => {
+    const { metric, samples } = readingsOf((frame) => ({
+      number: frame.number,
+      time: frame.time,
+      stateNumber: frame.toFrameState().number,
+    }));
+    const simulator = adaptivePoisson(metric, 2);
+    simulator.advanceAll();
+    simulator.advanceAll();
+
+    expect(samples).toEqual(
+      [0, 1, 2].map((sample) =>
+        Array.from({ length: 2 }, () => ({
+          number: sample,
+          time: sample * 0.25,
+          stateNumber: sample,
+        })),
+      ),
+    );
   });
 });
