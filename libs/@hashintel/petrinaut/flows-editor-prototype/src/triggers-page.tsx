@@ -51,6 +51,7 @@ import {
 } from "./schedule-form";
 import {
   buttonsOnEdgeStyle,
+  formActionsStyle,
   ScheduleFormLayout,
   scheduleLayout,
 } from "./schedule-form-layouts";
@@ -695,34 +696,25 @@ const TriggerForm = ({
           value={values.web}
           onChange={set("web")}
         />
-        <span className="label">Flow version</span>
-        <span
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "2",
-            minHeight: "[32px]",
-          })}
-        >
-          <span className={headingText}>
-            {trigger ? trigger.version : `${flow?.latest ?? "v1"} (latest)`}
-          </span>
-          {trigger?.latest ? (
+        {/* An existing trigger's version is its row's dropdown, so the form doesn't repeat it. */}
+        {trigger ? null : (
+          <>
+            <span className="label">Flow version</span>
             <span
               className={css({
-                textStyle: "sm",
-                color: "neutral.fg.muted",
-                textDecoration: "underline",
-                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                minHeight: "[32px]",
               })}
             >
-              Upgrade to {trigger.latest}
+              <span className={headingText}>{`${flow?.latest ?? "v1"} (latest)`}</span>
             </span>
-          ) : null}
-        </span>
+          </>
+        )}
         <span />
-        <span className={cx(buttonsOnEdgeStyle, css({ paddingTop: "3" }))}>
-          <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
+        {/* Cancel is the neutral outline left of the main action, as in the confirm dialogs (12 Nov 00:20). */}
+        <span className={cx(formActionsStyle, css({ paddingTop: "3" }))}>
+          <Button size="sm" variant="subtle" tone="neutral" onClick={onCancel}>
             Cancel
           </Button>
           <Button

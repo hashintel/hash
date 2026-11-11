@@ -683,7 +683,7 @@ export const ScheduleFields = ({
               <CustomFields rule={draft} startIso={startIso} onChange={setDraft} withEnds />
             </div>
             <span className={css({ display: "flex", justifyContent: "flex-end", gap: "2" })}>
-              <Button size="sm" variant="ghost" tone="neutral" onClick={() => setPopover(false)}>
+              <Button size="sm" variant="subtle" tone="neutral" onClick={() => setPopover(false)}>
                 Cancel
               </Button>
               <Button

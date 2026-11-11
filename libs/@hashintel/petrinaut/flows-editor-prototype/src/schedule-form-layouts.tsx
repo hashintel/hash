@@ -314,6 +314,9 @@ export const buttonsOnEdgeStyle = css({
   "& > button:first-child": { marginLeft: "[-8px]" },
 });
 
+/** A form's footer: the neutral outline Cancel, then the main action (12 Nov 00:20). */
+export const formActionsStyle = css({ display: "flex", gap: "2" });
+
 const Actions = ({
   saveLabel,
   onSave,
@@ -323,8 +326,8 @@ const Actions = ({
   onSave: () => void;
   onCancel: () => void;
 }) => (
-  <span className={buttonsOnEdgeStyle}>
-    <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
+  <span className={formActionsStyle}>
+    <Button size="sm" variant="subtle" tone="neutral" onClick={onCancel}>
       Cancel
     </Button>
     <Button size="sm" variant="solid" tone="neutral" onClick={onSave}>
