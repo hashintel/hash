@@ -58,7 +58,7 @@
   },
   "scripts": {
     "build": "npm-run-all build:docs-demos build:lib build:docs-mdx build:buildinfo build:buildinfo:docs",
-    "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
+    "build:buildinfo": "panda ship --config panda.config.ts --outfile dist/panda.buildinfo.json",
     "build:buildinfo:docs": "panda ship --config panda.docs.config.ts --outfile dist/docs/panda.buildinfo.json",
     "build:docs-demos": "tsx scripts/generate-docs-demos.ts",
     "build:docs-mdx": "tsx scripts/generate-docs-mdx.ts",

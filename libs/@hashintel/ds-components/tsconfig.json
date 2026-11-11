@@ -22,7 +22,6 @@
     "panda.config.ts",
     "panda.docs.config.ts",
     "panda.local.config.ts",
-    "panda.ship.config.ts",
     "playwright.config.ts",
     "tsup.config.ts",
     "vite.config.ts"

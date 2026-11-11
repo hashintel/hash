@@ -71,7 +71,8 @@ Key points:
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
 - `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
-- `panda.ship.config.ts` is what `build:buildinfo` runs, and `panda.docs.config.ts` builds on it. Everything it extracts ships to consumers, so it excludes story and test files and sets `jsxStyleProps: "minimal"`. Under the default `"all"`, Panda reads any prop named like a CSS property on any capitalised JSX tag as a style (`<Tooltip position="right">` became `position: right`). Keep `jsxStyleProps` out of `panda.config.ts`: codegen follows it, and `"minimal"` would strip style props from the generated `@hashintel/ds-helpers/jsx` types.
+- `build:buildinfo` ships everything `panda.config.ts` extracts to consumers, so it excludes story and test files. `panda.local.config.ts` clears that exclusion for Storybook, and `panda.docs.config.ts` adds the stories to the docs build info, standing in for the `css()` calls in the `.mdx` pages that Panda can't read.
+- `jsxStyleProps: "minimal"`: under Panda's default `"all"`, any prop named like a CSS property on any capitalised JSX tag is read as a style (`<Tooltip position="right">` shipped `position: right`). Codegen follows the setting, so the `@hashintel/ds-helpers/jsx` components take styles through `css` and their pattern props only (`<VStack gap="2" css={{ alignItems: "center" }}>`).
 - `panda.local.config.ts` exists separately for local demo surfaces such as Storybook
 
 ### Token Naming Patterns (Strict Mode)

@@ -11,6 +11,7 @@ export default defineConfig({
     "./.storybook/**/*.{ts,tsx}",
     "./docs/**/*.{ts,tsx}",
   ],
+  exclude: [],
   staticCss: {
     css: [
       {
