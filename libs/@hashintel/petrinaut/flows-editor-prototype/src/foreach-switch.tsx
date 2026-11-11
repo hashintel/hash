@@ -38,6 +38,7 @@ import {
 import { selectedLabelStyle } from "./menu-rows";
 import { setQuery, useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
+import { useEscapeCloses } from "./use-escape-closes";
 import {
   type BarSegment,
   factsOf,
@@ -717,7 +718,13 @@ const RunLikeSwitch = ({
 /** `?foreachswitch=arrows|dropdown|toggle|runlike|runlike-b`: on the For each box's header, after its title and a hairline. */
 export const ForEachBoxSwitch = ({ stepId }: { stepId: string }) => {
   const history = useRunView();
-  const { take } = useForEachItem();
+  const { take, item, pick } = useForEachItem();
+  const { ui } = useEditor();
+  // Esc returns a picked item to All suppliers, after a selected step has been let go.
+  useEscapeCloses(
+    () => pick(null),
+    item !== null && stepId === forEachId && !ui.selectedId,
+  );
   const items = useItems(history);
   if (
     (take !== "arrows" &&

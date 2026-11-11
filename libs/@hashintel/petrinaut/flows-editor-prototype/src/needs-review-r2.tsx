@@ -41,6 +41,7 @@ import { RunIdText } from "./run-id";
 import { type Certificate, Page } from "./run-outputs";
 import { tileColor } from "./status-colors";
 import { HueHeader, PropertyRow, Section, sectionTitleStyle } from "./ui";
+import { useEscapeCloses } from "./use-escape-closes";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK requests, each with what the step shows for it
@@ -840,12 +841,14 @@ const sheetColumn = css({
 
 /** r2-3: a wide sheet over the canvas: list, the reviewed thing, the step and its form. */
 const Sheet = ({ request, onClose }: { request: R2Request; onClose: () => void }) => {
+  const layer = useEscapeCloses<HTMLDivElement>(onClose);
   const host = useHost(placeSheet);
   const { open } = useShown();
   const run = useWaitingRun();
   return host
     ? createPortal(
         <div
+          ref={layer}
           role="dialog"
           aria-label="Needs review"
           data-review-sheet

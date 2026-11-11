@@ -50,6 +50,7 @@ import {
 } from "./schedule-form";
 import { ScheduleFormLayout, scheduleLayout } from "./schedule-form-layouts";
 import { monthlyReviewId } from "./seed-flows";
+import { useEscapeCloses } from "./use-escape-closes";
 
 /** The status filter, as the Triggers panel draws it (approved L26): All · On · Paused. */
 type StatusFilter = "all" | "on" | "paused";
@@ -857,6 +858,15 @@ const usePage = (routeFlowId: string | null) => {
     setConfirming(null);
     setOpened(id);
   };
+  // Esc closes the open trigger or the new one's form (11 Nov convergence A17).
+  useEscapeCloses(
+    () => {
+      setDraft(null);
+      setConfirming(null);
+      setOpened(null);
+    },
+    opened !== null || draft !== null,
+  );
   const startDraft = (next: Draft) => {
     setOpened(null);
     setConfirming(null);
