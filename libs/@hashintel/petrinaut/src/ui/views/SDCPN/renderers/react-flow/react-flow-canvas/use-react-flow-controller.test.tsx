@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useReactFlowController } from "./use-react-flow-controller";
 
@@ -33,10 +33,22 @@ const defaultProps = {
   animated: false,
 };
 
+/** An animating camera whose frames never come, as in a hidden tab. */
+const stallFrames = () => {
+  vi.stubGlobal("requestAnimationFrame", () => 0);
+  vi.stubGlobal("cancelAnimationFrame", () => {});
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+};
+
 describe("useReactFlowController", () => {
   beforeEach(() => {
     setViewport.mockClear();
     setViewport.mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("frames once from the post-render bounds and settles the request", async () => {
@@ -99,10 +111,9 @@ describe("useReactFlowController", () => {
     expect(setViewport).not.toHaveBeenCalled();
   });
 
-  it("bounds a move whose frames never come, as in a hidden tab", async () => {
+  it("bounds a move whose frames never come", async () => {
     vi.useFakeTimers();
-    vi.stubGlobal("requestAnimationFrame", () => 0);
-    vi.stubGlobal("cancelAnimationFrame", () => {});
+    stallFrames();
     const { result } = renderHook(() =>
       useReactFlowController({ ...defaultProps, animated: true }),
     );
@@ -112,7 +123,19 @@ describe("useReactFlowController", () => {
       await vi.advanceTimersByTimeAsync(1_500);
     });
     await expect(frame).resolves.toBe("timed-out");
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
+  });
+
+  it("reports where a move under way will come to rest", () => {
+    stallFrames();
+    const { result } = renderHook(() =>
+      useReactFlowController({ ...defaultProps, animated: true }),
+    );
+    const { controller } = result.current;
+    const target = { x: 120, y: -40, zoom: 2 };
+
+    expect(controller.getRestViewport()).toEqual({ x: 0, y: 0, zoom: 1 });
+    controller.setViewport(target, { animate: true });
+    expect(controller.getRestViewport()).toEqual(target);
+    expect(setViewport).not.toHaveBeenCalled();
   });
 });

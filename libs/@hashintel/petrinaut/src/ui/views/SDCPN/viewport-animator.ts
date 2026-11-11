@@ -57,6 +57,8 @@ export type ViewportAnimator = {
   /** Stops where the camera is, as when the user grabs the canvas. */
   cancel: () => void;
   isAnimating: () => boolean;
+  /** Where the move under way is heading, or null at rest. */
+  target: () => CanvasViewport | null;
 };
 
 /**
@@ -170,5 +172,6 @@ export const createViewportAnimator = ({
     },
     cancel: stop,
     isAnimating: () => state !== null,
+    target: () => target,
   };
 };

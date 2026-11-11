@@ -67,12 +67,14 @@ describe("createViewportAnimator", () => {
 
     const done = animator.animateTo({ x: 300, y: -120, zoom: 2 });
     expect(animator.isAnimating()).toBe(true);
+    expect(animator.target()).toEqual({ x: 300, y: -120, zoom: 2 });
     const frameCount = frames.run();
 
     await done;
     expect(viewport).toEqual({ x: 300, y: -120, zoom: 2 });
     expect(frameCount).toBeGreaterThan(5);
     expect(animator.isAnimating()).toBe(false);
+    expect(animator.target()).toBeNull();
   });
 
   it("keeps moving forward when retargeted mid-flight", () => {

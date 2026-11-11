@@ -22,32 +22,39 @@ const node = (id: string, x: number) => ({
 
 /** `near` shows on an untouched canvas, `far` is off its right edge. */
 const scene = {
-  nodes: [node("near", 400), node("far", 2000)],
+  nodes: [node("near", 600), node("far", 2000)],
   arcs: [],
 } as unknown as CanvasScene;
 
 const select = (...ids: string[]) =>
   new Map(ids.map((id) => [id, { type: "place", id }] as const));
 
+const origin = { x: 0, y: 0, zoom: 1 };
+
 const setup = (initialSelection: string[]) => {
-  const setViewport = vi.fn<CanvasController["setViewport"]>();
+  let rest = origin;
+  const setViewport = vi.fn<CanvasController["setViewport"]>((viewport) => {
+    rest = viewport;
+  });
+  // A camera that never catches up: only where it is heading moves.
   const controller = {
-    getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
+    getViewport: () => origin,
+    getRestViewport: () => rest,
     setViewport,
   } as unknown as CanvasController;
 
   let selection = select(...initialSelection);
+  let frame = { width: 1200, right: 0 };
   const { rerender } = renderHook(
-    ({ right }) =>
+    () =>
       useKeepSelectionInView({
         controller,
         scene,
-        containerSize: { width: 1000, height: 600 },
-        insets: { left: 200, right, bottom: 0 },
+        containerSize: { width: frame.width, height: 600 },
+        insets: { left: 200, right: frame.right, bottom: 0 },
         minZoom: 0.1,
       }),
     {
-      initialProps: { right: 0 },
       wrapper: ({ children }: { children: ReactNode }) => (
         <EditorContext value={{ selection } as EditorContextValue}>
           {children}
@@ -58,11 +65,19 @@ const setup = (initialSelection: string[]) => {
 
   return {
     setViewport,
+    targets: () => setViewport.mock.calls.map(([viewport]) => viewport.x),
     changeSelection: (...ids: string[]) => {
       selection = select(...ids);
-      rerender({ right: 0 });
+      rerender();
     },
-    openRightPanel: () => rerender({ right: 500 }),
+    setRightPanel: (right: number) => {
+      frame = { ...frame, right };
+      rerender();
+    },
+    setCanvasWidth: (width: number) => {
+      frame = { ...frame, width };
+      rerender();
+    },
   };
 };
 
@@ -89,17 +104,38 @@ describe("useKeepSelectionInView", () => {
     expect(setViewport).not.toHaveBeenCalled();
   });
 
-  it("moves a selection in view clear of a panel that opens over it", () => {
-    const { setViewport, openRightPanel } = setup(["near"]);
-    openRightPanel();
+  it("turns back for an item the camera is heading away from", () => {
+    const { targets, changeSelection } = setup([]);
+    changeSelection("far");
+    changeSelection("near");
 
-    expect(setViewport).toHaveBeenCalledOnce();
-    expect(setViewport.mock.calls[0]![0].x).toBeLessThan(0);
+    const [towardsFar, towardsNear] = targets();
+    expect(towardsNear).toBeGreaterThan(towardsFar!);
+  });
+
+  it("moves a selection in view clear of a panel that opens over it", () => {
+    const { targets, setRightPanel } = setup(["near"]);
+    setRightPanel(500);
+    expect(targets()).toEqual([-18]);
+  });
+
+  it("keeps following a panel that outruns the camera", () => {
+    const { targets, setRightPanel } = setup(["near"]);
+    setRightPanel(500);
+    setRightPanel(700);
+    setRightPanel(800);
+    expect(targets()).toEqual([-18, -218, -318]);
+  });
+
+  it("moves a selection in view clear of a canvas that shrinks over it", () => {
+    const { targets, setCanvasWidth } = setup(["near"]);
+    setCanvasWidth(700);
+    expect(targets()).toEqual([-18]);
   });
 
   it("leaves a selection out of view alone when a panel opens", () => {
-    const { setViewport, openRightPanel } = setup(["far"]);
-    openRightPanel();
+    const { setViewport, setRightPanel } = setup(["far"]);
+    setRightPanel(500);
     expect(setViewport).not.toHaveBeenCalled();
   });
 });

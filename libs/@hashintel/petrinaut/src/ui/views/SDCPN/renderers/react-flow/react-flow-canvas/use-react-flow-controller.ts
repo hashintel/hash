@@ -125,6 +125,8 @@ export const useReactFlowController = ({
 
   const [controller] = useState<CanvasController>(() => ({
     getViewport: () => frameStateRef.current.reactFlow.getViewport(),
+    getRestViewport: () =>
+      camera.target() ?? frameStateRef.current.reactFlow.getViewport(),
     setViewport: (viewport, options) => {
       if (options?.animate) {
         void camera.animateTo(viewport);
