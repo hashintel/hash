@@ -7,6 +7,15 @@ import {
 } from "./linear";
 
 describe("matrixExponential", () => {
+  it("refuses a matrix with an entry that is not finite", () => {
+    expect(() => matrixExponential(Float64Array.of(Infinity), 1)).toThrow(
+      "not finite",
+    );
+    expect(() => matrixExponential(Float64Array.of(Number.NaN), 1)).toThrow(
+      "not finite",
+    );
+  });
+
   it("exponentiates a diagonal matrix entrywise", () => {
     const result = matrixExponential(Float64Array.of(1, 0, 0, -2), 2);
     expect(result[0]).toBeCloseTo(Math.E, 12);
