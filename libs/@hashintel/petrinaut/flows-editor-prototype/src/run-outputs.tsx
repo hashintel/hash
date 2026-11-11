@@ -3886,7 +3886,7 @@ export const StepOutputs = ({
               attrib
                 ? "Saved to @acme"
                 : take === "a"
-                ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
+                ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · Used in Send review email`
                 : undefined
             }
             noun="certificates"
