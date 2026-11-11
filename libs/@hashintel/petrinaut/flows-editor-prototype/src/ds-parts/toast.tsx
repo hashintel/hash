@@ -5,7 +5,7 @@
  */
 import { useEffect } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 const toastStyle = css({
@@ -58,6 +58,30 @@ const titleStyle = css({ fontWeight: "medium" });
 
 const descriptionStyle = css({ opacity: "[0.9]" });
 
+/** The inverted Toast's action (`42311:30117`): a white 24 px button, 1 px a30 border, 12 px medium s115 text. */
+const actionStyle = css({
+  all: "unset",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxSizing: "border-box",
+  height: "[24px]",
+  paddingX: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.solid",
+  borderRadius: "md",
+  backgroundColor: "neutral.bgSolid.min",
+  color: "neutral.fg.heading",
+  fontSize: "[12px]",
+  lineHeight: "[12px]",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.subtle.hover" },
+  _focusVisible: { outline: "[2px solid var(--colors-neutral-bd-solid)]", outlineOffset: "[1px]" },
+});
+
 const closeStyle = css({
   all: "unset",
   position: "absolute",
@@ -106,17 +130,16 @@ export const Toast = ({
           ) : null}
         </div>
         {action ? (
-          <Button
-            size="xs"
-            variant="subtle"
-            tone="neutral"
+          <button
+            type="button"
+            className={actionStyle}
             onClick={() => {
               onAction?.();
               onDone();
             }}
           >
             {action}
-          </Button>
+          </button>
         ) : null}
       </div>
       <button
