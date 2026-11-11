@@ -105,27 +105,18 @@ export const optionsFor = (question: OfferedQuestion): readonly string[] => {
 export const offersAnswers = ({ questions }: OfferedQuestions) =>
   questions.some(({ kind }) => kind !== "open");
 
-const questionKey = (label: string) => label.trim().toLowerCase();
-
 /**
- * One turn's offers as the person sees them, by position in `offers`. A
- * question is known by its label, and one offered again keeps only its latest
- * offer; an earlier offer left with nothing to answer is withdrawn.
+ * One turn's offers as the one set of questions the person answers. A
+ * question is known by its label: one offered again keeps the place it was
+ * first offered and takes its latest offer's content.
  */
-export const latestOffers = (
+export const mergeOffers = (
   offers: readonly OfferedQuestions[],
-): (OfferedQuestions | undefined)[] =>
-  offers.map((offer, index) => {
-    const askedLater = new Set(
-      offers
-        .slice(index + 1)
-        .flatMap(({ questions }) =>
-          questions.map(({ label }) => questionKey(label)),
-        ),
-    );
-    const questions = offer.questions.filter(
-      ({ label }) => !askedLater.has(questionKey(label)),
-    );
-    if (questions.length === offer.questions.length) return offer;
-    return offersAnswers({ questions }) ? { questions } : undefined;
-  });
+): OfferedQuestions => {
+  // Setting a key a Map already holds keeps the key's original position.
+  const latest = new Map<string, OfferedQuestion>();
+  for (const { questions } of offers)
+    for (const question of questions)
+      latest.set(question.label.trim().toLowerCase(), question);
+  return { questions: [...latest.values()] };
+};

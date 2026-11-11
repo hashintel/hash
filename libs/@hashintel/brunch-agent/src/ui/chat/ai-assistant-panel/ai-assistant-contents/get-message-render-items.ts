@@ -4,7 +4,10 @@ import {
   zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
-import { latestOffers } from "../../../../conversation/question-kinds";
+import {
+  mergeOffers,
+  offersAnswers,
+} from "../../../../conversation/question-kinds";
 import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
@@ -72,6 +75,8 @@ export const getMessageRenderItems = (
       )
       .map(({ toolName }) => toolName),
   );
+  const offers: OfferedQuestions[] = [];
+  let cardsBeforeLastOffer = 0;
   message.parts.forEach((part, index) => {
     const key = `${message.id}-${index}`;
     if (part.type === "text") {
@@ -85,12 +90,10 @@ export const getMessageRenderItems = (
       getToolName(part) === brunchTools.offerAnswers
     ) {
       const offer = zOfferAnswersInput.safeParse(part.input);
-      if (offer.success)
-        turn.cards.push({
-          type: "answers",
-          key: part.toolCallId ?? key,
-          offer: offer.data,
-        });
+      if (offer.success) {
+        offers.push(offer.data);
+        cardsBeforeLastOffer = turn.cards.length;
+      }
     } else if (isToolPart(part)) {
       if (hiddenToolNames.has(getToolName(part))) return;
       const tool = toToolRenderItem(
@@ -138,15 +141,14 @@ export const getMessageRenderItems = (
       }
     }
   });
-  const offerCards = turn.cards.filter((card) => card.type === "answers");
-  const shown = latestOffers(offerCards.map(({ offer }) => offer));
-  const shownByCard = new Map(
-    offerCards.map((card, index) => [card, shown[index]]),
-  );
-  turn.cards = turn.cards.flatMap((card): MessageRenderItems["cards"] => {
-    if (card.type !== "answers") return [card];
-    const offer = shownByCard.get(card);
-    return offer ? [{ ...card, offer }] : [];
-  });
+  // One card answers the whole turn, so whether a click sends, collects or
+  // drafts is decided over every question the turn offered.
+  const offer = mergeOffers(offers);
+  if (offersAnswers(offer))
+    turn.cards.splice(cardsBeforeLastOffer, 0, {
+      type: "answers",
+      key: `${message.id}-answers`,
+      offer,
+    });
   return turn;
 };

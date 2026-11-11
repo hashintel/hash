@@ -9,11 +9,13 @@ import {
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { AnswerOfferCard } from "./answer-offer-card";
+import { getMessageRenderItems } from "./get-message-render-items";
 
 import type {
   OfferedQuestion,
   OfferedQuestions,
 } from "../../../../conversation/question-kinds";
+import type { PetrinautAiMessage } from "../types";
 
 afterEach(cleanup);
 
@@ -377,4 +379,72 @@ test("renders nothing when every question is open", () => {
     questions: [{ kind: "open", label: "Recent order" }],
   });
   expect(container.innerHTML).toBe("");
+});
+
+describe("several offers in one turn answer as one card", () => {
+  const recentCase: OfferedQuestion = { kind: "open", label: "Recent case" };
+
+  /** The turn's cards as the transcript renders them, from its real render items. */
+  const renderTurn = (...offers: OfferedQuestion[][]) => {
+    const onSend = vi.fn<(text: string) => void>();
+    const onDraft = vi.fn<(fill: DraftFill) => void>();
+    const { cards } = getMessageRenderItems({
+      id: "turn",
+      role: "assistant",
+      parts: offers.map(
+        (questions, index) =>
+          ({
+            type: "tool-offer_answers",
+            toolCallId: `offer-${index + 1}`,
+            state: "output-available",
+            input: { questions },
+            output: { offered: questions.length },
+          }) as unknown as PetrinautAiMessage["parts"][number],
+      ),
+    });
+    render(
+      cards.map(
+        (card) =>
+          card.type === "answers" && (
+            <AnswerOfferCard
+              key={card.key}
+              offer={card.offer}
+              onSend={onSend}
+              onDraft={onDraft}
+            />
+          ),
+      ),
+    );
+    const drafted = (draft: string) => onDraft.mock.calls.at(-1)?.[0](draft);
+    return { onSend, onDraft, drafted };
+  };
+
+  test("an open question anywhere in the turn makes a click draft, not send", () => {
+    const { onSend, drafted } = renderTurn(
+      [recentCase, appetite],
+      [recentCase, demand],
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Quick" }));
+    expect(
+      onSend,
+      "the turn still asks an open question, so nothing is sent yet",
+    ).not.toHaveBeenCalled();
+    expect(drafted("")).toBe(
+      "1. Recent case:\n2. Time to spend: Quick\n3. Production demand:",
+    );
+  });
+
+  test("two closed questions across offers are collected behind one Send", () => {
+    const { onSend } = renderTurn([quarantine, demand], [quarantine]);
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+    expect(
+      onSend,
+      "the turn asks two closed questions, so Yes is selected rather than sent",
+    ).not.toHaveBeenCalled();
+    expect(pressed("Yes")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Send answers" }));
+    expect(onSend).toHaveBeenCalledExactlyOnceWith(
+      "2. Production demand: Yes\n\nNot answered yet: Quarantined shipment.",
+    );
+  });
 });
