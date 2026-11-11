@@ -27,7 +27,7 @@
   "dependencies": {
     "@flue/runtime": "2.3.0",
     "@flue/sdk": "2.3.0",
-    "ai": "6.0.286"
+    "ai": "7.0.162"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "1.2.0",

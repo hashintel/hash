@@ -52,12 +52,12 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.289",
+    "@ai-sdk/react": "4.0.166",
     "@ark-ui/react": "5.38.1",
     "@flue/sdk": "2.3.0",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
-    "ai": "6.0.286",
+    "ai": "7.0.162",
     "md-pen": "1.2.0",
     "react-icons": "5.5.0",
     "react-markdown": "10.1.0",
