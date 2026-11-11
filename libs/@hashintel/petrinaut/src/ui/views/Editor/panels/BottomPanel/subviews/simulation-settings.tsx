@@ -27,11 +27,11 @@ import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
 import { scenarioExpressions } from "../../../../shared/scenario-expressions";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+import { RunSettingsPicker } from "./run-settings-picker";
 import {
   scenarioRunParameterValues,
   seedScenarioRunState,
 } from "./scenario-run-state";
-import { SimulatorControls } from "./simulator-controls";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
@@ -56,11 +56,9 @@ const rootStyle = css({
 const scenarioRowStyle = css({
   display: "flex",
   alignItems: "center",
-  // The run settings drop to a line of their own when the two no longer
-  // fit: a simulator can bring several fields.
-  flexWrap: "wrap",
-  columnGap: "2",
-  rowGap: "1.5",
+  // One line at any width: the run settings give way before anything wraps,
+  // so the columns below never move.
+  columnGap: "3",
   flexShrink: 0,
   // Small right inset so the row's controls don't hug the panel edge,
   // matching the form's columns below.
@@ -68,8 +66,8 @@ const scenarioRowStyle = css({
   marginBottom: "1.5",
 });
 
-// The picker reads as one control, not a full-panel bar; the Time Step
-// control fills the row's right edge.
+// The picker reads as one control, not a full-panel bar; the run settings
+// take the row's right edge.
 const scenarioPickerGroupStyle = css({
   display: "flex",
   alignItems: "center",
@@ -78,20 +76,6 @@ const scenarioPickerGroupStyle = css({
   // Wide enough to read a scenario's name beside its buttons.
   minWidth: "[240px]",
   maxWidth: "[420px]",
-});
-
-// The simulator and its parameters sit inline on the picker row, pushed to
-// the right edge — the columns below keep the full panel width to themselves.
-const runSettingsInlineStyle = css({
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-  columnGap: "4",
-  rowGap: "1.5",
-  marginLeft: "auto",
-  // On a line of its own, the fields wrap among themselves.
-  maxWidth: "[100%]",
 });
 
 const scenarioLabelStyle = css({
@@ -507,13 +491,6 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
-  // A run is computed by a simulator, which brings its own parameters.
-  const runSettingsControls = (
-    <div className={runSettingsInlineStyle}>
-      <SimulatorControls disabled={isSimulationActive} />
-    </div>
-  );
-
   return (
     <FocusRoot>
       <FocusStack axis="vertical">
@@ -614,7 +591,7 @@ const SimulationSettingsContent: React.FC = () => {
                   />
                 </div>
               </div>
-              {runSettingsControls}
+              <RunSettingsPicker locked={isSimulationActive} />
             </div>
           </FocusControls>
 

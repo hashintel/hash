@@ -34,9 +34,13 @@ Override values for this run:
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
+### Run settings
+
+The capsule at the right of the scenario row says what **Play** computes and with what. It holds the mode switch and, beside it, the simulator with the values it runs at, such as `JS fixed step 0.01 s`. It stays on one line at any panel width; when space runs short the values are cut with an ellipsis, and hovering shows them in full.
+
 ### Mode
 
-The **Mode** switch beside the scenario picker chooses what **Play** computes:
+The mode switch chooses what **Play** computes:
 
 - **Quick simulation** (the default) computes one run and plays it on the canvas, token by token.
 - **Stochastic** computes many runs of the same configuration and shows each place's token count across them. See [Stochastic simulation](#stochastic-simulation).
@@ -45,7 +49,7 @@ Each mode keeps its own simulator and parameter values. The switch is locked whi
 
 ### Simulator
 
-The **Simulator** picker chooses what computes the next run. The fields to its right are the selected simulator's own parameters, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
+Click the simulator in the capsule to open its popover. It opens over the panel, so nothing in the panel moves. The list at the top chooses what computes the next run, each simulator with a line on what it does. Under **Parameters** are the selected simulator's own fields, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
 
 | Simulator             | Parameters                    | Modes                        | What it does                                                                                                                                                               |
 | --------------------- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,7 +57,7 @@ The **Simulator** picker chooses what computes the next run. The fields to its r
 | **JS adaptive**       | **Max error**                 | Quick simulation, Stochastic | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
 | **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
-A simulator that cannot compute what the mode shows is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
+A simulator that cannot compute what the mode shows is greyed in the list, with the reason in place of its description. While a simulation exists the popover still opens, to read the values, but nothing in it can be changed; reset the simulation first.
 
 - **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds in Quick simulation and `0.1` in Stochastic, where every run pays for it.
 - **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
@@ -82,7 +86,7 @@ The uppercase section headers stack at the top as you scroll each column. Earlie
 
 ## Stochastic simulation
 
-With **Mode** set to **Stochastic**, Simulation Settings gains two fields after the simulator's own:
+With the mode set to **Stochastic**, the simulator's popover gains two fields after the simulator's own, and the capsule reads them after the simulator's values, such as `0.1 s · 100 runs · to 60 s`:
 
 - **Runs** -- how many independent runs are computed. Default: `100`. More runs give a steadier mean and a truer spread, and take longer.
 - **End time** -- the simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs one; switching to Stochastic sets `60` seconds when none was set.
@@ -175,7 +179,7 @@ Stopping conditions are **locked after the simulation starts**. Reset the simula
 
 ## Timeline
 
-The **Timeline** tab appears in the bottom panel during and after simulation. It shows token counts per place over time as a chart.
+The **Timeline** tab appears in the bottom panel during and after simulation. It shows token counts per place over time as a chart. Resetting the simulation closes the tab and returns the panel to **Simulation Settings**, where the next run is set up.
 
 <img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
