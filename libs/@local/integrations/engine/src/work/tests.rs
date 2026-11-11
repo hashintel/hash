@@ -9,6 +9,9 @@ use super::{
 };
 use crate::ArtifactRef;
 
+// Fixtures are told apart by number: an artifact, ID or UUID made from one number differs from
+// any made from another. Cases use 4 or 99 as the changed value.
+
 /// The stored form of an artifact reference whose digest is `fill` repeated.
 fn artifact_json(fill: u8) -> Value {
     let sha256 = hex::encode([fill; 32]);
@@ -21,6 +24,10 @@ fn artifact_json(fill: u8) -> Value {
             "format": "json",
         },
     })
+}
+
+fn state_ref_json(fill: u8) -> Value {
+    json!({ "id": hex::encode([fill; 32]), "artifact": artifact_json(fill) })
 }
 
 fn artifact(fill: u8) -> ArtifactRef {
@@ -58,7 +65,7 @@ fn state_wire_format() {
             "version": "v1",
             "value": {
                 "owner": "00000000-0000-0000-0000-000000000001",
-                "parent": { "id": "09".repeat(32), "artifact": artifact_json(9) },
+                "parent": state_ref_json(9),
                 "phase": "links_committed",
                 "generation": 2,
                 "workspace": artifact_json(1),
@@ -107,11 +114,6 @@ fn state_decode_round_trip() {
     let decoded =
         StateVersion::decode(&encoded(&state), state.id()).expect("should decode the state");
     assert_eq!(decoded, state, "should decode the state that was stored");
-}
-
-#[test]
-fn state_decode_other_id() {
-    let state = StateVersion::V1(state());
 
     let error = StateVersion::decode(&encoded(&state), StateVersionId([0; 32]))
         .expect_err("should reject a state with another ID");
@@ -221,26 +223,47 @@ fn work_id(manifest: WorkManifestV1) -> WorkId {
     WorkManifest::V1(manifest).id()
 }
 
-#[test]
-fn manifest_wire_format() {
-    let manifest = WorkManifest::V1(manifest(reconcile(state_ref(6), Some(11), 2)));
-
+#[rstest]
+#[case::apply(
+    apply(20, 6),
+    json!({
+        "kind": "apply",
+        "value": {
+            "run_id": "00000000-0000-0000-0000-000000000014",
+            "candidate": state_ref_json(6),
+        },
+    })
+)]
+#[case::restore(
+    restore(21, 7, Some(state_ref(6)), state_ref(8)),
+    json!({
+        "kind": "restore",
+        "value": {
+            "failed_run_id": "00000000-0000-0000-0000-000000000015",
+            "failed_work_id": "07".repeat(32),
+            "target": state_ref_json(6),
+            "contaminated": state_ref_json(8),
+        },
+    })
+)]
+#[case::reconcile(
+    reconcile(state_ref(6), Some(11), 2),
+    json!({
+        "kind": "reconcile",
+        "value": { "target": state_ref_json(6), "applied_incarnation": "0b".repeat(32), "cycle": 2 },
+    })
+)]
+fn manifest_wire_format(#[case] kind: WorkKind, #[case] kind_json: Value) {
     assert_eq!(
-        serde_json::to_value(&manifest).expect("should serialize the work manifest"),
+        serde_json::to_value(WorkManifest::V1(manifest(kind)))
+            .expect("should serialize the work manifest"),
         json!({
             "version": "v1",
             "value": {
                 "web": "00000000-0000-0000-0000-00000000000a",
                 "connector": "aviation",
                 "owner": "00000000-0000-0000-0000-000000000001",
-                "kind": {
-                    "kind": "reconcile",
-                    "value": {
-                        "target": { "id": "06".repeat(32), "artifact": artifact_json(6) },
-                        "applied_incarnation": "0b".repeat(32),
-                        "cycle": 2,
-                    },
-                },
+                "kind": kind_json,
                 "effects": artifact_json(5),
                 "effect_count": 3,
                 "effect_identity_version": 1,
