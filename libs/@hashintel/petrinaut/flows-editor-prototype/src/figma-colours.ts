@@ -91,6 +91,11 @@ const componentRules: [string, Record<string, string>][] = [
       "--colors-neutral-a35": "var(--colors-neutral-bg-subtle-active)",
     },
   ],
+  // A selected row keeps its #f4f4f4 fill under the pointer (11 Nov, conv-selected-row): the DS lightens it to a25.
+  [
+    `[data-part="item"][data-selected]`,
+    { "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-active)" },
+  ],
   [
     `[data-scope="checkbox"][data-part="root"]`,
     {
