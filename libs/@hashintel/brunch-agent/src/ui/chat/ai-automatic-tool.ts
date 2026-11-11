@@ -4,7 +4,7 @@ import type { PluginEdits } from "@hashintel/petrinaut/ui/plugin";
 /**
  * Runtime parser used at a host-owned automatic dynamic-tool boundary.
  */
-export type PetrinautAiAutomaticToolSchema<Value> = {
+export type PetrinautAiAutomaticToolParser<Value> = {
   parse: (value: unknown) => Value;
 };
 
@@ -14,8 +14,8 @@ export type PetrinautAiAutomaticToolSchema<Value> = {
  * diagnostics the built-in tools read. Raw mutations, commands and viewport
  * framing are not part of the plugin API, so they are not offered here.
  */
-export type PetrinautAiAutomaticToolExecuteParams = {
-  input: unknown;
+export type PetrinautAiAutomaticToolExecuteParams<Input = unknown> = {
+  input: Input;
   /** Refused while the editor is read-only; never pass as `PetrinautMutations`. */
   edit: PluginEdits;
   /** The host's bound document handle, from `PetrinautAiAssistant.documentHandle`. */
@@ -39,8 +39,47 @@ export type PetrinautAiAutomaticTool = {
   toolName: string;
   /** Whether this implementation detail appears in the transcript. Defaults to visible. */
   visibility?: "visible" | "hidden";
-  inputSchema: PetrinautAiAutomaticToolSchema<unknown>;
-  outputSchema: PetrinautAiAutomaticToolSchema<unknown>;
+  inputParser: PetrinautAiAutomaticToolParser<unknown>;
+  outputParser: PetrinautAiAutomaticToolParser<unknown>;
   /** Execute once; Petrinaut owns validated output insertion and continuation. */
   execute: (params: PetrinautAiAutomaticToolExecuteParams) => unknown;
 };
+
+/**
+ * Infer the author's input and output from their parsers. The registry-facing
+ * executor still accepts unknown: it parses before calling the typed executor.
+ * Its input parser is therefore a passthrough, so the panel never parses twice.
+ * Output parsing remains with the panel, after awaiting execution.
+ */
+export const definePetrinautAiAutomaticTool = <Input, Output>(
+  definition: Omit<
+    PetrinautAiAutomaticTool,
+    "execute" | "inputParser" | "outputParser"
+  > & {
+    inputParser: PetrinautAiAutomaticToolParser<Input>;
+    outputParser: PetrinautAiAutomaticToolParser<Output>;
+    execute: (
+      params: PetrinautAiAutomaticToolExecuteParams<NoInfer<Input>>,
+    ) => NoInfer<Output> | Promise<NoInfer<Output>>;
+  },
+): PetrinautAiAutomaticTool => ({
+  toolName: definition.toolName,
+  ...(definition.visibility === undefined
+    ? {}
+    : { visibility: definition.visibility }),
+  inputParser: { parse: (value) => value },
+  outputParser: definition.outputParser,
+  execute: (params) =>
+    definition.execute({
+      input: definition.inputParser.parse(params.input),
+      get edit() {
+        return params.edit;
+      },
+      get handle() {
+        return params.handle;
+      },
+      readDiagnosticsContext: params.readDiagnosticsContext,
+      toolCallId: params.toolCallId,
+      signal: params.signal,
+    }),
+});

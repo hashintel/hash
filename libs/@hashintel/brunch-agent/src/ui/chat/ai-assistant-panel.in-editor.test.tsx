@@ -240,8 +240,8 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
         automaticTools: [
           {
             toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: ({ edit, handle: boundHandle }) => {
               expect(boundHandle).toBe(documentHandle);
               return edit.addPlace(
@@ -471,9 +471,9 @@ test("a call claimed in one editor never runs in a replacement with identical co
       binding,
       metadataFor: () => undefined,
       prepareInput: () => {},
-      ...(history.waitForAdmission
-        ? { admit: () => admission.then(() => ({ admitted: true }) as const) }
-        : {}),
+      admit: history.waitForAdmission
+        ? () => admission.then(() => ({ admitted: true }) as const)
+        : async () => ({ admitted: true }),
       // The replacement holds the same content, so its revision matches.
       acceptsRevision: () => true,
     });
@@ -488,8 +488,8 @@ test("a call claimed in one editor never runs in a replacement with identical co
       automaticTools: [
         {
           toolName: "addPlace",
-          inputSchema: passthrough,
-          outputSchema: passthrough,
+          inputParser: passthrough,
+          outputParser: passthrough,
           execute: ({ edit, handle }) => {
             ranOn.push(handle);
             return edit.addPlace(place as Parameters<typeof edit.addPlace>[0]);

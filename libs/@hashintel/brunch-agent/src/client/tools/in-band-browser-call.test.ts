@@ -57,6 +57,7 @@ test("an unknown mutation record is submitted without failing the call", async (
       }) as unknown as ReturnType<
         Parameters<typeof createInBandBrowserCalls>[0]["metadataFor"]
       >,
+    admit: async () => ({ admitted: true }),
     prepareInput: () => {},
     acceptsRevision: () => true,
   });
@@ -101,6 +102,7 @@ test("the binding matches the issued call whatever its key order", async () => {
     } as FlueClient),
     ownerKey: "owner",
     binding: reordered,
+    admit: async () => ({ admitted: true }),
     metadataFor: () => undefined,
     prepareInput: () => {},
     acceptsRevision: () => true,
@@ -162,6 +164,7 @@ const createCalls = (
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: () => true,
   });
 
@@ -262,6 +265,7 @@ test("a change whose expected revision the document has left is reported stale a
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    admit: async () => ({ admitted: true }),
     acceptsRevision: (expected) => {
       accepted.push(expected);
       return false;
@@ -311,6 +315,7 @@ test("HASH's graph reads run in band beside the net tools, and the draft still r
   const calls = createCalls();
   expect(hashGraphReadToolNames.size).toBe(3);
   for (const name of hashGraphReadToolNames) expect(calls.has(name)).toBe(true);
+  expect(calls.has(brunchTools.saveHashNet)).toBe(true);
   expect(calls.has("readNetOutline")).toBe(true);
   expect(calls.has(brunchTools.draftPetrinautExperiment)).toBe(false);
   expect(calls.has("unmounted_tool")).toBe(false);

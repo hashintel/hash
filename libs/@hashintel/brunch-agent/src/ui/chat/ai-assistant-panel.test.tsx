@@ -12,7 +12,9 @@ import {
 } from "@testing-library/react";
 import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 
+import { brunchTools } from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -31,12 +33,14 @@ import {
   NotificationsProvider,
 } from "@hashintel/petrinaut/react";
 
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
   getVoiceToolCallIds,
   safelyAddToolOutput,
 } from "./ai-assistant-panel";
+import { definePetrinautAiAutomaticTool } from "./ai-automatic-tool";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
@@ -54,6 +58,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { PetrinautAiAssistant } from "./petrinaut";
+import type { FlueClient } from "@flue/sdk";
 import type { AddNotificationInput } from "@hashintel/petrinaut/ui/plugin";
 import type { UIMessageChunk } from "ai";
 
@@ -1282,8 +1287,8 @@ describe("AiAssistantPanel composer submissions", () => {
     const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { answer: string } },
       fromComposerText: mapText,
       component: ({ input }) => <span>{input.question}</span>,
     });
@@ -1362,8 +1367,8 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { answer: string } },
       component: ExternalQuestion,
     });
     const config: PetrinautAiAssistant = {
@@ -1477,8 +1482,8 @@ describe("AiAssistantPanel composer submissions", () => {
       const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
       const hostTool = definePetrinautAiInteractiveTool({
         toolName: "answerQuestion",
-        inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-        outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+        inputParser: { parse: (raw: unknown) => raw as { question: string } },
+        outputParser: { parse: (raw: unknown) => raw as { answer: string } },
         fromComposerText: mapText,
         component: ({ input, submit }) => (
           <button
@@ -2457,10 +2462,10 @@ describe("AiAssistantPanel composer submissions", () => {
     );
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -3239,10 +3244,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -4042,8 +4047,8 @@ describe("AiAssistantPanel composer submissions", () => {
         automaticTools: [
           {
             toolName: "hostAutomatic",
-            inputSchema: { parse: (raw: unknown) => raw as { value: number } },
-            outputSchema: { parse: (raw: unknown) => raw as { done: true } },
+            inputParser: { parse: (raw: unknown) => raw as { value: number } },
+            outputParser: { parse: (raw: unknown) => raw as { done: true } },
             execute,
           },
         ],
@@ -4128,6 +4133,78 @@ describe("AiAssistantPanel composer submissions", () => {
     await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
     expect(run).not.toHaveBeenCalled();
     expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("leaves Save to its in-band admission path while still running other automatic tools", async () => {
+    const save = vi.fn(() => ({ saved: true }));
+    const hostAutomatic = vi.fn(() => ({ done: true }));
+    const admit = vi.fn(async () => ({ admitted: true }) as const);
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/hash/instance",
+      } as FlueClient),
+      ownerKey: "owner",
+      binding: { conversationId: "conversation", documentId: "net" },
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      admit,
+      acceptsRevision: () => true,
+    });
+    expect(calls.has(brunchTools.saveHashNet)).toBe(true);
+    expect(calls.has("hostAutomatic")).toBe(false);
+    const run = vi.fn(calls.run);
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([...textChunks("reply", "Done.")]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        // These calls reach the ready-state panel only as message parts.
+        messages: [
+          {
+            id: "ready-turn",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: brunchTools.saveHashNet,
+                toolCallId: "save-call",
+                state: "input-available",
+                input: { documentId: "web~net" },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "hostAutomatic",
+                toolCallId: "automatic-call",
+                state: "input-available",
+                input: {},
+              },
+            ],
+          },
+        ],
+        automaticTools: [
+          {
+            toolName: brunchTools.saveHashNet,
+            inputParser: { parse: (raw: unknown) => raw },
+            outputParser: { parse: (raw: unknown) => raw },
+            execute: save,
+          },
+          {
+            toolName: "hostAutomatic",
+            inputParser: { parse: (raw: unknown) => raw },
+            outputParser: { parse: (raw: unknown) => raw },
+            execute: hostAutomatic,
+          },
+        ],
+        inBandBrowserTools: { has: calls.has, run },
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await waitFor(() => expect(hostAutomatic).toHaveBeenCalledOnce());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(save).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(admit).not.toHaveBeenCalled();
   });
 
   test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
@@ -4837,8 +4914,8 @@ describe("AiAssistantPanel composer submissions", () => {
   test("keeps a local Stop with its turn across followed history, and leaves another tab's pending turn live", async () => {
     const releaseTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { approved: boolean } },
       component: ({ input, submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           {input.question}
@@ -4988,8 +5065,8 @@ describe("AiAssistantPanel composer submissions", () => {
   test("ends the turn when the follow-up to a completed host widget is empty", async () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
-      outputSchema: { parse: (raw: unknown) => raw as { approved: boolean } },
+      inputParser: { parse: (raw: unknown) => raw as { question: string } },
+      outputParser: { parse: (raw: unknown) => raw as { approved: boolean } },
       component: ({ input, submit }) => (
         <button type="button" onClick={() => submit({ approved: true })}>
           {input.question}
@@ -5221,10 +5298,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmAction",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { confirmed: boolean },
       },
       component: ({ input, submit }) => (
@@ -5652,10 +5729,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -5742,10 +5819,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -5914,10 +5991,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6352,10 +6429,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6467,10 +6544,10 @@ describe("AiAssistantPanel composer submissions", () => {
     const results: unknown[] = [];
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6554,10 +6631,10 @@ describe("AiAssistantPanel composer submissions", () => {
     const results: unknown[] = [];
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6624,10 +6701,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { approved: boolean },
       },
       component: ({ input }) => <span>{input.question}</span>,
@@ -6746,10 +6823,10 @@ describe("AiAssistantPanel composer submissions", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { answer: string },
       },
       fromComposerText: ({ text }) => ({ answer: text }),
@@ -6825,10 +6902,10 @@ describe("AiAssistantPanel host interactive tools", () => {
     };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "confirmRelease",
-      inputSchema: {
+      inputParser: {
         parse: (raw: unknown) => raw as { question: string },
       },
-      outputSchema: {
+      outputParser: {
         parse: (raw: unknown) => raw as { approved: boolean },
       },
       component: ({ input, submit, toolCallId }) => (
@@ -6908,7 +6985,7 @@ describe("AiAssistantPanel host interactive tools", () => {
                     dynamic: true,
                     toolCallId: "automatic-call-1",
                     toolName: "hostAutomatic",
-                    input: { value: 2 },
+                    input: { value: "2" },
                   },
                 ]
               : [
@@ -6925,8 +7002,20 @@ describe("AiAssistantPanel host interactive tools", () => {
         );
       }),
     };
-    const execute = vi.fn(({ input }: { input: unknown }) => ({
-      doubled: (input as { value: number }).value * 2,
+    const inputParser = {
+      parse: vi.fn((raw: unknown) =>
+        z.object({ value: z.string().transform(Number) }).parse(raw),
+      ),
+    };
+    const outputParser = {
+      parse: vi.fn((raw: unknown) =>
+        z
+          .object({ doubled: z.number().transform((value) => value + 1) })
+          .parse(raw),
+      ),
+    };
+    const execute = vi.fn(async ({ input }: { input: { value: number } }) => ({
+      doubled: input.value * 2,
     }));
     const handle = createJsonDocHandle({
       id: "automatic-tool-test",
@@ -6934,6 +7023,12 @@ describe("AiAssistantPanel host interactive tools", () => {
     });
     const instance = createPetrinaut({ document: handle });
     const api = createTestEditorApi(instance, { title: "Automatic tool test" });
+    const automaticTool = definePetrinautAiAutomaticTool({
+      toolName: "hostAutomatic",
+      inputParser,
+      outputParser,
+      execute,
+    });
 
     try {
       render(
@@ -6942,18 +7037,7 @@ describe("AiAssistantPanel host interactive tools", () => {
             api={api}
             aiAssistant={{
               documentHandle: handle,
-              automaticTools: [
-                {
-                  toolName: "hostAutomatic",
-                  inputSchema: {
-                    parse: (raw: unknown) => raw as { value: number },
-                  },
-                  outputSchema: {
-                    parse: (raw: unknown) => raw as { doubled: number },
-                  },
-                  execute,
-                },
-              ],
+              automaticTools: [automaticTool],
               transport,
             }}
             initialMessage="Run the automatic tool"
@@ -6966,6 +7050,10 @@ describe("AiAssistantPanel host interactive tools", () => {
         expect(transport.sendMessages).toHaveBeenCalledTimes(2),
       );
       await screen.findByText("Automatic result received.");
+      expect(inputParser.parse).toHaveBeenCalledExactlyOnceWith({ value: "2" });
+      expect(outputParser.parse).toHaveBeenCalledExactlyOnceWith({
+        doubled: 4,
+      });
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
         // The plugin's refusal-aware edits and the host-bound handle replace
@@ -6982,7 +7070,7 @@ describe("AiAssistantPanel host interactive tools", () => {
           toolCallId: "automatic-call-1",
           toolName: "hostAutomatic",
           state: "output-available",
-          output: { doubled: 4 },
+          output: { doubled: 5 },
         }),
       );
     } finally {
@@ -7030,8 +7118,8 @@ describe("AiAssistantPanel host interactive tools", () => {
         automaticTools: [
           {
             toolName: "hostReadDiagnostics",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: async ({ readDiagnosticsContext }) => {
               const context = await readDiagnosticsContext();
               diagnosticsOutputs.push(context);
@@ -7040,8 +7128,8 @@ describe("AiAssistantPanel host interactive tools", () => {
           },
           {
             toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
+            inputParser: passthrough,
+            outputParser: passthrough,
             execute: ({ edit }) => {
               edit.addPlace({
                 id: "host-place",
@@ -7122,16 +7210,12 @@ describe("AiAssistantPanel host interactive tools", () => {
             aiAssistant={{
               documentHandle: handle,
               automaticTools: [
-                {
+                definePetrinautAiAutomaticTool({
                   toolName: "hostAutomatic",
-                  inputSchema: {
-                    parse: (raw: unknown) => raw as { value: number },
-                  },
-                  outputSchema: {
-                    parse: (raw: unknown) => raw as { doubled: number },
-                  },
+                  inputParser: z.object({ value: z.number() }),
+                  outputParser: z.object({ doubled: z.number() }),
                   execute,
-                },
+                }),
               ],
               transport,
             }}

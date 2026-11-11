@@ -20,6 +20,7 @@ import {
 } from "../petrinaut/tools/ledger.ts";
 import { queryBasisToolDescription } from "../petrinaut/tools/query-basis.ts";
 import { hashEvidencedDescription } from "./guidance.ts";
+import { hashSaveDescription } from "./petrinaut/save-net.ts";
 import {
   hashEntityReadDescription,
   hashEntityTypeReadDescription,
@@ -158,8 +159,16 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       brunchTools.queryHashEntities,
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
+      brunchTools.saveHashNet,
       ...Object.keys(petrinautAiTools),
     ]),
+  );
+  // The save names the bound net, the one the editor that sent the turn has open.
+  expect(mounted.descriptions.get(brunchTools.saveHashNet)).toBe(
+    hashSaveDescription("document"),
+  );
+  expect(hashSaveDescription("document")).toContain(
+    'The net open in the editor is documentId "document".',
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
     hashEntityReadDescription,
@@ -233,6 +242,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.saveHashNet)).toBe(false);
 });
 
 /** Every description of the evidenced origin in the parameters Flue sends for the mounted `ledger_commit`. */

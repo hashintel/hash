@@ -101,10 +101,13 @@ const canonicalEffectOf = (
 /**
  * Whether a settled browser call may have changed the bound document. The
  * experiment draft prepares in editor memory only, and the net readers and
- * HASH's graph reads only read. An unknown tool's effect is unknown, so it
- * counts as a possible change.
+ * HASH's graph reads only read. HASH's Save writes the open net as a new
+ * version, so it is a document change: it is issued against the model's last
+ * view, and an attempted save that stops is unknown. An unknown tool's effect
+ * is unknown, so it counts as a possible change.
  */
 export const browserToolMutatesDocument = (toolName: string): boolean => {
+  if (toolName === brunchTools.saveHashNet) return true;
   if (toolName === brunchTools.draftPetrinautExperiment) return false;
   if (hashGraphReadToolNames.has(toolName)) return false;
   if (netReaderLevelOf(toolName) !== undefined) return false;

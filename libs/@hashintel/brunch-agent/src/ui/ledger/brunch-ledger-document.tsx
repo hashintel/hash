@@ -85,6 +85,16 @@ const qualifierStyle = css({ color: "neutral.s90" });
 
 const reflectionStyle = css({ color: "neutral.s100", fontStyle: "italic" });
 
+const notInVersionStyle = css({
+  color: "neutral.s90",
+  fontSize: "xs",
+  borderWidth: "thin",
+  borderColor: "neutral.s40",
+  borderRadius: "sm",
+  paddingX: "1",
+  whiteSpace: "nowrap",
+});
+
 const openMarkStyle = css({
   marginLeft: "1",
   paddingX: "1.5",
@@ -134,6 +144,8 @@ export interface LedgerDocumentOptions {
   /** Select a reflection's net elements on the canvas; absent where there is no canvas. */
   readonly onSelectNetElements?: (items: SelectionItem[]) => void;
   readonly comments?: LedgerCommentMarks;
+  /** Reflections on net elements the open version lacks, by address. */
+  readonly notInThisVersion?: ReadonlySet<string>;
 }
 
 /** The options, with the occurrence each record first appears at. */
@@ -403,6 +415,12 @@ const ReflectionItem = ({
       >
         <span className={reflectionStyle}>{reflection.text}</span>
       </RecordMark>
+      {options.notInThisVersion?.has(reflection.address) && (
+        <>
+          {" "}
+          <span className={notInVersionStyle}>not in this version</span>
+        </>
+      )}
       {onSelectNetElements && items.length > 0 && (
         <>
           {" "}

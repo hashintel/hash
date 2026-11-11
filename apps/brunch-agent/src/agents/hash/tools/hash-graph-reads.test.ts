@@ -8,7 +8,7 @@ import * as v from "valibot";
 import { expect, test } from "vitest";
 
 import {
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   brunchTools,
   hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
@@ -51,7 +51,7 @@ test.each([...hashGraphReadToolNames])(
     if (!tool) return;
 
     expect(v.parse(tool.input, sample)).toStrictEqual(sample);
-    expect(browserExecutedToolInputSchemas[name]?.parse(sample)).toBe(sample);
+    expect(browserExecutedToolInputParsers[name]?.parse(sample)).toBe(sample);
   },
 );
 

@@ -67,6 +67,7 @@ import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import {
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
+  type ReadBrunchDocumentSaveState,
   useBrunchMutationApprovalTools,
 } from "./tools/brunch-mutation-approval";
 import {
@@ -96,7 +97,14 @@ import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
   SdcpnInitialData,
+  VersionLoad,
 } from "@hashintel/brunch-agent";
+
+export type { VersionLoad } from "@hashintel/brunch-agent";
+export type {
+  BrunchDocumentSaveState,
+  ReadBrunchDocumentSaveState,
+} from "./tools/brunch-mutation-approval";
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
@@ -202,6 +210,8 @@ export const useBrunchAssistant = ({
   interviewBudget,
   words,
   hostTools,
+  readSaveState,
+  versionLoad,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -219,6 +229,18 @@ export const useBrunchAssistant = ({
    * name must be one the server issues to the browser. Pass a stable list.
    */
   readonly hostTools?: readonly PetrinautAiAutomaticTool[];
+  /**
+   * The host's save state, for a host whose tools include the agent's save:
+   * its refusals settle a save before its card, and the card shows its title
+   * and last saved time. Pass a stable function.
+   */
+  readonly readSaveState?: ReadBrunchDocumentSaveState;
+  /**
+   * The host's latest load of another saved version of the open net, while
+   * the net open builds on it. Each message carries it, so Brunch tells its
+   * agent once, and the Ledger marks reflections on elements the net lacks.
+   */
+  readonly versionLoad?: VersionLoad;
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -337,6 +359,7 @@ export const useBrunchAssistant = ({
   // for a decision render as approvals.
   const mutationApprovalTools = useBrunchMutationApprovalTools(
     mutationApproval.coordinator,
+    readSaveState,
   );
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
@@ -544,6 +567,7 @@ export const useBrunchAssistant = ({
             interviewBudgetLevel,
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
+            ...(versionLoad === undefined ? {} : { versionLoad }),
             ...(constructionBrowser
               ? {
                   initialData: {
@@ -606,6 +630,7 @@ export const useBrunchAssistant = ({
       hostFetch,
       readWords,
       reportBrunchFailure,
+      versionLoad,
     ],
   );
 
@@ -625,7 +650,10 @@ export const useBrunchAssistant = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
-            admit: createBrunchMutationAdmission(mutationApproval.coordinator),
+            admit: createBrunchMutationAdmission(
+              mutationApproval.coordinator,
+              readSaveState,
+            ),
             acceptsRevision: (expected) =>
               canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
@@ -637,6 +665,7 @@ export const useBrunchAssistant = ({
       mutationApproval,
       ownerKey,
       hostFetch,
+      readSaveState,
     ],
   );
 
@@ -691,6 +720,7 @@ export const useBrunchAssistant = ({
                 conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
                 highlightChanges={highlightChanges}
+                versionLoaded={versionLoad !== undefined}
               />
             ),
           }
@@ -841,6 +871,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    versionLoad,
     wordsActive,
   ]);
 

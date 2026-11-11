@@ -1,8 +1,9 @@
 import {
   agentOwnershipHeaders,
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserNetToolNames,
   brunchRoutes,
+  brunchTools,
   canonicalContent,
   hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
@@ -55,7 +56,7 @@ export const createInBandBrowserCalls = (input: {
     toolName: string;
     input: unknown;
   }) => void;
-  readonly admit?: InBandBrowserCallAdmission;
+  readonly admit: InBandBrowserCallAdmission;
   /** Whether a change issued against `expected` may still run on the bound document. */
   readonly acceptsRevision: (expected: string) => boolean;
   /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
@@ -99,19 +100,19 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputSchema = browserExecutedToolInputSchemas[call.toolName];
+    const inputParser = browserExecutedToolInputParsers[call.toolName];
     if (
       !issued ||
       issued.toolName !== call.toolName ||
       issued.binding !== canonicalContent(input.binding) ||
-      !inputSchema
+      !inputParser
     )
       throw new Error("Browser call was not issued for this document.");
     // Both sides parse, so ids compare converted whether or not the server
     // that issued the call converts them.
     if (
-      canonicalContent(inputSchema.parse(call.input)) !==
-      canonicalContent(inputSchema.parse(issued.input))
+      canonicalContent(inputParser.parse(call.input)) !==
+      canonicalContent(inputParser.parse(issued.input))
     )
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;
@@ -197,10 +198,12 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    // The draft runs through its own card; HASH's graph reads run here as
-    // host tools beside the net tools.
+    // The draft runs through its own card; HASH's graph reads and Save run
+    // here as host tools beside the net tools.
     has: (toolName: string) =>
-      browserNetToolNames.has(toolName) || hashGraphReadToolNames.has(toolName),
+      browserNetToolNames.has(toolName) ||
+      hashGraphReadToolNames.has(toolName) ||
+      toolName === brunchTools.saveHashNet,
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
@@ -214,7 +217,7 @@ export const createInBandBrowserCalls = (input: {
       let started = false;
       try {
         if (call.signal.aborted) return;
-        const admission = (await input.admit?.(call)) ?? { admitted: true };
+        const admission = await input.admit(call);
         if (!admission.admitted) {
           await issued.submit(admission.output);
           return;

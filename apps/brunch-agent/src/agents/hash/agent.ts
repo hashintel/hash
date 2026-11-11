@@ -42,6 +42,8 @@ import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
+import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
+import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
@@ -77,10 +79,14 @@ export const HashAgent = ({ id }: AgentProps): string => {
         )
       : undefined;
   const words = useWords(submitted?.words);
+  // A turn sent after the user loaded another saved version tells the model
+  // which one, once, where it happened.
   useContextProjection(
-    createBrunchContextProjection({
-      observe: (entries) => netViewTracker.observe(id, entries),
-    }),
+    withPetrinautVersionLoadNotes(
+      createBrunchContextProjection({
+        observe: (entries) => netViewTracker.observe(id, entries),
+      }),
+    ),
   );
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
@@ -140,6 +146,13 @@ export const HashAgent = ({ id }: AgentProps): string => {
     // HASH's page runs them as the signed-in user, like net reads.
     for (const read of createHashGraphReadTools(executeBrowserTool))
       useTool(read);
+    // A document change: issued against the model's last view of the net.
+    useTool(
+      createHashPetrinautSaveTool(
+        executeBrowserTool,
+        initialData.binding.documentId,
+      ),
+    );
   }
   useTool(ping);
 

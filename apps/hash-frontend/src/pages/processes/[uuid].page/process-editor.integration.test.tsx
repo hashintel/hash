@@ -13,7 +13,7 @@
 
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { StrictMode, use, useLayoutEffect } from "react";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
@@ -28,10 +28,7 @@ import type { TopBarState } from "./process-editor/petrinaut-editor/top-bar-cont
 import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
-import type {
-  BrunchAssistantHost,
-  useBrunchAssistant,
-} from "@hashintel/brunch-agent/ui";
+import type * as BrunchUi from "@hashintel/brunch-agent/ui";
 import type { AlertModal } from "@hashintel/design-system";
 import type {
   ErrorTracker,
@@ -43,7 +40,7 @@ import type * as PetrinautCore from "@hashintel/petrinaut-core";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
 
 type AlertProps = ComponentProps<typeof AlertModal>;
-type BrunchInput = Parameters<typeof useBrunchAssistant>[0];
+type BrunchInput = Parameters<typeof BrunchUi.useBrunchAssistant>[0];
 
 /** A net in the fake graph, with its revisions oldest first. */
 type GraphNet = {
@@ -161,7 +158,7 @@ const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
 const brunchPluginMarker = vi.hoisted(() => ({ id: "brunch" }));
 const brunchHostContext = await vi.hoisted(async () => {
   const { createContext } = await import("react");
-  return createContext<BrunchAssistantHost | null>(null);
+  return createContext<BrunchUi.BrunchAssistantHost | null>(null);
 });
 
 vi.mock("next/router", async () => {
@@ -289,7 +286,22 @@ vi.mock(
   () => ({ topBarPlugin: { id: "top-bar" } }),
 );
 
-vi.mock("@hashintel/brunch-agent/ui", () => ({
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
+
+vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
+  createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
+    .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
   useBrunchAssistant: (input: BrunchInput) => {
@@ -574,6 +586,11 @@ const holdNextWrite = () => {
   return gate.resolve;
 };
 
+// Initialize the real save tool's UI module graph outside the editor's mount wait.
+beforeAll(async () => {
+  await import("@hashintel/brunch-agent/ui");
+});
+
 beforeEach(() => {
   graph.nets = new Map([
     [netAId, graphNet(netAId, "A")],
@@ -696,6 +713,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     "query_hash_entities",
     "query_hash_entity_types",
     "query_hash_webs",
+    "save_hash_net",
   ]);
 
   // The route rerendering with the same URL is not a load.
@@ -1182,4 +1200,185 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
       },
     },
   });
+});
+
+/** Runs Brunch's save tool as its panel does once the user approves it. */
+const agentSave = (
+  documentId: string,
+  signal = new AbortController().signal,
+) => {
+  const tool = observed.brunch?.hostTools?.find(
+    ({ toolName }) => toolName === "save_hash_net",
+  );
+  if (!tool) {
+    throw new Error("The page gave Brunch no save");
+  }
+  return Promise.resolve(
+    tool.execute({
+      input: { documentId },
+      toolCallId: "save-1",
+      signal,
+    } as Parameters<typeof tool.execute>[0]),
+  );
+};
+
+test("Brunch's agent save writes the open net through the editor's Save, and settles once saved with the edits made meanwhile still dirty", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  renamePlace("A-agent");
+  const submitted = editor().handle.doc();
+  const release = holdNextWrite();
+
+  const saved = agentSave(netAId);
+  await settle();
+  expect(topBar().persistPending).toBe(true);
+  // Another agent save starts nothing meanwhile.
+  await expect(agentSave(netAId)).resolves.toEqual({
+    applied: false,
+    reason: "A save of this net is already in progress.",
+  });
+  renamePlace("A-later");
+
+  act(() => release());
+  await settle();
+
+  const decisionTime = graph.nets.get(netAId)?.revisions.at(-1)?.decisionTime;
+  await expect(saved).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "A",
+    stillDirty: true,
+  });
+  expect(graph.writes).toEqual([
+    { kind: "update", entityId: netAId, title: "A", definition: submitted },
+  ]);
+  expect(topBar()).toMatchObject({
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: decisionTime,
+  });
+  expect(topBar().revisions.map(({ title }) => title)).toEqual(["A", "A"]);
+  expect(leaveIsBlocked()).toBe(true);
+
+  // An aborted agent save rejects, and the write it started still lands.
+  const releaseNext = holdNextWrite();
+  const controller = new AbortController();
+  const aborted = agentSave(netAId, controller.signal);
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(aborted).rejects.toThrow("Brunch stopped the turn");
+  act(() => releaseNext());
+  await settle();
+  expect(graph.writes).toHaveLength(2);
+  expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
+});
+
+test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+  editTitle("A2");
+  pressSave();
+  await settle();
+  const [latest, first] = topBar().revisions;
+  expect(first?.decisionTime).toBe(firstSaved);
+
+  // The version the editor already shows is no version load.
+  act(() => topBar().onLoadRevision(latest!));
+  await settle();
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+
+  act(() => topBar().onLoadRevision(first!));
+  await settle();
+  const versionLoad = observed.brunch?.versionLoad;
+  expect(versionLoad).toEqual({
+    id: expect.any(String),
+    decisionTime: firstSaved,
+  });
+
+  editTitle("A3");
+  pressSave();
+  await settle();
+  expect(topBar().revisions.map(({ title }) => title)).toEqual([
+    "A3",
+    "A2",
+    "A",
+  ]);
+  expect(observed.brunch?.versionLoad).toBe(versionLoad);
+
+  // Picking it again is another load, with a fresh id.
+  act(() => topBar().onLoadRevision(topBar().revisions.at(-1)!));
+  await settle();
+  expect(observed.brunch?.versionLoad?.decisionTime).toBe(firstSaved);
+  expect(observed.brunch?.versionLoad?.id).not.toBe(versionLoad?.id);
+
+  await navigate(`/processes/${uuidB}`);
+  await settle();
+  expect(editor().title).toBe("B");
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+});
+
+test("leaving a net while Brunch's agent save of it is pending settles the save as unconfirmed, and its write still lands", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  renamePlace("A-agent");
+  const release = holdNextWrite();
+  const saved = agentSave(netAId);
+  await settle();
+  expect(topBar().persistPending).toBe(true);
+
+  // The edits are still unsaved, so leaving asks to discard them.
+  await navigate(`/processes/${uuidB}`);
+  act(() => observed.alert?.callback?.());
+  await settle();
+  expect(topBar().title).toBe("B");
+  await expect(saved).resolves.toEqual({
+    saved: false,
+    error: "The editor reloaded before the save was confirmed.",
+  });
+
+  act(() => release());
+  await settle();
+  expect(graph.writes.map(({ entityId }) => entityId)).toEqual([netAId]);
+  expect(topBar()).toMatchObject({ title: "B", persistPending: false });
+  expect(url()).toBe(`/processes/${uuidB}`);
+});
+
+test("an update save's editability reaches its own load, including Brunch's save state, and never a later load of the same net", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  const firstHandle = editor().handle;
+  const readSaveState = observed.brunch?.readSaveState;
+  editTitle("A2");
+  expect(readSaveState?.(netAId).refusal).toBeNull();
+
+  // A save after which the user may no longer edit: the same load turns
+  // read-only, keeping its handle, and Brunch's save state refuses.
+  graph.editableAfterWrite = false;
+  pressSave();
+  await settle();
+  expect(editor()).toMatchObject({ readonly: true, handle: firstHandle });
+  expect(readSaveState?.(netAId).refusal).toBe(
+    "The user can't edit this net, so they can't save it.",
+  );
+});
+
+test("an update save finishing after the user picks a revision of the same net leaves that later load's editability as it was", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  editTitle("A2");
+  pressSave();
+  await settle();
+  graph.editableAfterWrite = false;
+  editTitle("A3");
+  const release = holdNextWrite();
+  pressSave();
+  await settle();
+  const [, earlier] = topBar().revisions;
+  act(() => topBar().onLoadRevision(earlier!));
+  await settle();
+  const pickedHandle = editor().handle;
+
+  act(() => release());
+  await settle();
+  expect(graph.nets.get(netAId)?.editable).toBe(false);
+  expect(editor()).toMatchObject({ readonly: false, handle: pickedHandle });
+  // Brunch's save state refuses only because the picked revision is unedited.
+  expect(observed.brunch?.readSaveState?.(netAId).refusal).toBe(
+    "There are no unsaved changes to save.",
+  );
 });

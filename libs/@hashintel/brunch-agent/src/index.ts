@@ -24,7 +24,7 @@ export {
   type ClientToolResultMetadata,
 } from "./petrinaut/browser-metadata";
 export {
-  browserExecutedToolInputSchemas,
+  browserExecutedToolInputParsers,
   browserExecutedToolNames,
   browserNetToolNames,
 } from "./petrinaut/browser-executed-tools";
@@ -41,6 +41,7 @@ export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,
   type PetrinautSubmissionContext,
+  type VersionLoad,
 } from "./petrinaut/submission-context";
 export {
   isNetObservationTool,
@@ -78,5 +79,10 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";
+export {
+  zHashNetSaveInput,
+  type HashNetSaveOutcome,
+  type SaveHashNetForAgent,
+} from "./petrinaut/hash-net-save";
 export * from "./petrinaut/interview-budget-levels";
 export * from "./shared/voice-settings";
