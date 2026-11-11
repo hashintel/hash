@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  latestOffers,
+  mergeOffers,
   neverOffer,
   type OfferedQuestion,
   offersAnswers,
@@ -88,29 +88,33 @@ describe("several offers in one turn", () => {
     options: ["Counted as open", "Out until released", "Counted as reserved"],
   } satisfies OfferedQuestion;
 
-  test("a question offered again keeps only its latest offer", () => {
+  test("are one set of questions, in the order first offered", () => {
     expect(
-      latestOffers([
+      mergeOffers([
+        { questions: [p0.narrative, p0.appetite] },
+        { questions: [p0.confirmation] },
+      ]),
+    ).toEqual({ questions: [p0.narrative, p0.appetite, p0.confirmation] });
+  });
+
+  test("a question offered again keeps its first place and takes its latest content", () => {
+    expect(
+      mergeOffers([
         { questions: [p0.readingOfTheirWords, p0.values] },
-        { questions: [reworded] },
+        { questions: [p0.confirmation, reworded] },
       ]),
-    ).toEqual([{ questions: [p0.values] }, { questions: [reworded] }]);
+    ).toEqual({ questions: [reworded, p0.values, p0.confirmation] });
   });
 
-  test("offers on different questions each stand", () => {
-    const offers = [
-      { questions: [p0.readingOfTheirWords] },
+  test("a closed question asked again as an open one no longer offers answers", () => {
+    const merged = mergeOffers([
       { questions: [p0.confirmation] },
-    ];
-    expect(latestOffers(offers)).toEqual(offers);
+      { questions: [{ kind: "open", label: p0.confirmation.label }] },
+    ]);
+    expect(offersAnswers(merged)).toBe(false);
   });
 
-  test("withdraws an earlier offer left with nothing to answer", () => {
-    expect(
-      latestOffers([
-        { questions: [p0.readingOfTheirWords, p0.narrative] },
-        { questions: [reworded, p0.narrative] },
-      ]),
-    ).toEqual([undefined, { questions: [reworded, p0.narrative] }]);
+  test("no offers are no questions", () => {
+    expect(mergeOffers([])).toEqual({ questions: [] });
   });
 });

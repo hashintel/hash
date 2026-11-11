@@ -5,7 +5,7 @@
  */
 
 export {
-  latestOffers,
+  mergeOffers,
   neverOffer,
   offerBounds,
   offersAnswers,
