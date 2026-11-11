@@ -12,7 +12,7 @@ import {
   browserToolFacts,
 } from "../../petrinaut/browser-executed-tools";
 
-import type { BrunchFetch } from "../brunch-flue-client";
+import type { BrunchConnection, BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
 import type {
   BrowserCallClaim,
@@ -46,35 +46,45 @@ export type InBandBrowserCallAdmission = (
 export const BROWSER_CALL_STALE_MESSAGE =
   "The document changed by other means after the agent's last view of the net; the call was not started.";
 
-/** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
-export const createInBandBrowserCalls = (input: {
-  readonly client: Promise<FlueClient>;
-  readonly ownerKey: string;
-  readonly binding: BrowserContext["binding"];
-  readonly metadataFor: (
-    toolCallId: string,
-    output: unknown,
-  ) => ClientToolResultMetadata | undefined;
-  readonly prepareInput: (call: {
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-  }) => void;
-  readonly admit: InBandBrowserCallAdmission;
-  /** Whether a change issued against `expected` may still run on the bound document. */
-  readonly acceptsRevision: (expected: string) => boolean;
-  /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
-  readonly fetch?: BrunchFetch;
-}) => {
+/**
+ * The page's side of Brunch's in-band browser calls. A browser tool's call
+ * stays open on the server while the page claims it, runs it and posts its
+ * result to the agent's `browser-calls` routes, so the result reaches the
+ * same model turn that asked for it instead of arriving later as a new
+ * message or signal. The waiting call lives in the memory of the Brunch task
+ * that issued it, so a result that reaches another task, as can happen while
+ * a deploy overlaps old and new tasks, finds no call (FE-2149).
+ */
+export const createInBandBrowserCalls = (
+  input: Pick<BrunchConnection, "actorKey" | "legacyActorHeader" | "fetch"> & {
+    readonly client: Promise<FlueClient>;
+    readonly binding: BrowserContext["binding"];
+    readonly metadataFor: (
+      toolCallId: string,
+      output: unknown,
+    ) => ClientToolResultMetadata | undefined;
+    readonly prepareInput: (call: {
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }) => void;
+    readonly admit: InBandBrowserCallAdmission;
+    /** Whether a change issued against `expected` may still run on the bound document. */
+    readonly acceptsRevision: (expected: string) => boolean;
+  },
+) => {
   const request: BrunchFetch = input.fetch ?? ((url, init) => fetch(url, init));
   const claim = async (call: IssuedCall) => {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
-    const headers = agentOwnershipHeaders({
-      ownerKey: input.ownerKey,
-      conversationId: input.binding.conversationId,
-    });
+    const headers = agentOwnershipHeaders(
+      {
+        actorKey: input.actorKey,
+        conversationId: input.binding.conversationId,
+      },
+      input,
+    );
     const claimSignal = AbortSignal.any([
       call.signal,
       AbortSignal.timeout(6_000),

@@ -129,7 +129,8 @@ const useProcessAgentSession = (
       input.brunchSelected && input.binding !== null
         ? createBrunchFlueClient(
             {
-              ownerKey: input.ownerKey,
+              actorKey: input.actorKey,
+              legacyActorHeader: input.legacyActorHeader,
               chatEndpoint: input.chatEndpoint,
               fetch: input.fetch,
             },
@@ -140,7 +141,8 @@ const useProcessAgentSession = (
   }, [
     input.binding,
     input.brunchSelected,
-    input.ownerKey,
+    input.actorKey,
+    input.legacyActorHeader,
     input.chatEndpoint,
     input.fetch,
   ]);
@@ -203,7 +205,8 @@ export interface BrunchAssistant {
  * new identity recreates the conversation's client and tracker.
  */
 export const useBrunchAssistant = ({
-  ownerKey,
+  actorKey,
+  legacyActorHeader,
   chatEndpoint,
   fetch: hostFetch,
   selected,
@@ -326,7 +329,7 @@ export const useBrunchAssistant = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
-  const conversationWords = useConversationWords(ownerKey, conversationId);
+  const conversationWords = useConversationWords(actorKey, conversationId);
   // Words are edited from Voice mode, so they apply only while Voice is on.
   const wordsActive =
     selected && voice.enabled && words.enabled && conversationId !== null;
@@ -376,7 +379,8 @@ export const useBrunchAssistant = ({
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected: selected,
-    ownerKey,
+    actorKey,
+    legacyActorHeader,
     chatEndpoint,
     fetch: hostFetch,
   });
@@ -591,7 +595,7 @@ export const useBrunchAssistant = ({
               ? {}
               : {
                   liveToolStream: brunchLiveToolStream(
-                    { ownerKey, fetch: hostFetch },
+                    { actorKey, legacyActorHeader, fetch: hostFetch },
                     conversationId,
                   ),
                 }),
@@ -638,7 +642,8 @@ export const useBrunchAssistant = ({
       interviewBudgetLevel,
       interviewRepliesAsked,
       latestTurnId,
-      ownerKey,
+      actorKey,
+      legacyActorHeader,
       hostFetch,
       readWords,
       reportBrunchFailure,
@@ -651,7 +656,8 @@ export const useBrunchAssistant = ({
       constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
             client: flueClientPromise,
-            ownerKey,
+            actorKey,
+            legacyActorHeader,
             fetch: hostFetch,
             binding: constructionBrowser.binding,
             metadataFor: (toolCallId, output) =>
@@ -675,7 +681,8 @@ export const useBrunchAssistant = ({
       flueClientPromise,
       canonicalHostTools,
       mutationApproval,
-      ownerKey,
+      actorKey,
+      legacyActorHeader,
       hostFetch,
       hostSave,
     ],

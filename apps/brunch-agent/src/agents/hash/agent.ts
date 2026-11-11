@@ -129,6 +129,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
       if (expected && "refusal" in expected)
         throw new BrowserCallNotStartedError(hashNoNetViewRefusal);
       return issueBrowserCall({
+        agentName: HashAgent.agentName,
         instanceId: id,
         toolCallId,
         toolName,

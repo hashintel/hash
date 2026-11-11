@@ -95,7 +95,7 @@ const filler = (label: string) =>
 
 const application = await loadBuiltBrunchApplication();
 const identity = {
-  ownerKey: "compaction-owner",
+  actorKey: "compaction-owner",
   conversationId: `compaction-${crypto.randomUUID()}`,
 };
 const client = createFlueClient({

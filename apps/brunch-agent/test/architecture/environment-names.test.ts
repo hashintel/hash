@@ -73,12 +73,16 @@ interface TurboConfig {
   >;
 }
 
-const forwardedBrunchNames = (task: string): string[] => {
+const forwardedBrunchNames = (
+  task: string,
+  /** Names outside the `BRUNCH_` prefix that the task must also forward. */
+  otherNames: ReadonlySet<string> = new Set(),
+): string[] => {
   const turboConfig = JSON.parse(
     readRepoFile(`${appRoot}/turbo.json`),
   ) as TurboConfig;
   return (turboConfig.tasks[task]?.passThroughEnv ?? [])
-    .filter((name) => namePattern.test(name))
+    .filter((name) => namePattern.test(name) || otherNames.has(name))
     .toSorted();
 };
 
@@ -137,10 +141,9 @@ describe("Brunch environment variable names", () => {
   });
 
   test("Turbo forwards exactly the server's variables to `dev`", () => {
-    expect(forwardedBrunchNames("dev")).toEqual(
-      leaves(brunchEnv)
-        .map(([, name]) => name)
-        .toSorted(),
+    const serverNames = leaves(brunchEnv).map(([, name]) => name);
+    expect(forwardedBrunchNames("dev", new Set(serverNames))).toEqual(
+      serverNames.toSorted(),
     );
   });
 

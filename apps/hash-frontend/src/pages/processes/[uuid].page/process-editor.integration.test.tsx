@@ -203,8 +203,17 @@ vi.mock("../../../shared/layout", () => ({
   getLayoutWithSidebar: (page: ReactNode) => page,
 }));
 
+vi.mock("../../../lib/public-env", () => ({
+  brunchAgentOrigin: "https://brunch.test",
+}));
+
 vi.mock("../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: { accountId: "alice-account" } }),
+  useAuthInfo: () => ({
+    authenticatedUser: {
+      accountId: "alice-account",
+      accountSignupComplete: true,
+    },
+  }),
 }));
 
 vi.mock("../../shared/workspace-context", () => ({
@@ -620,7 +629,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>(() =>
-      Promise.resolve(Response.json({ ownerKey: "hash:alice-account" })),
+      Promise.resolve(Response.json({ actorKey: "hash:alice-account" })),
     ),
   );
 });

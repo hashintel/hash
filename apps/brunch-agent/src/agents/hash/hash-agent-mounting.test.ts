@@ -1,18 +1,32 @@
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
 
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import {
   agentOwnershipHeaders,
+  brunchHeaders,
   brunchRoutes,
   brunchTools,
   hashProcessEditorId,
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
+import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 
+import { brunchEnv } from "../../env.ts";
+import { hashSessionCookie } from "../../server/http/hash-session-actor.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
 import {
   commitToolDescription,
@@ -26,6 +40,9 @@ import {
   hashEntityTypeReadDescription,
   hashWebReadDescription,
 } from "./tools/hash-graph-reads.ts";
+
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -135,11 +152,90 @@ const systemPrompt = async () =>
   ).trim();
 /** The system prompt's opening of its paragraph on the HASH graph. */
 const hashGraphParagraph = "You work inside HASH. The _user_'s HASH graph";
+/** The signed-in user's web, which is their actor, as hash-api names it. */
+const ownerWebId = "account-1";
+/** The session cookie value hash-api resolves to the owner in these tests. */
+const ownerSession = "owner-session";
+const sessionCookie = (value = ownerSession) => ({
+  cookie: `${hashSessionCookie}=${value}`,
+});
+/**
+ * hash-api's answer to `sessionAccount` for a user in `webId`, by default one
+ * who has completed signup.
+ */
+const me = (webId: string, accountSignupComplete = true) => ({
+  status: 200,
+  body: { data: { sessionAccount: { webId, accountSignupComplete } } },
+});
+/** hash-api's answer to `sessionAccount` without a session it signs in. */
+const signedOut = {
+  status: 200,
+  body: {
+    data: null,
+    errors: [
+      {
+        message: "You must be logged in to perform this action.",
+        extensions: { code: "FORBIDDEN" },
+      },
+    ],
+  },
+};
+/**
+ * A stand-in for hash-api: answers its GraphQL endpoint by the cookie header
+ * it receives, and records every call.
+ */
+const hashApi = {
+  origin: "",
+  calls: [] as { path: string; cookie: string; query: unknown }[],
+  answers: new Map<string, { status: number; body?: object }>(),
+};
+let hashApiServer: Server | undefined;
+beforeAll(async () => {
+  const server = createServer((request, response) => {
+    let body = "";
+    request.setEncoding("utf8");
+    request.on("data", (chunk: string) => {
+      body += chunk;
+    });
+    request.on("end", () => {
+      const cookie = request.headers.cookie ?? "";
+      hashApi.calls.push({
+        path: `${request.method} ${request.url ?? ""}`,
+        cookie,
+        query: (JSON.parse(body || "{}") as { query?: unknown }).query,
+      });
+      const answer = hashApi.answers.get(cookie) ?? signedOut;
+      response
+        .writeHead(answer.status, { "content-type": "application/json" })
+        .end(JSON.stringify(answer.body ?? {}));
+    });
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  hashApiServer = server;
+  hashApi.origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+afterAll(
+  () =>
+    new Promise((resolve) => {
+      hashApiServer?.close(resolve);
+    }),
+);
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv(brunchEnv.apiOrigin, hashApi.origin);
+  hashApi.calls.length = 0;
+  hashApi.answers.clear();
+  hashApi.answers.set(sessionCookie().cookie, me(ownerWebId));
+  hashApi.answers.set(sessionCookie("other-session").cookie, me("account-2"));
+  // Signed in, but signup isn't complete by hash-api's rule.
+  hashApi.answers.set(
+    sessionCookie("mid-signup").cookie,
+    me(ownerWebId, false),
+  );
   mounted.initialData = undefined;
   mounted.body = "Four agents";
   mounted.contextProjections = 0;
@@ -150,7 +246,10 @@ beforeEach(() => {
   mounted.skills.length = 0;
   mounted.tools.length = 0;
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 test("a document binding mounts the guidance, the Ledger, HASH's graph reads and Save, and HASH's own Petrinaut tools, with no canonical Petrinaut tool left", async () => {
   mounted.initialData = bound;
@@ -441,39 +540,909 @@ test("the HASH agent keeps its own conversation storage", async () => {
   expect(HashAgent.agentName).not.toBe(PetrinautAgent.agentName);
 });
 
-const identity = { ownerKey: "owner", conversationId: "conversation" };
+/**
+ * The owner's conversation. On the HASH route the actor key is the one Brunch
+ * derives from the owner's session; the Petrinaut routes take any actor key
+ * from the header, so the same one addresses the same instance there.
+ */
+const identity = {
+  actorKey: `hash:${ownerWebId}`,
+  conversationId: "conversation",
+};
+/** What HASH's page sends on the HASH route: the owner's session cookie; nothing elsewhere. */
+const callerHeaders = (segment: string) =>
+  segment === brunchRoutes.hashAgent ? sessionCookie() : {};
 /** The status and body the app gives an owned instance under one agent route segment. */
-const served = async (segment: string) => {
+const served = async (
+  segment: string,
+  headers: Record<string, string> = agentOwnershipHeaders(identity),
+  instance: { actorKey: string; conversationId: string } = identity,
+) => {
   const { default: app } = await import("../../app.ts");
   const response = await app.fetch(
     new Request(
-      `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
-      { headers: agentOwnershipHeaders(identity) },
+      `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(instance)}`,
+      { headers: { ...callerHeaders(segment), ...headers } },
     ),
   );
   return { status: response.status, body: await response.text() };
 };
 
-test("outside production the app serves the HASH agent under /agents/hash and the Petrinaut agent under its routes", async () => {
+test("the Petrinaut routes admit the actor header alone or its former name alone to the same conversation, and allow both cross-origin", async () => {
+  const origin = "https://app.example.com";
+  vi.stubEnv(brunchEnv.corsAllowedOrigins, origin);
   const { PetrinautAgent } = await import("../petrinaut/agent.ts");
-  expect(await served("hash")).toEqual({
-    status: 200,
-    body: "brunch-hash-agent",
-  });
-  for (const segment of [brunchRoutes.petrinautAgent, "chat"])
-    expect(await served(segment)).toEqual({
-      status: 200,
-      body: PetrinautAgent.agentName,
-    });
+  for (const segment of [brunchRoutes.petrinautAgent, "chat"]) {
+    for (const legacyActorHeader of [false, true]) {
+      expect(
+        await served(
+          segment,
+          agentOwnershipHeaders(identity, { legacyActorHeader }),
+        ),
+      ).toEqual({ status: 200, body: PetrinautAgent.agentName });
+      expect(
+        (
+          await served(
+            segment,
+            agentOwnershipHeaders(
+              { ...identity, actorKey: "another" },
+              { legacyActorHeader },
+            ),
+          )
+        ).status,
+      ).toBe(403);
+    }
+  }
+  const { default: app } = await import("../../app.ts");
+  const preflight = await app.fetch(
+    new Request(
+      `http://brunch.test${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${flueConversationId(identity)}`,
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "content-type,x-brunch-actor,x-brunch-principal,x-brunch-conversation",
+        },
+      },
+    ),
+  );
+  expect(preflight.status).toBe(204);
+  expect(
+    preflight.headers
+      .get("access-control-allow-headers")
+      ?.toLowerCase()
+      .split(","),
+  ).toEqual(expect.arrayContaining(["x-brunch-actor", "x-brunch-principal"]));
 });
 
-test("a production app doesn't mount the HASH agent and still serves the Petrinaut agent", async () => {
-  vi.stubEnv("NODE_ENV", "production");
-  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
-  expect((await served("hash")).status).toBe(404);
-  for (const segment of [brunchRoutes.petrinautAgent, "chat"])
-    expect(await served(segment)).toEqual({
+test.each([
+  ["test", undefined],
+  ["production", "true"],
+])(
+  "under NODE_ENV=%s (HASH agent switch %s) the app serves the HASH agent under /agents/hash with the user's session and the Petrinaut agent under its routes",
+  async (nodeEnv, hashAgentEnabled) => {
+    vi.stubEnv("NODE_ENV", nodeEnv);
+    if (hashAgentEnabled !== undefined)
+      vi.stubEnv(brunchEnv.hashAgentEnabled, hashAgentEnabled);
+    const { PetrinautAgent } = await import("../petrinaut/agent.ts");
+    expect(await served("hash")).toEqual({
       status: 200,
-      body: PetrinautAgent.agentName,
+      body: "brunch-hash-agent",
     });
+    expect((await served("hash", { cookie: "" })).status).toBe(401);
+    for (const segment of [brunchRoutes.petrinautAgent, "chat"])
+      expect(await served(segment)).toEqual({
+        status: 200,
+        body: PetrinautAgent.agentName,
+      });
+  },
+);
+
+/** A browser request on one agent route segment for an owned instance's call. */
+const browserCall = async (
+  segment: string,
+  toolCallId: string,
+  request: {
+    readonly suffix?: string;
+    readonly body?: object;
+    /** In place of the session hash-api would add. */
+    readonly headers?: Record<string, string>;
+  } = {},
+) => {
+  const { default: app } = await import("../../app.ts");
+  const binding = encodeURIComponent(browserCallBinding);
+  const url = `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}/${brunchRoutes.browserCalls}/${toolCallId}${request.suffix ?? ""}`;
+  const headers = {
+    ...agentOwnershipHeaders(identity),
+    ...(request.headers ?? callerHeaders(segment)),
+  };
+  const response = await app.fetch(
+    new Request(
+      request.body === undefined ? `${url}?binding=${binding}` : url,
+      request.body === undefined
+        ? { headers }
+        : {
+            method: "POST",
+            headers: { ...headers, "content-type": "application/json" },
+            body: JSON.stringify(request.body),
+          },
+    ),
+  );
+  return { status: response.status, body: (await response.json()) as unknown };
+};
+const browserCallBinding = JSON.stringify({
+  conversationId: identity.conversationId,
+  documentId: "document",
+});
+/** Every browser operation on `segment`, as the browser holding `capability` makes it, for the issued addPlace call. */
+const everyOperation = async (
+  segment: string,
+  toolCallId: string,
+  capability: string,
+  headers?: Record<string, string>,
+) => {
+  const lease = { capability, binding: browserCallBinding };
+  const result = {
+    ...lease,
+    toolName: "addPlace",
+    canonicalInput: {},
+  };
+  return {
+    claim: await browserCall(segment, toolCallId, { headers }),
+    renew: await browserCall(segment, toolCallId, {
+      suffix: "/lease",
+      body: lease,
+      headers,
+    }),
+    fail: await browserCall(segment, toolCallId, {
+      suffix: "/fail",
+      body: { ...result, disposition: "failed" },
+      headers,
+    }),
+    settle: await browserCall(segment, toolCallId, {
+      body: { ...result, output: {} },
+      headers,
+    }),
+  };
+};
+/** Issues an addPlace call as `agentName` would, for the owned instance. */
+const issue = async (agentName: string) => {
+  const { issueBrowserCall } =
+    await import("../../shared/conversation/browser-call-rendezvous.ts");
+  const toolCallId = crypto.randomUUID();
+  const result = issueBrowserCall({
+    agentName,
+    instanceId: flueConversationId(identity),
+    toolCallId,
+    toolName: "addPlace",
+    canonicalInput: {},
+    binding: browserCallBinding,
+  });
+  return { toolCallId, result };
+};
+
+test("a browser call issued by one agent is unknown on another agent's routes and served on every route of its own", async () => {
+  const [{ HashAgent }, { PetrinautAgent }] = await Promise.all([
+    import("./agent.ts"),
+    import("../petrinaut/agent.ts"),
+  ]);
+  const unknown = await everyOperation(
+    "hash",
+    crypto.randomUUID(),
+    "no-capability",
+  );
+  expect(unknown.claim).toEqual({ status: 404, body: { error: "not-issued" } });
+  for (const operation of [unknown.renew, unknown.fail, unknown.settle])
+    expect(operation).toEqual({ status: 409, body: { error: "not-issued" } });
+
+  const hashCall = await issue(HashAgent.agentName);
+  const otherAgentRoutes = [brunchRoutes.petrinautAgent, "chat"];
+  expect(
+    await Promise.all(
+      otherAgentRoutes.map((segment) =>
+        browserCall(segment, hashCall.toolCallId),
+      ),
+    ),
+  ).toEqual([unknown.claim, unknown.claim]);
+  const hashClaim = await browserCall("hash", hashCall.toolCallId);
+  expect(hashClaim).toMatchObject({
+    status: 200,
+    body: { toolName: "addPlace", binding: browserCallBinding },
+  });
+  const { capability } = hashClaim.body as { capability: string };
+  expect(
+    await Promise.all(
+      otherAgentRoutes.map((segment) =>
+        everyOperation(segment, hashCall.toolCallId, capability),
+      ),
+    ),
+  ).toEqual([unknown, unknown]);
+  expect(
+    await browserCall("hash", hashCall.toolCallId, {
+      suffix: "/lease",
+      body: { capability, binding: browserCallBinding },
+    }),
+  ).toEqual({ status: 200, body: { renewed: true } });
+  expect(
+    await browserCall("hash", hashCall.toolCallId, {
+      body: {
+        capability,
+        binding: browserCallBinding,
+        toolName: "addPlace",
+        canonicalInput: {},
+        output: { applied: true },
+      },
+    }),
+  ).toEqual({ status: 200, body: { settled: true } });
+  await expect(hashCall.result).resolves.toMatchObject({
+    output: { applied: true },
+  });
+
+  // The Petrinaut agent's alias shares its name, so either of its routes serves its call.
+  const petrinautCall = await issue(PetrinautAgent.agentName);
+  expect(await browserCall("hash", petrinautCall.toolCallId)).toEqual(
+    unknown.claim,
+  );
+  const petrinautClaim = await browserCall("chat", petrinautCall.toolCallId);
+  expect(petrinautClaim.status).toBe(200);
+  const petrinautCapability = (petrinautClaim.body as { capability: string })
+    .capability;
+  expect(
+    await everyOperation("hash", petrinautCall.toolCallId, petrinautCapability),
+  ).toEqual(unknown);
+  expect(
+    await browserCall(brunchRoutes.petrinautAgent, petrinautCall.toolCallId, {
+      suffix: "/lease",
+      body: { capability: petrinautCapability, binding: browserCallBinding },
+    }),
+  ).toEqual({ status: 200, body: { renewed: true } });
+  expect(
+    await browserCall(brunchRoutes.petrinautAgent, petrinautCall.toolCallId, {
+      body: {
+        capability: petrinautCapability,
+        binding: browserCallBinding,
+        toolName: "addPlace",
+        canonicalInput: {},
+        output: { applied: true },
+      },
+    }),
+  ).toEqual({ status: 200, body: { settled: true } });
+  await expect(petrinautCall.result).resolves.toMatchObject({
+    output: { applied: true },
+  });
+});
+
+/**
+ * Requests hash-api doesn't sign in as a user who has completed signup, or
+ * with no session at all.
+ */
+const wrongCredentials = {
+  none: {},
+  "a session hash-api doesn't sign in": sessionCookie("unknown"),
+  "an account mid-signup": sessionCookie("mid-signup"),
+  "an empty session cookie": sessionCookie(""),
+  "the session's value under another cookie": {
+    cookie: `other=${ownerSession}`,
+  },
+  "the session as a session token": { "x-session-token": ownerSession },
+} satisfies Record<string, Record<string, string>>;
+/** Every kind of request the HASH route serves, on the owned instance and an issued call. */
+const hashRouteRequests = (toolCallId: string) => {
+  const instance = `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/${flueConversationId(identity)}`;
+  const call = `${instance}/${brunchRoutes.browserCalls}/${toolCallId}`;
+  const lease = { capability: "capability", binding: browserCallBinding };
+  const result = { ...lease, toolName: "addPlace", canonicalInput: {} };
+  return {
+    history: { path: instance },
+    streaming: { path: `${instance}?live=sse` },
+    turn: { path: instance, body: { kind: "user", body: "Four agents" } },
+    abort: { path: `${instance}/abort`, body: {} },
+    attachment: { path: `${instance}/attachments/attachment` },
+    "live tools": { path: `${instance}/${liveToolRouteSegment}` },
+    "browser-call claim": {
+      path: `${call}?binding=${encodeURIComponent(browserCallBinding)}`,
+    },
+    "browser-call lease": { path: `${call}/lease`, body: lease },
+    "browser-call result": { path: call, body: { ...result, output: {} } },
+    "browser-call failure": {
+      path: `${call}/fail`,
+      body: { ...result, disposition: "failed" },
+    },
+  } satisfies Record<string, { path: string; body?: object }>;
+};
+/** The app's answer to each HASH route request with `headers` beside the owner's identity. */
+const answers = async (toolCallId: string, headers: Record<string, string>) => {
+  const { default: app } = await import("../../app.ts");
+  return Object.fromEntries(
+    await Promise.all(
+      Object.entries(hashRouteRequests(toolCallId)).map(
+        async ([name, request]) => {
+          const response = await app.fetch(
+            new Request(`http://brunch.test${request.path}`, {
+              headers: {
+                ...agentOwnershipHeaders(identity),
+                ...headers,
+                ...("body" in request
+                  ? { "content-type": "application/json" }
+                  : {}),
+              },
+              ...("body" in request
+                ? { method: "POST", body: JSON.stringify(request.body) }
+                : {}),
+            }),
+          );
+          return [
+            name,
+            { status: response.status, body: await response.text() },
+          ] as const;
+        },
+      ),
+    ),
+  );
+};
+const everyRequest = (answer: { status: number; body: string }) =>
+  Object.fromEntries(
+    Object.keys(hashRouteRequests("call")).map((name) => [name, answer]),
+  );
+const unauthorized = { status: 401, body: '{"error":"unauthorized"}' };
+/** `answer` for each wrong credential. */
+const forEachWrongCredential = <Answer>(answer: Answer) =>
+  Object.fromEntries(
+    Object.keys(wrongCredentials).map((credential) => [credential, answer]),
+  );
+
+test("the HASH route refuses every request without a signed-in session of a completed signup, before any of its handlers runs", async () => {
+  const { HashAgent } = await import("./agent.ts");
+  const hashCall = await issue(HashAgent.agentName);
+  expect(
+    Object.fromEntries(
+      await Promise.all(
+        Object.entries(wrongCredentials).map(
+          async ([credential, headers]) =>
+            [credential, await answers(hashCall.toolCallId, headers)] as const,
+        ),
+      ),
+    ),
+  ).toEqual(forEachWrongCredential(everyRequest(unauthorized)));
+  // Nothing refused touched the call (a failure or settlement would have
+  // ended it): the owner's session still claims it, and serves the actor.
+  expect(
+    await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId),
+  ).toMatchObject({ status: 200, body: { toolName: "addPlace" } });
+  expect(await served(brunchRoutes.hashAgent)).toEqual({
+    status: 200,
+    body: HashAgent.agentName,
+  });
+
+  // Without hash-api's address, nothing is admitted, even the owner's
+  // session, and hash-api is never asked.
+  for (const configured of [undefined, ""]) {
+    vi.stubEnv(brunchEnv.apiOrigin, configured);
+    vi.resetModules();
+    hashApi.calls.length = 0;
+    expect(
+      await answers(hashCall.toolCallId, sessionCookie()),
+      String(configured),
+    ).toEqual(everyRequest(unauthorized));
+    expect(hashApi.calls).toEqual([]);
+  }
+});
+
+test("an account that completes signup is served on its next request", async () => {
+  const midSignup = sessionCookie("mid-signup");
+  expect(
+    (
+      await served(brunchRoutes.hashAgent, {
+        ...agentOwnershipHeaders(identity),
+        ...midSignup,
+      })
+    ).status,
+  ).toBe(401);
+  hashApi.answers.set(midSignup.cookie, me(ownerWebId));
+  expect(
+    await served(brunchRoutes.hashAgent, {
+      ...agentOwnershipHeaders(identity),
+      ...midSignup,
+    }),
+  ).toEqual({ status: 200, body: "brunch-hash-agent" });
+});
+
+test("the HASH route serves only the session actor's own conversation, ignoring any actor header", async () => {
+  const another = { ...identity, actorKey: "hash:account-2" };
+  const hashAgentServed = { status: 200, body: "brunch-hash-agent" };
+  // A forged actor header, under either name, changes nothing and is not refused.
+  for (const legacyActorHeader of [false, true])
+    expect(
+      await served(
+        brunchRoutes.hashAgent,
+        agentOwnershipHeaders(another, { legacyActorHeader }),
+      ),
+    ).toEqual(hashAgentServed);
+  expect(
+    await served(brunchRoutes.hashAgent, {
+      ...agentOwnershipHeaders(identity),
+      [brunchHeaders.legacyPrincipal]: another.actorKey,
+    }),
+  ).toEqual(hashAgentServed);
+  // Naming another actor's conversation in the header doesn't reach it.
+  for (const legacyActorHeader of [false, true])
+    expect(
+      (
+        await served(
+          brunchRoutes.hashAgent,
+          agentOwnershipHeaders(another, { legacyActorHeader }),
+          another,
+        )
+      ).status,
+    ).toBe(403);
+  // That actor's own session does.
+  expect(
+    await served(
+      brunchRoutes.hashAgent,
+      {
+        ...agentOwnershipHeaders(identity),
+        ...sessionCookie("other-session"),
+      },
+      another,
+    ),
+  ).toEqual(hashAgentServed);
+  expect(
+    (
+      await served(brunchRoutes.hashAgent, {
+        ...agentOwnershipHeaders(identity),
+        ...sessionCookie("other-session"),
+      })
+    ).status,
+  ).toBe(403);
+  const statuses = await Promise.all(
+    [
+      agentOwnershipHeaders({ ...identity, conversationId: "another" }),
+      { [brunchHeaders.conversation]: identity.conversationId },
+      {},
+    ].map(
+      async (headers) => (await served(brunchRoutes.hashAgent, headers)).status,
+    ),
+  );
+  // Without the actor header the session still names the actor; without the
+  // conversation header nothing is addressed.
+  expect(statuses).toEqual([403, 200, 401]);
+});
+
+test("the HASH route fails without reaching the agent when hash-api can't answer", async () => {
+  const unavailable = {
+    status: 503,
+    body: '{"error":"session check unavailable"}',
+  };
+  const faults = {
+    "hash-api-error": { status: 500, body: { error: "internal" } },
+    "rate-limited": {
+      status: 429,
+      body: { errors: [{ extensions: { code: "RATE_LIMITED" } }] },
+    },
+    // An error that isn't a refusal says nothing about the session.
+    "graphql-error": {
+      status: 200,
+      body: {
+        data: null,
+        errors: [{ extensions: { code: "INTERNAL_SERVER_ERROR" } }],
+      },
+    },
+    "no-user": {
+      status: 200,
+      body: { data: { me: { subgraph: { roots: [], vertices: {} } } } },
+    },
+  };
+  for (const [session, answer] of Object.entries(faults)) {
+    hashApi.answers.set(sessionCookie(session).cookie, answer);
+    expect(
+      await served(brunchRoutes.hashAgent, {
+        ...agentOwnershipHeaders(identity),
+        ...sessionCookie(session),
+      }),
+      session,
+    ).toEqual(unavailable);
+  }
+
+  const closed = createServer();
+  closed.listen(0, "127.0.0.1");
+  await once(closed, "listening");
+  const closedPort = (closed.address() as AddressInfo).port;
+  await new Promise((resolve) => {
+    closed.close(resolve);
+  });
+  vi.stubEnv(brunchEnv.apiOrigin, `http://127.0.0.1:${closedPort}`);
+  vi.resetModules();
+  expect(await served(brunchRoutes.hashAgent)).toEqual(unavailable);
+});
+
+test("hash-api's answers are reused for 30 seconds per session, under a digest of it, and only the session cookie reaches hash-api", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  const owner = { status: 200, body: "brunch-hash-agent" };
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(hashApi.calls).toMatchObject([
+    { path: "POST /graphql", cookie: sessionCookie().cookie },
+  ]);
+  expect(hashApi.calls[0]?.query).toMatch(/\bsessionAccount \{/u);
+  // Another session has its own entry.
+  await served(brunchRoutes.hashAgent, {
+    ...agentOwnershipHeaders(identity),
+    ...sessionCookie("other-session"),
+  });
+  expect(hashApi.calls).toHaveLength(2);
+  // Only the session cookie reaches hash-api, whatever else the browser sent.
+  await served(brunchRoutes.hashAgent, {
+    ...agentOwnershipHeaders(identity),
+    cookie: `other=1; ${hashSessionCookie}=unknown; csrf=2`,
+  });
+  expect(hashApi.calls.at(-1)?.cookie).toBe(sessionCookie("unknown").cookie);
+  const callsBeforeExpiry = hashApi.calls.length;
+  vi.setSystemTime(Date.now() + 30_000);
+  expect(await served(brunchRoutes.hashAgent)).toEqual(owner);
+  expect(hashApi.calls).toHaveLength(callsBeforeExpiry + 1);
+  // A refusal is never reused: a signed-out or mid-signup session is asked
+  // about again.
+  hashApi.calls.length = 0;
+  for (const session of ["unknown", "mid-signup"]) {
+    await served(brunchRoutes.hashAgent, sessionCookie(session));
+    await served(brunchRoutes.hashAgent, sessionCookie(session));
+  }
+  expect(hashApi.calls).toHaveLength(4);
+
+  const { hashSessionActor } =
+    await import("../../server/http/hash-session-actor.ts");
+  const { Hono } = await import("hono");
+  const cache = new Map<string, { actorKey: string; expiresAt: number }>();
+  const probe = new Hono()
+    .use(hashSessionActor({ apiOrigin: hashApi.origin, cache }))
+    .get("/", (context) => context.text(context.get("hashSessionActorKey")));
+  const response = await probe.fetch(
+    new Request("http://brunch.test/", { headers: sessionCookie() }),
+  );
+  expect(await response.text()).toBe(identity.actorKey);
+  expect([...cache.keys()]).toEqual([expect.stringMatching(/^[0-9a-f]{64}$/u)]);
+  expect(JSON.stringify([...cache])).not.toContain(ownerSession);
+});
+
+test("no session reaches the logs or an answer", async () => {
+  hashApi.answers.set(sessionCookie("hash-api-fault").cookie, { status: 502 });
+  const { logger } = await import("../../server/logger.ts");
+  const logged = (["debug", "info", "warn", "error"] as const).map((level) =>
+    vi.spyOn(logger, level),
+  );
+  const bodies = await Promise.all(
+    ["hash-api-fault", "unknown", "mid-signup", ownerSession].map(
+      async (session) =>
+        (
+          await served(brunchRoutes.hashAgent, {
+            ...agentOwnershipHeaders(identity),
+            ...sessionCookie(session),
+          })
+        ).body,
+    ),
+  );
+  expect(logged[2]?.mock.calls.length).toBeGreaterThan(0);
+  const recorded = JSON.stringify([
+    bodies,
+    logged.map((spy) => spy.mock.calls),
+  ]);
+  for (const session of ["hash-api-fault", "unknown", ownerSession])
+    expect(recorded).not.toContain(session);
+  expect(recorded).not.toContain(hashSessionCookie);
+});
+
+test("the Petrinaut agent's routes read the actor header, never ask hash-api, and stay open to the website", async () => {
+  const { PetrinautAgent } = await import("../petrinaut/agent.ts");
+  const { HashAgent } = await import("./agent.ts");
+  const hashCall = await issue(HashAgent.agentName);
+  const segments = [brunchRoutes.petrinautAgent, "chat"];
+  const withHeaders = (headers: Record<string, string>, instance = identity) =>
+    Promise.all(
+      segments.map((segment) =>
+        served(
+          segment,
+          { ...agentOwnershipHeaders(instance), ...headers },
+          instance,
+        ),
+      ),
+    );
+  // The website sends no session; a HASH session changes nothing here.
+  const open = { status: 200, body: PetrinautAgent.agentName };
+  expect(await withHeaders({})).toEqual([open, open]);
+  expect(await withHeaders(sessionCookie())).toEqual([open, open]);
+  expect(
+    await withHeaders(sessionCookie(), { ...identity, actorKey: "local" }),
+  ).toEqual([open, open]);
+  // The header, not the session, names the actor.
+  expect(
+    (
+      await Promise.all(
+        segments.map((segment) =>
+          served(segment, {
+            ...agentOwnershipHeaders({ ...identity, actorKey: "another" }),
+            ...sessionCookie(),
+          }),
+        ),
+      )
+    ).map(({ status }) => status),
+  ).toEqual([403, 403]);
+  // HASH's call is still HASH's alone: unknown on the aliases even with the session.
+  expect(
+    await browserCall("chat", hashCall.toolCallId, {
+      headers: sessionCookie(),
+    }),
+  ).toEqual({
+    status: 404,
+    body: { error: "not-issued" },
+  });
+  expect(hashApi.calls).toEqual([]);
+  expect(
+    (await browserCall(brunchRoutes.hashAgent, hashCall.toolCallId)).status,
+  ).toBe(200);
+  expect(hashApi.calls).toHaveLength(1);
+});
+
+const hashOrigin = "https://hash.example.com";
+const websiteOrigin = "https://website.example.com";
+/** A preflight from `origin` for a turn on `segment`. */
+const preflight = async (segment: string, origin: string) => {
+  const { default: app } = await import("../../app.ts");
+  return app.fetch(
+    new Request(
+      `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "content-type,x-brunch-actor,x-brunch-conversation",
+        },
+      },
+    ),
+  );
+};
+
+test("only HASH's origins reach the HASH route cross-origin, with credentials, and only the website's reach its agents, without", async () => {
+  vi.stubEnv(brunchEnv.corsAllowedOrigins, websiteOrigin);
+  vi.stubEnv(brunchEnv.hashCorsAllowedOrigins, hashOrigin);
+  const grant = async (segment: string, origin: string) => {
+    const response = await preflight(segment, origin);
+    return {
+      origin: response.headers.get("access-control-allow-origin"),
+      credentials: response.headers.get("access-control-allow-credentials"),
+    };
+  };
+  expect(await grant(brunchRoutes.hashAgent, hashOrigin)).toEqual({
+    origin: hashOrigin,
+    credentials: "true",
+  });
+  expect(await grant(brunchRoutes.hashAgent, websiteOrigin)).toEqual({
+    origin: null,
+    credentials: "true",
+  });
+  for (const segment of [brunchRoutes.petrinautAgent, "chat"]) {
+    expect(await grant(segment, websiteOrigin), segment).toEqual({
+      origin: websiteOrigin,
+      credentials: null,
+    });
+    expect((await grant(segment, hashOrigin)).origin, segment).toBeNull();
+  }
+  // The HASH route's answers are readable by HASH's page, and an answer it
+  // refuses names no other origin.
+  const { default: app } = await import("../../app.ts");
+  const answer = await app.fetch(
+    new Request(
+      `http://brunch.test${brunchRoutes.agents}/${brunchRoutes.hashAgent}/${flueConversationId(identity)}`,
+      {
+        headers: {
+          Origin: hashOrigin,
+          ...callerHeaders("hash"),
+          ...agentOwnershipHeaders(identity),
+        },
+      },
+    ),
+  );
+  expect(answer.status).toBe(200);
+  expect(answer.headers.get("access-control-allow-origin")).toBe(hashOrigin);
+  expect(answer.headers.get("access-control-allow-credentials")).toBe("true");
+});
+
+test("the HASH route's origins must be exact: a wildcard is refused at startup", async () => {
+  vi.stubEnv(brunchEnv.hashCorsAllowedOrigins, "https://*.example.com");
+  await expect(import("../../app.ts")).rejects.toThrow(
+    brunchEnv.hashCorsAllowedOrigins,
+  );
+});
+
+test("the identity route answers the session's actor key, to HASH's origins alone, and refuses as the HASH route does", async () => {
+  vi.stubEnv(brunchEnv.hashCorsAllowedOrigins, hashOrigin);
+  const { default: app } = await import("../../app.ts");
+  const identityAnswer = async (headers: Record<string, string>) => {
+    const response = await app.fetch(
+      new Request(`http://brunch.test${brunchRoutes.hashIdentity}`, {
+        headers: { Origin: hashOrigin, ...headers },
+      }),
+    );
+    return {
+      status: response.status,
+      body: (await response.json()) as unknown,
+      origin: response.headers.get("access-control-allow-origin"),
+      cacheControl: response.headers.get("cache-control"),
+    };
+  };
+  expect(brunchRoutes.hashIdentity).toBe(
+    `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/identity`,
+  );
+  expect(await identityAnswer(sessionCookie())).toEqual({
+    status: 200,
+    body: { actorKey: identity.actorKey },
+    origin: hashOrigin,
+    cacheControl: "no-store",
+  });
+  for (const [credential, headers] of Object.entries(wrongCredentials))
+    expect((await identityAnswer(headers)).status, credential).toBe(401);
+  // An actor header has no say here either.
+  expect(
+    (
+      await identityAnswer({
+        ...sessionCookie("other-session"),
+        [brunchHeaders.actor]: identity.actorKey,
+      })
+    ).body,
+  ).toEqual({ actorKey: "hash:account-2" });
+});
+
+test.each([undefined, "", "false", "1"])(
+  "a production server with the HASH agent switch %j serves neither the HASH agent nor its identity route, and still serves the Petrinaut agent",
+  async (hashAgentEnabled) => {
+    vi.stubEnv("NODE_ENV", "production");
+    if (hashAgentEnabled !== undefined)
+      vi.stubEnv(brunchEnv.hashAgentEnabled, hashAgentEnabled);
+    const { default: app } = await import("../../app.ts");
+    expect((await served(brunchRoutes.hashAgent)).status).toBe(404);
+    expect(
+      (
+        await app.fetch(
+          new Request(`http://brunch.test${brunchRoutes.hashIdentity}`, {
+            headers: sessionCookie(),
+          }),
+        )
+      ).status,
+    ).toBe(404);
+    expect((await served(brunchRoutes.petrinautAgent)).status).toBe(200);
+    expect(hashApi.calls).toEqual([]);
+  },
+);
+
+test.each([brunchRoutes.hashAgent, brunchRoutes.petrinautAgent])(
+  "the %s route refuses a body over 16 MB with 413 before reading it",
+  async (segment) => {
+    const { default: app } = await import("../../app.ts");
+    const request = (bytes: number) =>
+      app.fetch(
+        new Request(
+          `http://brunch.test${brunchRoutes.agents}/${segment}/${flueConversationId(identity)}`,
+          {
+            method: "POST",
+            headers: {
+              ...agentOwnershipHeaders(identity),
+              ...callerHeaders(segment),
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ kind: "user", body: "x".repeat(bytes) }),
+          },
+        ),
+      );
+    const tooLarge = await request(16 * 1024 * 1024);
+    expect(tooLarge.status).toBe(413);
+    expect(await tooLarge.json()).toEqual({ error: "request too large" });
+    expect((await request(1024)).status).not.toBe(413);
+  },
+);
+
+test("each user may start 30 turns a minute; nothing else counts, and other users and their reads are unaffected", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  const { default: app } = await import("../../app.ts");
+  const instancePath = (instance = identity) =>
+    `${brunchRoutes.agents}/${brunchRoutes.hashAgent}/${flueConversationId(instance)}`;
+  const send = async (
+    path: string,
+    {
+      method = "GET",
+      session = ownerSession,
+      instance = identity,
+    }: { method?: string; session?: string; instance?: typeof identity } = {},
+  ) => {
+    const response = await app.fetch(
+      new Request(`http://brunch.test${path}`, {
+        method,
+        headers: {
+          ...agentOwnershipHeaders(instance),
+          ...sessionCookie(session),
+          "content-type": "application/json",
+        },
+        ...(method === "POST" ? { body: "{}" } : {}),
+      }),
+    );
+    return {
+      status: response.status,
+      body: await response.text(),
+      retryAfter: response.headers.get("retry-after"),
+    };
+  };
+  const submit = (session = ownerSession, instance = identity) =>
+    send(instancePath(instance), { method: "POST", session, instance });
+  const notTurns = () =>
+    Promise.all([
+      send(instancePath()),
+      send(`${instancePath()}?live=sse`),
+      send(`${instancePath()}/abort`, { method: "POST" }),
+      send(`${instancePath()}/${brunchRoutes.browserCalls}/call/lease`, {
+        method: "POST",
+      }),
+      send(`${instancePath()}/${brunchRoutes.browserCalls}/call`, {
+        method: "POST",
+      }),
+      send(brunchRoutes.hashIdentity),
+    ]);
+
+  // Stream reads, stops, browser-call traffic and the identity route are not turns.
+  for (let i = 0; i < 40; i++)
+    for (const { status } of await notTurns()) expect(status).not.toBe(429);
+  // A refused submission isn't counted: the owner naming someone else's
+  // conversation, or a submission with no session.
+  const another = { ...identity, actorKey: "hash:account-2" };
+  for (let i = 0; i < 5; i++) {
+    expect((await submit(ownerSession, another)).status).toBe(403);
+    expect((await submit("unknown")).status).toBe(401);
+  }
+  // The stand-in agent router serves only reads, so an admitted turn ends in
+  // a 404 there, past the limit.
+  for (let i = 0; i < 30; i++) expect((await submit()).status).toBe(404);
+  const limited = await submit();
+  expect(limited).toEqual({
+    status: 429,
+    body: '{"error":"too many turns"}',
+    retryAfter: "60",
+  });
+  // A limited user still reads and stops their conversation.
+  for (const { status } of await notTurns()) expect(status).not.toBe(429);
+  // Another user has their own allowance.
+  expect((await submit("other-session", another)).status).toBe(404);
+  // The allowance returns a minute after the window opened.
+  vi.setSystemTime(Date.now() + 60_000);
+  expect((await submit()).status).toBe(404);
+});
+
+test("an encoded or doubled route segment does not reach the HASH agent without a session", async () => {
+  const { default: app } = await import("../../app.ts");
+  const instance = flueConversationId(identity);
+  const paths = [
+    `/agents/%68ash/${instance}`,
+    `/agents/HASH/${instance}`,
+    `/agents//hash/${instance}`,
+    `/agents/hash//${instance}`,
+    `/agents/./hash/${instance}`,
+    `/agents/petrinaut/../hash/${instance}`,
+  ];
+  const statuses = await Promise.all(
+    paths.map(
+      async (path) =>
+        [
+          path,
+          (
+            await app.fetch(
+              new Request(`http://brunch.test${path}`, {
+                headers: agentOwnershipHeaders(identity),
+              }),
+            )
+          ).status,
+        ] as const,
+    ),
+  );
+  for (const [path, status] of statuses)
+    expect([401, 404], path).toContain(status);
 });

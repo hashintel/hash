@@ -158,7 +158,7 @@ const runIssuedCall = async (
     client: Promise.resolve({
       url: "http://brunch.local/agents/hash/instance",
     } as FlueClient),
-    ownerKey: "owner",
+    actorKey: "owner",
     binding,
     metadataFor: host.clientToolResultMetadataFor,
     prepareInput: host.mapClientToolInput,

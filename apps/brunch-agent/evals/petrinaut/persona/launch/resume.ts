@@ -8,7 +8,7 @@ import * as v from "valibot";
 
 import {
   agentOwnershipHeaders,
-  brunchOwnerKeyStorageKey,
+  brunchActorKeyStorageKey,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
@@ -54,13 +54,31 @@ const runSchema = v.pipe(
     ...roleSettingsFromRun(config),
   })),
 );
-const sessionSchema = v.object({
-  url: text,
-  ownerKey: text,
-  conversationId: text,
-  uid: text,
-  initialData: v.nonOptional(vSdcpnInitialData),
-});
+/**
+ * `session.json` as run directories hold it. The actor key keeps its
+ * pre-rename field name on disk, so runs recorded before the rename still
+ * resume; in memory it is the session's `actorKey`.
+ */
+const sessionSchema = v.pipe(
+  v.object({
+    url: text,
+    ownerKey: text,
+    conversationId: text,
+    uid: text,
+    initialData: v.nonOptional(vSdcpnInitialData),
+  }),
+  v.transform(({ ownerKey, ...session }) => ({
+    ...session,
+    actorKey: ownerKey,
+  })),
+);
+
+/** The `session.json` text for a session, in the shape `readPersonaResume` reads. */
+export const personaSessionFileText = ({
+  actorKey,
+  ...session
+}: PersonaBrowserSession): string =>
+  `${JSON.stringify({ ...session, ownerKey: actorKey }, null, 2)}\n`;
 export const readPersonaResume = async (directory: string) => {
   const run = resolve(directory);
   const config = v.parse(
@@ -103,20 +121,20 @@ export const openRetainedPersonaBrowser = async (
   await page.unroute(checkUrl);
   const saved = await page.evaluate(
     (storageKey) => ({
-      ownerKey: localStorage.getItem(storageKey),
+      actorKey: localStorage.getItem(storageKey),
       documents: JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
       ) as unknown,
     }),
-    brunchOwnerKeyStorageKey,
+    brunchActorKeyStorageKey,
   );
   const data = v.parse(vSdcpnInitialData, session.initialData);
   assert(data);
   const binding = data.binding;
   assert.equal(
-    saved.ownerKey,
-    session.ownerKey,
-    "Original browser owner key is missing or changed",
+    saved.actorKey,
+    session.actorKey,
+    "Original browser actor key is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
   const stored = documents[binding.documentId];

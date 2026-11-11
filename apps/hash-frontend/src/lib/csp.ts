@@ -6,6 +6,8 @@
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import { brunchAgentOrigin } from "./public-env";
+
 const buildDirectiveString = (directives: Record<string, string[]>): string =>
   Object.entries(directives)
     .map(([key, values]) => `${key} ${values.join(" ")}`)
@@ -98,6 +100,11 @@ export const buildCspHeader = ({
       // API server (GraphQL, OAuth callbacks, file uploads, auth via Ory Kratos, and the atlas
       // tile surface it proxies under the session's actor)
       apiOrigin,
+      // Brunch, which Petrinaut's assistant calls with the user's session.
+      // Named on every page, not only the routes that mount Petrinaut today;
+      // `https:` below admits it too, and naming it keeps the assistant
+      // working if that allowance narrows.
+      ...(brunchAgentOrigin !== null ? [brunchAgentOrigin] : []),
       // Sentry error reporting and session replay
       "https://*.ingest.sentry.io",
       // Google APIs (OAuth, Drive)
