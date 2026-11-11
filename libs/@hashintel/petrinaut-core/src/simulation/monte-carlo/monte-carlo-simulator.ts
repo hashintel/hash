@@ -218,10 +218,18 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
       }
     }
 
+    const sampleTime = getFrameTime(this.#frameNumber, this.#samplePeriod);
+    // A driven run stops at the end time itself, which the last sample
+    // time passes when the end falls between two samples. A run the
+    // simulator steps takes its whole last step, and is where the grid says.
+    const time = this.#drivers
+      ? Math.min(sampleTime, this.#maxTime)
+      : sampleTime;
+
     for (const metric of this.#metrics) {
       metric.observeFrame({
         frameNumber: this.#frameNumber,
-        time: getFrameTime(this.#frameNumber, this.#samplePeriod),
+        time,
         runCount: this.#runs.length,
         activeRunCount,
         completedRunCount,

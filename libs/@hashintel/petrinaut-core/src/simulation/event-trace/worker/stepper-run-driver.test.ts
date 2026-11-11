@@ -284,4 +284,37 @@ describe("an experiment whose runs a stepper advances", () => {
       80,
     );
   });
+
+  it("times the last sample at the end time when the run stops between two samples", () => {
+    const sampleTimes = (driven: boolean) => {
+      const times: number[] = [];
+      const simulator = createMonteCarloSimulator({
+        sdcpn: poisson,
+        hirArtifacts: compileHirArtifacts(poisson).artifacts,
+        initialMarking: { sink: 0 },
+        parameterValues: {},
+        seed: 4,
+        dt: 0.1,
+        maxTime: 0.25,
+        runCount: 2,
+        metrics: [{ observeFrame: ({ time }) => times.push(time) }],
+        ...(driven
+          ? {
+              createRunDriver: createStepperRunDriverFactory({
+                id: ADAPTIVE_SIMULATOR_ID,
+                parameters: { tolerance: 1e-6 },
+              }),
+            }
+          : {}),
+      });
+      simulator.runUntilComplete();
+      expect(simulator.getRunSummary(0).completionReason).toBe("maxTime");
+      return times.map((time) => Number(time.toFixed(9)));
+    };
+
+    // An adaptive run stops at the end time itself.
+    expect(sampleTimes(true)).toEqual([0, 0.1, 0.2, 0.25]);
+    // The fixed-step engine takes whole steps, and its last one passes it.
+    expect(sampleTimes(false)).toEqual([0, 0.1, 0.2, 0.3]);
+  });
 });
