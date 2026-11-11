@@ -2,9 +2,11 @@ import { DocCodeSpan, DocLinkTag, DocParagraph } from "@microsoft/tsdoc";
 import { Array, Option, Result, pipe } from "effect";
 
 import * as DocumentationError from "./DocumentationError.js";
+import * as Hierarchy from "./Hierarchy.js";
 import * as DocSource from "./internal/ast/doc-source.js";
 import * as LinkLookup from "./internal/link-lookup.js";
 import * as Parts from "./internal/parts.js";
+import * as Trait from "./Trait.js";
 
 import type * as AST from "./AST/index.js";
 import type * as Catalogue from "./Catalogue.js";
@@ -70,6 +72,22 @@ const commentsOf = (
   );
 };
 
+/** The comments of the traits no export owns, which the traits page shows. */
+const privateTraits = (
+  catalogue: Catalogue.Catalogue,
+): readonly AST.Documentation.Documentation[] =>
+  pipe(
+    Hierarchy.collect(catalogue).vertices,
+    Array.filter(({ entry }) => Option.isNone(entry)),
+    Array.flatMap(({ trait }) => Option.toArray(trait)),
+    Array.flatMap(
+      Trait.match({
+        Declared: ({ documentation }) => [documentation],
+        Explained: () => [],
+      }),
+    ),
+  );
+
 /**
  * The first code span in `paragraph` that mentions a public API no earlier link in the paragraph points to.
  *
@@ -107,34 +125,50 @@ const unlinkedName = (
  * Checks that every comment a page shows links each public API where a paragraph first names it.
  *
  * A name is looked up below the public name of the export whose page shows the comment, then in each enclosing namespace outwards.
+ *
+ * A private trait's comment has no such export, so a name in it may mean any export whose path ends with it.
  */
 export const check = (
   catalogue: Catalogue.Catalogue,
 ): Result.Result<void, DocumentationError.DocumentationError> => {
-  for (const entry of catalogue.entries) {
-    const scope = { catalogue, owner: Option.some(entry.name) };
+  const owned = pipe(
+    catalogue.entries,
+    Array.flatMap((entry) =>
+      Array.map(commentsOf(catalogue, entry), (documentation) => ({
+        owner: Option.some(entry.name),
+        documentation,
+      })),
+    ),
+    Array.appendAll(
+      Array.map(privateTraits(catalogue), (documentation) => ({
+        owner: Option.none<Catalogue.Name>(),
+        documentation,
+      })),
+    ),
+  );
 
-    for (const documentation of commentsOf(catalogue, entry)) {
-      const unlinked = Array.findFirst(
-        Array.flatMap(publicProse(documentation), paragraphsIn),
-        (paragraph) => unlinkedName(scope, paragraph),
+  for (const { owner, documentation } of owned) {
+    const scope = { catalogue, owner };
+
+    const unlinked = Array.findFirst(
+      Array.flatMap(publicProse(documentation), paragraphsIn),
+      (paragraph) => unlinkedName(scope, paragraph),
+    );
+
+    if (Option.isSome(unlinked)) {
+      return Result.fail(
+        DocumentationError.DocumentationError.make({
+          file: documentation.node.getSourceFile().fileName,
+          reason: {
+            _tag: "UnlinkedName",
+            code: unlinked.value.code,
+            start: Option.match(DocSource.rangeOf(unlinked.value), {
+              onNone: () => documentation.node.pos,
+              onSome: ({ pos }) => pos,
+            }),
+          },
+        }),
       );
-
-      if (Option.isSome(unlinked)) {
-        return Result.fail(
-          DocumentationError.DocumentationError.make({
-            file: documentation.node.getSourceFile().fileName,
-            reason: {
-              _tag: "UnlinkedName",
-              code: unlinked.value.code,
-              start: Option.match(DocSource.rangeOf(unlinked.value), {
-                onNone: () => documentation.node.pos,
-                onSome: ({ pos }) => pos,
-              }),
-            },
-          }),
-        );
-      }
     }
   }
 

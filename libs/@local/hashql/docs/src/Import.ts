@@ -18,7 +18,9 @@ const bindingOf = (name: string): string => {
   if (
     isIdentifierText(name) &&
     scanner.scan() === SyntaxKind.Identifier &&
-    scanner.scan() === SyntaxKind.EndOfFile
+    scanner.scan() === SyntaxKind.EndOfFile &&
+    name !== "eval" &&
+    name !== "arguments"
   ) {
     return name;
   }

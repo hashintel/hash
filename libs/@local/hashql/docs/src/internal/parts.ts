@@ -33,6 +33,35 @@ export interface Member {
   readonly parts: readonly Part[];
 }
 
+/** The names a declaration or a call declares as parameters and as type parameters. */
+export interface Declared {
+  readonly parameters: readonly string[];
+  readonly typeParameters: readonly string[];
+}
+
+const declaredBy = (ast: AST.Store["Service"], source: Source): Declared => {
+  const parameters: string[] = [];
+  const typeParameters: string[] = [];
+  if ("parameters" in source) {
+    for (const id of source.parameters) {
+      parameters.push(ast.get(id).name);
+    }
+  }
+  if ("typeParameters" in source) {
+    for (const id of source.typeParameters) {
+      typeParameters.push(ast.get(id).name);
+    }
+  }
+
+  return { parameters, typeParameters };
+};
+
+/** The names `source` declares, such as a call's parameters, a setter's parameter or a type alias's type parameters. A declaration without one of the lists declares none there. */
+export const declared: {
+  (source: Source): (ast: AST.Store["Service"]) => Declared;
+  (ast: AST.Store["Service"], source: Source): Declared;
+} = Function.dual(2, declaredBy);
+
 const plain = (source: Source): Part => ({
   source,
   calls: [],

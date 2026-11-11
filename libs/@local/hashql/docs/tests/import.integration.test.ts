@@ -15,6 +15,8 @@ const source = [
   "export interface Model { value: string }",
   'declare const value: number; export { value as "odd-name" };',
   "declare const reserved: number; export { reserved as default };",
+  "declare const evaluated: number; export { evaluated as eval };",
+  "declare const given: number; export { given as arguments };",
 ].join("\n");
 
 const box = "export class Box { value: string }";
@@ -110,6 +112,19 @@ describe("imports", () => {
           project.program.getSemanticDiagnostics(file),
         ),
       ).toStrictEqual([]);
+    }),
+  );
+
+  it.effect(
+    "strict_binding",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(yield* snippet("eval")).toBe(
+        'import { "eval" as api } from "fixture";',
+      );
+      expect(yield* snippet("arguments")).toBe(
+        'import { "arguments" as api } from "fixture";',
+      );
     }),
   );
 

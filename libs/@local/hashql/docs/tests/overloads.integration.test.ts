@@ -97,6 +97,12 @@ export function linked(): void;
  */
 export function partial(value: Value): void;
 export function partial(value: number): void;
+/** Identity.
+ * @param value - The input.
+ * @typeParam T - The payload.
+ */
+export function identity<T>(value: T): T;
+export function identity(other: string): string;
 export class Members {
   static value: string;
   value: number;
@@ -302,6 +308,21 @@ layer(Reference.layer({ source, configuration: "render-tsdoc.json" }), {
       expect(types(parameter)).toStrictEqual([
         applied("Value", [1]),
         applied("number", [2]),
+      ]);
+    }),
+  );
+
+  it.effect(
+    "inherited_undeclared_names",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const model = collect(reference, "identity");
+      expect(descriptions(at(model.typeParameters, 0))).toStrictEqual([
+        applied("The payload.", [1]),
+      ]);
+      expect(descriptions(at(model.parameters, 0))).toStrictEqual([
+        applied("The input.", [1]),
       ]);
     }),
   );

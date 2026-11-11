@@ -1,5 +1,11 @@
 import { expect, layer } from "@effect/vitest";
 import { Array, Effect, HashMap, Option, pipe } from "effect";
+import {
+  SyntaxKind,
+  isClassDeclaration,
+  isExportDeclaration,
+  isNamedExports,
+} from "typescript/ast";
 
 import * as Entry from "../src/Entry.js";
 import * as References from "../src/internal/references.js";
@@ -7,10 +13,50 @@ import * as Tree from "../src/Tree/index.js";
 import * as TypeScript from "../src/TypeScript/index.js";
 import * as Reference from "./fixtures/reference.js";
 
+import type { Node } from "typescript/ast";
+
 const ownOf = (reference: Reference.Reference, name: string): Tree.Export.Own =>
   HashMap.get(reference.document.entries, Reference.id(reference, [name])).pipe(
     Option.getOrThrow,
   );
+
+/** The syntax every declaration of the export `name` shows. */
+const syntaxOf = (
+  reference: Reference.Reference,
+  name: string,
+): readonly Node[] =>
+  pipe(
+    Option.toArray(ownOf(reference, name).signatures),
+    Array.flatMap(({ children }) => children),
+    Array.flatMap(({ syntax }) => syntax),
+  );
+
+/** A class's name and modifiers, or the names an export statement exports, as `local public` pairs. */
+const shapeOf = (node: Node): readonly (string | number)[] => {
+  if (isClassDeclaration(node)) {
+    return [
+      "class",
+      node.name?.text ?? "",
+      ...Array.map(node.modifiers ?? [], ({ kind }) => kind),
+    ];
+  }
+  if (
+    isExportDeclaration(node) &&
+    node.exportClause !== undefined &&
+    isNamedExports(node.exportClause)
+  ) {
+    return [
+      "export",
+      ...Array.map(
+        node.exportClause.elements,
+        ({ propertyName, name }) =>
+          `${propertyName?.text ?? name.text} ${name.text}`,
+      ),
+    ];
+  }
+
+  return [node.kind];
+};
 
 const summaryOf = (comment: Tree.Comment.Comment): Option.Option<string> =>
   Option.flatMap(comment.description, ({ children }) =>
@@ -145,6 +191,53 @@ layer(Reference.layer({ source: Reference.source }), {
       expect(Option.flatMap(Entry.summary(own), summaryOf)).toStrictEqual(
         Option.some("Model."),
       );
+    }),
+  );
+
+  it.effect(
+    "renamed_export",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source:
+          "declare class Internal { clone(): Internal; }\nexport { Internal as Public };",
+      });
+      const syntax = syntaxOf(reference, "Public");
+      expect(Array.map(syntax, shapeOf)).toStrictEqual([
+        ["class", "Internal"],
+        ["export", "Internal Public"],
+      ]);
+      expect(
+        pipe(
+          syntax,
+          Array.flatMap(TypeScript.Node.identifiers),
+          Array.map(({ text }) => text),
+        ),
+      ).toStrictEqual(["Internal", "clone", "Internal", "Internal", "Public"]);
+    }),
+  );
+
+  it.effect(
+    "default_export",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: [
+          'export { default as Original } from "./original.js";',
+          'export { default as Renamed } from "./renamed.js";',
+        ].join("\n"),
+        files: {
+          "original.d.ts": "export default class Original {}",
+          "renamed.d.ts": "export default class Hidden {}",
+        },
+      });
+      expect(Array.map(syntaxOf(reference, "Original"), shapeOf)).toStrictEqual(
+        [["class", "Original", SyntaxKind.ExportKeyword]],
+      );
+      expect(Array.map(syntaxOf(reference, "Renamed"), shapeOf)).toStrictEqual([
+        ["class", "Hidden"],
+        ["export", "Hidden Renamed"],
+      ]);
     }),
   );
 
