@@ -1,9 +1,10 @@
 /**
- * figma-ds SaveStatusIndicator (`15975:18513`) with Flows' words (ledger L386): "Saved" in the body grey, "Saving…"
- * subtle after the bars loader, and the error in the failed red, with an optional retry after it. Medium weight as
- * drawn. Break, recorded: 14 px rather than the part's 16 px, so the top bar keeps one text size (one size per row).
+ * figma-ds SaveStatusIndicator (`15975:18513`) with Flows' words (ledger L386): "Saved" and "Saving…" (after the bars
+ * loader) muted, and the error in the failed red after its warning icon, with an optional retry after it. Breaks,
+ * recorded: 14 px rather than the part's 16 px, so the top bar keeps one text size (one size per row); regular weight
+ * rather than medium, so "Saved" stays as quiet as the top bar drew it before the part.
  */
-import { LoadingSpinner } from "@hashintel/ds-components";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 type SaveStatus = "saved" | "saving" | "error";
@@ -11,14 +12,13 @@ type SaveStatus = "saved" | "saving" | "error";
 const rowStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1.5",
   textStyle: "sm",
-  fontWeight: "medium",
   whiteSpace: "nowrap",
   transition: "[opacity 600ms ease-out]",
 });
 
-const savedStyle = css({ color: "neutral.fg.body" });
+const savedStyle = css({ color: "neutral.fg.subtle" });
 
 const savingStyle = css({ color: "neutral.fg.subtle" });
 
@@ -61,6 +61,7 @@ export const SaveStatusIndicator = ({
       </>
     ) : status === "error" ? (
       <>
+        <Icon name="warning" size="sm" />
         <span>{errorText}</span>
         {retry}
       </>
