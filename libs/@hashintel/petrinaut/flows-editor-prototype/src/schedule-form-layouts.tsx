@@ -307,6 +307,13 @@ const WebSelect = ({ runsAs }: { runsAs: RunsAs }) => (
   />
 );
 
+/** The ghost Cancel leads, so it moves out by its own padding: its text, the group's visible edge, sits on the edge. */
+export const buttonsOnEdgeStyle = css({
+  display: "flex",
+  gap: "2",
+  "& > button:first-child": { marginLeft: "[-8px]" },
+});
+
 const Actions = ({
   saveLabel,
   onSave,
@@ -316,7 +323,7 @@ const Actions = ({
   onSave: () => void;
   onCancel: () => void;
 }) => (
-  <span className={css({ display: "flex", gap: "2" })}>
+  <span className={buttonsOnEdgeStyle}>
     <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
       Cancel
     </Button>

@@ -49,7 +49,11 @@ import {
   scheduleStart,
   zoneName,
 } from "./schedule-form";
-import { ScheduleFormLayout, scheduleLayout } from "./schedule-form-layouts";
+import {
+  buttonsOnEdgeStyle,
+  ScheduleFormLayout,
+  scheduleLayout,
+} from "./schedule-form-layouts";
 import { monthlyReviewId } from "./seed-flows";
 import { useEscapeCloses } from "./use-escape-closes";
 
@@ -441,7 +445,7 @@ const TriggerSwitch = ({
               The next run, {trigger.nextRun}, won&apos;t happen. Runs already
               in progress finish.
             </span>
-            <span className={css({ display: "flex", gap: "2" })}>
+            <span className={buttonsOnEdgeStyle}>
               {/* Cancel, then the main action, as every figma-ds footer (11 Nov convergence A7). */}
               <Button
                 size="sm"
@@ -717,7 +721,7 @@ const TriggerForm = ({
           ) : null}
         </span>
         <span />
-        <span className={css({ display: "flex", gap: "2", paddingTop: "3" })}>
+        <span className={cx(buttonsOnEdgeStyle, css({ paddingTop: "3" }))}>
           <Button size="sm" variant="ghost" tone="neutral" onClick={onCancel}>
             Cancel
           </Button>
