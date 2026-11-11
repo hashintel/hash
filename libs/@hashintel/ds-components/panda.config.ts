@@ -10,10 +10,6 @@ export const coreConfig: Config = {
     "./src/primitives/**/*.{ts,tsx}",
     "./src/util/**/*.{ts,tsx}",
   ],
-  // `panda ship` publishes what this config extracts into every consumer's
-  // stylesheet, and Panda reads story props named like CSS properties
-  // (`content`, `overflow`) as styles.
-  exclude: ["**/*.{stories,story}.tsx", "**/*.test.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,

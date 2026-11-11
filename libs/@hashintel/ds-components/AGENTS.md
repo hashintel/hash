@@ -56,7 +56,6 @@ export default defineConfig({
     "./src/primitives/**/*.{ts,tsx}",
     "./src/util/**/*.{ts,tsx}",
   ],
-  exclude: ["**/*.{stories,story}.tsx", "**/*.test.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
@@ -71,8 +70,8 @@ Key points:
 
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
-- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo globs and clears `exclude` so story styles reach Storybook.
-- `panda.config.ts` excludes story and test files because `build:buildinfo` ships everything it extracts to consumers.
+- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
+- `panda.ship.config.ts` is what `build:buildinfo` runs, and `panda.docs.config.ts` builds on it. Everything it extracts ships to consumers, so it excludes story and test files and sets `jsxStyleProps: "minimal"`. Under the default `"all"`, Panda reads any prop named like a CSS property on any capitalised JSX tag as a style (`<Tooltip position="right">` became `position: right`). Keep `jsxStyleProps` out of `panda.config.ts`: codegen follows it, and `"minimal"` would strip style props from the generated `@hashintel/ds-helpers/jsx` types.
 - `panda.local.config.ts` exists separately for local demo surfaces such as Storybook
 
 ### Token Naming Patterns (Strict Mode)

@@ -1,6 +1,6 @@
 import { defineConfig } from "@pandacss/dev";
 
-import { coreConfig } from "./panda.config";
+import { shipConfig } from "./panda.ship.config";
 
 /**
  * `panda ship` config for the published MDX docs surface: extracts the doc
@@ -9,7 +9,7 @@ import { coreConfig } from "./panda.config";
  * don't carry their CSS.
  */
 export default defineConfig({
-  ...coreConfig,
+  ...shipConfig,
   include: ["./docs/blocks/**/*.{ts,tsx}"],
   exclude: ["**/*.gen.ts", "**/*.test.{ts,tsx}"],
 });
