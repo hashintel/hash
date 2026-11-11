@@ -34,7 +34,8 @@ const createFakeTransport = () => {
     });
   const respond = (id: number, result: PublishDiagnosticsParams[]) =>
     listener?.({ jsonrpc: "2.0", id, result });
-  return { transport, sent, publish, respond };
+  const push = (message: ServerMessage) => listener?.(message);
+  return { transport, sent, publish, respond, push };
 };
 
 const diagnostic = (message: string): Diagnostic => ({
@@ -167,6 +168,36 @@ describe("createLanguageClient diagnostics", () => {
     publish([]);
     expect(onChange).toHaveBeenCalledTimes(3);
     expect(client.diagnostics.get().total).toBe(0);
+  });
+
+  it("keeps the net analysis the server pushes, and only notifies on a change", () => {
+    const { transport, push } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const onChange = vi.fn();
+    client.netAnalysis.subscribe(onChange);
+
+    push({
+      jsonrpc: "2.0",
+      method: "sdcpn/netAnalysis",
+      params: { metricShapes: { m1: "discrete", m2: "continuous" } },
+    });
+    push({
+      jsonrpc: "2.0",
+      method: "sdcpn/netAnalysis",
+      params: { metricShapes: { m1: "discrete", m2: "continuous" } },
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(client.netAnalysis.get().metricShapes).toEqual({
+      m1: "discrete",
+      m2: "continuous",
+    });
+
+    push({
+      jsonrpc: "2.0",
+      method: "sdcpn/netAnalysis",
+      params: { metricShapes: { m1: "continuous" } },
+    });
+    expect(onChange).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the array of a document whose diagnostics did not change", () => {

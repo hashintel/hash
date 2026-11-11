@@ -19,6 +19,7 @@ import type {
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
+import type { MetricShape } from "../../hir/metric-shape";
 import type { HirVisualizerContext } from "../../hir/surface-context";
 import type {
   AdHocScenarioState,
@@ -275,12 +276,23 @@ type ServerResponse<Result = unknown> =
   | { jsonrpc: "2.0"; id: number; result: Result }
   | { jsonrpc: "2.0"; id: number; error: { code: number; message: string } };
 
-/** Server-initiated notifications (no `id`). */
-type ServerNotification = {
-  jsonrpc: "2.0";
-  method: "textDocument/publishDiagnostics";
-  params: PublishDiagnosticsParams[];
+/**
+ * What the net's check learned beyond its diagnostics, pushed with them:
+ * classifications the editor reads rather than recompiles for.
+ */
+export type NetAnalysis = {
+  /** By metric id, for every metric whose code lowers. */
+  metricShapes: Record<string, MetricShape>;
 };
+
+/** Server-initiated notifications (no `id`). */
+type ServerNotification =
+  | {
+      jsonrpc: "2.0";
+      method: "textDocument/publishDiagnostics";
+      params: PublishDiagnosticsParams[];
+    }
+  | { jsonrpc: "2.0"; method: "sdcpn/netAnalysis"; params: NetAnalysis };
 
 /** Any message from the worker to the main thread. */
 export type ServerMessage = ServerResponse | ServerNotification;

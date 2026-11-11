@@ -6,11 +6,15 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import {
+  createEventSimulation,
   createSimulation,
   compileScenario,
   synthesizeAdHocScenario,
   type AdHocScenarioState,
   type AdHocSynthesisContext,
+  type EventSimulation,
+  type CompileHirArtifactsOptions,
+  type EventSolverConfig,
   type HirCompileResult,
   type PetrinautExtensionSettings,
   type ReadableStore,
@@ -24,6 +28,7 @@ import {
   type WorkerFactory,
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
+import { createEventSimulationWorker } from "@hashintel/petrinaut-core/workers/event-simulation";
 import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simulation";
 
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
@@ -34,11 +39,12 @@ import { usePetrinautNavigation } from "../navigation";
 import { resolveNavigatedId } from "../navigation/resolve-navigated-ids";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
-import { useStore } from "../use-store";
+import { constantStore, selectStore, useStore } from "../use-store";
 import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
+  type SimulationEngine,
   type SimulationFrameReader,
   type SimulationState,
 } from "./context";
@@ -67,6 +73,8 @@ type SimulationStateValues = {
   adHocScenario: AdHocScenarioState | null;
   dt: number;
   maxTime: number | null;
+  engine: SimulationEngine;
+  eventSolver: EventSolverConfig;
 };
 
 function getScenarioParameterDefaults(
@@ -88,6 +96,7 @@ function getScenarioParameterDefaults(
 function createInitialStateValues(options?: {
   dt?: number;
   maxTime?: number | null;
+  engine?: SimulationEngine;
   selectedScenarioId?: string | null;
 }): SimulationStateValues {
   return {
@@ -98,6 +107,8 @@ function createInitialStateValues(options?: {
     adHocScenario: null,
     dt: options?.dt ?? 0.01,
     maxTime: options?.maxTime ?? null,
+    engine: options?.engine ?? "fixed-step",
+    eventSolver: { kind: "fixed-step" },
   };
 }
 
@@ -149,6 +160,8 @@ export function getEffectiveSelectedScenarioId(
   return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
 
+const ZERO_FRAMES_STORE = constantStore(0);
+
 const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
   get: () => "Initializing",
   subscribe: () => () => {},
@@ -159,16 +172,6 @@ const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
  * is critical for `useSyncExternalStore` — returning a fresh object on each
  * read triggers an infinite re-render loop.
  */
-const EMPTY_FRAME_SUMMARY: {
-  count: number;
-  latest: SimulationFrameReader | null;
-} = { count: 0, latest: null };
-
-const EMPTY_FRAMES_STORE: ReadableStore<typeof EMPTY_FRAME_SUMMARY> = {
-  get: () => EMPTY_FRAME_SUMMARY,
-  subscribe: () => () => {},
-};
-
 /**
  * Map a core {@link CoreSimulationState} to the legacy
  * {@link SimulationState} shape consumed by the editor UI.
@@ -200,6 +203,7 @@ export type SimulationCompiler = {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: CompileHirArtifactsOptions,
   ) => Promise<HirCompileResult>;
   requestScenarioHir: (
     scenario: ScenarioLoweringInput,
@@ -223,6 +227,11 @@ export type SimulationProviderProps = React.PropsWithChildren<{
    */
   workerFactory?: WorkerFactory;
   /**
+   * Factory for the event-driven engine's worker, with the same role and
+   * default as `workerFactory`.
+   */
+  eventWorkerFactory?: WorkerFactory;
+  /**
    * Optional compiler override. The Preview supplies build-time artifacts so
    * it can reuse the simulation/playback providers without mounting an LSP.
    */
@@ -230,6 +239,7 @@ export type SimulationProviderProps = React.PropsWithChildren<{
   initialConfiguration?: {
     dt?: number;
     maxTime?: number | null;
+    engine?: SimulationEngine;
   };
   /**
    * Require one of the model's named scenarios. Missing, explicit-none, and
@@ -266,6 +276,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   initialConfiguration,
   requireScenario = false,
   workerFactory,
+  eventWorkerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
   const languageClient = use(LanguageClientContext);
@@ -280,6 +291,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
+  const eventWorkerFactoryRef = useLatest(
+    eventWorkerFactory ?? createEventSimulationWorker,
+  );
   const requestedScenarioId = navigation.state.scenarioId;
   const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
     petriNetDefinition.scenarios,
@@ -299,6 +313,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Active simulation handle. Lifecycle is owned by this provider.
   const [simulation, setSimulation] = useState<Simulation | null>(null);
   const simulationRef = useLatest(simulation);
+  // The event-driven engine's handle, held beside the frame engine's: at most
+  // one of the two is live, the engine setting deciding which a run creates.
+  const [eventSimulation, setEventSimulation] =
+    useState<EventSimulation | null>(null);
+  const eventSimulationRef = useLatest(eventSimulation);
   const initializationGenerationRef = useRef(0);
   // Track error info captured from the simulation's events stream so the UI
   // can surface it. The core handle has a status of "Error" but doesn't
@@ -308,16 +327,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
-  const coreStatus = useStore(simulation?.status ?? EMPTY_STATUS_STORE);
-  const frameSummary = useStore(simulation?.frames ?? EMPTY_FRAMES_STORE);
+  const coreStatus = useStore(
+    simulation?.status ?? eventSimulation?.status ?? EMPTY_STATUS_STORE,
+  );
 
   // When the simulation changes, subscribe to its events stream for errors and
   // completion notifications.
   useEffect(() => {
-    if (!simulation) {
+    const run = simulation ?? eventSimulation;
+    if (!run) {
       return;
     }
-    const off = simulation.events.subscribe((event) => {
+    const off = run.events.subscribe((event) => {
       if (event.type === "error") {
         setError(event.message);
         setErrorItemId(event.itemId);
@@ -329,15 +350,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }
     });
     return off;
-  }, [addNotification, simulation]);
+  }, [addNotification, eventSimulation, simulation]);
 
   // Dispose on unmount.
   useEffect(() => {
     return () => {
       initializationGenerationRef.current += 1;
       simulationRef.current?.dispose();
+      eventSimulationRef.current?.dispose();
     };
-  }, [simulationRef]);
+  }, [eventSimulationRef, simulationRef]);
 
   // Keep the session initialMarking aligned with colour type schemas: when a
   // type element is renamed, re-typed, or removed, migrate the name-keyed
@@ -364,16 +386,28 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Actions
   //
 
+  /** Tears down whichever run is live and clears its handle, synchronously. */
+  const disposeRuns = (): boolean => {
+    const current = simulationRef.current;
+    const currentEvent = eventSimulationRef.current;
+    current?.dispose();
+    currentEvent?.dispose();
+    simulationRef.current = null;
+    eventSimulationRef.current = null;
+    if (current) {
+      setSimulation(null);
+    }
+    if (currentEvent) {
+      setEventSimulation(null);
+    }
+    return current !== null || currentEvent !== null;
+  };
+
   const invalidateSimulationForConfigurationChange = (): void => {
     initializationGenerationRef.current += 1;
-    const current = simulationRef.current;
-    if (!current) {
+    if (!disposeRuns()) {
       return;
     }
-
-    current.dispose();
-    simulationRef.current = null;
-    setSimulation(null);
     setError(null);
     setErrorItemId(null);
   };
@@ -390,8 +424,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     initializationGenerationRef.current += 1;
     simulationRef.current?.dispose();
     simulationRef.current = null;
+    eventSimulationRef.current?.dispose();
+    eventSimulationRef.current = null;
     // Reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above.
     setSimulation(null);
+    setEventSimulation(null);
     setError(null);
     setErrorItemId(null);
     setStateValues((prev) => ({
@@ -405,6 +442,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   }, [
     effectiveSelectedScenarioId,
+    eventSimulationRef,
     petriNetDefinition.scenarios,
     simulationRef,
   ]);
@@ -511,6 +549,30 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
 
+  const setEngine: SimulationContextValue["setEngine"] = (engine) => {
+    if (stateValuesRef.current.engine !== engine) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({ ...prev, engine }));
+  };
+
+  const setEventSolver: SimulationContextValue["setEventSolver"] = (
+    eventSolver,
+  ) => {
+    const current = stateValuesRef.current.eventSolver;
+    if (
+      current.kind !== eventSolver.kind ||
+      (current.kind === "adaptive" &&
+        eventSolver.kind === "adaptive" &&
+        current.tolerance !== eventSolver.tolerance)
+    ) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({ ...prev, eventSolver }));
+  };
+
   const initialize: SimulationContextValue["initialize"] = async ({
     seed,
     dt,
@@ -550,17 +612,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
-    const previous = simulationRef.current;
-    if (previous) {
-      previous.dispose();
-      simulationRef.current = null;
-      setSimulation(null);
-    }
+    disposeRuns();
     setError(null);
     setErrorItemId(null);
     setStateValues((prev) => ({ ...prev, dt }));
 
-    let sim: Simulation;
+    let sim: Simulation | null = null;
+    let eventSim: EventSimulation | null = null;
     try {
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
@@ -599,30 +657,51 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }
 
       // Compile the net's user code to HIR artifacts in the language worker —
-      // the simulation engine has no compiler of its own.
+      // the simulation engine has no compiler of its own. The adaptive solver
+      // classifies each place's dynamics from their HIR, so it gets the tree.
       const { artifacts } = await requestHirArtifacts(
         simulationSdcpn,
         simulationExtensions,
+        currentState.engine === "event-driven" &&
+          currentState.eventSolver.kind === "adaptive"
+          ? { includeHir: true }
+          : undefined,
       );
       if (initializationGenerationRef.current !== generation) {
         return;
       }
 
-      sim = await createSimulation({
-        sdcpn: simulationSdcpn,
-        extensions: simulationExtensions,
-        hirArtifacts: artifacts,
-        initialMarking,
-        parameterValues,
-        seed,
-        dt,
-        maxTime: currentState.maxTime,
-        backpressure:
-          maxFramesAhead !== undefined || batchSize !== undefined
-            ? { maxFramesAhead, batchSize }
-            : undefined,
-        createWorker: workerFactoryRef.current,
-      });
+      if (currentState.engine === "event-driven") {
+        // The event-driven engine takes no `dt`: its step is a worker
+        // default, and what it records is decided by what fires.
+        eventSim = await createEventSimulation({
+          sdcpn: simulationSdcpn,
+          extensions: simulationExtensions,
+          hirArtifacts: artifacts,
+          initialMarking,
+          parameterValues,
+          seed,
+          maxTime: currentState.maxTime,
+          solver: currentState.eventSolver,
+          createWorker: eventWorkerFactoryRef.current,
+        });
+      } else {
+        sim = await createSimulation({
+          sdcpn: simulationSdcpn,
+          extensions: simulationExtensions,
+          hirArtifacts: artifacts,
+          initialMarking,
+          parameterValues,
+          seed,
+          dt,
+          maxTime: currentState.maxTime,
+          backpressure:
+            maxFramesAhead !== undefined || batchSize !== undefined
+              ? { maxFramesAhead, batchSize }
+              : undefined,
+          createWorker: workerFactoryRef.current,
+        });
+      }
     } catch (caught) {
       if (initializationGenerationRef.current !== generation) {
         return;
@@ -637,22 +716,27 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }
 
     if (initializationGenerationRef.current !== generation) {
-      sim.dispose();
+      sim?.dispose();
+      eventSim?.dispose();
       return;
     }
 
-    // Write the ref synchronously *before* setSimulation so a same-tick
-    // caller can run the newly initialized handle immediately.
+    // Write the refs synchronously *before* the state so a same-tick caller
+    // can run the newly initialized handle immediately.
     simulationRef.current = sim;
+    eventSimulationRef.current = eventSim;
     setSimulation(sim);
+    setEventSimulation(eventSim);
   };
 
   const run: SimulationContextValue["run"] = () => {
     simulationRef.current?.run();
+    eventSimulationRef.current?.run();
   };
 
   const pause: SimulationContextValue["pause"] = () => {
     simulationRef.current?.pause();
+    eventSimulationRef.current?.pause();
   };
 
   const reset: SimulationContextValue["reset"] = () => {
@@ -666,9 +750,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       parameterValues[key] = String(value);
     }
 
-    simulationRef.current?.dispose();
-    simulationRef.current = null;
-    setSimulation(null);
+    disposeRuns();
     setError(null);
     setErrorItemId(null);
 
@@ -689,26 +771,27 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     simulationRef.current?.ack(frameNumber);
   };
 
-  // Frame access — reads from the active simulation handle.
+  // Frame access — reads from the active simulation handle. On the
+  // event-driven engine a "frame" is an event's recorded state.
+  const readFrame = (index: number): SimulationFrameReader | null =>
+    simulationRef.current?.getFrame(index) ??
+    eventSimulationRef.current?.getEventState(index) ??
+    null;
+  const readFrameCount = (): number =>
+    simulationRef.current?.frames.get().count ??
+    eventSimulationRef.current?.trace.get().eventCount ??
+    0;
+
   const getFrame: SimulationContextValue["getFrame"] = (
     frameIndex: number,
-  ): Promise<SimulationFrameReader | null> => {
-    const sim = simulationRef.current;
-    if (!sim) {
-      return Promise.resolve(null);
-    }
-    return Promise.resolve(sim.getFrame(frameIndex));
-  };
+  ): Promise<SimulationFrameReader | null> =>
+    Promise.resolve(readFrame(frameIndex));
 
   const getAllFrames: SimulationContextValue["getAllFrames"] = () => {
-    const sim = simulationRef.current;
-    if (!sim) {
-      return Promise.resolve([]);
-    }
     const all: SimulationFrameReader[] = [];
-    const total = sim.frames.get().count;
+    const total = readFrameCount();
     for (let i = 0; i < total; i++) {
-      const frame = sim.getFrame(i);
+      const frame = readFrame(i);
       if (frame) {
         all.push(frame);
       }
@@ -720,16 +803,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     startIndex: number,
     endIndex?: number,
   ) => {
-    const sim = simulationRef.current;
-    if (!sim) {
-      return Promise.resolve([]);
-    }
-    const total = sim.frames.get().count;
+    const total = readFrameCount();
     const start = Math.max(0, startIndex);
     const end = endIndex === undefined ? total : Math.min(endIndex, total);
     const slice: SimulationFrameReader[] = [];
     for (let i = start; i < end; i++) {
-      const frame = sim.getFrame(i);
+      const frame = readFrame(i);
       if (frame) {
         slice.push(frame);
       }
@@ -737,8 +816,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     return Promise.resolve(slice);
   };
 
-  const simulationState = mapCoreState(simulation ? coreStatus : null);
-  const totalFrames = frameSummary.count;
+  const simulationState = mapCoreState(
+    simulation || eventSimulation ? coreStatus : null,
+  );
+  // The frame count is handed out as a store, so this provider and the
+  // consumers of its context are not rendered on every batch the worker posts.
+  const totalFramesStore: ReadableStore<number> = simulation
+    ? selectStore(simulation.frames, (summary) => summary.count)
+    : eventSimulation
+      ? selectStore(eventSimulation.trace, (summary) => summary.eventCount)
+      : ZERO_FRAMES_STORE;
   useEffect(() => {
     if (
       shouldNormalizeScenarioSelection({
@@ -952,7 +1039,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     adHocNetParameters,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
-    totalFrames,
+    totalFramesStore,
+    engine: stateValues.engine,
+    eventSolver: stateValues.eventSolver,
+    eventSimulation,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
@@ -962,6 +1052,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
+    setEngine: useStableCallback(setEngine),
+    setEventSolver: useStableCallback(setEventSolver),
     setMaxTime: useStableCallback(setMaxTime),
     initialize: useStableCallback(initialize),
     run: useStableCallback(run),

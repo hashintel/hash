@@ -70,6 +70,10 @@
       "types": "./dist/selection.d.ts",
       "import": "./dist/selection.js"
     },
+    "./workers/event-simulation": {
+      "types": "./dist/workers/event-simulation.d.ts",
+      "import": "./dist/workers/event-simulation.js"
+    },
     "./workers/lsp": {
       "types": "./dist/workers/lsp.d.ts",
       "import": "./dist/workers/lsp.js"

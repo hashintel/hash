@@ -4,7 +4,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  DEFAULT_SOLVER_TOLERANCE,
+} from "@hashintel/petrinaut-core";
 
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -58,7 +61,11 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       ))}
     </select>
   );
-  return { ...actual, Select };
+  // The Ark segment group floats its indicator from measurements jsdom
+  // cannot make; the stub is a row of pressed buttons.
+  const { SegmentedControl } =
+    await import("../../SimulateView/shared/ds-control-stubs");
+  return { ...actual, Select, SegmentedControl };
 });
 
 // jsdom provides neither observer; the scroll fades and the value editor's
@@ -141,7 +148,7 @@ const simulationContextValue: SimulationContextValue = {
   adHocNetParameters: sdcpn.parameters,
   dt: 0.01,
   maxTime: null,
-  totalFrames: 0,
+  totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
@@ -152,6 +159,11 @@ const simulationContextValue: SimulationContextValue = {
   setParameterValue: () => {},
   setDt: () => {},
   setMaxTime: () => {},
+  engine: "fixed-step",
+  eventSolver: { kind: "fixed-step" },
+  eventSimulation: null,
+  setEngine: () => {},
+  setEventSolver: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},
   pause: () => {},
@@ -179,6 +191,36 @@ const Providers = ({
 );
 
 describe("SimulationSettings", () => {
+  it("offers the solver for the event-driven engine and its max error once adaptive", () => {
+    const setEventSolver = vi.fn();
+    const { rerender } = render(
+      <Providers simulation={{ engine: "event-driven", setEventSolver }}>
+        <SimulationSettings />
+      </Providers>,
+    );
+
+    expect(screen.queryByLabelText(/Time Step/)).toBeNull();
+    expect(screen.queryByLabelText(/Max error/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Adaptive" }));
+    expect(setEventSolver).toHaveBeenCalledWith({
+      kind: "adaptive",
+      tolerance: DEFAULT_SOLVER_TOLERANCE,
+    });
+
+    rerender(
+      <Providers
+        simulation={{
+          engine: "event-driven",
+          eventSolver: { kind: "adaptive", tolerance: 1e-4 },
+          setEventSolver,
+        }}
+      >
+        <SimulationSettings />
+      </Providers>,
+    );
+    expect(screen.getByLabelText(/Max error/)).toBeTruthy();
+  });
+
   it("shows the scenario form with no scenario selected", () => {
     render(
       <Providers simulation={{}}>

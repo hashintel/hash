@@ -128,6 +128,10 @@ type AbstractValue =
   | { kind: "scalar" }
   /** The lambda/kernel input object. */
   | { kind: "inputRecord" }
+  /** Metric code's `state.places`, keyed by place display name. */
+  | { kind: "placesRecord" }
+  /** One place as metric code sees it: a `count` and a `tokens` array. */
+  | { kind: "placeRecord"; place: HirTokenReadPlace }
   /** A token array belonging to a place. */
   | { kind: "tokens"; place: HirTokenReadPlace }
   /** A single token of a place; `index` is its position in the dynamics
@@ -487,7 +491,12 @@ class Analyzer {
         value:
           this.fn.surface === "dynamics"
             ? { kind: "tokens", place: "self" }
-            : { kind: "inputRecord" },
+            : this.fn.surface === "metric"
+              ? {
+                  kind: "record",
+                  fields: new Map([["places", { kind: "placesRecord" }]]),
+                }
+              : { kind: "inputRecord" },
       });
     }
     return this.evalExpr(this.fn.body, env);
@@ -738,6 +747,16 @@ class Analyzer {
       case "tokens":
         if (field === "count") {
           this.placeCounts.add(target.place);
+        }
+        return SCALAR;
+      case "placesRecord":
+        return { kind: "placeRecord", place: field };
+      case "placeRecord":
+        if (field === "tokens") {
+          return { kind: "tokens", place: target.place };
+        }
+        if (field === "count") {
+          this.readsTokenCounts = true;
         }
         return SCALAR;
       case "token":

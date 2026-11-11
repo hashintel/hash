@@ -1,0 +1,940 @@
+---
+title: Event-driven simulation
+description: Analysis of the fixed-step engines and the design for an event-driven simulator with interpolated continuous evolution, pluggable backends and online constraint monitors.
+sidebar_order: 30
+---
+
+Quick Simulation today produces one frame per fixed time step `dt`. This
+document proposes that it produces a **trace of events** instead: one record
+per transition firing, carrying the firing time, the tokens it consumed and
+produced, and the state after it. Continuous evolution between two events is
+not stored; it is re-integrated on demand from the nearest recorded state.
+Playback and the timeline move from frame indices to simulation time.
+Backends that produce traces are chosen through the same assess-and-instantiate
+contract experiments already use, so a plugin can provide one. Experiments keep
+their `dt` observation grid, so metric frames, sharding and the GPU backend do
+not change shape.
+
+The document has four parts: what the engines do today and where `dt` is
+assumed, the semantics and algorithms of the event-driven simulator, the
+interfaces (trace, backend, playback, plugin contribution, constraint
+monitors), and the proposed order of pull requests. The literature behind the
+algorithm choices is in [Algorithms and tools](#algorithms-and-tools).
+
+## What the engines do today
+
+Two engines share compilation and step the same way; a third runs the same
+semantics on the GPU. [Two execution paths](doc:two-execution-paths) covers
+why the first two are separate. The facts below are what the event-driven
+design has to replace or preserve.
+
+### Semantics of one step
+
+Both CPU engines (`engine/compute-next-frame.ts` for Quick Simulation,
+`monte-carlo/advance-run.ts` for experiments) advance by a fixed `dt` in this
+order, documented in [How a step is computed](doc:core.simulation.engine/stepping):
+
+1. Dynamics: for each place with differential equations, every token's
+   `real` attributes advance by one explicit Euler step of the sum of the
+   place's composed equations. A one-token equation reads only that token's
+   attributes and the net parameters; an equation over `n` tokens reads
+   every combination of `n` tokens of the place (`HirDynamicsContext` in
+   `hir/surface-context.ts`).
+2. Transitions, in definition order. A transition is structurally enabled by
+   its arc weights, inhibitors and output capacities. An enabled stochastic
+   transition draws one uniform `U` and walks its input token combinations in
+   lexicographic order; the first combination whose rate `λ` satisfies
+   `exp(-λ · dt) ≤ U` fires. A predicate transition fires on the first
+   combination whose guard is true. At most one firing per transition per
+   step. Removals apply at once; additions apply at the end of the step.
+3. Timers: `timeSinceLastFiringMs` advances by `dt` for every transition
+   that did not fire and resets to zero for one that did.
+4. Completion: `maxTime` reached, or no transition structurally enabled after
+   a step with no firing.
+
+The GPU backend (`webgpu/compile-net-shader/`) generates WGSL with the same
+order, the same lexicographic scan, the same one-draw-per-transition rule, and
+RK4 instead of Euler ([GPU backend](doc:core.webgpu/gpu-backend)).
+
+### Where `dt` is assumed
+
+| Site                                                                              | Assumption                                                                            |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `simulation/api.ts` `SimulationConfig.dt`, worker `init` message                  | A run is configured by a step, and frame `n` is at time `n · dt`.                     |
+| `playback/playback.ts` `tick({ dt })`                                             | Playback converts wall-clock time to a frame count by dividing by `dt`.               |
+| `react/playback/provider.tsx`                                                     | The compute-buffer ack policy keeps `0.5 / dt` frames ahead of the playhead.          |
+| `ui/.../BottomBar/playback-time.ts`                                               | Elapsed time is `frameIndex · dt`, printed at the step's decimal precision.           |
+| `react/execution-frame/context.ts` `ExecutionFrameSource`                         | Consumers address state by frame index: `scrubToFrame`, `getFramesInRange`.           |
+| `experiments/experiment-request.ts` `ExperimentRequest.dt`, `experiments/host.ts` | Experiments and the assistant's experiment requests carry `dt` and `maxTime`.         |
+| `monte-carlo/metrics/types.ts` metric frames, `runtime/experiment.ts` watermark   | Metrics are sampled once per frame; shards merge by frame number.                     |
+| `webgpu/backend.ts` `framesPerDispatch`, `webgpu/metric-windows.ts`               | The GPU dispatches 300 frames at a time and sizes histogram windows per frame.        |
+| `simulation/compiled-model.ts` `PetrinautRunConfig.maxSteps`, the CLI `run`       | Headless runs stop after a step count.                                                |
+| `actual-mode/timeline.ts`                                                         | Builds timeline points at external firings and at a fixed tick. Already event-shaped. |
+
+Every row above except the experiment rows changes under this design. The
+experiment rows keep `dt` as an observation grid.
+
+### What is already event-shaped
+
+Actual mode (`actual-mode/types.ts`) renders an execution from a host as a
+list of `ActualModeTransitionFiring { transitionId, input, output, ts }` plus
+an initial marking, and builds its timeline from those firings and a fixed
+tick. That is the event record this document proposes, minus the continuous
+state. The execution-frame interface (`react/execution-frame/`) is the
+indirection that let Actual mode reach the canvas without changes; the same
+indirection carries the trace.
+
+## Why fixed steps are wrong for this model
+
+The engine is a fixed-step approximation of a continuous-time process. Each
+item below is a defect of the approximation, with the evidence.
+
+1. **Firing counts saturate.** A transition fires at most once per step with
+   probability `1 - exp(-λ · dt)`, so its mean rate is at most `1 / dt`
+   whatever `λ` says. A source at rate 20 with `dt` 0.1 produces at most 10
+   per unit time. The error is controlled by `dt`, the input that
+   [FE-1243](https://linear.app/hash/issue/FE-1243/remove-the-time-step-input-from-the-simulation-ui)
+   asks to remove.
+2. **Firing times are quantised to `dt`**, and simultaneous firings within a
+   step are ordered by transition definition order. The first transition in
+   the list wins every contested token.
+3. **The combination rule under-approximates.** Each enabled token combination
+   is a competing channel, so the transition's total rate is the sum over
+   combinations. The engine tests each combination against one shared draw and
+   fires the first that passes, which is correct for token-independent rates
+   and biased otherwise. Decided semantics in
+   [FE-1572](https://linear.app/hash/issue/FE-1572/fire-the-best-rate-token-combination-and-let-the-user-choose-a-places):
+   sum the rates, choose a combination in proportion to its rate.
+4. **Rates read state that is one Euler step old**, and Euler is first order.
+   The CPU and GPU backends disagree by the integrator alone
+   ([Simulation performance](doc:core.simulation/performance) measures Euler at
+   0.15% and RK4 at 0.00155% error on logistic growth at `dt` 0.5).
+5. **Guards fire late.** A predicate transition whose guard turns true at time
+   `t` inside a step fires at the step end, up to `dt` later. A guard that
+   turns true and false again within one step is never seen.
+6. **Cost is proportional to simulated time, not to activity.** `maxTime`
+   180 at `dt` 0.1 is 1800 steps of every transition per run, whether or not
+   anything fires. [Simulation performance](doc:core.simulation/performance)
+   estimates 10 to 100 times fewer steps for nets whose firings are sparse
+   relative to `dt`.
+7. **Every frame is a full snapshot**, retained three times on the interactive
+   path ([Memory model](doc:core.simulation/memory-model)).
+
+[FE-1499](https://linear.app/hash/issue/FE-1499/stochastic-transitions-fire-at-inflated-non-exponential-rates)
+fixed the earlier inflated firing test; items 1 to 3 are what the per-step
+Bernoulli test cannot fix.
+
+## Target semantics
+
+A Stochastic Dynamically Coloured Petri Net is a piecewise deterministic
+Markov process: Everdij and Blom define the net class and prove the mappings
+in both directions (see [Algorithms and tools](#algorithms-and-tools)). The
+state is the marking, with each token's attributes. Between events the
+marking is constant and each token's `real` attributes follow its place's
+differential equation. Three kinds of event change the marking:
+
+- A **delay transition** (today's `stochastic` lambda) fires at a random
+  time. Each enabled token combination `c` is a channel with hazard
+  `λ_c(x(t))`, a function of the chosen tokens' attributes and the
+  parameters. The transition's total hazard is `Λ_T(t) = Σ_c λ_c(x(t))`. The
+  probability that `T` has not fired by `t` is `exp(-∫ Λ_T)`. When it fires,
+  combination `c` is chosen with probability `λ_c / Λ_T`.
+- A **guard transition** (today's `predicate` lambda) fires as soon as some
+  combination's guard is true, at that instant. A guard that is true at the
+  moment the transition becomes enabled fires immediately.
+- The **flow** itself never changes the marking. A guard that reads
+  attributes can become true in the middle of a flow segment, which makes it a
+  boundary-hitting event; its time is found by root-finding on the flow.
+
+Simultaneous events get a **superdense time**: a pair `(t, k)` where `k`
+counts the events at the same `t`. A firing at `(t, k)` sees the state after
+`(t, k-1)`. Guard transitions are evaluated after every event at the same `t`,
+in definition order, until none is enabled with a true guard; the chain is
+bounded (a limit of iterations per instant, after which the run stops with an
+error naming the transitions) because a net can be written that fires forever
+at one instant.
+
+Delay firings never coincide, since their times have continuous
+distributions. Ties arise only among guard transitions at one instant.
+Everdij and Blom's rules for that case are: a guard transition enabled by
+several disjoint token combinations fires them all at once; where firing one
+combination disables another, one is chosen uniformly at random; where
+several transitions are enabled and firing one disables another, each
+independently firable set gets the same probability. The simulator applies
+definition order instead of the uniform choice between transitions, which is
+today's rule and is what makes a guard chain reproducible without a second
+random stream. The uniform choice between a transition's own combinations is
+kept, drawn from that transition's stream.
+
+A transition that is disabled and later re-enabled keeps its accumulated
+hazard: the clock policy is age memory, in the vocabulary of generalised
+stochastic Petri nets. It is what the bookkeeping of the next section gives
+without special cases, and it is documented here because the alternative
+policies (resampling on re-enablement, or resetting the clock) give different
+distributions for the same net.
+
+A run ends when `maxTime` is reached, when no transition is structurally
+enabled and no token has dynamics that could enable one, or on a stopping
+condition from [FE-1244](https://linear.app/hash/issue/FE-1244/make-stopping-conditions-an-obvious-input-when-starting-a-simulation).
+A net whose only enabled transitions are delay transitions with `Λ_T = 0`
+and no dynamics is deadlocked, and the simulator reports it rather than
+waiting until `maxTime`. A net with dynamics and no enabled transition is not
+deadlocked: a guard can still become true. The simulator integrates on, and
+reports deadlock only when no guard reads an attribute that still moves.
+
+Two existing behaviours are kept: removals of a firing apply before the next
+transition at the same instant is evaluated, and output tokens are visible to
+later events. The end-of-step batching of additions goes: with one firing per
+event there is nothing to batch, and the capacity check sees true counts.
+
+## The simulator
+
+The run has two regimes and one loop. Nets without dynamics, which is most of
+the examples, stay in the discrete regime for the whole run: no ODE solver is
+constructed and the cost is per event. Nets with dynamics alternate between
+flow segments and events.
+
+### Discrete regime: next-reaction method
+
+Every delay transition keeps a putative firing time. On a firing, only the
+transitions whose input or output places changed are recomputed; the others
+keep their times. This is the next-reaction method (Gibson and Bruck) with
+Anderson's random-time-change bookkeeping, which is what lets the same
+machinery handle time-varying hazards in the flow regime:
+
+- Each delay transition `T` owns an internal clock `H_T` (its accumulated
+  hazard) and a threshold `P_T` (the next point of a unit-rate Poisson
+  process). `T` fires when `H_T` reaches `P_T`. After firing, `P_T` advances by
+  a fresh `Exp(1)` draw. Transitions whose `Λ_T` changed keep `H_T` and `P_T`
+  and only change the rate at which `H_T` grows.
+- With constant `Λ_T` between events, the putative time is
+  `t + (P_T - H_T) / Λ_T`, and a priority queue ordered by putative time gives
+  `O(log |T|)` per event. A transition with `Λ_T = 0` has an infinite
+  putative time and costs nothing until a dependency changes.
+- The dependency graph is static: transition `T` depends on `T'` when they
+  share an input place, or `T'` writes a place `T` reads (including inhibitor
+  and read arcs and capacity-constrained outputs). It is computed at build
+  time from the arcs, like `capacityConstraints` is today.
+
+Computing `Λ_T` needs the rates of every enabled combination. Three cases, in
+the order the engine tries them:
+
+| Lambda reads                                    | `Λ_T`                                                             | Combination choice at firing                                               | Cost                                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| No input tokens (`readsNoInputTokens`, FE-1528) | `C(n, k) · λ` in closed form                                      | Uniform, or FIFO / LIFO by the place's out-order (FE-1572)                 | `O(1)`                                                                                                                 |
+| Token attributes, few combinations              | Explicit sum over the lazy enumeration (FE-1526)                  | One pass of weighted reservoir sampling, or a second pass with one uniform | `O(C(n, k))` per recomputation                                                                                         |
+| Token attributes, many combinations             | Same, with the enumeration-bound lint (FE-948) warning the author | Same                                                                       | Same, measured, with closed forms added where the HIR shape allows (product and affine forms have `O(n · k)` formulas) |
+
+Today the sum is paid once per frame for every enabled transition. Under the
+next-reaction method it is paid once per event for the transitions that
+depend on it.
+
+### Flow regime: integrate, accumulate hazards, locate events
+
+When a place with dynamics holds tokens, the run integrates the flow between
+events with an explicit adaptive Runge-Kutta pair with dense output
+(Dormand-Prince 5(4) or Tsitouras 5(4); see
+[Algorithms and tools](#algorithms-and-tools)). A token's derivative reads
+only that token, so the ODE system is a set of independent small systems, one
+per token, stepped together under one error norm.
+
+The hazards ride along. For each delay transition whose rate reads an
+attribute with dynamics, `H_T` is one more state component with derivative
+`Λ_T(x(t))`, integrated by the same solver. The event `H_T = P_T` is located
+by root-finding on the dense output (Illinois or Brent on the interpolant,
+to a relative tolerance), as `ContinuousCallback` does in
+DifferentialEquations.jl. Transitions whose rate does not read a moving
+attribute keep the closed-form putative time from the discrete regime; the
+integrator stops at the earliest of the next discrete putative time, the next
+located flow event, the next reference frame, and `maxTime`.
+
+Guards that read moving attributes are checked at every accepted step. A guard
+that is false at the step start and true at the step end is located by
+bisection on the dense output to the same tolerance; the located time becomes
+a boundary event. Lowering the HIR comparison in a guard to a signed margin
+(`a < b` to `b - a`) turns bisection into a proper root find and gives the
+same signal the robustness semantics of
+[Constraint monitors](#constraint-monitors) needs. The first increment uses
+bisection on the boolean; the margin lowering is a later increment.
+
+After any event the integrator restarts from the post-event state: the state
+jumped, so the error estimate of a step across the event is meaningless, the
+cached last stage is stale, and the step controller's memory is from the old
+segment. The restart re-evaluates the derivative, picks the first step with
+Hairer's initial-step heuristic, and excludes the event time itself from the
+next root search so a located event does not fire twice (the discontinuity
+sticking case). A cap on events per unit of time stops a net that chatters.
+This restart is also what makes replay possible (next section).
+
+The integrator is written in core. None of the JavaScript libraries surveyed
+has dense output and event location together on a maintained code base, and
+a Dormand-Prince pair with its interpolant and the ITP root finder is a few
+hundred lines. A Rust port can take the `ode_solvers` crate, which has
+Dopri5 with dense output and a stop hook.
+
+`Λ_T` inside the right-hand side is the expensive case: the sum over
+combinations is evaluated at every Runge-Kutta stage of every step. Two
+mitigations, in order of preference: the closed forms above, and thinning
+(Lewis and Shedler, Ogata) against a bound on `Λ_T` over the step, which
+needs one lambda evaluation per proposal instead of one per stage. Thinning
+needs a bound; the HIR cannot derive one for arbitrary user code, so it is
+offered as a per-transition `maxRate` the author declares, with a run error
+if the realised rate exceeds it. This is how JumpProcesses.jl's `Coevolve`
+aggregator handles the same case.
+
+### Stiffness
+
+A per-token ODE with a large rate constant forces tiny steps: an explicit
+pair's stability region bounds the step by about `3.3 / |λ_max|` whatever
+the tolerance. The first release keeps explicit solvers and reports
+stiffness: Hairer's estimate from the two last Dormand-Prince stages flags a
+step when `h · ρ̃ > 3.25` for 15 consecutive steps, and the run shows the
+place and the equation. A later release can switch a stiff place to a
+Rosenbrock method (Rodas5P) with a Jacobian generated from the dynamics HIR;
+the per-token systems are small enough that its LU per step costs little.
+Tau-leaping and a fast-slow partition are the usual escape for stiff
+stochastic regimes and are kept for experiments (next section), not for the
+interactive trace.
+
+### Prototype: the adaptive solver
+
+The `adaptive` solver of the event-driven engine
+(`event-trace/worker/adaptive-stepper.ts`, behind **Solver** in Simulation
+Settings) is the first cut of the flow regime, built to measure before the
+hazard integration above lands. One step spans at most the reference
+interval and ends at a firing or at the span's end:
+
+- **Firing times are sampled, not stepped.** At the span start every enabled
+  token combination is a mode with its rate; the waiting time is exponential
+  in the total rate and the firing mode is drawn in proportion. Rates are
+  held at their span-start value, which is exact when no rate reads a
+  moving attribute and a first-order approximation otherwise. A predicate
+  that holds at the span start fires at once; one that starts to hold
+  inside the span fires at the instant it does, located by bisection that
+  re-integrates from the span start rather than by dense output.
+- **Each place integrates by the class of its equation**, read off the
+  dynamics HIR (`solver/classify-dynamics.ts`): a callback that reads only
+  its own token is _independent_ and every token takes the steps its own
+  dynamics need; one whose derivatives are affine in the token's real
+  attributes with run-constant coefficients is _affine_ and advances exactly
+  through the propagator `exp([[A, b], [0, 0]] h)`; anything else, the token
+  index included, is _coupled_ and the place integrates as one system.
+  Without the HIR every place is coupled.
+- **Dormand-Prince 5(4)** with proportional step control (`solver/rk45.ts`)
+  does the integrating, the user's **Max error** serving as both the
+  relative and the absolute tolerance. Steps forced through at the smallest
+  step the control allows, a discontinuous derivative's signature, are
+  accepted and counted rather than failing the run.
+- **Every event carries the accumulated local error per place**
+  (`TraceEvent.solverError`): the sum over accepted steps of the largest
+  error estimate of any token's attribute, in attribute units. It is a
+  running bound on what the steps themselves contributed, not the global
+  error, which propagation through the dynamics can grow or shrink.
+
+What the target design adds on top: hazards integrated with the state so
+rates that read moving attributes stay exact, dense output for event
+location, keyframes in place of full frames, and the stiffness report. The
+buffer compiler accepts no dynamics that read another token today, so the
+coupled class is reached only through the index parameter.
+
+### Randomness
+
+One counter-based generator (Philox, from Salmon et al. 2011, with 32-bit
+integer arithmetic) keyed by `(seed, stream)` and indexed by draw number, so
+the event-driven CPU backend, a WASM port and the WGSL shader can share
+streams. Each transition owns a stream for its `Exp(1)` threshold draws, a
+stream for its combination choices, and the kernel sink's distribution draws
+take a stream per transition too; draws are indexed by purpose (the n-th
+firing of transition `T`), never by call order, so adding a transition to a
+net or changing a rate does not shift another transition's draws. The current
+LCG in `engine/seeded-rng.ts` cannot be reproduced on the GPU and is already
+different from the GPU's PCG. The reproducibility decision in
+[Simulation performance](doc:core.simulation/performance) permits the change:
+the same seed need not reproduce trajectories across engine versions.
+Within one engine version and backend, the same `(net, marking, parameters,
+seed, tolerance, maxTime)` reproduces the same trace.
+
+Per-transition indexed streams also couple the event-driven engine to the
+fixed-step one. In Kurtz's random time change representation, transition `T`
+fires at the points of a unit-rate Poisson process read on its internal clock
+`H_T`; the gaps between those points are the `Exp(1)` draws above. The
+event-driven engine uses them as thresholds. A fixed-step engine that
+advances `H_T` by `Λ_T · dt` per step and counts the thresholds crossed sees
+the same Poisson path, so the two engines produce the same trajectory up to
+discretisation error, which is what makes a parity test between them sharp.
+The GPU keeps independent Poisson draws (next section) and agrees in
+distribution only, which the `Dev / GpuParity` harness already measures
+between CPU and GPU.
+
+### Cost
+
+| Net                                    | Fixed step, per run                        | Event-driven, per run                                                                                       |
+| -------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Discrete only (SIR, supply chain)      | `(maxTime / dt) · \|T\|` evaluations       | `E · (log \|T\| + dependents)` where `E` is the number of firings                                           |
+| Dynamics, rates read parameters only   | Same, plus Euler on every token every step | Adaptive steps between events (few, large steps when the flow is smooth) plus `E · log \|T\|`               |
+| Dynamics, rates read moving attributes | Same                                       | Adaptive steps with `Λ_T` summed at every stage; the closed forms or `maxRate` decide whether this is cheap |
+
+`E` can exceed `maxTime / dt`. SIR with 500 susceptible and 5 infected,
+`maxTime` 60, `dt` 0.1 is 600 frames and up to 1010 firings. The event
+engine then does more steps, each cheaper (one transition's effect against
+every transition's evaluation), and the trace is exact. The sampled view
+(next section) is how a consumer that wants 600 states gets them.
+
+## The trace
+
+A run is a sequence of event records and a way to get the state at any time.
+
+```ts
+type TraceTime = { time: number; index: number }; // superdense: (t, k)
+
+type TraceEventKind = "initial" | "firing" | "reference" | "end";
+
+type TraceEvent = {
+  at: TraceTime;
+  kind: TraceEventKind;
+  /** Firings only. */
+  transitionId?: string;
+  /** Firings only: tokens removed per input place, by index into the pre-event state. */
+  consumed?: readonly { placeIndex: number; tokenIndices: Uint32Array }[];
+  /** Firings only: tokens added per output place, packed in the place's stride. */
+  produced?: readonly { placeIndex: number; tokens: Uint8Array }[];
+  /** The state after the event, in the engine frame format. Present on every
+   *  keyframe; on other firings it is reconstructed from the previous keyframe. */
+  frame?: ArrayBuffer;
+};
+
+type TraceStop = "maxTime" | "deadlock" | "livelock" | "error" | "cancelled";
+```
+
+The frame format is unchanged (`frames/internal-frame.ts`): the same readers
+decode it, the string pool deltas travel the same way. The event carries what
+the frame does not: time, the transition, and the effect.
+
+**Keyframes.** A record with a `frame` is a keyframe; the others carry the
+effect only. The store reconstructs a frame by applying the effects since the
+last keyframe. The keyframe period is a store policy (every `K` events or
+every `Δt`), hidden behind `getState`. A first increment may send a frame with
+every firing, which is today's cost per frame moved to per event; a net with
+thousands of tokens needs the keyframe policy before it needs anything else,
+since a frame for 10,000 tokens of a three-field colour is about 240 KB.
+
+**Reference events** are keyframes the flow regime emits without a firing,
+when a segment has run for longer than a configured interval or more than a
+configured number of solver steps. They bound the cost of replay inside a
+long segment and cover places whose attributes move without any firing
+touching them. A keyframe of a place with dynamics stores each token's
+derivative next to its value: the solver has it at no cost, and cubic
+Hermite interpolation between two keyframes is fourth order, so a consumer
+that only needs display accuracy between two nearby keyframes interpolates
+instead of re-integrating. Storing the solver's own step endpoints as
+keyframes would make every interpolation exact to tolerance; at 16 bytes per
+real field per step it is the right policy for a short run and the wrong one
+for a long run with many tokens, so it is a store policy, like the keyframe
+period.
+
+**States between events.** `getState(t)` for `t` inside a segment finds the
+last record at or before `t` by binary search, takes the nearest keyframe at
+or before it, applies effects up to it, and re-integrates the flow from that
+state to `t` with the run's solver settings. The post-event state at each
+firing is recorded exactly by the live run, so replay never has to reproduce
+the live run's event location; it integrates a segment whose two endpoints
+are known. The live run and the replay start every segment from the same
+state with the same tolerances, so the replayed values differ from the live
+ones only in the last step before `t`, within the tolerance. Replayed values
+feed the canvas, the timeline and the monitors in display mode; they never
+feed a rate. Nets without dynamics skip the integration: the state between
+events is the state after the last one.
+
+**Left and right limits.** The state just before a firing at `(t, k)` is the
+state after `(t, k-1)`, or the flow at `t` from the previous segment when
+`k = 0`. Both are reachable through `getState({ time, index })`, which is
+what a monitor needs to see a jump as two samples at one time. This is the
+convention of DifferentialEquations.jl's `save_positions = (true, true)`
+and of Modelica result files, which hold two rows at an event time. Its
+`SSAStepper` saves the post-jump state only, because a piecewise-constant
+signal is determined by its right limits; the trace records post-event
+states for the same reason and derives the left limit.
+
+**Sampled views.** A consumer that wants states on a grid asks for a range
+and a period: `sampleStates({ from, to, period })`. The backend answers in
+one batch, re-integrating each segment once for all samples that fall inside
+it. This is how the timeline draws a series, how playback at a given speed
+gets its next second of frames, and how experiments observe on their `dt`
+grid. StochPy keeps the jump list and resamples it on request the same way,
+and AnyLogic offers its datasets either at a recurrence time or at events;
+the trace keeps events and makes the grid a view.
+
+## Interfaces
+
+### Simulation backend contract
+
+The experiment side already has the contract this needs
+([Backend selection](doc:core.experiments/backend-selection)): a plain request,
+`assess` without acquiring resources, `instantiate` returning a handle,
+refusal as a value, registrations with deferred loading, selection in
+preference order. The simulation side gets the same shape.
+
+```ts
+type SimulationRequest = {
+  sdcpn: SDCPN;
+  extensions?: PetrinautExtensionSettings;
+  initialMarking: InitialMarking;
+  parameterValues: Readonly<Record<string, string>>;
+  seed: number;
+  stop: { maxTime: number | null };
+  solver: {
+    /** Relative and absolute tolerances of the flow integrator. */
+    rtol: number;
+    atol: number;
+    /** Longest flow segment without a reference keyframe. */
+    referenceInterval: number;
+  };
+  hirArtifacts?: HirArtifacts;
+};
+
+type SimulationBackend = {
+  readonly id: string;
+  readonly label: string;
+  readonly needsHirTrees: boolean;
+  isAvailable(this: void): boolean;
+  assess(this: void, request: SimulationRequest): Promise<SimulationAssessment>;
+  dispose?(this: void): void;
+};
+
+type SimulationHandle = {
+  readonly status: ReadableStore<SimulationState>;
+  /** Count and latest record; the store keeps the records. */
+  readonly events: ReadableStore<{ count: number; latest: TraceEvent | null }>;
+  readonly stop: ReadableStore<TraceStop | null>;
+  run(this: void): void;
+  pause(this: void): void;
+  /** Lets the backend compute up to `at`; replaces frame acks. */
+  demand(this: void, at: TraceTime): void;
+  getEvent(this: void, index: number): TraceEvent | null;
+  getState(
+    this: void,
+    at: TraceTime | number,
+  ): Promise<SimulationFrameReader | null>;
+  sampleStates(
+    this: void,
+    range: { from: number; to: number; period: number },
+  ): Promise<SimulationFrameReader[]>;
+  dispose(this: void): void;
+};
+```
+
+`dt` is gone from the request. The fixed-step backend that wraps today's
+engine takes its step from a backend option at construction, the same way
+the GPU backend takes its ODE method. `demand` replaces `ack`: the consumer
+names the time it wants computed, the backend runs until its trace covers it
+and then waits, which is the backpressure contract of
+[Worker protocol and backpressure](doc:core.simulation.worker/protocol) with time in
+place of frame counts.
+
+The worker protocol gains `events` batches in place of `frames`, a
+`getState` request and response, and `sampleStates`. The transport, the
+in-memory store and the status stores keep their shape; `createSimulation`
+becomes the host-side runtime behind the built-in backends, as
+`createMonteCarloExperiment` is behind the worker-pool backend.
+
+### Built-in backends
+
+| Backend        | Produces                                                                                                                                                                                                        | Status                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `fixed-step`   | Events from the current engine's frames: one firing record per transition that fired in a step, in order, all at the step's time; a reference keyframe every `K` steps; states between keyframes by re-stepping | Wraps the existing engine; first increment |
+| `event-driven` | The simulator of [The simulator](#the-simulator)                                                                                                                                                                | New                                        |
+
+The `fixed-step` wrapper is what lets every consumer move to the trace before
+the new simulator exists, which is step 1 of
+[FE-1247](https://linear.app/hash/issue/FE-1247/event-driven-simulation).
+Its states between events are the engine's own frames, so its sampled view
+is exact at multiples of `dt` and piecewise constant between them.
+
+### Playback by time
+
+`Playback` (`playback/playback.ts`) holds a time instead of a frame index.
+`tick` advances the time by elapsed wall-clock time times the speed, clamped
+to the trace's covered time; "Max" speed jumps to the latest event. Two new
+controls step to the previous and next event. The provider resolves the
+displayed state through `sampleStates` one display second ahead, and through
+`getState` on a scrub. `playback-time.ts` prints the trace time at a
+precision set by the time unit
+([FE-1822](https://linear.app/hash/issue/FE-1822/set-playback-time-in-days-weeks-or-months)),
+since times are no longer multiples of a step.
+
+`ExecutionFrameSource` becomes an `ExecutionTraceSource`:
+
+```ts
+type ExecutionTraceSource = {
+  sourceId: string;
+  events: ReadableStore<{ count: number; latest: TraceEvent | null }>;
+  coveredTime: ReadableStore<number>;
+  current: { at: TraceTime; reader: SimulationFrameReader | null };
+  scrubTo(at: TraceTime | number): void;
+  getState(at: TraceTime | number): Promise<SimulationFrameReader | null>;
+  sampleStates(range: {
+    from: number;
+    to: number;
+    period: number;
+  }): Promise<SimulationFrameReader[]>;
+};
+```
+
+The canvas reads `current`. The timeline draws the sampled series and marks
+events on the time axis. The transition readout `firedInThisFrame` becomes
+"fired at the current event", and `timeSinceLastFiringMs` becomes the time
+since the transition's last event, computed from the trace rather than
+stored in the frame.
+
+Actual mode implements the same source from its recording: its firings are
+events, its initial marking is the initial keyframe, and it has no flow, so
+`getState` is the marking after the last firing at or before `t`. The
+adapter in `actual-mode/timeline.ts` that turns firings into timeline points
+goes.
+
+### Plugin-provided backends
+
+The plugin manifest ([Plugin API reference](doc:ui.plugins/reference)) gains a
+`backends` key, and the hook returns one registration per declared key:
+
+```ts
+definePetrinautPlugin(
+  {
+    id: "acme.rust-simulator",
+    name: "Rust simulator",
+    backends: {
+      rust: { label: "Rust (WASM)", kinds: ["simulation", "experiment"] },
+    },
+  },
+  (api) => ({
+    backends: {
+      rust: {
+        simulation: { load: () => import("./simulation-backend") },
+        experiment: { load: () => import("./experiment-backend") },
+      },
+    },
+  }),
+);
+```
+
+The registration id is `<pluginId>.<key>`, recorded against results like
+`ExperimentRecord.computeBackend` is today. The simulation and experiment
+providers read registrations from one context that merges the built-in ones
+with the running plugins' contributions; the Compute backend setting lists
+them all. The selection walk is unchanged: the user's choice first, then the
+fallbacks, with every refusal recorded. A plugin backend that returns a
+refusal with `origin: "model"` has its reason shown against the net item.
+
+A plugin backend can run anywhere a request can be sent: its own worker, a
+WASM module, or a remote process over a WebSocket, since both request types
+are structured-cloneable by construction. Möbius's abstract functional
+interface is the precedent: every solver implements one contract over the
+model, and formalisms and solvers are added without editing each other.
+Three helpers in core make writing a backend tractable:
+
+- `encodeEngineFrame(layout, { counts, tokens })` and the existing
+  `encodeTokenToBytes`, so a backend produces frames the readers decode
+  without knowing byte offsets. Actual mode already encodes its markings this
+  way.
+- `hirArtifacts` with trees when the backend declares `needsHirTrees`, so a
+  backend compiling to its own target has the lowered user code. The Rust
+  prototype's scalar HIR to WASM emitter
+  ([hashintel/hash#10213](https://github.com/hashintel/hash/pull/10213)) is
+  such a consumer.
+- The counter-based generator's reference implementation and test vectors,
+  so a backend that wants shared streams can match them.
+
+### Experiments
+
+Experiments keep the `dt` observation grid: a metric frame per grid time, a
+shard watermark per grid index, and the GPU backend as it is. The grid is an
+input of the experiment, which is what `ExperimentRequest.dt` already is;
+renaming it `samplePeriod` says what it does.
+
+Two changes improve experiments without changing their shape:
+
+1. **Firing counts per step.** The fixed-step CPU and GPU engines replace the
+   one-firing Bernoulli test with a count: `Binomial(N_T, Λ_T · dt / N_T)`
+   firings, where `N_T` is the enabling degree (the most firings the input
+   places allow), consuming tokens in the decided combination order. The
+   binomial form (Tian and Burrage) never consumes more than the places hold;
+   it tends to `Poisson(Λ_T · dt)` when `N_T` is large. This removes the
+   saturation in
+   [Why fixed steps are wrong](#why-fixed-steps-are-wrong-for-this-model),
+   item 1, at a cost of one count draw per enabled transition per step. With
+   `dt` chosen so that enablement changes little within a step, this is
+   tau-leaping, whose error is first order in `dt` (Rathinam et al.); the
+   step-size rule of Cao, Gillespie and Petzold gives the `dt` for a target
+   relative change and can be reported as the run's error estimate. The CPU
+   engine draws the count by crossing thresholds on the shared Poisson path
+   (previous section); the GPU draws a binomial by inversion for small
+   `N_T · p` and by the transformed rejection method above that. Either
+   engine can place a firing inside the step rather than at its end by
+   interpolating `H_T` across the step and integrating the remainder from
+   the located time, which removes the `dt` delay of grid-aligned firings at
+   the cost of one more stage.
+2. **The event-driven engine as an experiment backend.** The worker-pool
+   backend gains an option to run the event-driven simulator and observe on
+   the grid through `sampleStates`. Metric specs, accumulators and shard
+   merging do not change, since they consume readers at grid times. A net
+   without dynamics then runs exact trajectories at a cost proportional to
+   its firings.
+
+The GPU stays fixed-step. Per-thread event-driven stepping is possible (the
+DiffEqGPU per-thread adaptive kernels do it), but threads in a workgroup
+would diverge on event counts and step counts, and the histogram reduction
+is per grid frame, which an event-driven kernel would have to reconstruct.
+The Poisson count change gives the GPU most of the accuracy gain.
+
+### Constraint monitors
+
+The constraints planned for Petrinaut are Signal Temporal Logic formulas over
+real-valued signals (the evaluation in the Petrinaut Notion space settled on
+STL, with quantitative robustness so an optimiser can use the margin). A
+monitor for one formula is an accumulator that rides with the run and reports
+satisfaction, and a margin, online. The existing state constraints are the
+degenerate case: a boolean metric with `aggregateTime: "min"` is
+`G(p)` evaluated at grid times.
+
+The monitor contract extends the metric accumulator monoid
+(`monte-carlo/metrics/accumulators.ts`) with time:
+
+```ts
+type MonitorSegment = {
+  from: TraceTime;
+  to: TraceTime;
+  /** Signal values at `from` and `to`; piecewise constant for counts,
+   *  linear (or Hermite with the recorded derivative) for attributes. */
+  start: Float64Array;
+  end: Float64Array;
+};
+
+type ConstraintMonitor<State> = {
+  empty(): State;
+  observe(state: State, segment: MonitorSegment): State;
+  /** Satisfaction so far, with the robustness margin; `undefined` while a
+   *  bounded-future operator still waits for its horizon. */
+  read(state: State): { holds: boolean; margin: number } | undefined;
+  merge?(left: State, right: State): State;
+};
+```
+
+The trace supports this contract in four ways:
+
+- Superdense times let a monitor see the value before and after a firing at
+  one time. A record at `(t, k > 0)` has zero duration and feeds only the
+  edge-sensitive operators; the dense-time semantics the monitors use
+  evaluates `F_[a,b]` over simulation time, where a discrete-time monitor fed
+  event-timed records would read it as "within `b` records".
+- Segments carry durations and endpoint values, so the robustness of a
+  predicate over a segment is exact for counts (piecewise constant) and
+  within the solver tolerance for attributes (piecewise linear, or Hermite
+  where the derivative is recorded). Abbas et al. show the robustness value
+  depends on the reconstruction between samples. The derivative recorded
+  at keyframes keeps that reconstruction within the solver tolerance.
+- Past-time operators compile to constant registers, one value and one
+  timestamp per operator (Havelund and Roşu's construction, extended to
+  metric intervals as Reelay does). Bounded-future operators `G_[a,b]` and
+  `F_[a,b]` compile to a sliding-window minimum or maximum over a buffer
+  sized by the horizon divided by the shortest segment (Deshmukh et al.'s
+  robust satisfaction interval, with Lemire's filter over the window). A
+  shortest segment exists because the simulator coalesces records closer
+  than a configured minimum into one superdense group.
+- The guard margin lowering of [The simulator](#the-simulator) gives the
+  atomic predicates their signed value, so the margin and the guard share
+  one lowering.
+
+On the GPU the same monitors are fixed-size ring buffers per run, one per
+bounded operator, sized by the horizon divided by the grid period; the grid
+observation is what makes them fixed-size, and a block prefix-suffix maximum
+(van Herk) replaces the deque where branches cost. A monitor with an
+unbounded horizon reads at the end of the run, as the `min` aggregation does
+today. Across runs, the fraction that holds is what the sweep's pass
+threshold already reports; sequential tests (the SPRT, as UPPAAL SMC and
+PRISM run them) let an experiment stop early once the fraction is settled.
+
+The compile step takes a formula to a monitor, in the HIR pipeline that
+already compiles metrics, so the CPU engines, the GPU shader and a WASM
+backend each get one from the same lowering, the way RTLola and TeSSLa
+compile stream equations to several targets. The formulas themselves, the
+constraint editor and the optimiser's use of the margin are outside this
+document.
+
+## Algorithms and tools
+
+What the design takes from each source, with the alternatives it does not
+take and why.
+
+### Stochastic simulation
+
+| Method                                                                             | Per-event cost                                 | Rates varying between events   | Taken                                                                                                     |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Direct method (Gillespie 1976, 1977)                                               | `O(\|T\|)`: sum and linear search              | No                             | The total-rate formulation, for the combination choice within a transition                                |
+| First reaction method (Gillespie 1976)                                             | `O(\|T\|)` draws                               | Yes, per transition            | The race semantics (one clock per transition)                                                             |
+| Next reaction method (Gibson and Bruck 2000)                                       | `O(d · log \|T\|)`, `d` dependents             | With hazard integration        | The indexed priority queue and the static dependency graph                                                |
+| Modified next reaction method (Anderson 2007)                                      | `O(d · log \|T\|)`, one `Exp(1)` per event     | Yes, by integrating the hazard | The bookkeeping: internal clocks and thresholds per transition, age memory for free                       |
+| Composition-rejection (Slepoy et al. 2008)                                         | `O(1)` in `\|T\|` with bounded rate range      | No                             | Only if nets reach thousands of transitions                                                               |
+| Thinning (Lewis and Shedler 1979; Ogata 1981)                                      | One lambda evaluation per proposal             | Yes, with a rate bound         | The opt-in `maxRate` path for expensive variable rates, as JumpProcesses.jl's `Coevolve` does             |
+| Hazard integration with the ODE (Haseltine and Rawlings 2002; Alfonsi et al. 2005) | One ODE component per variable-rate transition | Yes, exact to tolerance        | The default for variable rates: no bound needed, and the solver's root finder locates the event           |
+| Random time change (Kurtz 1980)                                                    |                                                |                                | The representation that couples the event engine and the fixed-step engine on one Poisson path            |
+| Tau-leaping (Gillespie 2001; Cao, Gillespie, Petzold 2006; Tian and Burrage 2004)  | `O(\|T\|)` per leap, any number of firings     | Frozen over the leap           | The fixed-step engines' firing counts (binomial, bounded by the enabling degree) and their error estimate |
+| Slow-scale SSA (Cao, Gillespie, Petzold 2005)                                      |                                                |                                | Not taken: it needs the fast subsystem's equilibrium moments, which user code does not give               |
+
+Everdij and Blom (2005, 2010) define the dynamically coloured Petri net,
+prove the mappings to and from piecewise deterministic Markov processes
+(Davis 1984), and state the rules for simultaneous firings that
+[Target semantics](#target-semantics) adopts and restricts. Generalised
+stochastic Petri nets (Ajmone Marsan, Conte and Balbo 1984) are the source
+of the immediate-transition priority and of the vocabulary of clock policies.
+Superdense time is Ptolemy II's (Lee and Zheng 2005) and Modelica's event
+iteration reaches the same fixed point.
+
+### Continuous dynamics
+
+| Topic                 | Choice                                                                                                | Source                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Integrator            | Dormand-Prince 5(4) with the first-same-as-last stage, or Tsitouras 5(4)                              | Dormand and Prince 1980; Tsitouras 2011; Hairer, Nørsett and Wanner, Solving ODEs I |
+| Step control          | Hairer's Lund-stabilised controller (`β` 0.04, safety 0.9, factors 0.2 to 10), or Söderlind's PI form | `dopri5.f`; Söderlind 2003                                                          |
+| First step            | Hairer's heuristic from the scaled norms of `y` and `f`, run after every event                        | Solving ODEs I, II.4                                                                |
+| Dense output          | Shampine's fourth-order interpolant for Dormand-Prince, or cubic Hermite from `(y, f)` at step ends   | Shampine 1986                                                                       |
+| Event location        | Sign change over the step, then ITP on the interpolant; the root just before the crossing             | Shampine and Thompson 2000; Oliveira and Takahashi 2020                             |
+| Restart and sticking  | Re-evaluate `f`, new first step, exclude the left endpoint                                            | Park and Barton 1996; the CVODE and DifferentialEquations.jl rules                  |
+| Stiffness             | Hairer's estimate from the last two stages; Rosenbrock later                                          | Solving ODEs II, IV.2; Steinebach 2023                                              |
+| SDE attributes, later | Milstein or SRI for diagonal noise, with a virtual Brownian tree so the path does not depend on steps | Rößler 2010; Li et al. 2020; Jelinčič et al. 2024                                   |
+| GPU                   | Fixed step, integer step counter for time, compensated sums for `H_T`                                 | Utkarsh et al. 2024 (DiffEqGPU)                                                     |
+
+Quantised-state solvers (Kofman 2001) integrate an ODE as a stream of
+events per state variable and would make the flow itself event-shaped. They
+are not taken: the flow here is many small independent systems, and an
+adaptive pair with dense output gives the same frame-at-any-time property
+with less machinery.
+
+### Traces and backends in other tools
+
+| Tool                                          | What it shows                                                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Möbius and Traviando                          | Pluggable solvers behind an abstract functional interface; traces exported as delta-encoded events, each carrying only the variables it changed                           |
+| DifferentialEquations.jl and JumpProcesses.jl | Solutions carry a dense interpolant; `saveat` is interpolation; callbacks save before and after an event at one time; constant and variable rate jumps are separate types |
+| Snoopy and Spike (Heiner group)               | Hybrid Petri-net simulation with static and dynamic partitions and rejection-based hybrid stepping; results exported as sampled CSV                                       |
+| COPASI                                        | Three hybrid methods; only the Runge-Kutta plus next-reaction one supports discrete events; output on a grid with optional rows at event times                            |
+| StochPy                                       | Keeps the jump list and resamples onto a grid on request                                                                                                                  |
+| CPN Tools                                     | Timed coloured nets: a global clock that jumps to the next enabled time; tokens carry timestamps                                                                          |
+| Oris                                          | Stochastic time Petri nets with general firing-time distributions, the route to non-exponential delays later                                                              |
+| Modelica, Ptolemy II, Simulink                | Event iteration, superdense tags, zero-crossing bracketing with a consecutive-crossing limit                                                                              |
+| UPPAAL SMC, PRISM                             | Statistical model checking over simulated runs: confidence intervals and sequential tests for pass probabilities                                                          |
+
+### Monitors
+
+Signal temporal logic is Maler and Nickovic 2004; its robustness semantics
+Fainekos and Pappas 2009 and Donzé and Maler 2010; the offline algorithm
+over piecewise-linear signals Donzé, Ferrère and Maler 2013, with Lemire's
+2006 filter for bounded operators; online monitoring with bounded horizons
+Deshmukh et al. 2017. Havelund and Roşu 2002 give the constant-space
+past-time construction; Reelay (Ulus) implements it over dense time with
+delta-encoded inputs; RTAMT (Ničković and Yamaguchi 2020) restricts online
+monitoring to bounded-future formulas; RTLola and TeSSLa compile stream
+equations with static memory bounds to several targets; STLCG++ (2025)
+computes robustness in batch on a GPU. Ouaknine and Worrell 2007 bound what
+is decidable: unbounded-future metric formulas over infinite words are not,
+so the monitors take past-time and bounded-future formulas only.
+
+### References
+
+- Ajmone Marsan, M., Conte, G., Balbo, G. (1984). A class of generalized stochastic Petri nets for the performance evaluation of multiprocessor systems. ACM TOCS 2(2). https://iris.unito.it/handle/2318/1949
+- Alfonsi, A., Cancès, E., Turinici, G., Di Ventura, B., Huisinga, W. (2005). Adaptive simulation of hybrid stochastic and deterministic models for biochemical systems. ESAIM Proceedings 14. https://www.esaim-proc.org/articles/proc/pdf/2005/01/alfonsi.pdf
+- Anderson, D. F. (2007). A modified next reaction method for simulating chemical systems with time dependent propensities and delays. J. Chem. Phys. 127, 214107. https://arxiv.org/abs/0708.0370
+- Cao, Y., Gillespie, D. T., Petzold, L. R. (2005). The slow-scale stochastic simulation algorithm. J. Chem. Phys. 122, 014116. https://www.ccdc.ucsb.edu/node/13841
+- Cao, Y., Gillespie, D. T., Petzold, L. R. (2006). Efficient step size selection for the tau-leaping simulation method. J. Chem. Phys. 124, 044109. https://www.ccdc.ucsb.edu/publications/13871
+- Davis, M. H. A. (1984). Piecewise-deterministic Markov processes: a general class of non-diffusion stochastic models. J. R. Stat. Soc. B 46(3). https://en.wikipedia.org/wiki/Piecewise-deterministic_Markov_process
+- Deshmukh, J. V., Donzé, A., Ghosh, S., Jin, X., Juniwal, G., Seshia, S. A. (2017). Robust online monitoring of signal temporal logic. Formal Methods in System Design 51(1). https://arxiv.org/abs/1506.08234
+- Donzé, A., Maler, O. (2010). Robust satisfaction of temporal logic over real-valued signals. FORMATS. https://doi.org/10.1007/978-3-642-15297-9_9
+- Donzé, A., Ferrère, T., Maler, O. (2013). Efficient robust monitoring for STL. CAV. https://doi.org/10.1007/978-3-642-39799-8_19
+- Dormand, J. R., Prince, P. J. (1980). A family of embedded Runge-Kutta formulae. J. Comput. Appl. Math. 6(1). https://en.wikipedia.org/wiki/Dormand%E2%80%93Prince_method
+- Everdij, M. H. C., Blom, H. A. P. (2005). Piecewise deterministic Markov processes represented by dynamically coloured Petri nets. Stochastics 77(1). https://reports.nlr.nl/handle/10921/370
+- Everdij, M. H. C., Blom, H. A. P. (2010). Bisimulation relations between automata, stochastic differential equations and Petri nets. EPTCS 20. https://arxiv.org/abs/1003.4812
+- Fainekos, G. E., Pappas, G. J. (2009). Robustness of temporal logic specifications for continuous-time signals. Theoretical Computer Science 410(42). https://doi.org/10.1016/j.tcs.2009.06.021
+- Gibson, M. A., Bruck, J. (2000). Efficient exact stochastic simulation of chemical systems with many species and many channels. J. Phys. Chem. A 104(9). https://authors.library.caltech.edu/records/zkvwc-5wc86
+- Gillespie, D. T. (1976). A general method for numerically simulating the stochastic time evolution of coupled chemical reactions. J. Comput. Phys. 22. https://doi.org/10.1016/0021-9991(76)90041-3
+- Gillespie, D. T. (1977). Exact stochastic simulation of coupled chemical reactions. J. Phys. Chem. 81(25). https://doi.org/10.1021/j100540a008
+- Gillespie, D. T. (2001). Approximate accelerated stochastic simulation of chemically reacting systems. J. Chem. Phys. 115, 1716. https://doi.org/10.1063/1.1378322
+- Hairer, E., Nørsett, S. P., Wanner, G. Solving Ordinary Differential Equations I, 2nd ed. Springer. The DOPRI5 code: https://raw.githubusercontent.com/scipy/scipy/v1.10.0/scipy/integrate/dop/dopri5.f
+- Haseltine, E. L., Rawlings, J. B. (2002). Approximate simulation of coupled fast and slow reactions for stochastic chemical kinetics. J. Chem. Phys. 117(15). https://minds.wisconsin.edu/handle/1793/10884
+- Havelund, K., Roşu, G. (2002). Synthesizing monitors for safety properties. TACAS. https://fsl.cs.illinois.edu/publications/havelund-rosu-2002-tacas.html
+- Herajy, M., Liu, F., Rohr, C., Heiner, M. (2017). Snoopy's hybrid simulator. BMC Systems Biology 11, 71. https://doi.org/10.1186/s12918-017-0449-6
+- Jelinčič, A., Foster, J., et al. (2024). Single-seed generation of Brownian paths and integrals. https://arxiv.org/abs/2405.06464
+- JumpProcesses.jl documentation: jump types and aggregators. https://docs.sciml.ai/JumpProcesses/dev/jump_types/
+- DifferentialEquations.jl documentation: callbacks and event handling. https://docs.sciml.ai/DiffEqDocs/dev/features/callback_functions/
+- Kofman, E., Junco, S. (2001). Quantized-state systems: a DEVS approach for continuous system simulation. Transactions of SCS 18(3).
+- Kurtz, T. G. (1980). Representations of Markov processes as multiparameter time changes. Annals of Probability 8(4). https://www.projecteuclid.org/euclid.aop/1176994660
+- Lee, E. A., Zheng, H. (2005). Operational semantics of hybrid systems. HSCC. https://ptolemy.berkeley.edu/publications/papers/05/OperationalSemantics
+- Lemire, D. (2006). Streaming maximum-minimum filter using no more than three comparisons per element. Nordic Journal of Computing. https://arxiv.org/abs/cs/0610046
+- Lewis, P. A. W., Shedler, G. S. (1979). Simulation of nonhomogeneous Poisson processes by thinning. Naval Research Logistics Quarterly 26(3). https://apps.dtic.mil/sti/tr/pdf/ADA062207.pdf
+- Li, X., Wong, T.-K. L., Chen, R. T. Q., Duvenaud, D. (2020). Scalable gradients for stochastic differential equations. AISTATS. https://proceedings.mlr.press/v108/li20i.html
+- Maler, O., Nickovic, D. (2004). Monitoring temporal properties of continuous signals. FORMATS. https://research-explorer.ista.ac.at/record/4372
+- Möbius: solving models. https://www.mobius.illinois.edu/wiki/index.php/Solving_Models ; Traviando trace analyser. https://www.cs.wm.edu/~kemper/traviando
+- Ničković, D., Yamaguchi, T. (2020). RTAMT: online robustness monitors from STL. ATVA. https://pypi.org/project/rtamt/
+- Ogata, Y. (1981). On Lewis' simulation method for point processes. IEEE Transactions on Information Theory 27(1).
+- Oliveira, I. F. D., Takahashi, R. H. C. (2020). An enhancement of the bisection method average performance preserving minmax optimality (ITP). ACM TOMS 47(1). https://doi.org/10.1145/3423597
+- Ouaknine, J., Worrell, J. (2007). On the decidability and complexity of metric temporal logic over finite words. LMCS 3(1). https://lmcs.episciences.org/2230/pdf
+- Park, T., Barton, P. I. (1996). State event location in differential-algebraic models. ACM TOMACS 6(2). https://dl.acm.org/doi/10.1145/232807.232809
+- Rößler, A. (2010). Runge-Kutta methods for the strong approximation of solutions of stochastic differential equations. SIAM J. Numer. Anal. 48(3).
+- RTLola: Faymonville, P., Finkbeiner, B., Schwenger, M., Torfah, H. (2017). Real-time stream-based monitoring. https://arxiv.org/abs/1711.03829 ; TeSSLa: Convent, L., et al. (2018). https://arxiv.org/abs/1808.10717
+- Reelay (Ulus, D.). https://github.com/doganulus/reelay
+- Salmon, J. K., Moraes, M. A., Dror, R. O., Shaw, D. E. (2011). Parallel random numbers: as easy as 1, 2, 3. SC'11. https://users.cs.utah.edu/~hari/teaching/bigdata/random123sc11.pdf
+- Shampine, L. F. (1986). Some practical Runge-Kutta formulas. Mathematics of Computation 46(173).
+- Shampine, L. F., Thompson, S. (2000). Event location for ordinary differential equations. Computers and Mathematics with Applications 39(5-6). https://doi.org/10.1016/S0898-1221(00)00045-6
+- Slepoy, A., Thompson, A. P., Plimpton, S. J. (2008). A constant-time kinetic Monte Carlo algorithm for simulation of large biochemical reaction networks. J. Chem. Phys. 128, 205101. https://doi.org/10.1063/1.2919546
+- Söderlind, G. (2003). Digital filters in adaptive time-stepping. ACM TOMS 29(1). https://lup.lub.lu.se/record/315626
+- Steinebach, G. (2023). Construction of Rosenbrock-Wanner method Rodas5P and numerical benchmarks within the Julia Differential Equations package. BIT. https://doi.org/10.1007/s10543-023-00967-x
+- STLCG++ (2025). https://arxiv.org/abs/2501.04194
+- Tian, T., Burrage, K. (2004). Binomial leap methods for simulating stochastic chemical kinetics. J. Chem. Phys. 121(21).
+- Tsitouras, C. (2011). Runge-Kutta pairs of order 5(4) satisfying only the first column simplifying assumption. Computers and Mathematics with Applications 62(2).
+- Utkarsh, U., et al. (2024). Automated translation and accelerated solving of differential equations on multiple GPU platforms. CMAME. https://arxiv.org/abs/2304.06835
+- Zagatti, G. A., Isaacson, S. A., Rackauckas, C., Ilin, V., Ng, S.-K., Bressan, S. (2023). Extending JumpProcess.jl for fast point process simulation with time-varying intensities. JuliaCon Proceedings 6(58). https://arxiv.org/abs/2306.06992
+- `ode_solvers` (Rust crate): Dopri5 and Dop853 with dense output. https://srenevey.github.io/ode-solvers/index.html
+
+## Order of work
+
+Each row is one pull request on the stack. The order keeps the current
+engine runnable at every step and moves consumers before producers, as
+[FE-1247](https://linear.app/hash/issue/FE-1247/event-driven-simulation)
+plans.
+
+| #   | Change                                                                                                                                                                                                                                 | Visible to users                                                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | This document.                                                                                                                                                                                                                         | No                                                                |
+| 2   | Trace types, the in-memory trace store with keyframes, `getState` and `sampleStates`; the `fixed-step` wrapper producing events from frames; the worker protocol carries events. `Simulation` keeps `getFrame` as an adapter.          | No                                                                |
+| 3   | Playback by time: `Playback` holds a time, the provider samples ahead, the timeline draws sampled series with event markers, previous and next event controls, the readout prints trace time. Actual mode implements the trace source. | Yes: scrubber and readout move in time; event stepping            |
+| 4   | `SimulationBackend` contract, the registration context shared with experiments, the Compute backend setting for Quick Simulation, and the plugin `backends` contribution.                                                              | Yes: a backend selector; plugins can add backends                 |
+| 5   | Firing counts per step and the summed combination rule in the fixed-step CPU and GPU engines, with the parity harness extended.                                                                                                        | Yes: trajectories change for the same seed; rates stop saturating |
+| 6   | The event-driven backend for nets without dynamics: next-reaction method, guard chains, superdense times, deadlock and livelock stops, the counter-based generator.                                                                    | Yes, behind the selector                                          |
+| 7   | Flow regime: the adaptive integrator with dense output, hazard integration, guard location, reference keyframes, replay in `getState`; the `dt` input leaves Quick Simulation in favour of solver settings under an advanced section.  | Yes: `dt` goes; tolerance appears                                 |
+| 8   | The event-driven engine as a worker-pool experiment option observing on the grid; `dt` renamed `samplePeriod` in the request.                                                                                                          | Yes: an experiment option                                         |
+
+Later work that depends on decisions outside this document: the WASM or
+Rust port of the event-driven engine
+([FE-2094](https://linear.app/hash/issue/FE-2094/document-the-case-for-a-rust-migration-of-petrinaut-core)),
+the constraint language and its monitors, deterministic delays (a lambda
+that reads the time), and the adaptive integrator's treatment of dynamics
+over several tokens, which the fixed-step engines already sum per place.
+
+## Decisions to take
+
+1. Whether a firing record carries a full frame from the first increment, or
+   keyframes from the start. The document recommends full frames in
+   increment 2 with the keyframe policy in the same store interface, and
+   measuring a 10,000-token net before increment 7.
+2. Whether experiments adopt the summed combination rule and Poisson counts
+   (increment 5) before or after the event-driven backend exists. The
+   document recommends before: it is the change that fixes rate saturation
+   for every backend, and it changes seeded trajectories once rather than
+   twice.
+3. The default tolerances and reference interval, to be set from the bundled
+   examples with the parity harness.
+4. Whether the event-driven backend's first target is TypeScript on the
+   existing buffer programs (this document) or the WASM emitter of the Rust
+   prototype. The TypeScript target reuses the compiled lambdas, kernels and
+   dynamics as they are and leaves the port as a later backend behind the
+   same contract.
+5. The time unit and its display precision (FE-1822), which playback by time
+   needs in increment 3.

@@ -194,6 +194,7 @@ describe("compileHirArtifacts", () => {
           "placeNames": [
             "Target",
           ],
+          "shape": "discrete",
           "source": "(f64, u64, u8, placeCounts, placeOffsets) => {
         let count = 0;
         { const __n = placeCounts[__places[0]]; const __b = placeOffsets[__places[0]];
