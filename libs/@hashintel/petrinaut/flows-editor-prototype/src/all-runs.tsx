@@ -26,7 +26,6 @@ import {
   failedItemsText,
   oldStatusWords,
   outcomeLabel,
-  minutes,
   outcomeOf,
   outcomeState,
   type RunOutcome,
@@ -39,6 +38,7 @@ import {
   warningsText,
 } from "./run-history";
 import { runId, RunIdsIn, RunIdText, runLabel } from "./run-id";
+import { clockText } from "./run-time";
 import { selectedLabel } from "./menu-rows";
 import { ShowAllRow } from "./show-all-row";
 import { RunOutputsCell } from "./run-outputs";
@@ -217,8 +217,8 @@ const durationText = (run: RunRecord, now: number) => {
   if (run.kind === "past") {
     return run.duration ?? "";
   }
-  const [m = "0", s = "00"] = minutes(runClock(run, now)).split(":");
-  return `${m}m ${s}s`;
+  // As the run bar and the past rows write it: "5 s" under a minute, "2m 14s" after.
+  return clockText(runClock(run, now));
 };
 
 const pageStyle = css({
