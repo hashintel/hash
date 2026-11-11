@@ -216,10 +216,13 @@ export const BottomPanel: React.FC = () => {
     showCompilationOutput,
   ]);
 
+  // The tab drawn is already the fallback on the render that loses the
+  // active one; the effect above then stores it.
   const renderedActiveTab =
-    subViews.find((subView) => subView.id === activeTab)?.id ??
-    subViews[0]?.id ??
-    activeTab;
+    fallbackBottomPanelTab(
+      activeTab,
+      subViews.map((subView) => subView.id as BottomPanelTab),
+    ) ?? activeTab;
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId as BottomPanelTab);
