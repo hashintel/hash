@@ -620,6 +620,28 @@ const Ping = ({ host }: { host: HTMLElement }) => {
   );
 };
 
+/**
+ * The steps waiting on an open question, and the For each steps around them: every place that shows their status
+ * shows the orange "!" (11 Nov convergence A13). Empty when no run waits on a review.
+ */
+export const useWaitingStepIds = (): Set<string> => {
+  const run = useWaitingRun();
+  const { answers } = useReview();
+  const { document } = useEditor();
+  const ids = new Set<string>();
+  if (!run) {
+    return ids;
+  }
+  for (const request of openRequests(answers)) {
+    let id: string | null | undefined = request.stepId;
+    while (id) {
+      ids.add(id);
+      id = findStep(document, id)?.parentId;
+    }
+  }
+  return ids;
+};
+
 /** Finds each waiting step's card and draws its ping inside it. */
 export const ReviewPings = () => {
   const run = useWaitingRun();

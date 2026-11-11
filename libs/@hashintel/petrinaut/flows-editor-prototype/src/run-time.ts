@@ -77,5 +77,7 @@ export const liveTail = (run: RunRecord, now: number) => {
 /** t3: duration first, then when it started (5 Nov, L424): "1m 52s · Today, 08:15", "12 s · 5 Nov, 14:02". */
 export const startedLine = (run: RunRecord, now: number) => {
   const length = runLength(run, now);
-  return length ? `${length} · ${run.when}` : run.when;
+  const line = length ? `${length} · ${run.when}` : run.when;
+  // A run waiting on a person says so (11 Nov convergence A13): "Needs review · 3m 20s · Today, 10:42".
+  return outcomeOf(run, now) === "needsReview" ? `${outcomeLabel.needsReview} · ${line}` : line;
 };

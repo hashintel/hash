@@ -49,6 +49,7 @@ import {
 import { FLOW_OUTPUTS_ID } from "./flow-outputs";
 import { useFlowOutputTake, useRunStars, useStarCopy } from "./outputs";
 import { type EditorUi, useEditor } from "./editor-context";
+import { useWaitingStepIds } from "./needs-review";
 import { useLocation } from "./router";
 import { cellText, StatusCell } from "./status-cell";
 import { treeTileColor } from "./status-colors";
@@ -225,6 +226,7 @@ const FlowList = ({
   // B2 (6 Nov): in a run, ?runstars=a fills the star (read-only); b leaves it out of the Steps list.
   const runStars = useRunStars();
   const inRun = Boolean(statusFor);
+  const waiting = useWaitingStepIds();
   const flowMark = (stepId: string) =>
     flowTake <= 3 &&
     !(inRun && runStars === "b") &&
@@ -256,7 +258,9 @@ const FlowList = ({
     if (!statusFor) {
       return null;
     }
-    const status = statusFor(stepId);
+    const status: StepRun = waiting.has(stepId)
+      ? { state: "needsReview", count: "Waiting" }
+      : statusFor(stepId);
     const text = cellText(status);
     const isWord = status.state === "failed" || status.state === "needsReview";
     // Take c: done for only some items so far reads as the progress ring, not a tick.
