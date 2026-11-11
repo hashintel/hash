@@ -5,8 +5,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  defineSimulator,
   DEFAULT_PETRINAUT_EXTENSIONS,
-  DEFAULT_SOLVER_TOLERANCE,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -14,6 +14,7 @@ import {
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
+import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { simulationSettingsSubView } from "./simulation-settings";
 
@@ -45,17 +46,23 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   // The real Select is an Ark menu jsdom cannot drive; a native select with
   // the same items stands in for the scenario picker.
   const Select = ({
+    "aria-label": ariaLabel,
     items,
     onChange,
     value,
   }: {
-    items: readonly { value: string; text: string }[];
+    "aria-label"?: string;
+    items: readonly { value: string; text: string; disabled?: boolean }[];
     onChange: (value: string) => void;
     value: string;
   }) => (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
+    <select
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
       {items.map((item) => (
-        <option key={item.value} value={item.value}>
+        <option key={item.value} value={item.value} disabled={item.disabled}>
           {item.text}
         </option>
       ))}
@@ -160,10 +167,10 @@ const simulationContextValue: SimulationContextValue = {
   setDt: () => {},
   setMaxTime: () => {},
   engine: "fixed-step",
-  eventSolver: { kind: "fixed-step" },
+  simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
   eventSimulation: null,
-  setEngine: () => {},
-  setEventSolver: () => {},
+  selectSimulator: () => {},
+  setSimulatorParameter: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},
   pause: () => {},
@@ -171,6 +178,68 @@ const simulationContextValue: SimulationContextValue = {
   setBackpressure: () => {},
   ack: () => {},
 };
+
+const neverLoaded = {
+  isAvailable: () => true,
+  load: () => Promise.reject(new Error("The picker loads no simulator")),
+};
+
+const registrations = [
+  defineSimulator(
+    {
+      id: "test.stepped",
+      label: "Stepped",
+      description: "Advances in steps.",
+      parameters: {
+        dt: {
+          type: "number",
+          label: "Step size",
+          unit: "s",
+          default: 0.01,
+          min: 0,
+          exclusiveMin: true,
+        },
+      },
+      produces: { run: true, experiment: true },
+    },
+    neverLoaded,
+  ),
+  defineSimulator(
+    {
+      id: "test.solved",
+      label: "Solved",
+      description: "Chooses its steps.",
+      parameters: {
+        tolerance: {
+          type: "number",
+          label: "Max error",
+          default: 1e-6,
+          min: 0,
+          exclusiveMin: true,
+        },
+        exact: { type: "boolean", label: "Exact", default: false },
+        order: {
+          type: "integer",
+          label: "Order",
+          default: 4,
+          enabledWhen: { key: "exact", in: [true] },
+        },
+      },
+      produces: { run: true, experiment: false },
+    },
+    neverLoaded,
+  ),
+  defineSimulator(
+    {
+      id: "test.batched",
+      label: "Batched",
+      description: "Computes many runs.",
+      parameters: {},
+      produces: { run: false, experiment: true },
+    },
+    neverLoaded,
+  ),
+];
 
 const SimulationSettings = simulationSettingsSubView.component;
 
@@ -183,42 +252,82 @@ const Providers = ({
 }) => (
   <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
     <SDCPNContext value={sdcpnContextValue}>
-      <SimulationContext value={{ ...simulationContextValue, ...simulation }}>
-        {children}
-      </SimulationContext>
+      <SimulatorsContext
+        value={{ registrations, defaultSimulatorId: "test.stepped" }}
+      >
+        <SimulationContext value={{ ...simulationContextValue, ...simulation }}>
+          {children}
+        </SimulationContext>
+      </SimulatorsContext>
     </SDCPNContext>
   </LanguageClientContext>
 );
 
 describe("SimulationSettings", () => {
-  it("offers the solver for the event-driven engine and its max error once adaptive", () => {
-    const setEventSolver = vi.fn();
+  it("offers the simulator and its parameters for an event-driven run, in place of the Time Step", () => {
+    const selectSimulator = vi.fn();
+    const setSimulatorParameter = vi.fn();
     const { rerender } = render(
-      <Providers simulation={{ engine: "event-driven", setEventSolver }}>
-        <SimulationSettings />
-      </Providers>,
-    );
-
-    expect(screen.queryByLabelText(/Time Step/)).toBeNull();
-    expect(screen.queryByLabelText(/Max error/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Adaptive" }));
-    expect(setEventSolver).toHaveBeenCalledWith({
-      kind: "adaptive",
-      tolerance: DEFAULT_SOLVER_TOLERANCE,
-    });
-
-    rerender(
       <Providers
         simulation={{
           engine: "event-driven",
-          eventSolver: { kind: "adaptive", tolerance: 1e-4 },
-          setEventSolver,
+          simulatorSelection: {
+            simulatorId: "test.stepped",
+            parameters: { dt: 0.01 },
+          },
+          selectSimulator,
+          setSimulatorParameter,
         }}
       >
         <SimulationSettings />
       </Providers>,
     );
+
+    // The frame engine's field is gone; the simulator brings its own.
+    expect(screen.queryByLabelText(/Time Step/)).toBeNull();
+    expect(screen.queryByLabelText(/Max error/)).toBeNull();
+    const step = screen.getByLabelText(/Step size/);
+    fireEvent.change(step, { target: { value: "0.5" } });
+    expect(setSimulatorParameter).toHaveBeenCalledWith("dt", 0.5);
+    // A value the spec rejects is not stored.
+    setSimulatorParameter.mockClear();
+    fireEvent.change(step, { target: { value: "0" } });
+    expect(setSimulatorParameter).not.toHaveBeenCalled();
+
+    const picker = screen.getByLabelText("Simulator");
+    // A simulator that computes no single run is listed and cannot be picked.
+    expect(
+      Array.from(picker.querySelectorAll("option")).map((option) => [
+        option.textContent,
+        option.disabled,
+      ]),
+    ).toEqual([
+      ["Stepped", false],
+      ["Solved", false],
+      ["Batched", true],
+    ]);
+    fireEvent.change(picker, { target: { value: "test.solved" } });
+    expect(selectSimulator).toHaveBeenCalledWith("test.solved");
+
+    rerender(
+      <Providers
+        simulation={{
+          engine: "event-driven",
+          simulatorSelection: {
+            simulatorId: "test.solved",
+            parameters: { tolerance: 1e-4, exact: false },
+          },
+          selectSimulator,
+          setSimulatorParameter,
+        }}
+      >
+        <SimulationSettings />
+      </Providers>,
+    );
+    expect(screen.queryByLabelText(/Step size/)).toBeNull();
     expect(screen.getByLabelText(/Max error/)).toBeTruthy();
+    // Shown only while the parameter it depends on holds the right value.
+    expect(screen.queryByLabelText(/Order/)).toBeNull();
   });
 
   it("shows the scenario form with no scenario selected", () => {

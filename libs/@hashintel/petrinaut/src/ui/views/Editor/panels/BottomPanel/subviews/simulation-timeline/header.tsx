@@ -2,6 +2,10 @@ import { use, useEffect, useState } from "react";
 
 import { Button, SegmentedControl, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import {
+  ADAPTIVE_SIMULATOR_ID,
+  type MetricShape,
+} from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
@@ -13,8 +17,6 @@ import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 import { placesWithDynamics } from "./series-config/solver-error";
 import { useMetricShapes } from "./use-metric-shapes";
-
-import type { MetricShape } from "@hashintel/petrinaut-core";
 
 const CHART_TYPE_OPTIONS = [
   { value: "run", label: "Run" },
@@ -99,14 +101,14 @@ export const TimelineViewPicker: React.FC = () => {
     extensions,
     petriNetDefinition: { metrics = [], places },
   } = use(SDCPNContext);
-  const { engine, eventSolver } = use(SimulationContext);
+  const { engine, simulatorSelection } = use(SimulationContext);
   const colorsEnabled = extensions.colors;
   const metricShapes = useMetricShapes();
-  // Only an event-driven run on the adaptive solver records the error, and
-  // only for places it integrates.
+  // Only a run of the adaptive simulator records the error, and only for
+  // places it integrates.
   const solverErrorAvailable =
     engine === "event-driven" &&
-    eventSolver.kind === "adaptive" &&
+    simulatorSelection.simulatorId === ADAPTIVE_SIMULATOR_ID &&
     placesWithDynamics(places).length > 0;
 
   const [isViewOpen, setIsViewOpen] = useState(false);

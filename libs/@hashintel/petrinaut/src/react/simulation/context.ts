@@ -4,7 +4,6 @@ import {
   type AdHocScenarioState,
   type CompiledScenarioResult,
   type EventSimulation,
-  type EventSolverConfig,
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
@@ -14,12 +13,17 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
+import type { SimulatorSelection } from "../simulators/context";
+
 /**
- * Which runtime a Quick Simulation runs on.
+ * Which runtime a Quick Simulation runs on. A host sets it once, when it
+ * mounts the provider.
  *
+ * - `event-driven`: the run is computed by the selected simulator and
+ *   recorded as events, the state in between interpolated from them.
+ *   Playback addresses time. The editor runs on it.
  * - `fixed-step`: one frame per time step `dt`, the frame-per-step runtime.
- * - `event-driven`: one frame per transition firing, the state in between
- *   interpolated from the surrounding frames. Experimental.
+ *   Playback addresses frames. The Preview host still runs on it.
  */
 export type SimulationEngine = "fixed-step" | "event-driven";
 
@@ -96,15 +100,14 @@ export type SimulationContextValue = {
    * streams and only what shows the count renders on each batch.
    */
   totalFramesStore: ReadableStore<number>;
-  /**
-   * The runtime the next run uses. Changing it discards the current run.
-   */
+  /** The runtime a run uses, fixed by the host. */
   engine: SimulationEngine;
   /**
-   * How the event-driven engine advances between events. Changing it
-   * discards the current run; the fixed-step engine ignores it.
+   * The simulator the next event-driven run is computed by, with its
+   * parameter values. Changing either discards the current run; the
+   * fixed-step engine ignores it.
    */
-  eventSolver: EventSolverConfig;
+  simulatorSelection: SimulatorSelection;
   /**
    * The event-driven run's handle while `engine` is `event-driven` and a run
    * exists; null otherwise. Playback over events reads the trace through it.
@@ -197,8 +200,12 @@ export type SimulationContextValue = {
   setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
-  setEngine: (engine: SimulationEngine) => void;
-  setEventSolver: (solver: EventSolverConfig) => void;
+  /** Switches simulator, restoring the parameter values last used with it. */
+  selectSimulator: (simulatorId: string) => void;
+  setSimulatorParameter: (
+    key: string,
+    value: number | boolean | string,
+  ) => void;
   /**
    * Set the maximum simulation time in seconds.
    * Pass null to disable the time limit.
@@ -255,7 +262,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   maxTime: null,
   totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   engine: "fixed-step",
-  eventSolver: { kind: "fixed-step" },
+  simulatorSelection: { simulatorId: "", parameters: {} },
   eventSimulation: null,
   getFrame: () => Promise.resolve(null),
   getAllFrames: () => Promise.resolve([]),
@@ -266,8 +273,8 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
-  setEngine: () => {},
-  setEventSolver: () => {},
+  selectSimulator: () => {},
+  setSimulatorParameter: () => {},
   setMaxTime: () => {},
   initialize: () => Promise.resolve(),
   run: () => {},

@@ -358,7 +358,6 @@ export type {
   EventSimulation,
   EventSimulationConfig,
   EventSimulationEvent,
-  EventSolverConfig,
   EventTraceSummary,
   StepperParameters,
   StepperSelection,

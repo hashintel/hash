@@ -101,6 +101,19 @@ describe("assessSimulator", () => {
     });
   });
 
+  it("builds the request from the loaded simulator when given a function", async () => {
+    const assess = vi.fn();
+    const request = vi.fn(() => Promise.resolve(requestBase));
+    await assessSimulator(offering(assess), {}, request);
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({ needsHirTrees: false }),
+    );
+    expect(assess).toHaveBeenCalledWith({
+      ...requestBase,
+      simulatorParameters: { dt: 0.1 },
+    });
+  });
+
   it("refuses a simulator the environment cannot run, without loading it", async () => {
     const assess = vi.fn();
     const outcome = await assessSimulator(
