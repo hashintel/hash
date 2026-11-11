@@ -130,7 +130,6 @@ const ParentVersionTableRow = ({
           <Box
             sx={{
               ...treeCellSx,
-              gridColumn: "2 / -2",
               maxWidth: 1,
               display: "flex",
               alignItems: "baseline",
