@@ -7054,9 +7054,19 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_complete",
+ "derive_more",
+ "error-stack",
+ "hash-integrations-definition",
+ "hash-integrations-orchestration",
  "hash-telemetry",
  "mimalloc",
+ "serde",
+ "serde_json",
+ "similar-asserts",
  "simple-mermaid",
+ "tokio",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]

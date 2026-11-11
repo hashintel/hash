@@ -13,13 +13,25 @@ authors.workspace = true
 # Public third-party dependencies
 
 # Private workspace dependencies
-hash-telemetry = { workspace = true, features = ["clap"] }
+error-stack                     = { workspace = true }
+hash-integrations-definition    = { workspace = true }
+hash-integrations-orchestration = { workspace = true }
+hash-telemetry                  = { workspace = true, features = ["clap"] }
+type-system                     = { workspace = true }
 
 # Private third-party dependencies
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }
+derive_more    = { workspace = true, features = ["display", "error"] }
 mimalloc       = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
 simple-mermaid = { workspace = true }
+uuid           = { workspace = true, features = ["v5"] }
+
+[dev-dependencies]
+serde_json      = { workspace = true }
+similar-asserts = { workspace = true }
+tokio           = { workspace = true, features = ["macros", "rt"] }
 
 [lints]
 workspace = true
