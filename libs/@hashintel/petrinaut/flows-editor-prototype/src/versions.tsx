@@ -22,6 +22,7 @@ import { publishFlow } from "./app-store";
 import { setQuery, useLocation } from "./router";
 import { triggerNoneTake } from "./trigger-flags";
 import { NoTriggerWarning } from "./trigger-none";
+import { iconStateNeutral } from "./ds-parts/icon-state";
 import { InlineBanner } from "./ds-parts/inline-banner";
 import { SaveStatusIndicator } from "./ds-parts/save-status-indicator";
 import { Toast } from "./ds-parts/toast";
@@ -436,7 +437,11 @@ const PublishDialog = ({
   const [moveTriggers, setMoveTriggers] = useState(true);
   return (
     <Dialog size="md" onClose={onClose} aria-label={`Publish v${next}`}>
-      <Dialog.Header title={`Publish v${next}`} iconName="info" />
+      <Dialog.Header
+        title={`Publish v${next}`}
+        iconName="info"
+        className={iconStateNeutral}
+      />
       <Dialog.Body>
         <div
           className={css({

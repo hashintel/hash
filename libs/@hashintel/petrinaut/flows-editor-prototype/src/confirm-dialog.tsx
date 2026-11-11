@@ -13,6 +13,7 @@
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { iconStateDanger, iconStateNeutral } from "./ds-parts/icon-state";
 import { useLocation } from "./router";
 
 export type ConfirmTake = "dialog" | "undo";
@@ -35,14 +36,6 @@ const redSubtleStyle = css({
   borderColor: "red.a30",
   backgroundColor: "red.s20",
   color: "red.s90",
-});
-
-/** `_IconState` danger: the header's round icon tile in the danger state (closest tokens: red s30 fill, s90 icon). */
-const dangerHeaderStyle = css({
-  "& > div > svg:first-child": {
-    backgroundColor: "red.s30",
-    color: "red.s90",
-  },
 });
 
 export const useConfirmTake = (): ConfirmTake | null => {
@@ -74,7 +67,7 @@ export const ConfirmDialog = ({
       <Dialog.Header
         title={title}
         iconName={danger ? "warning" : "info"}
-        {...(danger ? { className: dangerHeaderStyle } : {})}
+        className={danger ? iconStateDanger : iconStateNeutral}
       />
       <Dialog.Body>
         <span className={noteStyle}>{body}</span>
