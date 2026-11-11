@@ -1,74 +1,76 @@
 import { use, useEffect, useEffectEvent, useRef } from "react";
 
-import { getBoundsOfCenteredBoxes, type Size } from "@hashintel/petrinaut-core";
+import {
+  getBoundsOfCenteredBoxes,
+  type SelectionMap,
+  type Size,
+} from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../react/state/editor-context";
+import { usePanelTarget } from "../../../../react/state/use-selection";
 import {
   BOTTOM_BAR_GAP,
   BOTTOM_BAR_HEIGHT,
   VIEWPORT_CONTROLS_CLEARANCE,
 } from "../../../constants/ui";
-import { isScenePointInView, revealBounds } from "../canvas-viewport";
+import {
+  isScenePointInView,
+  revealBounds,
+  type CanvasViewportInsets,
+} from "../canvas-viewport";
 
 import type { CanvasInsets } from "../../../hooks/use-canvas-insets";
 import type { CanvasController } from "../canvas-renderer";
 import type { CanvasScene } from "../canvas-scene";
 
-/** Screen pixels kept clear between a revealed selection and a panel. */
-const revealMargin = 32;
+/** Screen pixels kept free around a selection brought into view. */
+const margin = 32;
 
 /**
- * The part of the canvas a selection counts as visible in: clear of the
- * panels, and of the controls floating over the canvas. The viewport controls
- * run up the right edge, and the bottom bar sits above the bottom panel.
+ * What a selection in view keeps clear of: the panels, the controls floating
+ * over the canvas, and a margin. The viewport controls run up the right edge,
+ * and the bottom bar sits above the bottom panel.
  */
-const withFloatingControls = (insets: CanvasInsets): CanvasInsets => ({
-  left: insets.left,
-  right: insets.right + VIEWPORT_CONTROLS_CLEARANCE,
-  bottom: insets.bottom + BOTTOM_BAR_GAP + BOTTOM_BAR_HEIGHT,
+const clearanceOf = (insets: CanvasInsets): CanvasViewportInsets => ({
+  left: insets.left + margin,
+  top: margin,
+  right: insets.right + VIEWPORT_CONTROLS_CLEARANCE + margin,
+  bottom: insets.bottom + BOTTOM_BAR_GAP + BOTTOM_BAR_HEIGHT + margin,
 });
 
 /**
- * The nodes a selection stands for on the canvas: selected nodes, and both
+ * The nodes a selection stands for on the canvas: the selected nodes, and both
  * ends of a selected arc, which has no geometry of its own.
  */
-const selectedNodesOf = (
-  scene: CanvasScene,
-  selectedIds: readonly string[],
-) => {
-  const ids = new Set<string>();
-  for (const id of selectedIds) {
-    const arc = scene.arcs.find((candidate) => candidate.id === id);
-    if (arc) {
+const selectedNodesOf = (scene: CanvasScene, selection: SelectionMap) => {
+  const ids = new Set(selection.keys());
+  for (const arc of scene.arcs) {
+    if (selection.has(arc.id)) {
       ids.add(arc.sourceId);
       ids.add(arc.targetId);
-    } else {
-      ids.add(id);
     }
   }
   return scene.nodes.filter((node) => ids.has(node.id));
 };
 
 /**
- * Keeps the selection where the user can see it as the panels around the
- * canvas change, and brings a newly selected item into view.
+ * Keeps the selection where the user can see it.
  *
- * - When a panel opens, resizes or moves, a selection that was in view stays
- *   in view: the camera pans just far enough to clear the panel. A selection
- *   the user had already panned away from is left alone.
- * - When a single item is selected, from the canvas or from anywhere else, it
- *   slides into view if a panel covers it or it is off screen. A multiple
- *   selection, made with a drag on the canvas, never moves the camera.
+ * - Selecting a single item, on the canvas or anywhere else, slides it into
+ *   view when a panel covers it or it is off screen. A multiple selection,
+ *   made with a drag on the canvas, never moves the camera.
+ * - When a panel opens or resizes, a selection that was in view stays in
+ *   view: the camera pans just far enough to clear the panel. A selection the
+ *   user had panned away from is left alone.
  *
- * Moves go through the controller's spring, so a panel sliding open and the
- * camera clearing it move together, and a splitter drag retargets the camera
- * on every frame without stutter.
+ * Moves go through the controller's camera, which retargets, so a splitter
+ * drag can ask for a new position on every frame without stutter.
  */
 export const useKeepSelectionInView = ({
   controller,
   scene,
   containerSize,
-  insets,
+  insets: { left, right, bottom },
   minZoom,
 }: {
   controller: CanvasController;
@@ -78,23 +80,28 @@ export const useKeepSelectionInView = ({
   minZoom: number;
 }) => {
   const { selection } = use(EditorContext);
-  const selectedIds = Array.from(selection.keys());
-  const selectionKey = selectedIds.join("\n");
+  const target = usePanelTarget();
+  const soleSelectedId = target.kind === "single" ? target.item.id : undefined;
 
-  const reveal = useEffectEvent((previousInsets: CanvasInsets | null) => {
-    const nodes = selectedNodesOf(scene, selectedIds);
+  /** `inViewUnder` limits the move to a selection in view under those insets. */
+  const reveal = useEffectEvent((inViewUnder?: CanvasInsets) => {
+    const nodes = selectedNodesOf(scene, selection);
     const bounds = getBoundsOfCenteredBoxes(nodes);
     if (!bounds) {
       return;
     }
     const viewport = controller.getViewport();
+    const centre = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2,
+    };
     if (
-      previousInsets &&
+      inViewUnder &&
       !isScenePointInView(
-        { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
+        centre,
         viewport,
         containerSize,
-        withFloatingControls(previousInsets),
+        clearanceOf(inViewUnder),
       )
     ) {
       return;
@@ -103,8 +110,7 @@ export const useKeepSelectionInView = ({
       bounds,
       viewport,
       container: containerSize,
-      insets: withFloatingControls(insets),
-      margin: revealMargin,
+      insets: clearanceOf({ left, right, bottom }),
       minZoom,
       zoomOut: nodes.length === 1,
     });
@@ -113,33 +119,22 @@ export const useKeepSelectionInView = ({
     }
   });
 
-  const previousInsetsRef = useRef(insets);
+  // Starts from what the canvas opened with: the saved viewport already
+  // frames that selection as the user left it.
+  const lastRef = useRef({ soleSelectedId, left, right, bottom });
   useEffect(() => {
-    const previous = previousInsetsRef.current;
-    previousInsetsRef.current = {
-      left: insets.left,
-      right: insets.right,
-      bottom: insets.bottom,
-    };
-    if (
-      previous.left !== insets.left ||
-      previous.right !== insets.right ||
-      previous.bottom !== insets.bottom
+    const last = lastRef.current;
+    lastRef.current = { soleSelectedId, left, right, bottom };
+    if (soleSelectedId !== last.soleSelectedId) {
+      if (soleSelectedId !== undefined) {
+        reveal();
+      }
+    } else if (
+      left !== last.left ||
+      right !== last.right ||
+      bottom !== last.bottom
     ) {
-      reveal(previous);
+      reveal(last);
     }
-  }, [insets.left, insets.right, insets.bottom]);
-
-  // The first run sees the selection the canvas opened with, which the saved
-  // viewport already frames as the user left it.
-  const selectionSeenRef = useRef(false);
-  useEffect(() => {
-    if (!selectionSeenRef.current) {
-      selectionSeenRef.current = true;
-      return;
-    }
-    if (selectionKey !== "" && !selectionKey.includes("\n")) {
-      reveal(null);
-    }
-  }, [selectionKey]);
+  }, [soleSelectedId, left, right, bottom]);
 };

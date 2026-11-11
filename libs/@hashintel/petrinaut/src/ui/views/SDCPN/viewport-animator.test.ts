@@ -5,7 +5,7 @@ import {
   stepCriticalSpring,
 } from "./viewport-animator";
 
-import type { CanvasViewport } from "../canvas-renderer";
+import type { CanvasViewport } from "./canvas-renderer";
 
 /** A frame clock the test advances by hand. */
 const manualFrames = () => {
@@ -69,7 +69,7 @@ describe("createViewportAnimator", () => {
     expect(animator.isAnimating()).toBe(true);
     const frameCount = frames.run();
 
-    await expect(done).resolves.toBe("settled");
+    await done;
     expect(viewport).toEqual({ x: 300, y: -120, zoom: 2 });
     expect(frameCount).toBeGreaterThan(5);
     expect(animator.isAnimating()).toBe(false);
@@ -121,7 +121,7 @@ describe("createViewportAnimator", () => {
     const stopped = viewport.x;
     frames.run();
 
-    await expect(done).resolves.toBe("cancelled");
+    await done;
     expect(viewport.x).toBe(stopped);
   });
 });

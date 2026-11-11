@@ -24,7 +24,6 @@ describe("revealBounds", () => {
       viewport: atOrigin,
       container: canvasSize,
       insets,
-      margin: 20,
       minZoom: 0.1,
       zoomOut: true,
     });
@@ -34,9 +33,9 @@ describe("revealBounds", () => {
   });
 
   it("pans a node under the right panel just far enough out", () => {
-    // The visible area ends at 1000 - 300 - 20 = 680.
+    // The uncovered area ends at 1000 - 300 = 700.
     expect(reveal({ x: 650, y: 100, width: 100, height: 80 })).toEqual({
-      x: -70,
+      x: -50,
       y: 0,
       zoom: 1,
     });
@@ -44,16 +43,17 @@ describe("revealBounds", () => {
 
   it("pans a node under the left panel and the bottom panel", () => {
     expect(reveal({ x: 100, y: 450, width: 100, height: 80 })).toEqual({
-      x: 120,
-      y: -50,
+      x: 100,
+      y: -30,
       zoom: 1,
     });
   });
 
   it("zooms out to fit bounds larger than the visible area", () => {
     const result = reveal({ x: 0, y: 0, width: 1000, height: 200 });
-    // The visible area is 460 wide: the zoom fits 1000 scene pixels in it.
-    expect(result?.zoom).toBeCloseTo(0.46);
+    // The uncovered area is 500 by 500: the zoom fits 1000 scene pixels
+    // across it, and the bounds sit centred in it.
+    expect(result).toEqual({ zoom: 0.5, x: 200, y: 200 });
   });
 
   it("leaves bounds too large to fit alone unless it may zoom out", () => {
@@ -63,7 +63,6 @@ describe("revealBounds", () => {
         viewport: atOrigin,
         container: canvasSize,
         insets,
-        margin: 20,
         minZoom: 0.1,
         zoomOut: false,
       }),

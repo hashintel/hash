@@ -79,54 +79,45 @@ export const getInitialViewport = (
   );
 };
 
-/**
- * The part of the container the canvas can be seen through, in screen
- * pixels: the container less the panels covering its edges and a margin.
- */
-const visibleArea = (
-  container: Size,
-  insets: CanvasViewportInsets,
-  margin: number,
-) => ({
-  left: (insets.left ?? 0) + margin,
-  top: (insets.top ?? 0) + margin,
-  right: container.width - (insets.right ?? 0) - margin,
-  bottom: container.height - (insets.bottom ?? 0) - margin,
+/** The screen rectangle of the container that `insets` leave uncovered. */
+const uncoveredArea = (container: Size, insets: CanvasViewportInsets) => ({
+  left: insets.left ?? 0,
+  top: insets.top ?? 0,
+  right: container.width - (insets.right ?? 0),
+  bottom: container.height - (insets.bottom ?? 0),
 });
 
-/** Whether a scene point shows through the uncovered part of the container. */
+/** Whether a scene point shows through the part `insets` leave uncovered. */
 export const isScenePointInView = (
   point: { x: number; y: number },
   viewport: CanvasViewport,
   container: Size,
   insets: CanvasViewportInsets,
 ): boolean => {
-  const area = visibleArea(container, insets, 0);
-  const screenX = point.x * viewport.zoom + viewport.x;
-  const screenY = point.y * viewport.zoom + viewport.y;
-  return (
-    screenX >= area.left &&
-    screenX <= area.right &&
-    screenY >= area.top &&
-    screenY <= area.bottom
-  );
+  const area = uncoveredArea(container, insets);
+  const x = point.x * viewport.zoom + viewport.x;
+  const y = point.y * viewport.zoom + viewport.y;
+  return x >= area.left && x <= area.right && y >= area.top && y <= area.bottom;
 };
+
+/** How far a span has to move to lie inside a range it fits in. */
+const shiftInto = (start: number, end: number, min: number, max: number) =>
+  start < min ? min - start : end > max ? max - end : 0;
 
 /**
  * The viewport that brings `bounds`, in scene coordinates, inside the part of
- * the container the panels leave uncovered, keeping `margin` pixels clear.
+ * the container that `insets` leave uncovered. Null when they are there
+ * already, or cannot be brought there.
  *
  * It pans as little as it can, so a node half under a panel slides just far
- * enough out. Bounds too large for the area are centred in it and, when
- * `zoomOut` allows, zoomed out to fit, never below `minZoom`; otherwise they
- * are left alone. Null when the bounds are already in view.
+ * enough out. Bounds too large for the area are left alone, unless `zoomOut`
+ * allows fitting them: centred, and zoomed out no further than `minZoom`.
  */
 export const revealBounds = ({
   bounds,
   viewport,
   container,
   insets,
-  margin,
   minZoom,
   zoomOut,
 }: {
@@ -134,58 +125,28 @@ export const revealBounds = ({
   viewport: CanvasViewport;
   container: Size;
   insets: CanvasViewportInsets;
-  margin: number;
   minZoom: number;
   zoomOut: boolean;
 }): CanvasViewport | null => {
-  const area = visibleArea(container, insets, margin);
-  const areaWidth = area.right - area.left;
-  const areaHeight = area.bottom - area.top;
-  if (areaWidth <= 0 || areaHeight <= 0) {
+  const area = uncoveredArea(container, insets);
+  const width = area.right - area.left;
+  const height = area.bottom - area.top;
+  if (width <= 0 || height <= 0) {
     return null;
   }
 
-  const fits =
-    bounds.width * viewport.zoom <= areaWidth &&
-    bounds.height * viewport.zoom <= areaHeight;
-
-  if (!fits) {
-    if (!zoomOut) {
-      return null;
-    }
-    const zoom = Math.max(
-      minZoom,
-      Math.min(
-        viewport.zoom,
-        areaWidth / Math.max(bounds.width, 1),
-        areaHeight / Math.max(bounds.height, 1),
-      ),
-    );
-    return {
-      zoom,
-      x: area.left + areaWidth / 2 - (bounds.x + bounds.width / 2) * zoom,
-      y: area.top + areaHeight / 2 - (bounds.y + bounds.height / 2) * zoom,
-    };
+  const { zoom } = viewport;
+  if (bounds.width * zoom > width || bounds.height * zoom > height) {
+    return zoomOut
+      ? fitViewportToBounds(bounds, container, minZoom, zoom, 0, insets)
+      : null;
   }
 
-  const left = bounds.x * viewport.zoom + viewport.x;
-  const top = bounds.y * viewport.zoom + viewport.y;
-  const right = left + bounds.width * viewport.zoom;
-  const bottom = top + bounds.height * viewport.zoom;
-  const dx =
-    left < area.left
-      ? area.left - left
-      : right > area.right
-        ? area.right - right
-        : 0;
-  const dy =
-    top < area.top
-      ? area.top - top
-      : bottom > area.bottom
-        ? area.bottom - bottom
-        : 0;
-
+  const left = bounds.x * zoom + viewport.x;
+  const top = bounds.y * zoom + viewport.y;
+  const dx = shiftInto(left, left + bounds.width * zoom, area.left, area.right);
+  const dy = shiftInto(top, top + bounds.height * zoom, area.top, area.bottom);
   return dx === 0 && dy === 0
     ? null
-    : { x: viewport.x + dx, y: viewport.y + dy, zoom: viewport.zoom };
+    : { x: viewport.x + dx, y: viewport.y + dy, zoom };
 };

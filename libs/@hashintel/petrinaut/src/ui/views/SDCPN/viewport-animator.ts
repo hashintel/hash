@@ -7,7 +7,7 @@
  * so the path bends towards it instead of stopping and starting over.
  */
 
-import type { CanvasViewport } from "../canvas-renderer";
+import type { CanvasViewport } from "./canvas-renderer";
 
 type Channel = { readonly value: number; readonly velocity: number };
 
@@ -39,6 +39,7 @@ type CameraState = {
 
 const at = (value: number): Channel => ({ value, velocity: 0 });
 
+/** Within a quarter of a pixel of the target, and all but still. */
 const isSettled = (state: CameraState, target: CanvasViewport) =>
   Math.abs(state.x.value - target.x) < 0.25 &&
   Math.abs(state.y.value - target.y) < 0.25 &&
@@ -47,11 +48,12 @@ const isSettled = (state: CameraState, target: CanvasViewport) =>
   Math.abs(state.y.velocity) < 2 &&
   Math.abs(state.logZoom.velocity) < 1e-3;
 
-export type AnimationResult = "settled" | "cancelled";
-
 export type ViewportAnimator = {
-  /** Eases toward `target`, or retargets the move under way. */
-  animateTo: (target: CanvasViewport) => Promise<AnimationResult>;
+  /**
+   * Eases toward `target`, or retargets the move under way. Resolves once the
+   * camera is at rest, on the target or wherever it was stopped.
+   */
+  animateTo: (target: CanvasViewport) => Promise<void>;
   /** Stops where the camera is, as when the user grabs the canvas. */
   cancel: () => void;
   isAnimating: () => boolean;
@@ -67,14 +69,7 @@ const defaultOmega = 14;
 /** A frame longer than this is treated as this long, as after a hidden tab. */
 const maxFrameSeconds = 0.064;
 
-export const createViewportAnimator = ({
-  read,
-  write,
-  animated = () => true,
-  omega = defaultOmega,
-  requestFrame = (callback) => requestAnimationFrame(callback),
-  cancelFrame = (handle) => cancelAnimationFrame(handle),
-}: {
+export type ViewportAnimatorOptions = {
   read: () => CanvasViewport;
   write: (viewport: CanvasViewport) => void;
   /** Whether to ease at all; when not, every move jumps. */
@@ -82,14 +77,23 @@ export const createViewportAnimator = ({
   omega?: number;
   requestFrame?: (callback: (time: number) => void) => number;
   cancelFrame?: (handle: number) => void;
-}): ViewportAnimator => {
+};
+
+export const createViewportAnimator = ({
+  read,
+  write,
+  animated = () => true,
+  omega = defaultOmega,
+  requestFrame = (callback) => requestAnimationFrame(callback),
+  cancelFrame = (handle) => cancelAnimationFrame(handle),
+}: ViewportAnimatorOptions): ViewportAnimator => {
   let target: CanvasViewport | null = null;
   let state: CameraState | null = null;
   let frame: number | null = null;
   let lastTime: number | null = null;
-  let pending: ((result: AnimationResult) => void)[] = [];
+  let waiting: (() => void)[] = [];
 
-  const finish = (result: AnimationResult) => {
+  const stop = () => {
     if (frame !== null) {
       cancelFrame(frame);
     }
@@ -97,10 +101,10 @@ export const createViewportAnimator = ({
     lastTime = null;
     state = null;
     target = null;
-    const resolvers = pending;
-    pending = [];
+    const resolvers = waiting;
+    waiting = [];
     for (const resolve of resolvers) {
-      resolve(result);
+      resolve();
     }
   };
 
@@ -126,9 +130,9 @@ export const createViewportAnimator = ({
     };
     if (isSettled(next, target)) {
       const final = target;
-      // Marked idle before the last write, so whatever the write notifies
-      // sees a camera at rest.
-      finish("settled");
+      // At rest before the last write, so whatever the write notifies sees
+      // a camera that has stopped.
+      stop();
       write(final);
       return;
     }
@@ -142,33 +146,29 @@ export const createViewportAnimator = ({
   };
 
   return {
-    animateTo: (nextTarget) =>
-      new Promise<AnimationResult>((resolve) => {
-        if (!animated()) {
-          finish("cancelled");
-          write(nextTarget);
-          resolve("settled");
-          return;
-        }
-        pending.push(resolve);
-        if (!state) {
-          const current = read();
-          state = {
-            x: at(current.x),
-            y: at(current.y),
-            logZoom: at(Math.log(current.zoom)),
-          };
-        }
-        target = nextTarget;
-        if (frame === null) {
-          frame = requestFrame(tick);
-        }
-      }),
-    cancel: () => {
-      if (state) {
-        finish("cancelled");
+    animateTo: (nextTarget) => {
+      if (!animated()) {
+        stop();
+        write(nextTarget);
+        return Promise.resolve();
       }
+      if (!state) {
+        const current = read();
+        state = {
+          x: at(current.x),
+          y: at(current.y),
+          logZoom: at(Math.log(current.zoom)),
+        };
+      }
+      target = nextTarget;
+      if (frame === null) {
+        frame = requestFrame(tick);
+      }
+      return new Promise((resolve) => {
+        waiting.push(resolve);
+      });
     },
+    cancel: stop,
     isAnimating: () => state !== null,
   };
 };

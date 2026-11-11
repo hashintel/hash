@@ -9,11 +9,12 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { fitViewportToBounds, MAX_FIT_ZOOM } from "../../../canvas-viewport";
 import {
   createViewportAnimator,
   type ViewportAnimator,
-} from "../../../camera/viewport-animator";
-import { fitViewportToBounds, MAX_FIT_ZOOM } from "../../../canvas-viewport";
+  type ViewportAnimatorOptions,
+} from "../../../viewport-animator";
 
 import type {
   CanvasController,
@@ -50,6 +51,13 @@ const fitScene = async (
   return "framed";
 };
 
+/** One camera for the life of the component, stopped when it unmounts. */
+const useCamera = (options: ViewportAnimatorOptions): ViewportAnimator => {
+  const [camera] = useState(() => createViewportAnimator(options));
+  useEffect(() => () => camera.cancel(), [camera]);
+  return camera;
+};
+
 /**
  * The canvas controller over React Flow's viewport. Every programmatic move
  * goes through one spring camera, so moves that overlap retarget each other
@@ -66,7 +74,7 @@ export const useReactFlowController = ({
 }): { controller: CanvasController; camera: ViewportAnimator } => {
   const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
   const [frameRequestGeneration, setFrameRequestGeneration] = useState(0);
-  const latestRef = useLatest({
+  const frameStateRef = useLatest({
     bounds,
     containerSize,
     insets,
@@ -80,32 +88,15 @@ export const useReactFlowController = ({
     }[]
   >([]);
 
-  // Created on first use, from inside the closures below, so render never
-  // reads the ref the camera reads.
-  const [camera] = useState<ViewportAnimator>(() => {
-    let animator: ViewportAnimator | null = null;
-    const get = () => {
-      if (!animator) {
-        animator = createViewportAnimator({
-          read: () => latestRef.current.reactFlow.getViewport(),
-          write: (viewport) => {
-            void latestRef.current.reactFlow.setViewport(viewport);
-          },
-          animated: () =>
-            latestRef.current.animated &&
-            !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-        });
-      }
-      return animator;
-    };
-    return {
-      animateTo: (target) => get().animateTo(target),
-      cancel: () => animator?.cancel(),
-      isAnimating: () => animator?.isAnimating() ?? false,
-    };
+  const camera = useCamera({
+    read: () => frameStateRef.current.reactFlow.getViewport(),
+    write: (viewport) => {
+      void frameStateRef.current.reactFlow.setViewport(viewport);
+    },
+    animated: () =>
+      frameStateRef.current.animated &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   });
-
-  useEffect(() => () => camera.cancel(), [camera]);
 
   useEffect(() => {
     if (pendingFrameRequestsRef.current.length === 0) {
@@ -113,13 +104,13 @@ export const useReactFlowController = ({
     }
     const requests = pendingFrameRequestsRef.current;
     pendingFrameRequestsRef.current = [];
-    void fitScene(latestRef.current, camera).then((result) => {
+    void fitScene(frameStateRef.current, camera).then((result) => {
       for (const request of requests) {
         clearTimeout(request.timeout);
         request.resolve(result);
       }
     });
-  }, [frameRequestGeneration, latestRef, camera]);
+  }, [frameRequestGeneration, frameStateRef, camera]);
 
   useEffect(
     () => () => {
@@ -133,24 +124,24 @@ export const useReactFlowController = ({
   );
 
   const [controller] = useState<CanvasController>(() => ({
-    getViewport: () => latestRef.current.reactFlow.getViewport(),
+    getViewport: () => frameStateRef.current.reactFlow.getViewport(),
     setViewport: (viewport, options) => {
       if (options?.animate) {
         void camera.animateTo(viewport);
         return;
       }
       camera.cancel();
-      void latestRef.current.reactFlow.setViewport(viewport);
+      void frameStateRef.current.reactFlow.setViewport(viewport);
     },
     zoomIn: () => {
       camera.cancel();
-      void latestRef.current.reactFlow.zoomIn();
+      void frameStateRef.current.reactFlow.zoomIn();
     },
     zoomOut: () => {
       camera.cancel();
-      void latestRef.current.reactFlow.zoomOut();
+      void frameStateRef.current.reactFlow.zoomOut();
     },
-    fitView: () => fitScene(latestRef.current, camera),
+    fitView: () => fitScene(frameStateRef.current, camera),
     frameSceneAfterRender: () =>
       new Promise<FrameSceneResult>((resolve) => {
         const request = {
@@ -167,9 +158,9 @@ export const useReactFlowController = ({
         setFrameRequestGeneration((generation) => generation + 1);
       }),
     screenToScene: (point) =>
-      latestRef.current.reactFlow.screenToFlowPosition(point),
+      frameStateRef.current.reactFlow.screenToFlowPosition(point),
     sceneToScreen: (point) =>
-      latestRef.current.reactFlow.flowToScreenPosition(point),
+      frameStateRef.current.reactFlow.flowToScreenPosition(point),
   }));
 
   return { controller, camera };
