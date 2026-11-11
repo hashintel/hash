@@ -53,14 +53,10 @@ export {
 } from "./experiment-reader";
 export type { CountStatistics, ExperimentReader } from "./experiment-reader";
 export {
-  builtInSimulatorManifests,
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
   createWebGpuFixedStepSimulator,
-  jsAdaptiveSimulatorManifest,
-  jsFixedStepSimulatorManifest,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
-  webGpuFixedStepSimulatorManifest,
 } from "./built-in";
 export type {
   JsSimulatorOptions,

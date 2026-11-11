@@ -34,7 +34,6 @@ const timeStep = {
   default: 0.01,
   min: 0,
   exclusiveMin: true,
-  scale: "log",
 } as const;
 
 export const jsFixedStepSimulatorManifest = {
@@ -59,7 +58,6 @@ export const jsAdaptiveSimulatorManifest = {
       default: DEFAULT_SOLVER_TOLERANCE,
       min: 0,
       exclusiveMin: true,
-      scale: "log",
     },
   },
   produces: { run: true, experiment: true },
@@ -144,7 +142,6 @@ export type JsSimulatorOptions = {
   createExperimentWorker: WorkerFactory;
   /** Workers per experiment. Defaults to the pool's own choice. */
   shardCount?: number;
-  batchSize?: number;
 };
 
 /**
@@ -171,9 +168,6 @@ const createJsSimulator = <const Specs extends SimulatorParameterSpecs>(
           ...(options.shardCount === undefined
             ? {}
             : { shardCount: options.shardCount }),
-          ...(options.batchSize === undefined
-            ? {}
-            : { batchSize: options.batchSize }),
         }),
         stepping,
       );
@@ -296,11 +290,3 @@ export const createWebGpuFixedStepSimulator = (
       });
     },
   });
-
-/** The manifests of the built-in simulators, in picker order. */
-export const builtInSimulatorManifests: readonly SimulatorManifest<SimulatorParameterSpecs>[] =
-  [
-    jsFixedStepSimulatorManifest,
-    jsAdaptiveSimulatorManifest,
-    webGpuFixedStepSimulatorManifest,
-  ];

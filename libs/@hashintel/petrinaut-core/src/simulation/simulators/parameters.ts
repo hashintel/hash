@@ -24,8 +24,6 @@ export type SimulatorParameterSpec =
       /** True when `min` itself is not allowed, as for a step size above 0. */
       readonly exclusiveMin?: boolean;
       readonly unit?: string;
-      /** How a stepper or a slider moves through the range. */
-      readonly scale?: "linear" | "log";
     })
   | (ParameterRow & {
       readonly type: "integer";
