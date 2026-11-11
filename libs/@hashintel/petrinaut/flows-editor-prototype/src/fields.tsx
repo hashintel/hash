@@ -145,8 +145,8 @@ const TokenChip = ({
     <Tooltip content={parts.join(" › ")}>
       <SourceHover source={source} stepId={stepId}>
         <Chip
+          // Square md, as references inside text (26 Oct chip rule, L141; 11 Nov convergence A4).
           size="md"
-          shape="round"
           color="grey"
           prefix={{
             iconName: ownerLook(document, source)?.icon ?? "rotate",
@@ -1015,7 +1015,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         {...(item.kind === "constant"
           ? {}
           : {
-              shape: "round" as const,
+              // Square md, as every reference chip (L141; 11 Nov convergence A4).
               prefix: {
                 iconName: ownerLook(document, item)?.icon ?? "rotate",
                 variant: "naked" as const,
