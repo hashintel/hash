@@ -3767,7 +3767,8 @@ export const StepOutputs = ({
 
 const cellStyle = css({
   display: "inline-flex",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
+  whiteSpace: "nowrap",
   alignItems: "center",
   columnGap: "1.5",
   rowGap: "0.5",
@@ -3775,6 +3776,24 @@ const cellStyle = css({
 });
 
 const dotStyle = css({ color: "neutral.fg.subtle" });
+
+/** The Logs cell keeps one line (11 Nov, inbox conv-overflow): up to three counts show; past that, two and "+N". */
+const cellFits = 3;
+const cellParts = 2;
+
+/** "+N" after a run of counts, as after a run of chips (`fields.tsx`). */
+const cellMoreStyle = css({
+  flexShrink: 0,
+  paddingX: "1.5",
+  border: "none",
+  borderRadius: "md",
+  background: "[transparent]",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+});
 
 type CellPart = {
   key: string;
@@ -3932,19 +3951,40 @@ export const RunOutputsCell = ({
           {flags.length === 0 ? "No outputs flagged" : "Nothing yet"}
         </span>
       ) : (
-        parts.map((part, index) => (
-          <Fragment key={part.key}>
-            {index > 0 ? <span className={dotStyle}>·</span> : null}
-            <button
-              type="button"
-              className={linkStyle}
-              data-run-output={part.key}
-              onClick={part.onOpen}
+        <>
+          {parts
+            .slice(0, parts.length > cellFits ? cellParts : cellFits)
+            .map((part, index) => (
+            <Fragment key={part.key}>
+              {index > 0 ? <span className={dotStyle}>·</span> : null}
+              <button
+                type="button"
+                className={linkStyle}
+                data-run-output={part.key}
+                onClick={part.onOpen}
+              >
+                {part.text}
+              </button>
+            </Fragment>
+          ))}
+          {parts.length > cellFits ? (
+            <Tooltip
+              content={parts
+                .slice(cellParts)
+                .map((part) => part.text)
+                .join(", ")}
             >
-              {part.text}
-            </button>
-          </Fragment>
-        ))
+              <button
+                type="button"
+                className={cellMoreStyle}
+                aria-label={`Show ${parts.length - cellParts} more`}
+                onClick={parts[cellParts]!.onOpen}
+              >
+                +{parts.length - cellParts}
+              </button>
+            </Tooltip>
+          ) : null}
+        </>
       )}
       {node}
     </span>
