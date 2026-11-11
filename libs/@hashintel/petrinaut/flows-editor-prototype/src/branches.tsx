@@ -27,7 +27,6 @@ import { getCatalogEntry } from "./catalog";
 import {
   findStep,
   flattenSteps,
-  START_ID,
   stepLabel,
   updateStep,
 } from "./document";
@@ -36,7 +35,7 @@ import { useRunView } from "./history-view";
 import { pathsTake } from "./paths-flags";
 import { useLocation } from "./router";
 import { pathRenamable } from "./switch-flags";
-import { InlineRename, PropertyRow, Section, SourceChip } from "./ui";
+import { InlineRename, PropertyRow, Section } from "./ui";
 import { UsedInBlock, useOldUsedIn } from "./used-in";
 
 /** The output a step branches on, per action. The engine models the values as ports. */
@@ -66,6 +65,20 @@ const pathStyle = css({
   textStyle: "sm",
   color: "neutral.fg.body",
 });
+
+/** The wired paths: dot, name, then where it leads (a 32 px dropdown, step icon inside), names in one column. */
+const pathGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[6px auto minmax(0, 1fr)]",
+  columnGap: "2",
+  rowGap: "1.5",
+  alignItems: "center",
+  alignSelf: "stretch",
+  textStyle: "sm",
+  color: "neutral.fg.body",
+});
+
+const pathTargetCellStyle = css({ display: "flex", minWidth: "[0]" });
 
 /** A path's mark: a small solid dot, as the ports on the canvas card. */
 const dotStyle = css({
@@ -126,14 +139,9 @@ const ifTargetStyle = css({
   "& > button, & [data-part='trigger']": { height: "[32px]" },
 });
 
-/** Where a port leads: a chip per step it is wired to, or "Ends here". */
+/** Where a port leads: a dropdown of the step it is wired to, or "Ends here". */
 const useGoesTo = (stepId: string, iconOf: (id: string) => IconName) => {
-  const { document, setUi } = useEditor();
-
-  const nameOf = (id: string) => {
-    const step = findStep(document, id)?.step;
-    return step ? stepLabel(step) : id === START_ID ? "Start" : id;
-  };
+  const { document } = useEditor();
 
   return (port: string) => {
     const targets = document.wires.filter(
@@ -142,17 +150,16 @@ const useGoesTo = (stepId: string, iconOf: (id: string) => IconName) => {
     if (targets.length === 0) {
       return <span className={goesToStyle}>Ends here</span>;
     }
-    return targets.map((wire) => (
-      <SourceChip
-        key={wire.id}
-        icon={iconOf(wire.target)}
-        onClick={() =>
-          setUi((ui) => ({ ...ui, selectedId: wire.target, openField: null }))
-        }
-      >
-        {nameOf(wire.target)}
-      </SourceChip>
-    ));
+    // A dropdown per path, as If's (11 Nov convergence A2): the panel picks the next step (L504), unlike Used in (L506).
+    return (
+      <IfTarget
+        stepId={stepId}
+        port={port}
+        label={port}
+        iconOf={iconOf}
+        fallback={<span className={goesToStyle}>Ends here</span>}
+      />
+    );
   };
 };
 
@@ -412,13 +419,15 @@ export const BranchRows = ({
       }
     >
       <div className={railStyle}>
-        {ports.map((port) => (
-          <div key={port.outputName} className={pathStyle}>
-            <span className={dotStyle} aria-hidden="true" />
-            <span>{port.label}</span>
-            {goesTo(port.outputName)}
-          </div>
-        ))}
+        <div className={pathGridStyle}>
+          {ports.map((port) => (
+            <Fragment key={port.outputName}>
+              <span className={dotStyle} aria-hidden="true" />
+              <span>{port.label}</span>
+              <span className={pathTargetCellStyle}>{goesTo(port.outputName)}</span>
+            </Fragment>
+          ))}
+        </div>
         {extras.map((extra) => (
           // MOCK: a path on two fields. Shown here only; no port on the canvas.
           // MOCK: a path on two fields, drawn like the other paths: the dot, the value, then the AND chip of the
