@@ -20,14 +20,24 @@ const node = (id: string, x: number) => ({
   height: 60,
 });
 
-/** `near` shows on an untouched canvas, `far` is off its right edge. */
+/**
+ * `near` shows on an untouched canvas; `far` and `farther` are off its right
+ * edge, and too far apart to fit in it together.
+ */
 const scene = {
-  nodes: [node("near", 600), node("far", 2000)],
-  arcs: [],
+  nodes: [node("near", 600), node("far", 2000), node("farther", 3400)],
+  arcs: [
+    { id: "near-far", sourceId: "near", targetId: "far" },
+    { id: "far-farther", sourceId: "far", targetId: "farther" },
+  ],
 } as unknown as CanvasScene;
 
 const select = (...ids: string[]) =>
-  new Map(ids.map((id) => [id, { type: "place", id }] as const));
+  new Map(
+    ids.map(
+      (id) => [id, { type: id.includes("-") ? "arc" : "place", id }] as const,
+    ),
+  );
 
 const origin = { x: 0, y: 0, zoom: 1 };
 
@@ -101,6 +111,19 @@ describe("useKeepSelectionInView", () => {
   it("never moves for a multiple selection", () => {
     const { setViewport, changeSelection } = setup([]);
     changeSelection("near", "far");
+    expect(setViewport).not.toHaveBeenCalled();
+  });
+
+  it("fits an arc whose ends are both out of view", () => {
+    const { setViewport, changeSelection } = setup([]);
+    changeSelection("far-farther");
+    // 1500 scene pixels between the ends' outer edges, 900 uncovered.
+    expect(setViewport.mock.calls[0]![0].zoom).toBeCloseTo(0.6);
+  });
+
+  it("leaves an arc too long to fit alone while one end shows", () => {
+    const { setViewport, changeSelection } = setup([]);
+    changeSelection("near-far");
     expect(setViewport).not.toHaveBeenCalled();
   });
 

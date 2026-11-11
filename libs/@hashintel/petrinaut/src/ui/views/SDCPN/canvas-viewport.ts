@@ -110,8 +110,10 @@ const shiftInto = (start: number, end: number, min: number, max: number) =>
  * already, or cannot be brought there.
  *
  * It pans as little as it can, so a node half under a panel slides just far
- * enough out. Bounds too large for the area are left alone, unless `zoomOut`
- * allows fitting them: centred, and zoomed out no further than `minZoom`.
+ * enough out. Bounds too large for the area are left alone while any of them
+ * shows, as when they were picked on the canvas, where zooming out under the
+ * pointer would jolt. Out of view altogether, they are fitted: centred, and
+ * zoomed out no further than `minZoom`.
  */
 export const revealBounds = ({
   bounds,
@@ -119,14 +121,12 @@ export const revealBounds = ({
   container,
   insets,
   minZoom,
-  zoomOut,
 }: {
   bounds: Rect;
   viewport: CanvasViewport;
   container: Size;
   insets: CanvasViewportInsets;
   minZoom: number;
-  zoomOut: boolean;
 }): CanvasViewport | null => {
   const area = uncoveredArea(container, insets);
   const width = area.right - area.left;
@@ -136,16 +136,24 @@ export const revealBounds = ({
   }
 
   const { zoom } = viewport;
-  if (bounds.width * zoom > width || bounds.height * zoom > height) {
-    return zoomOut
-      ? fitViewportToBounds(bounds, container, minZoom, zoom, 0, insets)
-      : null;
-  }
-
   const left = bounds.x * zoom + viewport.x;
   const top = bounds.y * zoom + viewport.y;
-  const dx = shiftInto(left, left + bounds.width * zoom, area.left, area.right);
-  const dy = shiftInto(top, top + bounds.height * zoom, area.top, area.bottom);
+  const right = left + bounds.width * zoom;
+  const bottom = top + bounds.height * zoom;
+
+  if (right - left > width || bottom - top > height) {
+    const shows =
+      right > area.left &&
+      left < area.right &&
+      bottom > area.top &&
+      top < area.bottom;
+    return shows
+      ? null
+      : fitViewportToBounds(bounds, container, minZoom, zoom, 0, insets);
+  }
+
+  const dx = shiftInto(left, right, area.left, area.right);
+  const dy = shiftInto(top, bottom, area.top, area.bottom);
   return dx === 0 && dy === 0
     ? null
     : { x: viewport.x + dx, y: viewport.y + dy, zoom };

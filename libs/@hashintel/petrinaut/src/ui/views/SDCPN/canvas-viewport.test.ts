@@ -25,7 +25,6 @@ describe("revealBounds", () => {
       container: canvasSize,
       insets,
       minZoom: 0.1,
-      zoomOut: true,
     });
 
   it("leaves bounds that already show alone", () => {
@@ -49,24 +48,18 @@ describe("revealBounds", () => {
     });
   });
 
-  it("zooms out to fit bounds larger than the visible area", () => {
-    const result = reveal({ x: 0, y: 0, width: 1000, height: 200 });
+  it("fits bounds too large for the area that are out of view altogether", () => {
     // The uncovered area is 500 by 500: the zoom fits 1000 scene pixels
     // across it, and the bounds sit centred in it.
-    expect(result).toEqual({ zoom: 0.5, x: 200, y: 200 });
+    expect(reveal({ x: 2000, y: 0, width: 1000, height: 200 })).toEqual({
+      zoom: 0.5,
+      x: -800,
+      y: 200,
+    });
   });
 
-  it("leaves bounds too large to fit alone unless it may zoom out", () => {
-    expect(
-      revealBounds({
-        bounds: { x: 0, y: 0, width: 1000, height: 200 },
-        viewport: atOrigin,
-        container: canvasSize,
-        insets,
-        minZoom: 0.1,
-        zoomOut: false,
-      }),
-    ).toBeNull();
+  it("leaves bounds too large for the area alone while any of them shows", () => {
+    expect(reveal({ x: 0, y: 0, width: 1000, height: 200 })).toBeNull();
   });
 });
 

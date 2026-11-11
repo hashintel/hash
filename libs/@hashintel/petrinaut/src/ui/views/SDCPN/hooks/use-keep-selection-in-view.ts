@@ -101,8 +101,7 @@ export const useKeepSelectionInView = ({
 
   /** `visibleIn` limits the move to a selection in view within that frame. */
   const reveal = useEffectEvent((visibleIn?: Frame) => {
-    const nodes = selectedNodesOf(scene, selection);
-    const bounds = getBoundsOfCenteredBoxes(nodes);
+    const bounds = getBoundsOfCenteredBoxes(selectedNodesOf(scene, selection));
     if (!bounds) {
       return;
     }
@@ -123,10 +122,6 @@ export const useKeepSelectionInView = ({
       container: frame,
       insets: clearanceOf(frame),
       minZoom,
-      // Only a lone node may zoom the camera out. An arc too long to fit is
-      // left alone: it is picked on the canvas, where zooming out under the
-      // pointer would jolt.
-      zoomOut: nodes.length === 1,
     });
     if (next) {
       controller.setViewport(next, { animate: true });
