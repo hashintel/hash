@@ -17,6 +17,7 @@ import {
   isTerminalExperimentStatus,
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
+import { computeBackendOf } from "../../../../../../react/experiments/provider/create-experiment";
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import {
@@ -92,6 +93,7 @@ export function makeExperiment(
     id: `experiment-${index}`,
     computeBackend: "cpu",
     computeBackendFallbackReason: null,
+    simulatorLabel: null,
     name: `SIR Monte Carlo ${index}`,
     createdAt,
     startedAt,
@@ -526,8 +528,11 @@ const createFakeExperiment = (
   input: CreateExperimentInput,
 ): ExperimentRecord => ({
   id: `experiment-${Date.now()}`,
-  computeBackend: input.computeBackend ?? "cpu",
+  computeBackend: input.simulator
+    ? computeBackendOf(input.simulator.simulatorId)
+    : (input.computeBackend ?? "cpu"),
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
