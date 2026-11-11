@@ -5,8 +5,6 @@ import { useContext, useMemo } from "react";
 import {
   allIntegrations,
   type Integration,
-  type IntegrationIcon,
-  integrationIcons,
 } from "@hashintel/integrations-catalog";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
@@ -15,6 +13,7 @@ import { extractWebId } from "../../lib/user-and-org";
 import { Button } from "../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { WorkspaceContext } from "../shared/workspace-context";
+import { IntegrationIconTile } from "./integrations.page/integration-icon-tile";
 import { UserConnectedIntegrations } from "./integrations/user-connected-integrations";
 import { SettingsPageContainer } from "./shared/settings-page-container";
 
@@ -22,46 +21,10 @@ import type { EnabledIntegrations } from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { FunctionComponent, ReactNode } from "react";
 
-const IntegrationIconTile = ({
-  iconDetail,
-  tileSize = 44,
-}: {
-  iconDetail: IntegrationIcon;
-  tileSize?: number;
-}) => {
-  const {
-    dark: Icon,
-    iconToContainerRatio = 2,
-    horizontalAlignment,
-  } = iconDetail;
-
-  return (
-    <Stack
-      sx={({ palette }) => ({
-        alignItems: horizontalAlignment,
-        justifyContent: "center",
-        flexShrink: 0,
-        height: tileSize,
-        width: tileSize,
-        borderRadius: 1.5,
-        backgroundColor: "#1b242d",
-        border: `1px solid ${palette.gray[90]}`,
-        overflow: "hidden",
-        // Drives `fill="currentColor"` in monochrome generic icons. Brand
-        // icons paint their own fills so this is a no-op for them.
-        color: palette.common.white,
-      })}
-    >
-      <Icon sx={{ fontSize: tileSize / iconToContainerRatio, fill: "none" }} />
-    </Stack>
-  );
-};
-
 type IntegrationCardProps = {
   href?: string;
   name: string;
   description: ReactNode;
-  iconDetail: IntegrationIcon;
   isConnectable?: boolean;
 };
 
@@ -69,7 +32,6 @@ const IntegrationCard = ({
   href,
   name,
   description,
-  iconDetail,
   isConnectable,
 }: IntegrationCardProps) => {
   return (
@@ -88,7 +50,7 @@ const IntegrationCard = ({
         alignItems="center"
         mb={1}
       >
-        <IntegrationIconTile iconDetail={iconDetail} />
+        <IntegrationIconTile name={name} />
         <Button
           openInNewTab={!isConnectable}
           variant={isConnectable ? "primary" : "tertiary"}
@@ -152,8 +114,6 @@ const AddNewIntegrations: FunctionComponent = () => {
     });
 
     return sortedIntegrations.map((integration) => {
-      const iconDetail = integrationIcons[integration.name];
-
       const isEnabledForUser = isConnectable(integration);
 
       let href: string | undefined;
@@ -184,7 +144,6 @@ const AddNewIntegrations: FunctionComponent = () => {
               }}
             />
           }
-          iconDetail={iconDetail}
         />
       );
     });

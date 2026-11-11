@@ -1,0 +1,376 @@
+{
+  "sourceRepository": "hashintel/internal",
+  "sourcePackage": "libs/salt-brands",
+  "originalSourceCommit": "4408419cc21a18bc91d995a07b04823a61d5cb87",
+  "files": {
+    "anaplan-app-light-defa281af5e4.svg": {
+      "brand": "anaplan",
+      "slug": "anaplan",
+      "variant": "app-light",
+      "sha256": "defa281af5e49e9a58520097502f8210d2f90469e3673bd200a110b988a04c57",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/anaplan-dark-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "blue-yonder-platform-app-light-66e5069df683.svg": {
+      "brand": "blueYonder",
+      "slug": "blue-yonder-platform",
+      "variant": "app-light",
+      "sha256": "66e5069df6836e27590a52bbcaa15e74a7ca4b40f581c7988e8d469dcc5c019b",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/blue-yonder-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "celonis-app-light-b01e55c7e65c.svg": {
+      "brand": "celonis",
+      "slug": "celonis",
+      "variant": "app-light",
+      "sha256": "b01e55c7e65cf5e3b885fdbb904fee018406efb088bf12942c053beeffba794e",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/celonis-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "veeva-vault-app-light-2473eee0c2d1.svg": {
+      "brand": "veevaVault",
+      "slug": "veeva-vault",
+      "variant": "app-light",
+      "sha256": "2473eee0c2d1496e018593bfbb480c51c2e6377bd2b76d6d46eb3d1f645e841a",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/veeva-vault-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "pas-x-mes-app-light-5854c0b1facb.svg": {
+      "brand": "pasX",
+      "slug": "pas-x-mes",
+      "variant": "app-light",
+      "sha256": "5854c0b1facbe445a6b55a857a8fab0c68cf065b0f38d39315acb525d2076c2c",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/pas-x-dark-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "fourkites-app-light-62cc4e4ec6b0.svg": {
+      "brand": "fourkites",
+      "slug": "fourkites",
+      "variant": "app-light",
+      "sha256": "62cc4e4ec6b0f239c628b2b4c25fc065a2490c2680edd950148c50f2ceca2988",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/fourkites-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "omp-app-light-6b7f76d73630.svg": {
+      "brand": "omp",
+      "slug": "omp",
+      "variant": "app-light",
+      "sha256": "6b7f76d73630451d979c70eb5ba9dac87044f255bef0daf20b35f33a90d3e358",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/omp-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "kinaxis-maestro-app-light-b76e021d1731.svg": {
+      "brand": "kinaxisMaestro",
+      "slug": "kinaxis-maestro",
+      "variant": "app-light",
+      "sha256": "b76e021d17313a3a61d5237c2f2a8be5b848d5b307bb857ab689fb1357895dfd",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/kinaxis-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "coupa-app-light-6d0a29da3914.svg": {
+      "brand": "coupa",
+      "slug": "coupa",
+      "variant": "app-light",
+      "sha256": "6d0a29da391415bbd4fa6dd0a3de28d8a15723f356033d45aadc3ff49a4e961c",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/coupa-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "linear-app-light-076ef12419c3.svg": {
+      "brand": "linear",
+      "slug": "linear",
+      "variant": "app-light",
+      "sha256": "076ef12419c3e78381a8730d8fad57868115af8f2f7966c1c391c665e738a9cf",
+      "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/linear-icon.svg",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "slack-app-light-cc13dfa1c160.svg": {
+      "brand": "slack",
+      "slug": "slack",
+      "variant": "app-light",
+      "sha256": "cc13dfa1c160dfc7e01fbdfd3abbed118278bada78bc7b95e75dd5697d181a37",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/slack-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "oracle-cloud-scm-app-light-288828461ad0.svg": {
+      "brand": "oracle",
+      "slug": "oracle-cloud-scm",
+      "variant": "app-light",
+      "sha256": "288828461ad0e487ef3a3e82152f0dad241c8c01e145cd2bd1a4f2451bc28f98",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/oracle-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "sap-s-4hana-app-light-4c2412e143cc.svg": {
+      "brand": "sap",
+      "slug": "sap-s-4hana",
+      "variant": "app-light",
+      "sha256": "4c2412e143cc08708232380cea7e91a6ae2437bde1bf3d292d6025185bb0719e",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/sap-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "docusign-app-light-4842a85c7452.svg": {
+      "brand": "docusign",
+      "slug": "docusign",
+      "variant": "app-light",
+      "sha256": "4842a85c74520e7b443c197e5022f0a58408210bb2c0d76731cc554aa7137285",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/docusign-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "gmail-app-light-72cf29edc40d.svg": {
+      "brand": "gmail",
+      "slug": "gmail",
+      "variant": "app-light",
+      "sha256": "72cf29edc40db775a665ba23fb7d05d981dc3e67dfb51ff97555693e790b1346",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/google-mail-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "google-drive-app-light-929ab4428d54.svg": {
+      "brand": "googleDrive",
+      "slug": "google-drive",
+      "variant": "app-light",
+      "sha256": "929ab4428d541a2f8331beb80b8c3929f4318598429f3733e645c6f300541821",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/google-drive-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "google-calendar-app-light-01d698b3f15a.svg": {
+      "brand": "googleCalendar",
+      "slug": "google-calendar",
+      "variant": "app-light",
+      "sha256": "01d698b3f15a066b6f6d1c745b34ab37b98a5fd2debecfb3c1f8459c92c7dfdd",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/google-calendar-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "dropbox-app-light-56ac31dec69c.svg": {
+      "brand": "dropbox",
+      "slug": "dropbox",
+      "variant": "app-light",
+      "sha256": "56ac31dec69c40830975ff14843826a1fa759de39b360bada581d9eedc7303bc",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/dropbox-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "box-app-light-b5fa280af52c.svg": {
+      "brand": "box",
+      "slug": "box",
+      "variant": "app-light",
+      "sha256": "b5fa280af52c3cfd503a68f399718e7cedb488389cc7de5366a5d2ddffc0a901",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/box-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "trello-app-light-392e2bd92066.svg": {
+      "brand": "trello",
+      "slug": "trello",
+      "variant": "app-light",
+      "sha256": "392e2bd92066c769cb55a57d01c51a1c45bf3a6e70c2e758898886f0ed6d0f63",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/trello-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "apple-notes-app-light-415cc8f36883.svg": {
+      "brand": "appleNotes",
+      "slug": "apple-notes",
+      "variant": "app-light",
+      "sha256": "415cc8f368836cee9ae36a351874823916b3014d93cb6e47f2a8bcc5d79d1a58",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/apple-notes-dark-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "discord-app-light-a9841034fb6e.svg": {
+      "brand": "discord",
+      "slug": "discord",
+      "variant": "app-light",
+      "sha256": "a9841034fb6e57187a4a901bb86ed66cdb31ab8367d3c765cc4b326ee176d6eb",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/discord-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "microsoft-teams-app-light-aeffdaf9245f.svg": {
+      "brand": "microsoftTeams",
+      "slug": "microsoft-teams",
+      "variant": "app-light",
+      "sha256": "aeffdaf9245f5b63e8c174eb6b1ce29b6a826bacf88c1a5c11a42857566b86ad",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/0/07/Microsoft_Office_Teams_%282025%E2%80%93present%29.svg",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "messenger-app-light-1a94e9221c50.svg": {
+      "brand": "messenger",
+      "slug": "messenger",
+      "variant": "app-light",
+      "sha256": "1a94e9221c509408b73302c6d346c0068b7d9dbba73ba54650e311d60d346aa2",
+      "source": "https://www.meta.com/brand/resources/facebook/messenger-icon/",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "instagram-app-light-c67cf88b3d42.svg": {
+      "brand": "instagram",
+      "slug": "instagram",
+      "variant": "app-light",
+      "sha256": "c67cf88b3d424dfffef713c8beffc70c9df2d82633d6f1ee53a31b0843366b71",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/instagram-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "notion-app-light-8b00dfe3912c.svg": {
+      "brand": "notion",
+      "slug": "notion",
+      "variant": "app-light",
+      "sha256": "8b00dfe3912c67d9f5b2005355291f83c99c42b49802b9a7367296a0de7b22a6",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/notion-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "granola-app-light-69a9730abf95.svg": {
+      "brand": "granola",
+      "slug": "granola",
+      "variant": "app-light",
+      "sha256": "69a9730abf9553280143f865fef38b3f76a64151b3b0a71f588b42e1a5154d18",
+      "source": "https://github.com/pheralb/svgl/blob/c0ec7ab121354ac1096b17b3aebbb293c8ce5600/static/library/granola-light.svg",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "sentry-app-light-c6d008ac9c88.svg": {
+      "brand": "sentry",
+      "slug": "sentry",
+      "variant": "app-light",
+      "sha256": "c6d008ac9c88d72f6c4310d77ae09c3a1246c843b88358d9f4c44fbd08e651f3",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/sentry-dark-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "zoom-app-light-85f86f1a059c.svg": {
+      "brand": "zoom",
+      "slug": "zoom",
+      "variant": "app-light",
+      "sha256": "85f86f1a059cedea30bb9c9965415d837c0d75b88e97d1b92b2ef71bd0e5119a",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/zoom-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "github-app-light-f890d6e02654.svg": {
+      "brand": "github",
+      "slug": "github",
+      "variant": "app-light",
+      "sha256": "f890d6e02654dd287d27c57f5f702de6c6dbd54e63066b35a8cae1db3e6d14e3",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/github-dark-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "figma-app-light-e9f5db93aa11.svg": {
+      "brand": "figma",
+      "slug": "figma",
+      "variant": "app-light",
+      "sha256": "e9f5db93aa11a1a28ea08f453dd0dc90e2c7195edac531fc446af7c10617f7ef",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/figma-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "asana-app-light-c649476cc121.svg": {
+      "brand": "asana",
+      "slug": "asana",
+      "variant": "app-light",
+      "sha256": "c649476cc1213aad27f68a46f1e21f8e611cf89361d1e79e77430315f1cd2e0f",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/asana-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "databricks-app-light-8eff2a900bf4.svg": {
+      "brand": "databricks",
+      "slug": "databricks",
+      "variant": "app-light",
+      "sha256": "8eff2a900bf4ef908a941bba8cc8afaaf26a76707ba323a3f9c24c29f8c215af",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/databricks-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "snowflake-app-light-32031772c794.svg": {
+      "brand": "snowflake",
+      "slug": "snowflake",
+      "variant": "app-light",
+      "sha256": "32031772c79437ae8154d931e8f5bf8b77be41bbdaffd41c494bdf470aff31eb",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/snowflake-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "bigquery-app-light-fddf5e8a1ddf.svg": {
+      "brand": "bigQuery",
+      "slug": "bigquery",
+      "variant": "app-light",
+      "sha256": "fddf5e8a1ddff4b32c9f33f3a9964d7956e6de5fce94ecd8e9cadff1a6992724",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/bigquery-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "amazon-redshift-app-light-6b9790e65bfe.svg": {
+      "brand": "amazonRedshift",
+      "slug": "amazon-redshift",
+      "variant": "app-light",
+      "sha256": "6b9790e65bfea8e730cb50ca2aab2353c4ed7ee61a961ab3bdc7eefaf5dfee50",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/aws-redshift-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "cloudflare-r2-app-light-822cd2b17eda.svg": {
+      "brand": "cloudflare",
+      "slug": "cloudflare-r2",
+      "variant": "app-light",
+      "sha256": "822cd2b17eda185882982a5622232cc84509c0524c53d1ab22bc5ace830188c9",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/cloudflare-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "azure-data-lake-storage-app-light-6710f071414c.svg": {
+      "brand": "azure",
+      "slug": "azure-data-lake-storage",
+      "variant": "app-light",
+      "sha256": "6710f071414c748670decc592a6600801b55d2540c4e43c9ef171161f74332fd",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/azure-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "postgres-app-light-f48d7b1825ee.svg": {
+      "brand": "postgres",
+      "slug": "postgres",
+      "variant": "app-light",
+      "sha256": "f48d7b1825eeb99da66f999b23f6d5f6fe830eb3fd0672dc913466502c2c26c5",
+      "source": "https://github.com/gilbarbara/logos/blob/master/logos/postgresql.svg",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "generic-app-app-light-6c2beb59d0ab.svg": {
+      "brand": "genericApp",
+      "slug": "generic-app",
+      "variant": "app-light",
+      "sha256": "6c2beb59d0abdd1bf43616b569f8747deeadcc2a757918125a564362f44f39ec",
+      "source": "https://github.com/hashintel/internal-sites/blob/ef1c3c6faa4e58ef1db48edc41627e5e960adced/packages/integrations-catalog/src/icons/generic-app-icon.tsx",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    },
+    "linear-mark-light-8633e0639f85.svg": {
+      "brand": "linear",
+      "slug": "linear",
+      "variant": "mark-light",
+      "sha256": "8633e0639f85b750cb995aceee36e3dd102d4c3287515a140534b789a302ea5d",
+      "source": "https://github.com/gilbarbara/logos/blob/22f03ffc4a652309d1fea4ade70f46e9e1d6602c/logos/linear-icon.svg",
+      "artworkLicense": null,
+      "artworkAttribution": null
+    }
+  }
+}
