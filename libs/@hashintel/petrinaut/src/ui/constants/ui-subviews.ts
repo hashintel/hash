@@ -11,7 +11,6 @@ import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/
 import { eventTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/main";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
-import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/main";
 import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { netsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
@@ -36,12 +35,6 @@ export const ACTUAL_BOTTOM_PANEL_SUBVIEWS = [
 
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS = [
-  simulationTimelineSubView,
-] as const satisfies SubView[];
-
-// The same, while the event-driven engine is selected: its timeline takes
-// the fixed-step timeline's place under the same tab id.
-export const EVENT_SIMULATION_ONLY_SUBVIEWS = [
   eventTimelineSubView,
 ] as const satisfies SubView[];
 

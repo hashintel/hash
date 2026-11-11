@@ -101,13 +101,12 @@ export const TimelineViewPicker: React.FC = () => {
     extensions,
     petriNetDefinition: { metrics = [], places },
   } = use(SDCPNContext);
-  const { engine, simulatorSelection } = use(SimulationContext);
+  const { simulatorSelection } = use(SimulationContext);
   const colorsEnabled = extensions.colors;
   const metricShapes = useMetricShapes();
   // Only a run of the adaptive simulator records the error, and only for
   // places it integrates.
   const solverErrorAvailable =
-    engine === "event-driven" &&
     simulatorSelection.simulatorId === ADAPTIVE_SIMULATOR_ID &&
     placesWithDynamics(places).length > 0;
 

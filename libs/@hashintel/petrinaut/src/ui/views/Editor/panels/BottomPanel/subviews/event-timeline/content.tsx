@@ -44,7 +44,7 @@ const messageStyle = css({
 });
 
 /**
- * The timeline of an event-driven run: token counts step at the events,
+ * The timeline of a run: token counts step at the events,
  * metrics follow the interpolated state, and every firing is marked on the
  * ruler. Drag the ruler or the playhead to scrub, drag the plot to select a
  * range, click to view that time, scroll sideways to pan, pinch or wheel to

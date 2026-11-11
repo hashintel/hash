@@ -62,8 +62,6 @@ RK4 instead of Euler ([GPU backend](doc:core.webgpu/gpu-backend)).
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `simulation/api.ts` `SimulationConfig.dt`, worker `init` message                  | A run is configured by a step, and frame `n` is at time `n · dt`.                     |
 | `playback/playback.ts` `tick({ dt })`                                             | Playback converts wall-clock time to a frame count by dividing by `dt`.               |
-| `react/playback/provider.tsx`                                                     | The compute-buffer ack policy keeps `0.5 / dt` frames ahead of the playhead.          |
-| `ui/.../BottomBar/playback-time.ts`                                               | Elapsed time is `frameIndex · dt`, printed at the step's decimal precision.           |
 | `react/execution-frame/context.ts` `ExecutionFrameSource`                         | Consumers address state by frame index: `scrubToFrame`, `getFramesInRange`.           |
 | `experiments/experiment-request.ts` `ExperimentRequest.dt`, `experiments/host.ts` | Experiments and the assistant's experiment requests carry `dt` and `maxTime`.         |
 | `monte-carlo/metrics/types.ts` metric frames, `runtime/experiment.ts` watermark   | Metrics are sampled once per frame; shards merge by frame number.                     |
@@ -72,7 +70,9 @@ RK4 instead of Euler ([GPU backend](doc:core.webgpu/gpu-backend)).
 | `actual-mode/timeline.ts`                                                         | Builds timeline points at external firings and at a fixed tick. Already event-shaped. |
 
 Every row above except the experiment rows changes under this design. The
-experiment rows keep `dt` as an observation grid.
+experiment rows keep `dt` as an observation grid. The editor's own rows are
+gone already: its playback addresses time, and a time step is a parameter of
+the simulators that have one.
 
 ### What is already event-shaped
 

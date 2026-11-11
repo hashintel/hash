@@ -134,7 +134,6 @@ const createWrapper = (options: WrapperOptions = {}) => {
             adHocScenario: null,
             adHocNetParameters: [],
             setAdHocScenario: () => {},
-            dt: 0.01,
             maxTime: null,
             totalFramesStore: { get: () => 0, subscribe: () => () => {} },
             getFrame: () => Promise.resolve(null),
@@ -144,9 +143,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
             setScenarioParameterValue: () => {},
             setInitialMarking: () => {},
             setParameterValue: () => {},
-            setDt: () => {},
             setMaxTime: () => {},
-            engine: "fixed-step",
             simulatorSelection: {
               simulatorId: "js-fixed-step",
               parameters: {},
@@ -165,8 +162,6 @@ const createWrapper = (options: WrapperOptions = {}) => {
             run: () => {},
             pause: () => {},
             reset: () => {},
-            setBackpressure: () => {},
-            ack: () => {},
           }}
         >
           <EditorContext value={editorContextValue(globalMode)}>

@@ -25,11 +25,8 @@ import {
   ACTUAL_BOTTOM_PANEL_SUBVIEWS,
   BOTTOM_PANEL_SUBVIEWS,
   COMPILATION_SUBVIEWS,
-  EVENT_SIMULATION_ONLY_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-
-import type { SimulationEngine } from "../../../../../react/simulation/context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -97,23 +94,17 @@ const headerRightStyle = css({
 const getBottomPanelSubViews = ({
   isActualMode,
   isSimulationActive,
-  engine,
   showCompilationOutput,
 }: {
   isActualMode: boolean;
   isSimulationActive: boolean;
-  engine: SimulationEngine;
   showCompilationOutput: boolean;
 }) =>
   isActualMode
     ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
     : [
         ...BOTTOM_PANEL_SUBVIEWS,
-        ...(isSimulationActive
-          ? engine === "event-driven"
-            ? EVENT_SIMULATION_ONLY_SUBVIEWS
-            : SIMULATION_ONLY_SUBVIEWS
-          : []),
+        ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
         ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
       ];
 
@@ -142,7 +133,7 @@ export const BottomPanel: React.FC = () => {
   const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
 
   // Simulation state for conditional subviews
-  const { state: simulationState, engine } = use(SimulationContext);
+  const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
   const isActualMode = globalMode === "actual";
   const isSimulationActive =
@@ -164,7 +155,6 @@ export const BottomPanel: React.FC = () => {
   const subViews = getBottomPanelSubViews({
     isActualMode,
     isSimulationActive,
-    engine,
     showCompilationOutput,
   });
 
@@ -215,7 +205,6 @@ export const BottomPanel: React.FC = () => {
     const availableSubViews = getBottomPanelSubViews({
       isActualMode,
       isSimulationActive,
-      engine,
       showCompilationOutput,
     });
 
@@ -230,7 +219,6 @@ export const BottomPanel: React.FC = () => {
     }
   }, [
     activeTab,
-    engine,
     isActualMode,
     isSimulationActive,
     setActiveTab,

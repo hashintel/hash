@@ -2,14 +2,13 @@ import { use, useRef, useState } from "react";
 
 import { Button, Icon, NumberInput, Popover } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-
 import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
-  PlaybackContext,
-  type PlaybackContextValue,
   type PlaybackSpeed,
-} from "../../../../../react/playback/context";
+} from "@hashintel/petrinaut-core";
+
+import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SettingsIcon } from "../../../../experimental-icons";
@@ -143,24 +142,8 @@ const maxTimeInputStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-/** The playback settings the menu edits; `PlaybackContext` by default. */
-export type PlaybackSettingsSource = Pick<
-  PlaybackContextValue,
-  | "playbackSpeed"
-  | "playMode"
-  | "isViewOnlyAvailable"
-  | "isComputeAvailable"
-  | "setPlaybackSpeed"
-  | "setPlayMode"
->;
-
 export type PlaybackSettingsMenuProps = {
   allowedSpeeds?: readonly PlaybackSpeed[];
-  /**
-   * The playback the menu controls. Left out, the menu edits the frame
-   * playback; the event-driven controls hand it theirs.
-   */
-  playback?: PlaybackSettingsSource;
 };
 
 const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
@@ -173,7 +156,6 @@ const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
 
 export const PlaybackSettingsMenu = ({
   allowedSpeeds = PLAYBACK_SPEEDS,
-  playback,
 }: PlaybackSettingsMenuProps) => {
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -190,7 +172,6 @@ export const PlaybackSettingsMenu = ({
     setMaxTime,
   } = use(SimulationContext);
 
-  const framePlayback = use(PlaybackContext);
   const {
     playbackSpeed,
     playMode,
@@ -198,7 +179,7 @@ export const PlaybackSettingsMenu = ({
     isComputeAvailable,
     setPlaybackSpeed,
     setPlayMode,
-  } = playback ?? framePlayback;
+  } = use(EventPlaybackContext);
 
   const hasSimulation = simulationState !== "NotRun";
   // Many runs are compared at the same times, so they always have an end.

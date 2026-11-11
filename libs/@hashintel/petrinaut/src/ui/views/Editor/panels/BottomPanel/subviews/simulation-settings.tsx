@@ -1,12 +1,6 @@
 import { use, useState } from "react";
 
-import {
-  Banner,
-  Button,
-  Icon,
-  NumberInput,
-  Select,
-} from "@hashintel/ds-components";
+import { Banner, Button, Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   classicRunParameterValues,
@@ -28,7 +22,6 @@ import {
   FormSectionHeader,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
-import { PointerHelpTooltip } from "../../../../../components/pointer-help-tooltip";
 import { StackedSections } from "../../../../../components/stacked-sections";
 import { FocusControls } from "../../../../../worksheet/focus-controls";
 import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
@@ -38,12 +31,7 @@ import {
   scenarioRunParameterValues,
   seedScenarioRunState,
 } from "./scenario-run-state";
-import {
-  inlineControlStyle,
-  labelStyle,
-  SimulatorControls,
-  smallLabelStyle,
-} from "./simulator-controls";
+import { SimulatorControls } from "./simulator-controls";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
@@ -255,9 +243,6 @@ const SimulationSettingsContent: React.FC = () => {
   const globalParameters = extensions.parameters ? parameters : [];
   const {
     state: simulationState,
-    dt,
-    setDt,
-    engine,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
     scenarioParameterValues,
@@ -522,41 +507,10 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
-  const timeStepControl = (
-    <div className={inlineControlStyle}>
-      <label htmlFor="time-step-input" className={labelStyle}>
-        <span>
-          Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-        </span>
-        <PointerHelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-      </label>
-      <NumberInput
-        htmlForId="time-step-input"
-        size="xs"
-        width="xs"
-        min={0.001}
-        step={0.001}
-        hideStepper
-        value={dt}
-        onChange={(nextDt) => {
-          if (nextDt !== null && nextDt > 0) {
-            setDt(nextDt);
-          }
-        }}
-        disabled={isSimulationActive}
-      />
-    </div>
-  );
-
-  // An event-driven run is computed by a simulator, which brings its own
-  // parameters. The Time Step belongs to the frame-per-step engine.
+  // A run is computed by a simulator, which brings its own parameters.
   const runSettingsControls = (
     <div className={runSettingsInlineStyle}>
-      {engine === "event-driven" ? (
-        <SimulatorControls disabled={isSimulationActive} />
-      ) : (
-        timeStepControl
-      )}
+      <SimulatorControls disabled={isSimulationActive} />
     </div>
   );
 

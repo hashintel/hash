@@ -8,9 +8,7 @@ import { SimulationContext } from "../../react/simulation/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
-import { SimulationControls } from "../views/Editor/components/BottomBar/simulation-controls";
 import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/event-timeline/content";
-import { SimulationTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content";
 import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
 
 import type { PetrinautPreviewQuickSimulation } from "./quick-simulation";
@@ -162,15 +160,10 @@ export const PreviewSimulationPlaybackControls = ({
   allowedPlaybackSpeeds,
 }: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
   const { activeSubnetId } = use(ActiveNetContext);
-  const { engine, scenarioCompilationErrors } = use(SimulationContext);
+  const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
   const { showAnimations } = use(UserSettingsContext);
   const expanded = totalFrames > 0;
-  // The engine decides how the run is played: by frame, or by time.
-  const Controls =
-    engine === "event-driven" ? EventSimulationControls : SimulationControls;
-  const Timeline =
-    engine === "event-driven" ? EventTimeline : SimulationTimeline;
 
   return (
     <section
@@ -182,7 +175,7 @@ export const PreviewSimulationPlaybackControls = ({
     >
       <div className={playbackControlsScrollStyle}>
         <div className={playbackControlsRowStyle}>
-          <Controls
+          <EventSimulationControls
             allowedPlaybackSpeeds={
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
             }
@@ -200,7 +193,7 @@ export const PreviewSimulationPlaybackControls = ({
       >
         <div className={timelineClipStyle}>
           <div className={timelineStyle}>
-            <Timeline showLegend={false} />
+            <EventTimeline showLegend={false} />
           </div>
         </div>
       </div>

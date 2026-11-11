@@ -44,10 +44,7 @@ const EventTimelineHeaderActions: React.FC = () => {
   );
 };
 
-/**
- * The Timeline tab while the event-driven engine is selected. It shares the
- * fixed-step timeline's id so the panel treats the two as one tab.
- */
+/** The Timeline tab of a run or a Stochastic simulation. */
 export const eventTimelineSubView: SubView = {
   id: "simulation-timeline",
   title: "Timeline",

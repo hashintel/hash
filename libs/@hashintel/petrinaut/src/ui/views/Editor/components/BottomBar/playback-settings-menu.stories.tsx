@@ -1,13 +1,10 @@
 import { useState } from "react";
 
-import {
-  PlaybackContext,
-  type PlaybackSpeed,
-  type PlayMode,
-} from "../../../../../react/playback/context";
+import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 
+import type { PlaybackSpeed, PlayMode } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -59,7 +56,6 @@ const PlaybackSettingsMenuStory = ({
         adHocScenario: null,
         adHocNetParameters: [],
         setAdHocScenario: () => {},
-        dt: 0.01,
         maxTime,
         totalFramesStore: {
           get: () => (simulationState === "NotRun" ? 0 : 100),
@@ -72,9 +68,7 @@ const PlaybackSettingsMenuStory = ({
         setScenarioParameterValue: () => {},
         setInitialMarking: () => {},
         setParameterValue: () => {},
-        setDt: () => {},
         setMaxTime,
-        engine: "fixed-step",
         simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
         eventSimulation: null,
         mode: "quick",
@@ -90,22 +84,28 @@ const PlaybackSettingsMenuStory = ({
         run: () => {},
         pause: () => {},
         reset: () => {},
-        setBackpressure: () => {},
-        ack: () => {},
       }}
     >
-      <PlaybackContext
+      <EventPlaybackContext
         value={{
-          currentFrameReader: null,
-          currentViewedFrame: null,
+          coveredTime: 0,
+          eventCount: 0,
+          playbackStore: {
+            get: () => ({
+              playState: "Stopped",
+              time: 0,
+              speed,
+              mode: playMode,
+            }),
+            subscribe: () => () => {},
+          },
           playbackState: "Stopped",
-          currentFrameIndex: 0,
-          totalFrames: 0,
           playbackSpeed: speed,
           playMode,
           isViewOnlyAvailable,
           isComputeAvailable,
-          setCurrentViewedFrame: () => {},
+          setTime: () => {},
+          stepToEvent: () => {},
           play: () => Promise.resolve(),
           pause: () => {},
           stop: () => {},
@@ -114,7 +114,7 @@ const PlaybackSettingsMenuStory = ({
         }}
       >
         <PlaybackSettingsMenu />
-      </PlaybackContext>
+      </EventPlaybackContext>
     </SimulationContext>
   );
 };

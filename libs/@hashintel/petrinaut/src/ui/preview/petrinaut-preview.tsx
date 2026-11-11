@@ -376,7 +376,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
                   <SimulationProvider
                     compiler={simulationCompiler}
                     initialConfiguration={{
-                      engine: "event-driven",
                       maxTime: quickSimulation.maxTime,
                     }}
                     requireScenario

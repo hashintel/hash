@@ -153,7 +153,6 @@ const simulationContextValue: SimulationContextValue = {
   scenarioCompilationErrors: null,
   adHocScenario: null,
   adHocNetParameters: sdcpn.parameters,
-  dt: 0.01,
   maxTime: null,
   totalFramesStore: { get: () => 0, subscribe: () => () => {} },
   getFrame: () => Promise.resolve(null),
@@ -164,9 +163,7 @@ const simulationContextValue: SimulationContextValue = {
   setScenarioParameterValue: () => {},
   setInitialMarking: () => {},
   setParameterValue: () => {},
-  setDt: () => {},
   setMaxTime: () => {},
-  engine: "fixed-step",
   simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
   eventSimulation: null,
   mode: "quick",
@@ -182,8 +179,6 @@ const simulationContextValue: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setBackpressure: () => {},
-  ack: () => {},
 };
 
 const neverLoaded = {
@@ -283,7 +278,6 @@ describe("SimulationSettings", () => {
     const { rerender } = render(
       <Providers
         simulation={{
-          engine: "event-driven",
           simulatorSelection: {
             simulatorId: "test.stepped",
             parameters: { dt: 0.01 },
@@ -296,7 +290,7 @@ describe("SimulationSettings", () => {
       </Providers>,
     );
 
-    // The frame engine's field is gone; the simulator brings its own.
+    // The simulator brings its own fields.
     expect(screen.queryByLabelText(/Time Step/)).toBeNull();
     expect(screen.queryByLabelText(/Max error/)).toBeNull();
     const step = screen.getByLabelText(/Step size/);
@@ -325,7 +319,6 @@ describe("SimulationSettings", () => {
     rerender(
       <Providers
         simulation={{
-          engine: "event-driven",
           simulatorSelection: {
             simulatorId: "test.solved",
             parameters: { tolerance: 1e-4, exact: false },
@@ -356,8 +349,9 @@ describe("SimulationSettings", () => {
     // The icon slot adds a zero-width space to the button's name.
     expect(screen.getByRole("button", { name: /Clear/ })).toBeTruthy();
     // The net parameter is an expression override in the form, not a
-    // numeric input row: the only spinbutton left is the Time Step.
-    expect(screen.getAllByRole("spinbutton")).toHaveLength(1);
+    // numeric input row, and the simulator selected here is not one this
+    // host registers, so it brings no field either.
+    expect(screen.queryAllByRole("spinbutton")).toHaveLength(0);
     expect(screen.queryByRole("slider")).toBe(null);
   });
 

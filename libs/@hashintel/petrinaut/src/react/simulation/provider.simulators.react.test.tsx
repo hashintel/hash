@@ -186,7 +186,7 @@ const renderProvider = (
         >
           <SimulationProvider
             compiler={compiler}
-            initialConfiguration={{ engine: "event-driven", maxTime: 12 }}
+            initialConfiguration={{ maxTime: 12 }}
           >
             <Capture />
           </SimulationProvider>
@@ -214,7 +214,7 @@ describe("SimulationProvider on a registered simulator", () => {
       parameters: { step: 0.5 },
     });
 
-    await act(() => getValue().initialize({ seed: 7, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 7 }));
 
     expect(plain.assessed).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -239,7 +239,7 @@ describe("SimulationProvider on a registered simulator", () => {
       reader.registration,
     ]);
 
-    await act(() => getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 1 }));
 
     expect(requestHirArtifacts.mock.calls[0]![2]).toEqual({ includeHir: true });
   });
@@ -262,7 +262,7 @@ describe("SimulationProvider on a registered simulator", () => {
     ]);
 
     act(() => getValue().setSimulatorParameter("step", 0.25));
-    await act(() => getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 1 }));
     expect(first.assessed).toHaveBeenCalledWith(
       expect.objectContaining({ simulatorParameters: { step: 0.25 } }),
     );
@@ -304,7 +304,7 @@ describe("SimulationProvider on a registered simulator", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });
@@ -329,7 +329,7 @@ describe("SimulationProvider on a registered simulator", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });
@@ -377,7 +377,7 @@ describe("SimulationProvider in Stochastic mode", () => {
 
     act(() => getValue().setMode("stochastic"));
     act(() => getValue().setRuns(250));
-    await act(() => getValue().initialize({ seed: 3, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 3 }));
 
     expect(requested).toHaveBeenCalledWith({
       runCount: 250,
@@ -421,7 +421,7 @@ describe("SimulationProvider in Stochastic mode", () => {
   it("ends the experiment on reset, unless something took it over", async () => {
     const first = stochastic();
     act(() => first.getValue().setMode("stochastic"));
-    await act(() => first.getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => first.getValue().initialize({ seed: 1 }));
     act(() => first.getValue().reset());
     expect(first.experiment.dispose).toHaveBeenCalledTimes(1);
     expect(first.getValue().stochasticRun).toBeNull();
@@ -429,7 +429,7 @@ describe("SimulationProvider in Stochastic mode", () => {
 
     const second = stochastic();
     act(() => second.getValue().setMode("stochastic"));
-    await act(() => second.getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => second.getValue().initialize({ seed: 1 }));
     act(() => second.getValue().keepStochasticRun());
     expect(second.getValue().stochasticRun?.kept).toBe(true);
     act(() => second.getValue().reset());
@@ -461,7 +461,7 @@ describe("SimulationProvider in Stochastic mode", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });

@@ -23,24 +23,18 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
-const EDITOR_SIMULATION_CONFIGURATION = { engine: "event-driven" } as const;
-
 export type PetrinautProviderProps = {
   /** The Core instance whose stores the bridges subscribe to. */
   instance: Petrinaut;
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
   /**
-   * Optional simulation worker factory. When provided, the SimulationProvider
-   * uses it instead of the bundled inlined-blob default. Hosts that consume
-   * the published dist (rather than building from source) should pass their
-   * own factory — e.g. via Vite's `?worker` directive — to avoid load-time
-   * issues with the inlined worker.
-   */
-  simulationWorkerFactory?: WorkerFactory;
-  /**
-   * Optional factory for the worker a Quick Simulation's run is stepped in,
-   * with the same role and default as `simulationWorkerFactory`.
+   * Optional factory for the worker a Quick Simulation's run is stepped in.
+   * When provided, the built-in simulators use it instead of the bundled
+   * inlined-blob default. Hosts that consume the published dist (rather
+   * than building from source) should pass their own factory — e.g. via
+   * Vite's `?worker` directive — to avoid load-time issues with the inlined
+   * worker.
    */
   eventSimulationWorkerFactory?: WorkerFactory;
   /**
@@ -55,7 +49,7 @@ export type PetrinautProviderProps = {
   simulators?: readonly SimulatorRegistration[];
   /**
    * Optional language-server worker factory. Same shape as
-   * `simulationWorkerFactory` — provided when the host needs to bundle the
+   * `eventSimulationWorkerFactory` — provided when the host needs to bundle the
    * LSP worker themselves rather than relying on the inlined-blob default.
    */
   lspWorkerFactory?: LspWorkerFactory;
@@ -77,7 +71,6 @@ export type PetrinautProviderProps = {
 export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
   netManagement,
-  simulationWorkerFactory,
   eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
   simulators,
@@ -106,11 +99,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
               registrations={simulators}
             >
               {/* The editor's Quick Simulation runs on a registered simulator. */}
-              <SimulationProvider
-                key={instance.handle.id}
-                workerFactory={simulationWorkerFactory}
-                initialConfiguration={EDITOR_SIMULATION_CONFIGURATION}
-              >
+              <SimulationProvider key={instance.handle.id}>
                 <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
                   <OptimizationsProvider>
                     <ExperimentHostProvider>

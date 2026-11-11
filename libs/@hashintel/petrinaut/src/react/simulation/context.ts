@@ -19,18 +19,6 @@ import {
 
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
 
-/**
- * Which runtime a Quick Simulation runs on. A host sets it once, when it
- * mounts the provider.
- *
- * - `event-driven`: the run is computed by the selected simulator and
- *   recorded as events, the state in between interpolated from them.
- *   Playback addresses time. The editor runs on it.
- * - `fixed-step`: one frame per time step `dt`, the frame-per-step runtime.
- *   Playback addresses frames. The Preview host still runs on it.
- */
-export type SimulationEngine = "fixed-step" | "event-driven";
-
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.
 export type {
@@ -120,36 +108,26 @@ export type SimulationContextValue = {
    */
   initialMarking: InitialMarking;
   /**
-   * Time step for simulation advancement.
-   */
-  dt: number;
-  /**
    * Maximum simulation time in seconds.
    * When the simulation reaches this time, it will be paused.
    * If null, the simulation runs until no transitions are enabled.
    */
   maxTime: number | null;
   /**
-   * Total number of computed frames available. On the event-driven engine,
-   * the number of recorded events.
-   */
-  /**
-   * Frames recorded so far, or events for the event-driven engine. A store
+   * Events the run has recorded so far, the initial state included. A store
    * rather than a number, so the context value holds still while a run
    * streams and only what shows the count renders on each batch.
    */
   totalFramesStore: ReadableStore<number>;
-  /** The runtime a run uses, fixed by the host. */
-  engine: SimulationEngine;
   /**
-   * What Play computes on the event-driven engine: one run, or many.
-   * Changing it discards the current run.
+   * What Play computes: one run, or many. Changing it discards the current
+   * run.
    */
   mode: SimulationMode;
   /**
-   * The simulator the next event-driven run is computed by in the current
-   * mode, with its parameter values. Each mode keeps its own. Changing
-   * either discards the current run; the fixed-step engine ignores it.
+   * The simulator the next run is computed by in the current mode, with its
+   * parameter values. Each mode keeps its own. Changing either discards the
+   * current run.
    */
   simulatorSelection: SimulatorSelection;
   /** Runs a Stochastic simulation computes. */
@@ -162,8 +140,8 @@ export type SimulationContextValue = {
    */
   playbackSource: PlaybackSource | null;
   /**
-   * The event-driven run's handle while `engine` is `event-driven` and a run
-   * exists; null otherwise. Playback over events reads the trace through it.
+   * The Quick Simulation's run while one exists; null otherwise. Playback
+   * reads its trace through it.
    */
   eventSimulation: EventSimulation | null;
 
@@ -252,7 +230,6 @@ export type SimulationContextValue = {
   setScenarioParameterValue: (identifier: string, value: string) => void;
   setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
-  setDt: (dt: number) => void;
   setMode: (mode: SimulationMode) => void;
   setRuns: (runs: number) => void;
   /**
@@ -273,38 +250,14 @@ export type SimulationContextValue = {
    */
   setMaxTime: (maxTime: number | null) => void;
   /**
-   * Initialize the simulation with the given parameters.
-   * Returns a Promise that resolves when initialization is complete (ready state)
-   * or rejects if an error occurs during initialization.
+   * Starts what the mode computes on the selected simulator: a run, or an
+   * experiment. Resolves once it is ready to run, and rejects with the
+   * reason when the simulator refuses or the net does not compile.
    */
-  initialize: (params: {
-    seed: number;
-    dt: number;
-    maxFramesAhead?: number;
-    batchSize?: number;
-  }) => Promise<void>;
+  initialize: (params: { seed: number }) => Promise<void>;
   run: () => void;
   pause: () => void;
   reset: () => void;
-  /**
-   * Update backpressure configuration at runtime.
-   * Called by PlaybackProvider when playMode changes.
-   */
-  setBackpressure: (params: {
-    maxFramesAhead?: number;
-    batchSize?: number;
-  }) => void;
-  /**
-   * Acknowledge receipt of frames up to the given frame number.
-   * Used for backpressure control - the worker will pause computation
-   * when it gets too far ahead of acknowledged frames.
-   *
-   * This should be called by PlaybackProvider based on playMode:
-   * - viewOnly: never call ack
-   * - computeBuffer: call ack when in the buffer zone (near end of available frames)
-   * - computeMax: call ack every time new frames arrive
-   */
-  ack: (frameNumber: number) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
@@ -319,10 +272,8 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   scenarioCompilationErrors: null,
   adHocScenario: null,
   adHocNetParameters: [],
-  dt: 0.01,
   maxTime: null,
   totalFramesStore: { get: () => 0, subscribe: () => () => {} },
-  engine: "fixed-step",
   mode: "quick",
   simulatorSelection: { simulatorId: "", parameters: {} },
   runs: 100,
@@ -337,7 +288,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setScenarioParameterValue: () => {},
   setInitialMarking: () => {},
   setParameterValue: () => {},
-  setDt: () => {},
   setMode: () => {},
   setRuns: () => {},
   keepStochasticRun: () => {},
@@ -348,8 +298,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setBackpressure: () => {},
-  ack: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
