@@ -19,7 +19,9 @@ export function ApiMeta({
         <Glyph kind={kind} />
         {kind}
       </span>
-      {exports > 0 ? <span>{`${exports} exports`}</span> : null}
+      {exports > 0 ? (
+        <span>{`${exports} export${exports === 1 ? "" : "s"}`}</span>
+      ) : null}
       <Facts
         since={since}
         stability={stability}
