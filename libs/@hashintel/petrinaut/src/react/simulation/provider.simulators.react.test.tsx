@@ -236,6 +236,57 @@ describe("SimulationProvider on a registered simulator", () => {
     expect(getValue().eventSimulation?.status).toBe(handle.status);
   });
 
+  it("counts steps for a Quick Simulation of an untimed net, and time otherwise", () => {
+    const simulator = makeSimulator({
+      id: "test.plain",
+      needsHirTrees: false,
+      start: () => Promise.resolve({ ok: true, handle: makeHandle() }),
+    });
+
+    const untimed = renderProvider([simulator.registration]);
+    expect(untimed.getValue().clock).toBe("steps");
+    // Many runs are compared at the same times, so they keep a clock.
+    act(() => untimed.getValue().setMode("stochastic"));
+    expect(untimed.getValue().clock).toBe("time");
+    cleanup();
+
+    const timed = renderProvider([simulator.registration], {
+      ...sdcpn,
+      transitions: [
+        {
+          id: "arrive",
+          name: "Arrive",
+          inputArcs: [],
+          outputArcs: [],
+          lambdaType: "stochastic",
+          lambdaCode: "return 1;",
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    expect(timed.getValue().clock).toBe("time");
+  });
+
+  it("reads the clock from the run while one exists", async () => {
+    const simulator = makeSimulator({
+      id: "test.plain",
+      needsHirTrees: false,
+      start: () =>
+        Promise.resolve({
+          ok: true,
+          handle: { ...makeHandle(), clock: "time" },
+        }),
+    });
+    const { getValue } = renderProvider([simulator.registration]);
+    expect(getValue().clock).toBe("steps");
+
+    await act(() => getValue().initialize({ seed: 1 }));
+
+    expect(getValue().clock).toBe("time");
+  });
+
   it("asks for the HIR trees when the simulator reads them", async () => {
     const reader = makeSimulator({
       id: "test.reader",

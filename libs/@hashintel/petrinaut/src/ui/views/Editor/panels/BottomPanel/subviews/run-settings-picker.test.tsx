@@ -154,6 +154,21 @@ describe("RunSettingsPicker", () => {
     await waitFor(() => expect(setMode).toHaveBeenCalledWith("stochastic"));
   });
 
+  it("says a net with no clock runs step by step, in place of the simulator and its values", async () => {
+    render(<Providers simulation={{ clock: "steps" }} />);
+
+    expect(
+      screen.getByRole("button", { name: "Simulator: Step by step" }),
+    ).toBeTruthy();
+
+    await openPopover();
+    expect(screen.getByRole("note").textContent).toContain(
+      "A Quick simulation fires it step by step",
+    );
+    // The simulators stay pickable: the choice stands for a timed net.
+    expect(screen.getByRole("radio", { name: /^Stepped/ })).toBeTruthy();
+  });
+
   it("adds the run count and the end time in Stochastic mode", () => {
     render(
       <Providers simulation={{ mode: "stochastic", runs: 250, maxTime: 60 }} />,

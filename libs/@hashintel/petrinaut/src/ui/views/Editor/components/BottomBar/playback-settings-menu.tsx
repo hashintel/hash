@@ -146,6 +146,38 @@ export type PlaybackSettingsMenuProps = {
   allowedSpeeds?: readonly PlaybackSpeed[];
 };
 
+/**
+ * What the speeds and the fixed end are called and bounded by, per clock. A
+ * timed run plays at a multiple of real time and ends at a time. An untimed
+ * run plays a number of steps per second and ends at a step.
+ */
+const CLOCK_SETTINGS = {
+  time: {
+    speedLabel: "Playback speed",
+    formatSpeed: formatPlaybackSpeed,
+    endLabel: "End at fixed time",
+    endUnit: "s",
+    endInputLabel: "Maximum simulation time in seconds",
+    endMin: 0.1,
+    endStep: 0.1,
+    shownEnd: (maxTime: number) => maxTime,
+    acceptsEnd: (value: number) => value > 0,
+  },
+  steps: {
+    speedLabel: "Steps per second",
+    formatSpeed: (speed: PlaybackSpeed) =>
+      speed === Number.POSITIVE_INFINITY ? "Max" : String(speed),
+    endLabel: "End at step",
+    endUnit: "",
+    endInputLabel: "Step the run ends at",
+    endMin: 1,
+    endStep: 1,
+    // A run stops at the first step at or past its end.
+    shownEnd: (maxTime: number) => Math.ceil(maxTime),
+    acceptsEnd: (value: number) => Number.isInteger(value) && value >= 1,
+  },
+} as const;
+
 const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
   const rows: PlaybackSpeed[][] = [];
   for (let index = 0; index < speeds.length; index += 4) {
@@ -168,9 +200,11 @@ export const PlaybackSettingsMenu = ({
   const {
     state: simulationState,
     mode,
+    clock,
     maxTime,
     setMaxTime,
   } = use(SimulationContext);
+  const settings = CLOCK_SETTINGS[clock];
 
   const {
     playbackSpeed,
@@ -195,7 +229,7 @@ export const PlaybackSettingsMenu = ({
     if (condition === "indefinitely") {
       setMaxTime(null);
     } else {
-      // Set default of 10 seconds when switching to fixed time
+      // Ten seconds, or ten steps, when switching to a fixed end
       setMaxTime(10);
     }
   };
@@ -343,7 +377,7 @@ export const PlaybackSettingsMenu = ({
                 withPadding={false}
                 className={sectionInnerStyle}
               >
-                <div className={sectionLabelStyle}>Playback speed</div>
+                <div className={sectionLabelStyle}>{settings.speedLabel}</div>
                 {speedRows.map((row) => (
                   <div key={row[0]} className={speedGridStyle}>
                     {row.map((speed) => (
@@ -356,7 +390,7 @@ export const PlaybackSettingsMenu = ({
                         })}
                         onClick={() => setPlaybackSpeed(speed)}
                       >
-                        {formatPlaybackSpeed(speed)}
+                        {settings.formatSpeed(speed)}
                       </Button>
                     ))}
                   </div>
@@ -437,26 +471,29 @@ export const PlaybackSettingsMenu = ({
                           size="sm"
                         />
                         <span className={menuItemTextStyle}>
-                          End at fixed time
+                          {settings.endLabel}
                         </span>
                         {stoppingCondition === "fixed" && (
                           <>
                             <NumberInput
                               size="sm"
-                              min={0.1}
-                              step={0.1}
-                              value={maxTime ?? 10}
+                              min={settings.endMin}
+                              step={settings.endStep}
+                              value={settings.shownEnd(maxTime ?? 10)}
                               align="right"
                               hideStepper
                               disabled={hasSimulation}
                               onChange={(nextMaxTime) => {
-                                if (nextMaxTime !== null && nextMaxTime > 0) {
+                                if (
+                                  nextMaxTime !== null &&
+                                  settings.acceptsEnd(nextMaxTime)
+                                ) {
                                   setMaxTime(nextMaxTime);
                                 }
                               }}
                               onClick={(event) => event.stopPropagation()}
                               className={maxTimeInputStyle}
-                              aria-label="Maximum simulation time in seconds"
+                              aria-label={settings.endInputLabel}
                             />
                             <span
                               style={{
@@ -464,7 +501,7 @@ export const PlaybackSettingsMenu = ({
                                 color: "var(--colors-neutral-s100)",
                               }}
                             >
-                              s
+                              {settings.endUnit}
                             </span>
                           </>
                         )}

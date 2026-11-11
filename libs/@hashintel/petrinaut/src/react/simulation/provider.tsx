@@ -10,6 +10,7 @@ import {
   createExperimentReader,
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   placeCountMetricSpecs,
+  runClockOf,
   simulatorSamplePeriod,
   compileScenario,
   synthesizeAdHocScenario,
@@ -1268,6 +1269,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         : null,
   );
 
+  // The run says what its positions count. Before one exists the net does:
+  // a Quick Simulation of an untimed net is a sequence of steps.
+  const clock =
+    eventSimulation?.clock ??
+    (mode === "quick" ? runClockOf(petriNetDefinition, extensions) : "time");
+
   const contextValue: SimulationContextValue = {
     state: simulationState,
     error,
@@ -1283,6 +1290,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: maxTimeIn(mode, stateValues.maxTime),
     totalFramesStore,
     mode,
+    clock,
     simulatorSelection,
     runs: stateValues.runs,
     stochasticRun: stochastic?.run ?? null,

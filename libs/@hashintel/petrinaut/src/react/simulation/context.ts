@@ -11,6 +11,7 @@ import {
   type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
+  type RunClock,
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
@@ -117,6 +118,12 @@ export type SimulationContextValue = {
    * run.
    */
   mode: SimulationMode;
+  /**
+   * What a position of the run counts in the current mode: simulated
+   * seconds, or the steps of an untimed net's Quick Simulation, which has no
+   * clock. Read from the run while one exists, and from the net before.
+   */
+  clock: RunClock;
   /**
    * The simulator the next run is computed by in the current mode, with its
    * parameter values. Each mode keeps its own. Changing either discards the
@@ -245,6 +252,7 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   maxTime: null,
   totalFramesStore: constantStore(0),
   mode: "quick",
+  clock: "time",
   simulatorSelection: { simulatorId: "", parameters: {} },
   runs: 100,
   stochasticRun: null,

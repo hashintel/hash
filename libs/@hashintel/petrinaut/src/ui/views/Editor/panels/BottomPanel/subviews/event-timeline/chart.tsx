@@ -8,6 +8,10 @@ import "uplot/dist/uPlot.min.css";
 
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import {
+  describeRunPosition,
+  formatRunPosition,
+} from "../../../../shared/run-position";
+import {
   tooltipDotStyle,
   tooltipLabelStyle,
   tooltipStyle,
@@ -32,7 +36,7 @@ import {
 } from "./series";
 
 import type { TimeRange } from "./use-event-timeline-data";
-import type { ReadableStore } from "@hashintel/petrinaut-core";
+import type { ReadableStore, RunClock } from "@hashintel/petrinaut-core";
 import type { FC, RefObject } from "react";
 
 /** Pixels around the pointer within which a firing mark is the hovered one. */
@@ -55,7 +59,20 @@ const REFERENCE_MARK_PX = 4;
 const PLAYHEAD_COLOR = "#1e293b";
 const ACCENT_COLOR = "#2563eb";
 
-const formatSeconds = (time: number): string => `${time.toFixed(3)}s`;
+/** A position in the tooltip: a time, or the step it falls in. */
+const formatPosition = (clock: RunClock, position: number): string =>
+  clock === "steps"
+    ? `step ${formatRunPosition(clock, position)}`
+    : `${formatRunPosition(clock, position)}s`;
+
+/** A tick of the axis. A run in steps has ticks on whole steps only. */
+const formatAxisPosition = (clock: RunClock, position: number): string =>
+  clock === "steps" ? String(position) : `${position.toFixed(3)}s`;
+
+/** Tick spacings of a run in steps: 1, 2 and 5 times each power of ten. */
+const STEP_INCREMENTS = Array.from({ length: 10 }, (_, power) =>
+  [1, 2, 5].map((multiple) => multiple * 10 ** power),
+).flat();
 
 interface TooltipNodes {
   root: HTMLDivElement;
@@ -87,6 +104,8 @@ const createTooltip = (): TooltipNodes => {
 
 /** What the chart reads on every draw and pointer event, kept out of React. */
 type ChartState = {
+  /** What a position on the time axis counts. */
+  clock: RunClock;
   data: EventTimelineData;
   firings: readonly FiringMark[];
   references: readonly number[];
@@ -289,7 +308,10 @@ const createOverlay = (
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawPlayhead(u, ctx, state, time, getFeel());
     host?.setAttribute("aria-valuenow", String(time));
-    host?.setAttribute("aria-valuetext", `${time.toFixed(3)} seconds`);
+    host?.setAttribute(
+      "aria-valuetext",
+      describeRunPosition(state.clock, time),
+    );
   };
   resize();
   return { draw, resize, dispose: () => canvas.remove() };
@@ -340,11 +362,11 @@ const updateTooltip = (
   nodes.name.textContent = showSeries ? series.seriesName : "";
   nodes.value.textContent =
     showSeries && value != null ? formatValue(value) : "";
-  nodes.time.textContent = formatSeconds(time);
+  nodes.time.textContent = formatPosition(state.clock, time);
   nodes.firing.textContent = firing
     ? `${firing.transitionIds
         .map((id) => state.transitionNames.get(id) ?? id)
-        .join(", ")} fired at ${formatSeconds(firing.time)}`
+        .join(", ")} fired at ${formatPosition(state.clock, firing.time)}`
     : "";
 
   nodes.root.style.display = "block";
@@ -593,7 +615,13 @@ const buildOptions = (
         stroke: "#475569",
         grid: { stroke: "#f3f4f6", width: 1 },
         ticks: { show: false },
-        values: (_u, values) => values.map((value) => formatSeconds(value)),
+        ...(stateRef.current.clock === "steps"
+          ? { incrs: STEP_INCREMENTS }
+          : {}),
+        values: (_u, values) =>
+          values.map((value) =>
+            formatAxisPosition(stateRef.current.clock, value),
+          ),
       },
       laneLabels
         ? {
@@ -677,6 +705,8 @@ const hostStyle = css({
 });
 
 export const EventTimelineChart: FC<{
+  /** What a position on the time axis counts: seconds, or steps. */
+  clock: RunClock;
   data: EventTimelineData;
   firings: readonly FiringMark[];
   /** Times of the reference frames recorded between firings. */
@@ -704,6 +734,7 @@ export const EventTimelineChart: FC<{
   /** Hold the chart as it stands; updates apply together when it resumes. */
   paused?: boolean;
 }> = ({
+  clock,
   data,
   firings,
   references,
@@ -731,6 +762,7 @@ export const EventTimelineChart: FC<{
   const hasSize = size != null;
 
   const stateRef = useLatest<ChartState>({
+    clock,
     data,
     firings,
     references,
@@ -765,7 +797,8 @@ export const EventTimelineChart: FC<{
     event.preventDefault();
   };
 
-  // One chart per data shape and series list; everything else updates it.
+  // One chart per clock, data shape and series list; everything else
+  // updates it.
   // The data it starts from is read through the ref, which holds the render's
   // value by the time the effect runs, so a data update alone does not
   // rebuild the chart.
@@ -816,7 +849,7 @@ export const EventTimelineChart: FC<{
       chart.destroy();
       chartRef.current = null;
     };
-  }, [dataKind, dataSeries, hiddenSeries, hasSize, stateRef]);
+  }, [clock, dataKind, dataSeries, hiddenSeries, hasSize, stateRef]);
 
   // The playhead follows the viewed time through the store, not a render.
   useEffect(

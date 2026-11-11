@@ -124,6 +124,15 @@ const unitStyle = css({
   color: "neutral.fg.subtle",
 });
 
+const steppedNoteStyle = css({
+  paddingX: "3",
+  paddingTop: "2",
+  paddingBottom: "1",
+  fontSize: "xs",
+  lineHeight: "[1.4]",
+  color: "neutral.fg.subtle",
+});
+
 const lockedNoteStyle = css({
   display: "flex",
   alignItems: "center",
@@ -159,6 +168,7 @@ export const RunSettingsPopoverContent: React.FC<{
   const { registrations } = use(SimulatorsContext);
   const {
     mode,
+    clock,
     simulatorSelection,
     selectSimulator,
     setSimulatorParameter,
@@ -347,6 +357,15 @@ export const RunSettingsPopoverContent: React.FC<{
       </div>
     </Popover.Body>
   );
+  const steppedPanel = (
+    <Popover.Body key="stepped" className={sectionStyle}>
+      <div role="note" className={steppedNoteStyle}>
+        This net is untimed: no transition has a stochastic rate and no place
+        has dynamics. A Quick simulation fires it step by step, and the
+        simulator below is not used.
+      </div>
+    </Popover.Body>
+  );
   const lockedPanel = (
     <Popover.Body key="locked" className={sectionStyle}>
       <div className={lockedNoteStyle}>
@@ -360,6 +379,7 @@ export const RunSettingsPopoverContent: React.FC<{
     <Popover.Container className={containerStyle}>
       {[
         <Popover.Header key="header" title="Simulator" />,
+        ...(clock === "steps" ? [steppedPanel] : []),
         simulatorsPanel,
         ...(hasFields ? [fieldsPanel] : []),
         ...(locked ? [lockedPanel] : []),
