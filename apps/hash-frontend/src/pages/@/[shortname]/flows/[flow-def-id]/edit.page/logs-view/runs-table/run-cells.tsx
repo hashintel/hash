@@ -118,7 +118,7 @@ const stateGlyphs: Record<
     className: css({ color: "red.s85" }),
     named: true,
   },
-  abandoned: {
+  cancelled: {
     iconName: "circleClose",
     className: css({ color: "neutral.s70" }),
     named: true,

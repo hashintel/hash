@@ -9,7 +9,7 @@ export type RunState =
   | "completed"
   | "failed"
   | "timedOut"
-  | "abandoned"
+  | "cancelled"
   | "unknown";
 
 export type RunTab = "all" | "running" | "completed" | "failed";
@@ -25,8 +25,8 @@ const stateOfStatus: Record<FlowRunStatus, RunState> = {
   [FlowRunStatus.Completed]: "completed",
   [FlowRunStatus.Failed]: "failed",
   [FlowRunStatus.TimedOut]: "timedOut",
-  [FlowRunStatus.Cancelled]: "abandoned",
-  [FlowRunStatus.Terminated]: "abandoned",
+  [FlowRunStatus.Cancelled]: "cancelled",
+  [FlowRunStatus.Terminated]: "cancelled",
   [FlowRunStatus.Unknown]: "unknown",
   [FlowRunStatus.Unspecified]: "unknown",
 };
@@ -54,7 +54,7 @@ export const runStates: Record<
 > = {
   failed: { label: "Failed", tab: "failed" },
   timedOut: { label: "Timed out", tab: "failed" },
-  abandoned: { label: "Abandoned", tab: "failed" },
+  cancelled: { label: "Cancelled", tab: "failed" },
   unknown: { label: "Unknown", tab: null },
   needsReview: { label: "Needs review", tab: "running" },
   running: { label: "Running", tab: "running" },

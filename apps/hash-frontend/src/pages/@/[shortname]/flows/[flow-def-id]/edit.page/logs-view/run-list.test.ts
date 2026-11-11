@@ -82,12 +82,12 @@ describe("toRunRow", () => {
     ).toBe("running");
   });
 
-  it("shows a cancelled or terminated run as abandoned", () => {
+  it("shows a cancelled or terminated run as cancelled", () => {
     expect(
       [FlowRunStatus.Cancelled, FlowRunStatus.Terminated].map(
         (status) => row("aaaaaa", { status }).state,
       ),
-    ).toEqual(["abandoned", "abandoned"]);
+    ).toEqual(["cancelled", "cancelled"]);
   });
 
   it("takes a run with a schedule to have been triggered by it", () => {
