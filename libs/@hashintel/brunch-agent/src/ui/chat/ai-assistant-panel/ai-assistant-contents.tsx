@@ -643,6 +643,7 @@ export const AiAssistantContents = ({
         {composerStatus}
         {isVoiceSessionLive ? (
           <div ref={voiceDockRef}>
+            <ComposerSelection />
             <LiveVoiceDock
               assistantBusy={isBusy}
               composerControl={composerControl}

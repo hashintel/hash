@@ -78,6 +78,7 @@ const context = (): PetrinautAiVoiceModeContext => ({
   canAcceptVoiceInput: true,
   inputMode: "voice",
   isAiAssistantOpen: true,
+  readSelection: () => ({ items: [], labels: [] }),
   stop: vi.fn(async () => {}),
   submitText: vi.fn(),
   submitVoiceInput: vi.fn(),

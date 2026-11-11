@@ -2,7 +2,10 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { VoiceAudioSettings } from "../session/voice-audio-settings";
-import { createLiveConversation } from "./live-conversation";
+import {
+  createLiveConversation,
+  type LiveEditorSelection,
+} from "./live-conversation";
 import { createOutputEchoTrace } from "./live-conversation/echo-diagnostics";
 import { createUtteranceLevels } from "./live-conversation/utterance-levels";
 
@@ -140,12 +143,14 @@ const setup = ({
   audioVolume = 1,
   inputEnabled = true,
   readWords,
+  readSelection,
 }: {
   readonly audioSettings?: VoiceAudioSettings;
   readonly audioMuted?: boolean;
   readonly audioVolume?: number;
   readonly inputEnabled?: boolean;
   readonly readWords?: Parameters<typeof createLiveConversation>[8];
+  readonly readSelection?: Parameters<typeof createLiveConversation>[9];
 } = {}) => {
   const sent = [[], []] as [string[], string[]];
   const createChannel = (events: string[]) =>
@@ -234,6 +239,7 @@ const setup = ({
     speech,
     "off",
     readWords,
+    readSelection,
   );
   const emit = (connection: 0 | 1, data: unknown) =>
     channels[connection].dispatchEvent(
@@ -1651,6 +1657,53 @@ test("sends the startup level once, then one quiet note per turn with the final 
   expect(fixture.onFinalizedInput).toHaveBeenCalledOnce();
   expect(fixture.sent[0]).toHaveLength(4);
   expect(fixture.sent[0][3]).toContain("now Off");
+});
+
+test("a finished turn carries the selection, and Live hears of it once per change", async () => {
+  let selection: LiveEditorSelection = {
+    items: [{ type: "place", id: "doctors" }],
+    labels: ["place: AvailableDoctors"],
+  };
+  const fixture = setup({ readSelection: () => selection });
+  await connect(fixture);
+  const speak = (itemId: string, previous: string | null) => {
+    fixture.emit(1, {
+      type: "input_audio_buffer.speech_started",
+      item_id: itemId,
+    });
+    fixture.emit(1, {
+      type: "input_audio_buffer.committed",
+      item_id: itemId,
+      previous_item_id: previous,
+    });
+    fixture.emit(1, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: itemId,
+      content_index: 0,
+      transcript: "Make this two",
+    });
+  };
+  const notes = () =>
+    fixture.sent[0]
+      .map((data) => JSON.parse(data) as { type: string; content?: string })
+      .filter(({ type }) => type === "session.thinking.append");
+
+  speak("first", null);
+  expect(fixture.onFinalizedInput.mock.lastCall?.[0].selection).toEqual(
+    selection.items,
+  );
+  expect(notes()).toHaveLength(1);
+  expect(notes()[0]?.content).toContain("place: AvailableDoctors");
+
+  // The same selection on the next turn sends no second note.
+  speak("second", "first");
+  expect(notes()).toHaveLength(1);
+
+  selection = { items: [], labels: [] };
+  speak("third", "second");
+  expect(fixture.onFinalizedInput.mock.lastCall?.[0].selection).toEqual([]);
+  expect(notes()).toHaveLength(2);
+  expect(notes()[1]?.content).toContain("cleared their selection");
 });
 
 test("a failed pacing note is not retried and never interrupts speech", async () => {

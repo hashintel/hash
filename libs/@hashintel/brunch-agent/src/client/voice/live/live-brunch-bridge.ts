@@ -873,6 +873,9 @@ export class LiveBrunchBridge {
         const result = await this.#dependencies.submit({
           id: input.id,
           text,
+          ...(input.selection === undefined
+            ? {}
+            : { selection: input.selection }),
           admissionTarget: { kind: "user", messageId: input.id },
           signal: this.#abort.signal,
           onAdmission: (submissionId) => {

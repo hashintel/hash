@@ -55,7 +55,10 @@ type RealtimeBridgeSession = Pick<
 type SubmitVoiceInput = Parameters<
   PetrinautAiVoiceModeContext["submitVoiceInput"]
 >[0];
-type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
+type SubmitInterviewAnswerInput = Pick<
+  SubmitVoiceInput,
+  "text" | "selection"
+> & {
   readonly admissionTarget: BrunchPanelAdmissionTarget;
   readonly id: string;
   readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;

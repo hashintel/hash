@@ -294,14 +294,30 @@ test("shows the editor's selection on the composer and sends it with the message
   await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
 });
 
-test("sends the editor's selection with a Voice turn", async () => {
+test("sends a Voice turn with the selection it finished with, and shows it in the dock", async () => {
   const bodies: unknown[] = [];
+  let releaseFirst = () => {};
   const transport: PetrinautAiTransport = {
     reconnectToStream: () => Promise.resolve(null),
     sendMessages: ({ body }) => {
       bodies.push(structuredClone(body));
+      if (bodies.length > 1) {
+        return Promise.resolve(
+          streamChunks(textReply("second", "Second answer.")),
+        );
+      }
+      // The first response stays open, so the next turn waits in the queue.
       return Promise.resolve(
-        streamChunks(textReply("reply", "It holds work.")),
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            releaseFirst = () => {
+              for (const chunk of textReply("first", "First answer.")) {
+                controller.enqueue(chunk);
+              }
+              controller.close();
+            };
+          },
+        }),
       );
     },
   };
@@ -311,20 +327,43 @@ test("sends the editor's selection with a Voice turn", async () => {
   let voice:
     | Parameters<NonNullable<PetrinautAiAssistant["renderVoiceMode"]>>[0]
     | undefined;
+  const VoiceMode = ({
+    context,
+  }: {
+    context: Parameters<
+      NonNullable<PetrinautAiAssistant["renderVoiceMode"]>
+    >[0];
+  }) => {
+    const { reportVoiceSessionState } = context;
+    useEffect(() => {
+      reportVoiceSessionState({
+        canReadFullResponse: false,
+        canRepeatQuestion: false,
+        canTakeTurn: true,
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        phase: "listening",
+        speakerMuted: false,
+        speakerVolume: 1,
+      });
+      return () => reportVoiceSessionState(null);
+    }, [reportVoiceSessionState]);
+    return null;
+  };
+  const place = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  });
   render(
     <Petrinaut
       handle={createJsonDocHandle({
         initial: {
-          places: [
-            {
-              id: "queue",
-              name: "Queue",
-              colorId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-          ],
+          places: [place("queue", "Queue"), place("server", "Server")],
           transitions: [],
         },
       })}
@@ -337,7 +376,7 @@ test("sends the editor's selection with a Voice turn", async () => {
           transport,
           renderVoiceMode: (context) => {
             voice = context;
-            return null;
+            return <VoiceMode context={context} />;
           },
         }),
       ]}
@@ -352,12 +391,36 @@ test("sends the editor's selection with a Voice turn", async () => {
       selection: [{ type: "place", id: "queue" }],
     })),
   );
-  await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(true));
-  await act(() => voice?.submitVoiceInput({ text: "Why is this here?" }));
-  await screen.findByText("It holds work.", {}, { timeout: 4_000 });
-  expect(bodies).toEqual([
-    { selection: [{ type: "place", id: toPetrinautId("queue") }] },
-  ]);
+  const queue = [{ type: "place", id: toPetrinautId("queue") }];
+  // The Voice dock names the selection a spoken turn will carry.
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  expect(voice?.readSelection()).toEqual({
+    items: queue,
+    labels: ["place: Queue"],
+  });
+
+  // A selection captured as the person finished speaking wins over the
+  // editor's selection when the turn is sent.
+  const server = [{ type: "place" as const, id: toPetrinautId("server") }];
+  act(() => {
+    void voice?.submitVoiceInput({ text: "Make this two", selection: server });
+  });
+  await waitFor(() => expect(bodies).toHaveLength(1));
+
+  // A turn spoken while Brunch is busy waits, and keeps the selection it
+  // finished with though the editor's selection changes before it is sent.
+  let queued: Promise<unknown> | undefined;
+  act(() => {
+    queued = voice?.submitVoiceInput({ text: "Why is this here?" });
+  });
+  await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(false));
+  act(() => editor?.navigate((current) => ({ ...current, selection: [] })));
+  act(() => releaseFirst());
+  await act(async () => {
+    await queued;
+  });
+  await screen.findByText("Second answer.", {}, { timeout: 4_000 });
+  expect(bodies).toEqual([{ selection: server }, { selection: queue }]);
 });
 
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {

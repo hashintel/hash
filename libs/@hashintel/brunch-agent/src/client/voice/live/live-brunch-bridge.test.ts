@@ -200,6 +200,16 @@ test("empty speech does not evict a superseded turn that is still preparing", as
   expect(fixture.submit.mock.calls[0]?.[0].id).toBe("old");
 });
 
+test("submits a turn with the selection it finished with", async () => {
+  const fixture = setup();
+  const selection = [{ type: "place" as const, id: "doctors" }];
+  await fixture.bridge.accept({
+    ...speech("one", "Make this two"),
+    selection,
+  });
+  expect(fixture.submit.mock.calls[0]?.[0].selection).toEqual(selection);
+});
+
 test("prepares a brief before admission and summarizes only a settled rendered answer", async () => {
   const history = new VoiceMediationHistory("test");
   const prepare = vi.fn(async () => ({

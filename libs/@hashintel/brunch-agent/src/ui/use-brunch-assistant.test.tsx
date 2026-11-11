@@ -1253,6 +1253,7 @@ test.each(["standard", "thorough", "off"] as const)(
         ...context,
         inputMode: "voice",
         isAiAssistantOpen: true,
+        readSelection: () => ({ items: [], labels: [] }),
         canAcceptVoiceInput: true,
         registerVoiceModeControls: vi.fn(() => () => {}),
         reportVoiceSessionState: vi.fn(),

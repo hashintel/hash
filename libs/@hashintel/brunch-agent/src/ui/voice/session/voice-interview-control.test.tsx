@@ -64,6 +64,7 @@ const VoiceInterviewHarness = ({
     conversationId: "voice-control-test",
     inputMode,
     isAiAssistantOpen,
+    readSelection: () => ({ items: [], labels: [] }),
     messages: [],
     registerVoiceModeControls: (controls) => {
       registeredVoiceModeControls = controls;
