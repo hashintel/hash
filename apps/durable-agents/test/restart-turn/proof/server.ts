@@ -23,7 +23,7 @@ import {
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
-/** A canonical net mutation: `browserToolMutatesDocument` is true for it. */
+/** A canonical net mutation: `browserToolFacts` counts it as a change. */
 export const toolName = "addPlace";
 
 export const placeInput = {
@@ -31,7 +31,6 @@ export const placeInput = {
   name: "Washer",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 120,
   y: 80,
 };

@@ -25,6 +25,7 @@ import {
   bindBrowserDocument,
   browserCallExtension,
   type BrowserCallRecord,
+  type BrowserCallResult,
   BrowserCallsDoc,
   claimBrowserCall,
   finishBrowserCall,
@@ -48,7 +49,6 @@ const place = (id: string, name: string) => ({
   name,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });
@@ -78,8 +78,8 @@ const scriptedBrowser = (
   harness: Harness,
   conversationId: ConversationId,
   respond: (record: BrowserCallRecord) => {
-    output: unknown;
-    metadata?: unknown;
+    output: BrowserCallResult["output"];
+    metadata?: BrowserCallResult["metadata"];
   },
   delayMs: number,
 ) => {
@@ -147,7 +147,12 @@ const scriptedBrowser = (
 
 let revision = 1;
 /** Reads observe the current revision; each change moves it on and reads the net back. */
-const browserAnswer = (record: BrowserCallRecord) => {
+const browserAnswer = (
+  record: BrowserCallRecord,
+): {
+  output: BrowserCallResult["output"];
+  metadata?: BrowserCallResult["metadata"];
+} => {
   if (record.toolName === "getLatestNetDefinition")
     return {
       output: { title: "Net", definition },

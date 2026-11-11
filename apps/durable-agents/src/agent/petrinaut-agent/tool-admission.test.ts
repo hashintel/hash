@@ -44,7 +44,6 @@ const placeInput = {
   name: "Dryer",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };

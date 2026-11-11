@@ -12,7 +12,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   type BrowserCallClaim,
-  browserToolMutatesDocument,
+  browserToolFacts,
   brunchRoutes,
   canonicalContent,
 } from "@hashintel/brunch-agent";
@@ -41,7 +41,6 @@ const input = {
   name: "Dryer",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 };
@@ -199,7 +198,7 @@ const toolResultOf = async (conversation: Conversation) => {
 
 describe("browser-call router", () => {
   test("a canonical net mutation waits for the browser and completes over HTTP", async () => {
-    expect(browserToolMutatesDocument(toolName)).toBe(true);
+    expect(browserToolFacts(toolName).documentRevision).toBe("change");
     const { harness, root, submission, app } = await openConversation();
     const browser = browserOf(app);
 

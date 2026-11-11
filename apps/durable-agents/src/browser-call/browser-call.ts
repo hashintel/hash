@@ -52,7 +52,7 @@ import {
   type BrowserCallFailureDisposition,
   type BrowserContext,
   type BrowserToolEnvelope,
-  browserToolMutatesDocument,
+  browserToolFacts,
   type CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalContent,
   type ClientToolResult,
@@ -219,7 +219,7 @@ const mayHaveStarted = (record: BrowserCallRecord) =>
 /** The model-facing error for a call that ended without a result, as Brunch words it. */
 export const unfinishedError = (record: BrowserCallRecord, cause: string) => {
   if (!mayHaveStarted(record)) return browserCallUnstartedError;
-  return browserToolMutatesDocument(record.toolName)
+  return browserToolFacts(record.toolName).effectUnknownOnFailure
     ? `Browser call ${cause}; an attempted document effect is unknown.`
     : `Browser call ${cause}; the document is unchanged.`;
 };
@@ -231,7 +231,7 @@ const failureError = (
 ) => {
   if (disposition === "stale") return browserCallStaleError;
   if (disposition === "unstarted") return browserCallUnstartedError;
-  return browserToolMutatesDocument(toolName)
+  return browserToolFacts(toolName).effectUnknownOnFailure
     ? "The browser result failed; an attempted document effect is unknown."
     : "The non-mutating browser call failed; the document is unchanged.";
 };
@@ -400,7 +400,10 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
             return { task: existing.task as TaskId<BrowserCallOutcome> };
           const position = await issuePosition(tx, api.taskId, callId);
           let expectedRevision: string | undefined;
-          if (checksNetView && browserToolMutatesDocument(definition.name)) {
+          if (
+            checksNetView &&
+            browserToolFacts(definition.name).requiresFreshView
+          ) {
             if (position === undefined)
               throw new Error(
                 `Conversation history does not contain browser call ${callId}.`,
@@ -487,7 +490,7 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
     },
   });
 
-/** A canonical Petrinaut net mutation, so `browserToolMutatesDocument` is true for it. */
+/** A canonical Petrinaut net mutation, so `browserToolFacts` counts it as a change. */
 export const browserToolName =
   "setNetTitle" satisfies (typeof CANONICAL_PETRINAUT_TOOL_NAMES)[number];
 

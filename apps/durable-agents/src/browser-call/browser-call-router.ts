@@ -27,10 +27,10 @@ import { type Context, Hono } from "hono";
 import * as v from "valibot";
 
 import {
-  browserCallFailureBodySchema,
-  browserCallLeaseBodySchema,
-  browserCallResultBodySchema,
   brunchRoutes,
+  vBrowserCallFailureBody,
+  vBrowserCallLeaseBody,
+  vBrowserCallResultBody,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -50,7 +50,7 @@ export const vBrowserCallClaimBody = v.object({
 });
 
 /** A start: the claim's proof, as the lease body carries it. */
-export const vBrowserCallStartBody = browserCallLeaseBodySchema;
+export const vBrowserCallStartBody = vBrowserCallLeaseBody;
 
 export type BrowserCallClaimBody = v.InferOutput<typeof vBrowserCallClaimBody>;
 export type BrowserCallStartBody = v.InferOutput<typeof vBrowserCallStartBody>;
@@ -243,7 +243,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/lease`, async (request) => {
-    const target = await addressed(request, browserCallLeaseBodySchema);
+    const target = await addressed(request, vBrowserCallLeaseBody);
     if ("response" in target) return target.response;
     return (await renewBrowserCall(
       target.harness,
@@ -257,7 +257,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/result`, async (request) => {
-    const target = await addressed(request, browserCallResultBodySchema);
+    const target = await addressed(request, vBrowserCallResultBody);
     if ("response" in target) return target.response;
     const { canonicalInput, ...body } = target.body;
     return (await finishBrowserCall(
@@ -275,7 +275,7 @@ export const createBrowserCallRouter = ({
   });
 
   router.post(`${callRoute}/fail`, async (request) => {
-    const target = await addressed(request, browserCallFailureBodySchema);
+    const target = await addressed(request, vBrowserCallFailureBody);
     if ("response" in target) return target.response;
     const { canonicalInput, ...body } = target.body;
     return (await failBrowserCall(

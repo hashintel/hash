@@ -50,14 +50,15 @@ import {
   type UIMessageChunk,
 } from "ai";
 import { Pool } from "pg";
+import * as v from "valibot";
 
 import {
   type BrowserCallClaim,
-  type BrowserCallResultBody,
   type BrowserContext,
   canonicalContent,
   type ClientToolResultMetadata,
   type NetStructure,
+  vBrowserCallResultBody,
 } from "@hashintel/brunch-agent";
 
 import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
@@ -513,13 +514,19 @@ const drive = async () => {
       };
     }
     const { output, metadata } = browser.answer(claim.toolName, claim.input);
-    const body: BrowserCallResultBody = {
-      ...proof,
-      toolName: claim.toolName,
-      canonicalInput: claim.input,
-      output,
-      ...(metadata === undefined ? {} : { metadata }),
-    };
+    // The result as the server receives it: in its JSON form, checked as Brunch's in-band browser calls check it.
+    const body = v.parse(
+      vBrowserCallResultBody,
+      JSON.parse(
+        JSON.stringify({
+          ...proof,
+          toolName: claim.toolName,
+          canonicalInput: claim.input,
+          output,
+          ...(metadata === undefined ? {} : { metadata }),
+        }),
+      ),
+    );
     const resulted = await post(callPath(toolCallId, "/result"), body);
     return {
       toolCallId,

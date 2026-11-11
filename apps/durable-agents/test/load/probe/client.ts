@@ -22,14 +22,15 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
+import * as v from "valibot";
 
 import {
   type BrowserCallClaim,
-  type BrowserCallResultBody,
   type BrowserContext,
   canonicalContent,
   type ClientToolResultMetadata,
   type NetStructure,
+  vBrowserCallResultBody,
 } from "@hashintel/brunch-agent";
 
 import { browserCallsPrefix } from "../../../src/server/start-durable-agents-server";
@@ -347,12 +348,13 @@ export const runConversation = async ({
         outcome: `start ${started?.status ?? "unreachable"}`,
       };
     await sleep(between(random, timing.browserThinkMs) / 2);
-    const result: BrowserCallResultBody = {
+    // As Brunch's in-band browser calls do, the result is checked as JSON before it is posted.
+    const result = v.parse(vBrowserCallResultBody, {
       ...proof,
       toolName: claim.toolName,
       canonicalInput: claim.input,
       ...net.run(claim.toolName, claim.input),
-    };
+    });
     const resulted = await postUntil(
       callPath(toolCallId, "/result"),
       result,
