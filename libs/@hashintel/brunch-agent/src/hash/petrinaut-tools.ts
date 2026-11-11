@@ -491,6 +491,11 @@ export const hashPetrinautTools = {
     "Update fields on an existing component instance, its canvas position, or both.",
   ),
   petrinaut_remove_component: mapped("removeComponentInstance"),
+  petrinaut_create_fusion: mapped("addFusion"),
+  petrinaut_update_fusion: mapped("updateFusion"),
+  petrinaut_remove_fusion: mapped("removeFusion"),
+  petrinaut_create_fusion_member: mapped("addFusionMember"),
+  petrinaut_remove_fusion_member: mapped("removeFusionMember"),
   petrinaut_get_net: standIn({
     operation: "getLatestNetDefinition",
     description:

@@ -4,6 +4,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  fusionDisplayName,
   mutationActionInputSchemas,
   parseArcEndpointKey,
   parseArcId,
@@ -274,14 +275,26 @@ const namedNetItemsOf = (net: NetItems): NamedItem[] => [
   ...(net.componentInstances ?? []),
 ];
 
+/** A net's fusions, under the name the editor shows for each. */
+const namedFusionsOf = (
+  definition: SDCPN,
+  net: Pick<SDCPN, "places" | "componentInstances" | "fusions">,
+): NamedItem[] =>
+  (net.fusions ?? []).map((fusion) => ({
+    id: fusion.id,
+    name: fusionDisplayName(definition, net, fusion),
+  }));
+
 /** The document's named items, subnets included. Ids are UUIDs, so names describe removals. */
 const namedItemsOf = (definition: SDCPN): NamedItem[] => [
   ...namedNetItemsOf(definition),
+  ...namedFusionsOf(definition, definition),
   ...(definition.scenarios ?? []),
   ...(definition.metrics ?? []),
   ...(definition.subnets ?? []).flatMap((subnet) => [
     subnet,
     ...namedNetItemsOf(subnet),
+    ...namedFusionsOf(definition, subnet),
   ]),
 ];
 
@@ -386,6 +399,17 @@ const canonicalRemovalDescriptions = (
       return [
         `Remove component instance — ${nameOf(mutationActionInputSchemas.removeComponentInstance.parse(input).instanceId)}`,
       ];
+    case "removeFusion":
+      return [
+        `Remove fusion — ${nameOf(mutationActionInputSchemas.removeFusion.parse(input).fusionId)}`,
+      ];
+    case "removeFusionMember": {
+      const { fusionId, member } =
+        mutationActionInputSchemas.removeFusionMember.parse(input);
+      return [
+        `Remove fusion member — ${nameOf(fusionId)} / ${endpointName(member, nameOf)}`,
+      ];
+    }
     case "deleteItemsByIds":
       return mutationActionInputSchemas.deleteItemsByIds
         .parse(input)
