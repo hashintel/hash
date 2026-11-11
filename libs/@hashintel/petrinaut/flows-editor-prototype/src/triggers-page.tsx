@@ -25,6 +25,7 @@ import {
   Menu,
   Popover,
   PortalContainerContext,
+  SegmentedControl,
   Select,
   TextInput,
   Toggle,
@@ -49,6 +50,9 @@ import {
 } from "./schedule-form";
 import { ScheduleFormLayout, scheduleLayout } from "./schedule-form-layouts";
 import { monthlyReviewId } from "./seed-flows";
+
+/** The status filter, as the Triggers panel draws it (approved L26): All · On · Paused. */
+type StatusFilter = "all" | "on" | "paused";
 
 type Take = 1 | 2 | 3 | 4;
 
@@ -1286,7 +1290,7 @@ const Take2 = ({
       : "all",
   );
   const [webFilter, setWebFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const rows: Row[] = page.flows.flatMap((flow) => [
     { kind: "manual" as const, id: `manual:${flow.id}`, flow },
     ...page.triggers
@@ -1298,12 +1302,6 @@ const Take2 = ({
         trigger,
       })),
   ]);
-  const statusOf = (row: Row) =>
-    row.kind === "manual"
-      ? page.on[row.id]
-        ? "On"
-        : "Off"
-      : statusText(row.trigger, page.on[row.id] ?? false);
   const shown = rows.filter((row) => {
     const label = row.kind === "manual" ? "Manual runs" : row.trigger.label;
     return (
@@ -1311,7 +1309,8 @@ const Take2 = ({
       (flowFilter === "all" || row.flow.id === flowFilter) &&
       (webFilter === "all" ||
         (row.kind === "trigger" && row.trigger.web === webFilter)) &&
-      (statusFilter === "all" || statusOf(row) === statusFilter)
+      (statusFilter === "all" ||
+        (statusFilter === "on") === (page.on[row.id] ?? false))
     );
   });
   const hidden = page.flows
@@ -1365,19 +1364,17 @@ const Take2 = ({
               onChange={(value) => setWebFilter(value ?? "all")}
             />
           </div>
-          <div className={css({ width: "[168px]" })}>
-            <Select
-              required
-              size="sm"
-              aria-label="Status"
-              items={[
-                { value: "all", text: "Any status" },
-                ...items(["On", "Off", "Paused", "Failed to activate"]),
-              ]}
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(value ?? "all")}
-            />
-          </div>
+          <SegmentedControl<StatusFilter>
+            size="sm"
+            aria-label="Status"
+            items={[
+              { value: "all", label: "All" },
+              { value: "on", label: "On" },
+              { value: "paused", label: "Paused" },
+            ]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
           <span className={css({ flex: "1" })} />
           <AddMenu
             onPick={(kind) =>

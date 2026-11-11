@@ -75,6 +75,7 @@ import {
 } from "./runs-columns";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
+import { Tabs } from "./ds-parts/tabs";
 import { Toast } from "./ds-parts/toast";
 
 import type { HistoryValue } from "./history-view";
@@ -226,32 +227,9 @@ const pageStyle = css({
 });
 
 /**
- * The status filters and Sort / Filter are one family (Aakarsh, 4 Nov: "sizes are all over the place"): 28 px high,
- * 8 px corners, 14 px Medium, 16 px icons, no border. The selected status sits on a subtle neutral fill.
+ * Sort and Filter match the status tabs (Aakarsh, 4 Nov: "sizes are all over the place"): 28 px high, 14 px Medium,
+ * 16 px icons, no border.
  */
-const tabStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  height: "[28px]",
-  paddingX: "2.5",
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  cursor: "pointer",
-  borderRadius: "lg",
-  _hover: { backgroundColor: "neutral.bg.surface.hover" },
-  "&[aria-selected=true]": {
-    color: "neutral.fg.heading",
-    backgroundColor: "neutral.bg.surface.active",
-  },
-});
-
-const countStyle = css({
-  color: "neutral.fg.subtle",
-  fontVariantNumeric: "tabular-nums",
-});
-
 const rowButtonStyle = css({
   "&[class]": { color: "neutral.fg.muted" },
 });
@@ -661,25 +639,12 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           paddingY: "1",
         })}
       >
-        <div
-          role="tablist"
-          aria-label="Run status"
-          className={css({ display: "flex", alignItems: "center", gap: "1" })}
-        >
-          {tabs.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.value}
-              className={tabStyle}
-              onClick={() => setTab(item.value)}
-            >
-              {item.label}
-              <span className={countStyle}>{counts(item.value)}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs
+          label="Run status"
+          items={tabs.map((item) => ({ ...item, count: counts(item.value) }))}
+          value={tab}
+          onChange={setTab}
+        />
         <span className={css({ flex: "1" })} />
         {oldRunsSort ? (
           <>
