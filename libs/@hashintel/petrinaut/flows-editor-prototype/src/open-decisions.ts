@@ -43,8 +43,8 @@ export const openDecisions: OpenSwitch[] = [
     flag: "foreachswitch",
     defaultValue: null,
     options: [
-      { label: "today", value: null },
-      { label: "runlike", value: "runlike" },
+      { label: "runlike", value: null },
+      { label: "today", value: "today" },
       { label: "runlike-b", value: "runlike-b" },
       { label: "arrows", value: "arrows" },
       { label: "dropdown", value: "dropdown" },

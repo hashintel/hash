@@ -4,7 +4,8 @@
  * that item: each step inside the For each shows that item's state, its bar one segment. "All suppliers" returns to
  * the counts across every item, which stay the default view.
  *
- * `?foreachswitch=` places the switcher, from the URL only, never remembered; unset, there is none.
+ * `?foreachswitch=` places the switcher, from the URL only, never remembered; unset, it is runlike (11 Nov), and
+ * `?foreachswitch=today` shows none.
  * - arrows: "‹ 4 of 20 › Boreal Metals" on the For each box's header, after its title; "‹ All 20 ›" for every item.
  * - dropdown: "Boreal Metals ▾" on the box's header: All suppliers, then each supplier with its mark, failed first.
  * - toggle: "All · One item" on the box's header; One item adds "‹ Boreal Metals ›".
@@ -63,8 +64,11 @@ const takeAliases = new Map<string, ForEachSwitchTake>([
 
 export const forEachSwitchTake = (
   query: URLSearchParams,
-): ForEachSwitchTake | null =>
-  takeAliases.get(query.get("foreachswitch") ?? "") ?? null;
+): ForEachSwitchTake | null => {
+  // runlike is the default (11 Nov, inbox foreach-run-items): the item's status, not "4 of 20". `?foreachswitch=today` shows none.
+  const value = query.get("foreachswitch");
+  return value === "today" ? null : (takeAliases.get(value ?? "") ?? "runlike");
+};
 
 /** The loop's stages, as `run-history.ts` runs them: the three reads, then Fetch, Send, Mark. */
 const stages = [
