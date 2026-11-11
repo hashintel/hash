@@ -20,7 +20,6 @@ import {
   type HirCompileResult,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
-  type MonteCarloMetricSpec,
   type PetrinautExtensionSettings,
   type ReadableStore,
   type Scenario,
@@ -30,6 +29,7 @@ import {
   type SDCPN,
   type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
+  type SimulatorExperimentRequest,
   type SimulatorRegistration,
   type SimulatorStart,
   type CompiledScenarioResult,
@@ -381,10 +381,7 @@ const startSimulatorExperiment = async (
   registration: SimulatorRegistration | undefined,
   selection: SimulatorSelection,
   request: Parameters<typeof assessSimulator>[2],
-  experiment: {
-    runCount: number;
-    metricSpecs: readonly MonteCarloMetricSpec[];
-  },
+  experiment: SimulatorExperimentRequest,
 ): Promise<MonteCarloExperiment> => {
   const assessed = await assessOrThrow(registration, selection, request);
   const { startExperiment } = assessed.offer;
@@ -926,11 +923,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       };
       if (currentState.mode === "stochastic") {
         const metricSpecs = placeCountMetricSpecs(simulationSdcpn.places);
+        // Named to the simulator rather than left to it, so the samples are
+        // spaced as playback and a kept experiment say they are.
+        const samplePeriod =
+          (registration
+            ? simulatorSamplePeriod(registration, selection.parameters)
+            : null) ?? DEFAULT_EXPERIMENT_SAMPLE_PERIOD;
         const experiment = await startSimulatorExperiment(
           registration,
           selection,
           buildRequest,
-          { runCount: currentState.runs, metricSpecs },
+          { runCount: currentState.runs, metricSpecs, samplePeriod },
         );
         stochasticRun = {
           experiment,
@@ -939,10 +942,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           seed,
           // An experiment without an end is refused before it starts.
           maxTime: maxTime ?? 0,
-          samplePeriod:
-            (registration
-              ? simulatorSamplePeriod(registration, selection.parameters)
-              : null) ?? DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
+          samplePeriod,
           metricSpecs,
           simulator: selection,
           kept: false,

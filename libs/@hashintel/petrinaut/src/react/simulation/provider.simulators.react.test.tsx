@@ -421,6 +421,9 @@ describe("SimulationProvider in Stochastic mode", () => {
           runOutput: { type: "distribution", binning: "exact" },
         }),
       ],
+      // The simulator names no step to sample at, so it is told the period
+      // the run is then read back at.
+      samplePeriod: 0.1,
     });
     // The context holds the experiment with its simulator's release attached.
     expect(getValue().stochasticRun?.experiment.metrics).toBe(
@@ -430,6 +433,7 @@ describe("SimulationProvider in Stochastic mode", () => {
       runCount: 250,
       seed: 3,
       maxTime: 12,
+      samplePeriod: 0.1,
       kept: false,
     });
     expect(getValue().eventSimulation).toBeNull();
