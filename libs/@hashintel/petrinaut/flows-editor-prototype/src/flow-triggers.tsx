@@ -24,6 +24,8 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { navigate, parseRoute } from "./router";
+import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
 import { firstLineIconStyle } from "./menu-rows";
@@ -403,6 +405,12 @@ const detailGridStyle = css({
 });
 
 /** The flows-level triggers page is not in the prototype: a stub in a new tab. */
+/** The Flows › Triggers page for the flow open in the editor. */
+const openTriggersPage = () => {
+  const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
+  navigate(route.page === "editor" ? `/flows/${route.flowId}/triggers` : "/flows/triggers");
+};
+
 export const openFlowTriggers = (flow: string) => {
   const html = `<!doctype html><meta charset="utf-8"><title>Flow triggers</title><body style="font:14px system-ui;margin:48px;color:#202020"><p style="color:#8d8d8d">Stub · Flows prototype</p><h1 style="font-size:20px">Flow triggers · ${flow}</h1><p>The flows-level page where triggers are added and edited (Q·B, 4 Nov). Not built yet.</p></body>`;
   const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
@@ -420,7 +428,7 @@ const groups: { kind: FlowTrigger["kind"]; label: string }[] = [
 ];
 
 const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
-  const { document, setUi } = useEditor();
+  const { setUi } = useEditor();
   const triggers = useFlowTriggers();
   const [opened, setOpened] = useState<string | null>(openedFor[kind]);
   const [searching, setSearching] = useState(false);
@@ -663,16 +671,8 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
           </span>
         ) : null}
         <span className={css({ paddingTop: "2" })}>
-          <Button
-            size="sm"
-            variant="subtle"
-            tone="neutral"
-            iconName="arrowUpRight"
-            iconPosition="right"
-            onClick={() => openFlowTriggers(document.name)}
-          >
-            Edit flow triggers
-          </Button>
+          {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
+          <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
         </span>
       </div>
     </>
@@ -777,7 +777,6 @@ const showMoreStyle = css({
 });
 
 const TriggersPanelAtScale = () => {
-  const { document } = useEditor();
   const [manual, setManual] = useState(false);
   const [filter, setFilter] = useState<ScaleFilter>("all");
   const [searching, setSearching] = useState(false);
@@ -1056,16 +1055,8 @@ const TriggersPanelAtScale = () => {
           </span>
         ) : null}
         <span className={css({ paddingTop: "2" })}>
-          <Button
-            size="sm"
-            variant="subtle"
-            tone="neutral"
-            iconName="arrowUpRight"
-            iconPosition="right"
-            onClick={() => openFlowTriggers(document.name)}
-          >
-            Edit flow triggers
-          </Button>
+          {/* Stays inside Flows, so no ↗ (11 Nov convergence A19). */}
+          <TextLink onClick={openTriggersPage}>Edit flow triggers</TextLink>
         </span>
       </div>
     </>

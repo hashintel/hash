@@ -54,6 +54,7 @@ import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import { RunIdsIn, runLabel } from "./run-id";
+import { TextLink } from "./text-link";
 import {
   clockPlus,
   factsOf,
@@ -751,9 +752,7 @@ const blockTitleStyle = css({
 
 const quietStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
 
-const linkOutStyle = css({
-  "&[class]": { color: "neutral.fg.muted" },
-});
+const linkOutStyle = css({ display: "inline-flex", flexShrink: 0 });
 
 /** A flagged output's star in a run: read-only, the editor sets it. */
 const flagMarkStyle = css({
@@ -800,17 +799,11 @@ const Block = ({
 );
 
 const LinkOut = ({ label, tooltip }: { label: string; tooltip: string }) => (
-  <Button
-    size="xs"
-    variant="ghost"
-    tone="neutral"
-    iconName="arrowUpRight"
-    iconPosition="right"
-    className={linkOutStyle}
-    tooltip={tooltip}
-  >
-    {label}
-  </Button>
+  <span className={linkOutStyle}>
+    <TextLink leaves tooltip={tooltip}>
+      {label}
+    </TextLink>
+  </span>
 );
 
 const rowButtonStyle = css({
@@ -1581,12 +1574,8 @@ const FileActions = ({ file }: { file: OutputFile }) => (
     >
       Download
     </Button>
-    <Button
-      size="sm"
-      variant="subtle"
-      tone="neutral"
-      iconName="arrowUpRight"
-      iconPosition="right"
+    <TextLink
+      leaves
       tooltip={
         file.kind === "certificate"
           ? "Opens the File entity in HASH (not in the prototype)"
@@ -1594,7 +1583,7 @@ const FileActions = ({ file }: { file: OutputFile }) => (
       }
     >
       {file.kind === "certificate" ? "Open in Files" : "Open in Mail"}
-    </Button>
+    </TextLink>
   </>
 );
 
@@ -2314,16 +2303,9 @@ const ListWide = ({
   );
 
 const OpenInEntities = () => (
-  <Button
-    size="sm"
-    variant="subtle"
-    tone="neutral"
-    iconName="arrowUpRight"
-    iconPosition="right"
-    tooltip="Opens these entities in HASH (not in the prototype)"
-  >
+  <TextLink leaves tooltip="Opens these entities in HASH (not in the prototype)">
     Open in Entities
-  </Button>
+  </TextLink>
 );
 
 /** Today's take: a list opens in a modal. */
