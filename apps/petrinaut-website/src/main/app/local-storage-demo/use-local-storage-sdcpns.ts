@@ -146,7 +146,8 @@ const recognizeStoredDocument = (
       reportedUnreadable.add(documentId);
       // eslint-disable-next-line no-console -- the entry is kept but not listed, and the reason belongs in the dev tools
       console.warn(
-        `Stored net ${documentId} is not readable by this version of Petrinaut and is left as it is`,
+        "Stored net %s is not readable by this version of Petrinaut and is left as it is",
+        documentId,
         error,
       );
     }

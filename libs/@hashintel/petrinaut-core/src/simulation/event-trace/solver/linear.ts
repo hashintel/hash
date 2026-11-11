@@ -68,6 +68,10 @@ export function matrixExponential(
     );
   }
   const norm = norm1(matrix, size);
+  if (!Number.isFinite(norm)) {
+    // An infinite norm would ask for infinitely many squarings.
+    throw new Error("The matrix has an entry that is not finite");
+  }
   const squarings =
     norm <= 0.5 ? 0 : Math.max(0, Math.ceil(Math.log2(norm / 0.5)));
   const scale = 2 ** -squarings;
