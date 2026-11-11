@@ -38,8 +38,12 @@ export const source = loader({
   pageTree: {
     transformers: [
       {
+        // The overview is the page of the reference's own folder, which takes its name from it.
         file(node, path): PageTree.Item {
-          if (path?.startsWith(`${dir}/`) !== true) {
+          if (
+            path?.startsWith(`${dir}/`) !== true ||
+            path === `${dir}/index.html`
+          ) {
             return node;
           }
 

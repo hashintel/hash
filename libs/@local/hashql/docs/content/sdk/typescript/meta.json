@@ -1,14 +1,6 @@
 {
   "title": "TypeScript",
   "description": "HashQL SDK",
-  "root": true,
-  "pages": [
-    "index",
-    "[Intro to HashQL](/docs/hashql/intro)",
-    "using-draft",
-    "writing-a-query",
-    "cheatsheet",
-    "troubleshooting",
-    "reference"
-  ]
+  "root": "sdk",
+  "pages": ["../../intro", "(guides)", "reference"]
 }

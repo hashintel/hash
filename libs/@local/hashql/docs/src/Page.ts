@@ -44,7 +44,7 @@ export const title = ({ tree }: Page): string =>
     Match.discriminatorsExhaustive("type")({
       module: ({ origin }) => Related.titleOf(origin),
       traits: () => "Traits",
-      overview: () => "Reference",
+      overview: () => "API",
     }),
   );
 
