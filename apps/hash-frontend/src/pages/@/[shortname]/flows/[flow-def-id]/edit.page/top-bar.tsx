@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  BreadCrumbs,
   Button,
   Chip,
   Dialog,
@@ -12,9 +11,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 import { RenameInput } from "./shared/rename-input";
-import { getShortRunId, shortRunIdFont } from "./shared/run-id";
+import { useFlowRuns } from "./shared/use-flow-runs";
 import { RunActions } from "./top-bar/run-actions";
 import { RunFlow } from "./top-bar/run-flow";
+import { RunSwitcher } from "./top-bar/run-switcher";
+import { RunTime } from "./top-bar/run-time";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
@@ -182,8 +183,8 @@ export type FlowEditorView = "editor" | "logs";
 
 /**
  * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
- * runs, whether its edits are saved, Run, and its menu. Showing a run, it names the run after the flow, with the way
- * back to the flow's runs between them, and has Stop or Re-run for it in place of Run.
+ * runs, whether its edits are saved, Run, and its menu. Showing a run, it has the run switcher after the flow's name,
+ * and the run's time and Stop or Re-run for it in place of Run.
  */
 export const TopBar = ({
   editorKey,
@@ -193,6 +194,7 @@ export const TopBar = ({
   view,
   flowRunEntityId,
   onViewChange,
+  onOpenRun,
   onRename,
   saveStatus,
   saveRefusedReason,
@@ -215,6 +217,8 @@ export const TopBar = ({
   /** The run shown, in the Logs view. */
   flowRunEntityId: EntityId | null;
   onViewChange: (view: FlowEditorView) => void;
+  /** Shows another of the flow's runs. */
+  onOpenRun: (flowRunEntityId: EntityId) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
   /** Why the API refused the latest edits, if it did. */
@@ -239,6 +243,10 @@ export const TopBar = ({
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  /* Read only while a run is shown: the Logs table reads them for itself. */
+  const { flowRuns } = useFlowRuns(
+    flowRunEntityId ? flowDefinitionEntityId : null,
+  );
 
   const leave = async () => {
     if (saveStatus === "failed") {
@@ -254,15 +262,6 @@ export const TopBar = ({
     }
   };
 
-  const renameInput = (
-    <RenameInput
-      value={name}
-      placeholder="Untitled flow"
-      ariaLabel="Flow name"
-      onRename={onRename}
-    />
-  );
-
   return (
     <div className={topBar}>
       <div className={titleGroup}>
@@ -276,21 +275,20 @@ export const TopBar = ({
             void leave();
           }}
         />
-        {flowRunEntityId ? (
-          <BreadCrumbs size="sm">
-            {renameInput}
-            {/* Never collapsed: it's the way back to the runs. */}
-            <BreadCrumbs.Item noCollapse onClick={() => onViewChange("logs")}>
-              Runs
-            </BreadCrumbs.Item>
-            <BreadCrumbs.Item noCollapse>
-              <span className={shortRunIdFont}>
-                {getShortRunId(flowRunEntityId)}
-              </span>
-            </BreadCrumbs.Item>
-          </BreadCrumbs>
-        ) : (
-          renameInput
+        <RenameInput
+          value={name}
+          placeholder="Untitled flow"
+          ariaLabel="Flow name"
+          onRename={onRename}
+        />
+        {flowRunEntityId && (
+          <RunSwitcher
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            flowRuns={flowRuns}
+            onOpenRun={onOpenRun}
+            onAllRuns={() => onViewChange("logs")}
+          />
         )}
       </div>
       <div className={viewSwitch}>
@@ -307,6 +305,13 @@ export const TopBar = ({
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        {flowRunEntityId && (
+          <RunTime
+            key={flowRunEntityId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+          />
+        )}
         {flowRunEntityId ? (
           <RunActions
             key={`${editorKey}:${flowRunEntityId}`}

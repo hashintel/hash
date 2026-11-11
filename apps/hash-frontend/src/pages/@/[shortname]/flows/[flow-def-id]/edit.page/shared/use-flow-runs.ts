@@ -24,6 +24,7 @@ export type RunSummary = Pick<
   | "status"
   | "startedAt"
   | "closedAt"
+  | "updatedAt"
   | "openInputRequests"
 >;
 
@@ -100,7 +101,7 @@ const readPages = async ({
 
 /**
  * Reads every page of the flow's runs. The API orders runs by when each last changed, and only sorts within a page,
- * so the Logs tab sorts, filters and counts all of them itself.
+ * so the Logs tab sorts, filters and counts all of them itself, as the top bar's run switcher orders them.
  */
 export const loadAllRuns = async (
   client: FlowRunsClient,
@@ -161,14 +162,19 @@ const hasCachedRuns = (
 /**
  * The flow's runs. Every page is read when shown; after that, the runs that changed since the last read are read every
  * few seconds while the page is visible, and when it's shown again. Runs read on an earlier visit show at once, until
- * the fresh read replaces them. A failed refresh keeps the runs last read and tries again at the next one.
+ * the fresh read replaces them. A failed refresh keeps the runs last read and tries again at the next one. With no
+ * flow, nothing is read and the runs last read stay, for a part of the editor that shows its runs only some of the time.
  */
-export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
+export const useFlowRuns = (flowDefinitionEntityId: EntityId | null) => {
   const client = useApolloClient();
   const [flowRuns, setFlowRuns] = useState<FlowRuns>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!flowDefinitionEntityId) {
+      return;
+    }
+
     let stopped = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     /* Set when a refresh fell due while the page was hidden, to refresh as soon as it's shown. */

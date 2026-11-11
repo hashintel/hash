@@ -278,6 +278,11 @@ const FlowEditor = ({
   const getRunPath = (flowRunEntityId: EntityId) =>
     generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
 
+  /* As a run in Logs opens, so Back returns to the run shown before. */
+  const openRun = (flowRunEntityId: EntityId) => {
+    void router.push(getRunPath(flowRunEntityId), undefined, { shallow: true });
+  };
+
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
   const runFlow = async (flowInputs: FlowInputValues) => {
     if (!(await flush())) {
@@ -365,6 +370,7 @@ const FlowEditor = ({
         view={view}
         flowRunEntityId={flowRunEntityId}
         onViewChange={showView}
+        onOpenRun={openRun}
         onRename={editor.setName}
         saveStatus={status}
         saveRefusedReason={saveRefusedReason}
