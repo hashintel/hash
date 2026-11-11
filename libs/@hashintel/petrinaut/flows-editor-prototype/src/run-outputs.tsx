@@ -3746,8 +3746,10 @@ export const StepOutputs = ({
 
 const cellStyle = css({
   display: "inline-flex",
+  flexWrap: "wrap",
   alignItems: "center",
-  gap: "1.5",
+  columnGap: "1.5",
+  rowGap: "0.5",
   color: "neutral.fg.body",
 });
 

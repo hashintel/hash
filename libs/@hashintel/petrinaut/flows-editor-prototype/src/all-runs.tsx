@@ -318,6 +318,9 @@ const filterKeysOf = (run: RunRecord, now: number) => [
   ...(run.trigger.kind === "manual" ? [`by:${run.trigger.by}`] : []),
 ];
 
+/** Outputs give way first, so Duration stays on screen at 1440 px: a long list wraps between its counts. */
+const outputsWrapStyle = css({ whiteSpace: "normal", paddingY: "2" });
+
 /** The figma-ds table (ds-parts/table) with our row hover (A8). */
 const rowsStyle = css({
   "& tbody tr": { cursor: "pointer" },
@@ -852,7 +855,9 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
                       : "Schedule · monthly"}
                   </td>
                 )}
-                <td className={colsTake ? outputsCellStyle : undefined}>
+                <td
+                  className={colsTake ? outputsCellStyle : outputsWrapStyle}
+                >
                   {/* What the run produced; each count opens the outputs viewer (`run-outputs.tsx`). */}
                   <RunOutputsCell run={run} now={now} />
                 </td>
