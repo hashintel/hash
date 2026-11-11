@@ -1,13 +1,13 @@
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { brunchTools } from "../constants";
-import { draftPetrinautExperimentInputSchema } from "./draft-experiment";
+import { brunchTools, hashGraphReadToolNames } from "../constants";
+import { zDraftPetrinautExperimentInput } from "./draft-experiment";
 import { netReaderToolNames, parseNetReaderInput } from "./net-readers";
 
 /**
  * Every tool the server issues to the bound browser and awaits in band, by
  * the schema that parses its input: Petrinaut's canonical tools, the filtered
- * net readers and the reviewed experiment draft.
+ * net readers, the reviewed experiment draft and HASH's graph reads.
  */
 export const browserExecutedToolInputSchemas: Readonly<
   Record<string, { readonly parse: (input: unknown) => unknown }>
@@ -24,16 +24,30 @@ export const browserExecutedToolInputSchemas: Readonly<
       { parse: parseNetReaderInput },
     ]),
   ),
-  [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
+  [brunchTools.draftPetrinautExperiment]: zDraftPetrinautExperimentInput,
+  // The HASH agent owns these reads' schemas. They have no defaults or
+  // transforms, so the input the server issues is the model's, and both sides
+  // compare it as it is.
+  ...Object.fromEntries(
+    [...hashGraphReadToolNames].map((name) => [
+      name,
+      { parse: (input: unknown) => input },
+    ]),
+  ),
 };
 
 export const browserExecutedToolNames: ReadonlySet<string> = new Set(
   Object.keys(browserExecutedToolInputSchemas),
 );
 
-/** The browser-executed tools Petrinaut runs on the net: all but the reviewed draft. */
+/**
+ * The browser-executed tools Petrinaut runs on the net: all but the reviewed
+ * draft and HASH's graph reads, which read the graph rather than the net.
+ */
 export const browserNetToolNames: ReadonlySet<string> = new Set(
   [...browserExecutedToolNames].filter(
-    (name) => name !== brunchTools.draftPetrinautExperiment,
+    (name) =>
+      name !== brunchTools.draftPetrinautExperiment &&
+      !hashGraphReadToolNames.has(name),
   ),
 );

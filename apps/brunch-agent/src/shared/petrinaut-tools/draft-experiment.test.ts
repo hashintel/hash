@@ -2,8 +2,8 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
-  draftPetrinautExperimentInputSchema,
-  draftPetrinautExperimentOutputSchema,
+  zDraftPetrinautExperimentInput,
+  zDraftPetrinautExperimentOutput,
 } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
@@ -72,14 +72,14 @@ describe("draft_petrinaut_experiment input schema", () => {
   });
 
   test("accepts an integer range and a disclosed restriction without protocol identity", () => {
-    const parsed = draftPetrinautExperimentInputSchema.parse(input);
+    const parsed = zDraftPetrinautExperimentInput.parse(input);
     expect(parsed.experiment.execution.mode).toBe("optimize");
     expect(parsed.unsupported[0]?.reportedByMetricId).toBe(
       toPetrinautId("metric-late"),
     );
     expect(parsed.unsupported[0]?.blocksRun).toBe(true);
     expect(
-      draftPetrinautExperimentInputSchema.parse({
+      zDraftPetrinautExperimentInput.parse({
         ...input,
         unsupported: [{ ...input.unsupported[0], blocksRun: false }],
       }).unsupported[0]?.blocksRun,
@@ -87,7 +87,7 @@ describe("draft_petrinaut_experiment input schema", () => {
   });
 
   test("rejects claiming that an unselected metric will be reported", () => {
-    const result = draftPetrinautExperimentInputSchema.safeParse({
+    const result = zDraftPetrinautExperimentInput.safeParse({
       ...input,
       unsupported: [
         { ...input.unsupported[0], reportedByMetricId: "metric-not-selected" },
@@ -102,7 +102,7 @@ describe("draft_petrinaut_experiment input schema", () => {
   });
 
   test("rejects an objective that is not among the saved metrics", () => {
-    const result = draftPetrinautExperimentInputSchema.safeParse(
+    const result = zDraftPetrinautExperimentInput.safeParse(
       withExperiment({
         execution: { ...experiment.execution, objectiveMetricId: "metric-x" },
       }),
@@ -115,21 +115,21 @@ describe("draft_petrinaut_experiment input schema", () => {
 
   test("rejects a time step longer than the horizon", () => {
     expect(
-      draftPetrinautExperimentInputSchema.safeParse(
+      zDraftPetrinautExperimentInput.safeParse(
         withExperiment({ dt: 200, maxTime: 120 }),
       ).success,
     ).toBe(false);
   });
 
   test("rejects a search budget above the host's bound", () => {
-    const tooMany = draftPetrinautExperimentInputSchema.safeParse(
+    const tooMany = zDraftPetrinautExperimentInput.safeParse(
       withExperiment({
         runCount: 1000,
         execution: { ...experiment.execution, steps: 100, runsPerStep: 200 },
       }),
     );
     expect(tooMany.success).toBe(false);
-    const overRunCount = draftPetrinautExperimentInputSchema.safeParse(
+    const overRunCount = zDraftPetrinautExperimentInput.safeParse(
       withExperiment({
         runCount: 3,
         execution: { ...experiment.execution, runsPerStep: 4 },
@@ -140,7 +140,7 @@ describe("draft_petrinaut_experiment input schema", () => {
 
   test("rejects an optimization with no varied parameter", () => {
     expect(
-      draftPetrinautExperimentInputSchema.safeParse(
+      zDraftPetrinautExperimentInput.safeParse(
         withExperiment({
           scenarioParameterValues: { vans: { mode: "fixed", value: 4 } },
         }),
@@ -150,7 +150,7 @@ describe("draft_petrinaut_experiment input schema", () => {
 
   test("rejects an inverted range", () => {
     expect(
-      draftPetrinautExperimentInputSchema.safeParse(
+      zDraftPetrinautExperimentInput.safeParse(
         withExperiment({
           scenarioParameterValues: { vans: { mode: "range", min: 8, max: 2 } },
         }),
@@ -160,14 +160,14 @@ describe("draft_petrinaut_experiment input schema", () => {
 
   test("rejects duplicate metric IDs", () => {
     expect(
-      draftPetrinautExperimentInputSchema.safeParse(
+      zDraftPetrinautExperimentInput.safeParse(
         withExperiment({ metricIds: ["metric-wait", "metric-wait"] }),
       ).success,
     ).toBe(false);
   });
 
   test("has no constraint carriage: a constraints field is rejected", () => {
-    const result = draftPetrinautExperimentInputSchema.safeParse({
+    const result = zDraftPetrinautExperimentInput.safeParse({
       ...input,
       experiment: {
         ...experiment,
@@ -180,7 +180,7 @@ describe("draft_petrinaut_experiment input schema", () => {
 
   test("requires at least one declaration", () => {
     expect(
-      draftPetrinautExperimentInputSchema.safeParse({
+      zDraftPetrinautExperimentInput.safeParse({
         ...input,
         declarations: [],
       }).success,
@@ -188,7 +188,7 @@ describe("draft_petrinaut_experiment input schema", () => {
   });
 
   test("serialises to JSON Schema without dropping the request fields", () => {
-    const jsonSchema = draftPetrinautExperimentInputSchema[
+    const jsonSchema = zDraftPetrinautExperimentInput[
       "~standard"
     ].jsonSchema.input({ target: "draft-2020-12" }) as
       | { properties?: Record<string, unknown> }
@@ -219,14 +219,14 @@ describe("draft_petrinaut_experiment input schema", () => {
 describe("draft_petrinaut_experiment output schema", () => {
   test("carries the browser's preparation status and diagnostics", () => {
     expect(
-      draftPetrinautExperimentOutputSchema.safeParse({
+      zDraftPetrinautExperimentOutput.safeParse({
         status: "drafted",
         summary: "Vary vans 2–8; minimize metric-wait.",
         diagnostics: [],
       }).success,
     ).toBe(true);
     expect(
-      draftPetrinautExperimentOutputSchema.safeParse({
+      zDraftPetrinautExperimentOutput.safeParse({
         status: "running",
         summary: "",
         diagnostics: [],

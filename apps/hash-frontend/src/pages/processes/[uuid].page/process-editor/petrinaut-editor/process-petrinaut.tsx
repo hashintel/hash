@@ -14,6 +14,7 @@ import {
   type BrunchOpenDocument,
   brunchPlugin,
   type PetrinautAiAssistant,
+  type PetrinautAiAutomaticTool,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import {
@@ -24,6 +25,7 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
+import { useBrunchHashHostTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
@@ -31,8 +33,8 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
-/** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
+/** Brunch's HASH agent, reached through hash-api's Brunch route. */
+const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/hash`;
 
 /** Returns `{ ownerKey }` for the signed-in account. */
 const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
@@ -129,12 +131,15 @@ const BrunchSession = memo(
     ownerKey,
     openDocument,
     shown,
+    hostTools,
     onChange,
   }: {
     ownerKey: string;
     openDocument: BrunchOpenDocument;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
+    /** Reads of the HASH graph, run here as the signed-in user. */
+    hostTools: readonly PetrinautAiAutomaticTool[];
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
     const { assistant } = useBrunchAssistant({
@@ -146,6 +151,7 @@ const BrunchSession = memo(
       voice: brunchVoice,
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
+      hostTools,
     });
 
     useLayoutEffect(() => {
@@ -182,6 +188,7 @@ export const ProcessPetrinaut = ({
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
+  const hostTools = useBrunchHashHostTools();
   const [brunchAssistant, setBrunchAssistant] =
     useState<PetrinautAiAssistant | null>(null);
   // Brunch's panel content marks Brunch as shown while the editor mounts it.
@@ -215,6 +222,7 @@ export const ProcessPetrinaut = ({
           ownerKey={ownerKey}
           openDocument={openDocument}
           shown={brunchShown}
+          hostTools={hostTools}
           onChange={setBrunchAssistant}
         />
       )}

@@ -27,34 +27,32 @@ export interface BrowserCallClaim {
   readonly expectedRevision?: string;
 }
 
-export const browserCallLeaseBodySchema = v.object({
+export const vBrowserCallLeaseBody = v.object({
   capability: v.string(),
   binding: v.string(),
 });
 
 const outcomeEntries = {
-  ...browserCallLeaseBodySchema.entries,
+  ...vBrowserCallLeaseBody.entries,
   toolName: v.string(),
   canonicalInput: v.unknown(),
 };
 
-export const browserCallResultBodySchema = v.object({
+export const vBrowserCallResultBody = v.object({
   ...outcomeEntries,
   output: v.unknown(),
   metadata: v.optional(v.unknown()),
 });
 
-export const browserCallFailureBodySchema = v.object({
+export const vBrowserCallFailureBody = v.object({
   ...outcomeEntries,
   disposition: v.picklist(browserCallFailureDispositions),
 });
 
-export type BrowserCallLeaseBody = v.InferOutput<
-  typeof browserCallLeaseBodySchema
->;
+export type BrowserCallLeaseBody = v.InferOutput<typeof vBrowserCallLeaseBody>;
 export type BrowserCallResultBody = v.InferOutput<
-  typeof browserCallResultBodySchema
+  typeof vBrowserCallResultBody
 >;
 export type BrowserCallFailureBody = v.InferOutput<
-  typeof browserCallFailureBodySchema
+  typeof vBrowserCallFailureBody
 >;

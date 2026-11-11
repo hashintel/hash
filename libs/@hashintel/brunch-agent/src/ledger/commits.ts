@@ -34,7 +34,7 @@ export interface LedgerHistory {
   readonly messages: readonly LedgerHistoryMessage[];
 }
 
-const toolPartSchema = v.object({
+const vToolPart = v.object({
   type: v.literal("dynamic-tool"),
   toolName: v.string(),
   toolCallId: v.string(),
@@ -43,7 +43,7 @@ const toolPartSchema = v.object({
   output: v.optional(v.unknown()),
 });
 
-type ToolPart = v.InferOutput<typeof toolPartSchema>;
+type ToolPart = v.InferOutput<typeof vToolPart>;
 
 interface LedgerCall {
   readonly part: ToolPart;
@@ -59,12 +59,12 @@ interface LedgerCall {
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 
-const textPartSchema = v.object({ type: v.literal("text"), text: v.string() });
+const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
 
 const messageText = (message: LedgerHistoryMessage): string =>
   message.parts
     .flatMap((part) => {
-      const parsed = v.safeParse(textPartSchema, part);
+      const parsed = v.safeParse(vTextPart, part);
       return parsed.success ? [parsed.output.text] : [];
     })
     .join(" ");
@@ -150,7 +150,7 @@ const ledgerEvents = (history: LedgerHistory): LedgerEvent[] => {
     }
     if (message.role !== "assistant") return [];
     const parts = message.parts.flatMap((candidate) => {
-      const parsed = v.safeParse(toolPartSchema, candidate);
+      const parsed = v.safeParse(vToolPart, candidate);
       return parsed.success &&
         parsed.output.toolName === brunchTools.ledgerCommit
         ? [parsed.output]
@@ -179,7 +179,7 @@ export const ledgerAppendRefusalCodes = [
   "ambiguous-comment",
 ] as const;
 
-export const ledgerAppendOutputSchema = v.variant("status", [
+export const vLedgerAppendOutput = v.variant("status", [
   v.object({
     status: v.literal("recorded"),
     commitId: v.string(),
@@ -209,13 +209,13 @@ export const ledgerAppendOutputSchema = v.variant("status", [
   }),
 ]);
 
-export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
+export type LedgerAppendOutput = v.InferOutput<typeof vLedgerAppendOutput>;
 
 /** A `ledger_commit` result that recorded nothing and says why. */
 export const isRefusedLedgerCommit = (
   output: unknown,
 ): output is Extract<LedgerAppendOutput, { status: "refused" }> => {
-  const parsed = v.safeParse(ledgerAppendOutputSchema, output);
+  const parsed = v.safeParse(vLedgerAppendOutput, output);
   return parsed.success && parsed.output.status === "refused";
 };
 
@@ -552,7 +552,7 @@ const foldWithReservations = (
     const call = event;
     if (call.part.toolCallId === before) break;
     if (call.part.state !== "output-available") continue;
-    const output = v.safeParse(ledgerAppendOutputSchema, call.part.output);
+    const output = v.safeParse(vLedgerAppendOutput, call.part.output);
     if (!output.success) continue;
     const recorded = output.output;
     if (

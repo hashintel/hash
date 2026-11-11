@@ -2,10 +2,11 @@ import { expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { brunchTools } from "../constants";
+import { brunchTools, hashGraphReadToolNames } from "../constants";
 import {
   browserToolMutatesDocument,
   petrinautToolEffects,
+  petrinautToolTargets,
 } from "./petrinaut-tool-effects";
 
 test("classifies every canonical Petrinaut tool", () => {
@@ -32,3 +33,11 @@ test("only mutations, commands and unknown tools may change the bound document",
   );
   expect(browserToolMutatesDocument("unmounted_tool")).toBe(true);
 });
+
+test.each([...hashGraphReadToolNames])(
+  "HASH's graph read %s never changes the bound document",
+  (name) => {
+    expect(browserToolMutatesDocument(name)).toBe(false);
+    expect(petrinautToolTargets(name)).toEqual([]);
+  },
+);

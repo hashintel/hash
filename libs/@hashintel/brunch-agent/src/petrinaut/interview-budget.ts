@@ -14,7 +14,7 @@ export const interviewBudgetLevels = [
 ] as const;
 
 /** A question allowance, never a clock or evidence that the model is complete. */
-const interviewBudgetSchema = v.pipe(
+const vInterviewBudget = v.pipe(
   v.strictObject({
     level: v.picklist(interviewBudgetLevels),
     questionCap: v.nullable(v.pipe(count, v.minValue(1))),
@@ -31,13 +31,13 @@ const interviewBudgetSchema = v.pipe(
   ),
 );
 
-export type InterviewBudget = v.InferOutput<typeof interviewBudgetSchema>;
+export type InterviewBudget = v.InferOutput<typeof vInterviewBudget>;
 
 /** Read an allowance from untrusted submission context; anything invalid means Off. */
 export const parseInterviewBudget = (
   value: unknown,
 ): InterviewBudget | undefined => {
-  const result = v.safeParse(interviewBudgetSchema, value);
+  const result = v.safeParse(vInterviewBudget, value);
   return result.success ? result.output : undefined;
 };
 
