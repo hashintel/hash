@@ -190,6 +190,30 @@ describe("RunSettingsPicker", () => {
     expect(selectSimulator).toHaveBeenCalledWith("test.solved");
   });
 
+  it("opens on the picked simulator and moves through the pickable ones with the arrow keys", async () => {
+    const selectSimulator = vi.fn();
+    render(
+      <Providers
+        simulation={{
+          selectSimulator,
+          simulatorSelection: { simulatorId: "test.solved", parameters: {} },
+        }}
+      />,
+    );
+
+    const list = await openPopover();
+    const [stepped, solved, batched] = within(list).getAllByRole("radio");
+    // One tab stop, on the picked simulator, which is where focus opens.
+    expect([stepped?.tabIndex, solved?.tabIndex, batched?.tabIndex]).toEqual([
+      -1, 0, -1,
+    ]);
+    await waitFor(() => expect(document.activeElement).toBe(solved));
+
+    // Batched computes no single run, so the move wraps round to Stepped.
+    fireEvent.keyDown(solved!, { key: "ArrowDown" });
+    expect(selectSimulator).toHaveBeenCalledWith("test.stepped");
+  });
+
   it("edits the picked simulator's parameters in the popover, storing only what its spec accepts", async () => {
     const setSimulatorParameter = vi.fn();
     render(<Providers simulation={{ setSimulatorParameter }} />);

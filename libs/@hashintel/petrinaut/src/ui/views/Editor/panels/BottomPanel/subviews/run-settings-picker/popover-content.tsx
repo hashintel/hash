@@ -151,9 +151,11 @@ const END_TIME_ID = "run-settings-end-time";
  * the picked one declares, and for a Stochastic simulation how many runs and
  * until when. While a simulation exists everything here is read, not edited.
  */
-export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
-  locked,
-}) => {
+export const RunSettingsPopoverContent: React.FC<{
+  locked: boolean;
+  /** Set to the picked simulator's radio, for the popover to focus. */
+  pickedSimulatorRef?: React.Ref<HTMLButtonElement>;
+}> = ({ locked, pickedSimulatorRef }) => {
   const { registrations } = use(SimulatorsContext);
   const {
     mode,
@@ -217,6 +219,9 @@ export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
           return (
             <button
               key={registration.id}
+              ref={
+                registration.id === tabStopId ? pickedSimulatorRef : undefined
+              }
               type="button"
               role="radio"
               aria-checked={isSelected}

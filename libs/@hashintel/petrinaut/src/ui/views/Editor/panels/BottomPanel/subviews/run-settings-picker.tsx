@@ -66,13 +66,18 @@ const triggerIconStyle = css({
   color: "neutral.s100",
 });
 
+// The details give way first, then the name: the button stays inside the
+// capsule at any width.
 const simulatorNameStyle = css({
-  flexShrink: 0,
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   fontWeight: "medium",
   whiteSpace: "nowrap",
 });
 
 const detailsStyle = css({
+  flexShrink: "[1000]",
   minWidth: "0",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -107,6 +112,7 @@ export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
   const { mode, setMode, simulatorSelection, runs, maxTime } =
     use(SimulationContext);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const pickedSimulatorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
@@ -152,8 +158,13 @@ export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
           triggerRef={triggerRef}
           position="bottom-end"
           onClose={() => setOpen(false)}
+          // Focus opens on the picked simulator, where the arrow keys start.
+          initialFocusRef={pickedSimulatorRef}
         >
-          <RunSettingsPopoverContent locked={locked} />
+          <RunSettingsPopoverContent
+            locked={locked}
+            pickedSimulatorRef={pickedSimulatorRef}
+          />
         </Popover>
       ) : null}
     </div>
