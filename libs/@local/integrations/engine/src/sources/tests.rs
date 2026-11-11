@@ -263,42 +263,59 @@ async fn capture_retry_and_restore(#[case] s3: bool) {
 }
 
 #[tokio::test]
-async fn concurrent_attempt_conflicts_with_the_stored_capture() {
+async fn concurrent_attempts_share_the_bound_capture() {
     let directory = TempDir::new().expect("should create source storage");
     let run = run();
-    let (first_workspace, second_workspace) = (
+    let workspaces = [
         open_workspace(directory.path(), "first.duckdb").await,
         open_workspace(directory.path(), "second.duckdb").await,
-    );
+    ];
     let (first_reader, second_reader) = (reader(directory.path()), reader(directory.path()));
-    let definition = sql_definition();
+    // Each attempt captures a different value, so the attempts can only agree on the bound one.
+    let definition = Definition::from_yaml(
+        "
+        connector: test
+        sources:
+          items:
+            sql: SELECT 7 AS id, uuid()::VARCHAR AS value
+            primaryKey: [id]
+        pipelines:
+          entities:
+            - source: items
+              steps: []
+        ",
+    )
+    .expect("should parse a SQL source");
 
     // Each attempt yields while its workspace captures the source, so both find no stored capture
     // before either stores its own.
-    let (first, second) = tokio::join!(
-        first_reader.capture_sources(&first_workspace, &definition, run, &NoSecrets),
-        second_reader.capture_sources(&second_workspace, &definition, run, &NoSecrets),
+    let attempts = tokio::join!(
+        first_reader.capture_sources(&workspaces[0], &definition, run, &NoSecrets),
+        second_reader.capture_sources(&workspaces[1], &definition, run, &NoSecrets),
     );
-    let conflicts = [&first, &second]
-        .into_iter()
-        .filter(|result| {
-            result
-                .as_ref()
-                .is_err_and(|error| matches!(error.current_context(), SourceError::Conflict))
-        })
-        .count();
-    assert!(
-        first.is_ok() != second.is_ok() && conflicts == 1,
-        "one attempt should store its capture and the other should fail with a conflict"
+    let mut values = Vec::new();
+    for (workspace, captures) in workspaces.iter().zip(<[_; 2]>::from(attempts)) {
+        let captures = captures.expect("should capture or reuse the bound capture");
+        SourceReader::stage_sources(workspace, &definition, &captures)
+            .await
+            .expect("should stage the capture");
+        values.push(
+            workspace
+                .query(r#"SELECT value FROM "_source/items""#.into())
+                .await
+                .expect("should query the staged rows")
+                .iter()
+                .map(<[Value]>::to_vec)
+                .collect::<Vec<_>>(),
+        );
+    }
+    assert_eq!(
+        values[0], values[1],
+        "the attempt that lost the bind should continue from the bound capture"
     );
-    first_workspace
-        .close()
-        .await
-        .expect("should close the workspace");
-    second_workspace
-        .close()
-        .await
-        .expect("should close the workspace");
+    for workspace in workspaces {
+        workspace.close().await.expect("should close the workspace");
+    }
 }
 
 #[rstest]

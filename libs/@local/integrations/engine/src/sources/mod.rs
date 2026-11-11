@@ -20,7 +20,7 @@ pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, Se
 use crate::{
     ArtifactStorage, ByteSize, Format, SourceCapture, TableAssertions, Workspace,
     sql::Identifier,
-    storage::{ArtifactNamespace, Bound},
+    storage::{ArtifactKey, ArtifactNamespace, Bound},
 };
 
 /// Identifies the service involved in resolving a User Secret.
@@ -41,8 +41,6 @@ pub enum SourceError {
     Write,
     #[display("source capture could not be loaded into the workspace")]
     Load,
-    #[display("another attempt of the run already stored a capture of this source")]
-    Conflict,
     #[display("source query failed")]
     Query,
     #[display("User Secret is unavailable or invalid")]
@@ -143,6 +141,30 @@ impl CaptureStore {
         }
         Ok(file)
     }
+
+    /// Downloads the capture bound at `key` into `staging`, if there is one.
+    async fn restore(
+        &self,
+        key: &ArtifactKey,
+        staging: &Path,
+    ) -> Result<Option<SourceCapture>, Report<SourceError>> {
+        let Some(artifact) = self
+            .captures
+            .bound(key)
+            .await
+            .change_context(SourceError::Read)?
+        else {
+            return Ok(None);
+        };
+        let path = self
+            .captures
+            .materialize(&artifact, staging)
+            .await
+            .change_context(SourceError::Read)?;
+        SourceCapture::open(path)
+            .map(Some)
+            .change_context(SourceError::Read)
+    }
 }
 
 /// The captures of one run's sources, staged in a directory that is deleted when they are dropped.
@@ -168,8 +190,9 @@ impl SourceReader {
     /// Captures every live source or reuses the capture already bound to this run and source.
     ///
     /// A capture is reused only while the source's definition is unchanged; a changed source is
-    /// captured again. Checkpoint sources are produced by the pipelines. Retries and restores must
-    /// keep the run ID and capture directory. Existing captures are checked before resolving
+    /// captured again. If another attempt of the run stores its capture of a source first, that
+    /// capture is used. Checkpoint sources are produced by the pipelines. Retries and restores
+    /// must keep the run ID and capture directory. Existing captures are checked before resolving
     /// credentials.
     ///
     /// # Errors
@@ -197,16 +220,7 @@ impl SourceReader {
             }
             let storage = &self.store.captures;
             let key = namespace.capture(run.id, name, &fingerprint(source));
-            if let Some(artifact) = storage
-                .bound(&key)
-                .await
-                .change_context(SourceError::Read)?
-            {
-                let path = storage
-                    .materialize(&artifact, staging.path())
-                    .await
-                    .change_context(SourceError::Read)?;
-                let capture = SourceCapture::open(path).change_context(SourceError::Read)?;
+            if let Some(capture) = self.store.restore(&key, staging.path()).await? {
                 captures.insert(name.clone(), capture);
                 continue;
             }
@@ -248,17 +262,19 @@ impl SourceReader {
                 .publish(&namespace.artifacts(), capture.path(), Format::Parquet)
                 .await
                 .change_context(SourceError::Write)?;
-            match storage
+            let capture = match storage
                 .bind(&key, &artifact)
                 .await
                 .change_context(SourceError::Write)?
             {
-                Bound::Created => {}
-                // TODO: Another attempt of this run stored its capture first. Whether this
-                //   attempt should continue from that capture or fail is open for discussion with
-                //   the team, so it fails for now.
-                Bound::Exists => return Err(Report::new(SourceError::Conflict)),
-            }
+                Bound::Created => capture,
+                // Another attempt of this run bound its capture first, so both continue from it.
+                Bound::Exists => self
+                    .store
+                    .restore(&key, staging.path())
+                    .await?
+                    .ok_or_else(|| Report::new(SourceError::Read))?,
+            };
             captures.insert(name.clone(), capture);
         }
         Ok(SourceCaptures {
