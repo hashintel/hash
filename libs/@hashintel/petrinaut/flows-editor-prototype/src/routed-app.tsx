@@ -23,6 +23,7 @@ import { navigate, routePath, useLocation } from "./router";
 import { runLabel } from "./run-id";
 import { outcomeOf, outcomeState, runProgress, runWhen } from "./run-history";
 import { monthlyReviewId } from "./seed-flows";
+import { TextLink } from "./text-link";
 import { TriggersPage } from "./triggers-page";
 import { versionLabel } from "./versions";
 
@@ -92,13 +93,6 @@ const pageStyle = css({
   gap: "3",
 });
 
-const linkStyle = css({
-  alignSelf: "flex-start",
-  color: "blue.fg.link",
-  cursor: "pointer",
-  textDecoration: "underline",
-});
-
 /** A page that is not built yet: says so, and links back to the flows. */
 const Stub = ({ title, note }: { title: string; note: string }) => (
   <HashShell>
@@ -113,13 +107,10 @@ const Stub = ({ title, note }: { title: string; note: string }) => (
         {title}
       </span>
       <span>{note}</span>
-      <button
-        type="button"
-        className={linkStyle}
-        onClick={() => navigate("/flows")}
-      >
-        Back to flows
-      </button>
+      {/* The neutral link every screen uses (L392): underlined on hover only. */}
+      <span className={css({ alignSelf: "flex-start" })}>
+        <TextLink onClick={() => navigate("/flows")}>Back to flows</TextLink>
+      </span>
     </div>
   </HashShell>
 );
