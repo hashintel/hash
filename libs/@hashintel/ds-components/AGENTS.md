@@ -51,7 +51,12 @@ import { preset } from "./src/preset";
 export default defineConfig({
   importMap: "@hashintel/ds-helpers",
   outdir: "../ds-helpers/styled-system",
-  include: ["./src/components/**/*.{ts,tsx}"],
+  include: [
+    "./src/components/**/*.{ts,tsx}",
+    "./src/primitives/**/*.{ts,tsx}",
+    "./src/util/**/*.{ts,tsx}",
+  ],
+  exclude: ["**/*.{stories,story}.tsx", "**/*.test.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
@@ -66,7 +71,8 @@ Key points:
 
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
-- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
+- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo globs and clears `exclude` so story styles reach Storybook.
+- `panda.config.ts` excludes story and test files because `build:buildinfo` ships everything it extracts to consumers.
 - `panda.local.config.ts` exists separately for local demo surfaces such as Storybook
 
 ### Token Naming Patterns (Strict Mode)

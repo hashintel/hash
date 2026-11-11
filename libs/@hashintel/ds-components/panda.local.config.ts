@@ -11,6 +11,8 @@ export default defineConfig({
     "./.storybook/**/*.{ts,tsx}",
     "./docs/**/*.{ts,tsx}",
   ],
+  // Storybook renders the stories, so it needs the styles they use.
+  exclude: [],
   staticCss: {
     css: [
       {
