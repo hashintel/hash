@@ -31,6 +31,7 @@ import type { TransitionFrameState } from "./renderers/react-flow/react-flow-can
 import type {
   CountStatistics,
   ExperimentReader,
+  ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 type FrameSnapshot = {
@@ -64,13 +65,43 @@ const formatMean = (value: number): string =>
   Number.isInteger(value) ? String(value) : value.toFixed(1);
 
 /** A count across runs as a badge prints it: the mean, and the spread when there is one. */
-export const formatCountStatistics = ({
+const formatCountStatistics = ({
   mean,
   standardDeviation,
 }: Pick<CountStatistics, "mean" | "standardDeviation">): string =>
   standardDeviation === 0
     ? formatMean(mean)
     : `${formatMean(mean)} ±${standardDeviation.toFixed(1)}`;
+
+/** What the canvas reads, from the values a render of the provider holds. */
+const frameSnapshot = ({
+  reader,
+  viewedFrame,
+  initialMarking,
+  simulateMode,
+  stochasticReader,
+  playbackStore,
+}: Omit<FrameSnapshot, "stochastic"> & {
+  stochasticReader: ExperimentReader | null;
+  playbackStore: ReadableStore<{ time: number }>;
+}): FrameSnapshot => ({
+  reader,
+  viewedFrame,
+  initialMarking,
+  simulateMode,
+  stochastic: stochasticReader
+    ? {
+        reader: stochasticReader,
+        viewedTime: () => playbackStore.get().time,
+      }
+    : null,
+});
+
+const notifyAll = (listeners: ReadonlySet<() => void>): void => {
+  for (const listener of listeners) {
+    listener();
+  }
+};
 
 const EMPTY_STORE: CanvasFrameStore = {
   subscribe: () => () => {},
@@ -107,18 +138,16 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
 
   // Filled on the first render, so the first paint already carries the
   // marking and the viewed frame rather than gaining them a frame later.
-  const snapshot = useRef<FrameSnapshot>({
-    reader: currentFrameReader,
-    viewedFrame: currentViewedFrame,
-    initialMarking,
-    simulateMode: globalMode === "simulate",
-    stochastic: stochasticReader
-      ? {
-          reader: stochasticReader,
-          viewedTime: () => playbackStore.get().time,
-        }
-      : null,
-  });
+  const snapshot = useRef(
+    frameSnapshot({
+      reader: currentFrameReader,
+      viewedFrame: currentViewedFrame,
+      initialMarking,
+      simulateMode: globalMode === "simulate",
+      stochasticReader,
+      playbackStore,
+    }),
+  );
   const listeners = useRef(new Set<() => void>());
   /**
    * Read through on demand, so a frame costs the transitions actually
@@ -181,18 +210,14 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
   // Publishing happens after the commit, so a subscriber re-reads a store the
   // rest of the tree has already seen.
   useEffect(() => {
-    snapshot.current = {
+    snapshot.current = frameSnapshot({
       reader: currentFrameReader,
       viewedFrame: currentViewedFrame,
       initialMarking,
       simulateMode: globalMode === "simulate",
-      stochastic: stochasticReader
-        ? {
-            reader: stochasticReader,
-            viewedTime: () => playbackStore.get().time,
-          }
-        : null,
-    };
+      stochasticReader,
+      playbackStore,
+    });
 
     // Re-read each transition that is mounted, and keep the previous value
     // where the transition did not fire, so only what changed re-renders.
@@ -205,9 +230,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
       );
     }
 
-    for (const listener of listeners.current) {
-      listener();
-    }
+    notifyAll(listeners.current);
   }, [
     currentViewedFrame,
     currentFrameReader,
@@ -224,11 +247,7 @@ export const CanvasFrameStoreProvider: React.FC<React.PropsWithChildren> = ({
     if (!stochasticExperiment) {
       return;
     }
-    const notify = () => {
-      for (const listener of listeners.current) {
-        listener();
-      }
-    };
+    const notify = () => notifyAll(listeners.current);
     const offTime = playbackStore.subscribe(notify);
     const offSamples = stochasticExperiment.metrics.subscribe(notify);
     return () => {
