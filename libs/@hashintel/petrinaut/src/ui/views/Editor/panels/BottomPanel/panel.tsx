@@ -27,6 +27,7 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { fallbackBottomPanelTab } from "./fallback-tab";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -159,7 +160,7 @@ export const BottomPanel: React.FC = () => {
   });
 
   // Automatically open bottom panel and switch to the relevant timeline when a
-  // run starts, and fall back to diagnostics when the active timeline disappears.
+  // run starts. The effect below picks the tab to show when one disappears.
   useEffect(() => {
     const wasSimulationActive = prevSimulationActiveRef.current;
     const wasActualTimelineActive = prevActualTimelineActiveRef.current;
@@ -172,14 +173,6 @@ export const BottomPanel: React.FC = () => {
     } else if (!isActualMode && isSimulationActive && !wasSimulationActive) {
       setBottomPanelOpen(true);
       setActiveTab("simulation-timeline");
-    }
-
-    if (
-      !isSimulationActive &&
-      wasSimulationActive &&
-      activeTab === "simulation-timeline"
-    ) {
-      setActiveTab("diagnostics");
     }
 
     if (
@@ -208,14 +201,12 @@ export const BottomPanel: React.FC = () => {
       showCompilationOutput,
     });
 
-    if (!availableSubViews.some((subView) => subView.id === activeTab)) {
-      const fallbackTab = availableSubViews[0]?.id as
-        | BottomPanelTab
-        | undefined;
-
-      if (fallbackTab) {
-        setActiveTab(fallbackTab);
-      }
+    const fallbackTab = fallbackBottomPanelTab(
+      activeTab,
+      availableSubViews.map((subView) => subView.id as BottomPanelTab),
+    );
+    if (fallbackTab !== null) {
+      setActiveTab(fallbackTab);
     }
   }, [
     activeTab,
