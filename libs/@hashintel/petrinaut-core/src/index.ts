@@ -485,6 +485,14 @@ export {
   getPlaceDynamicsEquationIds,
   placeUsesDifferentialEquation,
 } from "./place-dynamics";
+export {
+  hasRunningDynamics,
+  isSourcePredicate,
+  isTimedNet,
+  isTimedTransition,
+  runClockOf,
+  type RunClock,
+} from "./net-timing";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
