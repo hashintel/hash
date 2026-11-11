@@ -478,7 +478,8 @@ const StepHeader = ({ request }: { request: R2Request }) => {
   return (
     <div className={css({ display: "flex", alignItems: "flex-start", gap: "2" })}>
       <div className={css({ flex: "1", minWidth: "[0]" })}>
-        <HueHeader icon={icon} title={<span>{step}</span>}>
+        {/* Kind on top, name below, as every panel header (H4 + k3; 11 Nov convergence A18). */}
+        <HueHeader icon={icon} title={<span>{kind}</span>}>
           <span
             className={css({
               textStyle: "sm",
@@ -488,7 +489,7 @@ const StepHeader = ({ request }: { request: R2Request }) => {
               textOverflow: "ellipsis",
             })}
           >
-            {[kind, item].filter(Boolean).join(" · ")}
+            {[step, item].filter(Boolean).join(" · ")}
           </span>
         </HueHeader>
       </div>
