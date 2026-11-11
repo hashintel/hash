@@ -160,20 +160,23 @@ describe("getStepRunMarks", () => {
     expect(marks.get("eachSupplier")?.state).toBe("needsReview");
   });
 
-  it("shows a cancelled step, or one being cancelled, as skipped", () => {
+  it("shows a cancelled step as not reached, and a for-each step cancelled part way as skipped", () => {
     const marks = marksOf(
       [
         stepRun("find", FlowStepStatus.Cancelled),
-        itemRun("fetch", 0, FlowStepStatus.CancelRequested),
+        itemRun("fetch", 0, FlowStepStatus.Completed),
+        itemRun("send", 0, FlowStepStatus.Completed),
+        itemRun("fetch", 1, FlowStepStatus.CancelRequested),
       ],
-      { itemCount: 1, live: false },
+      { itemCount: 2, live: false },
     );
 
-    expect(marks.get("find")).toEqual({ state: "skipped", items: null });
-    expect(marks.get("fetch")).toEqual({
+    expect(marks.get("find")).toEqual({ state: "notReached", items: null });
+    expect(marks.get("eachSupplier")).toEqual({
       state: "skipped",
-      items: counts({ skipped: 1 }),
+      items: counts({ done: 1, notReached: 1 }),
     });
+    expect(marks.get("send")?.state).toBe("skipped");
   });
 
   it("shows a for-each step whose run stopped before every item finished as skipped", () => {

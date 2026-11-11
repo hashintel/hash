@@ -38,9 +38,12 @@ const stateOfStatus: Record<FlowStepStatus, ItemState> = {
   [FlowStepStatus.InformationRequired]: "needsReview",
   [FlowStepStatus.Failed]: "failed",
   [FlowStepStatus.TimedOut]: "failed",
-  /* A step cancelled with its run never finished, so it reads as one that didn't run. */
-  [FlowStepStatus.CancelRequested]: "skipped",
-  [FlowStepStatus.Cancelled]: "skipped",
+  /*
+   * A step cancelled with its run never finished, like one the run never reached, so a step whose run was cancelled
+   * part way shows as skipped rather than done.
+   */
+  [FlowStepStatus.CancelRequested]: "notReached",
+  [FlowStepStatus.Cancelled]: "notReached",
   [FlowStepStatus.Skipped]: "skipped",
 };
 
