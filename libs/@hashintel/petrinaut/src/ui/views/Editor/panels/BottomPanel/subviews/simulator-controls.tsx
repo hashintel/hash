@@ -4,22 +4,25 @@ import {
   NumberInput,
   SegmentedControl,
   Select,
-  Toggle,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   resolveSimulatorParameters,
   type SimulatorParameterSpec,
-  type SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import {
   findSimulator,
+  simulatorRefusal,
   SimulatorsContext,
   type SimulationMode,
 } from "../../../../../../react/simulators/context";
 import { PointerHelpTooltip } from "../../../../../components/pointer-help-tooltip";
+import {
+  SimulatorParameterInput,
+  visibleSimulatorParameters,
+} from "../../../../../components/simulator-parameter-input";
 
 export const inlineControlStyle = css({
   display: "flex",
@@ -45,27 +48,6 @@ export const smallLabelStyle = css({
 const itemReasonStyle = css({
   color: "neutral.fg.subtle",
 });
-
-/**
- * Why a simulator cannot compute what the mode shows, or null when it can.
- * Known from the registration alone, so the picker asks nothing of a
- * simulator it has not loaded.
- */
-export const simulatorRefusal = (
-  registration: SimulatorRegistration,
-  mode: SimulationMode,
-): string | null => {
-  if (!registration.isAvailable()) {
-    return "Not supported by this browser";
-  }
-  if (mode === "quick" && !registration.produces.run) {
-    return "Computes many runs at once";
-  }
-  if (mode === "stochastic" && !registration.produces.experiment) {
-    return "Computes one run at a time";
-  }
-  return null;
-};
 
 const MODE_ITEMS: { value: SimulationMode; label: string }[] = [
   { value: "quick", label: "Quick simulation" },
@@ -100,45 +82,14 @@ const ParameterField: React.FC<{
           <PointerHelpTooltip content={spec.description} />
         ) : null}
       </label>
-      {spec.type === "boolean" ? (
-        <Toggle
-          htmlForId={id}
-          value={value === true}
-          onChange={onChange}
-          disabled={disabled}
-        />
-      ) : spec.type === "enum" ? (
-        <Select
-          htmlForId={id}
-          size="xs"
-          width="fitContent"
-          required
-          value={typeof value === "string" ? value : spec.default}
-          items={spec.options.map((option) => ({
-            value: option.value,
-            text: option.label,
-          }))}
-          onChange={onChange}
-          disabled={disabled}
-        />
-      ) : (
-        <NumberInput
-          htmlForId={id}
-          size="xs"
-          width="xs"
-          min={spec.min}
-          max={spec.max}
-          step={spec.type === "integer" ? 1 : "any"}
-          hideStepper
-          value={typeof value === "number" ? value : spec.default}
-          onChange={(next) => {
-            if (next !== null) {
-              onChange(next);
-            }
-          }}
-          disabled={disabled}
-        />
-      )}
+      <SimulatorParameterInput
+        id={id}
+        spec={spec}
+        value={value}
+        size="xs"
+        disabled={disabled}
+        onChange={onChange}
+      />
     </div>
   );
 };
@@ -179,18 +130,10 @@ export const SimulatorControls: React.FC<{ disabled: boolean }> = ({
   }));
 
   const parameters = selected
-    ? Object.entries(selected.parameters).filter(([, spec]) => {
-        const condition = spec.enabledWhen;
-        if (!condition) {
-          return true;
-        }
-        const controlling = simulatorSelection.parameters[condition.key];
-        return (
-          typeof controlling !== "number" &&
-          controlling !== undefined &&
-          condition.in.includes(controlling)
-        );
-      })
+    ? visibleSimulatorParameters(
+        selected.parameters,
+        simulatorSelection.parameters,
+      )
     : [];
 
   return (

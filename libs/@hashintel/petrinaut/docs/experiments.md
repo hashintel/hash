@@ -41,9 +41,9 @@ With "No scenario" selected, the Scenario section shows the [ad-hoc scenario for
 
 With a scenario selected, the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style -- a ratio parameter's edit applies only between 0 and 1; outside, the form marks it and the run keeps the previous value -- each numeric one with a **Sweep** interval toggle, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. A swept parameter previews at the start of its range, and the preview says so. The preview scrolls within a bordered panel, with Parameters and Initial state headers that stack as you scroll. Click a faded earlier header to return to its section, or an upcoming header at the bottom to jump ahead. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. It initially shows default starting places; turn on **Show all places** beside Initial state to inspect the rest. The switch appears only when there are other places. Select a computed value to see its source expression in a floating cell over the selected value. The expression disappears when focus moves away.
 | **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep the field reads **Max runs per selection**: each selection refines progressively (8, 25, 100, … 1000, 5000, …) up to this ceiling, so large budgets — 100,000 on the GPU — sharpen the distribution the longer you stay. |
-| **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#simulator)). |
+| **Simulator** | **JS fixed step** | What computes the runs: the same list as in [Simulation Settings](simulation.md#simulator). The simulator's own parameters follow it as fields: **Time step** for a fixed-step simulator (default `0.1`), **Max error** for **JS adaptive**, **ODE method** for **WebGPU fixed step**. A simulator that cannot run this experiment is greyed in the list with the reason beside its name. See [Compute backend](#compute-backend). |
+| **Sample every** | `0.1` | Shown for a simulator that chooses its own steps, such as **JS adaptive**: the simulated seconds between two samples of the metrics. A fixed-step simulator samples at its time step. |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
-| **Run on GPU** | off | Shown when your browser supports WebGPU. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend). |
 
 The model used is a snapshot of the current net at the time you press **Run**. Later runs and optimization use that snapshot, even if you edit the net afterwards.
 
@@ -145,11 +145,11 @@ The panel arranges its parts by its width. The **Parameters** card spans the bod
 
 ### Compute backend
 
-Experiments run on the CPU unless you ask for the GPU. When your browser supports WebGPU, the Create Experiment panel offers a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
+Experiments run on the CPU, across worker threads, unless you pick the **WebGPU fixed step** simulator in the Create Experiment panel's **Simulator** list. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
 
 The choice is per experiment, not global, so a GPU experiment and a CPU experiment can run side by side — useful for comparing the two on the same model. Each gets its own GPU device, so nothing is shared between them.
 
-The switch is greyed out when the current model cannot run on the GPU; hover it for the reason. The setting is only offered where your browser exposes WebGPU. Chrome, Edge and Safari 26+ do; Firefox needs it enabled.
+**WebGPU fixed step** is greyed in the list when the current model cannot run on the GPU, with the reason beside its name, and where your browser does not expose WebGPU. Chrome, Edge and Safari 26+ do; Firefox needs it enabled. While the model is still being checked the simulator is greyed too; it becomes pickable a moment later.
 
 The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
 
@@ -161,7 +161,7 @@ The GPU backend handles a **subset** of nets, and it tells you when it cannot ta
 - typed tokens consumed from at most one place per transition, since two would be a cross-product enumeration across arcs (the one gate a bundled example — Production Machines — still hits);
 - metrics the shader can compute: place token counts, and expression metrics that read counts, parameters and one place's tokens (`.length`, `.reduce`). Metrics using `.concat`, indexing a token by position, string or uuid attributes, or a time aggregation run on the CPU, and the message names the metric. Each metric samples the same runs on either backend: the runs still active in a frame by default, or, for a metric the experiment form defines, every run, with a finished run keeping its final value.
 
-When an experiment misses a requirement the model alone decides — attributes, arcs, metrics — it runs on the CPU instead and a message explains which one, so you do not need to check in advance. The two requirements only a run can measure — a heavy-tailed place, counts that keep outgrowing their buffers — surface as that experiment's error once it has started, with a message asking you to switch it to the CPU backend. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
+When an experiment misses a requirement the model alone decides — attributes, arcs, metrics — it runs on **JS fixed step** at the same time step instead and a message explains which one, so you do not need to check in advance. The two requirements only a run can measure — a heavy-tailed place, counts that keep outgrowing their buffers — surface as that experiment's error once it has started, with a message asking you to switch it to the CPU backend: create it again with **JS fixed step** or **JS adaptive** as its simulator. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
 
 Run count has no ceiling of its own: runs beyond what your GPU can hold at once execute as sequential tiles. What still falls back to the CPU is a single run whose own state exceeds the device's buffer limits, or a metric histogram too large for the device; the message says which.
 
@@ -179,7 +179,7 @@ Click **Details** for the scenario, requested runs or sampling limit, runs sampl
 
 For optimized sweeps, **Details** also shows the steps finished, runs per step, constraint pass counts, best step, and how the search ended. While optimization runs, a chip describes recent progress: **Still improving**, **Converging**, or **Too early to say**. The assessment uses a window of one tenth of the requested steps, with a minimum of five completed steps.
 
-The **Compute** badge in Details shows **CPU** or **GPU**. Hover it for more information, including why a requested GPU backend fell back to the CPU. While batches run, **Active batches** opens their individual progress.
+The **Compute** badge in Details names the simulator that computed the runs, such as **JS adaptive** or **WebGPU fixed step**. Hover it for more information, including why a requested GPU simulator fell back to **JS fixed step**. While batches run, **Active batches** opens their individual progress.
 
 The bar along the header's bottom edge follows sampling progress for a sweep, optimization steps while a study drives it, and simulation time for a plain experiment. Errors appear directly below the header. Scrolling the results condenses the header to one line; hovering over it or focusing a control expands it again.
 
