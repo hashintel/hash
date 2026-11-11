@@ -117,7 +117,7 @@ export const openDecisions: OpenSwitch[] = [
     card: "triggers-page",
     title: "Triggers page · layout",
     flag: "triggerspage",
-    defaultValue: "3",
+    defaultValue: "2",
     options: [
       { label: "1", value: "1" },
       { label: "2", value: "2" },

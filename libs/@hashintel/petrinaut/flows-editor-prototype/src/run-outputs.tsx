@@ -54,6 +54,7 @@ import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
 import { RunGlyph } from "./run-glyph";
 import { FileRow as DsFileRow } from "./ds-parts/file-row";
+import { Table } from "./ds-parts/table";
 import { RunIdsIn, runLabel } from "./run-id";
 import { TextLink } from "./text-link";
 import {
@@ -1680,33 +1681,6 @@ const FileModal = ({
   );
 };
 
-const tableStyle = css({
-  width: "[100%]",
-  borderCollapse: "collapse",
-  textStyle: "sm",
-  "& th": {
-    textAlign: "left",
-    textStyle: "xs",
-    fontWeight: "medium",
-    color: "neutral.fg.subtle",
-    height: "[36px]",
-    paddingX: "3",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-  },
-  "& td": {
-    height: "[44px]",
-    paddingX: "3",
-    color: "neutral.fg.body",
-    whiteSpace: "nowrap",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-  },
-  "& td:first-child": { color: "neutral.fg.heading", fontWeight: "medium" },
-  "& tbody tr:last-child td": { borderBottomWidth: "[0]" },
-});
 
 const groupLabel: Record<OutputGroup["type"], [string, string]> = {
   Supplier: ["supplier", "Suppliers"],
@@ -1844,7 +1818,7 @@ const EntityTable = ({
   onChange: (next: ViewerState) => void;
 }) => (
   <div className={tableScrollStyle}>
-    <table className={tableStyle}>
+    <Table>
       <thead>
         <tr>
           {columns.map((column) => (
@@ -1882,7 +1856,7 @@ const EntityTable = ({
           </tr>
         ))}
       </tbody>
-    </table>
+    </Table>
   </div>
 );
 
@@ -1975,7 +1949,7 @@ const FileTable = ({
   const certificates = files[0]?.kind === "certificate";
   return (
     <div className={tableScrollStyle}>
-      <table className={tableStyle}>
+      <Table>
         <thead>
           <tr>
             {(certificates
@@ -2015,7 +1989,7 @@ const FileTable = ({
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
     </div>
   );
 };
@@ -2054,7 +2028,7 @@ const openFilesIn =
 /** Failed items, wide: the error and the input beside each. */
 const FailureTable = ({ failures }: { failures: StepFailure[] }) => (
   <div className={tableScrollStyle}>
-    <table className={tableStyle} data-failure-table>
+    <Table data-failure-table>
       <thead>
         <tr>
           {["Supplier", "Error", "Input URL", "Attempts", "At"].map((label) => (
@@ -2073,7 +2047,7 @@ const FailureTable = ({ failures }: { failures: StepFailure[] }) => (
           </tr>
         ))}
       </tbody>
-    </table>
+    </Table>
   </div>
 );
 
@@ -2158,7 +2132,7 @@ const MixedBody = ({
     );
     return (
       <div className={tableScrollStyle}>
-        <table className={tableStyle} data-entity-table="b">
+        <Table data-entity-table="b">
           <thead>
             <tr>
               {[
@@ -2185,7 +2159,7 @@ const MixedBody = ({
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       </div>
     );
   }

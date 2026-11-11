@@ -15,11 +15,7 @@ import { navigate, routePath, useLocation } from "./router";
 import { runLabel } from "./run-id";
 import { outcomeOf, outcomeState, runProgress, runWhen } from "./run-history";
 import { monthlyReviewId } from "./seed-flows";
-import {
-  triggerAddStep,
-  TriggersPage,
-  triggersPageTake,
-} from "./triggers-page";
+import { TriggersPage } from "./triggers-page";
 import { versionLabel } from "./versions";
 
 /** The supplier review opens as J6 draws it: Start 148 px in, at 45% (zoom 0.46), so the whole flow shows. */
@@ -198,15 +194,7 @@ export const RoutedApp = () => {
       );
     }
     case "triggers":
-      if (triggersPageTake() ?? triggerAddStep()) {
-        return <TriggersPage flowId={route.flowId} />;
-      }
-      return (
-        <Stub
-          title="Flows › Triggers"
-          note="Every flow's triggers, where they are added and edited (Q·B, 4 Nov). Not built yet."
-        />
-      );
+      return <TriggersPage flowId={route.flowId} />;
     case "runs":
       return (
         <Stub title="All runs" note="Runs across every flow. Not built yet." />

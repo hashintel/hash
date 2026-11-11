@@ -75,6 +75,7 @@ import {
 } from "./runs-columns";
 import { StatusCell } from "./status-cell";
 import { chartColor, statusColor } from "./status-colors";
+import { Table } from "./ds-parts/table";
 import { Tabs } from "./ds-parts/tabs";
 import { Toast } from "./ds-parts/toast";
 
@@ -317,31 +318,8 @@ const filterKeysOf = (run: RunRecord, now: number) => [
   ...(run.trigger.kind === "manual" ? [`by:${run.trigger.by}`] : []),
 ];
 
-const tableStyle = css({
-  width: "[100%]",
-  borderCollapse: "collapse",
-  textStyle: "sm",
-  "& th": {
-    textAlign: "left",
-    fontWeight: "medium",
-    textStyle: "xs",
-    color: "neutral.fg.muted",
-    height: "[32px]",
-    paddingX: "6",
-    backgroundColor: "neutral.bgSolid.surface",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-  },
-  "& td": {
-    height: "[48px]",
-    paddingX: "6",
-    color: "neutral.fg.body",
-    whiteSpace: "nowrap",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-  },
+/** The figma-ds table (ds-parts/table) with our row hover (A8). */
+const rowsStyle = css({
   "& tbody tr": { cursor: "pointer" },
   "& tbody tr:hover": { backgroundColor: "neutral.bg.subtle.hover" },
 });
@@ -773,10 +751,10 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
           runsAligned ? css({ marginX: "[-24px]" }) : css({ paddingX: "6" })
         }
       >
-        <table
+        <Table
           ref={tableRef}
           className={cx(
-            tableStyle,
+            rowsStyle,
             runsPage !== "none" && stickyHeadStyle,
             colsTake && colsTableStyle,
           )}
@@ -919,7 +897,7 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
               </tr>
             ) : null}
           </tbody>
-        </table>
+        </Table>
         {runsPage === "p1" && !allFit && !older ? (
           <div className={footerStyle} data-runs-footer>
             <button

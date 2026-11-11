@@ -34,6 +34,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { emptyDocument } from "./document";
 import { flowTriggersOf } from "./flow-triggers";
+import { Table } from "./ds-parts/table";
 import { HashShell } from "./hash-shell";
 import { firstLineIconStyle } from "./menu-rows";
 import { navigate } from "./router";
@@ -1248,30 +1249,8 @@ const Take1 = ({ page }: { page: Page }) => {
  * Take 2 · one table, inline
  * ------------------------------------------------------------------------------------------------------------- */
 
-const tableStyle = css({
-  width: "[100%]",
-  borderCollapse: "collapse",
-  "& th": {
-    height: "[40px]",
-    paddingX: "3",
-    textAlign: "left",
-    textStyle: "sm",
-    fontWeight: "normal",
-    color: "neutral.fg.subtle",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-  },
-  "& td": {
-    height: "[48px]",
-    paddingX: "3",
-    textStyle: "sm",
-    color: "neutral.fg.heading",
-    borderBottomWidth: "thin",
-    borderBottomStyle: "solid",
-    borderBottomColor: "neutral.bd.subtle",
-    whiteSpace: "nowrap",
-  },
+/** The figma-ds table (ds-parts/table) with our row hover (A8) and the open row's fill. */
+const rowsStyle = css({
   "& tr[data-row]": {
     cursor: "pointer",
     _hover: { backgroundColor: "neutral.bg.subtle.hover" },
@@ -1406,7 +1385,7 @@ const Take2 = ({
             }
           />
         </div>
-        <table className={tableStyle}>
+        <Table className={rowsStyle}>
           <thead>
             <tr>
               <th>Trigger</th>
@@ -1529,7 +1508,7 @@ const Take2 = ({
               ];
             })}
           </tbody>
-        </table>
+        </Table>
         <LockLine count={hidden} />
       </div>
     </main>
@@ -2010,7 +1989,8 @@ const Take4 = ({ page }: { page: Page }) => {
 /** The page behind `?triggerspage=` or `?triggeradd=`; the add flow is always on take 3. */
 export const TriggersPage = ({ flowId }: { flowId: string | null }) => {
   const page = usePage(flowId);
-  const take = page.add ? 3 : (triggersPageTake() ?? 3);
+  // Take 2, the one table, is the default (11 Nov convergence A5); `?triggerspage=1|3|4` keep the others.
+  const take = page.add ? 3 : (triggersPageTake() ?? 2);
   // Menus, selects and the confirm portal in here, inside the shell's styles.
   const portalRef = useRef<HTMLDivElement>(null);
   return (
