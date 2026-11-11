@@ -65,7 +65,8 @@ export type ExperimentRequest = {
   /**
    * The simulator that advances each run between samples, for a backend
    * whose workers host it. Left out, a backend runs its own engine and `dt`
-   * is its step; given, `dt` is the sample period alone.
+   * is its step; given, `dt` is the sample period alone. A backend that
+   * hosts no simulator refuses a request that names one.
    */
   readonly simulator?: MonteCarloSimulatorSelection;
 };
