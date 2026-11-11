@@ -61,6 +61,14 @@ describe("revealBounds", () => {
   it("leaves bounds too large for the area alone while any of them shows", () => {
     expect(reveal({ x: 0, y: 0, width: 1000, height: 200 })).toBeNull();
   });
+
+  it("pans bounds too wide for the area along the axis they fit", () => {
+    expect(reveal({ x: 0, y: 450, width: 1000, height: 80 })).toEqual({
+      x: 0,
+      y: -30,
+      zoom: 1,
+    });
+  });
 });
 
 describe("isScenePointInView", () => {

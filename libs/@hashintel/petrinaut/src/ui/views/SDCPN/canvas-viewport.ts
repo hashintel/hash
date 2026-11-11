@@ -110,10 +110,10 @@ const shiftInto = (start: number, end: number, min: number, max: number) =>
  * already, or cannot be brought there.
  *
  * It pans as little as it can, so a node half under a panel slides just far
- * enough out. Bounds too large for the area are left alone while any of them
- * shows, as when they were picked on the canvas, where zooming out under the
- * pointer would jolt. Out of view altogether, they are fitted: centred, and
- * zoomed out no further than `minZoom`.
+ * enough out. Bounds too large for the area stay put along the axis they
+ * overflow while any of them shows, as when they were picked on the canvas,
+ * where zooming out under the pointer would jolt. Out of view altogether,
+ * they are fitted: centred, and zoomed out no further than `minZoom`.
  */
 export const revealBounds = ({
   bounds,
@@ -141,19 +141,19 @@ export const revealBounds = ({
   const right = left + bounds.width * zoom;
   const bottom = top + bounds.height * zoom;
 
-  if (right - left > width || bottom - top > height) {
-    const shows =
-      right > area.left &&
-      left < area.right &&
-      bottom > area.top &&
-      top < area.bottom;
-    return shows
-      ? null
-      : fitViewportToBounds(bounds, container, minZoom, zoom, 0, insets);
+  const fitsAcross = right - left <= width;
+  const fitsDown = bottom - top <= height;
+  const shows =
+    right > area.left &&
+    left < area.right &&
+    bottom > area.top &&
+    top < area.bottom;
+  if (!(fitsAcross && fitsDown) && !shows) {
+    return fitViewportToBounds(bounds, container, minZoom, zoom, 0, insets);
   }
 
-  const dx = shiftInto(left, right, area.left, area.right);
-  const dy = shiftInto(top, bottom, area.top, area.bottom);
+  const dx = fitsAcross ? shiftInto(left, right, area.left, area.right) : 0;
+  const dy = fitsDown ? shiftInto(top, bottom, area.top, area.bottom) : 0;
   return dx === 0 && dy === 0
     ? null
     : { x: viewport.x + dx, y: viewport.y + dy, zoom };
