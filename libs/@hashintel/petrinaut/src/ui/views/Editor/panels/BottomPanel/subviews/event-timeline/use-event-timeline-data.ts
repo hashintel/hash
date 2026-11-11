@@ -3,9 +3,9 @@ import { use, useEffect, useState, useSyncExternalStore } from "react";
 import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
+import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { useTimelineMetric } from "../simulation-timeline/use-streaming-data";
 import {
   createTimelineSeriesStore,
@@ -124,7 +124,7 @@ export function useEventTimelineData({
   metricError: string | null;
 } {
   const { eventSimulation } = use(SimulationContext);
-  const { timelineView } = use(EditorContext);
+  const timelineView = useRunTimelineView();
   const {
     extensions,
     petriNetDefinition: { places, types, transitions, metrics },
