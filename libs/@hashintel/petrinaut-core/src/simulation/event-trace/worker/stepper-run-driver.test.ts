@@ -263,4 +263,25 @@ describe("an experiment whose runs a stepper advances", () => {
       ),
     );
   });
+
+  it("shows a metric the transitions that fired since the sample before", () => {
+    const { metric, samples } = readingsOf((frame) => {
+      const state = frame.getTransitionState("arrive")!;
+      return { fired: state.firedInThisFrame, count: state.firingCount };
+    });
+    const simulator = adaptivePoisson(metric, 20);
+    simulator.runUntilComplete();
+
+    expect(samples).toHaveLength(9);
+    for (const [sample, runs] of samples.entries()) {
+      for (const [run, { fired, count }] of runs.entries()) {
+        const before = sample === 0 ? 0 : samples[sample - 1]![run]!.count;
+        expect(fired).toBe(count > before);
+      }
+    }
+    // Arrivals at rate 5 leave few quarter seconds without one.
+    expect(samples.flat().filter(({ fired }) => fired).length).toBeGreaterThan(
+      80,
+    );
+  });
 });
