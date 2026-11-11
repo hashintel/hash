@@ -398,7 +398,9 @@ export const MenuRow = ({
           {title}
         </span>
         {twoLine ? (
-          <span className={descriptionStyle({ lines })}>{description}</span>
+          <span className={descriptionStyle({ lines })} data-row-description>
+            {description}
+          </span>
         ) : null}
       </span>
     </span>

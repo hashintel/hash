@@ -29,6 +29,7 @@ import {
 import { showDebug, useEditor } from "./editor-context";
 import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
+import { PickerRowCard, clampRowsStyle, pickerRowTake } from "./picker-row";
 import { PlusOpenFrame, plusOpenTake } from "./plus-open";
 import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
@@ -370,10 +371,12 @@ export const AddNodePicker = ({
   ): TiledItem => ({
     id: `${key}:${entry.id}`,
     text: entry.title,
-    description: stepLine(entry),
+    // `?pickerrow=card`: the name only; the card beside the menu says the rest.
+    description: pickerRowTake === "card" ? undefined : stepLine(entry),
     icon: entry.icon,
     suffix: originSuffix(entry) ?? side,
-    tooltip: oldStepTooltip ? undefined : stepTooltip(entry),
+    tooltip:
+      oldStepTooltip || pickerRowTake ? undefined : stepTooltip(entry),
     // `?pickercolour=` only: 1 and 2 tint the tile and its icon (T1), 3 tints the icon on the grey tile.
     tint:
       colour === 1 || colour === 2
@@ -610,6 +613,17 @@ export const AddNodePicker = ({
     />
   );
 
+  const menuClassName = cx(
+    pickerWidthStyle,
+    tiledRowsStyle,
+    pickerRowTake === "clamp" && clampRowsStyle,
+  );
+  // `?pickerrow=clamp|card`: the highlighted row's card beside the menu (picker-row.tsx).
+  const rowCard =
+    pickerRowTake === "clamp" || pickerRowTake === "card" ? (
+      <PickerRowCard ports={pickerRowTake === "card"} />
+    ) : null;
+
   // `?plusopen=a|b|c`: the picker from a port's + opens tied to the + (plus-open.tsx).
   if (plusOpenTake && picker.anchor === "port" && picker.after) {
     const { stepId, port } = picker.after;
@@ -620,6 +634,7 @@ export const AddNodePicker = ({
     return (
       <>
         <GroupRowTint />
+        {rowCard}
         <PlusOpenFrame
           stepId={stepId}
           port={port}
@@ -630,7 +645,7 @@ export const AddNodePicker = ({
               anchor={plusAnchor}
               label="Add node"
               position="right-start"
-              className={cx(pickerWidthStyle, tiledRowsStyle)}
+              className={menuClassName}
               onClose={close}
               header={header}
               items={tileMenu(items, "step")}
@@ -644,6 +659,7 @@ export const AddNodePicker = ({
   return (
     <>
       <GroupRowTint />
+      {rowCard}
       <OpenMenu
         anchor={anchor}
         label={feed ? `Use ${feed.label} in a step` : "Add node"}
@@ -658,7 +674,7 @@ export const AddNodePicker = ({
         alignToPanel={!!feed}
         // From a port it opens beside the + when there is room (J0.10), else below it (J1.4).
         besideWhenFits={picker.anchor === "port"}
-        className={cx(pickerWidthStyle, tiledRowsStyle)}
+        className={menuClassName}
         keepInCanvasWidth={
           picker.anchor === "toolbar" || feed
             ? undefined
