@@ -6,6 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID, type EditorDocument } from "./document";
 import { showFull, useEditor } from "./editor-context";
+import { TreeStructureIcon } from "./thin-icons";
 import { ghostLayout, setShowTriggers, useShowTriggers } from "./trigger-flags";
 
 /** "Flows toolbar · Attio layout": 4 px in, 4 px gaps, a hairline, 8 px corners and a soft drop shadow. */
@@ -266,9 +267,9 @@ export const FlowToolbar = ({
         size="sm"
         className={toolStyle}
         variant="ghost"
-        iconName="list"
-        aria-label="Organize"
-        tooltip="Organize"
+        prefix={<TreeStructureIcon />}
+        aria-label="Tidy up"
+        tooltip="Tidy up"
         onClick={onOrganize}
       />
       {/* ?triggerghost=4: the fan has no wires, so the triggers can be put away. */}

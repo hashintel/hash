@@ -223,3 +223,31 @@ export const thinIcons: IconPack = {
   zoomIn: thin(ZoomIn),
   zoomOut: thin(ZoomOut),
 };
+
+/**
+ * figma-ds `tree-structure` (Icons page, 39907:133922; Phosphor): three boxes, left to right. The code-ds icon set
+ * has no such name, so a Button takes it as its `prefix`. Drawn as the pack draws its icons: 16 px in a toolbar
+ * Button, the 1.25 px non-scaling stroke.
+ */
+export const TreeStructureIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={iconStroke}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="lucide"
+    aria-hidden="true"
+    style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0 }}
+    {...props}
+  >
+    <path d="M6 12h4.5M14.25 17.25H12a1.5 1.5 0 0 1-1.5-1.5v-7.5A1.5 1.5 0 0 1 12 6.75h2.25" />
+    <rect x="1.5" y="9.75" width="4.5" height="4.5" rx="0.75" />
+    <rect x="14.25" y="3.75" width="6" height="6" rx="0.75" />
+    <rect x="14.25" y="14.25" width="6" height="6" rx="0.75" />
+  </svg>
+);

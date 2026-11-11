@@ -385,7 +385,7 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
       selectedId: EACH_SUPPLIER,
     }),
     act: () => {
-      press('[aria-label="Organize"]');
+      press('[aria-label="Tidy up"]');
     },
   }),
   // J2.2 and J1.1 are the same frame: a new Find entities, its type left at Any.
