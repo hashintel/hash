@@ -688,13 +688,8 @@ const ReviewPanel = ({
   withList?: boolean;
 }) => {
   const { open } = useShown();
-  const answer = (
-    <Section title="Answer">
-      <div className={css({ gridColumn: "1 / -1" })}>
-        <AnswerForm request={request} />
-      </div>
-    </Section>
-  );
+  // No "Answer" label over the question (11 Nov call, outcomes L18).
+  const answer = <AnswerForm request={request} />;
   return (
     <aside className={panelStyle} aria-label="Needs review" data-review-panel>
       {withList ? (
@@ -966,11 +961,7 @@ const Sheet = ({ request, onClose }: { request: R2Request; onClose: () => void }
               )}
             >
               <StepHeader request={request} />
-              <Section title="Answer">
-                <div className={css({ gridColumn: "1 / -1" })}>
-                  <AnswerForm request={request} />
-                </div>
-              </Section>
+              <AnswerForm request={request} />
             </div>
           </div>
         </div>,
