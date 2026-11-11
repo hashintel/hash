@@ -78,7 +78,6 @@ const graph = vi.hoisted(() => {
     cache: new Map<string, unknown>(),
     version: 0,
     nextTime: 1,
-    createdEntityId: null as EntityId | null,
     /** Gates the next writes wait on before applying. */
     writeGates: [] as Promise<void>[],
     writeFailures: [] as Error[],
@@ -118,11 +117,10 @@ const router = vi.hoisted(() => {
   const go = (url: string) => {
     const [path = "", search = ""] = url.split("?");
     const uuid = path.replace("/processes/", "");
-    const example = new URLSearchParams(search).get("example");
     state.current = {
       isReady: true,
       asPath: url,
-      query: example === null ? { uuid } : { uuid, example },
+      query: { uuid, ...Object.fromEntries(new URLSearchParams(search)) },
     };
     for (const listener of listeners) {
       listener();
@@ -513,16 +511,19 @@ vi.mock("@apollo/client", async (importOriginal) => {
     if (name === "createEntity") {
       return [
         async ({
-          variables: { properties },
+          variables: { properties, webId: createdIn, entityUuid },
         }: {
           variables: {
             properties: { value: Record<string, { value: unknown }> };
+            webId?: string;
+            entityUuid?: string;
           };
         }) => {
-          const entityId = graph.createdEntityId;
-          if (!entityId) {
-            throw new Error("The test named no entity to create");
+          // As the graph does: the caller names the new entity and its web.
+          if (!createdIn || !entityUuid) {
+            throw new Error("The create named no web or uuid for its entity");
           }
+          const entityId = `${createdIn}~${entityUuid}` as EntityId;
           await write(
             "create",
             entityId,
@@ -553,6 +554,8 @@ const uuidCreated = "00000000-0000-4000-8000-00000000000c";
 const netAId = `${webId}~${uuidA}` as EntityId;
 const netBId = `${webId}~${uuidB}` as EntityId;
 const createdId = `${webId}~${uuidCreated}` as EntityId;
+/** A draft's URL names the net its first save creates, and that net's web. */
+const draftUrl = `/processes/${uuidCreated}?draftWeb=${webId}`;
 const firstSaved = "2026-10-24T00:00:00.000Z";
 
 /** A net whose place has a legacy (non-UUID) id, which a load converts. */
@@ -613,7 +616,6 @@ beforeEach(() => {
   graph.listPending = false;
   graph.cache.clear();
   graph.nextTime = 1;
-  graph.createdEntityId = createdId;
   graph.writeGates.length = 0;
   graph.writeFailures.length = 0;
   graph.editableAfterWrite = null;
@@ -767,7 +769,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
 });
 
 test("Create turns the draft into the saved net in the same editor, under its URL, with its history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
   expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
   expect(observed.brunch).toBeNull();
@@ -887,7 +889,7 @@ test("Save persists the net as pressed, returns its history, and keeps edits mad
 });
 
 test("a Create finishing after another net loads leaves that net, its URL, history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const release = holdNextWrite();
   pressSave();
   await settle();
@@ -999,7 +1001,7 @@ test("a pending save takes no second press, and a failed save settles and can be
 });
 
 test("Save called twice before the editor rerenders writes once, for Create and for an update", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
 
   act(() => {
@@ -1043,7 +1045,7 @@ test("Save submits the title as it is when called, even one changed in the same 
 });
 
 test("a Save kept from before Create, called after Create resolves, saves to the created net", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
   const release = holdNextWrite();
   act(() => draftBar.onSave());
@@ -1143,7 +1145,7 @@ test("a save pending for an earlier load neither blocks the next load's save nor
 });
 
 test("a failed Create stays on the draft, and its retry creates the net and moves the URL", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
   graph.writeFailures.push(new Error("graph unavailable"));
 
@@ -1151,7 +1153,7 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   await settle();
 
   expect(router.replace).not.toHaveBeenCalled();
-  expect(url()).toBe("/processes/draft");
+  expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({
     persistPending: false,
     saveLabel: "Create",
@@ -1164,6 +1166,39 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   expect(url()).toBe(`/processes/${uuidCreated}`);
   expect(editor().handle).toBe(draft);
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+});
+
+test("starting a draft gives it an id in the active workspace, carried in its URL and kept by its first save", async () => {
+  await renderRoute("/processes/draft");
+
+  const [, uuid, web] =
+    /^\/processes\/([0-9a-f-]{36})\?draftWeb=(.+)$/u.exec(url()) ?? [];
+  expect(uuid).toBeDefined();
+  expect(web).toBe(webId);
+  expect(topBar()).toMatchObject({ saveLabel: "Create" });
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes).toEqual([
+    expect.objectContaining({ kind: "create", entityId: `${webId}~${uuid}` }),
+  ]);
+  expect(url()).toBe(`/processes/${uuid}`);
+});
+
+test("a draft's URL opens the saved net once a net exists under its id", async () => {
+  graph.nets.set(createdId, graphNet(createdId, "Saved elsewhere"));
+
+  await renderRoute(draftUrl);
+
+  expect(topBar()).toMatchObject({
+    title: "Saved elsewhere",
+    saveLabel: "Saved",
+  });
+  // Saving it updates that net; nothing is created a second time.
+  pressSave();
+  await settle();
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
 });
 
 test("contained failures reach Sentry as thrown, tagged with the net and permission the host loaded", async () => {
@@ -1195,7 +1230,7 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
   });
 
   // A draft turned into a saved net by Create reports as that net.
-  await navigate("/processes/draft");
+  await navigate(draftUrl);
   pressSave();
   await settle();
   const createdFailure = new Error("brunch failed");

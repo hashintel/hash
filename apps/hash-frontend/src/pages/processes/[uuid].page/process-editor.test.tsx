@@ -218,7 +218,12 @@ const savedView = (entityUuid: string): ProcessEditorView => ({
   kind: "saved",
   entityUuid,
 });
-const draftView: ProcessEditorView = { kind: "draft", seedKey: null };
+/** A draft is named before it exists: its first save creates `createdId`. */
+const draftView: ProcessEditorView = {
+  kind: "draft",
+  seedKey: null,
+  entityId: createdId,
+};
 
 const renderHost = async (view: ProcessEditorView) => {
   const rendered = render(<ProcessEditor view={view} />);
@@ -312,7 +317,11 @@ test("Create moves the URL to the new net without reloading the editor, and read
   });
   const { navigate } = await renderHost(draftView);
   const draftLoad = editor().load;
-  expect(draftLoad?.mode).toEqual({ kind: "draft", seedKey: null });
+  expect(draftLoad?.mode).toEqual({
+    kind: "draft",
+    seedKey: null,
+    entityId: createdId,
+  });
 
   const result = await act(() =>
     editor().onSave({
@@ -323,6 +332,15 @@ test("Create moves the URL to the new net without reloading the editor, and read
   );
 
   expect(result.entityId).toBe(createdId);
+  // The net is created under the draft's own id, in the draft's web.
+  expect(graph.createEntity).toHaveBeenCalledWith(
+    expect.objectContaining({
+      variables: expect.objectContaining({
+        webId,
+        entityUuid: uuidCreated,
+      }) as unknown,
+    }),
+  );
   expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidCreated}`);
   navigate(savedView(uuidCreated));
 

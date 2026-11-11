@@ -52,7 +52,12 @@ import type {
  * seeded from, if any) or a saved net entity.
  */
 export type NetMode =
-  | { kind: "draft"; seedKey: string | null }
+  | {
+      kind: "draft";
+      seedKey: string | null;
+      /** The id the draft's first save creates the net under. */
+      entityId: EntityId;
+    }
   | { kind: "saved"; entityId: EntityId };
 
 export type RevisionSummary = {

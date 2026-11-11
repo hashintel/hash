@@ -8,7 +8,11 @@ import type { EntityId } from "@blockprotocol/type-system";
 const openId = "web~net" as EntityId;
 
 const savedMode: NetMode = { kind: "saved", entityId: openId };
-const draftMode: NetMode = { kind: "draft", seedKey: null };
+const draftMode: NetMode = {
+  kind: "draft",
+  seedKey: null,
+  entityId: "web~draft" as EntityId,
+};
 
 const booleans = [false, true] as const;
 const allFacts = booleans.flatMap((readonly) =>

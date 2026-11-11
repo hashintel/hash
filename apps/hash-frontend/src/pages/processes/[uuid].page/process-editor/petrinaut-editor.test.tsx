@@ -194,7 +194,7 @@ const savedLoad = (
 const draftLoad = (): PetrinautEditorLoad => ({
   definition,
   title: "Draft",
-  mode: { kind: "draft", seedKey: null },
+  mode: { kind: "draft", seedKey: null, entityId: "web~draft" as EntityId },
   savedSnapshot: null,
   reason: "open",
 });
