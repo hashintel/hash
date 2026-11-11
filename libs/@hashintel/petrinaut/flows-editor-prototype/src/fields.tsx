@@ -53,6 +53,7 @@ import {
   mockFiles,
   mockPeopleEmails,
 } from "./mock-graph";
+import { PropertyName, PropertyPath } from "./property-path";
 import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape, sourceOptions } from "./shapes";
 import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
@@ -1613,25 +1614,42 @@ export const PropertyField = ({ step, input }: FieldProps) => {
           ?.propertyTypeBaseUrl
       : undefined;
 
+  // The menu is headed by the entity type; each row is the property's type icon and name (decided 11 Nov ~16:30).
   const groups = (entityType ? [entityType] : mockEntityTypes).map((type) => ({
     id: type.baseUrl,
     label: type.title,
     // Read entity reads plain values; links are followed with another step.
     items: type.properties
       .filter((property) => !("linksTo" in property && property.linksTo))
-      .map((property) => ({
-        value: property.baseUrl,
-        text: entityType ? property.title : `${type.title} › ${property.title}`,
-      })),
+      .map((property) => ({ value: property.baseUrl, text: property.title })),
   }));
+  const typeOfProperty = (baseUrl: string) =>
+    mockEntityTypes.find((type) =>
+      type.properties.some((property) => property.baseUrl === baseUrl),
+    );
 
   return (
     <Select
       size="sm"
       searchable
-      items={entityType ? groups[0]!.items : groups}
+      items={groups}
       value={current ?? null}
       placeholder="Choose a property"
+      renderItem={(value) => {
+        const property = findPropertyType(value);
+        return property ? <PropertyName property={property} /> : value;
+      }}
+      renderSelectedItem={(value) => {
+        const property = findPropertyType(value);
+        return property ? (
+          <PropertyPath
+            typeTitle={typeOfProperty(value)?.title ?? ""}
+            property={property}
+          />
+        ) : (
+          value
+        );
+      }}
       onChange={(value) => {
         const property = findPropertyType(value ?? undefined);
         setDocument((currentDocument) =>

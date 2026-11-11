@@ -60,7 +60,7 @@ export const prdBlocks: Record<string, PrdBlock> = {
         sources: ["Manual input", "HASH graph @lookup", "Previous step"],
       },
       property: {
-        label: "Property to read",
+        label: "Property",
         description:
           "The PRD reads several properties, each its own output. The engine (#10051) reads one per step.",
         sources: ["Manual input"],

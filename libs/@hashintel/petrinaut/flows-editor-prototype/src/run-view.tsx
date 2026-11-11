@@ -29,6 +29,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { getCatalogEntry } from "./catalog";
 import { type DraftStep, findStep, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
+import { propertyPathOf } from "./property-path";
 import {
   HeaderTitle,
   panelHeaderStyle,
@@ -135,7 +136,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
-          { label: "Property", value: "Name" },
+          { label: "Property", value: propertyPathOf("Supplier", "Name") },
         ],
         outputs: [{ label: "Value", value: item.name }],
       };
@@ -145,7 +146,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
-          { label: "Property", value: "Contact email" },
+          { label: "Property", value: propertyPathOf("Supplier", "Contact email") },
         ],
         outputs: [{ label: "Value", value: item.email }],
       };
@@ -155,7 +156,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
-          { label: "Property", value: "Certificate link" },
+          { label: "Property", value: propertyPathOf("Supplier", "Certificate link") },
         ],
         outputs: [{ label: "Value", value: item.certificate }],
       };

@@ -46,6 +46,7 @@ import {
 } from "./run-history";
 import { openFlowTriggers } from "./flow-triggers";
 import { selectedLabel } from "./menu-rows";
+import { propertyPathOf } from "./property-path";
 import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
@@ -452,7 +453,7 @@ type Detail = {
   icon: IconName;
   chips: { label: string; color: ChipColor }[];
   span?: string;
-  inputs: [string, string][];
+  inputs: [string, React.ReactNode][];
 };
 
 /** `?triggerfired=3`: the fired trigger, selected, and the panel tells who or what started the run. */
@@ -650,20 +651,20 @@ const detailOf = (
       ],
     };
   }
-  const titles: Record<string, [string, IconName, string, [string, string][]]> =
+  const titles: Record<string, [string, IconName, string, [string, React.ReactNode][]]> =
     {
-      readName: ["Read entity", "eye", "read", [["Property", "Name"]]],
+      readName: ["Read entity", "eye", "read", [["Property", propertyPathOf("Supplier", "Name")]]],
       readEmail: [
         "Read entity",
         "eye",
         "read",
-        [["Property", "Contact email"]],
+        [["Property", propertyPathOf("Supplier", "Contact email")]],
       ],
       readCertificateLink: [
         "Read entity",
         "eye",
         "read",
-        [["Property", "Certificate link"]],
+        [["Property", propertyPathOf("Supplier", "Certificate link")]],
       ],
       fetchCertificate: [
         "Fetch file",
