@@ -72,7 +72,10 @@ export const Home = ({
   onSearch,
   onOpen,
   onNew,
+  notice,
 }: {
+  /** A toast over the list, inside the shell so it gets the DS styles (`?confirm=undo`'s Archived · Undo). */
+  notice?: React.ReactNode;
   flows: FlowListEntry[];
   search: string;
   onSearch: (search: string) => void;
@@ -307,6 +310,7 @@ export const Home = ({
           </div>
         )}
       </main>
+      {notice}
     </HashShell>
   );
 };

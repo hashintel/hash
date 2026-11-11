@@ -11,6 +11,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { AddNodePicker } from "./add-node-picker";
 import { AllRuns } from "./all-runs";
+import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
 import { updateDocument, useAppState } from "./app-store";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
@@ -328,6 +329,10 @@ export const Editor = ({
       ? asked
       : null;
   const [notice, setNotice] = useState<string | null>(null);
+  // ?confirm=dialog: ⋮ › Archive asks first.
+  const confirmTake = useConfirmTake();
+  const [archiveAsk, setArchiveAsk] = useState(false);
+  const archive = () => (onArchive ?? onBack)?.(document);
   const liveRunId =
     history?.runs.find((run) => run.kind === "live" && !run.stopped)?.id ??
     null;
@@ -662,7 +667,10 @@ export const Editor = ({
                             {
                               id: "archive",
                               text: "Archive",
-                              onClick: () => (onArchive ?? onBack)?.(document),
+                              onClick: () =>
+                                confirmTake === "dialog"
+                                  ? setArchiveAsk(true)
+                                  : archive(),
                             },
                           ]}
                           trigger={
@@ -682,6 +690,18 @@ export const Editor = ({
               </header>
               {notice ? (
                 <Toast text={notice} onDone={() => setNotice(null)} />
+              ) : null}
+              {archiveAsk ? (
+                <ConfirmDialog
+                  title={`Archive ${document.name}?`}
+                  body={`Its ${flowTriggersOf(document, ui.triggerSwitches).items.length} triggers stop. Past runs stay in All runs.`}
+                  action="Archive"
+                  onClose={() => setArchiveAsk(false)}
+                  onConfirm={() => {
+                    setArchiveAsk(false);
+                    archive();
+                  }}
+                />
               ) : null}
               <main
                 className={css({

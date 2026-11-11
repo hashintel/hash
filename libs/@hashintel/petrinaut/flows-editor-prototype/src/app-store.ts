@@ -217,6 +217,20 @@ export const archiveFlow = (id: string) =>
     true,
   );
 
+/** Undo an archive (`?confirm=undo`): the flow goes back where it was in the list. */
+export const restoreFlow = (flow: State["flows"][number], index: number) =>
+  setState(
+    (state) => ({
+      ...state,
+      flows: [
+        ...state.flows.slice(0, index),
+        flow,
+        ...state.flows.slice(index),
+      ],
+    }),
+    true,
+  );
+
 /* ----------------------------------------------------------------------------------------------------------------
  * Viewports
  * ------------------------------------------------------------------------------------------------------------- */

@@ -199,6 +199,17 @@ export const openDecisions: OpenSwitch[] = [
       { label: "all right", value: "right" },
     ],
   },
+  {
+    card: "conv-confirm-actions",
+    title: "Archive and Stop · ask first",
+    flag: "confirm",
+    defaultValue: null,
+    options: [
+      { label: "today", value: null },
+      { label: "dialog", value: "dialog" },
+      { label: "undo toast (Archive)", value: "undo" },
+    ],
+  },
 ];
 
 /** Every flag above, so a page change keeps them and Reset all clears them. */

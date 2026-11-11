@@ -7,7 +7,15 @@ import { useEffect, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Editor } from "./app";
-import { archiveFlow, createFlow, runsOf, useAppState } from "./app-store";
+import {
+  archiveFlow,
+  createFlow,
+  restoreFlow,
+  runsOf,
+  useAppState,
+} from "./app-store";
+import { useConfirmTake } from "./confirm-dialog";
+import { Toast } from "./ds-parts/toast";
 import { type EditorUi, initialUi } from "./editor-context";
 import { HashShell } from "./hash-shell";
 import { Home } from "./home";
@@ -123,11 +131,27 @@ export const RoutedApp = () => {
   // The flows list reads each newest run once, when it opens.
   const [listedAt] = useState(() => Date.now());
   useOpenMenu(query.get("menu"));
+  // ?confirm=undo: Archive acts at once and the flows list shows a toast with Undo.
+  const confirmTake = useConfirmTake();
+  const [archived, setArchived] = useState<{
+    flow: (typeof state.flows)[number];
+    index: number;
+  } | null>(null);
 
   switch (route.page) {
     case "flows":
       return (
         <Home
+          notice={
+            archived ? (
+              <Toast
+                text={`Archived ${archived.flow.document.name}`}
+                action="Undo"
+                onAction={() => restoreFlow(archived.flow, archived.index)}
+                onDone={() => setArchived(null)}
+              />
+            ) : null
+          }
           flows={
             route.empty
               ? []
@@ -187,6 +211,9 @@ export const RoutedApp = () => {
           }
           onBack={() => navigate("/flows")}
           onArchive={() => {
+            if (confirmTake === "undo") {
+              setArchived({ flow, index: state.flows.indexOf(flow) });
+            }
             archiveFlow(flow.id);
             navigate("/flows");
           }}

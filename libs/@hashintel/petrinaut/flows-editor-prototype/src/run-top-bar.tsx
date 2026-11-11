@@ -20,6 +20,8 @@
  * 3. One muted line by the title, "v6 · Draft ▾ · 17 runs".
  * Every take has the title (renamed in place) and the version menu (V0–V7).
  */
+import { useState } from "react";
+
 import {
   BreadCrumbs,
   Button,
@@ -42,7 +44,8 @@ import {
   outcomeState,
   statusText,
 } from "./run-history";
-import { runIdMono, RunIdText, runLabel } from "./run-id";
+import { ConfirmDialog, useConfirmTake } from "./confirm-dialog";
+import { runId, runIdMono, RunIdText, runLabel } from "./run-id";
 import {
   liveTail,
   runTimeTake,
@@ -454,11 +457,26 @@ export const RunTopBar = ({
   onSimulate: () => void;
 }) => {
   const { run, now } = history;
+  // ?confirm=dialog: Stop asks first.
+  const confirmTake = useConfirmTake();
+  const [stopAsk, setStopAsk] = useState(false);
   if (!run) {
     return null;
   }
   const outcome = outcomeOf(run, now);
   const stop = bannerAction(run, now) === "Stop";
+  const stopDialog = stopAsk ? (
+    <ConfirmDialog
+      title={`Stop run ${runId(run)}?`}
+      body="Steps that are running are cancelled. Finished steps keep their outputs. A stopped run can't be resumed."
+      action="Stop run"
+      onClose={() => setStopAsk(false)}
+      onConfirm={() => {
+        setStopAsk(false);
+        history.stop(run.id);
+      }}
+    />
+  ) : null;
   const failedCount =
     outcome === "warnings" ? factsOf(run, now).failures.length : 0;
   // The one place to re-run only the failed items: just left of Re-run. Elsewhere it is plain "2 failed".
@@ -476,6 +494,7 @@ export const RunTopBar = ({
       </Button>
     ) : null;
   const actionButton = (
+    <>
     <Button
       size="sm"
       variant="subtle"
@@ -483,10 +502,18 @@ export const RunTopBar = ({
       iconName={stop ? "stop" : "rotate"}
       className={quietStyle}
       data-run-action
-      onClick={() => (stop ? history.stop(run.id) : history.start())}
+      onClick={() =>
+        stop
+          ? confirmTake === "dialog"
+            ? setStopAsk(true)
+            : history.stop(run.id)
+          : history.start()
+      }
     >
       {stop ? "Stop" : "Re-run"}
     </Button>
+    {stopDialog}
+    </>
   );
   const simulateButton = (
     <Button
