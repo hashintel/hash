@@ -524,6 +524,14 @@ const addStyle = css({
 });
 
 /** Playground `.xr .xd`: a later-steps row's second line (its step) is muted, not subtle. */
+/** A later step's input name with its type chip 10 px after it; a long name is cut, the chip stays. */
+const namedStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2.5",
+  minWidth: "[0]",
+});
+
 const laterMenuStyle = css({
   // Playground `wide`: the menu spans the panel's content width.
   "&[class]": { width: "[352px]", minWidth: "[352px]", maxWidth: "[352px]" },
@@ -706,14 +714,19 @@ const LaterStepsMenu = ({
     )
     .map(({ step, entry, input, source, filled }) => ({
       id: `${step.stepId}.${input.name}`,
-      text: input.label,
+      // Order A (ledger 11 Nov ~19:20): the input's name, then its type as a chip right after it.
+      text: (
+        <span className={namedStyle}>
+          <span className={headNameStyle}>{input.label}</span>
+          <span className={typeChipStyle}>{typeWords(input)}</span>
+        </span>
+      ),
       // Playground `ctxOf`: the innermost loop the step sits in, then the step.
       description: [...loopsOf(document, step.stepId).slice(-1), stepLabel(step)].join(" › "),
       icon: entry.icon as IconName,
       tint: kTile(document, step.stepId),
       selected: filled,
       selectedStyle: "tick" as const,
-      suffix: <span className={typeSuffixStyle}>{typeWords(input)}</span>,
       onClick: () => {
         setDocument((current) => connect(current, step.stepId, input.name, source));
         onClose();
