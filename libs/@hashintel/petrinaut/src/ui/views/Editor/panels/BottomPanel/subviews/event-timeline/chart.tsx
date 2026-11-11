@@ -24,6 +24,7 @@ import {
 } from "./interactions";
 import {
   findFiringNear,
+  stackedBandAt,
   stackedBandValue,
   FIRING_COLOR,
   type EventTimelineData,
@@ -357,16 +358,24 @@ const updateTooltip = (
     time,
     FIRING_HOVER_PX * perPixel,
   );
-  const series =
-    focusedSeries >= 1 ? state.data.series[focusedSeries - 1] : undefined;
   const idx = u.cursor.idx;
+  const stacked = state.data.kind !== "lanes" && state.data.stacked === true;
+  // In a stacked chart the pointer names the band it is inside, which is
+  // not always the one whose edge is nearest.
+  const seriesIndex =
+    stacked && idx != null && idx >= 0 && u.cursor.top != null
+      ? (stackedBandAt(state.data.data, idx, u.posToVal(u.cursor.top, "y")) ??
+        0)
+      : focusedSeries;
+  const series =
+    seriesIndex >= 1 ? state.data.series[seriesIndex - 1] : undefined;
   // A stacked band shows what it holds itself, not the height it reaches.
   const value =
     !series || idx == null || idx < 0
       ? undefined
-      : state.data.kind !== "lanes" && state.data.stacked
-        ? stackedBandValue(state.data.data, focusedSeries, idx)
-        : state.data.data[focusedSeries]?.[idx];
+      : stacked
+        ? stackedBandValue(state.data.data, seriesIndex, idx)
+        : state.data.data[seriesIndex]?.[idx];
 
   const showSeries = series !== undefined && state.data.kind !== "lanes";
   nodes.dot.style.display = showSeries ? "block" : "none";
