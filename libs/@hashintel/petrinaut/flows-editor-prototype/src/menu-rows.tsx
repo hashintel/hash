@@ -54,21 +54,37 @@ export const headerIconStyle = css({
 });
 
 /**
- * A row with a second line: 8 px above and below (6 px in a value menu, 48 px in all), 6 px in; a one-line row: 6 px
- * all round (36 px); 4 px between rows.
+ * A tile-row menu's spacing (ledger 11 Nov ~19:20, menu-spacing.png column 4): the search icon, the group label and
+ * the tiles all sit 16 px in (8 px of menu, 8 px of row), 16 px on the right; a 40 px search bar; the group label
+ * 8 px under the search border; a two-line row 5 px above and below (48 px in all), a one-line row 6 px; 4 px between
+ * rows; 8 px after the last row. Wider than the figma-ds menu (12 px in): a recorded Flows break.
  */
 export const tiledRowsStyle = css({
+  "&[data-part=content]": { padding: "[8px]" },
+  "& [data-menu-search]": {
+    height: "[40px]",
+    marginTop: "[-13px]",
+    marginBottom: "[-5px]",
+    marginX: "[-16px]",
+    paddingX: "[16px]",
+  },
+  "& [data-part=item-group-label]": {
+    display: "flex",
+    alignItems: "center",
+    height: "[28px]",
+    marginTop: "[4px]",
+    paddingY: "[0]",
+  },
+  "& [role=group]:first-child > [data-part=item-group-label]": { marginTop: "[8px]" },
+  "& [role=group]:last-child": { paddingBottom: "[0]", marginBottom: "[0]" },
   "& [role=menuitem]:has([data-menu-row])": {
-    "--selectable-list-item-padding-x": "6px",
+    "--selectable-list-item-padding-x": "8px",
     "--selectable-list-item-padding-y": "6px",
     alignItems: "center",
     borderRadius: "lg",
   },
   "& [role=menuitem]:has([data-menu-row=two])": {
-    "--selectable-list-item-padding-y": "8px",
-  },
-  "& [role=menuitem]:has([data-menu-row=two][data-lines=value])": {
-    "--selectable-list-item-padding-y": "6px",
+    "--selectable-list-item-padding-y": "5px",
   },
   "& [role=menuitem]:has([data-menu-row]) + [role=menuitem]": {
     marginTop: "[4px]",
@@ -195,18 +211,18 @@ const tileStyle = cva({
   variants: {
     lines: {
       value: { width: "[28px]", height: "[28px]", marginTop: "[1px]" },
-      // G77: 32 px across the 36 px of lines (14 + 4 + 18), 2 px down so it is centred on them.
+      // G77: 32 px across the 38 px of lines (20 + 2 + 16), 3 px down so it is centred on them.
       step: {
         width: "[32px]",
         height: "[32px]",
-        marginTop: "[2px]",
+        marginTop: "[3px]",
         "& svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
       },
     },
   },
 });
 
-/** A value menu's lines touch (20 + 16 px, playground and Figma 770:33030); a step's sit 4 px apart. */
+/** Both lines 2 px apart (20 + 2 + 16 px, ledger 11 Nov ~19:20). */
 const textStyle = cva({
   base: {
     display: "flex",
@@ -215,8 +231,8 @@ const textStyle = cva({
   },
   variants: {
     lines: {
-      value: { gap: "0" },
-      step: { gap: "1" },
+      value: { gap: "[2px]" },
+      step: { gap: "[2px]" },
     },
   },
 });
@@ -234,7 +250,7 @@ const titleStyle = css({
   color: "neutral.fg.heading",
 });
 
-/** A two-line row's title: a 20 px line in a value menu, 14 px for a step. */
+/** A two-line row's title: a 20 px line. */
 const twoLineTitleStyle = cva({
   base: {
     ...ellipsis,
@@ -244,7 +260,7 @@ const twoLineTitleStyle = cva({
   variants: {
     lines: {
       value: { lineHeight: "[20px]" },
-      step: { lineHeight: "[14px]" },
+      step: { lineHeight: "[20px]" },
     },
   },
 });
@@ -263,7 +279,7 @@ const descriptionStyle = cva({
     lines: {
       // #8d8d8d in a value menu (playground and Figma 770:33030).
       value: { lineHeight: "[16px]", color: "neutral.fg.muted" },
-      step: { lineHeight: "[18px]", color: "neutral.fg.subtle" },
+      step: { lineHeight: "[16px]", color: "neutral.fg.subtle" },
     },
   },
 });
@@ -322,7 +338,7 @@ export const RowTile = ({
   </span>
 );
 
-/** How a two-line row sets its lines: a value menu's (20 / 16 px) or a step picker's (14 / 18 px). */
+/** How a two-line row colours its second line: a value menu's (muted) or a step picker's (subtle). Both 20 / 16 px. */
 export type RowLines = "value" | "step";
 
 export const MenuRow = ({

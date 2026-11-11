@@ -431,6 +431,7 @@ export const SearchHeader = ({
   return (
     <div
       ref={ref}
+      data-menu-search=""
       className={cx(
         css({
           borderBottomWidth: "thin",
