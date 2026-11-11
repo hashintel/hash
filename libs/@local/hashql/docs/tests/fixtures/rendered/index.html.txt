@@ -1,4 +1,4 @@
-# Reference
+# API
 
 Package entrypoints and the traits of their types.
 
