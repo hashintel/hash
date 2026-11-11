@@ -33,7 +33,7 @@ import {
 } from "../../canvas-renderer";
 import { getInitialViewport } from "../../canvas-viewport";
 import { ViewportControls } from "../../components/viewport-controls";
-import { useRecenterOnPanelOpen } from "../../hooks/use-recenter-on-panel-open";
+import { useKeepSelectionInView } from "../../hooks/use-keep-selection-in-view";
 import { useDebouncedValue } from "../../hooks/util/use-debounced-value";
 import { useCanvasInteractions } from "../../use-canvas-interactions";
 import { Arc } from "./react-flow-canvas/arc";
@@ -150,10 +150,11 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   };
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
-  const controller = useReactFlowController({
+  const { controller, camera } = useReactFlowController({
     bounds,
     containerSize,
     insets,
+    animated: showAnimations,
   });
 
   useEffect(() => {
@@ -161,7 +162,6 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     return () => registerController(null);
   }, [controller, registerController]);
 
-  useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
   useEscapeCancelsConnection();
   useMonacoKeyboardIsolation();
   useMultiSelectionModifier(isMac);
@@ -193,6 +193,14 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     Math.min(boundsMinZoom, zoomBelowBoundsMinZoom ?? boundsMinZoom),
     MIN_ZOOM_DEBOUNCE_MS,
   );
+
+  useKeepSelectionInView({
+    controller,
+    scene,
+    containerSize,
+    insets,
+    minZoom,
+  });
 
   const scenePositionOf = (event: { clientX: number; clientY: number }) =>
     controller.screenToScene({ x: event.clientX, y: event.clientY });
@@ -257,7 +265,18 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           onPaneClick={(event) =>
             interactions.clickPane(scenePositionOf(event))
           }
-          onMoveEnd={(_event, viewport) => rememberViewport(viewport)}
+          // A gesture takes the camera back from any move under way. Frames
+          // of the camera's own moves are not remembered, only where it stops.
+          onMoveStart={(event) => {
+            if (event) {
+              camera.cancel();
+            }
+          }}
+          onMoveEnd={(_event, viewport) => {
+            if (!camera.isAnimating()) {
+              rememberViewport(viewport);
+            }
+          }}
           onDrop={interactions.readonly ? undefined : onDrop}
           onDragOver={interactions.readonly ? undefined : onDragOver}
           defaultViewport={savedViewport ?? initialViewport}

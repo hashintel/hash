@@ -38,6 +38,11 @@ export const VIEWPORT_CONTROLS_WIDTH = 24;
 export const VIEWPORT_CONTROLS_CLEARANCE =
   VIEWPORT_CONTROLS_OFFSET + VIEWPORT_CONTROLS_WIDTH;
 
+// Bottom bar — the floating toolbar along the bottom of the canvas.
+/** Gap between the bar and whatever is below it, canvas or bottom panel. */
+export const BOTTOM_BAR_GAP = 24;
+export const BOTTOM_BAR_HEIGHT = 42;
+
 // Bottom Panel (DEFAULT_BOTTOM_PANEL_HEIGHT in react/state/panel-defaults)
 export const MIN_BOTTOM_PANEL_HEIGHT = 100;
 export const MAX_BOTTOM_PANEL_HEIGHT = 600;
