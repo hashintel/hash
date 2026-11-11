@@ -13,7 +13,10 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
-import { SimulationContext } from "../../../../../../react/simulation/context";
+import {
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../../../../react/simulation/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { simulationSettingsSubView } from "./simulation-settings";
@@ -142,43 +145,9 @@ const sdcpnContextValue: SDCPNContextValue = {
 };
 
 const simulationContextValue: SimulationContextValue = {
-  state: "NotRun",
-  error: null,
-  errorItemId: null,
-  parameterValues: {},
-  initialMarking: {},
-  selectedScenarioId: null,
-  scenarioParameterValues: {},
-  compiledScenarioResult: null,
-  scenarioCompilationErrors: null,
-  adHocScenario: null,
+  ...DEFAULT_SIMULATION_CONTEXT,
   adHocNetParameters: sdcpn.parameters,
-  maxTime: null,
-  totalFramesStore: { get: () => 0, subscribe: () => () => {} },
-  getFrame: () => Promise.resolve(null),
-  getAllFrames: () => Promise.resolve([]),
-  getFramesInRange: () => Promise.resolve([]),
-  setSelectedScenarioId: () => {},
-  setAdHocScenario: () => {},
-  setScenarioParameterValue: () => {},
-  setInitialMarking: () => {},
-  setParameterValue: () => {},
-  setMaxTime: () => {},
   simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
-  eventSimulation: null,
-  mode: "quick",
-  runs: 100,
-  stochasticRun: null,
-  playbackSource: null,
-  selectSimulator: () => {},
-  setSimulatorParameter: () => {},
-  setMode: () => {},
-  setRuns: () => {},
-  keepStochasticRun: () => {},
-  initialize: () => Promise.resolve(),
-  run: () => {},
-  pause: () => {},
-  reset: () => {},
 };
 
 const neverLoaded = {

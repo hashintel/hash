@@ -260,7 +260,8 @@ export type SimulationContextValue = {
   reset: () => void;
 };
 
-const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
+/** The value outside a `SimulationProvider`: no run, and actions that do nothing. */
+export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   state: "NotRun",
   error: null,
   errorItemId: null,
@@ -301,5 +302,5 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
-  DEFAULT_CONTEXT_VALUE,
+  DEFAULT_SIMULATION_CONTEXT,
 );

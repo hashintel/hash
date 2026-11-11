@@ -16,7 +16,11 @@ import {
 
 import { PetrinautInstanceContext } from "../instance-context";
 import { NotificationsContext } from "../notifications/context";
-import { SimulationContext, type SimulationState } from "../simulation/context";
+import {
+  SimulationContext,
+  type SimulationState,
+  DEFAULT_SIMULATION_CONTEXT,
+} from "../simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -126,48 +130,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     <PetrinautInstanceContext value={instance}>
       <SDCPNContext value={sdcpnContextValue}>
         <SimulationContext
-          value={{
-            state: simulationState,
-            error: null,
-            errorItemId: null,
-            parameterValues: {},
-            initialMarking: {},
-            selectedScenarioId: null,
-            scenarioParameterValues: {},
-            compiledScenarioResult: null,
-            scenarioCompilationErrors: null,
-            adHocScenario: null,
-            adHocNetParameters: [],
-            setAdHocScenario: () => {},
-            maxTime: null,
-            totalFramesStore: { get: () => 0, subscribe: () => () => {} },
-            getFrame: () => Promise.resolve(null),
-            getAllFrames: () => Promise.resolve([]),
-            getFramesInRange: () => Promise.resolve([]),
-            setSelectedScenarioId: () => {},
-            setScenarioParameterValue: () => {},
-            setInitialMarking: () => {},
-            setParameterValue: () => {},
-            setMaxTime: () => {},
-            simulatorSelection: {
-              simulatorId: "js-fixed-step",
-              parameters: {},
-            },
-            eventSimulation: null,
-            mode: "quick",
-            runs: 100,
-            stochasticRun: null,
-            playbackSource: null,
-            selectSimulator: () => {},
-            setSimulatorParameter: () => {},
-            setMode: () => {},
-            setRuns: () => {},
-            keepStochasticRun: () => {},
-            initialize: () => Promise.resolve(),
-            run: () => {},
-            pause: () => {},
-            reset: () => {},
-          }}
+          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
           <EditorContext value={editorContextValue(globalMode)}>
             {children}

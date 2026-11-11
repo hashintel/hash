@@ -1,7 +1,10 @@
 import { useState } from "react";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
-import { SimulationContext } from "../../../../../react/simulation/context";
+import {
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 
 import type { PlaybackSpeed, PlayMode } from "@hashintel/petrinaut-core";
@@ -44,46 +47,15 @@ const PlaybackSettingsMenuStory = ({
   return (
     <SimulationContext
       value={{
+        ...DEFAULT_SIMULATION_CONTEXT,
         state: simulationState,
-        error: null,
-        errorItemId: null,
-        parameterValues: {},
-        initialMarking: {},
-        selectedScenarioId: null,
-        scenarioParameterValues: {},
-        compiledScenarioResult: null,
-        scenarioCompilationErrors: null,
-        adHocScenario: null,
-        adHocNetParameters: [],
-        setAdHocScenario: () => {},
         maxTime,
+        setMaxTime,
         totalFramesStore: {
           get: () => (simulationState === "NotRun" ? 0 : 100),
           subscribe: () => () => {},
         },
-        getFrame: () => Promise.resolve(null),
-        getAllFrames: () => Promise.resolve([]),
-        getFramesInRange: () => Promise.resolve([]),
-        setSelectedScenarioId: () => {},
-        setScenarioParameterValue: () => {},
-        setInitialMarking: () => {},
-        setParameterValue: () => {},
-        setMaxTime,
         simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
-        eventSimulation: null,
-        mode: "quick",
-        runs: 100,
-        stochasticRun: null,
-        playbackSource: null,
-        selectSimulator: () => {},
-        setSimulatorParameter: () => {},
-        setMode: () => {},
-        setRuns: () => {},
-        keepStochasticRun: () => {},
-        initialize: () => Promise.resolve(),
-        run: () => {},
-        pause: () => {},
-        reset: () => {},
       }}
     >
       <EventPlaybackContext
