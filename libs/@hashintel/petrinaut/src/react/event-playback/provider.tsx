@@ -183,9 +183,12 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
 
   const play = async () => {
     if (simulationState === "NotRun") {
-      await initialize({ seed: PETRINAUT_DEFAULT_SEED });
-      runSimulation();
-      playback.play();
+      // A change of configuration can overtake the start: there is then no
+      // run to play.
+      if (await initialize({ seed: PETRINAUT_DEFAULT_SEED })) {
+        runSimulation();
+        playback.play();
+      }
       return;
     }
     if (modeRef.current !== "viewOnly") {

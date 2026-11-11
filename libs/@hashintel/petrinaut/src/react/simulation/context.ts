@@ -19,8 +19,7 @@ import {
 
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
 
-// Re-export for back-compat with existing consumers that import these from
-// the simulation context module.
+// The frame and marking types of the context's own fields, for its consumers.
 export type {
   InitialMarking,
   InitialPlaceMarking,
@@ -29,12 +28,9 @@ export type {
 };
 
 /**
- * Current state of the simulation lifecycle, as the editor UI consumes it.
- *
- * Note: this is the legacy 5-state shape; the canonical core state lives in
- * `@hashintel/petrinaut-core` (`SimulationState` from `core/simulation`) and
- * has six values including `Initializing` and `Ready`. The provider maps
- * between the two.
+ * Where a simulation stands, as the editor shows it. The core's own state
+ * has two more values, `Initializing` and `Ready`, which the provider maps
+ * to `NotRun` and `Paused`.
  */
 export type SimulationState =
   | "NotRun"
@@ -43,13 +39,6 @@ export type SimulationState =
   | "Error"
   | "Paused";
 
-/**
- * The combined simulation context containing both state and actions.
- *
- * Note: The full SimulationInstance and raw frame storage are not exposed.
- * Instead, use `getFrame()` to access individual frames through a
- * `SimulationFrameReader`.
- */
 /**
  * What playback moves a viewed time over, whichever mode computed it: how
  * far the time may go, whether more is coming, and a way to ask for more.
@@ -74,6 +63,8 @@ export type StochasticRun = {
   readonly runCount: number;
   readonly seed: number;
   readonly maxTime: number;
+  /** The spacing of the experiment's samples, in simulated seconds. */
+  readonly samplePeriod: number;
   /** The metrics the experiment computes: a token count per place. */
   readonly metricSpecs: readonly MonteCarloMetricSpec[];
   /** The simulator that computes it, as selected when it started. */
@@ -145,51 +136,23 @@ export type SimulationContextValue = {
    */
   eventSimulation: EventSimulation | null;
 
-  // Frame access
+  // Frame access. A frame is the state an event of the run recorded, read
+  // from the trace the host already holds.
   /**
-   * Get a specific frame by index.
-   * Returns null if the index is out of bounds or no simulation exists.
-   *
-   * This is the primary way to access frame data. The full frame history
-   * is kept internal to the provider for memory management.
-   *
-   * @param frameIndex - The index of the frame to retrieve (0-based)
-   * @returns Promise resolving to the frame reader or null
+   * The frame at an index, or null when the index is out of bounds or no
+   * run exists.
    */
   getFrame: (frameIndex: number) => Promise<SimulationFrameReader | null>;
 
   /**
-   * Get all computed frames.
-   * Returns an empty array if no simulation exists.
-   *
-   * Note: For large simulations, this may return a large array.
-   * Consider using getFrame() for single-frame access when possible.
-   *
-   * @returns Promise resolving to array of all frame readers
-   */
-  getAllFrames: () => Promise<SimulationFrameReader[]>;
-
-  /**
-   * Get frames in a specified range.
-   * Returns frames from startIndex (inclusive) to endIndex (exclusive).
-   * If endIndex is not provided, returns frames from startIndex to the end.
-   *
-   * This is more efficient than getAllFrames() when you only need a subset
-   * of frames, such as when incrementally updating a visualization.
-   *
-   * @param startIndex - The starting frame index (inclusive, 0-based)
-   * @param endIndex - The ending frame index (exclusive). If omitted, returns to the end.
-   * @returns Promise resolving to array of frame readers in the range
+   * The frames from `startIndex` (inclusive) to `endIndex` (exclusive), or
+   * to the last one when `endIndex` is left out.
    */
   getFramesInRange: (
     startIndex: number,
     endIndex?: number,
   ) => Promise<SimulationFrameReader[]>;
 
-  /**
-   * ID of the currently selected scenario, or `null` for no scenario.
-   * When set, initial state and parameter values are defined by the scenario.
-   */
   selectedScenarioId: string | null;
   /**
    * Current values for scenario-specific parameters (editable by the user).
@@ -233,11 +196,13 @@ export type SimulationContextValue = {
   setMode: (mode: SimulationMode) => void;
   setRuns: (runs: number) => void;
   /**
-   * Marks the Stochastic simulation's experiment as taken over by a caller:
-   * it stays on the canvas, and discarding the simulation no longer stops
-   * it.
+   * Hands the Stochastic simulation's experiment to a caller, and returns
+   * it: it stays on the canvas, and discarding the simulation no longer
+   * stops it. When its new owner disposes it before it finished, the canvas
+   * lets go of it too. Null when there is none to hand over, or it was
+   * handed over already.
    */
-  keepStochasticRun: () => void;
+  keepStochasticRun: () => MonteCarloExperiment | null;
   /** Switches simulator, restoring the parameter values last used with it. */
   selectSimulator: (simulatorId: string) => void;
   setSimulatorParameter: (
@@ -251,10 +216,12 @@ export type SimulationContextValue = {
   setMaxTime: (maxTime: number | null) => void;
   /**
    * Starts what the mode computes on the selected simulator: a run, or an
-   * experiment. Resolves once it is ready to run, and rejects with the
-   * reason when the simulator refuses or the net does not compile.
+   * experiment. Resolves true once it is ready to run, and false when a
+   * change of configuration overtook the start and nothing was installed.
+   * Rejects with the reason when the simulator refuses or the net does not
+   * compile.
    */
-  initialize: (params: { seed: number }) => Promise<void>;
+  initialize: (params: { seed: number }) => Promise<boolean>;
   run: () => void;
   pause: () => void;
   reset: () => void;
@@ -282,7 +249,6 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   playbackSource: null,
   eventSimulation: null,
   getFrame: () => Promise.resolve(null),
-  getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
   setAdHocScenario: () => {},
@@ -291,11 +257,11 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   setParameterValue: () => {},
   setMode: () => {},
   setRuns: () => {},
-  keepStochasticRun: () => {},
+  keepStochasticRun: () => null,
   selectSimulator: () => {},
   setSimulatorParameter: () => {},
   setMaxTime: () => {},
-  initialize: () => Promise.resolve(),
+  initialize: () => Promise.resolve(false),
   run: () => {},
   pause: () => {},
   reset: () => {},

@@ -226,7 +226,8 @@ describe("SimulationProvider on a registered simulator", () => {
     );
     // A simulator that does not read the HIR trees is not sent them.
     expect(requestHirArtifacts.mock.calls[0]![2]).toBeUndefined();
-    expect(getValue().eventSimulation).toBe(handle);
+    // The context holds the run with its simulator's release attached.
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
   });
 
   it("asks for the HIR trees when the simulator reads them", async () => {
@@ -266,7 +267,8 @@ describe("SimulationProvider on a registered simulator", () => {
     expect(first.assessed).toHaveBeenCalledWith(
       expect.objectContaining({ simulatorParameters: { step: 0.25 } }),
     );
-    expect(getValue().eventSimulation).toBe(handle);
+    // The context holds the run with its simulator's release attached.
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
 
     act(() => getValue().selectSimulator("test.second"));
     expect(handle.dispose).toHaveBeenCalled();
@@ -390,8 +392,11 @@ describe("SimulationProvider in Stochastic mode", () => {
         }),
       ],
     });
+    // The context holds the experiment with its simulator's release attached.
+    expect(getValue().stochasticRun?.experiment.metrics).toBe(
+      experiment.metrics,
+    );
     expect(getValue().stochasticRun).toMatchObject({
-      experiment,
       runCount: 250,
       seed: 3,
       maxTime: 12,
@@ -430,7 +435,9 @@ describe("SimulationProvider in Stochastic mode", () => {
     const second = stochastic();
     act(() => second.getValue().setMode("stochastic"));
     await act(() => second.getValue().initialize({ seed: 1 }));
-    act(() => second.getValue().keepStochasticRun());
+    act(() => {
+      second.getValue().keepStochasticRun();
+    });
     expect(second.getValue().stochasticRun?.kept).toBe(true);
     act(() => second.getValue().reset());
     expect(second.experiment.dispose).not.toHaveBeenCalled();
