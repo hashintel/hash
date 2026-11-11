@@ -14,6 +14,8 @@ import {
   type BrowserToolExecutor,
 } from "../conversation/browser-tool-executor.ts";
 
+import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
+
 /** The browser runs `getLatestNetDefinition` and returns only the requested view. */
 export const netReaderTools = (execute: BrowserToolExecutor) =>
   (Object.keys(netReaderToolNames) as NetReaderLevel[]).map((level) =>
@@ -33,8 +35,11 @@ export const netReaderTools = (execute: BrowserToolExecutor) =>
     }),
   );
 
-export const asyncCanonicalPetrinautTools = (execute: BrowserToolExecutor) =>
-  CANONICAL_PETRINAUT_TOOL_NAMES.map((toolName) => {
+export const asyncCanonicalPetrinautTools = (
+  execute: BrowserToolExecutor,
+  toolNames: readonly PetrinautAiToolName[] = CANONICAL_PETRINAUT_TOOL_NAMES,
+) =>
+  toolNames.map((toolName) => {
     const tool = petrinautAiTools[toolName];
     return defineTool({
       name: toolName,

@@ -10,7 +10,6 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { ProcessPetrinaut } from "./process-petrinaut";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type { SaveHashNetForAgent } from "@hashintel/brunch-agent";
 import type * as BrunchUi from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 
@@ -73,11 +72,12 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
+  hashPetrinautHostTools: [],
   useBrunchAssistant: (
     input: Parameters<typeof BrunchUi.useBrunchAssistant>[0],
   ) => {
     observed.brunchInputs.push(input);
-    return { assistant: { presentation: "brunch" }, openAIVoiceConfig: null };
+    return { assistant: {}, openAIVoiceConfig: null };
   },
 }));
 
@@ -128,13 +128,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const readSaveState: BrunchUi.ReadBrunchDocumentSaveState = () => ({
-  title: "Net",
-  lastSavedTime: null,
-  refusal: null,
-});
-const saveNetForAgent: SaveHashNetForAgent = () =>
-  Promise.reject(new Error("These tests never save"));
+const hostSave: BrunchUi.BrunchHostSave = {
+  read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+  save: () => Promise.reject(new Error("These tests never save")),
+};
 
 const renderEditor = (props: {
   savedEntityId: EntityId | null;
@@ -145,8 +142,7 @@ const renderEditor = (props: {
       <ProcessPetrinaut
         handle={handle}
         readTitle={() => "Net"}
-        readSaveState={readSaveState}
-        saveNetForAgent={saveNetForAgent}
+        hostSave={hostSave}
         versionLoad={undefined}
         setTitle={() => {}}
         title="Net"
@@ -194,6 +190,7 @@ test("Brunch is offered on an editable saved net only once the owner key is know
     expect(observed.brunchInputs.at(-1)).toMatchObject({ selected: true }),
   );
   for (const input of observed.brunchInputs) {
+    expect(input.starterChips).toBeUndefined();
     expect(input).toMatchObject({
       ownerKey: "hash:alice-account",
       openDocument: { documentId: savedEntityId, editor: { handle } },

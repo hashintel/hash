@@ -1,13 +1,10 @@
 import { expect, expectTypeOf, test } from "vitest";
 
 import {
-  isNetObservationTool,
-  netReaderToolNames,
   netStructureOf,
   projectNetDefinition,
   type NetStructure,
 } from "./net-readers";
-import { browserToolMutatesDocument } from "./petrinaut-tool-effects";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -233,14 +230,4 @@ test("presentational and code fields are stripped from subnet items too", () => 
   expect(JSON.stringify(nested)).not.toMatch(
     /"x"|"metadata"|lambdaCode|visualizerCode/u,
   );
-});
-
-test("the readers are net observations that never change the document", () => {
-  for (const name of Object.values(netReaderToolNames)) {
-    expect(isNetObservationTool(name)).toBe(true);
-    expect(browserToolMutatesDocument(name)).toBe(false);
-  }
-  expect(isNetObservationTool("getLatestNetDefinition")).toBe(true);
-  expect(isNetObservationTool("getNetCompilationErrors")).toBe(false);
-  expect(isNetObservationTool("addPlace")).toBe(false);
 });

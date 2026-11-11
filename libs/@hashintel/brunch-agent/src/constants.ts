@@ -28,36 +28,31 @@ export const brunchProductName = "brunch";
  */
 export const brunchTools = {
   activateSkill: "activate_skill",
-  draftPetrinautExperiment: "draft_petrinaut_experiment",
-  ledgerCommit: "ledger_commit",
-  ledgerCompile: "ledger_compile",
-  ping: "ping",
-  queryBasis: "query_basis",
-  /** HASH's process page reads entities from the graph as the signed-in user. */
-  queryHashEntities: "query_hash_entities",
-  /** HASH's process page reads the entity types the signed-in user can see. */
-  queryHashEntityTypes: "query_hash_entity_types",
-  /** HASH's process page lists the signed-in user's own and org webs. */
-  queryHashWebs: "query_hash_webs",
-  readSkillResource: "read_skill_resource",
   /**
    * HASH's process page saves the open net as a new version, once the person
    * approves it, through the editor's own Save.
    */
-  saveHashNet: "save_hash_net",
+  appSaveNet: "app_save_net",
+  draftPetrinautExperiment: "draft_petrinaut_experiment",
+  /** HASH's process page reads entities from the graph as the signed-in user. */
+  hashQueryEntities: "hash_query_entities",
+  /** HASH's process page reads the entity types the signed-in user can see. */
+  hashQueryEntityTypes: "hash_query_entity_types",
+  /** HASH's process page lists the signed-in user's own and org webs. */
+  hashQueryWebs: "hash_query_webs",
+  ledgerCommit: "ledger_commit",
+  /** The Petrinaut agent's Ledger map; the HASH agent's is `ledgerQuery`. */
+  ledgerCompile: "ledger_compile",
+  /** The HASH agent's Ledger map, the same tool as `ledgerCompile`. */
+  ledgerQuery: "ledger_query",
+  /** The HASH agent's basis query, the same tool as `queryBasis`. */
+  ledgerQueryBasis: "ledger_query_basis",
+  ping: "ping",
+  /** The Petrinaut agent's basis query; the HASH agent's is `ledgerQueryBasis`. */
+  queryBasis: "query_basis",
+  readSkillResource: "read_skill_resource",
   task: "task",
 } as const;
-
-/**
- * The reads of the HASH graph that HASH's process page runs in band as the
- * signed-in user. Each is browser-executed, reads the graph rather than the
- * net, and never changes the bound document.
- */
-export const hashGraphReadToolNames: ReadonlySet<string> = new Set([
-  brunchTools.queryHashEntities,
-  brunchTools.queryHashEntityTypes,
-  brunchTools.queryHashWebs,
-]);
 
 /**
  * Signal types the browser delivers. Each doubles as the signal's tag name,

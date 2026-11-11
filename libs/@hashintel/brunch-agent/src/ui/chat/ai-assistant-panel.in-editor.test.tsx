@@ -193,7 +193,7 @@ const userTexts = (messages: PetrinautAiMessage[] | undefined) =>
 
 test("sends the empty-net prompt once through the chat's composer path in the editor's panel", async () => {
   const transport = transportOf([textReply("reply", "Drafted the queue.")]);
-  renderChat(() => ({ presentation: "brunch", transport }));
+  renderChat(() => ({ transport }));
 
   fireEvent.change(
     await screen.findByRole("textbox", {
@@ -235,7 +235,6 @@ test("runs automatic tools against the editor through refusal-aware plugin edits
     const passthrough = { parse: (raw: unknown) => raw };
     const { handle } = renderChat(
       (documentHandle) => ({
-        presentation: "brunch",
         documentHandle,
         automaticTools: [
           {
@@ -295,7 +294,7 @@ test("refuses layout on a read-only net before asking for consent", async () => 
     }),
     textReply("done", "Layout refused."),
   ]);
-  renderChat(() => ({ presentation: "brunch", transport }), {
+  renderChat(() => ({ transport }), {
     readonly: true,
   });
 
@@ -332,10 +331,9 @@ test("refuses a static mutation on a read-only net before its host boundary runs
   const executeMutation = vi.fn<
     NonNullable<PetrinautAiAssistant["executeMutation"]>
   >(({ execute }) => execute());
-  const { handle } = renderChat(
-    () => ({ presentation: "brunch", transport, executeMutation }),
-    { readonly: true },
-  );
+  const { handle } = renderChat(() => ({ transport, executeMutation }), {
+    readonly: true,
+  });
 
   await sendFromComposer("Add a queue");
 
@@ -382,7 +380,6 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
     );
   };
   renderChat(() => ({
-    presentation: "brunch",
     transport: transportOf([]),
     renderVoiceMode: (context) => <VoiceMode {...context} />,
   }));
@@ -478,7 +475,6 @@ test("a call claimed in one editor never runs in a replacement with identical co
       acceptsRevision: () => true,
     });
     return {
-      presentation: "brunch",
       conversationId: binding.conversationId,
       transport: history.transport,
       // Brunch's history arrives as followed messages.

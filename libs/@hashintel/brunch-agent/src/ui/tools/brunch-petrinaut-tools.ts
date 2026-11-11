@@ -1,7 +1,6 @@
 import {
   browserToolEnvelopeOf,
-  browserToolMutatesDocument,
-  brunchTools,
+  browserToolFacts,
   type ClientToolHistoryResult,
   type ClientToolResultMetadata,
   type NetReaderLevel,
@@ -54,7 +53,10 @@ export const issuedCanonicalCallsFromHistory = async ({
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
     for (const part of message.parts) {
-      if (part.type !== "dynamic-tool" || !(part.toolName in petrinautAiTools))
+      if (
+        part.type !== "dynamic-tool" ||
+        !browserToolFacts(part.toolName).runsOnNet
+      )
         continue;
       const recorded =
         part.state === "output-available" ? part.output : undefined;
@@ -88,6 +90,31 @@ const currentRevision = (
 ): DocumentRevision | undefined => {
   const definition = handle.doc();
   return definition === undefined ? undefined : documentRevisionOf(definition);
+};
+
+/**
+ * The net as a read shows it: its title, its definition at `detail` (the
+ * readers' projections, or all of it), and the document's enabled extensions.
+ */
+export const netReadOutput = ({
+  handle,
+  title,
+  detail,
+}: {
+  readonly handle: PetrinautDocHandle;
+  readonly title: string;
+  readonly detail: NetReaderLevel | "full";
+}) => {
+  const definition = handle.doc();
+  if (!definition)
+    throw new Error("The bound browser document is unavailable.");
+  const copy = structuredClone(definition);
+  return {
+    title,
+    definition: detail === "full" ? copy : projectNetDefinition(copy, detail),
+    extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+      .extensions,
+  };
 };
 
 /** Petrinaut executes canonical actions; the host records the content revision before each call, and after it when the call changed the document. */
@@ -141,7 +168,7 @@ export const createCanonicalPetrinautHostTools = (
 
   const readNet = (
     toolName: string,
-    view: (definition: unknown) => unknown,
+    detail: NetReaderLevel | "full",
     toolCallId: string,
     handle: PetrinautDocHandle,
   ) => {
@@ -149,15 +176,7 @@ export const createCanonicalPetrinautHostTools = (
     if (prior.found) return prior.output;
     if (input.replayReadiness.status === "pending")
       throw new Error("Conversation history is not ready.");
-    const definition = handle.doc();
-    if (!definition)
-      throw new Error("The bound browser document is unavailable.");
-    const output = {
-      title: input.readTitle(),
-      definition: view(structuredClone(definition)),
-      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-        .extensions,
-    };
+    const output = netReadOutput({ handle, title: input.readTitle(), detail });
     stampBefore(toolCallId, handle);
     toolNames.set(toolCallId, toolName);
     started.set(toolCallId, { toolName, input: {}, output });
@@ -168,12 +187,7 @@ export const createCanonicalPetrinautHostTools = (
     inputParser: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
-      readNet(
-        getLatestNetDefinitionToolName,
-        (definition) => definition,
-        toolCallId,
-        handle,
-      ),
+      readNet(getLatestNetDefinitionToolName, "full", toolCallId, handle),
   };
   const readerTools: PetrinautAiAutomaticTool[] = (
     Object.keys(netReaderToolNames) as NetReaderLevel[]
@@ -182,12 +196,7 @@ export const createCanonicalPetrinautHostTools = (
     inputParser: { parse: parseNetReaderInput },
     outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
-      readNet(
-        netReaderToolNames[level],
-        (definition) => projectNetDefinition(definition, level),
-        toolCallId,
-        handle,
-      ),
+      readNet(netReaderToolNames[level], level, toolCallId, handle),
   }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,
@@ -305,17 +314,19 @@ export const createCanonicalPetrinautHostTools = (
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const toolName = toolNames.get(toolCallId);
-      // A save writes the editor's net to HASH and leaves it as it was, so
-      // any change while it was pending is someone else's: it records no
-      // revisions and no read-back.
-      if (toolName === brunchTools.saveHashNet) return undefined;
+      // A call whose tool was never recorded counts as a possible change.
+      const recorded =
+        toolName === undefined
+          ? "change"
+          : browserToolFacts(toolName).documentRevision;
+      if (recorded === "none") return undefined;
       const revisionBefore = before.get(toolCallId);
       const revisionAfter = currentRevision(input.handle);
       const changed =
         revisionBefore !== undefined &&
         revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
-        (toolName === undefined || browserToolMutatesDocument(toolName));
+        recorded === "change";
       if (changed) producedFrom.set(revisionAfter, revisionBefore);
       const definition = changed ? input.handle.doc() : undefined;
       const result: ClientToolResultMetadata = {

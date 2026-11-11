@@ -65,9 +65,9 @@ import {
 } from "./tools/brunch-draft-experiment-interactive-tool";
 import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import {
+  type BrunchHostSave,
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
-  type ReadBrunchDocumentSaveState,
   useBrunchMutationApprovalTools,
 } from "./tools/brunch-mutation-approval";
 import {
@@ -78,6 +78,7 @@ import {
   type CanonicalPetrinautReplay,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
+import { createHashPetrinautSaveTool } from "./tools/hash-petrinaut-save";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
 import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
@@ -103,6 +104,7 @@ import type {
 export type { VersionLoad } from "@hashintel/brunch-agent";
 export type {
   BrunchDocumentSaveState,
+  BrunchHostSave,
   ReadBrunchDocumentSaveState,
 } from "./tools/brunch-mutation-approval";
 
@@ -210,8 +212,9 @@ export const useBrunchAssistant = ({
   interviewBudget,
   words,
   hostTools,
-  readSaveState,
+  hostSave,
   versionLoad,
+  starterChips,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -229,12 +232,14 @@ export const useBrunchAssistant = ({
    * name must be one the server issues to the browser. Pass a stable list.
    */
   readonly hostTools?: readonly PetrinautAiAutomaticTool[];
+  /** Host-owned empty-net suggestions; omitted by default. Pass a stable list. */
+  readonly starterChips?: PetrinautAiAssistant["starterChips"];
   /**
-   * The host's save state, for a host whose tools include the agent's save:
-   * its refusals settle a save before its card, and the card shows its title
-   * and last saved time. Pass a stable function.
+   * The host's own Save, for a host whose agent saves: Brunch offers the
+   * agent's save from it, its refusals settle a save before its card, and the
+   * card shows its title and last saved time. Pass a stable object.
    */
-  readonly readSaveState?: ReadBrunchDocumentSaveState;
+  readonly hostSave?: BrunchHostSave;
   /**
    * The host's latest load of another saved version of the open net, while
    * the net open builds on it. Each message carries it, so Brunch tells its
@@ -359,7 +364,14 @@ export const useBrunchAssistant = ({
   // for a decision render as approvals.
   const mutationApprovalTools = useBrunchMutationApprovalTools(
     mutationApproval.coordinator,
-    readSaveState,
+    hostSave,
+  );
+  const hostSaveTool = useMemo(
+    () =>
+      hostSave === undefined
+        ? undefined
+        : createHashPetrinautSaveTool(hostSave),
+    [hostSave],
   );
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
@@ -652,7 +664,7 @@ export const useBrunchAssistant = ({
             },
             admit: createBrunchMutationAdmission(
               mutationApproval.coordinator,
-              readSaveState,
+              hostSave,
             ),
             acceptsRevision: (expected) =>
               canonicalHostTools?.acceptsRevision(expected) ?? false,
@@ -665,7 +677,7 @@ export const useBrunchAssistant = ({
       mutationApproval,
       ownerKey,
       hostFetch,
-      readSaveState,
+      hostSave,
     ],
   );
 
@@ -726,7 +738,7 @@ export const useBrunchAssistant = ({
           }
         : undefined,
       primaryLabel: "Chat",
-      presentation: "brunch",
+      starterChips,
       mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
         const shown = showLedgerComments(messages);
         const withNotes = withInterviewBudgetLevelChanges(
@@ -810,6 +822,7 @@ export const useBrunchAssistant = ({
       automaticTools: [
         ...(canonicalHostTools?.tools ?? []),
         ...(canonicalHostTools ? (hostTools ?? []) : []),
+        ...(canonicalHostTools && hostSaveTool ? [hostSaveTool] : []),
       ],
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
@@ -862,6 +875,7 @@ export const useBrunchAssistant = ({
     flueHistory.snapshot,
     highlightChanges,
     hostTools,
+    hostSaveTool,
     inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,
@@ -871,6 +885,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    starterChips,
     versionLoad,
     wordsActive,
   ]);

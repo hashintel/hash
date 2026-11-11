@@ -4,8 +4,6 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
-
 import { PetrinautEditor } from "./petrinaut-editor";
 
 import type {
@@ -46,7 +44,7 @@ const observed = vi.hoisted(() => ({
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
   /** The HASH graph reads the page gives Brunch. */
-  hashGraphReadTools: [{ toolName: "query_hash_entities" }],
+  hashGraphReadTools: [{ toolName: "hash_query_entities" }],
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
@@ -113,6 +111,7 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => {
       .createHashPetrinautSaveTool,
     BrunchAssistantContext: brunchHostContext,
     brunchPlugin: brunchPluginMarker,
+    hashPetrinautHostTools: [{ toolName: "petrinaut_create_place" }],
     // Mirrors the hook's contract: its runner's `documentHandle` is the
     // open document's editor handle, and its failures go to the tracker the
     // hook reads where it is called.
@@ -279,11 +278,13 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
-  // The page's graph reads, then the agent's save through the editor's Save.
+  // The page's graph reads, then its Petrinaut tools; its Save goes to Brunch
+  // on its own.
   expect(lastBrunchInput()?.hostTools).toEqual([
     ...observed.hashGraphReadTools,
-    expect.objectContaining({ toolName: brunchTools.saveHashNet }),
+    { toolName: "petrinaut_create_place" },
   ]);
+  expect(lastBrunchInput()?.hostSave).toBeDefined();
   expect(identityRequests).toEqual([
     {
       url: "http://localhost:5001/api/brunch/identity",
@@ -550,30 +551,22 @@ test("Create turns the draft into the saved net in the same editor, which then o
   expect(lastEditorHandle()).toBe(handle);
 });
 
-/** Brunch's save tool as the page gave it, for the load shown then. */
-const agentSaveTool = () => {
-  const tool = lastBrunchInput()?.hostTools?.find(
-    ({ toolName }) => toolName === brunchTools.saveHashNet,
-  );
-  if (!tool) {
+/** Brunch's host save as the page gave it, for the load shown then. */
+const agentHostSave = () => {
+  const hostSave = lastBrunchInput()?.hostSave;
+  if (!hostSave) {
     throw new Error("The page gave Brunch no save");
   }
-  return tool;
+  return hostSave;
 };
 
 /** Runs the agent's save as Brunch's panel does, once the user has approved it. */
 const agentSave = (
   documentId: string,
   signal = new AbortController().signal,
-  tool = agentSaveTool(),
+  hostSave = agentHostSave(),
 ) => {
-  const settled = Promise.resolve(
-    tool.execute({
-      input: { documentId },
-      toolCallId: "save-1",
-      signal,
-    } as BrunchUi.PetrinautAiAutomaticToolExecuteParams),
-  );
+  const settled = hostSave.save(documentId, signal);
   const state = { settled: false };
   void settled.then(
     () => {
@@ -609,6 +602,27 @@ const renderBrunchEditor = async (
   return rendered;
 };
 
+test("the Save button reads whether a save may start: not while clean, nor while one is pending", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  renderEditor({ load: savedLoad() });
+  await waitFor(() => expect(lastTopBar()?.saveRefusal).toBe("clean"));
+  editNet("edited");
+  await waitFor(() => expect(lastTopBar()?.saveRefusal).toBeNull());
+  act(() => {
+    lastTopBar()?.onSave();
+  });
+  await waitFor(() => expect(lastTopBar()?.saveRefusal).toBe("saving"));
+  await act(async () => {
+    pending.resolve({
+      entityId: savedEntityId,
+      decisionTime: "2026-10-24T01:00:00.000Z",
+    });
+    await pending.promise;
+  });
+  expect(lastTopBar()?.saveRefusal).toBe("clean");
+});
+
 test("the agent's save runs the Save button's one save and settles once saved, still dirty for an edit made after it", async () => {
   const pending = deferred<PetrinautEditorSaved>();
   onSave.mockReturnValue(pending.promise);
@@ -634,7 +648,7 @@ test("the agent's save runs the Save button's one save and settles once saved, s
   });
 
   await expect(save.settled).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "Net",
     stillDirty: true,
@@ -685,7 +699,7 @@ test("the agent's save stays unsettled after the host's save resolves until the 
     isDirty: true,
   });
   await expect(save.settled).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "Net",
     stillDirty: true,
@@ -713,7 +727,7 @@ test("a load after the host's save resolves but before its snapshot commits sett
   expect(lastHandle()).not.toBe(savingHandle);
   expect(lastTopBar()?.loadedRevisionTime).toBe(otherVersion);
   await expect(save.settled).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "Net",
     stillDirty: false,
@@ -721,7 +735,7 @@ test("a load after the host's save resolves but before its snapshot commits sett
 
   // Brunch's later abort finds it settled.
   controller.abort(new Error("Brunch stopped the turn"));
-  await expect(save.settled).resolves.toMatchObject({ saved: true });
+  await expect(save.settled).resolves.toMatchObject({ status: "saved" });
 });
 
 test.each([
@@ -748,7 +762,10 @@ test.each([
     await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
 
     act(() => abandon(rerender));
-    await expect(save.settled).resolves.toEqual({ saved: false, error });
+    await expect(save.settled).resolves.toEqual({
+      status: "unconfirmed",
+      error,
+    });
 
     await act(async () => {
       pending.resolve({
@@ -758,7 +775,10 @@ test.each([
       await pending.promise;
     });
     controller.abort(new Error("Brunch stopped the turn"));
-    await expect(save.settled).resolves.toEqual({ saved: false, error });
+    await expect(save.settled).resolves.toEqual({
+      status: "unconfirmed",
+      error,
+    });
     expect(onSave).toHaveBeenCalledOnce();
   },
 );
@@ -778,7 +798,7 @@ test("closing the editor after the host's save resolves but before its snapshot 
 
   cleanup();
   await expect(save.settled).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "Net",
     stillDirty: false,
@@ -803,11 +823,9 @@ test("a second agent save while the first awaits its commit is refused as in pro
   });
 
   const reason = "A save of this net is already in progress.";
-  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBe(
-    reason,
-  );
+  expect(agentHostSave().read(savedEntityId).refusal).toBe(reason);
   await expect(agentSave(savedEntityId).settled).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason,
   });
   expect(observed.topBars).toHaveLength(rendersBefore);
@@ -816,13 +834,13 @@ test("a second agent save while the first awaits its commit is refused as in pro
 
   await act(async () => {});
   await expect(first.settled).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "Net",
     stillDirty: true,
   });
   // Once it settles, the agent may save again.
-  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBeNull();
+  expect(agentHostSave().read(savedEntityId).refusal).toBeNull();
 });
 
 test("an agent save abandoned by a load doesn't keep the new load's agent save from starting", async () => {
@@ -832,7 +850,9 @@ test("an agent save abandoned by a load doesn't keep the new load's agent save f
   const abandoned = agentSave(savedEntityId);
 
   rerender({ load: savedLoad("2026-10-23T00:00:00.000Z") });
-  await expect(abandoned.settled).resolves.toMatchObject({ saved: false });
+  await expect(abandoned.settled).resolves.toMatchObject({
+    status: "unconfirmed",
+  });
   await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
   editNet("edited again");
 
@@ -840,9 +860,9 @@ test("an agent save abandoned by a load doesn't keep the new load's agent save f
     entityId: savedEntityId,
     decisionTime: "2026-10-24T01:00:00.000Z",
   });
-  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBeNull();
+  expect(agentHostSave().read(savedEntityId).refusal).toBeNull();
   await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
-    saved: true,
+    status: "saved",
   });
   expect(onSave).toHaveBeenCalledTimes(2);
 });
@@ -856,7 +876,7 @@ test("the agent's save of a net with nothing edited since reports it clean", asy
   editNet("edited");
 
   await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
-    saved: true,
+    status: "saved",
     stillDirty: false,
   });
   await waitFor(() => expect(lastTopBar()?.isDirty).toBe(false));
@@ -872,7 +892,7 @@ test("a failed save settles with its error after its one attempt, and nothing re
   editNet("edited");
 
   await expect(agentSave(savedEntityId).settled).resolves.toEqual({
-    saved: false,
+    status: "unconfirmed",
     error:
       "Persist appeared to succeed but the entity wasn't visible on refetch",
   });
@@ -913,17 +933,16 @@ test.each([
   async ({ change, documentId, reason }) => {
     const load = savedLoad();
     const { rerender } = await renderBrunchEditor({ load });
-    const tool = agentSaveTool();
-    const { readSaveState } = lastBrunchInput() ?? {};
+    const earlierHostSave = agentHostSave();
     if (change) {
       rerender({ load, ...change });
       await act(async () => {});
     }
 
-    expect(readSaveState?.(documentId).refusal).toBe(reason);
+    expect(earlierHostSave.read(documentId).refusal).toBe(reason);
     await expect(
-      agentSave(documentId, undefined, tool).settled,
-    ).resolves.toEqual({ applied: false, reason });
+      agentSave(documentId, undefined, earlierHostSave).settled,
+    ).resolves.toEqual({ status: "not-started", reason });
     expect(onSave).not.toHaveBeenCalled();
   },
 );
@@ -932,7 +951,7 @@ test("the agent's save while a save is pending is refused as not started, and th
   onSave.mockReturnValue(deferred<PetrinautEditorSaved>().promise);
   await renderBrunchEditor();
   editNet("edited");
-  expect(lastBrunchInput()?.readSaveState?.(savedEntityId)).toEqual({
+  expect(lastBrunchInput()?.hostSave?.read(savedEntityId)).toEqual({
     title: "Net",
     lastSavedTime: "2026-10-24T00:00:00.000Z",
     refusal: null,
@@ -940,7 +959,7 @@ test("the agent's save while a save is pending is refused as not started, and th
   act(() => lastTopBar()?.onSave());
 
   await expect(agentSave(savedEntityId).settled).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason: "A save of this net is already in progress.",
   });
   expect(onSave).toHaveBeenCalledOnce();
@@ -975,14 +994,14 @@ test("a load before the save completes settles the agent's save as unconfirmed, 
   const pending = deferred<PetrinautEditorSaved>();
   onSave.mockReturnValue(pending.promise);
   const { rerender } = await renderBrunchEditor();
-  const earlierTool = agentSaveTool();
+  const earlierHostSave = agentHostSave();
   editNet("edited");
   const save = agentSave(savedEntityId);
 
   rerender({ load: savedLoad() });
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(false));
   await expect(save.settled).resolves.toEqual({
-    saved: false,
+    status: "unconfirmed",
     error: "The editor reloaded before the save was confirmed.",
   });
   // The late completion is ignored, as it is for the button.
@@ -993,9 +1012,9 @@ test("a load before the save completes settles the agent's save as unconfirmed, 
   expect(lastTopBar()?.loadedRevisionTime).toBe("2026-10-24T00:00:00.000Z");
 
   await expect(
-    agentSave(savedEntityId, undefined, earlierTool).settled,
+    agentSave(savedEntityId, undefined, earlierHostSave).settled,
   ).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason: "That isn't the net open in the editor.",
   });
   expect(onSave).toHaveBeenCalledOnce();
@@ -1042,7 +1061,7 @@ test("a pick of another saved revision reaches Brunch as a version load that Sav
   );
   editNet("before-agent-save");
   await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
-    saved: true,
+    status: "saved",
   });
   expect(onSave).toHaveBeenCalledTimes(2);
   expect(lastVersionLoad()).toBe(firstLoad);
@@ -1065,11 +1084,10 @@ test("the agent's save of a net with no unsaved changes is refused as not starte
   // The loaded net has legacy ids, which the open net holds converted.
   const { rerender } = await renderBrunchEditor();
   const clean = "There are no unsaved changes to save.";
-  const refusal = () =>
-    lastBrunchInput()?.readSaveState?.(savedEntityId).refusal;
+  const refusal = () => agentHostSave().read(savedEntityId).refusal;
   expect(refusal()).toBe(clean);
   await expect(agentSave(savedEntityId).settled).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason: clean,
   });
 
@@ -1085,7 +1103,7 @@ test("the agent's save of a net with no unsaved changes is refused as not starte
   rerender({ load: savedLoad("2026-10-23T00:00:00.000Z", "revision") });
   await waitFor(() => expect(lastBrunchInput()?.versionLoad).toBeDefined());
   await expect(agentSave(savedEntityId).settled).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason: clean,
   });
   expect(onSave).not.toHaveBeenCalled();

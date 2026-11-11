@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type { RevisionSummary } from "../petrinaut-editor";
+import type { SaveRefusal } from "./save-availability";
 
 /**
  * What the top-bar items read: the editor owns this state and provides it
@@ -12,6 +13,8 @@ export type TopBarState = {
   readonly: boolean;
   isDirty: boolean;
   persistPending: boolean;
+  /** Why Save can't start now, or `null` when it can. */
+  saveRefusal: SaveRefusal | null;
   saveLabel: string;
   revisions: RevisionSummary[];
   loadedRevisionTime: string | null;

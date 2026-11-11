@@ -1,5 +1,4 @@
 import { useMemo, useSyncExternalStore, type ComponentType } from "react";
-import { z } from "zod";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
@@ -9,11 +8,21 @@ import {
   parseArcEndpointKey,
   parseArcId,
   type ArcEndpoint,
-  type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
+import { parseHashSaveInput, type HashSaveOutcome } from "../../hash/save";
+import {
+  browserExecutedToolNames,
+  browserExecutedTools,
+  browserToolFacts,
+  canonicalCallsOf,
+} from "../../petrinaut/browser-executed-tools";
+import {
+  type DestructivePetrinautOperation,
+  petrinautToolEffects,
+} from "../../petrinaut/petrinaut-tool-effects";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
@@ -64,7 +73,7 @@ export interface BrunchMutationApprovalCoordinator {
   open(): void;
 }
 
-const saveToolName = brunchTools.saveHashNet;
+const saveToolName = brunchTools.appSaveNet;
 
 /**
  * What the host's own Save would do with the open document now: the title and
@@ -83,6 +92,23 @@ export interface BrunchDocumentSaveState {
 export type ReadBrunchDocumentSaveState = (
   documentId: string,
 ) => BrunchDocumentSaveState;
+
+/**
+ * The host's own Save, for its agent: what it would do now, and running it.
+ * Brunch builds the agent's save, its card and its refusals from it.
+ */
+export interface BrunchHostSave {
+  readonly read: ReadBrunchDocumentSaveState;
+  /**
+   * Runs the host's Save of the document `documentId` names, once the person
+   * has approved it, and settles with its outcome. Rejects, settling
+   * nothing, when `signal` aborts first.
+   */
+  readonly save: (
+    documentId: string,
+    signal: AbortSignal,
+  ) => Promise<HashSaveOutcome>;
+}
 
 type ApprovalPolicy = {
   readonly canAlwaysAllow: boolean;
@@ -205,27 +231,21 @@ export const createBrunchMutationApprovalCoordinator =
     };
   };
 
-const destructiveToolNames = [
-  "removePlace",
-  "removeTransition",
-  "removeArc",
-  "removeType",
-  "removeTypeElement",
-  "removeDifferentialEquation",
-  "removeParameter",
-  "removeScenario",
-  "removeMetric",
-  "removeSubnet",
-  "removeComponentInstance",
-  "deleteItemsByIds",
-] as const satisfies readonly PetrinautAiMutationToolName[];
+/** Every tool the server issues whose calls remove what the user built. */
+const destructiveToolNames: readonly string[] = [
+  ...browserExecutedToolNames,
+].filter((toolName) => browserToolFacts(toolName).destructive);
 
-type DestructiveToolName = (typeof destructiveToolNames)[number];
+/** A destructive call's input, parsed by its tool's own schema; throws on one it doesn't accept. */
+const parseIssuedInput = (toolName: string, input: unknown): unknown => {
+  const tool = browserExecutedTools.get(toolName);
+  if (tool === undefined)
+    throw new Error(`${toolName} is not issued to the browser.`);
+  return tool.inputParser.parse(input);
+};
 
-const requiresBrunchMutationApproval = (
-  toolName: string,
-): toolName is DestructiveToolName =>
-  (destructiveToolNames as readonly string[]).includes(toolName);
+const requiresBrunchMutationApproval = (toolName: string): boolean =>
+  browserToolFacts(toolName).destructive;
 
 const spacedWords = (camelCase: string) =>
   camelCase.replace(/[A-Z]/gu, (letter) => ` ${letter.toLowerCase()}`);
@@ -298,11 +318,21 @@ const describeItem = (
     : nameOf(id);
 };
 
-const removalDescriptions = (
-  toolName: DestructiveToolName,
+/** Whether a canonical call's operation removes what the user built. */
+const isDestructiveOperation = (
+  toolName: string,
+): toolName is DestructivePetrinautOperation =>
+  Object.hasOwn(petrinautToolEffects, toolName) &&
+  petrinautToolEffects[toolName as keyof typeof petrinautToolEffects]
+    .destructive;
+
+/** What one canonical removal removes, in the card's words; nothing for any other call. */
+const canonicalRemovalDescriptions = (
+  toolName: string,
   input: unknown,
   nameOf: (id: string) => string,
 ): readonly string[] => {
+  if (!isDestructiveOperation(toolName)) return [];
   switch (toolName) {
     case "removePlace":
       return [
@@ -363,11 +393,33 @@ const removalDescriptions = (
           ({ id, type }) =>
             `Remove ${spacedWords(type)} — ${describeItem(type, id, nameOf)}`,
         );
+    default: {
+      // Every destructive operation has the card's wording.
+      const unworded: never = toolName;
+      throw new Error(`No card wording for ${String(unworded)}.`);
+    }
   }
 };
 
-/** The document a save names, as the agent's schema has already checked it. */
-const zSaveInput = z.object({ documentId: z.string() });
+/** What a call of a destructive tool removes, through the canonical removals it makes. */
+const removalDescriptions = (
+  toolName: string,
+  input: unknown,
+  nameOf: (id: string) => string,
+): readonly string[] =>
+  canonicalCallsOf(toolName, input).flatMap((call) =>
+    canonicalRemovalDescriptions(call.toolName, call.input, nameOf),
+  );
+
+/** The document a save names. */
+const saveInputParser = { parse: parseHashSaveInput };
+
+const passthrough = { parse: (value: unknown) => value };
+
+const saveNotStarted = (reason: string): HashSaveOutcome => ({
+  status: "not-started",
+  reason,
+});
 
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
@@ -377,23 +429,25 @@ const zSaveInput = z.object({ documentId: z.string() });
 export const createBrunchMutationAdmission =
   (
     approval: BrunchMutationApprovalCoordinator,
-    readSaveState?: ReadBrunchDocumentSaveState,
+    hostSave?: BrunchHostSave,
   ): InBandBrowserCallAdmission =>
   async ({ toolCallId, toolName, input, signal }) => {
     if (toolName === saveToolName) {
-      if (readSaveState === undefined)
+      if (hostSave === undefined)
         throw new Error("This editor has no save for the agent to run.");
-      const { refusal } = readSaveState(zSaveInput.parse(input).documentId);
+      const { refusal } = hostSave.read(
+        saveInputParser.parse(input).documentId,
+      );
       if (refusal !== null)
-        return {
-          admitted: false,
-          output: { applied: false, reason: refusal },
-        };
-    } else {
-      if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
-      // An approval row renders only for inputs its schema accepts.
-      mutationActionInputSchemas[toolName].parse(input);
+        return { admitted: false, output: saveNotStarted(refusal) };
+      const decision = await approval.request({ toolCallId, toolName, signal });
+      return decision.decision === "allow"
+        ? { admitted: true }
+        : { admitted: false, output: saveNotStarted(decision.reason) };
     }
+    if (!requiresBrunchMutationApproval(toolName)) return { admitted: true };
+    // An approval row renders only for inputs its schema accepts.
+    parseIssuedInput(toolName, input);
     const decision = await approval.request({ toolCallId, toolName, signal });
     return decision.decision === "allow"
       ? { admitted: true }
@@ -460,7 +514,7 @@ const ApprovalActions = ({
 
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
-  toolName: DestructiveToolName,
+  toolName: string,
 ) => {
   const Widget = ({
     input,
@@ -514,7 +568,7 @@ export const createBrunchSaveApprovalWidget = (
 ) => {
   const Widget = ({ input, toolCallId }: WidgetProps) => {
     const { title, lastSavedTime } = readSaveState(
-      zSaveInput.parse(input).documentId,
+      saveInputParser.parse(input).documentId,
     );
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
@@ -540,8 +594,6 @@ export const createBrunchSaveApprovalWidget = (
   return Widget;
 };
 
-const passthrough = { parse: (value: unknown) => value };
-
 /**
  * Approval widgets for the calls in `pending`, a coordinator snapshot. Build
  * them from each new snapshot: a widget shows only while its call waits.
@@ -551,7 +603,7 @@ type ApprovalComponent = ComponentType<
 >;
 
 export type BrunchMutationApprovalComponents = Readonly<
-  Record<DestructiveToolName, ApprovalComponent> &
+  Record<string, ApprovalComponent> &
     Partial<Record<typeof saveToolName, ApprovalComponent>>
 >;
 
@@ -562,7 +614,7 @@ export type BrunchMutationApprovalComponents = Readonly<
  */
 export const createBrunchMutationApprovalComponents = (
   coordinator: BrunchMutationApprovalCoordinator,
-  readSaveState?: ReadBrunchDocumentSaveState,
+  hostSave?: BrunchHostSave,
 ): BrunchMutationApprovalComponents => ({
   ...(Object.fromEntries(
     destructiveToolNames.map((toolName) => {
@@ -574,13 +626,13 @@ export const createBrunchMutationApprovalComponents = (
       );
       return [toolName, component];
     }),
-  ) as Record<DestructiveToolName, ApprovalComponent>),
-  ...(readSaveState === undefined
+  ) as Record<string, ApprovalComponent>),
+  ...(hostSave === undefined
     ? {}
     : {
         [saveToolName]: createBrunchSaveApprovalWidget(
           coordinator,
-          readSaveState,
+          hostSave.read,
         ),
       }),
 });
@@ -595,24 +647,29 @@ export const createBrunchMutationApprovalInteractiveTools = (
 ): readonly PetrinautAiInteractiveTool[] => {
   const saveComponent = components[saveToolName];
   return [
-    ...destructiveToolNames.map((toolName) =>
-      definePetrinautAiInteractiveTool<unknown, unknown>({
-        toolName,
-        inputParser: {
-          parse: (value) => mutationActionInputSchemas[toolName].parse(value),
-        },
-        outputParser: passthrough,
-        // Earlier rows of the same tool keep their normal presentation.
-        shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
-        component: components[toolName],
-      }),
-    ),
+    ...destructiveToolNames.flatMap((toolName) => {
+      const component = components[toolName];
+      return component === undefined
+        ? []
+        : [
+            definePetrinautAiInteractiveTool<unknown, unknown>({
+              toolName,
+              inputParser: {
+                parse: (value) => parseIssuedInput(toolName, value),
+              },
+              outputParser: passthrough,
+              // Earlier rows of the same tool keep their normal presentation.
+              shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
+              component,
+            }),
+          ];
+    }),
     ...(saveComponent === undefined
       ? []
       : [
           definePetrinautAiInteractiveTool<unknown, unknown>({
             toolName: saveToolName,
-            inputParser: zSaveInput,
+            inputParser: saveInputParser,
             outputParser: passthrough,
             shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
             component: saveComponent,
@@ -628,7 +685,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
  */
 export const useBrunchMutationApprovalTools = (
   coordinator: BrunchMutationApprovalCoordinator,
-  readSaveState?: ReadBrunchDocumentSaveState,
+  hostSave?: BrunchHostSave,
 ): readonly PetrinautAiInteractiveTool[] => {
   const pending = useSyncExternalStore(
     coordinator.subscribe,
@@ -636,8 +693,8 @@ export const useBrunchMutationApprovalTools = (
     coordinator.getPendingSnapshot,
   );
   const components = useMemo(
-    () => createBrunchMutationApprovalComponents(coordinator, readSaveState),
-    [coordinator, readSaveState],
+    () => createBrunchMutationApprovalComponents(coordinator, hostSave),
+    [coordinator, hostSave],
   );
   return useMemo(
     () => createBrunchMutationApprovalInteractiveTools(components, pending),

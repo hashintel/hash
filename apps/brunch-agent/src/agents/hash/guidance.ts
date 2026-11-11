@@ -1,6 +1,10 @@
 import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
-import { vLedgerAppendWith, vOriginWith } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  vLedgerAppendWith,
+  vOriginWith,
+} from "@hashintel/brunch-agent";
 
 import { interviewBudgetInstruction } from "../shared/interview-budget-instruction.ts";
 import { createLedgerTools } from "../shared/ledger-tools.ts";
@@ -27,8 +31,9 @@ const ledgerAppend = vLedgerAppendWith(vOriginWith(hashEvidencedDescription));
  * Everything the model reads, and every tool that writes or reads the Ledger.
  * Besides the system prompt it mounts an instruction only for host context, an
  * interview allowance or preferred spellings:
- * Petrinaut, HASH graph, runtime, experiment and `query_basis` guidance live
- * in the skills and tool descriptions instead.
+ * Petrinaut, HASH graph, runtime, experiment and `ledger_query_basis`
+ * guidance live in the skills and tool descriptions instead. Its Ledger map
+ * and basis query take HASH's names.
  */
 export const useGuidance = (
   model: string,
@@ -49,10 +54,17 @@ export const useGuidance = (
   useSkill(modelling);
   useSkill(petrinaut);
   useSkill(hashGraph);
-  for (const tool of createLedgerTools(readHistory, ledgerAppend))
+  for (const tool of createLedgerTools(
+    readHistory,
+    ledgerAppend,
+    brunchTools.ledgerQuery,
+  ))
     useTool(tool);
   return {
     system: system.trim(),
-    createQueryBasisTool,
+    createQueryBasisTool: (
+      options: Omit<Parameters<typeof createQueryBasisTool>[0], "name">,
+    ) =>
+      createQueryBasisTool({ ...options, name: brunchTools.ledgerQueryBasis }),
   };
 };

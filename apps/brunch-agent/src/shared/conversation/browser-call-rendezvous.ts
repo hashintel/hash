@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { browserToolMutatesDocument } from "@hashintel/brunch-agent";
+import { browserToolFacts } from "@hashintel/brunch-agent";
 
 import type {
   BrowserCallClaim,
@@ -17,6 +17,11 @@ export const BROWSER_CALL_UNSTARTED_ERROR =
   "Browser call was not started; no document operation was invoked.";
 export const BROWSER_CALL_STALE_ERROR =
   "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
+
+/** A browser call that was never issued to, or never started by, the browser: it had no effect. */
+export class BrowserCallNotStartedError extends Error {
+  override name = "BrowserCallNotStartedError";
+}
 interface IssuedCall {
   readonly binding: string;
   readonly input: string;
@@ -38,10 +43,11 @@ const outcomeError = (
   entry: IssuedCall,
   cause: BrowserCallFailureDisposition | "expired" | "stopped",
 ): Error => {
-  if (cause === "stale") return new Error(BROWSER_CALL_STALE_ERROR);
+  if (cause === "stale")
+    return new BrowserCallNotStartedError(BROWSER_CALL_STALE_ERROR);
   if (!entry.claimed || cause === "unstarted")
-    return new Error(BROWSER_CALL_UNSTARTED_ERROR);
-  const unchanged = !browserToolMutatesDocument(entry.toolName);
+    return new BrowserCallNotStartedError(BROWSER_CALL_UNSTARTED_ERROR);
+  const unchanged = !browserToolFacts(entry.toolName).effectUnknownOnFailure;
   switch (cause) {
     case "failed":
       return new Error(
@@ -120,7 +126,8 @@ export const issueBrowserCall = (input: {
 }): Promise<ClientToolResult> => {
   const key = keyFor(input.instanceId, input.toolCallId);
   if (calls.has(key)) throw new Error("Duplicate issued browser call.");
-  if (input.signal?.aborted) throw new Error(BROWSER_CALL_UNSTARTED_ERROR);
+  if (input.signal?.aborted)
+    throw new BrowserCallNotStartedError(BROWSER_CALL_UNSTARTED_ERROR);
   const result = Promise.withResolvers<ClientToolResult>();
   const entry: IssuedCall = {
     binding: input.binding,

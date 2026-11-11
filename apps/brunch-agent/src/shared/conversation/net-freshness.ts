@@ -51,7 +51,13 @@ export const createNetViewTracker = () => {
   };
 };
 
-export const noNetViewRefusal = `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}), then make the change.`;
+/** Why a change with no current view of the net in context was not started, naming the reads that give one. */
+export const noNetViewRefusalNaming = (reads: string) =>
+  `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (${reads}), then make the change.`;
+
+export const noNetViewRefusal = noNetViewRefusalNaming(
+  `readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}`,
+);
 
 /**
  * The revision of the latest net result before `toolCallId` that the model

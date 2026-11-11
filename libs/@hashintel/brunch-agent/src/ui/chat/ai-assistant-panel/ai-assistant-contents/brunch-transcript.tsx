@@ -13,9 +13,9 @@ import { VoiceInputProvenance } from "./brunch-transcript/voice-input-provenance
 import { ExperimentCard } from "./experiment-card";
 import { getMessageRenderItems } from "./get-message-render-items";
 import { AiAssistantReasoning } from "./reasoning";
-import { AssistantMarkdown } from "./shared/assistant-markdown";
 import { errorNotification } from "./shared/error-notification";
 import { markdownStyle } from "./shared/markdown-style";
+import { ModelMarkdown } from "./shared/model-markdown";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
 import { AiAssistantToolList } from "./tool-list";
 
@@ -255,7 +255,7 @@ const BrunchMessage = memo(
         >
           {answers.map((item) => (
             <div className={markdownStyle} key={item.key}>
-              <AssistantMarkdown>{item.part.text}</AssistantMarkdown>
+              <ModelMarkdown>{item.part.text}</ModelMarkdown>
             </div>
           ))}
         </div>
@@ -318,7 +318,6 @@ const BrunchMessage = memo(
                 isStreaming={active && item.part.state === "streaming"}
                 expandWhileStreaming={!voice}
                 part={item.part}
-                presentation="brunch"
               />
             ))}
             <AiAssistantToolList
@@ -326,7 +325,6 @@ const BrunchMessage = memo(
               active={active}
               stopped={wasStopped}
               preserveOpen
-              presentation="brunch"
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }
@@ -375,7 +373,6 @@ const BrunchMessage = memo(
               key={item.key}
               tools={[item.tool]}
               producedCard
-              presentation="brunch"
               onInteractiveToolSubmit={(params) =>
                 handlersRef.current.onInteractiveToolSubmit?.(params)
               }

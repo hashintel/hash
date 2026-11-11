@@ -18,7 +18,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
@@ -112,7 +112,7 @@ export function PetrinautAgent({ id }: AgentProps) {
             toolCallId,
             signal,
           }) => {
-            const expected = browserToolMutatesDocument(toolName)
+            const expected = browserToolFacts(toolName).requiresFreshView
               ? expectedNetRevision(
                   await history(),
                   toolCallId,

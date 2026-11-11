@@ -2,7 +2,6 @@ import { useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { PetrinautAiAssistantPresentation } from "../../../../petrinaut";
 import type { OnInteractiveToolSubmit, ToolRenderItem } from "../../tool-list";
 
 const interactiveToolStyle = css({
@@ -13,11 +12,9 @@ const interactiveToolStyle = css({
 
 export const InteractiveToolItem = ({
   onInteractiveToolSubmit,
-  presentation,
   tool,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  presentation: PetrinautAiAssistantPresentation;
   tool: ToolRenderItem;
 }) => {
   const interactive = tool.interactive;
@@ -68,7 +65,6 @@ export const InteractiveToolItem = ({
       <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
         <Widget
           input={typedInput}
-          presentation={presentation}
           state="submitted"
           submit={() => {}}
           submitAndWait={() => Promise.resolve()}
@@ -83,7 +79,6 @@ export const InteractiveToolItem = ({
     <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
       <Widget
         input={typedInput}
-        presentation={presentation}
         state="awaiting"
         submit={(output) => {
           void submitAndWait(output);

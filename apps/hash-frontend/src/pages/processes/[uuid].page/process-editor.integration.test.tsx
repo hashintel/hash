@@ -15,6 +15,7 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { StrictMode, use, useLayoutEffect } from "react";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
+import { brunchTools, hashPetrinautTools } from "@hashintel/brunch-agent";
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
 import ProcessRoutePage from "../[uuid].page";
@@ -304,6 +305,10 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     .createHashPetrinautSaveTool,
   BrunchAssistantContext: brunchHostContext,
   brunchPlugin: brunchPluginMarker,
+  // Stand-ins named for HASH's real Petrinaut tools; Brunch runs them.
+  hashPetrinautHostTools: Object.keys(
+    (await import("@hashintel/brunch-agent")).hashPetrinautTools,
+  ).map((toolName) => ({ toolName })),
   useBrunchAssistant: (input: BrunchInput) => {
     useLayoutEffect(() => {
       observed.brunch = input;
@@ -710,11 +715,12 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     editor: { handle: first },
   });
   expect(observed.brunch?.hostTools?.map(({ toolName }) => toolName)).toEqual([
-    "query_hash_entities",
-    "query_hash_entity_types",
-    "query_hash_webs",
-    "save_hash_net",
+    brunchTools.hashQueryEntities,
+    brunchTools.hashQueryEntityTypes,
+    brunchTools.hashQueryWebs,
+    ...Object.keys(hashPetrinautTools),
   ]);
+  expect(observed.brunch?.hostSave).toBeDefined();
 
   // The route rerendering with the same URL is not a load.
   await navigate(`/processes/${uuidA}`);
@@ -1202,24 +1208,16 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
   });
 });
 
-/** Runs Brunch's save tool as its panel does once the user approves it. */
+/** Runs Brunch's save as its panel does once the user approves it. */
 const agentSave = (
   documentId: string,
   signal = new AbortController().signal,
 ) => {
-  const tool = observed.brunch?.hostTools?.find(
-    ({ toolName }) => toolName === "save_hash_net",
-  );
-  if (!tool) {
+  const hostSave = observed.brunch?.hostSave;
+  if (!hostSave) {
     throw new Error("The page gave Brunch no save");
   }
-  return Promise.resolve(
-    tool.execute({
-      input: { documentId },
-      toolCallId: "save-1",
-      signal,
-    } as Parameters<typeof tool.execute>[0]),
-  );
+  return hostSave.save(documentId, signal);
 };
 
 test("Brunch's agent save writes the open net through the editor's Save, and settles once saved with the edits made meanwhile still dirty", async () => {
@@ -1233,7 +1231,7 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
   expect(topBar().persistPending).toBe(true);
   // Another agent save starts nothing meanwhile.
   await expect(agentSave(netAId)).resolves.toEqual({
-    applied: false,
+    status: "not-started",
     reason: "A save of this net is already in progress.",
   });
   renamePlace("A-later");
@@ -1243,7 +1241,7 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
 
   const decisionTime = graph.nets.get(netAId)?.revisions.at(-1)?.decisionTime;
   await expect(saved).resolves.toEqual({
-    saved: true,
+    status: "saved",
     decisionTime,
     title: "A",
     stillDirty: true,
@@ -1329,7 +1327,7 @@ test("leaving a net while Brunch's agent save of it is pending settles the save 
   await settle();
   expect(topBar().title).toBe("B");
   await expect(saved).resolves.toEqual({
-    saved: false,
+    status: "unconfirmed",
     error: "The editor reloaded before the save was confirmed.",
   });
 
@@ -1343,7 +1341,7 @@ test("leaving a net while Brunch's agent save of it is pending settles the save 
 test("an update save's editability reaches its own load, including Brunch's save state, and never a later load of the same net", async () => {
   await renderRoute(`/processes/${uuidA}`);
   const firstHandle = editor().handle;
-  const readSaveState = observed.brunch?.readSaveState;
+  const readSaveState = observed.brunch?.hostSave?.read;
   editTitle("A2");
   expect(readSaveState?.(netAId).refusal).toBeNull();
 
@@ -1378,7 +1376,7 @@ test("an update save finishing after the user picks a revision of the same net l
   expect(graph.nets.get(netAId)?.editable).toBe(false);
   expect(editor()).toMatchObject({ readonly: false, handle: pickedHandle });
   // Brunch's save state refuses only because the picked revision is unedited.
-  expect(observed.brunch?.readSaveState?.(netAId).refusal).toBe(
+  expect(observed.brunch?.hostSave?.read(netAId).refusal).toBe(
     "There are no unsaved changes to save.",
   );
 });

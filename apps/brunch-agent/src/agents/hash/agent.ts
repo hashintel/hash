@@ -1,10 +1,11 @@
 "use agent";
 /**
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
- * here so they can diverge), the Ledger and `query_basis` tools both agents
- * mount from `../shared/`, over the shared Petrinaut browser tools, net
- * freshness and transport, plus reads of the HASH graph that HASH's process
- * page executes. HASH's process page talks to it.
+ * here so they can diverge), the Ledger and basis-query tools both agents
+ * mount from `../shared/` (under HASH's names: `ledger_query`,
+ * `ledger_query_basis`), HASH's own Petrinaut tools over the shared browser
+ * calls, net freshness and transport, plus reads of the HASH graph and Save
+ * that HASH's process page executes. HASH's process page talks to it.
  */
 
 import {
@@ -18,9 +19,8 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   canonicalContent,
-  hashGraphReadToolNames,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -32,20 +32,24 @@ import {
   selectChatThinking,
 } from "../../shared/chat-model.ts";
 import { createBrunchContextProjection } from "../../shared/context-projection.ts";
-import { issueBrowserCall } from "../../shared/conversation/browser-call-rendezvous.ts";
-import { latestCanonicalNetReadBefore } from "../../shared/conversation/net-changes.ts";
+import {
+  BrowserCallNotStartedError,
+  issueBrowserCall,
+} from "../../shared/conversation/browser-call-rendezvous.ts";
 import {
   createNetViewTracker,
   expectedNetRevision,
 } from "../../shared/conversation/net-freshness.ts";
-import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
-import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
 import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
+import {
+  createHashPetrinautTools,
+  hashNoNetViewRefusal,
+} from "./tools/hash-petrinaut-tools.ts";
 
 import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 
@@ -86,8 +90,6 @@ export const HashAgent = ({ id }: AgentProps): string => {
     withPetrinautVersionLoadNotes(
       createBrunchContextProjection({
         observe: (entries) => netViewTracker.observe(id, entries),
-        // The HASH graph reads are rendered as compact text for the model.
-        textResultToolNames: hashGraphReadToolNames,
       }),
     ),
   );
@@ -116,14 +118,16 @@ export const HashAgent = ({ id }: AgentProps): string => {
       toolCallId,
       signal,
     }) => {
-      const expected = browserToolMutatesDocument(toolName)
+      const expected = browserToolFacts(toolName).requiresFreshView
         ? expectedNetRevision(
             await history(),
             toolCallId,
             netViewTracker.view(id),
           )
         : undefined;
-      if (expected && "refusal" in expected) throw new Error(expected.refusal);
+      // HASH's own read is the one to make; the refusal is otherwise the same.
+      if (expected && "refusal" in expected)
+        throw new BrowserCallNotStartedError(hashNoNetViewRefusal);
       return issueBrowserCall({
         instanceId: id,
         toolCallId,
@@ -136,15 +140,10 @@ export const HashAgent = ({ id }: AgentProps): string => {
         signal,
       });
     };
-    usePetrinautTools({
-      authorizeDraft: async (draftCallId: string) => {
-        if (!latestCanonicalNetReadBefore(await history(), draftCallId))
-          throw new Error(
-            "Experiment draft requires a prior canonical net read.",
-          );
-      },
-      executeBrowserTool,
-    });
+    // HASH's own tools read, change and run the net and read the user guide;
+    // none of Petrinaut's own is mounted.
+    for (const tool of createHashPetrinautTools(executeBrowserTool))
+      useTool(tool);
     useTool(createQueryBasisTool({ browser: initialData, history }));
     // HASH's page runs them as the signed-in user, like net reads.
     for (const read of createHashGraphReadTools(executeBrowserTool))
@@ -157,7 +156,7 @@ export const HashAgent = ({ id }: AgentProps): string => {
       ),
     );
   }
-  useTool(ping);
+  // `ping` serves diagnostics runs only; the HASH agent's model doesn't get it.
 
   return system;
 };
