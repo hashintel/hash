@@ -32,6 +32,7 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
+import { MiddleCut } from "./middle-cut";
 import { pathsTake } from "./paths-flags";
 import { useLocation } from "./router";
 import { pathRenamable } from "./switch-flags";
@@ -67,7 +68,10 @@ const pathStyle = css({
   color: "neutral.fg.body",
 });
 
-/** The wired paths: dot, name, then where it leads (a 32 px dropdown, step icon inside), names in one column. */
+/**
+ * The paths: dot and name, then where it leads under them, a 32 px dropdown (step icon inside) across the whole value
+ * column, so step names fit the narrow panel. A path that ends shows "Ends here" beside its name.
+ */
 const pathGridStyle = css({
   display: "grid",
   gridTemplateColumns: "[6px auto minmax(0, 1fr)]",
@@ -80,6 +84,14 @@ const pathGridStyle = css({
 });
 
 const pathTargetCellStyle = css({ display: "flex", minWidth: "[0]" });
+
+const pathTargetRowStyle = css({
+  gridColumn: "[1 / -1]",
+  display: "flex",
+  minWidth: "[0]",
+  marginBottom: "1.5",
+  "&:last-child": { marginBottom: "[0]" },
+});
 
 /** A path's mark: a small solid dot, as the ports on the canvas card. */
 const dotStyle = css({
@@ -275,6 +287,12 @@ const IfTarget = ({
         readonly={readOnly}
         prefix={{ iconName: iconOf(wire.target) }}
         items={items}
+        // A long name loses its middle, not its end; the full name shows on hover.
+        renderSelectedItem={(value) => (
+          <MiddleCut
+            text={items.find((item) => item.value === value)?.text ?? value}
+          />
+        )}
         value={wire.target}
         onChange={(target) => {
           if (!target) {
@@ -365,6 +383,11 @@ export const BranchRows = ({
     kind: ports.map((port) => port.label).join(" or "),
   };
   const goesTo = useGoesTo(stepId, iconOf);
+  const { document } = useEditor();
+  const wired = (port: string) =>
+    document.wires.some(
+      (wire) => wire.source === stepId && wire.sourcePort === port,
+    );
 
   const approved = ports[0];
 
@@ -425,7 +448,18 @@ export const BranchRows = ({
             <Fragment key={port.outputName}>
               <span className={dotStyle} aria-hidden="true" />
               <span>{port.label}</span>
-              <span className={pathTargetCellStyle}>{goesTo(port.outputName)}</span>
+              {wired(port.outputName) ? (
+                <>
+                  <span />
+                  <span className={pathTargetRowStyle}>
+                    {goesTo(port.outputName)}
+                  </span>
+                </>
+              ) : (
+                <span className={pathTargetCellStyle}>
+                  {goesTo(port.outputName)}
+                </span>
+              )}
             </Fragment>
           ))}
         </div>
