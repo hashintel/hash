@@ -33,6 +33,7 @@ import {
 
 import type { StepRunMark } from "../shared/step-states";
 import type { ValueUse } from "../shared/value-uses";
+import type { ItemRun } from "./step-run-panel/step-runs";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type {
   FlowDefinition,
@@ -94,6 +95,39 @@ const useNow = (ticking: boolean) => {
   }, [ticking]);
 
   return now;
+};
+
+/**
+ * The lines under a step's state: its items' counts, then its timing, attempts and whether it waits on a person. The
+ * clock ticks in here, so that a step still going re-renders these lines each second and not the values under them.
+ */
+const StatusLines = ({
+  itemCountsLine,
+  runs,
+  perItem,
+  running,
+  waitingOnPerson,
+}: {
+  itemCountsLine: string | null;
+  runs: ItemRun[];
+  perItem: boolean;
+  running: boolean;
+  waitingOnPerson: boolean;
+}) => {
+  const now = useNow(running);
+
+  return (
+    <div className={statusLines}>
+      {itemCountsLine && <span className={statusLine}>{itemCountsLine}</span>}
+      {getStatusLines({ runs, perItem, running, waitingOnPerson, now }).map(
+        (line) => (
+          <span key={line} className={statusLine}>
+            {line}
+          </span>
+        ),
+      )}
+    </div>
+  );
 };
 
 /** An input or output, its name over its value. */
@@ -190,7 +224,6 @@ export const StepRunPanel = ({
    */
   const running =
     live && (mark.state === "running" || mark.state === "needsReview");
-  const now = useNow(running);
   const lastError = useMemo(() => getLastError(runs), [runs]);
   const itemCountsLine =
     perItem && mark.items ? getItemCountsLine(mark.items) : null;
@@ -267,22 +300,13 @@ export const StepRunPanel = ({
       </div>
       {(runs.length > 0 || itemCountsLine) && (
         <div className={status}>
-          <div className={statusLines}>
-            {itemCountsLine && (
-              <span className={statusLine}>{itemCountsLine}</span>
-            )}
-            {getStatusLines({
-              runs,
-              perItem,
-              running,
-              waitingOnPerson: waiting,
-              now,
-            }).map((line) => (
-              <span key={line} className={statusLine}>
-                {line}
-              </span>
-            ))}
-          </div>
+          <StatusLines
+            itemCountsLine={itemCountsLine}
+            runs={runs}
+            perItem={perItem}
+            running={running}
+            waitingOnPerson={waiting}
+          />
           {lastError && (
             <StepRunError
               message={lastError.error.message}
@@ -304,7 +328,7 @@ export const StepRunPanel = ({
           )}
           {itemCountsLine && (
             <span className={note}>
-              Each item's values will show once you can step through the items.
+              Each item has its own values, which aren't shown here.
             </span>
           )}
         </div>

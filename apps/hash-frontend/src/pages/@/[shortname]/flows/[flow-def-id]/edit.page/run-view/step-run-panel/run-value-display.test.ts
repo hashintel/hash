@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { getValueDisplay } from "./run-value-display";
+import { getValueDisplay, isLongText } from "./run-value-display";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
 const entityId = (uuid: string) => `web~${uuid}` as EntityId;
+
+describe("isLongText", () => {
+  it("counts text as long past 600 characters, or past 12 lines", () => {
+    expect(isLongText("Supplier report")).toBe(false);
+    expect(isLongText("a".repeat(600))).toBe(false);
+    expect(isLongText("a".repeat(601))).toBe(true);
+    expect(isLongText(Array(12).fill("line").join("\n"))).toBe(false);
+    expect(isLongText(Array(13).fill("line").join("\n"))).toBe(true);
+  });
+});
 
 describe("getValueDisplay", () => {
   it("shows text, numbers, true or false and dates as text, a list's one per line", () => {

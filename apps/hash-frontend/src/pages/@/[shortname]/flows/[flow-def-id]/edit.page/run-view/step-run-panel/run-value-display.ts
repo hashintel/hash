@@ -106,6 +106,17 @@ export const getValueDisplay = ({ kind, value }: Payload): ValueDisplay => {
   };
 };
 
+/* About twice what long text shows of its start, so that asking for the rest is worth it. */
+const longTextCharacters = 600;
+const longTextLines = 12;
+
+/**
+ * Whether text is long enough to show only its start until the rest is asked for, e.g. a prompt or a report, so that
+ * what's under it in the panel stays within reach.
+ */
+export const isLongText = (text: string) =>
+  text.length > longTextCharacters || text.split("\n").length > longTextLines;
+
 /** A value's kind, and whether it's a list, as the editor names a value's type. */
 export const getPayloadShape = ({ kind, value }: Payload) => ({
   payloadKind: kind,

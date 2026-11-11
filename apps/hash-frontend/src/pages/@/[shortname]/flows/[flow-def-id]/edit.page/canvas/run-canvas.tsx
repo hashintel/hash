@@ -14,14 +14,14 @@ import "@xyflow/react/dist/style.css";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { findStep } from "../shared/find-step";
 import { notReachedMark, startMark } from "../shared/step-states";
 import { CanvasActionsContext } from "./canvas-actions";
 import { CanvasToolbar } from "./canvas-toolbar";
 import { ConnectionEdge } from "./connection-edge";
-import { getFlowGraph, getStepNodeId } from "./flow-graph";
+import { getFlowGraph } from "./flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./flow-nodes";
 import { layOutFlow } from "./layout";
+import { getUndimmedNodeIds } from "./undimmed-nodes";
 import { useSelectedStepInView, useStepFocus } from "./use-step-focus";
 
 import type { StepRunMark } from "../shared/step-states";
@@ -46,7 +46,7 @@ const nodeTypes = {
 const edgeTypes = { connection: ConnectionEdge };
 
 const canvas = css({ position: "relative", width: "full", height: "full" });
-/* What isn't highlighted fades back, so the step that is stands out where it is, and fades in again after. */
+/* While a step is highlighted, the rest fade back, so it stands out where it is, and fade in again after. */
 const dimmable = css({ transition: "opacity", transitionDuration: "fast" });
 const dimmed = css({ opacity: "0.3" });
 
@@ -74,7 +74,10 @@ type RunCanvasProps = {
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
-  /** A step to show apart from the rest, which are dimmed, e.g. one using the selected step's output. */
+  /**
+   * A step to show apart from the rest, e.g. one using the selected step's output: every other step is dimmed but
+   * those selected.
+   */
   highlightedStepId: string | null;
   /** How much of the canvas's right edge a panel covers, in pixels. */
   coveredRight: number;
@@ -164,21 +167,25 @@ const FlowRunCanvas = ({
     [flowDefinition.outputs],
   );
 
-  /* A step in a collapsed for-each step isn't drawn, so the for-each step stands for it. */
-  const highlightedNodeId = useMemo(() => {
-    if (highlightedStepId === null) {
-      return null;
-    }
-
-    const collapsedParent = flowDefinition.steps.find(
-      (step) =>
-        step.kind === "for-each" &&
-        collapsedStepIds.has(step.stepId) &&
-        findStep(step.steps, highlightedStepId),
-    );
-
-    return getStepNodeId(collapsedParent?.stepId ?? highlightedStepId);
-  }, [highlightedStepId, flowDefinition.steps, collapsedStepIds]);
+  /* While a step is highlighted, it and the selected steps stay as they are, so both ends of what links them show. */
+  const undimmedNodeIds = useMemo(
+    () =>
+      highlightedStepId === null
+        ? null
+        : getUndimmedNodeIds({
+            stepIds: [highlightedStepId, ...selectedStepIds],
+            steps: flowDefinition.steps,
+            collapsedStepIds,
+            nodes: graph.nodes,
+          }),
+    [
+      highlightedStepId,
+      selectedStepIds,
+      flowDefinition.steps,
+      collapsedStepIds,
+      graph.nodes,
+    ],
+  );
 
   const nodes = useMemo(() => {
     const selectedStepIdSet = new Set(selectedStepIds);
@@ -203,7 +210,7 @@ const FlowRunCanvas = ({
         selected: stepId !== null && selectedStepIdSet.has(stepId),
         className: cx(
           dimmable,
-          highlightedNodeId !== null && node.id !== highlightedNodeId && dimmed,
+          undimmedNodeIds !== null && !undimmedNodeIds.has(node.id) && dimmed,
         ),
         ...(measured && { measured }),
       };
@@ -213,7 +220,7 @@ const FlowRunCanvas = ({
     marks,
     featuredStepIds,
     selectedStepIds,
-    highlightedNodeId,
+    undimmedNodeIds,
     measurements,
   ]);
 
@@ -223,9 +230,18 @@ const FlowRunCanvas = ({
         ...edge,
         selectable: false,
         focusable: false,
-        className: cx(dimmable, highlightedNodeId !== null && dimmed),
+        /* A line stays as it is only between two steps that do. */
+        className: cx(
+          dimmable,
+          undimmedNodeIds !== null &&
+            !(
+              undimmedNodeIds.has(edge.source) &&
+              undimmedNodeIds.has(edge.target)
+            ) &&
+            dimmed,
+        ),
       })),
-    [graph.edges, highlightedNodeId],
+    [graph.edges, undimmedNodeIds],
   );
 
   const onNodesChange = (changes: NodeChange<FlowNode>[]) => {
