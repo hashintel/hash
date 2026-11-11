@@ -9,7 +9,7 @@
  * - 3 (K3): a command palette in the middle of the screen: suggested steps, recent steps, then every step.
  * - 4 (K4): "Add a step" takes the right panel's place, with where the step goes at the top.
  *
- * Tiles follow approved-parts G77 ("Two-line rows"): 32 px with a 16 px icon across both lines of a row with a
+ * Tiles follow approved-parts G77 ("Two-line rows"): 32 px with an 18 px icon across both lines of a row with a
  * second line; 24 px with a 14 px icon, in a 32 px slot, on a one-line row. Both in the step's P-a hue.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";

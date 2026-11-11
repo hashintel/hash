@@ -10,8 +10,8 @@ import { Icon, type IconName, type ItemOrGroup, type MenuItem, Tooltip } from "@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 /**
- * A two-line row's leading icon outside the tiled menus (trigger rows, output rows): the G77 tile, 32 px with a
- * 16 px icon, centred across both lines (Aakarsh, 9 Nov: "one big icon that spans 2 lines"). It replaces B′
+ * A two-line row's leading icon outside the tiled menus (trigger rows, output rows): the G77 tile, 32 px with an
+ * 18 px icon (11 Nov), centred across both lines (Aakarsh, 9 Nov: "one big icon that spans 2 lines"). It replaces B′
  * (ledger 2 Nov), which hung a 14 px icon on the first line. The name is kept so every caller follows it.
  */
 /**
@@ -28,7 +28,7 @@ export const selectedLabelStyle = css({
 export const selectedLabel = (text: React.ReactNode, selected: boolean | undefined) =>
   selected ? <span className={selectedLabelStyle}>{text}</span> : text;
 
-export const firstLineIconStyle = css({
+const firstLineTile = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -39,6 +39,17 @@ export const firstLineIconStyle = css({
   borderRadius: "md",
   backgroundColor: "neutral.a25",
   color: "neutral.fg.muted",
+} as const;
+
+/** A two-line row's 32 px tile with an 18 px icon (G77, 11 Nov). */
+export const firstLineIconStyle = css({
+  ...firstLineTile,
+  "& svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
+});
+
+/** A panel header's 32 px tile keeps its 16 px icon. */
+export const headerIconStyle = css({
+  ...firstLineTile,
   "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
 });
 
@@ -107,7 +118,7 @@ export const valueTiles: TileMode | undefined =
         ? "twoLine"
         : "all";
 
-/** The value menus' tile (approved-parts G77): 32 px, 6 px corners, a 16 px icon, across both lines of a two-line row. */
+/** The value menus' tile (approved-parts G77): 32 px, 6 px corners, across both lines of a two-line row. */
 const sourceTileStyle = css({
   display: "inline-flex",
   alignItems: "center",
@@ -121,6 +132,8 @@ const sourceTileStyle = css({
   // Centred on the row: across both lines of a two-line row.
   alignSelf: "center",
   "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+  // A two-line row's icon is 18 px (G77, 11 Nov); a one-line row keeps 16.
+  "&[data-two-line] svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
 });
 
 const rowStyle = css({
@@ -167,7 +180,7 @@ const tileColumnStyle = css({
 /**
  * The tile runs from the title's cap height to the description's baseline (Figma, 3 Nov): 28 px, 1 px down, in a
  * value menu (`?srcicons=old`); 32 px (G77), 2 px down, for a step (14 px and 18 px lines).
- * 8 px corners, the step-tile grey, a 16 px icon.
+ * 8 px corners, the step-tile grey, a 16 px icon (18 px on a step's 32 px tile).
  */
 const tileStyle = cva({
   base: {
@@ -183,7 +196,12 @@ const tileStyle = cva({
     lines: {
       value: { width: "[28px]", height: "[28px]", marginTop: "[1px]" },
       // G77: 32 px across the 36 px of lines (14 + 4 + 18), 2 px down so it is centred on them.
-      step: { width: "[32px]", height: "[32px]", marginTop: "[2px]" },
+      step: {
+        width: "[32px]",
+        height: "[32px]",
+        marginTop: "[2px]",
+        "& svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
+      },
     },
   },
 });
@@ -250,7 +268,7 @@ const descriptionStyle = cva({
   },
 });
 
-/** G77's tile for a list that lays out its own rows (the step picker takes): 32 px, a 16 px icon, across both lines. */
+/** G77's tile for a list that lays out its own rows (the step picker takes): 32 px, an 18 px icon, across both lines. */
 const ownRowTileStyle = cva({
   base: {
     display: "inline-flex",
@@ -265,7 +283,7 @@ const ownRowTileStyle = cva({
       two: {
         width: "[32px]",
         height: "[32px]",
-        "& svg": { width: "[16px]", height: "[16px]", "--icon-size": "16px" },
+        "& svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
       },
       one: {
         width: "[24px]",
@@ -278,7 +296,7 @@ const ownRowTileStyle = cva({
 
 /**
  * The leading tile of a row the caller lays out itself (approved-parts G77, "Two-line rows"): a row with a second
- * line gets a 32 px tile with a 16 px icon, centred across both lines; a one-line row gets a 24 px tile with a
+ * line gets a 32 px tile with an 18 px icon, centred across both lines; a one-line row gets a 24 px tile with a
  * 14 px icon, centred in a 32 px slot, so every label in the list starts at the same x. 12 px to the text.
  */
 export const RowTile = ({
@@ -335,7 +353,12 @@ export const MenuRow = ({
     >
       {tiles ? (
         tiled ? (
-          <span className={sourceTileStyle} style={tint} aria-hidden="true">
+          <span
+            className={sourceTileStyle}
+            style={tint}
+            data-two-line={twoLine ? "" : undefined}
+            aria-hidden="true"
+          >
             {glyph}
           </span>
         ) : null

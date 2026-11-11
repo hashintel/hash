@@ -28,7 +28,7 @@ import { navigate, parseRoute } from "./router";
 import { TextLink } from "./text-link";
 import { type EditorDocument } from "./document";
 import { useEditor } from "./editor-context";
-import { firstLineIconStyle } from "./menu-rows";
+import { headerIconStyle } from "./menu-rows";
 import {
   formatCount,
   ghostLayout,
@@ -448,7 +448,7 @@ const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
       >
         <span
           className={cx(
-            firstLineIconStyle,
+            headerIconStyle,
             css({ color: "neutral.fg.muted" }),
           )}
         >
@@ -818,7 +818,7 @@ const TriggersPanelAtScale = () => {
       >
         <span
           className={cx(
-            firstLineIconStyle,
+            headerIconStyle,
             css({ color: "neutral.fg.muted" }),
           )}
         >
