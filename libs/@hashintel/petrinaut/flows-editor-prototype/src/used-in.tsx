@@ -1293,16 +1293,17 @@ export const useUsedRows = (): UsedRows | null => {
 export const useUsedAlign = (): "flush" | null => (useLocation().query.get("usedalign") === "flush" ? "flush" : null);
 
 /**
- * `?usedprop=` (inbox used-in-row-spacing): how the open list shows the input the output fills. No param keeps the
- * faint text on the right. pill: the output row's type chip. chevron: `Step name › Input` on one line, the input faint.
- * leader: the faint input on the right with a dotted leader between. rail: chevron, plus a hairline down the type-icon
- * column from the output's icon to the last row (none with `usedalign=flush`, where the tiles sit in that column).
+ * `?usedprop=` (inbox used-in-row-spacing, decided 11 Nov): how the open list shows the input the output fills. No param
+ * is chevron: `Step name › Input` on one line, the step name in the output row's heading colour, the input faint.
+ * right: the faint input text on the right (before 11 Nov). pill: the output row's type chip. leader: the faint input on
+ * the right with a dotted leader between. rail: chevron, plus a hairline down the type-icon column from the output's
+ * icon to the last row (none with `usedalign=flush`, where the tiles sit in that column).
  */
-export type UsedProp = "pill" | "chevron" | "leader" | "rail";
+export type UsedProp = "right" | "pill" | "chevron" | "leader" | "rail";
 
-export const useUsedProp = (): UsedProp | null => {
+export const useUsedProp = (): UsedProp => {
   const value = useLocation().query.get("usedprop");
-  return value === "pill" || value === "chevron" || value === "leader" || value === "rail" ? value : null;
+  return value === "right" || value === "pill" || value === "leader" || value === "rail" ? value : "chevron";
 };
 
 /** `?usedprop=pill`: the input name is drawn as the output row's type chip. */
@@ -1343,6 +1344,7 @@ const usedRowsStyle = css({
   "& [data-proprow]": { display: "flex", alignItems: "baseline", flex: "[1 1 0]", minWidth: "[0]" },
   "& [data-proprow] > [data-propname]": {
     display: "block",
+    color: "neutral.fg.heading",
     flexShrink: 1,
     minWidth: "[0]",
     overflow: "hidden",
@@ -1625,7 +1627,7 @@ const StructureBlock = ({
         data-used-names
         data-rows={usedRows ?? undefined}
         data-align={usedAlign ?? undefined}
-        data-prop={usedProp ?? undefined}
+        data-prop={usedProp === "right" ? undefined : usedProp}
       >
         <span data-caption>Used in</span>
         {uses.map((use) => (
@@ -1928,7 +1930,7 @@ const RestBlock = ({
         data-used-names
         data-rows={usedRows ?? undefined}
         data-align={usedAlign ?? undefined}
-        data-prop={usedProp ?? undefined}
+        data-prop={usedProp === "right" ? undefined : usedProp}
       >
           {uses.map((use) => (
             <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>

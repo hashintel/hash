@@ -181,9 +181,9 @@ export const openDecisions: OpenSwitch[] = [
     flag: "usedprop",
     defaultValue: null,
     options: [
-      { label: "muted text", value: null },
+      { label: "chevron", value: null },
+      { label: "muted text on the right", value: "right" },
       { label: "pill", value: "pill" },
-      { label: "chevron", value: "chevron" },
       { label: "dotted leader", value: "leader" },
       { label: "chevron + rail", value: "rail" },
     ],
