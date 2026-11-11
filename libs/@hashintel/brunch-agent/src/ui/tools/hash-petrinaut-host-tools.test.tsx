@@ -72,7 +72,6 @@ const placeNamed = (id: string, name: string) => ({
   name,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
 });
@@ -238,7 +237,6 @@ test("a call for the page's editor adds the place and settles with the revisions
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
         },
       ],
     },

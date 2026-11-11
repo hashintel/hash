@@ -40,7 +40,6 @@ const place = {
   name: "Queue",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   targetSubnetId: null,
