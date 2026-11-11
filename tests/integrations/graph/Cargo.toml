@@ -1,0 +1,34 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+name              = "hash-integrations-graph-tests"
+publish.workspace = true
+version.workspace = true
+
+[dev-dependencies]
+# Private workspace dependencies
+hash-crypto                  = { workspace = true }
+hash-graph-authorization     = { workspace = true }
+hash-graph-postgres-store    = { workspace = true }
+hash-graph-store             = { workspace = true }
+hash-graph-test-data         = { workspace = true }
+hash-integrations-definition = { workspace = true }
+hash-integrations-engine     = { workspace = true }
+type-system                  = { workspace = true }
+
+# Private third-party dependencies
+pretty_assertions = { workspace = true }
+reqwest           = { workspace = true }
+serde             = { workspace = true, features = ["derive"] }
+serde_json        = { workspace = true }
+tempfile          = { workspace = true }
+tokio             = { workspace = true, features = ["macros"] }
+uuid              = { workspace = true, features = ["v7"] }
+
+[lints]
+workspace = true
+
+[[test]]
+name = "aviation"
+path = "aviation/mod.rs"

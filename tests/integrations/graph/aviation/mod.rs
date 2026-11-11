@@ -1,0 +1,455 @@
+#![expect(missing_docs, reason = "integration tests")]
+
+extern crate alloc;
+
+mod database;
+
+use alloc::collections::BTreeMap;
+use std::collections::{HashMap, HashSet};
+
+use hash_crypto::Secret;
+use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
+use hash_graph_store::{
+    account::{AccountStore as _, CreateUserActorParams},
+    data_type::{CreateDataTypeParams, DataTypeStore as _},
+    entity::{EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
+    entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
+    filter::{Filter, FilterExpression, Parameter},
+    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _},
+    query::ConflictBehavior,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+};
+use hash_graph_test_data::{data_type, entity_type};
+use hash_integrations_definition::{Definition, SourceKind};
+use hash_integrations_engine::{
+    Applied, FinishedPlan, GraphClient, GraphPlan, Planner, SinkColumns, SinkRow, TableAssertions,
+    Workspace, WorkspaceConfig, derive_entity_id, integration_provenance,
+};
+use pretty_assertions::assert_eq;
+use reqwest::Url;
+use serde::Deserialize;
+use serde_json::json;
+use tempfile::TempDir;
+use type_system::{
+    knowledge::{
+        entity::{Entity, Link, provenance::ProvidedEntityEditionProvenance},
+        property::{PropertyObject, metadata::PropertyMetadata},
+    },
+    ontology::{
+        VersionedUrl,
+        data_type::DataType,
+        entity_type::EntityType,
+        property_type::PropertyType,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
+    principal::{actor::ActorId, actor_group::WebId, role::RoleName},
+    provenance::{Location, SourceProvenance, SourceType},
+};
+use uuid::Uuid;
+
+use self::database::Database;
+
+const TYPES: &str = "https://example.com/@demo/types";
+
+#[derive(Deserialize)]
+struct Ontology {
+    #[serde(rename = "dataTypes")]
+    data: Vec<DataType>,
+    #[serde(rename = "propertyTypes")]
+    properties: Vec<PropertyType>,
+    #[serde(rename = "entityTypes")]
+    entities: Vec<EntityType>,
+}
+
+fn url(kind: &str, name: &str) -> VersionedUrl {
+    format!("{TYPES}/{kind}/{name}/v/1")
+        .parse()
+        .expect("the aviation type URL should be valid")
+}
+
+fn provenance() -> ProvidedEntityEditionProvenance {
+    integration_provenance(SourceProvenance {
+        ty: SourceType::Integration,
+        entity_id: None,
+        authors: Vec::new(),
+        location: Some(Location {
+            name: Some("aviation".to_owned()),
+            uri: None,
+            description: None,
+        }),
+        first_published: None,
+        last_updated: None,
+        loaded_at: None,
+    })
+}
+
+async fn seed(database: &mut Database) -> (ActorId, WebId) {
+    let (actor, web_id) = seed_actor(database).await;
+    seed_ontology(database, actor, web_id).await;
+    (actor, web_id)
+}
+
+async fn seed_actor(database: &mut Database) -> (ActorId, WebId) {
+    let store = &mut database.connection;
+    store
+        .seed_system_policies()
+        .await
+        .expect("the Graph policies should be seeded");
+    let system = store
+        .get_or_create_system_machine("h")
+        .await
+        .expect("the system actor should exist");
+    let user = store
+        .create_user_actor(
+            system.into(),
+            CreateUserActorParams {
+                user_id: None,
+                shortname: Some(format!("aviation-{}", Uuid::now_v7().simple())),
+                registration_complete: true,
+            },
+        )
+        .await
+        .expect("the aviation web should be created");
+    let actor = ActorId::from(user.machine_id);
+    let web_id = WebId::from(user.user_id);
+    store
+        .unassign_role(
+            user.user_id.into(),
+            actor.into(),
+            web_id.into(),
+            RoleName::Member,
+        )
+        .await
+        .expect("the machine's member role should be removed before assigning administrator");
+    store
+        .assign_role(
+            user.user_id.into(),
+            actor.into(),
+            web_id.into(),
+            RoleName::Administrator,
+        )
+        .await
+        .expect("the machine should administer the aviation web");
+    (actor, web_id)
+}
+
+async fn seed_ontology(database: &mut Database, actor: ActorId, web_id: WebId) {
+    let store = &mut database.connection;
+    let mut ontology: Ontology = serde_json::from_str(include_str!("ontology.json"))
+        .expect("the aviation ontology should be valid");
+    ontology.data.extend(
+        [
+            data_type::VALUE_V1,
+            data_type::TEXT_V1,
+            data_type::NUMBER_V1,
+        ]
+        .map(|schema| serde_json::from_str(schema).expect("the primitive schema should be valid")),
+    );
+    ontology
+        .entities
+        .push(serde_json::from_str(entity_type::LINK_V1).expect("the link schema should be valid"));
+    let provenance = ProvidedOntologyEditionProvenance {
+        actor_type: actor.actor_type(),
+        origin: provenance().origin,
+        sources: Vec::new(),
+    };
+    store
+        .create_data_types(
+            actor,
+            ontology
+                .data
+                .into_iter()
+                .map(|schema| CreateDataTypeParams {
+                    schema,
+                    ownership: OntologyOwnership::Local { web_id },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: provenance.clone(),
+                    conversions: HashMap::new(),
+                }),
+        )
+        .await
+        .expect("the aviation data types should be seeded");
+    store
+        .create_property_types(
+            actor,
+            ontology
+                .properties
+                .into_iter()
+                .map(|schema| CreatePropertyTypeParams {
+                    schema,
+                    ownership: OntologyOwnership::Local { web_id },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: provenance.clone(),
+                }),
+        )
+        .await
+        .expect("the aviation property types should be seeded");
+    store
+        .create_entity_types(
+            actor,
+            ontology
+                .entities
+                .into_iter()
+                .map(|schema| CreateEntityTypeParams {
+                    schema,
+                    ownership: OntologyOwnership::Local { web_id },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: provenance.clone(),
+                    fetched_from_origin: false,
+                }),
+        )
+        .await
+        .expect("the aviation entity types should be seeded");
+}
+
+fn namespace(web_id: WebId) -> String {
+    format!("aviation/{web_id}")
+}
+
+async fn plan(workspace: &Workspace, web_id: WebId) -> FinishedPlan {
+    let definition = Definition::from_yaml(include_str!(
+        "../../../../libs/@local/integrations/definition/examples/aviation.yaml"
+    ))
+    .expect("the aviation definition should parse");
+    let planner = Planner::new(
+        web_id,
+        namespace(web_id),
+        provenance(),
+        definition.unit_maps().clone(),
+    );
+    let mut checkpoints = BTreeMap::new();
+    let mut plans = GraphPlan::default();
+    for pipeline in definition.entity_pipelines() {
+        let source = definition
+            .sources()
+            .get(&pipeline.source)
+            .expect("the source should exist");
+        let SourceKind::Sql { query, primary_key } = &source.kind else {
+            panic!("the aviation example should use SQL sources");
+        };
+        let table = format!("source/{}", pipeline.source).into_boxed_str();
+        workspace
+            .stage_table(
+                table.clone(),
+                query.as_ref().into(),
+                primary_key.clone(),
+                TableAssertions::default(),
+            )
+            .await
+            .expect("the aviation source should be staged");
+        let prepared = workspace
+            .prepare_pipeline(pipeline.clone(), table, checkpoints.clone())
+            .await
+            .expect("the aviation pipeline should run");
+        checkpoints.extend(prepared.checkpoints);
+        for sink in prepared.sinks {
+            let rows = workspace
+                .query(format!("SELECT * FROM \"{}\"", sink.table).into_boxed_str())
+                .await
+                .expect("the sink rows should be readable");
+            let columns = rows
+                .columns()
+                .iter()
+                .map(AsRef::as_ref)
+                .collect::<SinkColumns>();
+            plans.extend([planner
+                .plan_entities(
+                    &sink.sink,
+                    rows.iter().map(|row| SinkRow::new(&columns, row)),
+                )
+                .expect("the entity rows should plan")]);
+        }
+    }
+    for link in definition.link_pipelines() {
+        let prepared = workspace
+            .prepare_link_pipeline(link.clone(), checkpoints.clone())
+            .await
+            .expect("the aviation link pipeline should run");
+        let rows = workspace
+            .query(format!("SELECT * FROM \"{}\"", prepared.table).into_boxed_str())
+            .await
+            .expect("the link rows should be readable");
+        let columns = rows
+            .columns()
+            .iter()
+            .map(AsRef::as_ref)
+            .collect::<SinkColumns>();
+        plans.extend([planner
+            .plan_links(
+                &prepared.pipeline,
+                rows.iter().map(|row| SinkRow::new(&columns, row)),
+            )
+            .expect("the link rows should plan")]);
+    }
+    let plan = plans
+        .finish()
+        .expect("the aviation records should have distinct IDs");
+    assert!(
+        plan.issues().is_empty(),
+        "the aviation rows should plan without issues: {:?}",
+        plan.issues()
+    );
+    assert_eq!(
+        plan.writes().len(),
+        6,
+        "four entities and two links should be planned"
+    );
+    plan
+}
+
+async fn read(database: &mut Database, actor: ActorId, web_id: WebId) -> Vec<Entity> {
+    let entities = database
+        .connection
+        .query_entities(
+            Some(actor),
+            QueryEntitiesParams {
+                filter: Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::WebId,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(web_id.into()),
+                        convert: None,
+                    },
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: 100,
+                conversions: Vec::new(),
+                include_entity_types: None,
+                include_drafts: false,
+                include_permissions: false,
+            },
+        )
+        .await
+        .expect("the committed aviation entities should be readable")
+        .entities;
+    assert_eq!(
+        entities.len(),
+        6,
+        "the web should contain exactly four records and two links"
+    );
+    entities
+}
+
+fn entity<'entities>(
+    entities: &'entities [Entity],
+    web_id: WebId,
+    kind: &str,
+    source: &str,
+) -> &'entities Entity {
+    let entity_type = url("entity-type", kind);
+    let id = derive_entity_id(web_id, &namespace(web_id), &entity_type, source);
+    let entity = entities
+        .iter()
+        .find(|entity| entity.metadata.record_id.entity_id == id)
+        .expect("the deterministic entity ID should be stored");
+    assert_eq!(
+        entity.metadata.entity_type_ids,
+        HashSet::from([entity_type])
+    );
+    entity
+}
+
+fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
+    for entity in entities {
+        assert!(
+            entity.metadata.read_only,
+            "integration entities should be read-only"
+        );
+        assert!(
+            !entity.metadata.archived,
+            "the aviation records should be active"
+        );
+        assert_eq!(entity.metadata.provenance.created_by_id, actor.into());
+        assert_eq!(entity.metadata.provenance.edition.provided, provenance());
+    }
+    for (icao, name) in [("ESSA", "Arlanda"), ("ESSB", "Bromma")] {
+        let airfield = entity(entities, web_id, "airfield", icao);
+        assert_eq!(
+            serde_json::to_value(&airfield.properties).expect("the properties should serialize"),
+            json!({format!("{TYPES}/property-type/name/"): name})
+        );
+        assert!(airfield.link_data.is_none());
+    }
+    for (tail, model, date, mass, unit) in [
+        ("SE-XXX", "DC-3", "1946-04-02", 8030, "kilogram"),
+        ("N100", "L-1049", "1957-07-15", 69000, "pound"),
+    ] {
+        let aircraft = entity(entities, web_id, "aircraft", tail);
+        let expected: PropertyObject =
+            serde_json::from_value(json!({format!("{TYPES}/property-type/model/"): model,
+                format!("{TYPES}/property-type/first-flight/"): date,
+                format!("{TYPES}/property-type/empty-mass/"): mass}))
+            .expect("the expected aircraft properties should be valid");
+        assert_eq!(aircraft.properties, expected);
+        assert!(aircraft.link_data.is_none());
+        let mass_url = url("property-type", "empty-mass").base_url;
+        let Some(PropertyMetadata::Value(metadata)) =
+            aircraft.metadata.properties.value.get(&mass_url)
+        else {
+            panic!("the mass should have value metadata");
+        };
+        assert_eq!(metadata.metadata.data_type_id, Some(url("data-type", unit)));
+        let link_source = format!(
+            "{}::{tail}::{}::ESSA",
+            url("entity-type", "aircraft"),
+            url("entity-type", "airfield")
+        );
+        let link = entity(entities, web_id, "based-at", &link_source);
+        let Some(Link::Directed { source, target }) = &link.link_data else {
+            panic!("based-at should be a directed link");
+        };
+        assert_eq!(source.entity_id, aircraft.metadata.record_id.entity_id);
+        assert_eq!(
+            target.entity_id,
+            entity(entities, web_id, "airfield", "ESSA")
+                .metadata
+                .record_id
+                .entity_id
+        );
+        assert!(
+            link.properties.is_empty(),
+            "based-at should have no properties"
+        );
+    }
+}
+
+#[tokio::test]
+async fn aviation_delivery_and_replay() {
+    let mut database = Database::open().await;
+    let (actor, web_id) = seed(&mut database).await;
+    let directory = TempDir::new().expect("the workspace directory should be created");
+    let workspace = Workspace::open(
+        directory.path().join("aviation.duckdb"),
+        WorkspaceConfig::default(),
+    )
+    .await
+    .expect("the aviation workspace should open");
+    let plan = plan(&workspace, web_id).await;
+    let host = std::env::var("HASH_GRAPH_HTTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
+    let port = std::env::var("HASH_GRAPH_HTTP_PORT").unwrap_or_else(|_| "4000".to_owned());
+    let client = GraphClient::new(
+        &Url::parse(&format!("http://{host}:{port}")).expect("the Graph URL should be valid"),
+        Secret::from_string(
+            std::env::var("HASH_GRAPH_SERVICE_SECRET")
+                .expect("the Graph service secret should be configured"),
+        ),
+    )
+    .expect("the Graph client should be configured");
+    for expected in [Applied::Created, Applied::Patched] {
+        for write in plan.writes() {
+            assert_eq!(
+                client
+                    .send(actor.into(), write)
+                    .await
+                    .expect("the Graph should apply the aviation write"),
+                expected
+            );
+        }
+        assert_data(&read(&mut database, actor, web_id).await, actor, web_id);
+    }
+}
