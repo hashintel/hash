@@ -37,7 +37,7 @@ const centered = css({
 });
 const messageTitle = css({ fontWeight: "medium", color: "fg.heading" });
 const messageText = css({ textStyle: "sm", color: "fg.muted" });
-const failure = css({ width: "full", maxWidth: "[560px]" });
+const failure = css({ width: "full", maxWidth: "[560px]", textAlign: "start" });
 
 const Message = ({
   title,
@@ -105,8 +105,9 @@ export const RunView = ({
   switch (run.status) {
     case "loading":
       return (
-        <div className={centered}>
+        <div role="status" className={centered}>
           <LoadingSpinner size="lg" />
+          <span className={messageText}>Loading run…</span>
         </div>
       );
     case "notFound":
@@ -129,13 +130,15 @@ export const RunView = ({
       return (
         <div className={centered}>
           <div className={failure}>
-            <Banner tone="error">
+            <Banner tone="error" role="status">
               <Banner.Title>Couldn't load this run</Banner.Title>
               <Banner.Description>{run.message}</Banner.Description>
               {run.retry && (
-                <Button size="sm" variant="subtle" onClick={run.retry}>
-                  Try again
-                </Button>
+                <Banner.Actions>
+                  <Banner.ActionButton onClick={run.retry}>
+                    Try again
+                  </Banner.ActionButton>
+                </Banner.Actions>
               )}
             </Banner>
           </div>
@@ -181,7 +184,7 @@ export const RunView = ({
             )
           )}
           {checkFailure !== null && (
-            <Banner tone="warning">
+            <Banner tone="warning" role="status">
               <Banner.Title>Couldn't check for updates</Banner.Title>
               <Banner.Description>{checkFailure}</Banner.Description>
             </Banner>
