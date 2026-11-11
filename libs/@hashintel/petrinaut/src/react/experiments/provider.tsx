@@ -6,18 +6,12 @@
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
+import { type MonteCarloExperiment } from "@hashintel/petrinaut-core";
 import {
-  type MonteCarloExperiment,
-  getDefaultMonteCarloShardCount,
-  type WorkerFactory,
-} from "@hashintel/petrinaut-core";
-import {
-  createReusableWorkerFactory,
   type ExperimentBackendRegistration,
   selectExperimentBackend,
   type ExperimentBackend,
 } from "@hashintel/petrinaut-core/experiments";
-import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
@@ -47,7 +41,6 @@ import {
   compileExperimentScenario,
   computeBackendOf,
   createExperimentRequestBuilder,
-  experimentBackendRegistrations,
   experimentSimulatorBackends,
   newExperimentRecord,
 } from "./provider/create-experiment";
@@ -68,19 +61,6 @@ import type {
 
 export { buildSweepAxes } from "./provider/create-experiment";
 
-type ExperimentsProviderProps = React.PropsWithChildren<{
-  workerFactory?: WorkerFactory;
-  /**
-   * How many workers each experiment splits its runs across.
-   *
-   * Defaults to one per logical core minus one. Sharding never changes an
-   * experiment's results, only how quickly it finishes, so this exists for hosts
-   * that need to cap CPU use (or pin behaviour in tests) rather than to affect
-   * output.
-   */
-  experimentShardCount?: number;
-}>;
-
 type ExperimentHandleRegistration = {
   handle: MonteCarloExperiment;
   off: () => void;
@@ -98,10 +78,13 @@ const fail: (message: string) => never = (message) => {
   throw new Error(message);
 };
 
-export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
+/**
+ * Creates experiments on the simulators the host registers, and lists them
+ * with what they stream. The workers, their pool and the GPU are the
+ * simulators' own; this provider compiles the request and follows the handle.
+ */
+export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
   children,
-  workerFactory,
-  experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const languageClient = use(LanguageClientContext);
@@ -111,37 +94,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const languageClientRef = useLatest(languageClient);
-  const createBaseWorker = useStableCallback(() =>
-    (workerFactory ?? createMonteCarloWorker)(),
-  );
-  const shardCountRef = useLatest(experimentShardCount);
-  // One worker pool per provider: batches lease workers instead of spawning
-  // and killing a pool's worth per ladder rung and per surface cell. The
-  // base factory is read at call time, so an injected factory stays live;
-  // changing it drains the old pool below.
-  const [reusableWorkerFactory] = useState(() =>
-    createReusableWorkerFactory(createBaseWorker, {
-      // A sweep commit releases the whole working set at once: TWO sharded
-      // foreground batches (the ladder pipelines its rungs) plus the surface
-      // lanes. The pool must hold that set or every commit terminates the
-      // overflow and respawns it a moment later.
-      maxIdle:
-        2 * (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
-    }),
-  );
-  // Factory change: flush pooled workers built from the old base factory
-  // (leases in flight finish on it and re-pool; the next lease is fresh).
-  useEffect(
-    () => () => reusableWorkerFactory.drain(),
-    [reusableWorkerFactory, workerFactory],
-  );
-  // Unmount: shut the pool for good. Handles released by later cleanups (and
-  // in-flight leases finishing afterwards) must terminate their workers
-  // rather than pool them where nothing will ever lease or drain again.
-  useEffect(
-    () => () => reusableWorkerFactory.dispose(),
-    [reusableWorkerFactory],
-  );
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -251,7 +203,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     if (firstDeclined) {
       addNotification({
         message: `${experiment.name} is running on ${
-          simulator ? simulator.label : "the CPU"
+          simulator?.label ?? selection.backendId
         }: ${firstDeclined.reason}`,
         tone: "neutral",
       });
@@ -519,14 +471,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     // Resolved before the record exists, so a simulator nobody registered
     // rejects the creation instead of listing an experiment that cannot run.
-    const onSimulator = input.simulator
-      ? experimentSimulatorBackends({
-          simulators: simulatorsRef.current,
-          selection: input.simulator,
-          requestedSamplePeriod: input.dt,
-        })
-      : null;
-    const samplePeriod = onSimulator?.samplePeriod ?? input.dt;
+    const { registrations, samplePeriod } = experimentSimulatorBackends(
+      simulatorsRef.current,
+      input,
+    );
 
     const experimentId = generateUuid();
     const experiment = newExperimentRecord({
@@ -572,13 +520,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           compiled,
           requestHirArtifacts: languageClientRef.current.requestHirArtifacts,
         });
-        const registrations =
-          onSimulator?.registrations ??
-          experimentBackendRegistrations({
-            computeBackend: input.computeBackend,
-            createWorker: reusableWorkerFactory,
-            shardCount: shardCountRef.current,
-          });
         const onNote = (note: { message: string }) => {
           addNotification({
             message: `${experiment.name}: ${note.message}`,

@@ -52,14 +52,7 @@ export type ExperimentMetricSpecInput =
   | Exclude<MonteCarloMetricSpec, MonteCarloExpressionMetricSpec>
   | Omit<MonteCarloExpressionMetricSpec, "artifact">;
 
-/**
- * Engine an experiment should try to use.
- *
- * Passed per experiment rather than read from user settings inside the
- * provider, because `UserSettingsProvider` is mounted *inside*
- * `ExperimentsProvider` (see `petrinaut-provider.tsx`) and so is not visible
- * there. The create-experiment surface reads the setting and passes it here.
- */
+/** What an experiment's runs were computed on: worker threads, or the GPU. */
 export type ExperimentComputeBackend = "cpu" | "webgpu";
 
 export type CreateExperimentInput = {
@@ -102,16 +95,13 @@ export type CreateExperimentInput = {
    * the net falls back to the default simulator at the same step, and the
    * record says so. Any other refusal fails the experiment with its reason.
    *
-   * Left out, `computeBackend` chooses between the fixed-step engine on
-   * worker threads and on the GPU, stepping at `dt`.
+   * Left out, `computeBackend` chooses one, stepping at `dt`.
    */
   simulator?: SimulatorSelection;
   /**
-   * Backend to attempt when no `simulator` is named. Defaults to `cpu`.
-   *
-   * `webgpu` is a request, not a guarantee: a net the GPU backend cannot run
-   * falls back to the CPU, and `ExperimentRecord.computeBackend` records which
-   * one actually ran.
+   * Chooses the simulator when none is named: the WebGPU fixed-step one for
+   * `webgpu`, otherwise the default. `ExperimentRecord.computeBackend`
+   * records which of the two actually ran.
    */
   computeBackend?: ExperimentComputeBackend;
   /**
@@ -167,8 +157,7 @@ export type ExperimentRecord = {
   computeBackendFallbackReason: string | null;
   /**
    * The simulator that computed the runs, as the picker names it. Null until
-   * one is chosen, and for an experiment that named a compute backend
-   * instead of a simulator.
+   * one is chosen.
    */
   simulatorLabel: string | null;
   /**

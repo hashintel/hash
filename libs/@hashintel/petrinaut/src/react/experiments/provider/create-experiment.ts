@@ -2,7 +2,6 @@ import {
   compileScenario,
   constraintLabel,
   experimentBackendOfSimulator,
-  getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
   synthesizeAdHocOptimization,
@@ -15,10 +14,6 @@ import {
   type ScenarioParameter,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  createWorkerPoolExperimentBackend,
-  WORKER_POOL_BACKEND_ID,
-} from "@hashintel/petrinaut-core/experiments";
 
 import { findSimulator } from "../../simulators/context";
 import { constraintIndicatorSpecs } from "../constraint-indicators";
@@ -45,10 +40,7 @@ import type {
   BuildExperimentRequest,
   SweptScenarioCompiler,
 } from "./shared/experiment-request";
-import type {
-  ExperimentBackendRegistration,
-  ReusableWorkerFactory,
-} from "@hashintel/petrinaut-core/experiments";
+import type { ExperimentBackendRegistration } from "@hashintel/petrinaut-core/experiments";
 
 export const assertExperimentInput = (input: CreateExperimentInput): void => {
   if (input.name.trim() === "") {
@@ -526,71 +518,51 @@ export const createExperimentRequestBuilder = ({
 };
 
 /**
- * Backends in preference order, best first. The GPU backend is a candidate
- * only when asked for; the worker-pool backend is always last because it
- * accepts everything, which is what makes it the fallback.
+ * The simulator an experiment runs on. Named outright, or chosen by the
+ * compute backend an older caller asks for: WebGPU fixed step for `webgpu`,
+ * otherwise the simulator a Stochastic simulation starts on. A chosen
+ * fixed-step simulator steps at the input's `dt`.
  */
-export const experimentBackendRegistrations = ({
-  computeBackend,
-  createWorker,
-  shardCount,
-}: {
-  computeBackend: CreateExperimentInput["computeBackend"];
-  createWorker: ReusableWorkerFactory;
-  shardCount: number | undefined;
-}): ExperimentBackendRegistration[] => {
-  const registrations: ExperimentBackendRegistration[] = [];
-  if (computeBackend === "webgpu") {
-    registrations.push({
-      id: "webgpu",
-      label: "GPU (WebGPU)",
-      // Imported here, not at module scope, so a session that never asks
-      // for the GPU never loads the shader generator.
-      load: async () => {
-        const { createWebGpuExperimentBackend } =
-          await import("@hashintel/petrinaut-core/webgpu");
-        return createWebGpuExperimentBackend();
-      },
-    });
+const experimentSimulatorSelection = (
+  simulators: SimulatorsContextValue,
+  input: Pick<CreateExperimentInput, "simulator" | "computeBackend" | "dt">,
+): SimulatorSelection => {
+  if (input.simulator) {
+    return input.simulator;
   }
-  registrations.push({
-    id: WORKER_POOL_BACKEND_ID,
-    label: "CPU (Web Workers)",
-    load: () =>
-      Promise.resolve(
-        createWorkerPoolExperimentBackend({
-          createWorker,
-          // The experiment never inspects the host, so the provider — the
-          // piece that knows this is a browser — states the parallelism.
-          shardCount: shardCount ?? getDefaultMonteCarloShardCount(),
-        }),
-      ),
-  });
-  return registrations;
+  const simulatorId =
+    input.computeBackend === "webgpu"
+      ? WEBGPU_FIXED_STEP_SIMULATOR_ID
+      : simulators.defaultSelections.stochastic.simulatorId;
+  const timeStepParameter = findSimulator(
+    simulators.registrations,
+    simulatorId,
+  )?.samplePeriodParameter;
+  return {
+    simulatorId,
+    parameters:
+      timeStepParameter === undefined ? {} : { [timeStepParameter]: input.dt },
+  };
 };
 
 /**
- * What an experiment that names a simulator runs on: the backends to try,
- * best first, and the spacing of its samples.
+ * What an experiment runs on: the backends to try, best first, and the
+ * spacing of its samples.
  *
  * A simulator that samples at its time step fixes the spacing; any other
  * takes the one asked for. A fixed-step simulator that is not the default is
- * followed by the default one at the same step, which is the fallback a GPU
- * experiment has always had. The default is the simulator a Stochastic
- * simulation starts on.
+ * followed by the default one at the same step, so a net the GPU cannot take
+ * still runs. The default is the simulator a Stochastic simulation starts
+ * on.
  */
-export const experimentSimulatorBackends = ({
-  simulators,
-  selection,
-  requestedSamplePeriod,
-}: {
-  simulators: SimulatorsContextValue;
-  selection: SimulatorSelection;
-  requestedSamplePeriod: number;
-}): {
+export const experimentSimulatorBackends = (
+  simulators: SimulatorsContextValue,
+  input: Pick<CreateExperimentInput, "simulator" | "computeBackend" | "dt">,
+): {
   registrations: ExperimentBackendRegistration[];
   samplePeriod: number;
 } => {
+  const selection = experimentSimulatorSelection(simulators, input);
   const registration = findSimulator(
     simulators.registrations,
     selection.simulatorId,
@@ -599,7 +571,7 @@ export const experimentSimulatorBackends = ({
     throw new Error(`Simulator "${selection.simulatorId}" is not registered`);
   }
   const timeStep = simulatorSamplePeriod(registration, selection.parameters);
-  const samplePeriod = timeStep ?? requestedSamplePeriod;
+  const samplePeriod = timeStep ?? input.dt;
   const registrations = [
     experimentBackendOfSimulator(registration, selection.parameters),
   ];
@@ -632,6 +604,4 @@ export const experimentSimulatorBackends = ({
 export const computeBackendOf = (
   backendId: string,
 ): ExperimentComputeBackend =>
-  backendId === "webgpu" || backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID
-    ? "webgpu"
-    : "cpu";
+  backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID ? "webgpu" : "cpu";

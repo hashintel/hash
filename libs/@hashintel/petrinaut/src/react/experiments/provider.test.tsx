@@ -24,6 +24,7 @@ import {
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
+import { createReusableWorkerFactory } from "@hashintel/petrinaut-core/experiments";
 import {
   compileHirArtifacts,
   lowerScenarioToHir,
@@ -42,6 +43,7 @@ import {
   SimulatorsContext,
   type SimulatorsContextValue,
 } from "../simulators/context";
+import { SimulatorsProvider } from "../simulators/provider";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
@@ -288,20 +290,38 @@ const NavigationContextConsumer = ({
 
 /**
  * The simulators the editor registers, their experiments split across one
- * shard that is the fake worker.
+ * shard that is the fake worker: a single fake worker stands in for the
+ * whole experiment. Sharding itself is covered in petrinaut-core.
  */
+const simulatorsByWorker = new WeakMap<
+  FakeMonteCarloWorker,
+  SimulatorsContextValue
+>();
+
 const simulatorsOver = (
   worker: FakeMonteCarloWorker,
 ): SimulatorsContextValue => {
+  const known = simulatorsByWorker.get(worker);
+  if (known) {
+    return known;
+  }
   const workers = {
     createRunWorker: () => {
       throw new Error("No single run is started here");
     },
-    createExperimentWorker: () =>
-      worker as WorkerLike<MonteCarloToWorkerMessage, MonteCarloToMainMessage>,
+    // Pooled, as the simulators provider pools them: a finished batch hands
+    // its worker back instead of ending it.
+    createExperimentWorker: createReusableWorkerFactory(() =>
+      Promise.resolve(
+        worker as WorkerLike<
+          MonteCarloToWorkerMessage,
+          MonteCarloToMainMessage
+        >,
+      ),
+    ),
     shardCount: 1,
   };
-  return {
+  const simulators: SimulatorsContextValue = {
     registrations: [
       createJsFixedStepSimulator(workers),
       createJsAdaptiveSimulator(workers),
@@ -321,6 +341,8 @@ const simulatorsOver = (
       },
     },
   };
+  simulatorsByWorker.set(worker, simulators);
+  return simulators;
 };
 
 const TestWrapper = ({
@@ -357,17 +379,7 @@ const TestWrapper = ({
         <PetrinautNavigationProvider initialState={initialNavigationState}>
           <NavigationContextConsumer onNavigationState={onNavigationState} />
           <SimulatorsContext value={simulatorsOver(worker)}>
-            <ExperimentsProvider
-              workerFactory={() =>
-                worker as WorkerLike<
-                  MonteCarloToWorkerMessage,
-                  MonteCarloToMainMessage
-                >
-              }
-              // One shard, so a single fake worker stands in for the whole
-              // experiment. Sharding itself is covered in petrinaut-core.
-              experimentShardCount={1}
-            >
+            <ExperimentsProvider>
               <ExperimentsContextConsumer onContextValue={onContextValue} />
             </ExperimentsProvider>
           </SimulatorsContext>
@@ -972,16 +984,20 @@ describe("ExperimentsProvider", () => {
       >
         <SDCPNContext.Provider value={sdcpnContextValue}>
           <LanguageClientOverride requestHirArtifacts={undefined}>
-            <ExperimentsProvider
-              workerFactory={createAutoAckWorker}
+            {/* The pool is the simulators provider's: the experiments
+                provider leases from it through the simulator. */}
+            <SimulatorsProvider
+              experimentWorkerFactory={createAutoAckWorker}
               experimentShardCount={1}
             >
-              <ExperimentsContextConsumer
-                onContextValue={(value) => {
-                  valueHolder.current = value;
-                }}
-              />
-            </ExperimentsProvider>
+              <ExperimentsProvider>
+                <ExperimentsContextConsumer
+                  onContextValue={(value) => {
+                    valueHolder.current = value;
+                  }}
+                />
+              </ExperimentsProvider>
+            </SimulatorsProvider>
           </LanguageClientOverride>
         </SDCPNContext.Provider>
       </NotificationsContext>,
@@ -1660,7 +1676,7 @@ describe("ExperimentsProvider", () => {
         // And the reason reached the user rather than being swallowed.
         expect(
           notifications.some((notification) =>
-            /running on the CPU/i.test(notification.message),
+            /running on JS fixed step/i.test(notification.message),
           ),
         ).toBe(true);
       });

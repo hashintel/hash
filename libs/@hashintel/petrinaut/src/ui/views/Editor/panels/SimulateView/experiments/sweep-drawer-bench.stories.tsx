@@ -7,6 +7,7 @@ import { ExperimentsProvider } from "../../../../../../react/experiments/provide
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
 import { NotificationsProvider } from "../../../../../../react/notifications/provider";
+import { SimulatorsProvider } from "../../../../../../react/simulators/provider";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../../monaco/provider";
@@ -157,9 +158,11 @@ const Wrapper = (props: {
       <MonacoProvider>
         <NotificationsProvider>
           <UserSettingsProvider>
-            <ExperimentsProvider>
-              <Session {...props} />
-            </ExperimentsProvider>
+            <SimulatorsProvider>
+              <ExperimentsProvider>
+                <Session {...props} />
+              </ExperimentsProvider>
+            </SimulatorsProvider>
           </UserSettingsProvider>
         </NotificationsProvider>
       </MonacoProvider>

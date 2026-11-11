@@ -100,7 +100,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             >
               {/* The editor's Quick Simulation runs on a registered simulator. */}
               <SimulationProvider key={instance.handle.id}>
-                <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                <ExperimentsProvider>
                   <OptimizationsProvider>
                     <ExperimentHostProvider>
                       <PetrinautCanvasProvider>
