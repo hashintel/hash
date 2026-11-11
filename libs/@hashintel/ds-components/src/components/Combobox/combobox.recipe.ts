@@ -125,12 +125,6 @@ export const comboboxMultiRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
-      // While focused, the clear button joins the layout so chips and the
-      // typed draft cannot slide beneath it — the margin reproduces its
-      // overlay position (offset from the frame edge, minus the content
-      // padding it now sits inside), so the switch itself is invisible. The
-      // gradient backdrop only exists to fade content scrolling under the
-      // overlay; inline, it would wash the chip beside it.
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
@@ -285,6 +279,17 @@ export const comboboxMultiRecipe = sva({
               left: "[0px !important]",
               right: "[0px !important]",
             },
+          // The overlay clear's backdrop paints the field background, which
+          // subtle leaves transparent — mask the row's content out from under
+          // the button instead. Only while the button overlays: focused it
+          // is inline, and a hidden button (data-hidden) covers nothing.
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) [data-scope='tags-input'][data-part='root']":
+            {
+              "--clear-mask-span":
+                "[calc(var(--clear-right-offset, var(--spacing-2)) + var(--clear-icon-size, 24px) - var(--content-pad-x, 0px))]",
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--clear-mask-span) - var(--clear-backdrop-fade, 13px)), transparent calc(100% - var(--clear-mask-span)))]",
+            },
           "&:not(.layer-style_disabled):hover": {
             _before: {
               borderColor: "var(--base-input-border-hover-color)",
@@ -303,6 +308,7 @@ export const comboboxMultiRecipe = sva({
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--clear-backdrop-overhang": "5px",
@@ -316,6 +322,7 @@ export const comboboxMultiRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--clear-backdrop-overhang": "6px",
@@ -329,6 +336,7 @@ export const comboboxMultiRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
+          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
           "--clear-backdrop-overhang": "8px",
@@ -342,6 +350,7 @@ export const comboboxMultiRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
           "--clear-backdrop-overhang": "10px",
@@ -355,6 +364,7 @@ export const comboboxMultiRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
           "--clear-backdrop-overhang": "12px",
@@ -380,9 +390,6 @@ export const comboboxMultiRecipe = sva({
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
         },
-        // Chips (and custom-rendered selections) keep their own colors, so
-        // the frame's disabled treatment alone leaves them looking active —
-        // lighten and desaturate them to read as disabled.
         row: {
           opacity: "[0.6]",
           filter: "[grayscale(1)]",

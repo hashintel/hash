@@ -265,7 +265,7 @@ export const TagsInput = ({
     machineKeyDown(event);
     // Enter only commits the draft; un-prevented it would also submit a
     // surrounding form.
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
       event.preventDefault();
     }
     onKeyDown?.(event);
@@ -294,6 +294,20 @@ export const TagsInput = ({
     onChange: setDraft,
     onSubmit: submitDraft,
     placeholder: hasValues ? undefined : placeholder,
+  };
+  // Interactions with the field's own frame — the padding, the clear button,
+  // a custom selection — must not blur the row's tags machine, or its
+  // keyboard chip control would stall until the input re-focuses (the frame's
+  // pointer handling keeps DOM focus on the input, so no focus event would
+  // revive it). Mirrors the multiple Combobox.
+  const handleRowInteractOutside = (event: {
+    detail: { originalEvent: Event };
+    preventDefault: () => void;
+  }) => {
+    const target = event.detail.originalEvent.target;
+    if (target instanceof Node && wrapperRef.current?.contains(target)) {
+      event.preventDefault();
+    }
   };
   // The row reports the removed item's identity (`index:value`) — the
   // leading integer names the occurrence.
@@ -375,6 +389,7 @@ export const TagsInput = ({
               withInput={rowInput}
               withKeyboardControl={rowKeyboardControl}
               inputElementProps={inputElementProps}
+              onInputInteractOutside={handleRowInteractOutside}
             />
           ) : (
             <OverflowRow
@@ -385,6 +400,7 @@ export const TagsInput = ({
               withInput={rowInput}
               withKeyboardControl={rowKeyboardControl}
               inputElementProps={inputElementProps}
+              onInputInteractOutside={handleRowInteractOutside}
             />
           )}
           {showClear && (
@@ -401,6 +417,7 @@ export const TagsInput = ({
                 clearAll();
                 focusInput();
               }}
+              data-hidden={!clearable || !hasContentToClear ? "" : undefined}
               className={cx(
                 multiClasses.clear,
                 (!clearable || !hasContentToClear) && multiClasses.hideClear,

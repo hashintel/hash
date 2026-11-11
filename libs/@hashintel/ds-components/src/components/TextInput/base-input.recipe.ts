@@ -61,35 +61,21 @@ export const baseInputRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
-      // The clear button's inset from the field's end — shared by the
-      // button's overlay `right`, its focused visual shift, and the focused
-      // input's trimmed trailing padding. `--clear-gap` is the loading
-      // variant's hook (the spinner tightens the gap).
       "--clear-offset": "[var(--clear-gap, var(--spacing-2))]",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
       // While focused, the clear button joins the layout so the text cannot
-      // slide beneath it. `position: relative` reinterprets the overlay
-      // `right` inset as a visual shift from the flush layout position, so
-      // the button renders at its exact overlay spot without reserving the
-      // trailing gap (a margin there would widen intrinsically-sized
-      // fields); the input's own padding-x covers the shifted-over strip. (A
-      // hidden-but-reserved button keeps the layout stable while typing
-      // empties/fills the input.)
+      // slide beneath it.
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
         position: "relative",
         flexShrink: "0",
       },
-      // The input's trailing padding normally exceeds the clear offset;
-      // while the button is inline, trim it to the offset so the text area
-      // ends exactly at the button's visible edge — the same amount of text
-      // shows as in the overlay state.
       "&:focus-within:has([data-part='clear']) input": {
-        paddingRight: "[var(--clear-offset)]",
+        paddingRight: "[max(var(--clear-offset), 0px)]",
       },
       "&:focus-within [data-part='edit']": {
         display: "none",
@@ -353,6 +339,11 @@ export const baseInputRecipe = sva({
           "--base-input-background-color": "transparent",
           "--clear-offset":
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--clear-gap, var(--spacing-2)))]",
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) :is(input, [data-part='styled-value'])":
+            {
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px) - 12px), transparent calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px)))]",
+            },
           _before: {
             content: '""',
             position: "absolute",
@@ -412,6 +403,7 @@ export const baseInputRecipe = sva({
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
@@ -420,6 +412,7 @@ export const baseInputRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
@@ -428,6 +421,7 @@ export const baseInputRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
+          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
         },
@@ -436,6 +430,7 @@ export const baseInputRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
         },
@@ -444,6 +439,7 @@ export const baseInputRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
         },
@@ -498,8 +494,6 @@ export const baseInputRecipe = sva({
         root: {
           width: "[fit-content]",
           minWidth: "[unset]",
-          // The clear is always inline here, flush after the grid-sized
-          // input — keep the input's padding as the gap in every state.
           "--clear-offset": "[var(--base-input-padding-x)]",
         },
         readonly: { width: "[fit-content]" },
@@ -556,8 +550,6 @@ export const baseInputRecipe = sva({
     hasBrowserControls: {
       true: {
         root: {
-          // Matches this variant's own inline placement (`right: 1` and the
-          // hasIcons 4px input padding), so focus changes nothing.
           "--clear-offset": "spacing.1",
         },
         clear: {

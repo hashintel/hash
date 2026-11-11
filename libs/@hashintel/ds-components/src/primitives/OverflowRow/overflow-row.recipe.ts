@@ -119,10 +119,7 @@ export const styles = sva({
       whiteSpace: "nowrap",
     },
     // The add-item input: only its min width is reserved while items are
-    // fitted; it then flexes into whatever is left. Its growth ceiling scales
-    // with the content already in the row — the full row while empty,
-    // shrinking 1:1 with the content's footprint (published by the component
-    // as --overflow-row-content-width) down to a floor of min(80%, 300px).
+    // fitted; it then flexes into whatever is left.
     input: {
       flexGrow: "1",
       flexShrink: "1",

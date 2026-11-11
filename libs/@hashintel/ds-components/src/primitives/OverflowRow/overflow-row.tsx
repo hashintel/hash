@@ -321,12 +321,7 @@ const OverflowRowBase = ({
     );
   }, []);
 
-  // Publishes how much of the row the content preceding the input occupies —
-  // the input's growth ceiling shrinks 1:1 with it, from the full row down to
-  // min(80%, 300px) (see the recipe's input maxWidth). The input's layout
-  // offset within the row captures the items, separators, gaps and the
-  // input's own margin in one read; it is a layout position, so the row's
-  // scroll offset never skews it.
+  // Publishes how much of the row the content preceding the input occupies
   const updateInputCap = useCallback(() => {
     const root = rootRef.current;
     const input = inputRef.current;
@@ -348,9 +343,12 @@ const OverflowRowBase = ({
     update();
 
     // Late web-font loads reflow the text after the first update, so a
-    // root-only observer would miss it and leave a stale result — observe both.
-    if (typeof document !== "undefined" && document.fonts.status !== "loaded") {
-      void document.fonts.ready.then(update);
+    // root-only observer would miss it and leave a stale result — observe
+    // both. Typed optional because jsdom has no Font Loading API.
+    const fonts: FontFaceSet | undefined =
+      typeof document === "undefined" ? undefined : document.fonts;
+    if (fonts !== undefined && fonts.status !== "loaded") {
+      void fonts.ready.then(update);
     }
 
     if (typeof ResizeObserver === "undefined") {

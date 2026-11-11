@@ -1375,7 +1375,7 @@ export const Combobox = <TValue extends string>({
       // commit via the close handler); handing it to the chip row too would
       // submit the draft a second time, and un-prevented it would submit a
       // surrounding form.
-      if (multiple && event.key === "Enter") {
+      if (multiple && event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
       }
       if (rejectsTypedText) {
@@ -1598,6 +1598,9 @@ export const Combobox = <TValue extends string>({
                     clearSelection();
                     document.getElementById(multiInputId)?.focus();
                   }}
+                  data-hidden={
+                    !clearable || !hasContentToClear ? "" : undefined
+                  }
                   className={cx(
                     multiClasses.clear,
                     (!clearable || !hasContentToClear) &&
