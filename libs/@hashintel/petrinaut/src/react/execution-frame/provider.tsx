@@ -34,7 +34,7 @@ import type { SimulationFrameReader } from "@hashintel/petrinaut-core";
  * falls between events as often as on one. Scrubbing to a frame views that
  * event's time.
  */
-export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
+const useEventExecutionFrameSource = (): ExecutionFrameSource => {
   const { eventSimulation, getFramesInRange, totalFramesStore } =
     use(SimulationContext);
   const totalFrames = useStore(totalFramesStore);

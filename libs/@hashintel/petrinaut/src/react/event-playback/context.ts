@@ -1,5 +1,7 @@
 import { createContext } from "react";
 
+import { constantStore } from "../use-store";
+
 import type {
   EventPlaybackSnapshot,
   PlaybackSpeed,
@@ -59,7 +61,7 @@ const STOPPED_SNAPSHOT: EventPlaybackSnapshot = {
 const DEFAULT_CONTEXT_VALUE: EventPlaybackContextValue = {
   coveredTime: 0,
   eventCount: 0,
-  playbackStore: { get: () => STOPPED_SNAPSHOT, subscribe: () => () => {} },
+  playbackStore: constantStore(STOPPED_SNAPSHOT),
   playbackState: "Stopped",
   playbackSpeed: 1,
   playMode: "computeBuffer",

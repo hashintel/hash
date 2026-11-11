@@ -298,10 +298,7 @@ const maxTimeIn = (mode: SimulationMode, maxTime: number | null) =>
 
 const ZERO_FRAMES_STORE = constantStore(0);
 
-const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
-  get: () => "Initializing",
-  subscribe: () => () => {},
-};
+const EMPTY_STATUS_STORE = constantStore<CoreSimulationState>("Initializing");
 
 /**
  * The editor's lifecycle state for a core {@link CoreSimulationState}:

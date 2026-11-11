@@ -17,6 +17,8 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
+import { constantStore } from "../use-store";
+
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
 
 // The frame and marking types of the context's own fields, for its consumers.
@@ -241,7 +243,7 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   adHocScenario: null,
   adHocNetParameters: [],
   maxTime: null,
-  totalFramesStore: { get: () => 0, subscribe: () => () => {} },
+  totalFramesStore: constantStore(0),
   mode: "quick",
   simulatorSelection: { simulatorId: "", parameters: {} },
   runs: 100,

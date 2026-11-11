@@ -13,14 +13,13 @@ import {
   type EventTraceSummary,
   type PlaybackSpeed,
   type PlayMode,
-  type ReadableStore,
   type SimulationState as CoreSimulationState,
 } from "@hashintel/petrinaut-core";
 
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { SimulationContext } from "../simulation/context";
-import { useStore, useStoreSelector } from "../use-store";
+import { constantStore, useStore, useStoreSelector } from "../use-store";
 import {
   EventPlaybackContext,
   type EventPlaybackContextValue,
@@ -36,15 +35,8 @@ const EMPTY_TRACE: EventTraceSummary = {
   latest: null,
 };
 
-const EMPTY_TRACE_STORE: ReadableStore<EventTraceSummary> = {
-  get: () => EMPTY_TRACE,
-  subscribe: () => () => {},
-};
-
-const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
-  get: () => "Initializing",
-  subscribe: () => () => {},
-};
+const EMPTY_TRACE_STORE = constantStore(EMPTY_TRACE);
+const EMPTY_STATUS_STORE = constantStore<CoreSimulationState>("Initializing");
 
 type EventPlaybackProviderProps = React.PropsWithChildren<{
   initialSpeed?: PlaybackSpeed;
