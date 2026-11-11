@@ -1,3 +1,5 @@
+import { createReadableStore } from "../store";
+
 import type { ReadableStore } from "../store";
 import type {
   ComputePlayMode,
@@ -76,36 +78,16 @@ const DEFAULT_SNAPSHOT: EventPlaybackSnapshot = {
   mode: "computeBuffer",
 };
 
-function createSnapshotStore(
-  initial: EventPlaybackSnapshot,
-): ReadableStore<EventPlaybackSnapshot> & {
-  update(updater: (prev: EventPlaybackSnapshot) => EventPlaybackSnapshot): void;
-} {
-  let current = initial;
-  const listeners = new Set<(value: EventPlaybackSnapshot) => void>();
-  return {
-    get: () => current,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    update(updater) {
-      const next = updater(current);
-      if (Object.is(next, current)) {
-        return;
-      }
-      current = next;
-      for (const listener of listeners) {
-        listener(current);
-      }
-    },
-  };
-}
-
 export function createEventPlayback(
   initial?: Partial<EventPlaybackSnapshot>,
 ): EventPlayback {
-  const store = createSnapshotStore({ ...DEFAULT_SNAPSHOT, ...initial });
+  const store = createReadableStore<EventPlaybackSnapshot>({
+    ...DEFAULT_SNAPSHOT,
+    ...initial,
+  });
+  const update = (
+    next: (previous: EventPlaybackSnapshot) => EventPlaybackSnapshot,
+  ) => store.set(next(store.get()));
   let lastTickTime: number | null = null;
   let disposed = false;
 
@@ -117,14 +99,14 @@ export function createEventPlayback(
         return;
       }
       lastTickTime = null;
-      store.update((prev) => ({ ...prev, playState: "Playing" }));
+      update((prev) => ({ ...prev, playState: "Playing" }));
     },
 
     pause() {
       if (disposed) {
         return;
       }
-      store.update((prev) => ({ ...prev, playState: "Paused" }));
+      update((prev) => ({ ...prev, playState: "Paused" }));
     },
 
     stop() {
@@ -132,7 +114,7 @@ export function createEventPlayback(
         return;
       }
       lastTickTime = null;
-      store.update((prev) => ({ ...prev, playState: "Stopped", time: 0 }));
+      update((prev) => ({ ...prev, playState: "Stopped", time: 0 }));
     },
 
     setTime(time, coveredTime) {
@@ -140,21 +122,21 @@ export function createEventPlayback(
         return;
       }
       const clamped = Math.max(0, Math.min(time, coveredTime));
-      store.update((prev) => ({ ...prev, time: clamped }));
+      update((prev) => ({ ...prev, time: clamped }));
     },
 
     setSpeed(speed) {
       if (disposed) {
         return;
       }
-      store.update((prev) => ({ ...prev, speed }));
+      update((prev) => ({ ...prev, speed }));
     },
 
     setMode(mode) {
       if (disposed) {
         return;
       }
-      store.update((prev) => ({ ...prev, mode }));
+      update((prev) => ({ ...prev, mode }));
     },
 
     resetTiming() {
@@ -187,7 +169,7 @@ export function createEventPlayback(
           ? "Paused"
           : snapshot.playState;
 
-      store.update((prev) =>
+      update((prev) =>
         prev.time === time && prev.playState === playState
           ? prev
           : { ...prev, time, playState },
