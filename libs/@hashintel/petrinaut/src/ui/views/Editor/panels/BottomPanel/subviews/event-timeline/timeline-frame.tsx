@@ -4,7 +4,6 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
-import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { TimelineLegend } from "../simulation-timeline/legend";
 import { chartAreaStyle, containerStyle } from "../simulation-timeline/styles";
@@ -62,6 +61,10 @@ export const TimelineFrame: React.FC<{
   /** What an arrow key does while the chart has focus. */
   onStep: (direction: -1 | 1) => void;
   showLegend: boolean;
+  /** Set on the frame's element, for the caller to watch. */
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  /** False while the panel is slid off the viewport: the chart holds still. */
+  onScreen: boolean;
 }> = ({
   view,
   data,
@@ -72,6 +75,8 @@ export const TimelineFrame: React.FC<{
   transitionNames = NO_TRANSITION_NAMES,
   onStep,
   showLegend,
+  containerRef,
+  onScreen,
 }) => {
   const {
     hiddenTimelineSeriesIds: hiddenSeries,
@@ -99,10 +104,6 @@ export const TimelineFrame: React.FC<{
       void play();
     }
   };
-
-  // The chart holds still while the panel is slid off the viewport.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const onScreen = useElementOnScreen(containerRef);
 
   // The series list is derived apart from the columns: it holds still while
   // the run streams, and the chart is rebuilt when it changes.

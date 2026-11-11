@@ -1,8 +1,9 @@
-import { use, useSyncExternalStore } from "react";
+import { use, useRef, useSyncExternalStore } from "react";
 
 import { placeCountMetricId } from "@hashintel/petrinaut-core";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -32,6 +33,8 @@ export const StochasticTimeline: React.FC<{ showLegend?: boolean }> = ({
   const { stochasticRun } = use(SimulationContext);
   const { playbackStore, setTime } = use(EventPlaybackContext);
   const view = useTimelineViewRange();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onScreen = useElementOnScreen(containerRef);
 
   // The experiment publishes a new array whenever samples arrive.
   const metrics = stochasticRun?.experiment.metrics;
@@ -74,6 +77,8 @@ export const StochasticTimeline: React.FC<{ showLegend?: boolean }> = ({
         }
       }}
       showLegend={showLegend}
+      containerRef={containerRef}
+      onScreen={onScreen}
     />
   );
 };

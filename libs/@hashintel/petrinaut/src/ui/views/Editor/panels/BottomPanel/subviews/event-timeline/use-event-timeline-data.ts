@@ -111,11 +111,17 @@ export function useEventTimelineData({
   viewMin,
   viewMax,
   sampleCount,
+  paused,
 }: {
   /** The visible range as two numbers, so a resample follows a change of value, not of object. */
   viewMin: number;
   viewMax: number;
   sampleCount: number;
+  /**
+   * True while nobody can see the timeline: the store then stops following
+   * the trace and the range, and catches up when this turns false.
+   */
+  paused: boolean;
 }): {
   data: EventTimelineData | null;
   firings: readonly FiringMark[];
@@ -184,10 +190,12 @@ export function useEventTimelineData({
             };
 
   const store = useTimelineSeriesStore(eventSimulation, view);
-  useEffect(() => store?.attach(), [store]);
+  useEffect(() => (paused ? undefined : store?.attach()), [store, paused]);
   useEffect(() => {
-    store?.setViewRange(viewMin, viewMax);
-  }, [store, viewMin, viewMax]);
+    if (!paused) {
+      store?.setViewRange(viewMin, viewMax);
+    }
+  }, [store, viewMin, viewMax, paused]);
   const snapshot = useSyncExternalStore(
     store?.subscribe ?? subscribeToNothing,
     store?.getSnapshot ?? getEmptySnapshot,

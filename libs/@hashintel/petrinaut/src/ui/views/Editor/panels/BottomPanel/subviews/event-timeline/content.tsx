@@ -1,6 +1,7 @@
-import { use } from "react";
+import { use, useRef } from "react";
 
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { useElementOnScreen } from "../../../../../../../react/hooks/use-element-on-screen";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -27,11 +28,14 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   const { eventCount, stepToEvent } = use(EventPlaybackContext);
   const timelineView = useRunTimelineView();
   const view = useTimelineViewRange();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onScreen = useElementOnScreen(containerRef);
 
   const { data, firings, references, metricError } = useEventTimelineData({
     viewMin: view.range.min,
     viewMax: view.range.max,
     sampleCount: SAMPLE_COUNT,
+    paused: !onScreen,
   });
   const transitionNames = new Map(
     transitions.map((transition) => [transition.id, transition.name]),
@@ -51,6 +55,8 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
       transitionNames={transitionNames}
       onStep={stepToEvent}
       showLegend={showLegend}
+      containerRef={containerRef}
+      onScreen={onScreen}
     />
   );
 };
