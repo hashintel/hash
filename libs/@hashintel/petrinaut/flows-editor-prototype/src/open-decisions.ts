@@ -145,8 +145,8 @@ export const openDecisions: OpenSwitch[] = [
     flag: "usedin",
     defaultValue: null,
     options: [
-      { label: "r1", value: null },
-      { label: "r2", value: "r2" },
+      { label: "r2", value: null },
+      { label: "r1", value: "r1" },
       { label: "r3", value: "r3" },
       { label: "u1", value: "u1" },
       { label: "u2", value: "u2" },

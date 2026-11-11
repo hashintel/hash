@@ -86,10 +86,10 @@ export const useStructureUsedIn = (): StructureUsedIn | null => {
 export type RestUsedIn = "r1" | "r2" | "r3";
 
 export const useRestUsedIn = (): RestUsedIn | null => {
-  // r1 is the default: the label "Used in" and, opened, S1 + U1a (decided 10 Nov; at rest still open).
-  // `?usedin=t1` (or any other usedin take) leaves it.
+  // r2 is the default (decided 11 Nov ~16:30): "Used in" and the using steps' tiles; opened, S1 + U1a. `?usedin=r1`
+  // keeps the words and count; `?usedin=t1` (or any other usedin take) leaves the rest takes.
   const value = useLocation().query.get("usedin");
-  return value === "r2" || value === "r3" ? value : value === "r1" || value === null ? "r1" : null;
+  return value === "r1" || value === "r3" ? value : value === "r2" || value === null ? "r2" : null;
 };
 
 /** The one "used here" icon: an outbound arrow; ?usedicon=pipe tries the input pipe instead. */
@@ -1796,6 +1796,62 @@ const restNamesStyle = css({
 
 const STACK_CAP = 3;
 
+/**
+ * R2, the at-rest form (decided 11 Nov ~16:30): the words "Used in", then the using steps' hue tiles, overlapped, at
+ * most 3 then +n; hovering lists their full names. Clicking opens the flat rows.
+ */
+const UsedInTiles = ({
+  names,
+  icons,
+  open,
+  onToggle,
+  dataKey,
+  className,
+}: {
+  names: string[];
+  icons: IconName[];
+  open: boolean;
+  onToggle: () => void;
+  dataKey?: string;
+  className?: string;
+}) => {
+  const shown = icons.slice(0, icons.length > STACK_CAP ? STACK_CAP - 1 : STACK_CAP);
+  const more = icons.length - shown.length;
+  return (
+    <Tooltip
+      position="top"
+      content={
+        <span className={restNamesStyle}>
+          {names.map((name, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- two steps can share a name
+            <span key={index}>{name}</span>
+          ))}
+        </span>
+      }
+    >
+      <button
+        type="button"
+        className={className ? `${restLabelStyle} ${className}` : restLabelStyle}
+        aria-expanded={open}
+        aria-label={`Used in ${names.join(", ")}`}
+        data-used-count={dataKey}
+        onClick={onToggle}
+      >
+        Used in
+        <span className={stackStyle}>
+          {shown.map((icon, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- two steps can share an icon
+            <span key={index} data-stack-tile style={treeTileColor(icon)}>
+              <Icon name={icon} size="sm" />
+            </span>
+          ))}
+          {more > 0 ? <span data-stack-more>{`+${String(more)}`}</span> : null}
+        </span>
+      </button>
+    </Tooltip>
+  );
+};
+
 const RestBlock = ({
   take,
   iconOf,
@@ -1850,8 +1906,6 @@ const RestBlock = ({
   const count = uses.length;
   const toggle = () => setOpen((current) => !current);
   const words = `Used in ${String(count)}`;
-  const shownTiles = uses.slice(0, uses.length > STACK_CAP ? STACK_CAP - 1 : STACK_CAP);
-  const moreTiles = uses.length - shownTiles.length;
   const atRest =
     count === 0 ? null : take === "r1" ? (
       <button
@@ -1864,35 +1918,13 @@ const RestBlock = ({
         {words}
       </button>
     ) : take === "r2" ? (
-      <Tooltip
-        position="top"
-        content={
-          <span className={restNamesStyle}>
-            {uses.map((use) => (
-              <span key={use.stepId}>{nameOf(use.stepId)}</span>
-            ))}
-          </span>
-        }
-      >
-        <button
-          type="button"
-          className={restLabelStyle}
-          aria-expanded={open}
-          aria-label={`Used in ${uses.map((use) => nameOf(use.stepId)).join(", ")}`}
-          data-used-count={`${stepId}.${outputName}`}
-          onClick={toggle}
-        >
-          Used in
-          <span className={stackStyle}>
-            {shownTiles.map((use) => (
-              <span key={use.stepId} data-stack-tile style={treeTileColor(iconOf(use.stepId))}>
-                <Icon name={iconOf(use.stepId)} size="sm" />
-              </span>
-            ))}
-            {moreTiles > 0 ? <span data-stack-more>{`+${String(moreTiles)}`}</span> : null}
-          </span>
-        </button>
-      </Tooltip>
+      <UsedInTiles
+        names={uses.map((use) => nameOf(use.stepId))}
+        icons={uses.map((use) => iconOf(use.stepId))}
+        open={open}
+        onToggle={toggle}
+        dataKey={`${stepId}.${outputName}`}
+      />
     ) : null;
   const nameBlock = (
     <>
@@ -2116,15 +2148,19 @@ export const UsedInBlock = ({
 
 
 /**
- * "Used in N" for a value that is not an output row (a flow input, the For each's collected list): the same words as
- * the output rows' r1 label, opening the same flat `Step › Input` rows (11 Nov convergence A1).
+ * "Used in" for a value that is not an output row (a flow input, the For each's collected list): the same at-rest form
+ * as the output rows (R2 tiles by default, r1 words with `?usedin=r1`), opening the same flat `Step › Input` rows
+ * (11 Nov convergence A1, A24).
  */
+const restPlaceStyle = css({ alignSelf: "flex-start", marginLeft: "[-6px]" });
+
 export const UsedInList = ({ uses, iconOf }: { uses: Use[]; iconOf: (id: string) => IconName }) => {
   const { document, setUi } = useEditor();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState<string | null>(null);
   const usedProp = useUsedProp();
   const usedRows = useUsedRows();
+  const restTake = useRestUsedIn();
   if (uses.length === 0) {
     return null;
   }
@@ -2135,14 +2171,25 @@ export const UsedInList = ({ uses, iconOf }: { uses: Use[]; iconOf: (id: string)
   const hover = (id: string | null) => setUi((current) => ({ ...current, hoverSourceId: id }));
   return (
     <div className={css({ display: "flex", flexDirection: "column", minWidth: "[0]" })} data-used-list>
-      <button
-        type="button"
-        className={`${restLabelStyle} ${css({ alignSelf: "flex-start", marginLeft: "[-6px]" })}`}
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {`Used in ${String(uses.length)}`}
-      </button>
+      {restTake === "r1" ? (
+        <button
+          type="button"
+          className={`${restLabelStyle} ${restPlaceStyle}`}
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {`Used in ${String(uses.length)}`}
+        </button>
+      ) : (
+        <span className={restPlaceStyle}>
+          <UsedInTiles
+            names={uses.map((use) => nameOf(use.stepId))}
+            icons={uses.map((use) => iconOf(use.stepId))}
+            open={open}
+            onToggle={() => setOpen((current) => !current)}
+          />
+        </span>
+      )}
       {open ? (
         <div
           className={usedRowsStyle}
