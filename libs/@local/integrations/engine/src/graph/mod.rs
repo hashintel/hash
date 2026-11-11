@@ -5,6 +5,7 @@
 //! later run addresses the same entities, and operations carry the Graph's own property and
 //! provenance types, so they convert to Graph requests without reshaping.
 
+mod plan;
 mod property;
 #[cfg(test)]
 mod tests;
@@ -19,8 +20,15 @@ use type_system::{
     provenance::{OriginProvenance, OriginType, SourceProvenance, SourceType},
 };
 
-pub use self::property::{
-    ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow, UnsupportedValue,
+pub use self::{
+    plan::{
+        DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlanIssue, PlannedWrite, Planner,
+        UnencodableRequest,
+    },
+    property::{
+        ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow,
+        UnsupportedValue,
+    },
 };
 use crate::derive_entity_id;
 
@@ -139,7 +147,7 @@ impl GraphOperation {
 ///
 /// Entities exist before links between them are written, and links are archived before the
 /// entities they connect, so sorting operations by kind never references a missing entity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display)]
 pub enum OperationKind {
     UpsertEntity,
     UpsertLink,
