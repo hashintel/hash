@@ -93,7 +93,14 @@ export const AllowNewValueOptionsDoc = (_props: AllowNewValueOptions): null =>
 
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value" | "clearable"
+  | "autocomplete"
+  | "onChange"
+  | "value"
+  | "clearable"
+  | "maxLength"
+  | "minLength"
+  | "pattern"
+  | "spellcheck"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;
@@ -408,7 +415,6 @@ export const Combobox = <TValue extends string>({
     showEditIcon: _showEditIcon,
     connectToLeftInput,
     connectToRightInput,
-    spellcheck,
     inputRef,
     ...forwardedInputAttrs
   } = inputProps;
@@ -1271,7 +1277,6 @@ export const Combobox = <TValue extends string>({
           "data-testid": testId,
           ...resolveAutoFocusProps(autoFocus),
           ...forwardedInputAttrs,
-          spellCheck: spellcheck,
           ref: inputRef,
         }
       : {}),
@@ -1425,7 +1430,7 @@ export const Combobox = <TValue extends string>({
         <ArkCombobox.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Combobox"
-            className={comboboxDropdownRecipe({ variant })}
+            className={comboboxDropdownRecipe({ variant, multi: !!multiple })}
             items={displayedDropdown.listItems}
             selected={selectedIds}
             size={size}

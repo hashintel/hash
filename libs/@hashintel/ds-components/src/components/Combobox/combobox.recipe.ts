@@ -46,7 +46,21 @@ export const comboboxDropdownRecipe = cva({
         "--combobox-list-anchor-inset": "spacing.2",
       },
     },
+    // The multiple combobox renders its own frame, whose subtle overlay hugs
+    // the anchor rect (±1px) instead of extending by a padding-x.
+    multi: {
+      true: {},
+    },
   },
+  compoundVariants: [
+    {
+      variant: "subtle",
+      multi: true,
+      css: {
+        "--combobox-list-anchor-inset": "[1px]",
+      },
+    },
+  ],
   defaultVariants: {
     variant: "default",
   },
@@ -111,14 +125,30 @@ export const comboboxMultiRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
+      // While focused, the clear button joins the layout so chips and the
+      // typed draft cannot slide beneath it — the margin reproduces its
+      // overlay position (offset from the frame edge, minus the content
+      // padding it now sits inside), so the switch itself is invisible. The
+      // gradient backdrop only exists to fade content scrolling under the
+      // overlay; inline, it would wash the chip beside it.
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
+        position: "relative",
+        right: "[auto]",
+        flexShrink: "0",
+        marginRight:
+          "[calc(var(--clear-right-offset, var(--spacing-2)) - var(--content-pad-x, 0px))]",
+        _before: {
+          display: "none",
+        },
       },
-      "& input[role='combobox']": {
+      // The row's inline input — the combobox and tags-input machines both
+      // stamp data-part="input" on the shared element.
+      "& input[data-part='input']": {
         paddingY: "var(--form-padding-y)",
       },
-      "& input[role='combobox']:not(:first-child)": {
+      "& input[data-part='input']:not(:first-child)": {
         marginLeft:
           "[calc(var(--before-input-inset, var(--spacing-1)) - var(--overflow-row-gap, var(--spacing-1)) + var(--caret-gap-boost, 0px))]",
       },
@@ -231,17 +261,30 @@ export const comboboxMultiRecipe = sva({
         frame: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          // Unlike BaseInput's subtle overlay (±1 padding-x), this one hugs
+          // the frame on every side: the chip row carries its own horizontal
+          // inset (--before-input-inset, tuned per size to equal the vertical
+          // chip gap), so extending further would leave the box visibly wider
+          // than it is tall.
           _before: {
             content: '""',
             position: "absolute",
-            insetY: "[-1px]",
-            insetX: "[calc(-1 * var(--base-input-padding-x))]",
+            inset: "[-1px]",
             borderRadius: "var(--base-input-border-radius)",
             border: "1px solid transparent",
             pointerEvents: "none",
             background: "[var(--base-input-background-color)]",
             transition: "[background 0.15s ease, border 0.15s ease]",
           },
+          // BaseInput's subtle slots pull adornments out into its extended
+          // overlay; this overlay hugs the frame, so they stay put
+          // (!important: the pull has equal specificity, and plain overrides
+          // would fall back to extraction order).
+          "& > [data-part='adornment-text'], & > [data-part='adornment-button']":
+            {
+              left: "[0px !important]",
+              right: "[0px !important]",
+            },
           "&:not(.layer-style_disabled):hover": {
             _before: {
               borderColor: "var(--base-input-border-hover-color)",
@@ -253,10 +296,6 @@ export const comboboxMultiRecipe = sva({
               borderColor: "var(--base-input-border-color)",
             },
           },
-        },
-        clear: {
-          "--clear-right-offset":
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
         },
       },
     },
@@ -341,6 +380,17 @@ export const comboboxMultiRecipe = sva({
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
         },
+        // Chips (and custom-rendered selections) keep their own colors, so
+        // the frame's disabled treatment alone leaves them looking active —
+        // lighten and desaturate them to read as disabled.
+        row: {
+          opacity: "[0.6]",
+          filter: "[grayscale(1)]",
+        },
+        customSelection: {
+          opacity: "[0.6]",
+          filter: "[grayscale(1)]",
+        },
       },
     },
     width: {
@@ -382,11 +432,13 @@ export const comboboxMultiRecipe = sva({
       chips: {
         content: {
           paddingX: "[var(--before-input-inset, var(--spacing-1))]",
+          "--content-pad-x": "[var(--before-input-inset, var(--spacing-1))]",
         },
       },
       text: {
         content: {
           paddingX: "var(--base-input-padding-x)",
+          "--content-pad-x": "[var(--base-input-padding-x)]",
         },
       },
     },
@@ -453,16 +505,6 @@ export const comboboxMultiRecipe = sva({
           _before: {
             borderColor: "var(--base-input-border-color)",
           },
-        },
-      },
-    },
-    {
-      variant: "subtle",
-      loading: true,
-      css: {
-        clear: {
-          "--clear-right-offset":
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
         },
       },
     },

@@ -61,13 +61,35 @@ export const baseInputRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
+      // The clear button's inset from the field's end — shared by the
+      // button's overlay `right`, its focused visual shift, and the focused
+      // input's trimmed trailing padding. `--clear-gap` is the loading
+      // variant's hook (the spinner tightens the gap).
+      "--clear-offset": "[var(--clear-gap, var(--spacing-2))]",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
+      // While focused, the clear button joins the layout so the text cannot
+      // slide beneath it. `position: relative` reinterprets the overlay
+      // `right` inset as a visual shift from the flush layout position, so
+      // the button renders at its exact overlay spot without reserving the
+      // trailing gap (a margin there would widen intrinsically-sized
+      // fields); the input's own padding-x covers the shifted-over strip. (A
+      // hidden-but-reserved button keeps the layout stable while typing
+      // empties/fills the input.)
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
+        position: "relative",
+        flexShrink: "0",
+      },
+      // The input's trailing padding normally exceeds the clear offset;
+      // while the button is inline, trim it to the offset so the text area
+      // ends exactly at the button's visible edge — the same amount of text
+      // shows as in the overlay state.
+      "&:focus-within:has([data-part='clear']) input": {
+        paddingRight: "[var(--clear-offset)]",
       },
       "&:focus-within [data-part='edit']": {
         display: "none",
@@ -210,7 +232,7 @@ export const baseInputRecipe = sva({
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "2",
+      right: "[var(--clear-offset, var(--spacing-2))]",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -329,6 +351,8 @@ export const baseInputRecipe = sva({
         root: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          "--clear-offset":
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--clear-gap, var(--spacing-2)))]",
           _before: {
             content: '""',
             position: "absolute",
@@ -373,10 +397,6 @@ export const baseInputRecipe = sva({
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
         },
         editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-        },
-        clear: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
         },
@@ -478,6 +498,9 @@ export const baseInputRecipe = sva({
         root: {
           width: "[fit-content]",
           minWidth: "[unset]",
+          // The clear is always inline here, flush after the grid-sized
+          // input — keep the input's padding as the gap in every state.
+          "--clear-offset": "[var(--base-input-padding-x)]",
         },
         readonly: { width: "[fit-content]" },
         inputWrapper: {
@@ -511,8 +534,8 @@ export const baseInputRecipe = sva({
     },
     loading: {
       true: {
-        clear: {
-          right: "1.5",
+        root: {
+          "--clear-gap": "spacing.1.5",
         },
         editIcon: {
           right: "1.5",
@@ -532,6 +555,11 @@ export const baseInputRecipe = sva({
     hasIcons: { true: {} },
     hasBrowserControls: {
       true: {
+        root: {
+          // Matches this variant's own inline placement (`right: 1` and the
+          // hasIcons 4px input padding), so focus changes nothing.
+          "--clear-offset": "spacing.1",
+        },
         clear: {
           position: "relative",
           right: "1",

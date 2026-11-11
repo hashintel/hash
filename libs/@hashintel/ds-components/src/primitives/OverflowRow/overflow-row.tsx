@@ -321,8 +321,30 @@ const OverflowRowBase = ({
     );
   }, []);
 
+  // Publishes how much of the row the content preceding the input occupies —
+  // the input's growth ceiling shrinks 1:1 with it, from the full row down to
+  // min(80%, 300px) (see the recipe's input maxWidth). The input's layout
+  // offset within the row captures the items, separators, gaps and the
+  // input's own margin in one read; it is a layout position, so the row's
+  // scroll offset never skews it.
+  const updateInputCap = useCallback(() => {
+    const root = rootRef.current;
+    const input = inputRef.current;
+    if (!root) {
+      return;
+    }
+    root.style.setProperty(
+      "--overflow-row-content-width",
+      `${input ? Math.max(0, Math.ceil(input.offsetLeft)) : 0}px`,
+    );
+  }, []);
+
   useIsomorphicLayoutEffect(() => {
-    const update = overflow === "scroll" ? updateClip : measure;
+    const modeUpdate = overflow === "scroll" ? updateClip : measure;
+    const update = () => {
+      modeUpdate();
+      updateInputCap();
+    };
     update();
 
     // Late web-font loads reflow the text after the first update, so a
@@ -341,8 +363,18 @@ const OverflowRowBase = ({
     if (measureRef.current) {
       observer.observe(measureRef.current);
     }
+    // A scroll row's cells can resize without the row or the item list
+    // changing (custom item content loading in) — the input cap tracks them.
+    // The input itself stays unobserved: its size depends on the cap.
+    if (scrollerRef.current) {
+      for (const cell of scrollerRef.current.children) {
+        if (cell !== inputRef.current) {
+          observer.observe(cell);
+        }
+      }
+    }
     return () => observer.disconnect();
-  }, [overflow, measure, updateClip, namesKey, hasSeparator]);
+  }, [overflow, measure, updateClip, updateInputCap, namesKey, hasSeparator]);
 
   const rowSeparator = hasSeparator ? (
     <span className={classes.separator}>{separator}</span>

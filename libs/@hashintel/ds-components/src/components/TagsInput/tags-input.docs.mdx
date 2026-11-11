@@ -1,0 +1,525 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Form } from "../Form/form";
+import { PrefixOrSuffixDoc } from "../TextInput/base-input";
+import { TagsInput } from "./tags-input";
+
+<Meta title="Docs/TagsInput" />
+
+export const meta = {
+  title: "TagsInput",
+  description:
+    "A field for entering a list of free-form values, each shown as a removable chip.",
+  alternativeNames: ["TagInput", "ChipInput", "TokenInput", "MultiValueInput"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/TagsInput/tags-input.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-tagsinput--default",
+  },
+  referenceLinks: {
+    ark: "https://ark-ui.com/docs/components/tags-input",
+  },
+  related: ["Combobox", "TextInput", "Chip", "Form"],
+};
+
+# TagsInput
+
+A field for entering a list of free-form values, each shown as a removable
+chip.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      placeholder="Add a keyword…"
+      value={[]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      value={["ai", "simulation", "graph"]}
+      onChange={noop}
+      clearable
+    />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { TagsInput } from "@hashintel/ds-components";
+
+export const KeywordsInput = () => {
+  const [keywords, setKeywords] = useState(["simulation"]);
+
+  return (
+    <TagsInput
+      name="keywords"
+      placeholder="Add a keyword…"
+      value={keywords}
+      onChange={setKeywords}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use TagsInput for open-ended lists the user types in themselves: keywords, aliases, email recipients, domains.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't collect values from a known set as free text — use a multiple Combobox, which offers and filters the options.",
+    "Don't use it for a single value — use TextInput.",
+    "Don't use it for a handful of fixed choices — use CheckboxGroup.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+TagsInput is always controlled — `value` and `onChange` carry the array of
+committed values. Enter commits the typed text as a new value; empty or
+already-present text commits nothing, and either way the draft clears.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      placeholder="Add a keyword…"
+      value={["ai", "simulation"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Allowing duplicates
+
+A draft matching an existing value normally commits nothing. `allowDuplicates`
+accepts it as another occurrence — each occurrence gets its own chip, and
+removing one leaves the others in place.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      allowDuplicates
+      value={["ai", "ai", "simulation"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+`disabled` greys the field, ignores input, and hides the chips' remove
+buttons. Prefer `readonly` when the user only needs to see the values.
+
+<Stage>
+  <TagsInput
+    width="md"
+    disabled
+    value={["ai", "simulation"]}
+    onChange={noop}
+  />
+  <TagsInput
+    width="md"
+    disabled
+    placeholder="Add a keyword…"
+    value={[]}
+    onChange={noop}
+  />
+</Stage>
+
+### Invalid
+
+`invalid` turns the border red and sets `aria-invalid`. Pair it with a
+visible message — Form.Field's `errors` renders and announces one.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      invalid
+      value={["elena@hash"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Loading
+
+Set `loading` while a lookup or save runs — a spinner appears at the end of
+the field. The input stays editable.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput width="md" loading value={["hash.ai"]} onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Read-only
+
+`readonly` strips the field chrome entirely and renders the values as plain
+chips — use it to display stored lists alongside editable ones. Unlike
+`disabled`, the values read as content, not as a greyed-out control.
+
+<Stage>
+  <TagsInput width="md" value={["ai", "simulation"]} onChange={noop} />
+  <TagsInput
+    width="md"
+    readonly
+    value={["ai", "simulation"]}
+    onChange={noop}
+  />
+</Stage>
+
+### Clearable
+
+`clearable` adds a clear button that appears when the field is hovered or
+focused and there is something to clear. The default clear empties the values
+and the typed draft — `onChange` fires with `[]` — and keeps focus in the
+field.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      clearable
+      value={["ai", "simulation"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Chip overflow
+
+`overflow` decides how chips behave when they outgrow the field: `scroll`
+(default) scrolls them horizontally, `truncate` collapses the rest into a
+"+X" badge while unfocused, and `summary` shows a plain-text list of the
+values, falling back to "X selected" once they no longer fit. Focusing a
+`truncate` or `summary` field expands it back to chips for editing.
+
+<Stage>
+  <div style={{ width: 280 }}>
+    <DemoState data-harness>
+      <TagsInput
+        overflow="scroll"
+        value={["ai", "simulation", "graph", "ontology", "agents"]}
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 280 }}>
+    <DemoState data-harness>
+      <TagsInput
+        overflow="truncate"
+        value={["ai", "simulation", "graph", "ontology", "agents"]}
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ width: 280 }}>
+    <DemoState data-harness>
+      <TagsInput
+        overflow="summary"
+        value={["ai", "simulation", "graph", "ontology", "agents"]}
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### Variants
+
+`default` draws a bordered field; `subtle` is borderless and reads as inline
+content until hovered or focused. Use `subtle` for click-to-edit lists such
+as tag rows on a record page.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      variant="default"
+      value={["Default"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      variant="subtle"
+      value={["Subtle"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `sm` and below in dense chrome such as toolbars and
+table rows, and `lg` for prominent page-level fields; the chips scale with
+the field. Give Form.Field the same `size` so the label scales with the
+input.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput size="xxs" width="sm" value={["xxs"]} onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput size="xs" width="sm" value={["xs"]} onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput size="sm" width="sm" value={["sm"]} onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput size="md" width="sm" value={["md"]} onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput size="lg" width="sm" value={["lg"]} onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Prefix and suffix
+
+An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node
+(`{ content }`); adding `onClick` to the first two renders it as a button.
+Set the adornment's `variant: "subtle"` to drop its background and divider.
+
+<Stage>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      prefix={{ iconName: "at" }}
+      placeholder="Add a recipient…"
+      value={["amara@hash.ai"]}
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <TagsInput
+      width="md"
+      prefix={{ text: "To:" }}
+      value={["amara@hash.ai", "dev@hash.ai"]}
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Custom rendering
+
+`renderSelectedItem` replaces each value's default chip entirely with your own
+node — no chip chrome, and no per-value remove button, so removal happens
+through the keyboard (Backspace, or the arrow keys plus Delete) and
+`clearable`. The value itself stays the identity that duplicates are checked
+against and that `onChange` carries, so keep the rendered output recognizably
+the value.
+
+export const renderSelectedItemCode = `import { useState } from "react";
+
+import { TagsInput } from "@hashintel/ds-components";
+
+export const KeywordsInput = () => {
+  const [keywords, setKeywords] = useState(["ai", "simulation"]);
+
+  return (
+    <TagsInput
+      width="md"
+      value={keywords}
+      onChange={setKeywords}
+      renderSelectedItem={(value) => <>#{value}</>}
+    />
+  );
+};`;
+
+export const RenderSelectedItemDemo = () => {
+  const [keywords, setKeywords] = useState(["ai", "simulation"]);
+  return (
+    <TagsInput
+      width="md"
+      value={keywords}
+      onChange={setKeywords}
+      renderSelectedItem={(value) => <>#{value}</>}
+    />
+  );
+};
+
+<Stage code={renderSelectedItemCode}>
+  <RenderSelectedItemDemo />
+</Stage>
+
+`renderSelectedAll` replaces the whole chip row instead. The typed draft and
+its input stay; Backspace on an empty draft still removes the last value,
+directly, since there are no chips to highlight.
+
+export const renderSelectedAllCode = `import { useState } from "react";
+
+import { TagsInput } from "@hashintel/ds-components";
+
+export const RecipientsInput = () => {
+  const [recipients, setRecipients] = useState([
+    "amara@hash.ai",
+    "dev@hash.ai",
+  ]);
+
+  return (
+    <TagsInput
+      width="md"
+      value={recipients}
+      onChange={setRecipients}
+      renderSelectedAll={(values) => <>{values.length} recipients</>}
+    />
+  );
+};`;
+
+export const RenderSelectedAllDemo = () => {
+  const [recipients, setRecipients] = useState([
+    "amara@hash.ai",
+    "dev@hash.ai",
+  ]);
+  return (
+    <TagsInput
+      width="md"
+      value={recipients}
+      onChange={setRecipients}
+      renderSelectedAll={(values) => <>{values.length} recipients</>}
+    />
+  );
+};
+
+<Stage code={renderSelectedAllCode}>
+  <RenderSelectedAllDemo />
+</Stage>
+
+### In a form field
+
+Form.Field supplies the label, description and errors, and links the label to
+the input automatically — see the Form docs for layouts, rows and sections.
+`name` mirrors the values into a hidden multi-`select` for native form
+submission, and `required` is satisfied once any value is present.
+
+<Stage>
+  <Form.Field
+    label="Keywords"
+    description="Used when matching this type in search."
+  >
+    <DemoState data-harness>
+      <TagsInput
+        name="keywords"
+        width="md"
+        value={["ai", "simulation"]}
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+## Behavior
+
+- TagsInput looks and behaves like a multiple Combobox without the dropdown:
+  there are no options, so every committed draft simply becomes a new value.
+- The typed draft only becomes a value through Enter — leaving the field or
+  pressing Escape abandons it.
+- Committing empty text adds nothing, and already-present text only commits
+  with `allowDuplicates`; the draft clears either way.
+- Browser autofill and password managers are always suppressed.
+
+## Content
+
+- Keep values short — a word or two. The row scrolls horizontally once chips
+  no longer fit, so long values crowd out their neighbours.
+- Placeholders should name the action — "Add a keyword…" — and avoid carrying
+  information users must remember: the placeholder only shows while the list
+  is empty.
+
+## Accessibility
+
+TagsInput implements its chip row and inline input with the
+[Ark UI tags-input machine](https://ark-ui.com/docs/components/tags-input).
+
+### What TagsInput provides
+
+- `name` and `required` are carried by a hidden multi-`select` mirroring the
+  values, so validity tracks the committed list rather than the typed draft.
+- Labelled controls for pointer interactions: each chip's remove button is
+  named "Remove [value]" and the clear button "Clear input".
+- Inside a Form.Field the input adopts the field's generated id, so the label
+  is associated automatically; `aria-*` props pass through to the `<input>`.
+
+### What you must do
+
+- Always name the input: wrap it in a Form.Field, or pass `aria-label` where
+  a visible label genuinely can't fit — a placeholder is not a label.
+- Keep `renderSelectedItem` output textual — the value must stand on its own
+  for screen-reader announcements to make sense, and custom-rendered values
+  have no remove button, leaving removal to the keyboard and `clearable`.
+- Don't signal errors with `invalid` color alone — pair it with a message,
+  e.g. Form.Field's `errors`.
+
+### Keyboard
+
+| Key                    | Action                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| Enter                  | Commits the typed draft as a new value; empty drafts — and already-present ones without `allowDuplicates` — commit nothing. |
+| Escape                 | Abandons the typed draft.                                                                    |
+| Backspace              | With an empty draft, highlights the last value, then removes it.                             |
+| ArrowLeft / ArrowRight | Move the highlight between values; Backspace or Delete removes the highlighted one.          |
+| Cmd/Ctrl + Enter       | Passed through to `onKeyDown` untouched, for form-level shortcuts such as submitting.        |
+
+Enter never submits the surrounding form — it always belongs to the draft.
+
+## API reference
+
+### TagsInput
+
+<PropsTable
+  of={TagsInput}
+  defaults={{
+    variant: '"default"',
+    align: '"left"',
+    width: '"fullWidth"',
+    size: '"md"',
+    overflow: '"scroll"',
+    allowDuplicates: "false",
+  }}
+/>
+
+### PrefixOrSuffix
+
+The object shape `prefix` and `suffix` take.
+
+<PropsTable of={PrefixOrSuffixDoc} defaults={{ variant: '"default"' }} />

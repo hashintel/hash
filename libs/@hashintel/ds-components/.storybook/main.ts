@@ -43,6 +43,22 @@ const config: StorybookConfig = {
       setDisplayName: false,
     },
   },
+  viteFinal: (viteConfig) => {
+    viteConfig.plugins ??= [];
+    viteConfig.plugins.push({
+      // Dev-only endpoint that accepts the request and never responds, so the
+      // Avatar "Loading" demo stays pending without a console network error.
+      // Static builds have no middleware: there it 404s and the avatar falls
+      // back to its placeholder.
+      name: "hash:pending-image",
+      configureServer: (server) => {
+        server.middlewares.use("/__pending-image__.png", (_req, res) => {
+          res.writeHead(200, { "Content-Type": "image/png" });
+        });
+      },
+    });
+    return viteConfig;
+  },
 };
 
 export default config;
