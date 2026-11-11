@@ -25,7 +25,7 @@ import type { SortDirection, Sorter } from "@hashintel/ds-components";
 const tabs: { id: RunTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "running", label: "Running" },
-  { id: "completed", label: "Completed" },
+  { id: "completed", label: "Done" },
   { id: "failed", label: "Failed" },
 ];
 

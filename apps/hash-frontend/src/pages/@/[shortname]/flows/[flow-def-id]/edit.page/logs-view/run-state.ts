@@ -58,7 +58,7 @@ export const runStates: Record<
   unknown: { label: "Unknown", tab: null },
   needsReview: { label: "Needs review", tab: "running" },
   running: { label: "Running", tab: "running" },
-  completed: { label: "Completed", tab: "completed" },
+  completed: { label: "Done", tab: "completed" },
 };
 
 export const runStatesByUrgency = Object.keys(runStates) as RunState[];

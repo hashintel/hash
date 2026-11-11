@@ -47,8 +47,8 @@ const row = (idEnd: string, overrides: Partial<RunSummary> = {}): RunRow =>
 const idsOf = (rows: RunRow[]) => rows.map(({ shortId }) => shortId);
 
 describe("toRunRow", () => {
-  it("names a run by the end of its uuid", () => {
-    expect(row("2f3a4b").shortId).toBe("2f3a4b");
+  it("names a run by the end of its uuid, in upper case", () => {
+    expect(row("2f3a4b").shortId).toBe("2F3A4B");
   });
 
   it("shows a running run waiting on a person as needing review", () => {

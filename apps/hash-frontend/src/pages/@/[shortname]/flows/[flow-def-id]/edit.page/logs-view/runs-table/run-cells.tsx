@@ -1,6 +1,6 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Button, Icon, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../../../components/hooks/use-snackbar";
 import { Link } from "../../../../../../../../shared/ui/link";
@@ -14,13 +14,14 @@ const idCell = css({ display: "flex", alignItems: "center", gap: "1" });
 const shortId = css({
   /* The `mono` token starts with Geist Mono's variable, which the frontend doesn't define, so it falls back to Inter. */
   fontFamily: "[ui-monospace, SFMono-Regular, monospace]",
+  fontSize: "[13px]",
   color: "fg.heading",
   _hover: { textDecoration: "underline" },
 });
-/* Shown while the row is hovered, or the button has focus. */
+/* Shown while the ID's cell is hovered, or the button has focus. */
 const copyButton = css({
   opacity: "0",
-  "tr:hover &": { opacity: "1" },
+  _groupHover: { opacity: "1" },
   _focusVisible: { opacity: "1" },
 });
 
@@ -47,7 +48,7 @@ export const IdCell = ({
   };
 
   return (
-    <div className={idCell}>
+    <div className={cx("group", idCell)}>
       {href ? (
         <Link
           href={href}
