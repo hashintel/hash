@@ -17,10 +17,6 @@ export type Sorter<SortKey> = {
   sortKey: SortKey;
   /** Which sort directions the sorter offers. Defaults to "both" */
   directionsAvailable?: SortDirectionsAvailable;
-  /**
-   * The direction applied when the sorter is picked while another is active, e.g. "DESCENDING" for a date so the
-   * newest comes first. Defaults to the first direction available, which is "ASCENDING" when both are
-   */
   defaultDirection?: SortDirection;
   /** Glyph family for the direction icons. Defaults to "alphabetical" */
   sortIcon?: SortIcon;
