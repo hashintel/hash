@@ -50,7 +50,7 @@ The **Simulator** picker chooses what computes the next run. The fields to its r
 | Simulator             | Parameters                    | Modes                        | What it does                                                                                                                                                               |
 | --------------------- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **JS fixed step**     | **Time step**, in seconds     | Quick simulation, Stochastic | Advances every run in steps of one size, as described in [How a run is computed](#how-a-run-is-computed). The default in both modes.                                       |
-| **JS adaptive**       | **Max error**                 | Quick simulation             | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
+| **JS adaptive**       | **Max error**                 | Quick simulation, Stochastic | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
 | **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
 A simulator that cannot compute what the mode shows is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
@@ -87,7 +87,7 @@ With **Mode** set to **Stochastic**, Simulation Settings gains two fields after 
 - **Runs** -- how many independent runs are computed. Default: `100`. More runs give a steadier mean and a truer spread, and take longer.
 - **End time** -- the simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs one; switching to Stochastic sets `60` seconds when none was set.
 
-Press **Play**. The runs are computed in background workers, or on the graphics card with the WebGPU simulator, and the canvas shows what they add up to:
+Press **Play**. The runs are computed in background workers, or on the graphics card with the WebGPU simulator, and the canvas shows what they add up to. A fixed-step simulator is sampled at its time step; the adaptive one, which has none, every tenth of a simulated second:
 
 - **Places** -- each place's badge reads the mean token count across runs at the viewed time, followed by its spread (one standard deviation) when the runs differ, such as `12.9 ±2.9`.
 - **Transitions** -- nothing fires on the canvas: there is no single run to show.
