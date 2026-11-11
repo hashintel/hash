@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "@effect/vitest";
 import { DocLinkTag } from "@microsoft/tsdoc";
 import { Array, Chunk, Effect, HashMap, Option, Result, pipe } from "effect";
@@ -191,6 +193,67 @@ describe("parser", () => {
           },
         },
       });
+    }),
+  );
+
+  it.effect.each([
+    [
+      'export { default as Named } from "./anonymous.js";',
+      "export default class {}",
+      "Named",
+      false,
+    ],
+    [
+      'export { default, default as Named } from "./anonymous.js";',
+      "export default class {}",
+      "Named",
+      false,
+    ],
+    [
+      'import Named from "./anonymous.js";\nexport { Named };',
+      "export default function (): void;",
+      "Named",
+      false,
+    ],
+    [
+      'export type { default } from "./anonymous.js";',
+      "export default class {}",
+      "default",
+      true,
+    ],
+  ] as const)(
+    "anonymous_alias_%#",
+    Effect.fnUntraced(function* ([source, anonymous, name, typeOnlyExport]) {
+      expect.hasAssertions();
+      const result = yield* parse({
+        source,
+        files: { "anonymous.d.ts": anonymous },
+      });
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          reason: {
+            _tag: "AnonymousAlias",
+            file: fileURLToPath(
+              new URL("fixtures/anonymous.d.ts", import.meta.url),
+            ),
+            name,
+            typeOnlyExport,
+          },
+        },
+      });
+    }),
+  );
+
+  it.effect(
+    "anonymous_default",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source: 'export { default } from "./anonymous.js";',
+        files: { "anonymous.d.ts": "export default class {}" },
+      });
+      expect(exported(ast, "default").typeOnlyExport).toBe(false);
     }),
   );
 

@@ -105,8 +105,14 @@ const modifiers = (
   return kept;
 };
 
+/** A public declaration: its catalogue entry, and every name the namespace holding its canonical name exports it under. */
+export interface Exported {
+  readonly entry: Catalogue.Entry;
+  readonly names: readonly Catalogue.ExportName[];
+}
+
 interface Options {
-  readonly exported: Option.Option<Catalogue.Entry>;
+  readonly exported: Option.Option<Exported>;
 }
 
 /** A public name as an export specifier spells it: an identifier where it is one, and otherwise a string. */
@@ -131,71 +137,83 @@ interface Spelling {
   readonly exported: boolean;
   /** The declaration keeps `default`, because it is the module's default export under no name of its own. */
   readonly defaultExport: boolean;
-  /** The statement that exports the declaration, where the declaration cannot: a public name other than its own, or a value exported type-only. */
+  /** The statement that exports the declaration under the names it cannot carry: every public name other than its own, and its own where a value's export is type-only. */
   readonly statement: Option.Option<Syntax.ExportDeclaration>;
 }
 
+/** The statement that exports `own` under `names`. A restriction every name shares goes on the statement, and otherwise on each name that has it. */
+const statementOf = (
+  own: Syntax.Identifier,
+  names: Array.NonEmptyReadonlyArray<Catalogue.ExportName>,
+): Syntax.ExportDeclaration => {
+  const typeOnly = Array.every(names, ({ typeOnlyExport }) => typeOnlyExport);
+
+  return Factory.createExportDeclaration(
+    undefined,
+    typeOnly,
+    Factory.createNamedExports(
+      Array.map(names, ({ name, typeOnlyExport }) => {
+        const isTypeOnly = !typeOnly && typeOnlyExport;
+
+        // The specifier names the declaration again only where the public name differs from it.
+        if (name === own.text) {
+          return Factory.createExportSpecifier(
+            isTypeOnly,
+            undefined,
+            exportName(name),
+          );
+        }
+
+        return Factory.createExportSpecifier(
+          isTypeOnly,
+          Factory.createIdentifier(own.text),
+          exportName(name),
+        );
+      }),
+    ),
+  );
+};
+
 const spellingOf = (
   source: Parts.Source["node"],
-  exported: Option.Option<Catalogue.Entry>,
-): Spelling => {
-  const declared: Spelling = {
-    exported: true,
-    defaultExport: true,
-    statement: Option.none(),
-  };
-  const named = pipe(
+  names: readonly Catalogue.ExportName[],
+): Spelling =>
+  pipe(
     source,
     getNameOfDeclaration,
     Option.fromUndefinedOr,
     Option.filter(Syntax.isIdentifier),
+    Option.match({
+      onNone: (): Spelling => {
+        const exported = Array.isReadonlyArrayNonEmpty(names);
+
+        return { exported, defaultExport: exported, statement: Option.none() };
+      },
+      onSome: (own): Spelling => {
+        const value = declaresValue(source);
+        const exported = Array.some(
+          names,
+          ({ name, typeOnlyExport }) =>
+            name === own.text && !(typeOnlyExport && value),
+        );
+
+        return {
+          exported,
+          defaultExport: false,
+          statement: pipe(
+            names,
+            Array.filter(({ name }) => !exported || name !== own.text),
+            Option.liftPredicate(
+              Array.isReadonlyArrayNonEmpty<Catalogue.ExportName>,
+            ),
+            Option.map((others) => statementOf(own, others)),
+          ),
+        };
+      },
+    }),
   );
 
-  return Option.match(exported, {
-    onNone: () => ({ ...declared, exported: false, defaultExport: false }),
-    onSome: (entry) =>
-      pipe(
-        Option.all([Array.last(entry.name.path), named]),
-        Option.match({
-          onNone: () => declared,
-          onSome: ([name, original]): Spelling => {
-            const typeOnly = entry.nameTypeOnlyExport && declaresValue(source);
-            if (!typeOnly && name === original.text) {
-              return { ...declared, defaultExport: false };
-            }
-
-            // The specifier names the declaration again only where the public name differs from it.
-            let specifier = Factory.createExportSpecifier(
-              false,
-              undefined,
-              exportName(name),
-            );
-            if (name !== original.text) {
-              specifier = Factory.createExportSpecifier(
-                false,
-                Factory.createIdentifier(original.text),
-                exportName(name),
-              );
-            }
-
-            return {
-              exported: false,
-              defaultExport: false,
-              statement: Option.some(
-                Factory.createExportDeclaration(
-                  undefined,
-                  entry.nameTypeOnlyExport,
-                  Factory.createNamedExports([specifier]),
-                ),
-              ),
-            };
-          },
-        }),
-      ),
-  });
-};
-
-/** Projects declarations by updating selected fields and retaining identifier objects. A declaration keeps its own name and carries `export` where its public name is that name, and otherwise an export statement follows it. */
+/** Projects declarations by updating selected fields and retaining identifier objects. A declaration keeps its own name and carries `export` where one of its public names is that name, and its other public names follow in one export statement. */
 export const project: {
   (
     options: Options,
@@ -213,9 +231,15 @@ export const project: {
     options: Options,
   ): Array.NonEmptyReadonlyArray<Syntax.Node> => {
     const source = part.source.node;
-    const spelling = spellingOf(source, options.exported);
+    const spelling = spellingOf(
+      source,
+      Option.match(options.exported, {
+        onNone: () => [],
+        onSome: ({ names }) => names,
+      }),
+    );
     const typeOnlyExport = options.exported.pipe(
-      Option.exists((entry) => entry.typeOnlyExport),
+      Option.exists(({ entry }) => entry.typeOnlyExport),
     );
 
     let node: Syntax.Node = source;

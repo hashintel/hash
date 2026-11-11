@@ -9,6 +9,7 @@ import {
   pipe,
 } from "effect";
 
+import * as Catalogue from "./Catalogue.js";
 import * as Content from "./Content.js";
 import * as Parts from "./internal/parts.js";
 import * as References from "./internal/references.js";
@@ -17,7 +18,6 @@ import * as Overloads from "./Overloads.js";
 import * as Tree from "./Tree/index.js";
 
 import type * as AST from "./AST/index.js";
-import type * as Catalogue from "./Catalogue.js";
 
 /** The declarations of an export or a member, the comments on them and what those comments document about its calls. */
 interface Group extends Tree.Callable.Callable {
@@ -153,7 +153,7 @@ const signatureOf = (
     overloads,
     content,
   }: {
-    readonly exported: Option.Option<Catalogue.Entry>;
+    readonly exported: Option.Option<Syntax.Exported>;
     readonly overloads: readonly Overloads.Overload[];
     readonly content: Option.Option<Content.Content>;
   },
@@ -187,7 +187,7 @@ const groupOf = (
     exported,
     context,
   }: {
-    readonly exported: Option.Option<Catalogue.Entry>;
+    readonly exported: Option.Option<Syntax.Exported>;
     readonly context: Context;
   },
 ): Result.Result<Group, Failure> =>
@@ -374,7 +374,10 @@ export const from: {
       const { ast } = context;
       const parts = Parts.of(ast, origin);
       const group = yield* groupOf(parts, {
-        exported: Option.some(origin),
+        exported: Option.some({
+          entry: origin,
+          names: Catalogue.namesOf(ast, origin),
+        }),
         context,
       });
       const members = yield* pipe(
