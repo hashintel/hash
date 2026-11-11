@@ -1050,7 +1050,7 @@ const SplitByPaths = ({
               id: "region",
               text: "Region",
               selected: true,
-              selectedStyle: "tick" as const,
+              selectedStyle: "highlight" as const,
               onClick: () => {},
             },
             { id: "priority", text: "Priority", onClick: () => {} },

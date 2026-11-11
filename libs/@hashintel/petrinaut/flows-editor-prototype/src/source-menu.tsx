@@ -342,7 +342,7 @@ const typeGlyph = (
   return { icon: kindIcon(first) };
 };
 
-/** The model as DS Menu groups and items. A tick marks a picked value; a disabled row says why a list is empty. */
+/** The model as DS Menu groups and items. The fill marks a picked value; a disabled row says why a list is empty. */
 const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
   groups.map((group) => ({
     id: group.id,
@@ -355,7 +355,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<TiledItem>> =>
       glyph: item.glyph,
       selected: item.selected,
       suffix: item.suffix,
-      selectedStyle: "tick" as const,
+      selectedStyle: "highlight" as const,
       disabled: item.disabled,
       keepOpenOnSelect: item.keepOpen,
       onClick: () => item.onPick?.(),

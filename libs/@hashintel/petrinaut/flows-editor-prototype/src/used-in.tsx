@@ -726,7 +726,7 @@ const LaterStepsMenu = ({
       icon: entry.icon as IconName,
       tint: kTile(document, step.stepId),
       selected: filled,
-      selectedStyle: "tick" as const,
+      selectedStyle: "highlight" as const,
       onClick: () => {
         setDocument((current) => connect(current, step.stepId, input.name, source));
         onClose();
@@ -782,7 +782,7 @@ const UseMenu = ({
       id: input.name,
       text: input.label,
       selected: filled,
-      selectedStyle: "tick" as const,
+      selectedStyle: "highlight" as const,
       suffix: typeSuffix(input.kinds, input.array),
       onClick: () => {
         if (!filled) {

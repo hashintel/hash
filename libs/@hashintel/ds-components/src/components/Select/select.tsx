@@ -281,7 +281,7 @@ function mapToMenuItems<TValue extends string>(
       it.disabled ||
       (options.selectableValues !== undefined &&
         !options.selectableValues.has(it.value)),
-    selectedStyle: options.multiple ? (it.selectedStyle ?? "checkbox") : "tick",
+    selectedStyle: it.selectedStyle ?? (options.multiple ? "checkbox" : "highlight"),
     selectedTone: it.selectedTone,
     suffix: toSuffix(it),
     subItems: undefined,

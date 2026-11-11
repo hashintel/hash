@@ -96,6 +96,18 @@ const componentRules: [string, Record<string, string>][] = [
     `[data-part="item"][data-selected]`,
     { "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-active)" },
   ],
+  // The Select dropdown marks its picked option with the same fill as a Menu, no tick.
+  [
+    `[data-scope="select"][data-part="content"]`,
+    {
+      "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-hover)",
+      "--colors-neutral-a35": "var(--colors-neutral-bg-subtle-active)",
+    },
+  ],
+  [
+    `[data-scope="select"][data-part="item"][data-state="checked"]`,
+    { "--colors-neutral-a25": "var(--colors-neutral-bg-subtle-active)" },
+  ],
   [
     `[data-scope="checkbox"][data-part="root"]`,
     {
