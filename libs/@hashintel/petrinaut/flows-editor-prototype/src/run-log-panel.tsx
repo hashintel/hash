@@ -23,14 +23,13 @@ import {
   type ItemProgress,
   outcomeLabel,
   outcomeOf,
-  runClock,
   runTriggerId,
   signOffId,
   warningsText,
   runWhen,
 } from "./run-history";
 import { oldStatusWords } from "./status-grammar";
-import { type LogRow, logRows, secondsText } from "./run-log";
+import { type LogRow, logRows } from "./run-log";
 import { BusinessRunLog, runLogTake } from "./run-log-business";
 import {
   ErrorDetails,
@@ -42,7 +41,7 @@ import {
   TechnicalFold,
 } from "./run-log-summary";
 import { triggerFiredTake } from "./trigger-flags";
-import { runTimeTake } from "./run-time";
+import { runLength, runTimeTake } from "./run-time";
 import { doneTone } from "./status-colors";
 
 import type { HistoryValue } from "./history-view";
@@ -361,7 +360,6 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const facts = factsOf(run, now);
   const live = outcome === "running" || outcome === "needsReview";
   const action = bannerAction(run, now);
-  const elapsed = run.kind === "live" ? runClock(run, now) : undefined;
   const failed = facts.failures.length;
   const reached = live
     ? Math.min(facts.processed[3], facts.n)
@@ -382,7 +380,7 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const trigger =
     run.trigger.kind === "manual" ? `Manual · ${run.trigger.by}` : "Schedule";
   const duration = live
-    ? tight(secondsText(elapsed ?? 0))
+    ? runLength(run, now)
     : tight(run.duration ?? "");
 
   // The live run shows only the steps it has reached; the ended one closes with "Ended".

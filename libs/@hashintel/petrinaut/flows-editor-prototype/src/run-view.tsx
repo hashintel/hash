@@ -133,7 +133,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readName":
       return {
         status,
-        line: "09:00:02 · 0.1 s",
+        line: "0.1 s · 09:00:02",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: propertyPathOf("Supplier", "Name") },
@@ -143,7 +143,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readEmail":
       return {
         status,
-        line: "09:00:02 · 0.1 s",
+        line: "0.1 s · 09:00:02",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: propertyPathOf("Supplier", "Contact email") },
@@ -153,7 +153,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readCertificateLink":
       return {
         status,
-        line: "09:00:02 · 0.1 s",
+        line: "0.1 s · 09:00:02",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: propertyPathOf("Supplier", "Certificate link") },
@@ -181,7 +181,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
           }
         : {
             status,
-            line: "09:00:04 · 1.4 s",
+            line: "1.4 s · 09:00:04",
             inputs: [
               {
                 label: "URL",
@@ -197,7 +197,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         ? notReached
         : {
             status,
-            line: "Sent 09:00:05 · 0.8 s",
+            line: "0.8 s · Sent 09:00:05",
             inputs: [
               {
                 label: "To",
@@ -217,7 +217,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         ? notReached
         : {
             status,
-            line: "09:00:06 · 0.2 s",
+            line: "0.2 s · 09:00:06",
             inputs: [{ label: "Entity", value: item.name, from: "supplier" }],
             outputs: [{ label: "Entity", value: item.name }],
           };
@@ -576,7 +576,7 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
       <>
         <Header step={step} />
         <StatusSection status="done">
-          <span className={valueStyle}>09:00:01 · 1.2 s</span>
+          <span className={valueStyle}>1.2 s · 09:00:01</span>
         </StatusSection>
         <Section title="Inputs">
           <PropertyRow label="Entity type">

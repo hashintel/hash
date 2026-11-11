@@ -1,11 +1,11 @@
 /**
- * `?confirm=` (inbox conv-confirm-actions, 11 Nov): how Archive (flow ⋮) and Stop (a live run) ask first. No param
- * keeps today, where neither asks.
+ * `?confirm=` (inbox conv-confirm-actions, 11 Nov): how Archive (flow ⋮) and Stop (a live run) ask first. Default: dialog.
+ * `?confirm=today` keeps today, where neither asks.
  * - dialog: both open the DS Dialog that Publish uses (md, the same header, Cancel then the action).
  * - undo: Archive only, with no dialog; the flow is archived at once and the figma-ds toast offers Undo.
  *
- * `?confirmbtn=` (with `confirm=dialog`): the main button, from figma-ds Button `198:41491`, sm. No param keeps today's
- * black solid. Cancel is the neutral outline (`317:20688`, code-ds subtle neutral) on its left.
+ * `?confirmbtn=` (with `confirm=dialog`): the main button, from figma-ds Button `198:41491`, sm. Default: solid.
+ * `?confirmbtn=today` keeps the black solid. Cancel is the neutral outline (`317:20688`, code-ds subtle neutral) on its left.
  * - solid: red solid (`16967:608`), and the header icon in the danger state (Dialog `_IconState` `38569:72338`).
  * - subtle: red subtle (`14896:22624`), the same danger icon.
  * - outline: neutral outline (`317:20688`) and the neutral icon. The figma-ds has no red outline Button.
@@ -21,9 +21,12 @@ export type ConfirmButtonTake = "solid" | "subtle" | "outline";
 
 export const useConfirmButtonTake = (): ConfirmButtonTake | null => {
   const value = useLocation().query.get("confirmbtn");
-  return value === "solid" || value === "subtle" || value === "outline"
+  // solid is the default (inbox conv-confirm-actions, decided 12 Nov); `?confirmbtn=today` keeps the black button.
+  return value === "subtle" || value === "outline"
     ? value
-    : null;
+    : value === "today"
+      ? null
+      : "solid";
 };
 
 /** figma-ds red Button sm: the border is red a30 on both (`16967:608`, `14896:22624`); subtle's fill is red s20. */
@@ -44,7 +47,8 @@ const dangerHeaderStyle = css({
 
 export const useConfirmTake = (): ConfirmTake | null => {
   const value = useLocation().query.get("confirm");
-  return value === "dialog" || value === "undo" ? value : null;
+  // dialog is the default (decided 12 Nov); `?confirm=today` asks nothing, `?confirm=undo` is the toast.
+  return value === "undo" ? value : value === "today" ? null : "dialog";
 };
 
 const noteStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });

@@ -21,7 +21,7 @@ export const runTimeTake = (): RunTimeTake | null => {
 };
 
 /** Whole seconds, as past runs write their length: "14 s", "2m 14s", "1h 02m". */
-const clockText = (seconds: number) => {
+export const clockText = (seconds: number) => {
   const whole = Math.floor(seconds);
   const pad = (value: number) => String(value).padStart(2, "0");
   return whole >= 3600

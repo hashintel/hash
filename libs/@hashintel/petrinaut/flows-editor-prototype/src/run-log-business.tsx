@@ -373,14 +373,13 @@ const Head = ({
           {runIdMono() ? <RunIdText run={run} prefix /> : runLabel(run)}
         </span>
         <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-          {runWhen(run)}
+          {[duration, runWhen(run)].filter(Boolean).join(" · ")}
         </span>
       </div>
       <span className={sentenceStyle}>{sentence}</span>
       <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
         {[
           started,
-          duration,
           usual && typical ? `usually about ${typical.duration}` : undefined,
         ]
           .filter(Boolean)

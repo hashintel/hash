@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
 import { RunGlyph } from "./run-glyph";
+import { clockText } from "./run-time";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import {
   clockPlus,
@@ -39,18 +40,8 @@ const seconds = (duration: string) =>
   Number(/(\d+)m/.exec(duration)?.[1] ?? 0) * 60 +
   Number(/(\d+)s/.exec(duration)?.[1] ?? 0);
 
-const durationText = (total: number) => {
-  const rounded = Math.max(0, Math.round(total));
-  if (rounded < 60) {
-    return `${rounded} s`;
-  }
-  if (rounded < 3600) {
-    const minutes = Math.floor(rounded / 60);
-    const rest = rounded % 60;
-    return rest ? `${minutes}m ${rest}s` : `${minutes} min`;
-  }
-  return `${Math.round(rounded / 3600)} h`;
-};
+/** The run bar's duration format ("12 s", "1m 20s", "1h 02m"), so a step and its run read the same. */
+const durationText = (total: number) => clockText(Math.max(0, Math.round(total)));
 
 /** "Today, 08:15" → "5 Nov"; "2 Nov, 16:20" → "2 Nov". */
 /** When the step started and ended, in seconds from the run's start; `to` is empty while it runs. */
