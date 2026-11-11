@@ -13,6 +13,8 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_status::StatusCode;
+use serde_json::json;
 use type_system::{
     knowledge::{
         entity::{EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
@@ -28,6 +30,88 @@ use type_system::{
 use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
+
+#[tokio::test]
+async fn insert_duplicate_id() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::ORGANIZATION_V1],
+        )
+        .await
+        .expect("the organization types should be seeded");
+    let mut params = CreateEntityParams {
+        web_id: WebId::new(api.account_id),
+        entity_uuid: Some(EntityUuid::new(Uuid::now_v7())),
+        decision_time: None,
+        entity_type_ids: HashSet::from([
+            "https://blockprotocol.org/@alice/types/entity-type/organization/v/1"
+                .parse()
+                .expect("the organization type URL should be valid"),
+        ]),
+        properties: serde_json::from_value(json!({
+            "value": {
+                "https://blockprotocol.org/@alice/types/property-type/name/": {
+                    "value": "Original organization",
+                    "metadata": { "dataTypeId": null }
+                }
+            }
+        }))
+        .expect("the organization properties should be valid"),
+        confidence: None,
+        link_data: None,
+        draft: false,
+        policies: Vec::new(),
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+        read_only: false,
+    };
+    let original = api
+        .create_entity(api.account_id, params.clone())
+        .await
+        .expect("the first entity should be created");
+    params.properties = PropertyObjectWithMetadata::default();
+    let error = api
+        .create_entity(api.account_id, params)
+        .await
+        .expect_err("creating the same entity ID twice should fail");
+    assert_eq!(
+        error.request_ref::<StatusCode>().next(),
+        Some(&StatusCode::AlreadyExists),
+        "duplicate entity IDs should report AlreadyExists (HTTP 409)"
+    );
+
+    let entities = api
+        .query_entities(
+            Some(api.account_id),
+            QueryEntitiesParams {
+                filter: Filter::for_entity_by_entity_id(original.metadata.record_id.entity_id),
+                temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: 2,
+                conversions: Vec::new(),
+                include_entity_types: None,
+                include_drafts: false,
+                include_permissions: false,
+            },
+        )
+        .await
+        .expect("the original entity should remain readable")
+        .entities;
+    assert_eq!(
+        entities,
+        [original],
+        "the failed duplicate create should leave the original entity unchanged"
+    );
+}
 
 #[tokio::test]
 async fn insert() {
