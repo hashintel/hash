@@ -57,7 +57,7 @@ Click the simulator in the capsule to open its popover. It opens over the panel,
 | **JS adaptive**       | **Max error**                 | Quick simulation, Stochastic | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
 | **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
-The Quick simulation of an [untimed net](#timed-and-untimed-nets) is not computed by a simulator: the capsule reads **Step by step**, and the popover says so above the list.
+An [untimed net](#timed-and-untimed-nets) is fired step by step, and no simulator's parameters apply to it. Its Quick simulation is not computed by a simulator: the capsule reads **Step by step**. Its Stochastic simulation still computes the runs on the selected simulator, so the capsule keeps the simulator's name and reads **step by step** in place of its values. The popover says which above the list, and shows no parameter fields.
 
 A simulator that cannot compute what the mode shows is greyed in the list, with the reason in place of its description. While a simulation exists the popover still opens, to read the values, but nothing in it can be changed; reset the simulation first.
 
@@ -71,7 +71,7 @@ Whichever simulator runs, it records the state at every transition firing, with 
 Petrinaut works out from the net whether time passes in it. Nothing is stored in the file and there is no switch.
 
 - A net is **timed** when at least one transition has a **Stochastic rate**, or at least one place has [dynamics](petri-net-extensions.md#differential-equations-dynamics) switched on with an equation listed. A run of a timed net is read against simulated time, in seconds.
-- A net with neither is **untimed**. Every transition is a **Predicate**, which fires as soon as it holds, so nothing separates one firing from the next but their order. A Quick simulation of an untimed net is a sequence of **steps** and has no clock.
+- A net with neither is **untimed**. Every transition is a **Predicate**, which fires as soon as it holds, so nothing separates one firing from the next but their order. A run of an untimed net is a sequence of **steps** and has no clock, in a Quick simulation, a Stochastic simulation and an [experiment](experiments.md) alike.
 
 An extension that is switched off counts as absent: with stochasticity off, a transition set to Stochastic rate does not make the net timed.
 
@@ -87,7 +87,9 @@ While a run counts steps:
 - the Timeline's axis counts steps;
 - the simulator capsule reads **Step by step**: the selected simulator and its parameters are not used.
 
-A [Stochastic simulation](#stochastic-simulation) and an [experiment](experiments.md) still run an untimed net on the selected simulator, against time.
+A [Stochastic simulation](#stochastic-simulation) of an untimed net fires every run step by step and reads all of them at every step. The capsule reads the simulator, then `step by step · 100 runs · to step 60`. The simulator decides only where the runs are computed, in background workers or on the graphics card. Its **End time** field reads **End at step** and takes a whole number. A run that ends before that step, at a step in which nothing fires, drops out of the mean from there on, as a run that deadlocks does in a timed net.
+
+An [experiment](experiments.md) of an untimed net counts steps in the same way.
 
 ### Predicates in a timed net
 
@@ -120,7 +122,7 @@ With the mode set to **Stochastic**, the simulator's popover gains two fields af
 - **Runs** -- how many independent runs are computed. Default: `100`. More runs give a steadier mean and a truer spread, and take longer.
 - **End time** -- the simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs one; switching to Stochastic sets `60` seconds when none was set.
 
-Press **Play**. The runs are computed in background workers, or on the graphics card with the WebGPU simulator, and the canvas shows what they add up to. A fixed-step simulator is sampled at its time step; the adaptive one, which has none, every tenth of a simulated second:
+Press **Play**. The runs are computed in background workers, or on the graphics card with the WebGPU simulator, and the canvas shows what they add up to. A fixed-step simulator is sampled at its time step; the adaptive one, which has none, every tenth of a simulated second. An [untimed net](#timed-and-untimed-nets) is sampled at every step, whichever simulator computes it:
 
 - **Places** -- each place's badge reads the mean token count across runs at the viewed time, followed by its spread (one standard deviation) when the runs differ, such as `12.9 ±2.9`.
 - **Transitions** -- nothing fires on the canvas: there is no single run to show.
@@ -160,7 +162,7 @@ If no transition fires in a step **and** no transition is structurally enabled (
 
 This only stops computation: playback continues to the time the run stopped at.
 
-If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping. A run in [steps](#steps) is the exception: a step in which nothing fires ends it, whatever stays structurally enabled.
+If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping. A run in [steps](#steps) is the exception, alone or among the runs of a Stochastic simulation or an experiment: a step in which nothing fires ends it, whatever stays structurally enabled.
 
 A transition blocked only because its output place is at [capacity](drawing-a-net.md#token-capacity) is _not_ structurally enabled, so a net whose remaining transitions are all blocked by full places reports deadlock rather than stepping on with nothing happening.
 

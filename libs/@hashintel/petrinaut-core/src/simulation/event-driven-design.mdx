@@ -214,7 +214,8 @@ same net.
 
 ### A run in steps
 
-A single run of an untimed net is a sequence of **steps**. A step gives every
+A run of an untimed net is a sequence of **steps**, alone or as one of an
+experiment's. A step gives every
 transition one turn in definition order, and a transition that is enabled on
 its turn fires once. The tokens it consumes leave at once, and the tokens the
 step produces arrive together at its end. This is the step of
@@ -238,9 +239,31 @@ Two rules follow from the absence of time:
 
 The worker builds a single run's stepper with `createRunStepper`: the step
 stepper for an untimed net, whichever simulator was selected, and the
-selected simulator's stepper for a timed one. An experiment keeps
-`createStepper`. Many runs are compared at the same times, so an experiment
-keeps a clock, and an untimed net in an experiment runs as it did before.
+selected simulator's stepper for a timed one.
+
+### An experiment in steps
+
+An experiment compares its runs at the same positions. For an untimed net
+the positions are steps, so every step is a sample:
+
+- `simulatorFromExperimentBackend` sets the sample period to
+  `STEP_SAMPLE_PERIOD`, one step, whatever the simulator steps by, and
+  refuses a request that names another period. `maxTime` is the step the
+  runs stop at.
+- A simulator hosted in the experiment workers builds each run's stepper
+  with `createRunStepper` too, so the adaptive simulator's runs are stepped
+  by the step stepper.
+- A simulator that runs the fixed-step engine itself, on the CPU or in the
+  shader, takes one engine step per sample. That is a step of the step
+  stepper, because the engine ends a run of an untimed net at the first
+  step that fires nothing: `advanceRun` on the CPU, and the shader's
+  deadlock test on the graphics card. In a timed net both still wait until
+  no transition has its tokens, since a rate may fire later.
+
+The simulator selected for an experiment of an untimed net therefore decides
+where the runs are computed and nothing else. The editor reads the clock of
+an experiment from its net, with `runClockOf`, and keeps it on the
+experiment's record.
 
 ### Guards in a timed net
 
@@ -618,8 +641,8 @@ a constant of 0.1 simulated seconds in both JS steppers today.
 Both JS simulators implement one worker-side interface, `RunStepper`: the
 run's state in the buffers the engine already uses, and `advance(stopAt?)`,
 which moves to the next firing, the next reference frame or the stop time.
-A single run of an untimed net is stepped by a third stepper that belongs to
-no simulator, described in [A run in steps](#a-run-in-steps).
+A run of an untimed net is stepped by a third stepper that belongs to no
+simulator, described in [A run in steps](#a-run-in-steps).
 Two hosts drive it:
 
 - **The event simulation worker** never passes a stop time, because a demand
@@ -636,7 +659,9 @@ Two hosts drive it:
 
 An experiment's `dt` is its **sample period**. A simulator that names a
 `samplePeriodParameter` steps and samples on that parameter and refuses another
-period. The adaptive simulator takes any period, 0.1 s by default.
+period. The adaptive simulator takes any period, 0.1 s by default. An
+experiment of an untimed net is sampled at every step on every simulator, as
+[An experiment in steps](#an-experiment-in-steps) describes.
 
 Two adapters join this contract to the experiment backends of
 [Backend selection](doc:core.experiments/backend-selection):
@@ -1124,7 +1149,3 @@ over several tokens, which the fixed-step engines already sum per place.
    same contract.
 5. The time unit and its display precision (FE-1822), which playback by time
    needs in increment 3.
-6. Whether an experiment of an untimed net is sampled by step. Stochastic
-   mode and the Experiments view run it on the selected simulator today:
-   fixed step gives every step a duration of `dt`, and the adaptive stepper
-   computes the whole run at `t = 0`.
