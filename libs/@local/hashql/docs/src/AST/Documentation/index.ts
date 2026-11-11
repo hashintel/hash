@@ -132,12 +132,12 @@ export class Documentation implements Traits.Base {
     this.node = Equal.byReferenceUnsafe(node);
     this.source = Equal.byReferenceUnsafe(source);
     this.remarks = remarks;
-    this.parameters = parameters;
-    this.typeParameters = typeParameters;
+    this.parameters = Object.freeze(parameters);
+    this.typeParameters = Object.freeze(typeParameters);
     this.returns = returns;
-    this.throws = throws;
-    this.see = see;
-    this.examples = examples;
+    this.throws = Object.freeze(throws);
+    this.see = Object.freeze(see);
+    this.examples = Object.freeze(examples);
     this.since = since;
     this.category = category;
     this.stability = stability;
@@ -146,8 +146,8 @@ export class Documentation implements Traits.Base {
     this.internal = internal;
     this.trait = trait;
     this.module = module;
-    this.modifiers = modifiers;
-    this.customBlocks = customBlocks;
+    this.modifiers = Object.freeze(modifiers);
+    this.customBlocks = Object.freeze(customBlocks);
     Object.freeze(this);
   }
 
