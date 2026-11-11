@@ -25,7 +25,8 @@ export const visibleSimulatorParameters = (
     if (!condition) {
       return true;
     }
-    const controlling = values[condition.key];
+    // A parameter nobody touched holds its default, and controls with it.
+    const controlling = values[condition.key] ?? specs[condition.key]?.default;
     return (
       typeof controlling !== "number" &&
       controlling !== undefined &&
