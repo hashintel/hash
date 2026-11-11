@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent";
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
   definePetrinautPlugin,
@@ -216,6 +216,85 @@ test("sends the empty-net prompt once through the chat's composer path in the ed
   expect(
     within(panel).getByRole("button", { name: "Close AI assistant" }),
   ).toBeTruthy();
+});
+
+const SelectionTestPlugin = definePetrinautPlugin({
+  id: "test.selection",
+  name: "Selection test",
+  description: "Hands the test the editor's navigation.",
+  author: "HASH",
+  access: { editor: "write" },
+});
+
+test("shows the editor's selection on the composer and sends it with the message", async () => {
+  const bodies: unknown[] = [];
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      return Promise.resolve(
+        streamChunks(textReply("reply", "It holds work.")),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  const selectionPlugin = SelectionTestPlugin((api) => {
+    editor = api.editor;
+    return {};
+  });
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [
+            {
+              id: "queue",
+              name: "Queue",
+              colorId: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [],
+        },
+      })}
+      plugins={[
+        selectionPlugin,
+        chatPlugin({ presentation: "brunch", transport }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  expect(screen.queryByText(/Asking about/)).toBeNull();
+
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  expect(await screen.findByText("Asking about place: Queue")).toBeTruthy();
+  fireEvent.change(
+    screen.getByRole("textbox", { name: "Message AI assistant" }),
+    { target: { value: "Why is this here?" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  await screen.findByText("It holds work.", {}, { timeout: 4_000 });
+  // The editor selects the ID the document stores, which Brunch's net reads
+  // also return.
+  expect(bodies).toEqual([
+    { selection: [{ type: "place", id: toPetrinautId("queue") }] },
+  ]);
+
+  // Clearing the chip clears the editor's selection, and the next send
+  // carries none.
+  fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+  await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
 });
 
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {

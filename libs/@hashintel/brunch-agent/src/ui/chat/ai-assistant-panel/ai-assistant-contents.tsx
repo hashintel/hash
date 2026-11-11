@@ -24,6 +24,7 @@ import { BrunchResponseStatus } from "./ai-assistant-contents/brunch-response-st
 import { BrunchTranscript } from "./ai-assistant-contents/brunch-transcript";
 import { ChatTabMark } from "./ai-assistant-contents/chat-tab-mark";
 import { AiAssistantComposer } from "./ai-assistant-contents/composer";
+import { ComposerSelection } from "./ai-assistant-contents/composer-selection";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { HorizontalTabsHeader } from "./ai-assistant-contents/horizontal-tabs-container";
 import {
@@ -676,6 +677,7 @@ export const AiAssistantContents = ({
                   />
                 </div>
               )}
+              {isBrunchChat && !reviewingHostTab && <ComposerSelection />}
               <AiAssistantComposer
                 busy={isBusy}
                 control={composerControl}

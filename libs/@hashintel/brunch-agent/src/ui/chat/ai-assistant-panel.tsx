@@ -26,6 +26,7 @@ import {
   useState,
 } from "react";
 
+import { selectionContextKey } from "@hashintel/brunch-agent";
 import {
   aiCommandActionInputSchemas,
   createExperimentToolName,
@@ -682,6 +683,7 @@ const ConversationAiAssistantPanel = ({
   // discarding that conversation. Timing stays outside diagnostics so it tags
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
+  const editorRef = useLatest(api.editor);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   // The user message added before the host admitted it. The AI SDK keeps that
   // message when the send fails, so a definite refusal must remove it here.
@@ -689,7 +691,15 @@ const ConversationAiAssistantPanel = ({
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
       sendMessages: async (options) => {
-        const stream = await hostTransportRef.current.sendMessages(options);
+        // The selection as the user sends, so "this" in their words names
+        // what they had selected.
+        const stream = await hostTransportRef.current.sendMessages({
+          ...options,
+          body: {
+            ...options.body,
+            [selectionContextKey]: editorRef.current.navigation.get().selection,
+          },
+        });
         // The host accepted the message, so a failure of its stream must not
         // offer the message for sending again.
         pendingSubmissionRecoveryRef.current = null;
@@ -699,7 +709,7 @@ const ConversationAiAssistantPanel = ({
       reconnectToStream: (options) =>
         hostTransportRef.current.reconnectToStream(options),
     }),
-    [hostTransportRef],
+    [editorRef, hostTransportRef],
   );
   const diagnosticsTransport = useMemo(
     () =>

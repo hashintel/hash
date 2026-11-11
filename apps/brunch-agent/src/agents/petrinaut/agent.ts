@@ -95,7 +95,11 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    { interviewBudget: submitted?.interviewBudget, words },
+    {
+      interviewBudget: submitted?.interviewBudget,
+      words,
+      selection: submitted?.selection,
+    },
   );
   usePetrinautTools(
     initialData
