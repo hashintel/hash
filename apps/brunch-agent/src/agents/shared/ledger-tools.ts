@@ -39,6 +39,31 @@ export const repliesWith = (history: LedgerHistory, toolCallId: string) =>
     (part) => v.is(vTextPart, part) && part.text.trim() !== "",
   );
 
+const closingCommit = {
+  toolName: v.literal(brunchTools.ledgerCommit),
+  input: v.object({ endTurn: v.literal(true) }),
+};
+const vClosingCommitPart = v.variant("state", [
+  v.object({ ...closingCommit, state: v.literal("input-available") }),
+  v.object({
+    ...closingCommit,
+    state: v.literal("output-available"),
+    output: v.object({ status: v.literal("recorded") }),
+  }),
+]);
+
+/**
+ * Whether the turn closes as `ledger_commit` would: it has replied by this
+ * call, and holds a commit with `endTurn` still running in this batch or
+ * already recorded. A commit that failed or was refused recorded nothing, so
+ * it closes nothing.
+ */
+export const closesWithCommit = (history: LedgerHistory, toolCallId: string) =>
+  repliesWith(history, toolCallId) &&
+  turnPartsWith(history, toolCallId).some((part) =>
+    v.is(vClosingCommitPart, part),
+  );
+
 /**
  * The durable `ledger_commit` over this agent's Ledger. An agent may describe
  * its entries with its own `vLedgerAppendWith` schema.

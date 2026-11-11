@@ -111,4 +111,13 @@ test("never ends a turn the closing commit would not end", async () => {
   expect(
     (await runWith([reply, settled("recorded"), offerPart])).terminate,
   ).toBe(true);
+  const failed = {
+    ...commitPart({ entries: "not-an-array", endTurn: true }),
+    state: "output-error",
+    errorText: "Invalid input.",
+  };
+  expect(
+    (await runWith([reply, failed, offerPart])).terminate,
+    "A commit that failed before it ran recorded nothing, so it closes nothing.",
+  ).toBe(false);
 });
