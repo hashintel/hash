@@ -187,6 +187,94 @@ transition at the same instant is evaluated, and output tokens are visible to
 later events. The end-of-step batching of additions goes: with one firing per
 event there is nothing to batch, and the capacity check sees true counts.
 
+## Timed and untimed nets
+
+The target semantics give every run a clock. A net with no delay transition
+and no flow has nothing that takes time: every transition is a guard, and a
+guard fires at the instant it is enabled. Under the semantics above the whole
+run happens at `t = 0`, as one chain of superdense events `(0, k)`. The
+adaptive stepper computes exactly that, and stops at the iteration limit when
+the chain does not end. Playback is by time, so a run that never leaves
+`t = 0` has nothing to play.
+
+Such a net is **untimed**, the word the Petri-net literature uses for a net
+without delays; its counterpart is **timed**. The property is inferred from
+the net and never stored:
+
+- A net is **timed** when a transition has a `stochastic` lambda while the
+  stochasticity extension is on, or when a place runs dynamics: colours and
+  dynamics are on, the place has a colour, its switch is on and it lists an
+  equation.
+- Every other net is **untimed**. A subnet counts whether or not an instance
+  uses it.
+
+`isTimedNet` in `net-timing.ts` reads the structure alone and compiles no
+code, so the editor, the checker and the worker get the same answer from the
+same net.
+
+### A run in steps
+
+A single run of an untimed net is a sequence of **steps**. A step gives every
+transition one turn in definition order, and a transition that is enabled on
+its turn fires once. The tokens it consumes leave at once, and the tokens the
+step produces arrive together at its end. This is the step of
+[Semantics of one step](#semantics-of-one-step) without the span of time the
+fixed-step engine gives it, and it is a step in the sense of a Petri net's
+step semantics: a set of transitions fired together.
+
+The step stepper (`event-trace/worker/step-stepper.ts`) is a third
+`RunStepper`. It records one event per step, and the event's `time` is the
+number of the step. The trace, its store and playback are unchanged, because
+a position is a number either way. `EventSimulation.clock` says what the
+number counts, `"time"` or `"steps"`, and the editor words its readout, its
+scrubber, its timeline axis and its stopping condition from it.
+
+Two rules follow from the absence of time:
+
+- A step that fires nothing ends the run as a deadlock. The marking alone
+  decides a step, so the next step would fire nothing either. That step is
+  not counted.
+- `maxTime` is the step the run stops at.
+
+The worker builds a single run's stepper with `createRunStepper`: the step
+stepper for an untimed net, whichever simulator was selected, and the
+selected simulator's stepper for a timed one. An experiment keeps
+`createStepper`. Many runs are compared at the same times, so an experiment
+keeps a clock, and an untimed net in an experiment runs as it did before.
+
+### Guards in a timed net
+
+In a timed net a guard fires as often as its inputs enable it. Its rate is
+the rate at which tokens arrive in its input places, so it needs no rate of
+its own. A guard with no input place has no such bound. It is enabled at
+every instant and fires for ever at one of them. The fixed-step engine hid
+this by firing it once per step, which gave it the rate `1/dt`, a simulator
+setting.
+
+`checkSDCPN` reports a guard with no input arc in a timed net as an error on
+the transition's lambda, and an error blocks a run. In an untimed net the
+same transition fires once per step and is allowed.
+
+The rule is structural and covers one shape. A chain can also fail to end
+when two guards feed each other, when a guard's only inputs are read arcs, or
+when a `stochastic` lambda returns `Infinity`. None of these has a structural
+test, and the iteration limit per instant covers them at run time.
+
+### Why a lambda's kind stays declared
+
+The kind of a lambda could be inferred from its code. The engines already
+read it from the returned value: a boolean is a guard, a number is a rate.
+The declared `lambdaType` is kept for four reasons:
+
+- Whether a net is timed would depend on type-checking every lambda. That
+  needs the TypeScript compiler, which the editor's main bundle does not
+  load, and the answer would be unknown while any lambda fails to compile.
+- An empty lambda has no value to infer from, and its default, `true` or
+  `Infinity`, depends on the kind.
+- The language service types the lambda's result by the declared kind, which
+  is how a predicate that returns a number is reported.
+- Removing the field changes the file format of every stored net.
+
 ## The simulator
 
 The run has two regimes and one loop. Nets without dynamics, which is most of
@@ -530,6 +618,8 @@ a constant of 0.1 simulated seconds in both JS steppers today.
 Both JS simulators implement one worker-side interface, `RunStepper`: the
 run's state in the buffers the engine already uses, and `advance(stopAt?)`,
 which moves to the next firing, the next reference frame or the stop time.
+A single run of an untimed net is stepped by a third stepper that belongs to
+no simulator, described in [A run in steps](#a-run-in-steps).
 Two hosts drive it:
 
 - **The event simulation worker** never passes a stop time, because a demand
@@ -1034,3 +1124,7 @@ over several tokens, which the fixed-step engines already sum per place.
    same contract.
 5. The time unit and its display precision (FE-1822), which playback by time
    needs in increment 3.
+6. Whether an experiment of an untimed net is sampled by step. Stochastic
+   mode and the Experiments view run it on the selected simulator today:
+   fixed step gives every step a duration of `dt`, and the adaptive stepper
+   computes the whole run at `t = 0`.

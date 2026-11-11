@@ -275,6 +275,8 @@ Like kernels, lambda code is a plain function body with `input` and `parameters`
 
 Use predicates for deterministic guards based on token state.
 
+A predicate takes no time. A net whose transitions are all predicates, with no dynamics, is [untimed](simulation.md#timed-and-untimed-nets): its Quick simulation runs step by step. In a timed net a predicate fires at the instant its input places enable it, so it needs at least one input place. A predicate with no input place is reported as an error there, because nothing would ever disable it. Give it an input place, or switch it to **Stochastic rate**.
+
 ### Stochastic rate
 
 The function returns a **number** representing the average firing rate per second:
@@ -321,7 +323,7 @@ Petrinaut only reports diagnostics for code surfaces that are active for the cur
 
 Diagnostics come in two flavours:
 
-- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
+- **Errors** (red) -- TypeScript type/syntax errors, code that falls outside Petrinaut's supported code subset (see below), and a [predicate with no input place in a timed net](simulation.md#predicates-in-a-timed-net), listed under the transition's firing rate. These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
 - **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
 
 ### Supported code subset

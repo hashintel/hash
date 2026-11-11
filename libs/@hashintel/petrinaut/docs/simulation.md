@@ -57,12 +57,41 @@ Click the simulator in the capsule to open its popover. It opens over the panel,
 | **JS adaptive**       | **Max error**                 | Quick simulation, Stochastic | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
 | **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
+The Quick simulation of an [untimed net](#timed-and-untimed-nets) is not computed by a simulator: the capsule reads **Step by step**, and the popover says so above the list.
+
 A simulator that cannot compute what the mode shows is greyed in the list, with the reason in place of its description. While a simulation exists the popover still opens, to read the values, but nothing in it can be changed; reset the simulation first.
 
 - **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds in Quick simulation and `0.1` in Stochastic, where every run pays for it.
 - **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
 
 Whichever simulator runs, it records the state at every transition firing, with the time it happened, and further states in between so that long stretches without a firing stay accurate. Where those further states go is the simulator's own decision. The continuous evolution of token attributes between two recorded states is interpolated from the values and derivatives stored in them, so playback moves through time and any instant can be viewed.
+
+## Timed and untimed nets
+
+Petrinaut works out from the net whether time passes in it. Nothing is stored in the file and there is no switch.
+
+- A net is **timed** when at least one transition has a **Stochastic rate**, or at least one place has [dynamics](petri-net-extensions.md#differential-equations-dynamics) switched on with an equation listed. A run of a timed net is read against simulated time, in seconds.
+- A net with neither is **untimed**. Every transition is a **Predicate**, which fires as soon as it holds, so nothing separates one firing from the next but their order. A Quick simulation of an untimed net is a sequence of **steps** and has no clock.
+
+An extension that is switched off counts as absent: with stochasticity off, a transition set to Stochastic rate does not make the net timed.
+
+### Steps
+
+In each step every transition gets one turn, in definition order. A transition that is enabled on its turn fires once. Its standard input tokens are removed at once, and the tokens the step produces are added together at the end of the step. The run ends at the first step in which nothing fires: the same step would repeat for ever, so the run reports a deadlock and that step is not counted.
+
+While a run counts steps:
+
+- the toolbar reads **Step 3 of 12**, and the scrubber moves one step at a time;
+- **Previous step** and **Next step** move between steps;
+- playback settings offer **Steps per second** and **End at step**;
+- the Timeline's axis counts steps;
+- the simulator capsule reads **Step by step**: the selected simulator and its parameters are not used.
+
+A [Stochastic simulation](#stochastic-simulation) and an [experiment](experiments.md) still run an untimed net on the selected simulator, against time.
+
+### Predicates in a timed net
+
+In a timed net a Predicate takes no time: it fires at the instant its input places enable it, so it fires as often as tokens arrive in them. A Predicate with no input place is always enabled and would fire without end at one instant. Petrinaut reports it as an error on the transition, and Play is blocked until the transition has an input place or a stochastic rate. In an untimed net the same transition is allowed: it fires once per step.
 
 ## Running a simulation
 
@@ -131,7 +160,7 @@ If no transition fires in a step **and** no transition is structurally enabled (
 
 This only stops computation: playback continues to the time the run stopped at.
 
-If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping.
+If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping. A run in [steps](#steps) is the exception: a step in which nothing fires ends it, whatever stays structurally enabled.
 
 A transition blocked only because its output place is at [capacity](drawing-a-net.md#token-capacity) is _not_ structurally enabled, so a net whose remaining transitions are all blocked by full places reports deadlock rather than stepping on with nothing happening.
 
@@ -150,6 +179,8 @@ computed up to, to the millisecond. Both values include
 **s** for seconds: the current time is prominent, with **of** and the total below it.
 The toolbar expands with a quick start and gentle settle to reveal the time readout and scrubber when a run starts.
 
+A run in [steps](#steps) reads **Step** and the step being viewed, with **of** and the number of steps computed below it.
+
 Playback widens the toolbar, so in a narrow window it keeps Play and folds the
 scrubber, the time readout and the playback settings away until you point at
 it.
@@ -159,6 +190,8 @@ it.
 ### Speed
 
 Choose a playback speed multiplier via playback settings: **1x**, **2x**, **5x**, **10x**, **30x**, **60x**, **120x**, or **Max** (as fast as possible).
+
+For a run in [steps](#steps) the section reads **Steps per second**, with the same values.
 
 ### Play mode
 
@@ -175,7 +208,7 @@ A Stochastic simulation is not paced by the playhead: once started, its runs com
 ### Stopping condition
 
 - **Run indefinitely** -- simulation continues until manually paused or deadlock. Not available for a Stochastic simulation, which needs an end time.
-- **End at fixed time** -- simulation stops after a set number of seconds (simulation time).
+- **End at fixed time** -- simulation stops after a set number of seconds (simulation time). For a run in [steps](#steps) it reads **End at step**, with a whole number.
 
 Stopping conditions are **locked after the simulation starts**. Reset the simulation to change them.
 
@@ -186,7 +219,7 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 <img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
-- **Scrub** -- click the chart to view that time, or drag across it. A playhead indicator shows the viewed time.
+- **Scrub** -- click the chart to view that time, or drag across it. A playhead indicator shows the viewed time. For a run in [steps](#steps) the axis counts steps and the tooltip names the step under the pointer.
 - **Closing the panel** -- a closed timeline stops reading the run and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
   The timeline shows the run's events. Token counts per place or per type are drawn as steps that change at the events, and **Transition firings** shows one lane per transition with a mark at every firing. The Metric picker groups user metrics by what their code reads: a **discrete** metric reads only token counts and attributes that change at events, so it is drawn as steps read at the events; a **continuous** metric reads an attribute that follows a differential equation, so it is drawn as a curve read from the interpolated state between events. With the **Adaptive** solver the picker also offers **Solver › Accumulated error**: one series per place with dynamics, the error the solver has accumulated for that place's attributes since the start of the run, stepped at the events it was recorded on, in the attributes' own units. A place advanced exactly stays at zero. Every firing is also marked on the ruler above the chart, and pointing at one names the transitions that fired; fainter ticks mark the frames recorded between firings. Click anywhere in the chart to view that exact time and drag to scrub; a drag that starts on the playhead keeps it under the pointer. Scroll sideways to pan, and pinch or scroll up and down to zoom around the pointer; **Fit to run** returns to the whole run. With the chart focused, the arrow keys step between firings, and Home and End jump to the start and to the end of what is computed. The playback bar gains **Previous event** and **Next event** buttons that move between firings and the initial state, and its scrubber moves through time rather than frames. **Stacked** adds the traces up as bands, for token counts and for a metric; the chart type control is not offered for **Transition firings** or **Accumulated error**, which have no stacked form.
 
