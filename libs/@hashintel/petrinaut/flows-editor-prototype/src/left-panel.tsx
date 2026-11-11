@@ -450,70 +450,9 @@ const FlowList = ({
       ];
     });
 
-  /**
-   * D16: siblings that start together (fed by the same step and port, or by nothing inside a For each) show as one
-   * collapsible "In parallel" group.
-   */
-  const withParallel = (
-    steps: DraftStep[],
-    depth: number,
-  ): React.ReactNode[] => {
-    const ids = new Set(steps.map((step) => step.stepId));
-    const feed = (step: DraftStep) => {
-      const incoming = document.wires.filter(
-        (wire) => wire.target === step.stepId,
-      );
-      const fromSibling = incoming.find((wire) => ids.has(wire.source));
-      return fromSibling
-        ? `${fromSibling.source}:${fromSibling.sourcePort}`
-        : incoming.length === 0
-          ? "start of group"
-          : `${incoming[0]!.source}:${incoming[0]!.sourcePort}`;
-    };
-    const byFeed = new Map<string, DraftStep[]>();
-    for (const step of steps) {
-      byFeed.set(feed(step), [...(byFeed.get(feed(step)) ?? []), step]);
-    }
-    const shown = new Set<string>();
-    return steps.flatMap((step) => {
-      if (shown.has(step.stepId)) {
-        return [];
-      }
-      const together = byFeed.get(feed(step)) ?? [step];
-      if (together.length < 2) {
-        shown.add(step.stepId);
-        return stepRows([step], depth, withParallel);
-      }
-      for (const member of together) {
-        shown.add(member.stepId);
-      }
-      const key = `parallel:${feed(step)}`;
-      const open = !closed.includes(key);
-      return [
-        <button
-          key={key}
-          type="button"
-          className={rowStyle}
-          style={indent(depth).button}
-          aria-expanded={open}
-          onClick={() =>
-            setClosed((current) =>
-              open ? [...current, key] : current.filter((id) => id !== key),
-            )
-          }
-        >
-          {lead()}
-          <span className={chevronSlotStyle} style={indent(depth).chevron}>
-            <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
-          </span>
-          <Tile icon="diagramNested" tone="neutral" />
-          <span className={labelStyle}>In parallel</span>
-          {groupCount(`${together.length} steps`)}
-        </button>,
-        ...(open ? stepRows(together, depth + 1, withParallel) : []),
-      ];
-    });
-  };
+  /** The Steps list is flat (11 Nov, inbox steps-in-parallel): steps that start together sit at one depth, no group row. */
+  const flatRows = (steps: DraftStep[], depth: number): React.ReactNode[] =>
+    stepRows(steps, depth, flatRows);
 
   return (
     <div className={css({ display: "flex", flexDirection: "column" })}>
@@ -552,7 +491,7 @@ const FlowList = ({
           </span>
           {statusFor ? trail(START_ID) : null}
         </button>
-        {withParallel(document.steps, 0)}
+        {flatRows(document.steps, 0)}
         {flowTake === 4 || flowTake === 5 ? (
           <button
             type="button"

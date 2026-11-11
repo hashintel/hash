@@ -63,7 +63,7 @@ export type EditorUi = {
   zoomBase?: number;
   /** A screen state's + handles show on hover only; the Figma frame draws the + beside the selected step in J2 A and B2 alone. */
   quietPortAdd?: boolean;
-  /** For each boxes (and "In parallel" rows) folded, in the Steps tree and on the canvas alike (J1.13). */
+  /** For each boxes folded, in the Steps tree and on the canvas alike (J1.13). */
   collapsed?: string[];
   /** The left panel's tab (3 Nov): the steps tree or the Add library. */
   leftPanel?: "steps" | "add";
