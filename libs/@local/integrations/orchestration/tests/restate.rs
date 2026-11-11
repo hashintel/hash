@@ -27,7 +27,7 @@ use error_stack::Report;
 use hash_integrations_orchestration::{
     AdmissionKey, BackendError, BucketScope, CoordinationStore as _, FailureKind, FunctionVersion,
     Payload, RetryPolicy, RunError, RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus,
-    Runs as _, StartError, StepContext, StepFailure, StepIndex, StepName, TokenBucket, Worker as _,
+    Runs as _, StepContext, StepFailure, StepIndex, StepName, TokenBucket, Worker as _,
     restate::{RestateBackend, RestateConfig},
 };
 use time::UtcDateTime;
@@ -217,6 +217,8 @@ async fn run_to_end<F: RunFunction + 'static>(
     status
 }
 
+// Steps: how a run executes them, retries them and fails.
+
 /// Doubles its input in one step and adds one in another.
 struct DoubleThenAddOne;
 
@@ -372,7 +374,10 @@ async fn run_function_fails_itself() {
     );
 }
 
-/// With no worker running, a started run stays queued and holds its admission key.
+// Runs: starting and cancelling them.
+
+/// With no worker running, a started run stays queued. Restate attaches a run that is started
+/// again to the run with its ID, and queues a second run under the same admission key.
 ///
 /// Restate accepts a run once it knows the run object, so a worker registers first and stops.
 #[tokio::test]
@@ -384,7 +389,7 @@ async fn start_without_worker() {
         .await
         .stop()
         .await;
-    let (admission, run) = (admission_key(), run_id());
+    let (admission, run, second) = (admission_key(), run_id(), run_id());
     let first = start(&admission, DoubleThenAddOne::VERSION, &20_u32);
 
     backend
@@ -392,40 +397,26 @@ async fn start_without_worker() {
         .await
         .expect("should start the run");
     backend
-        .start(run.clone(), first)
+        .start(run.clone(), first.clone())
         .await
         .expect("starting the same run again should attach to it");
-
-    let mismatch = backend
-        .start(
-            run.clone(),
-            start(&admission, DoubleThenAddOne::VERSION, &21_u32),
-        )
+    backend
+        .start(second.clone(), first)
         .await
-        .expect_err("a different start under the same ID should be rejected");
-    assert_eq!(*mismatch.current_context(), StartError::StartMismatch);
+        .expect("a second run under the admission key should queue");
 
-    let active = backend
-        .start(
-            run_id(),
-            start(&admission, DoubleThenAddOne::VERSION, &20_u32),
-        )
-        .await
-        .expect_err("a second run under an active admission key should be rejected");
-    assert_eq!(
-        *active.current_context(),
-        StartError::AlreadyActive {
-            active: run.clone()
-        }
-    );
-
-    assert_eq!(
-        backend.status(&run).await.expect("should read the status"),
-        Some(RunStatus {
-            phase: RunPhase::Pending,
-            steps_recorded: 0
-        })
-    );
+    for queued in [&run, &second] {
+        assert_eq!(
+            backend
+                .status(queued)
+                .await
+                .expect("should read the status"),
+            Some(RunStatus {
+                phase: RunPhase::Pending,
+                steps_recorded: 0
+            })
+        );
+    }
     assert_eq!(
         backend
             .status(&run_id())
@@ -509,6 +500,8 @@ async fn cancel_stops_before_the_next_step() {
         .expect("cancelling an unknown run should succeed");
     worker.stop().await;
 }
+
+// Workers: one that dies, one that hangs, and two versions side by side.
 
 /// Two steps, of which the second waits until the test releases it. Counts how often the first
 /// step's body runs, which a replay must not add to. `V` is the function's version.
@@ -765,6 +758,8 @@ async fn run_stays_on_its_version() {
     worker_one.stop().await;
     worker_two.stop().await;
 }
+
+// Token buckets.
 
 /// A bucket scope no other test uses.
 fn scope() -> BucketScope {

@@ -44,7 +44,7 @@ uuid              = { workspace = true, features = ["std", "v4"] }
 
 [features]
 dbos    = ["dep:dbos", "dep:tokio", "dep:tokio-postgres", "dep:tracing", "dep:uuid"]
-restate = ["dep:reqwest", "dep:restate-sdk", "dep:tokio", "dep:tracing", "tokio/macros", "tokio/net", "tokio/sync"]
+restate = ["dep:reqwest", "dep:restate-sdk", "dep:tokio", "dep:tracing", "tokio/macros", "tokio/net"]
 
 [lints]
 workspace = true
@@ -55,4 +55,8 @@ required-features = ["dbos"]
 
 [[test]]
 name              = "restate"
+required-features = ["restate"]
+
+[[example]]
+name              = "restate_run"
 required-features = ["restate"]
