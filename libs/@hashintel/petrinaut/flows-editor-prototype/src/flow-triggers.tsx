@@ -402,17 +402,10 @@ const detailGridStyle = css({
   },
 });
 
-/** The flows-level triggers page is not in the prototype: a stub in a new tab. */
 /** The Flows › Triggers page for the flow open in the editor. */
-const openTriggersPage = () => {
+export const openTriggersPage = () => {
   const route = parseRoute(globalThis.location.pathname, globalThis.location.search);
   navigate(route.page === "editor" ? `/flows/${route.flowId}/triggers` : "/flows/triggers");
-};
-
-export const openFlowTriggers = (flow: string) => {
-  const html = `<!doctype html><meta charset="utf-8"><title>Flow triggers</title><body style="font:14px system-ui;margin:48px;color:#202020"><p style="color:#8d8d8d">Stub · Flows prototype</p><h1 style="font-size:20px">Flow triggers · ${flow}</h1><p>The flows-level page where triggers are added and edited (Q·B, 4 Nov). Not built yet.</p></body>`;
-  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  globalThis.open(url, "_blank", "noopener");
 };
 
 const iconFor: Record<FlowTrigger["kind"], IconName> = {

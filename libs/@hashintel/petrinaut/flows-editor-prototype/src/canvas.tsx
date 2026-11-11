@@ -61,7 +61,7 @@ import {
   ghostKinds,
   ghostSummary,
   ghostTakeSummary,
-  openFlowTriggers,
+  openTriggersPage,
   useFlowTriggers,
 } from "./flow-triggers";
 import { useRunView } from "./history-view";
@@ -2205,7 +2205,6 @@ const GhostSingleView = ({ selected }: NodeProps<StepNode>) => {
 
 /** `?triggernone=1`: one quiet line under the ghosts, in the DS orange at a muted step, with the way to fix it. */
 const GhostNoteView = () => {
-  const { document } = useEditor();
   return (
     <div
       className={css({
@@ -2238,7 +2237,7 @@ const GhostNoteView = () => {
               cursor: "pointer",
             }),
           )}
-          onClick={() => openFlowTriggers(document.name)}
+          onClick={openTriggersPage}
         >
           Edit flow triggers
         </button>

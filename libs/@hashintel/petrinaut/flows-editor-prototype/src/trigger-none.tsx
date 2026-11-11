@@ -18,8 +18,7 @@
 import { Banner, Button, Dialog, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useEditor } from "./editor-context";
-import { openFlowTriggers } from "./flow-triggers";
+import { openTriggersPage } from "./flow-triggers";
 import { triggerNoneLayout } from "./trigger-flags";
 
 const TITLE = "Nothing can start this flow";
@@ -215,10 +214,9 @@ const BannerLayout = ({
 );
 
 export const NoTriggerWarning = (props: Props) => {
-  const { document } = useEditor();
   const editTriggers = () => {
     props.onClose();
-    openFlowTriggers(document.name);
+    openTriggersPage();
   };
   if (triggerNoneLayout === "modal") {
     return (

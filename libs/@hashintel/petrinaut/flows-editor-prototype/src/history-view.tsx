@@ -45,7 +45,7 @@ import {
   runTriggerId,
   triggerLabel,
 } from "./run-history";
-import { openFlowTriggers } from "./flow-triggers";
+import { openTriggersPage } from "./flow-triggers";
 import { selectedLabel } from "./menu-rows";
 import { propertyPathOf } from "./property-path";
 import { triggerFiredTake } from "./trigger-flags";
@@ -479,7 +479,6 @@ type Detail = {
 
 /** `?triggerfired=3`: the fired trigger, selected, and the panel tells who or what started the run. */
 const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
-  const { document } = useEditor();
   const manual = run.trigger.kind === "manual";
   const rows: [string, string][] = manual
     ? [
@@ -533,7 +532,7 @@ const FiredTriggerPanel = ({ run }: { run: RunRecord }) => {
               textDecoration: "underline",
               cursor: "pointer",
             })}
-            onClick={() => openFlowTriggers(document.name)}
+            onClick={() => openTriggersPage()}
           >
             Edit flow triggers
           </button>
