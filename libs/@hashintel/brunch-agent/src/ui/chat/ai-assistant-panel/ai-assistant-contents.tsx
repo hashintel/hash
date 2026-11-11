@@ -677,7 +677,7 @@ export const AiAssistantContents = ({
                   />
                 </div>
               )}
-              {isBrunchChat && !reviewingHostTab && <ComposerSelection />}
+              {!reviewingHostTab && <ComposerSelection />}
               <AiAssistantComposer
                 busy={isBusy}
                 control={composerControl}

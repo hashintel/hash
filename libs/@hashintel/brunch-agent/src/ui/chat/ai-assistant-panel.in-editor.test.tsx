@@ -261,10 +261,7 @@ test("shows the editor's selection on the composer and sends it with the message
           transitions: [],
         },
       })}
-      plugins={[
-        selectionPlugin,
-        chatPlugin({ presentation: "brunch", transport }),
-      ]}
+      plugins={[selectionPlugin, chatPlugin({ transport })]}
     />,
   );
   fireEvent.click(
@@ -295,6 +292,72 @@ test("shows the editor's selection on the composer and sends it with the message
   // carries none.
   fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
   await waitFor(() => expect(screen.queryByText(/Asking about/)).toBeNull());
+});
+
+test("sends the editor's selection with a Voice turn", async () => {
+  const bodies: unknown[] = [];
+  const transport: PetrinautAiTransport = {
+    reconnectToStream: () => Promise.resolve(null),
+    sendMessages: ({ body }) => {
+      bodies.push(structuredClone(body));
+      return Promise.resolve(
+        streamChunks(textReply("reply", "It holds work.")),
+      );
+    },
+  };
+  let editor:
+    | Parameters<PluginHook<typeof SelectionTestPlugin>>[0]["editor"]
+    | undefined;
+  let voice:
+    | Parameters<NonNullable<PetrinautAiAssistant["renderVoiceMode"]>>[0]
+    | undefined;
+  render(
+    <Petrinaut
+      handle={createJsonDocHandle({
+        initial: {
+          places: [
+            {
+              id: "queue",
+              name: "Queue",
+              colorId: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+          ],
+          transitions: [],
+        },
+      })}
+      plugins={[
+        SelectionTestPlugin((api) => {
+          editor = api.editor;
+          return {};
+        }),
+        chatPlugin({
+          transport,
+          renderVoiceMode: (context) => {
+            voice = context;
+            return null;
+          },
+        }),
+      ]}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Show AI assistant" }),
+  );
+  act(() =>
+    editor?.navigate((current) => ({
+      ...current,
+      selection: [{ type: "place", id: "queue" }],
+    })),
+  );
+  await waitFor(() => expect(voice?.canAcceptVoiceInput).toBe(true));
+  await act(() => voice?.submitVoiceInput({ text: "Why is this here?" }));
+  await screen.findByText("It holds work.", {}, { timeout: 4_000 });
+  expect(bodies).toEqual([
+    { selection: [{ type: "place", id: toPetrinautId("queue") }] },
+  ]);
 });
 
 test("runs automatic tools against the editor through refusal-aware plugin edits", async () => {

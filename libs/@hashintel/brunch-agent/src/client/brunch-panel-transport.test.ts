@@ -303,6 +303,7 @@ test("sends the host's version load with the user's text", async () => {
   expect(readPetrinautSubmissionContext(body)).toEqual({
     words: [],
     versionLoad,
+    selection: [],
   });
 });
 
