@@ -168,7 +168,7 @@ Controls how computation and playback interact:
 
 ### Stopping condition
 
-- **Run indefinitely** -- simulation continues until manually paused or deadlock.
+- **Run indefinitely** -- simulation continues until manually paused or deadlock. Not available for a Stochastic simulation, which needs an end time.
 - **End at fixed time** -- simulation stops after a set number of seconds (simulation time).
 
 Stopping conditions are **locked after the simulation starts**. Reset the simulation to change them.

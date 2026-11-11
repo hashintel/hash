@@ -185,6 +185,7 @@ export const PlaybackSettingsMenu = ({
 
   const {
     state: simulationState,
+    mode,
     maxTime,
     setMaxTime,
   } = use(SimulationContext);
@@ -200,6 +201,8 @@ export const PlaybackSettingsMenu = ({
   } = playback ?? framePlayback;
 
   const hasSimulation = simulationState !== "NotRun";
+  // Many runs are compared at the same times, so they always have an end.
+  const needsEndTime = mode === "stochastic";
 
   // Derive stopping condition from maxTime
   const stoppingCondition: "indefinitely" | "fixed" =
@@ -397,17 +400,20 @@ export const PlaybackSettingsMenu = ({
                         size="sm"
                         className={menuItemStyle({
                           selected: stoppingCondition === "indefinitely",
-                          disabled: hasSimulation,
+                          disabled: hasSimulation || needsEndTime,
                         })}
                         onClick={() =>
                           !hasSimulation &&
+                          !needsEndTime &&
                           handleStoppingConditionChange("indefinitely")
                         }
-                        aria-disabled={hasSimulation}
+                        aria-disabled={hasSimulation || needsEndTime}
                         tooltip={
                           hasSimulation
                             ? "Reset simulation to change stopping conditions"
-                            : undefined
+                            : needsEndTime
+                              ? "A Stochastic simulation needs an end time"
+                              : undefined
                         }
                       >
                         <Icon
