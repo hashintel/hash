@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 
 import { linearIntegrationMarkPath } from "../integrations.page/integration-icon-paths";
-
 import { SettingsTable } from "../shared/settings-table";
 import { SettingsTableCell } from "../shared/settings-table-cell";
 import { useLinearIntegrations } from "./linear/use-linear-integrations";
