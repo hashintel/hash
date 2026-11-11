@@ -51,6 +51,7 @@ export type NeedsReviewTake =
   | "r2-3"
   | "r2-4";
 
+/** r2-2 is the default (11 Nov, inbox needs-review); `?needsreview=today` shows no needs-review UI, as before. */
 export const needsReviewTake: NeedsReviewTake | null = (() => {
   const value = new URLSearchParams(globalThis.location.search).get(
     "needsreview",
@@ -64,7 +65,9 @@ export const needsReviewTake: NeedsReviewTake | null = (() => {
     value === "r2-3" ||
     value === "r2-4"
     ? value
-    : null;
+    : value === "today"
+      ? null
+      : "r2-2";
 })();
 
 /** Whether the form opens in the right panel. */

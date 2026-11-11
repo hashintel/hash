@@ -57,9 +57,9 @@ export const openDecisions: OpenSwitch[] = [
     flag: "needsreview",
     defaultValue: null,
     options: [
-      { label: "none", value: null },
+      { label: "r2-2", value: null },
+      { label: "none", value: "today" },
       { label: "r2-1", value: "r2-1" },
-      { label: "r2-2", value: "r2-2" },
       { label: "r2-3", value: "r2-3" },
       { label: "r2-4", value: "r2-4" },
       { label: "popout", value: "popout" },
@@ -123,20 +123,6 @@ export const openDecisions: OpenSwitch[] = [
       { label: "2", value: "2" },
       { label: "3", value: "3" },
       { label: "4", value: "4" },
-    ],
-  },
-  {
-    card: "trigger-none",
-    title: "Ghost triggers · nothing can start the flow",
-    flag: "triggernone",
-    defaultValue: null,
-    options: [
-      { label: "off", value: null },
-      { label: "1 line", value: "1" },
-      { label: "2 modal", value: "2" },
-      { label: "2 popover", value: "2p" },
-      { label: "2 toast", value: "2t" },
-      { label: "2 banner", value: "2b" },
     ],
   },
   {

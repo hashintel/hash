@@ -688,6 +688,13 @@ const ReviewPanel = ({
   withList?: boolean;
 }) => {
   const { open } = useShown();
+  const answer = (
+    <Section title="Answer">
+      <div className={css({ gridColumn: "1 / -1" })}>
+        <AnswerForm request={request} />
+      </div>
+    </Section>
+  );
   return (
     <aside className={panelStyle} aria-label="Needs review" data-review-panel>
       {withList ? (
@@ -713,12 +720,10 @@ const ReviewPanel = ({
       ) : null}
       <div className={panelBodyStyle}>
         <StepHeader request={request} />
+        {/* r2-2 pins the question on top, so it shows without scrolling (ledger 11 Nov 14:40). */}
+        {take === "r2-2" ? answer : null}
         <ContextView request={request} pageWidth={156} />
-        <Section title="Answer">
-          <div className={css({ gridColumn: "1 / -1" })}>
-            <AnswerForm request={request} />
-          </div>
-        </Section>
+        {take === "r2-2" ? null : answer}
       </div>
     </aside>
   );

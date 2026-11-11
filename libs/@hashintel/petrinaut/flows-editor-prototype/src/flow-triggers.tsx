@@ -162,9 +162,6 @@ export const useFlowTriggers = (): FlowTriggers => {
   return flowTriggersOf(document, ui.triggerSwitches);
 };
 
-const plural = (count: number, word: string) =>
-  `${count} ${word}${count === 1 ? "" : "s"}`;
-
 /** What a ghost node says: its kind, a one-line summary, and whether any of it is on (50%) or not (25%). */
 export const ghostSummary = (
   triggers: FlowTriggers,
@@ -184,12 +181,13 @@ export const ghostSummary = (
   if (kind === "schedule") {
     return {
       title: "Schedule",
+      // Kind as the title, then what is on (10 Nov, inbox triggers-scale: 3), as Responsive reads.
       line:
         items.length === 0
           ? "None"
-          : paused > 0
-            ? `${plural(items.length, "schedule")} · ${paused} paused`
-            : plural(items.length, "schedule"),
+          : [on > 0 ? `${on} on` : "", paused > 0 ? `${paused} paused` : ""]
+              .filter(Boolean)
+              .join(" · "),
       icon: "calendar",
       on: on > 0,
     };

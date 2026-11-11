@@ -1,6 +1,6 @@
 /**
- * Two inbox takes on the `node-paths` demo flow (5 Nov), read from the URL only. With neither param the If panel and
- * the mock Switch look as they do today.
+ * Two inbox takes on the `node-paths` demo flow (5 Nov), read from the URL only. `ifrename` defaults to `a` (picked 10 Nov);
+ * with no `switch` param the mock Switch looks as it does today.
  *
  * `?ifrename=` (inbox `if-rename-description`). If is binary since Ciarán's rule (Slack, 5 Nov 11:20), so its No path
  * is the catch-all the card calls Otherwise. Path names are edited in place on hover (Attio), with no pen, and the
@@ -23,9 +23,10 @@ export type SwitchTake = "s1" | "s2" | "s3" | "s4";
 
 const query = new URLSearchParams(globalThis.location.search);
 
+// `a` is the default (10 Nov, inbox if-rename-description: A); `?ifrename=today` shows no renaming, as before.
 export const ifRenameTake: IfRenameTake | null = (() => {
   const value = query.get("ifrename");
-  return value === "a" || value === "b" ? value : null;
+  return value === "b" ? "b" : value === "today" ? null : "a";
 })();
 
 export const switchTake: SwitchTake | null = (() => {
