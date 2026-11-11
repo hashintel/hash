@@ -99,8 +99,8 @@ const scenarioSelectWrapperStyle = css({
 });
 
 // The form's two columns: Variables and Parameters on the left, the wider
-// Initial state on the right. The scenario picker and Time Step sit above
-// the grid, so the columns keep the full panel width and their headers
+// Initial state on the right. The scenario picker and the run settings sit
+// above the grid, so the columns keep the full panel width and their headers
 // align.
 const containerStyle = css({
   display: "grid",
@@ -215,7 +215,7 @@ const NO_SCENARIO = "__none__";
 
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel:
- * a scenario picker, the Time Step, and the scenario form — editable with no
+ * a scenario picker, the run settings, and the scenario form — editable with no
  * scenario selected, in run mode for a saved scenario.
  */
 const SimulationSettingsContent: React.FC = () => {

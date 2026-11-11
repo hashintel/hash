@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.playback
- * @role Picks the viewed frame over time and defines the per-play-mode backpressure profiles
+ * @role Moves the viewed position of a run, by simulation time or by frame, and defines how far each play mode computes ahead
  */
 
 export {
