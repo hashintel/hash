@@ -1292,8 +1292,21 @@ export const useUsedRows = (): UsedRows | null => {
  */
 export const useUsedAlign = (): "flush" | null => (useLocation().query.get("usedalign") === "flush" ? "flush" : null);
 
-/** `?usedprop=pill`: the input name is drawn as the output row's type chip. No param keeps the muted text. */
-export const useUsedPill = (): boolean => useLocation().query.get("usedprop") === "pill";
+/**
+ * `?usedprop=` (inbox used-in-row-spacing): how the open list shows the input the output fills. No param keeps the
+ * faint text on the right. pill: the output row's type chip. chevron: `Step name › Input` on one line, the input faint.
+ * leader: the faint input on the right with a dotted leader between. rail: chevron, plus a hairline down the type-icon
+ * column from the output's icon to the last row (none with `usedalign=flush`, where the tiles sit in that column).
+ */
+export type UsedProp = "pill" | "chevron" | "leader" | "rail";
+
+export const useUsedProp = (): UsedProp | null => {
+  const value = useLocation().query.get("usedprop");
+  return value === "pill" || value === "chevron" || value === "leader" || value === "rail" ? value : null;
+};
+
+/** `?usedprop=pill`: the input name is drawn as the output row's type chip. */
+export const useUsedPill = (): boolean => useUsedProp() === "pill";
 
 const usedRowsStyle = css({
   "&[data-align=flush]": {
@@ -1327,11 +1340,75 @@ const usedRowsStyle = css({
   "& [data-pillrow]": { display: "flex", alignItems: "center", gap: "[var(--lead-gap, 10px)]", minWidth: "[0]" },
   "& [data-pillrow] > [data-pillname]": { display: "block", minWidth: "[0]", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   "& [data-pillrow] [data-chips]": { flexWrap: "nowrap", flexShrink: 0 },
+  "& [data-proprow]": { display: "flex", alignItems: "baseline", flex: "[1 1 0]", minWidth: "[0]" },
+  "& [data-proprow] > [data-propname]": {
+    display: "block",
+    flexShrink: 1,
+    minWidth: "[0]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  "& [data-proprow] > [data-propinput]": { flexShrink: 0, whiteSpace: "nowrap", color: "neutral.fg.subtle" },
+  "& [data-proprow][data-kind=leader] > [data-propinput]": { textStyle: "xs" },
+  // 1 px dots 4 px apart on the text's baseline, the panel's hairline colour, 6 px clear of each name.
+  "& [data-proprow] > [data-leader]": {
+    flex: "[1 1 0]",
+    minWidth: "[0]",
+    height: "[1px]",
+    marginX: "1.5",
+    backgroundImage: "[linear-gradient(to right, var(--colors-neutral-bd-subtle) 1px, transparent 1px)]",
+    backgroundSize: "[4px 1px]",
+    backgroundRepeat: "repeat-x",
+  },
+  "&[data-prop=rail]:not([data-align=flush])": {
+    position: "relative",
+    // A hairline down the output row's type-icon column: 4 px under the icon to the last row's tile centre.
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      left: "[calc(var(--lead-pad, 8px) + var(--lead-col, 16px) / 2 - 0.5px)]",
+      top: "[-8px]",
+      bottom: "[calc(4px + var(--last-row, 28px) / 2)]",
+      width: "[1px]",
+      backgroundColor: "neutral.bd.subtle",
+      pointerEvents: "none",
+    },
+  },
+  "&[data-rows=a], &[data-rows=b]": { "--last-row": "34px" },
+  "&[data-rows=c][data-prop]": { "--last-row": "42px" },
 });
 
 const UsedRowContent = ({ lead, name, input: inputText }: { lead?: React.ReactNode; name: React.ReactNode; input: string }) => {
   const rows = useUsedRows();
-  const pill = useUsedPill();
+  const prop = useUsedProp();
+  const pill = prop === "pill";
+  if (prop === "chevron" || prop === "rail") {
+    return (
+      <>
+        {lead}
+        <span data-proprow data-kind="chevron">
+          <span data-propname>{name}</span>
+          <span data-propinput>
+            <span className={sepStyle}>›</span>
+            {inputText}
+          </span>
+        </span>
+      </>
+    );
+  }
+  if (prop === "leader") {
+    return (
+      <>
+        {lead}
+        <span data-proprow data-kind="leader">
+          <span data-propname>{name}</span>
+          <span data-leader aria-hidden />
+          <span data-propinput>{inputText}</span>
+        </span>
+      </>
+    );
+  }
   const input = pill ? (
     <span data-chips>
       {inputText.split(", ").map((part) => (
@@ -1538,11 +1615,18 @@ const StructureBlock = ({
   const inputsOf = (use: Use) => use.inputs.join(", ");
   const usedRows = useUsedRows();
   const usedAlign = useUsedAlign();
+  const usedProp = useUsedProp();
   const shown = take === "s4" && !more ? uses.slice(0, 2) : uses;
   const rest = uses.length - shown.length;
   const body =
     uses.length === 0 ? null : take === "s1" ? (
-      <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined} data-align={usedAlign ?? undefined}>
+      <div
+        className={`${structStyle} ${usedRowsStyle}`}
+        data-used-names
+        data-rows={usedRows ?? undefined}
+        data-align={usedAlign ?? undefined}
+        data-prop={usedProp ?? undefined}
+      >
         <span data-caption>Used in</span>
         {uses.map((use) => (
           <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
@@ -1731,6 +1815,7 @@ const RestBlock = ({
   const [adding, setAdding] = useState(false);
   const usedRows = useUsedRows();
   const usedAlign = useUsedAlign();
+  const usedProp = useUsedProp();
   const addRef = useRef<HTMLButtonElement>(null);
   const nameOf = (id: string) => {
     const step = findStep(document, id)?.step;
@@ -1838,7 +1923,13 @@ const RestBlock = ({
         </span>
       </div>
       {open && count > 0 ? (
-        <div className={`${structStyle} ${usedRowsStyle}`} data-used-names data-rows={usedRows ?? undefined} data-align={usedAlign ?? undefined}>
+        <div
+        className={`${structStyle} ${usedRowsStyle}`}
+        data-used-names
+        data-rows={usedRows ?? undefined}
+        data-align={usedAlign ?? undefined}
+        data-prop={usedProp ?? undefined}
+      >
           {uses.map((use) => (
             <button key={use.stepId} type="button" className={flatRowStyle} {...on(use.stepId)}>
               <UsedRowContent

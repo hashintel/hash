@@ -183,6 +183,9 @@ export const openDecisions: OpenSwitch[] = [
     options: [
       { label: "muted text", value: null },
       { label: "pill", value: "pill" },
+      { label: "chevron", value: "chevron" },
+      { label: "dotted leader", value: "leader" },
+      { label: "chevron + rail", value: "rail" },
     ],
   },
 ];
