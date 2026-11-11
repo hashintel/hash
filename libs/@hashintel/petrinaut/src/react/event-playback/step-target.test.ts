@@ -61,6 +61,20 @@ describe("findStepTargetIndex", () => {
     expect(findStepTargetIndex(trace, 0, -1)).toBeNull();
   });
 
+  it("steps back past every firing that shares the viewed time", () => {
+    //  index: 0        1       2       3          4
+    const simultaneous = traceOf([
+      { time: 0, kind: "initial" },
+      { time: 0.2, kind: "firing" },
+      { time: 0.2, kind: "firing" },
+      { time: 0.2, kind: "reference" },
+      { time: 0.4, kind: "firing" },
+    ]);
+    expect(findStepTargetIndex(simultaneous, 0.4, -1)).toBe(2);
+    expect(findStepTargetIndex(simultaneous, 0.2, -1)).toBe(0);
+    expect(findStepTargetIndex(simultaneous, 0.3, -1)).toBe(2);
+  });
+
   it("has no target in an empty trace", () => {
     expect(findStepTargetIndex(traceOf([]), 0, 1)).toBeNull();
     expect(findStepTargetIndex(traceOf([]), 0, -1)).toBeNull();

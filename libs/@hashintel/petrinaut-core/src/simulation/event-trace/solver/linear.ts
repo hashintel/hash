@@ -72,8 +72,10 @@ export function matrixExponential(
     // An infinite norm would ask for infinitely many squarings.
     throw new Error("The matrix has an entry that is not finite");
   }
+  // `log2(norm / 0.5)` without the division, which overflows for a norm
+  // above half the largest double.
   const squarings =
-    norm <= 0.5 ? 0 : Math.max(0, Math.ceil(Math.log2(norm / 0.5)));
+    norm <= 0.5 ? 0 : Math.max(0, Math.ceil(Math.log2(norm) + 1));
   const scale = 2 ** -squarings;
   const scaled = new Float64Array(size * size);
   for (let index = 0; index < scaled.length; index++) {

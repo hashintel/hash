@@ -109,9 +109,10 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   const modeRef = useLatest(mode);
 
   // The run computes ahead of the viewed time by the mode's lead, and not at
-  // all in view-only mode. Re-issued as the viewed time moves, since a
-  // demand only ever raises the worker's target; a demand that moved by less
-  // than a frame's worth of simulated time is not worth a message.
+  // all in view-only mode. Re-issued as the viewed time moves forward; a
+  // demand that moved by less than a frame's worth of simulated time is not
+  // worth a message. A change of mode demands afresh, which is what takes
+  // the worker's target back down from the max mode's.
   useEffect(() => {
     if (!isActive || !eventSimulation || mode === "viewOnly") {
       return;
