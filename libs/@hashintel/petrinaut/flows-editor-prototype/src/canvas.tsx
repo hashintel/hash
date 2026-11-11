@@ -96,6 +96,7 @@ import {
   runTriggerId,
   triggerLabel,
 } from "./run-history";
+import { plusOpenTake } from "./plus-open";
 import { describeSource } from "./shapes";
 import {
   failedOutlineColor,
@@ -632,6 +633,13 @@ const portAddStyle = css({
     opacity: "[1]",
     outline: "[2px solid var(--flows-sel-border)]",
   },
+  // `?plusopen=`: the + its picker is open from stays, in the figma-ds pressed fill.
+  "&[data-plus-open], &[data-plus-open]:hover": {
+    opacity: "[1]",
+    backgroundColor: "neutral.bg.subtle.active",
+    borderColor: "neutral.bd.subtle.hover",
+    color: "neutral.fg.heading",
+  },
 });
 
 /** E3: the + on a port, which opens the picker and wires the new step to this port. */
@@ -652,6 +660,13 @@ const PortAdd = ({ stepId, port }: { stepId: string; port: string }) => {
       style={ui.showPortAddOn === stepId ? { opacity: 1 } : undefined}
       data-port-add={`${stepId}:${port}`}
       data-dangling={dangling || undefined}
+      data-plus-open={
+        (plusOpenTake &&
+          ui.picker?.anchor === "port" &&
+          ui.picker.after?.stepId === stepId &&
+          ui.picker.after.port === port) ||
+        undefined
+      }
       onClick={(event) => {
         event.stopPropagation();
         setUi((current) => ({

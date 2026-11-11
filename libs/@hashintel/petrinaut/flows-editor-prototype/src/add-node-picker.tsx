@@ -29,6 +29,7 @@ import {
 import { showDebug, useEditor } from "./editor-context";
 import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
+import { PlusOpenFrame, plusOpenTake } from "./plus-open";
 import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
 import { groupSwatch, tileColor } from "./status-colors";
@@ -600,6 +601,46 @@ export const AddNodePicker = ({
     );
   }
 
+  const header = (
+    <SearchHeader
+      value={search}
+      onChange={setSearch}
+      placeholder="Search"
+      focusOnOpen
+    />
+  );
+
+  // `?plusopen=a|b|c`: the picker from a port's + opens tied to the + (plus-open.tsx).
+  if (plusOpenTake && picker.anchor === "port" && picker.after) {
+    const { stepId, port } = picker.after;
+    const branch =
+      document.wires.filter(
+        (wire) => wire.source === stepId && wire.sourcePort === port,
+      ).length + (port === "false" ? 1 : 0);
+    return (
+      <>
+        <GroupRowTint />
+        <PlusOpenFrame
+          stepId={stepId}
+          port={port}
+          branch={branch}
+          menuHeight={document.steps.length === 0 ? 500 : 340}
+          menu={(plusAnchor) => (
+            <OpenMenu
+              anchor={plusAnchor}
+              label="Add node"
+              position="right-start"
+              className={cx(pickerWidthStyle, tiledRowsStyle)}
+              onClose={close}
+              header={header}
+              items={tileMenu(items, "step")}
+            />
+          )}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <GroupRowTint />
@@ -626,14 +667,7 @@ export const AddNodePicker = ({
               : 240
         }
         onClose={close}
-        header={
-          <SearchHeader
-            value={search}
-            onChange={setSearch}
-            placeholder="Search"
-            focusOnOpen
-          />
-        }
+        header={header}
         items={tileMenu(items, "step")}
       />
     </>
