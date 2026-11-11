@@ -5,6 +5,8 @@
  *
  * A projected field named `then` retains its HashQL meaning. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`.
  *
+ * Members a handle inherits from `Function.prototype` and `Object.prototype`, such as `toString` and `call`, keep their JavaScript meaning. Use `$project` for a field with one of those names.
+ *
  * @module
  */
 // oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
@@ -130,7 +132,7 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
 /**
  * A symbolic HashQL value with type-directed projection, indexing and calls.
  *
- * `T` describes the represented value, not its host wrapper. `Inputs` records the inputs needed to evaluate it. Fields and tuple positions project to new expressions. Use `$project` for fields whose names collide with SDK operations. Lists and dictionaries expose `$index`. Its result includes {@link Type.PrimitiveNull} for a missing entry. Callable descriptors expose a host call that constructs HashQL call syntax.
+ * `T` describes the represented value, not its host wrapper. `Inputs` records the inputs needed to evaluate it. Fields and tuple positions project to new expressions. Use `$project` for fields whose names collide with SDK operations or with inherited JavaScript members such as `toString`. Lists and dictionaries expose `$index`. Its result includes {@link Type.PrimitiveNull} for a missing entry. Callable descriptors expose a host call that constructs HashQL call syntax.
  *
  * `$projectUnsafe` and `$indexUnsafe` bypass descriptor restrictions and return an Unknown expression. They retain input requirements, including the index expression's requirements. They do not establish that the access is valid in HashQL.
  *
@@ -321,6 +323,10 @@ const make = <T extends Type.Any, Inputs>(
 
       if (property === TypeId) {
         return target[TypeId];
+      }
+
+      if (property in target && !Object.hasOwn(target, property)) {
+        return Reflect.get(target, property, receiver);
       }
 
       if (typeof property === "string" && /^\d+$/u.test(property)) {

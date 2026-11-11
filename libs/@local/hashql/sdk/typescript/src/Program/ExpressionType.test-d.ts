@@ -48,6 +48,21 @@ declare const reserved: Expression<
   Inputs.Empty
 >;
 
+declare const inherited: Expression<
+  Type.Struct<{
+    readonly toString: Type.PrimitiveString;
+    readonly call: Type.PrimitiveBoolean;
+    readonly __proto__: Type.PrimitiveInteger;
+    readonly name: Type.PrimitiveString;
+  }>,
+  Inputs.Empty
+>;
+declare const lookup: Expression<
+  Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
+  Inputs.Empty
+>;
+declare const generic: Expression<Type.GenericFunction.Any, Inputs.Empty>;
+
 describe("unsafe_access", () => {
   test("operation_names", () => {
     expectTypeOf(reserved.$project("pipe")).toEqualTypeOf<
@@ -91,6 +106,36 @@ describe("unsafe_access", () => {
     expectTypeOf(dynamic).not.toHaveProperty("$index");
     // @ts-expect-error Unchecked access still requires an expression or host primitive.
     dynamic.$indexUnsafe({ key: "name" });
+  });
+});
+
+describe("inherited_members", () => {
+  test("field_names", () => {
+    expectTypeOf(inherited).not.toHaveProperty("toString");
+    expectTypeOf(inherited).not.toHaveProperty("call");
+    expectTypeOf(inherited).not.toHaveProperty("__proto__");
+    expectTypeOf(inherited.$project("toString")).toEqualTypeOf<
+      Expression<Type.PrimitiveString, Inputs.Empty>
+    >();
+    expectTypeOf(inherited.$project("call")).toEqualTypeOf<
+      Expression<Type.PrimitiveBoolean, Inputs.Empty>
+    >();
+    expectTypeOf(inherited.$project("__proto__")).toEqualTypeOf<
+      Expression<Type.PrimitiveInteger, Inputs.Empty>
+    >();
+    expectTypeOf(inherited.name).toEqualTypeOf<
+      Expression<Type.PrimitiveString, Inputs.Empty>
+    >();
+  });
+
+  test("function_members", () => {
+    expectTypeOf(lookup.name).toBeNever();
+    expectTypeOf(lookup.length).toBeNever();
+    expectTypeOf(lookup.prototype).toBeNever();
+    expectTypeOf(lookup.toString()).toBeString();
+    expectTypeOf(generic.name).toBeNever();
+    expectTypeOf(generic.length).toBeNever();
+    expectTypeOf(generic.prototype).toBeNever();
   });
 });
 

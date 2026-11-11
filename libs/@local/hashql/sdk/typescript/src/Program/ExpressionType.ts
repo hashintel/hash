@@ -321,12 +321,25 @@ interface UnsafeAccessors<Inputs> {
   >;
 }
 
+/** The members a handle inherits from `Function.prototype` and `Object.prototype`. */
+type Inherited =
+  | Exclude<
+      keyof typeof Function.prototype | keyof typeof Object.prototype,
+      "name" | "length" | "prototype"
+    >
+  | "__proto__"
+  | "__defineGetter__"
+  | "__defineSetter__"
+  | "__lookupGetter__"
+  | "__lookupSetter__";
+
 type ProjectionAccessors<Fields, Inputs> = {
   readonly [
     Key in Exclude<
       keyof Fields,
       | keyof Expression.Handle<Type.Any, Inputs>
       | keyof UnsafeAccessors<Inputs>
+      | Inherited
       | "$project"
       | "$index"
     >
@@ -357,7 +370,7 @@ type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
 /**
  * Projection and indexing operations selected by an expression's semantic descriptor.
  *
- * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index` when they name actual fields. List and dictionary `$index` calls merge the key's inputs. Their result includes {@link Type.PrimitiveNull} for an absent element. Opaque descriptors expose the operations of their underlying type.
+ * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index`, and inherited JavaScript members such as `toString`, when they name actual fields. List and dictionary `$index` calls merge the key's inputs. Their result includes {@link Type.PrimitiveNull} for an absent element. Opaque descriptors expose the operations of their underlying type.
  */
 export type Accessors<T extends Type.Any, Inputs> = UnsafeAccessors<Inputs> &
   ProjectionAccessors<FieldsOf<Normalize<T>>, Inputs> &
@@ -383,21 +396,30 @@ export declare namespace Arguments {
   };
 }
 
+/** The `Function` members TypeScript gives a callable handle, as `never` where the descriptor has no field of that name. */
+type FunctionMembers<T extends Type.Any, Inputs> = Readonly<
+  Record<
+    Exclude<"name" | "length" | "prototype", keyof Accessors<T, Inputs>>,
+    never
+  >
+>;
+
 /**
  * Host call signatures that construct calls to fixed or generic HashQL functions.
  *
- * Fixed signatures constrain each argument by its declared descriptor. Generic signatures apply the argument descriptors to the declared type-level function. Both forms merge the callee's input requirements with those of every argument. Non-function descriptors contribute no call signature.
+ * Fixed signatures constrain each argument by its declared descriptor. Generic signatures apply the argument descriptors to the declared type-level function. Both forms merge the callee's input requirements with those of every argument. Non-function descriptors contribute no call signature. On a callable handle, `name`, `length` and `prototype` are `never` unless the descriptor has a field of that name.
  */
 export type Callable<T extends Type.Any, Inputs> =
   T extends Type.Function<infer Parameters, infer Returns>
-    ? <const Values extends Arguments<Parameters>>(
+    ? (<const Values extends Arguments<Parameters>>(
         ...args: Values
       ) => Expression.Expression<
         Returns,
         Input.Merge<Inputs, Arguments.Inputs<Values>>
-      >
+      >) &
+        FunctionMembers<T, Inputs>
     : T extends Type.GenericFunction<infer Signature>
-      ? <const Values extends Arguments.Any>(
+      ? (<const Values extends Arguments.Any>(
           ...args: Values &
             Arguments<
               Type.Apply<Signature, Arguments.Types<Values>>["parameters"]
@@ -405,7 +427,8 @@ export type Callable<T extends Type.Any, Inputs> =
         ) => Expression.Expression<
           Type.Apply<Signature, Arguments.Types<Values>>["returns"],
           Input.Merge<Inputs, Arguments.Inputs<Values>>
-        >
+        >) &
+          FunctionMembers<T, Inputs>
       : EmptyAccessors;
 
 /** The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal. */

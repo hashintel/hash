@@ -17,6 +17,14 @@ type Vertex = Type.Struct<{ readonly name: Type.PrimitiveString }>;
 const compile = (expression: Expression.Expression.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(expression)));
 const alias = Result.getOrThrow(JExpr.Path.decodeResult("alias"));
+const plain = (): undefined => undefined;
+const inheritedMembers = [
+  ...Object.getOwnPropertyNames(Object.prototype),
+  ...Object.getOwnPropertyNames(Function.prototype),
+].filter(
+  (name) =>
+    !Object.hasOwn(plain, name) && name !== "arguments" && name !== "caller",
+);
 
 describe("expression", () => {
   test("returned_function", () => {
@@ -202,6 +210,34 @@ describe("expression", () => {
     const thenField = record.then;
     expect(compile(thenField())).toBe(
       '[["::kernel::special_form::access","record","then"]]',
+    );
+  });
+
+  test("inherited_members", () => {
+    expect.hasAssertions();
+    const record = Expression.fromJExpr<
+      Type.Struct<{
+        readonly toString: Type.PrimitiveString;
+        readonly prototype: Type.PrimitiveBoolean;
+      }>,
+      Inputs.Empty
+    >("record");
+    for (const name of inheritedMembers) {
+      expect(Reflect.get(record, name)).toBe(Reflect.get(plain, name));
+    }
+    expect(() => {
+      Reflect.get(record, "arguments");
+    }).toThrow(TypeError);
+    expect(() => {
+      Reflect.get(record, "caller");
+    }).toThrow(TypeError);
+    // oxlint-disable-next-line typescript/no-base-to-string -- string coercion through the inherited toString is what this checks
+    expect(() => String(record)).not.toThrow();
+    expect(compile(record.$project("toString"))).toBe(
+      '["::kernel::special_form::access","record","toString"]',
+    );
+    expect(compile(record.prototype)).toBe(
+      '["::kernel::special_form::access","record","prototype"]',
     );
   });
 
