@@ -12,8 +12,9 @@ import { useId, useState } from "react";
 
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
+import { SegmentedControl } from "@hashintel/ds-components";
 
-import { TableHeaderToggle } from "../../../table-header-toggle";
+import { DsComponentsScope } from "../../../ds-components-scope";
 import { getParentVersionRows } from "./dependent-type-rows";
 import { DependentTypesByTypeTable } from "./dependent-types-by-type-table";
 import { DependentTypesByVersionTable } from "./dependent-types-by-version-table";
@@ -27,21 +28,6 @@ import type { SxProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
 type Layout = "byType" | "byVersion";
-
-const layoutOptions = (
-  [
-    { label: "By type", value: "byType" },
-    { label: "By version", value: "byVersion" },
-  ] as const
-).map(({ label, value }) => ({
-  content: (
-    <Box component="span" sx={{ px: 1.25 }}>
-      {label}
-    </Box>
-  ),
-  label,
-  value,
-}));
 
 const secondaryTextSx: SxProps<Theme> = ({ palette }) => ({
   color: palette.gray[70],
@@ -121,12 +107,18 @@ export const DependentTypesSection = ({
           sx={{ flexWrap: "wrap", alignItems: "center", gap: 2, mb: 1.5 }}
         >
           <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
-            <TableHeaderToggle
-              label="Table layout"
-              options={layoutOptions}
-              setValue={setLayout}
-              value={layout}
-            />
+            <DsComponentsScope>
+              <SegmentedControl
+                size="sm"
+                aria-label="Table layout"
+                value={layout}
+                onChange={setLayout}
+                items={[
+                  { value: "byType", label: "By type" },
+                  { value: "byVersion", label: "By version" },
+                ]}
+              />
+            </DsComponentsScope>
             <InfoButton
               label="About the layouts"
               text={

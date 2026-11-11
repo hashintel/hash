@@ -49,10 +49,7 @@ import {
 import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
 import { sortMenuTriggerChrome } from "./sort-menu-chrome";
-import {
-  TableHeaderToggle,
-  TableHeaderToggleIcon,
-} from "./table-header-toggle";
+import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
@@ -677,12 +674,7 @@ export const TypesTable: FunctionComponent<{
               options={(
                 ["Table", "Graph"] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
-                content: (
-                  <TableHeaderToggleIcon
-                    icon={visualizerViewIcons[optionValue]}
-                    label={`${optionValue} view`}
-                  />
-                ),
+                icon: visualizerViewIcons[optionValue],
                 label: `${optionValue} view`,
                 value: optionValue,
               }))}

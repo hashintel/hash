@@ -5,9 +5,10 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { theme } from "@hashintel/design-system/theme";
@@ -70,6 +71,16 @@ const userToggleName = "User v7, versions v2–v7, extends Actor v1, v2";
 
 describe("DependentTypesSection", () => {
   afterEach(cleanup);
+  beforeAll(() => {
+    // The layout `SegmentedControl` measures its segments, which jsdom can't.
+    globalThis.ResizeObserver = class ResizeObserver {
+      disconnect() {}
+
+      observe() {}
+
+      unobserve() {}
+    };
+  });
 
   it("says that it covers every version of the type", () => {
     const { section } = renderSection({ rows: [] });
@@ -202,23 +213,26 @@ describe("DependentTypesSection", () => {
     within(section).getByRole("switch", { name: "Include former types" });
   });
 
-  it("switches between the layouts", () => {
+  it("switches between the layouts", async () => {
     const { section } = renderSection({ rows: [user] });
 
-    const byChild = within(section).getByRole("button", {
+    const byChild = within(section).getByRole<HTMLInputElement>("radio", {
       name: "By type",
     });
-    const byParent = within(section).getByRole("button", {
+    const byParent = within(section).getByRole<HTMLInputElement>("radio", {
       name: "By version",
     });
-    expect(byChild.getAttribute("aria-pressed")).toBe("true");
+    expect(byChild.checked).toBe(true);
 
     fireEvent.click(byParent);
 
-    expect(byParent.getAttribute("aria-pressed")).toBe("true");
-    expect(
-      within(section).queryByRole("button", { name: userToggleName }),
-    ).toBeNull();
+    // The segmented control reports the change after the click.
+    await waitFor(() =>
+      expect(
+        within(section).queryByRole("button", { name: userToggleName }),
+      ).toBeNull(),
+    );
+    expect(byParent.checked).toBe(true);
   });
 
   it("warns that types or versions may be missing when a query reached its row limit", () => {

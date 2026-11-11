@@ -6,17 +6,14 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
 
 type TableHeaderToggleProps<Option extends string> = {
   options: {
-    /** The option's accessible name */
     label: string;
-    content: ReactNode;
+    icon: ReactElement;
     value: Option;
   }[];
-  /** The accessible name of the group */
-  label?: string;
   setValue: (value: Option) => void;
   value: Option;
 };
@@ -28,7 +25,6 @@ type TableHeaderToggleProps<Option extends string> = {
  */
 export const TableHeaderToggle = <Option extends string>({
   options,
-  label: groupLabel = "view",
   setValue,
   value: selectedValue,
 }: TableHeaderToggleProps<Option>) => {
@@ -41,7 +37,7 @@ export const TableHeaderToggle = <Option extends string>({
           setValue(updatedValue);
         }
       }}
-      aria-label={groupLabel}
+      aria-label="view"
       size="small"
       sx={{
         gap: "3px",
@@ -55,9 +51,9 @@ export const TableHeaderToggle = <Option extends string>({
           border: "0 !important",
           borderRadius: "6px !important",
           margin: "0 !important",
-          // At least square, so an icon's selected pill is 1:1. Wider content,
-          // such as a text label, sets its own width.
-          minWidth: "26px",
+          // A fixed square so every selected pill is 1:1.
+          minWidth: 0,
+          width: "26px",
           height: "26px",
           padding: 0,
           backgroundColor: "transparent",
@@ -86,32 +82,18 @@ export const TableHeaderToggle = <Option extends string>({
         },
       }}
     >
-      {options.map(({ content, label, value: optionValue }) => (
+      {options.map(({ icon, label, value: optionValue }) => (
         <ToggleButton
           key={optionValue}
           disableRipple
           value={optionValue}
           aria-label={label}
         >
-          {content}
+          <Tooltip title={label} placement="top">
+            <Box sx={{ lineHeight: 0 }}>{icon}</Box>
+          </Tooltip>
         </ToggleButton>
       ))}
     </ToggleButtonGroup>
   );
 };
-
-/**
- * An icon option's content for `TableHeaderToggle`, with its label as a
- * tooltip.
- */
-export const TableHeaderToggleIcon = ({
-  icon,
-  label,
-}: {
-  icon: ReactElement;
-  label: string;
-}) => (
-  <Tooltip title={label} placement="top">
-    <Box sx={{ lineHeight: 0 }}>{icon}</Box>
-  </Tooltip>
-);

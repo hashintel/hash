@@ -41,10 +41,7 @@ import {
 import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
 import { sortMenuTriggerChrome } from "./sort-menu-chrome";
-import {
-  TableHeaderToggle,
-  TableHeaderToggleIcon,
-} from "./table-header-toggle";
+import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
 
@@ -899,12 +896,7 @@ export const EntitiesVisualizer: FunctionComponent<{
                   "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
-                content: (
-                  <TableHeaderToggleIcon
-                    icon={visualizerViewIcons[optionValue]}
-                    label={visualizerViewLabels[optionValue]}
-                  />
-                ),
+                icon: visualizerViewIcons[optionValue],
                 label: visualizerViewLabels[optionValue],
                 value: optionValue,
               }))}
