@@ -30,6 +30,7 @@ import {
   bindBrowserDocument,
   browserCallExtension,
   type BrowserCallRecord,
+  type BrowserCallResult,
   BrowserCallsDoc,
   claimBrowserCall,
   finishBrowserCall,
@@ -56,7 +57,6 @@ const definition = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -520,8 +520,8 @@ describe("the query_basis tool", () => {
     harness: Harness,
     conversationId: ConversationId,
     toolCallId: string,
-    output: unknown,
-    metadata: unknown,
+    output: BrowserCallResult["output"],
+    metadata: BrowserCallResult["metadata"],
   ) => {
     await vi.waitFor(async () => {
       const calls = (
@@ -558,7 +558,6 @@ describe("the query_basis tool", () => {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     };

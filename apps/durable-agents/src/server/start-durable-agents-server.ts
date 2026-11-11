@@ -32,7 +32,7 @@ import * as v from "valibot";
 import {
   type BrowserContext,
   canonicalContent,
-  sdcpnInitialDataSchema,
+  vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
 import { createPetrinautAgent } from "../agent/petrinaut-agent";
@@ -83,7 +83,7 @@ const bindingOf = (
   body: Readonly<Record<string, unknown>>,
 ): BrowserContext["binding"] | "invalid" | undefined => {
   if (body.binding === undefined) return undefined;
-  const parsed = v.safeParse(sdcpnInitialDataSchema, {
+  const parsed = v.safeParse(vSdcpnInitialData, {
     binding: body.binding,
   });
   return parsed.success && parsed.output !== undefined

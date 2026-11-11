@@ -67,7 +67,6 @@ export const placeInput = (plan: TurnPlan, call: number) => ({
   name: `Place ${plan.turn}.${call}`,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 40 * call,
   y: 40 * plan.turn,
 });

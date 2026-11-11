@@ -7,16 +7,17 @@
  */
 import {
   browserExecutedToolNames,
-  browserToolMutatesDocument,
-  isNetObservationTool,
+  browserToolFacts,
   type NetStructure,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 
 /** Whether a settled result of this tool can show the model the net. */
-export const mayShowNet = (toolName: string): boolean =>
-  browserExecutedToolNames.has(toolName) &&
-  (isNetObservationTool(toolName) || browserToolMutatesDocument(toolName));
+export const mayShowNet = (toolName: string): boolean => {
+  if (!browserExecutedToolNames.has(toolName)) return false;
+  const { observesNet, documentRevision } = browserToolFacts(toolName);
+  return observesNet || documentRevision === "change";
+};
 
 export type NetResultView =
   | {
@@ -43,7 +44,7 @@ export const netResultView = (
 ): NetResultView | undefined => {
   if (!mayShowNet(toolName)) return undefined;
   const parsed = parseClientToolResultMetadata(metadata);
-  if (isNetObservationTool(toolName))
+  if (browserToolFacts(toolName).observesNet)
     return { kind: "read", revision: parsed?.documentRevision.before };
   const revision = parsed?.documentRevision.after;
   const readBack = parsed?.readBack;
