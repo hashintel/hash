@@ -454,6 +454,8 @@ export const PencilIcon = createIcon("pencil");
 export const CopyIcon = createIcon("copy");
 export const DownloadIcon = createIcon("download");
 export const ExternalLinkIcon = createIcon("externalLink");
+export const LinkIcon = createIcon("link");
+export const LinkBrokenIcon = createIcon("linkBroken");
 export const EllipsisIcon = createIcon("ellipsis");
 export const EllipsisVerticalIcon = createIcon("ellipsisVertical");
 export const CircleEllipsisIcon = createIcon("circleEllipsis");
@@ -626,6 +628,8 @@ export const hashIconPack = {
   copy: CopyIcon,
   download: DownloadIcon,
   externalLink: ExternalLinkIcon,
+  link: LinkIcon,
+  linkBroken: LinkBrokenIcon,
   ellipsis: EllipsisIcon,
   ellipsisVertical: EllipsisVerticalIcon,
   circleEllipsis: CircleEllipsisIcon,

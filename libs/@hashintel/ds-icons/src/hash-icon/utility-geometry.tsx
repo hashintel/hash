@@ -194,6 +194,18 @@ export const utilityGeometry = {
     </FilledShape>
   ),
   inputPipe: <path d="M3 12h12m-4-4 4 4-4 4M18 3h3v18h-3" />,
+  link: (
+    <g fill="none">
+      <path d="M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2" />
+      <path d="M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2" />
+    </g>
+  ),
+  linkBroken: (
+    <g fill="none">
+      <path d="m12 7 2-2a4 4 0 0 1 6 6l-2 2" />
+      <path d="m12 17-2 2a4 4 0 0 1-6-6l2-2" />
+    </g>
+  ),
   lightbulbOn: (
     <FilledShape
       cutout={
