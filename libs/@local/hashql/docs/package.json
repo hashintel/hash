@@ -12,6 +12,7 @@
     "dev:reference": "cd reference && typst watch --root ../../../../.. --features html,bundle --format bundle --no-serve main.typ dist",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
+    "prepack": "turbo run build --filter=@local/hashql-docs",
     "test:integration": "vitest run --project integration",
     "test:unit": "vitest run --project unit"
   },
