@@ -521,7 +521,9 @@ export const createExperimentRequestBuilder = ({
  * The simulator an experiment runs on. Named outright, or chosen by the
  * compute backend an older caller asks for: WebGPU fixed step for `webgpu`,
  * otherwise the simulator a Stochastic simulation starts on. A chosen
- * fixed-step simulator steps at the input's `dt`.
+ * simulator that is the one a Stochastic simulation starts on keeps the
+ * parameters that start holds, and a fixed-step one steps at the input's
+ * `dt`.
  */
 const experimentSimulatorSelection = (
   simulators: SimulatorsContextValue,
@@ -530,18 +532,25 @@ const experimentSimulatorSelection = (
   if (input.simulator) {
     return input.simulator;
   }
+  const defaultSelection = simulators.defaultSelections.stochastic;
   const simulatorId =
     input.computeBackend === "webgpu"
       ? WEBGPU_FIXED_STEP_SIMULATOR_ID
-      : simulators.defaultSelections.stochastic.simulatorId;
+      : defaultSelection.simulatorId;
   const timeStepParameter = findSimulator(
     simulators.registrations,
     simulatorId,
   )?.samplePeriodParameter;
   return {
     simulatorId,
-    parameters:
-      timeStepParameter === undefined ? {} : { [timeStepParameter]: input.dt },
+    parameters: {
+      ...(simulatorId === defaultSelection.simulatorId
+        ? defaultSelection.parameters
+        : {}),
+      ...(timeStepParameter === undefined
+        ? {}
+        : { [timeStepParameter]: input.dt }),
+    },
   };
 };
 
