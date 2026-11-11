@@ -92,4 +92,21 @@ describe("createRk45Integrator", () => {
     );
     expect(state[0]).toBeCloseTo(0.3, 14);
   });
+
+  it("fails, without retrying at smaller steps, when a derivative is not a finite number", () => {
+    let evaluations = 0;
+    const integrate = () =>
+      createRk45Integrator(1).integrate(
+        (_y, dydt) => {
+          evaluations += 1;
+          dydt[0] = Number.NaN;
+        },
+        Float64Array.of(1),
+        1,
+        tolerance,
+      );
+    expect(integrate).toThrow("not a finite number");
+    // One attempt: the seven stages of a single step, plus the first slope.
+    expect(evaluations).toBeLessThan(20);
+  });
 });

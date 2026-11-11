@@ -170,27 +170,27 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
           break;
         }
         const isLast = step >= remaining * (1 - 1e-12);
-        const h = isLast ? remaining : step;
+        const stepSize = isLast ? remaining : step;
 
         for (let index = 0; index < dimension; index++) {
-          stage[index] = state[index]! + h * A21 * k1[index]!;
+          stage[index] = state[index]! + stepSize * A21 * k1[index]!;
         }
         derivative(stage, k2);
         for (let index = 0; index < dimension; index++) {
           stage[index] =
-            state[index]! + h * (A31 * k1[index]! + A32 * k2[index]!);
+            state[index]! + stepSize * (A31 * k1[index]! + A32 * k2[index]!);
         }
         derivative(stage, k3);
         for (let index = 0; index < dimension; index++) {
           stage[index] =
             state[index]! +
-            h * (A41 * k1[index]! + A42 * k2[index]! + A43 * k3[index]!);
+            stepSize * (A41 * k1[index]! + A42 * k2[index]! + A43 * k3[index]!);
         }
         derivative(stage, k4);
         for (let index = 0; index < dimension; index++) {
           stage[index] =
             state[index]! +
-            h *
+            stepSize *
               (A51 * k1[index]! +
                 A52 * k2[index]! +
                 A53 * k3[index]! +
@@ -200,7 +200,7 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
         for (let index = 0; index < dimension; index++) {
           stage[index] =
             state[index]! +
-            h *
+            stepSize *
               (A61 * k1[index]! +
                 A62 * k2[index]! +
                 A63 * k3[index]! +
@@ -211,7 +211,7 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
         for (let index = 0; index < dimension; index++) {
           candidate[index] =
             state[index]! +
-            h *
+            stepSize *
               (B1 * k1[index]! +
                 B3 * k3[index]! +
                 B4 * k4[index]! +
@@ -223,7 +223,7 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
         let errorRatio = 0;
         for (let index = 0; index < dimension; index++) {
           error[index] =
-            h *
+            stepSize *
             (E1 * k1[index]! +
               E3 * k3[index]! +
               E4 * k4[index]! +
@@ -237,11 +237,18 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
           errorRatio = Math.max(errorRatio, Math.abs(error[index]!) / scale);
         }
 
-        const forced = errorRatio > 1 && h <= minStep;
+        if (!Number.isFinite(errorRatio)) {
+          // No smaller step repairs a derivative that is not a number.
+          throw new Error(
+            "The dynamics produced a value that is not a finite number",
+          );
+        }
+
+        const forced = errorRatio > 1 && stepSize <= minStep;
         if (errorRatio <= 1 || forced) {
           state.set(candidate);
           k1.set(k7);
-          elapsed = isLast ? span : elapsed + h;
+          elapsed = isLast ? span : elapsed + stepSize;
           outcome.acceptedSteps += 1;
           outcome.accumulatedError += maxAbs(error);
           if (forced) {
@@ -254,16 +261,23 @@ export function createRk45Integrator(dimension: number): Rk45Integrator {
                   MAX_GROWTH,
                   Math.max(MIN_SHRINK, SAFETY * errorRatio ** -0.2),
                 );
-          step = h * growth;
+          // A last step is cut to what is left of the span. The next span
+          // starts from the step the solver wanted, not from the cut.
+          step = isLast ? Math.max(step, stepSize * growth) : stepSize * growth;
         } else {
           outcome.rejectedSteps += 1;
           step = Math.max(
             minStep,
-            h * Math.max(0.1, SAFETY * errorRatio ** -0.2),
+            stepSize * Math.max(0.1, SAFETY * errorRatio ** -0.2),
           );
         }
       }
 
+      if (elapsed < span) {
+        throw new Error(
+          `The solver did not cover ${span} s of simulated time in ${MAX_STEPS} steps`,
+        );
+      }
       outcome.nextStep = step;
       return outcome;
     },
