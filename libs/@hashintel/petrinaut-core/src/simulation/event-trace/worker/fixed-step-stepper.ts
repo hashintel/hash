@@ -21,6 +21,14 @@ export const FIXED_STEP_SIMULATOR_ID = "js-fixed-step";
  */
 const REFERENCE_INTERVAL = 0.1;
 
+/**
+ * Steps an advance takes at most when its caller named no stop. A step far
+ * smaller than `REFERENCE_INTERVAL` puts that many steps between two states
+ * worth keeping, and a caller held in one advance for all of them could
+ * hear nothing else meanwhile.
+ */
+const STEPS_PER_ADVANCE = 10_000;
+
 export type FixedStepStepperParameters = {
   /** Simulated seconds per step. */
   dt: number;
@@ -73,10 +81,18 @@ export function createFixedStepStepper(
     get time() {
       return time();
     },
-    advance(stopAt = Number.POSITIVE_INFINITY) {
+    advance(stopAt) {
+      const lastStep =
+        stopAt === undefined
+          ? run.frameNumber + STEPS_PER_ADVANCE
+          : Number.POSITIVE_INFINITY;
+      const stopTime = stopAt ?? Number.POSITIVE_INFINITY;
       // A sliver of slack, so a stop on a multiple of `dt` is reached
       // whatever the rounding of the product.
-      while (getFrameTime(run.frameNumber + 1, dt) <= stopAt + dt * 1e-6) {
+      while (
+        run.frameNumber < lastStep &&
+        getFrameTime(run.frameNumber + 1, dt) <= stopTime + dt * 1e-6
+      ) {
         if (!advanceRun(run)) {
           // The run was already over, or the step failed: there is no new
           // state. The step that ended the run handed its state back.

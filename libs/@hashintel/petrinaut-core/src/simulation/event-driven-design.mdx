@@ -535,7 +535,9 @@ Two hosts drive it:
 - **The event simulation worker** never passes a stop time, because a demand
   must not change the adaptive stepper's random draws. A recorder encodes
   each advance as a trace event, with the stepper's diagnostics, such as the
-  solver's error per place.
+  solver's error per place. The fixed-step stepper ends such an advance
+  after 10,000 steps even with nothing to record, so the worker still hears
+  a pause while a very small `dt` crosses a reference interval.
 - **The experiment worker** builds a run driver from the simulator the
   request names and advances every run to each sample time, where the
   metric accumulators observe all of them at one grid index. With the

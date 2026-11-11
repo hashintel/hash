@@ -39,8 +39,8 @@ export type RunAdvance = {
   time: number;
   /**
    * Why the advance stopped: transitions fired, the simulator wants the
-   * state kept, or it reached the time it was told to stop at with nothing
-   * to record.
+   * state kept, or it reached the time it was told to stop at, or the end
+   * of the work it does in one advance, with nothing to record.
    */
   kind: "firing" | "reference" | "stopped";
   /** Transitions that fired at `time`, in net order. Empty unless `kind` is `firing`. */
@@ -70,7 +70,9 @@ export interface RunStepper {
    * as sampling on a grid does. A stepper that draws random numbers per
    * span draws differently when stopped, so a run is only reproducible for
    * the same sequence of stops; a caller that only wants the next recorded
-   * state leaves `stopAt` out.
+   * state leaves `stopAt` out. Such a caller may be handed `stopped` on the
+   * way there, by a stepper that has a long stretch of work before that
+   * state, and advances again.
    */
   advance(stopAt?: number): RunAdvance;
   /** Per-place values to publish with the next recorded state, by name. */

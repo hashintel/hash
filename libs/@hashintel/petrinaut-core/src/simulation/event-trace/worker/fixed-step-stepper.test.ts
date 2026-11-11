@@ -102,6 +102,39 @@ const expectTimes = (events: TraceEvent[], times: number[]) => {
 };
 
 describe("createFixedStepStepper", () => {
+  it("hands back after a bounded number of steps when no stop is named, and keeps its reference times", () => {
+    const create = () =>
+      createFixedStepStepper(
+        {
+          sdcpn: idle,
+          hirArtifacts: compileHirArtifacts(idle).artifacts,
+          initialMarking: { hold: 1 },
+          parameterValues: {},
+          seed: 1,
+          maxTime: null,
+        },
+        // 50,000 steps between two reference states.
+        { dt: 0.000002 },
+      );
+
+    const stepper = create();
+    const advances = Array.from({ length: 5 }, () => stepper.advance());
+    expect(advances.map((advance) => advance.kind)).toEqual([
+      "stopped",
+      "stopped",
+      "stopped",
+      "stopped",
+      "reference",
+    ]);
+    expect(advances.map((advance) => advance.time)).toEqual(
+      [0.02, 0.04, 0.06, 0.08, 0.1].map((time) => expect.closeTo(time, 9)),
+    );
+
+    const stopped = create().advance(1);
+    expect(stopped.kind).toBe("reference");
+    expect(stopped.time).toBeCloseTo(0.1, 9);
+  });
+
   it("records the initial state, one event per step with a firing, and the run's last state", () => {
     const stepper = createFixedStepStepper(
       {
