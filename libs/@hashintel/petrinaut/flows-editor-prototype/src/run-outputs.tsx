@@ -1005,8 +1005,8 @@ const EmailRow = ({
   );
 };
 
-/** A file as the figma-ds `_File` row: its drawn first page cropped into the 28 px square, the name and size, and
- * what it says on the second line (the recorded gap). */
+/** A file with its drawn first page: name, "PDF · 1 page · 212 KB", then what it says (A22, approved before
+ * `ec71cc1f0`). ?filerow=ds draws the figma-ds `_File` card instead. */
 const PageRow = ({
   file,
   tag,
@@ -1015,21 +1015,50 @@ const PageRow = ({
   file: OutputFile;
   tag?: string;
   onOpen: () => void;
-}) => (
-  <DsFileRow
-    data-output-file={file.kind}
-    preview={<Page file={file} width={28} framed={false} />}
-    name={fileTitle(file)}
-    size={
-      file.kind === "certificate"
-        ? `${file.sizeKb} KB`
-        : `sent ${file.sentAt.slice(0, 5)}`
-    }
-    detail={fileDetail(file)}
-    aside={tag}
-    onClick={onOpen}
-  />
-);
+}) => {
+  const dsRow = useLocation().query.get("filerow")?.toLowerCase() === "ds";
+  if (dsRow) {
+    return (
+      <DsFileRow
+        data-output-file={file.kind}
+        preview={<Page file={file} width={28} framed={false} />}
+        name={fileTitle(file)}
+        size={
+          file.kind === "certificate"
+            ? `${file.sizeKb} KB`
+            : `sent ${file.sentAt.slice(0, 5)}`
+        }
+        detail={fileDetail(file)}
+        aside={tag}
+        onClick={onOpen}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={cx(
+        rowButtonStyle,
+        css({ width: "[calc(100% + 16px)]" }),
+        tag &&
+          css({
+            gridTemplateColumns: "[auto 1fr auto]",
+            "& > span:nth-child(2)": { minWidth: "[0]" },
+          }),
+      )}
+      data-output-file={file.kind}
+      onClick={onOpen}
+    >
+      <Page file={file} width={44} />
+      <span>
+        <span className={titleLineStyle}>{fileTitle(file)}</span>
+        <span className={metaLineStyle}>{fileMeta(file)}</span>
+        <span className={metaLineStyle}>{fileDetail(file)}</span>
+      </span>
+      {tag ? <span className={typeTagStyle}>{tag}</span> : null}
+    </button>
+  );
+};
 
 const FileRow = ({
   file,
