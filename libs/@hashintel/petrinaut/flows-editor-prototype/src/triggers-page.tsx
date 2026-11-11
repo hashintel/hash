@@ -1323,11 +1323,11 @@ const stopRowClick = (event: React.SyntheticEvent) => event.stopPropagation();
 const VersionCell = ({ page, trigger, flow }: { page: Page; trigger: PageTrigger; flow: PageFlow }) => (
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the dropdown's clicks off the row
   <span className={versionCellStyle} onClick={stopRowClick}>
+    {/* The page's other dropdowns (All flows, All webs): the same Select at a fixed 96 px, so the arrow sits with v5. */}
     <span className={css({ width: "[96px]", flexShrink: 0 })}>
       <Select
         required
         size="sm"
-        variant="subtle"
         width="fullWidth"
         aria-label={`${trigger.label} flow version`}
         items={items(versionsOf(flow))}
