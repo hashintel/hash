@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { NodeFileSystem } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import {
   Array,
   Cause,
