@@ -159,9 +159,9 @@ export const openDecisions: OpenSwitch[] = [
     flag: "usedrows",
     defaultValue: null,
     options: [
-      { label: "today", value: null },
+      { label: "b", value: null },
+      { label: "today", value: "today" },
       { label: "a", value: "a" },
-      { label: "b", value: "b" },
       { label: "c", value: "c" },
     ],
   },

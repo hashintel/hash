@@ -1278,16 +1278,17 @@ const MinimalBlock = ({
 };
 
 /**
- * `?usedrows=a|b|c` (inbox used-in-row-spacing): more air in the open Used in list (R1–R3, S1); no param keeps 28 px
- * rows. a: 34 px rows, the DS md form height (16 px text at 1.5 = 24 + 4 + 4 + 2). b: a, plus 4 px between rows.
+ * `?usedrows=a|b|c|today` (inbox used-in-row-spacing): more air in the open Used in list (R1–R3, S1); no param is b;
+ * today is the old 28 px rows with no gap. a: 34 px rows, the DS md form height (16 px text at 1.5 = 24 + 4 + 4 + 2). b: a, plus 4 px between rows.
  * c: 42 px rows, the DS lg form height, with the name and its input on two lines beside the G77 tile (32 px, 6 px
  * corners, 16 px icon); the input column on the right goes away.
  */
 export type UsedRows = "a" | "b" | "c";
 
 export const useUsedRows = (): UsedRows | null => {
+  // b is the default (decided 11 Nov ~16:45): 34 px rows, 4 px apart. `?usedrows=today` keeps the old 28 px rows.
   const value = useLocation().query.get("usedrows");
-  return value === "a" || value === "b" || value === "c" ? value : null;
+  return value === "a" || value === "c" ? value : value === "today" ? null : "b";
 };
 
 /**
@@ -2123,6 +2124,7 @@ export const UsedInList = ({ uses, iconOf }: { uses: Use[]; iconOf: (id: string)
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState<string | null>(null);
   const usedProp = useUsedProp();
+  const usedRows = useUsedRows();
   if (uses.length === 0) {
     return null;
   }
@@ -2142,7 +2144,12 @@ export const UsedInList = ({ uses, iconOf }: { uses: Use[]; iconOf: (id: string)
         {`Used in ${String(uses.length)}`}
       </button>
       {open ? (
-        <div className={usedRowsStyle} data-used-names data-prop={usedProp === "right" ? undefined : usedProp}>
+        <div
+          className={usedRowsStyle}
+          data-used-names
+          data-rows={usedRows ?? undefined}
+          data-prop={usedProp === "right" ? undefined : usedProp}
+        >
           {uses.map((use) => (
             <button
               key={use.stepId}
