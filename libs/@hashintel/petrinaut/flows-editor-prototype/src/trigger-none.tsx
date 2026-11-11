@@ -18,7 +18,6 @@
 import { Banner, Button, Dialog, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { iconStateWarning } from "./ds-parts/icon-state";
 import { openTriggersPage } from "./flow-triggers";
 import { triggerNoneLayout } from "./trigger-flags";
 
@@ -222,11 +221,7 @@ export const NoTriggerWarning = (props: Props) => {
   if (triggerNoneLayout === "modal") {
     return (
       <Dialog size="sm" onClose={props.onClose} aria-label={TITLE}>
-        <Dialog.Header
-          title={TITLE}
-          iconName="warning"
-          className={iconStateWarning}
-        />
+        <Dialog.Header title={TITLE} iconName="warning" />
         <Dialog.Body>
           <span
             data-trigger-none-publish

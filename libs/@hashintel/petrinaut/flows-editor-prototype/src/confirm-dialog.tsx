@@ -13,7 +13,7 @@
 import { Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { iconStateDanger, iconStateNeutral } from "./ds-parts/icon-state";
+import { iconStateDanger } from "./ds-parts/icon-state";
 import { useLocation } from "./router";
 
 export type ConfirmTake = "dialog" | "undo";
@@ -67,7 +67,7 @@ export const ConfirmDialog = ({
       <Dialog.Header
         title={title}
         iconName={danger ? "warning" : "info"}
-        className={danger ? iconStateDanger : iconStateNeutral}
+        {...(danger ? { className: iconStateDanger } : {})}
       />
       <Dialog.Body>
         <span className={noteStyle}>{body}</span>
