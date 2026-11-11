@@ -35,8 +35,6 @@ import type { TimeRange } from "./use-event-timeline-data";
 import type { ReadableStore } from "@hashintel/petrinaut-core";
 import type { FC, RefObject } from "react";
 
-/** Pixels the pointer may move before a press in the plot becomes a selection. */
-const DRAG_THRESHOLD_PX = 3;
 /** Pixels around the pointer within which a firing mark is the hovered one. */
 const FIRING_HOVER_PX = 6;
 /** Pixels either side of the playhead line that grab it. */
@@ -97,13 +95,11 @@ type ChartState = {
   domain: number;
   /** The viewed time, read on every draw rather than rendered. */
   timeSource: ReadableStore<{ time: number }>;
-  selection: TimeRange | null;
   paused: boolean;
   onViewRangeChange: (range: TimeRange) => void;
   onScrub: (time: number) => void;
   onScrubStart: () => void;
   onScrubEnd: () => void;
-  onSelectionChange: (range: TimeRange | null) => void;
 };
 
 /** How the playhead is being handled, for its hover and drag feedback. */
@@ -138,44 +134,6 @@ const drawRuler = (u: uPlot): void => {
   ctx.lineTo(bbox.left + bbox.width, bbox.top - dpr / 2);
   ctx.stroke();
   ctx.restore();
-};
-
-/** The selected range: a band over the plot and a bar along the ruler. */
-const drawSelection = (
-  u: uPlot,
-  ctx: CanvasRenderingContext2D,
-  state: ChartState,
-): void => {
-  if (!state.selection) {
-    return;
-  }
-  const min = Math.max(state.selection.min, state.viewRange.min);
-  const max = Math.min(state.selection.max, state.viewRange.max);
-  if (max <= min) {
-    return;
-  }
-  const { bbox } = u;
-  const dpr = devicePixelRatio;
-  const x0 = u.valToPos(min, "x", true);
-  const x1 = u.valToPos(max, "x", true);
-  const paint = ctx;
-  paint.save();
-  paint.fillStyle = "rgba(37, 99, 235, 0.08)";
-  paint.fillRect(x0, bbox.top, x1 - x0, bbox.height);
-  paint.fillStyle = "rgba(37, 99, 235, 0.3)";
-  paint.fillRect(x0, bbox.top - RULER_PX * dpr, x1 - x0, 3 * dpr);
-  paint.strokeStyle = "rgba(37, 99, 235, 0.45)";
-  paint.lineWidth = dpr;
-  paint.beginPath();
-  for (const edge of [state.selection.min, state.selection.max]) {
-    if (edge >= state.viewRange.min && edge <= state.viewRange.max) {
-      const x = u.valToPos(edge, "x", true);
-      paint.moveTo(x, bbox.top);
-      paint.lineTo(x, bbox.top + bbox.height);
-    }
-  }
-  paint.stroke();
-  paint.restore();
 };
 
 /** Ticks up from the plot edge into the ruler, one per time in view. */
@@ -298,10 +256,10 @@ const overlayStyle = css({
 
 /**
  * A second canvas over uPlot's for what moves without the data moving: the
- * playhead and the selection. The viewed time drives it through a store
- * subscription, so a frame of playback costs a clear and a few strokes, with
- * no React render and no redraw of the series. It also keeps the host's
- * slider value current for assistive technology.
+ * playhead. The viewed time drives it through a store subscription, so a
+ * frame of playback costs a clear and a few strokes, with no React render
+ * and no redraw of the series. It also writes the host's slider value for
+ * assistive technology, and is the only thing that does.
  */
 const createOverlay = (
   u: uPlot,
@@ -329,7 +287,6 @@ const createOverlay = (
     const state = stateRef.current;
     const time = state.timeSource.get().time;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawSelection(u, ctx, state);
     drawPlayhead(u, ctx, state, time, getFeel());
     host?.setAttribute("aria-valuenow", String(time));
     host?.setAttribute("aria-valuetext", `${time.toFixed(3)} seconds`);
@@ -397,20 +354,12 @@ const updateTooltip = (
   nodes.root.style.top = "4px";
 };
 
-/** A press in progress, from the pointer down until it is released. */
-type Press =
-  /** Dragging the playhead or the ruler; `offset` keeps a grabbed handle under the pointer. */
-  | { kind: "scrub"; offset: number }
-  /** Pressed in the plot, not yet moved far enough to count as a selection. */
-  | { kind: "pending"; x: number; time: number }
-  | { kind: "select"; anchor: number };
-
 /**
- * The gestures, in the grammar of audio and video editors: the ruler and the
- * playhead scrub, a drag in the plot selects a range, a click views that
- * time, scrolling pans and pinch or the wheel zooms about the pointer. Every
- * change goes through the callbacks the chart was given, so the view range,
- * the selection and the viewed time are owned by React.
+ * The gestures: a press anywhere in the chart views that time and a drag
+ * scrubs, a grabbed playhead keeps its place under the pointer, scrolling
+ * sideways pans, and pinch or the wheel zooms about the pointer. Every
+ * change goes through the callbacks the chart was given, so the view range
+ * and the viewed time are owned by React.
  */
 const attachInteractions = (
   u: uPlot,
@@ -419,7 +368,11 @@ const attachInteractions = (
   drawOverlay: () => void,
 ): (() => void) => {
   const root = u.root;
-  let press: Press | null = null;
+  /**
+   * The drag in progress: how far the viewed time sat from the pointer when
+   * it began, which is zero unless the playhead itself was grabbed.
+   */
+  let scrubOffset: number | null = null;
   let hoverZone: HitZone = "outside";
   let feel: PlayheadFeel = { hover: false, active: false };
   const setFeel = (next: Partial<PlayheadFeel>) => {
@@ -470,29 +423,20 @@ const attachInteractions = (
     }
     root.setPointerCapture(event.pointerId);
     const time = timeAt(point.x);
-    if (zone === "playhead" || zone === "ruler") {
-      press = {
-        kind: "scrub",
-        offset:
-          zone === "playhead"
-            ? stateRef.current.timeSource.get().time - time
-            : 0,
-      };
-      setFeel({ active: true });
-      root.style.cursor = "ew-resize";
-      stateRef.current.onScrubStart();
-      if (zone === "ruler") {
-        stateRef.current.onScrub(time);
-      }
-      drawOverlay();
-      return;
+    const grabbed = zone === "playhead";
+    scrubOffset = grabbed ? stateRef.current.timeSource.get().time - time : 0;
+    setFeel({ active: true });
+    root.style.cursor = "ew-resize";
+    stateRef.current.onScrubStart();
+    if (!grabbed) {
+      stateRef.current.onScrub(time);
     }
-    press = { kind: "pending", x: point.x, time };
+    drawOverlay();
   };
 
   const onPointerMove = (event: PointerEvent) => {
     const point = pointAt(event);
-    if (!press) {
+    if (scrubOffset === null) {
       settleHover(point);
       if (hoverZone === "ruler" || hoverZone === "playhead") {
         // The ruler lies outside uPlot's own cursor area; drive it so the
@@ -501,50 +445,33 @@ const attachInteractions = (
       }
       return;
     }
-    const time = timeAt(point.x);
-    if (press.kind === "scrub") {
-      stateRef.current.onScrub(
-        Math.min(Math.max(time + press.offset, 0), stateRef.current.domain),
-      );
-      return;
-    }
-    if (press.kind === "pending") {
-      if (Math.abs(point.x - press.x) < DRAG_THRESHOLD_PX) {
-        return;
-      }
-      press = { kind: "select", anchor: press.time };
-      root.style.cursor = "crosshair";
-    }
-    stateRef.current.onSelectionChange({
-      min: Math.min(press.anchor, time),
-      max: Math.max(press.anchor, time),
-    });
+    stateRef.current.onScrub(
+      Math.min(
+        Math.max(timeAt(point.x) + scrubOffset, 0),
+        stateRef.current.domain,
+      ),
+    );
   };
 
-  const onPointerUp = (event: PointerEvent) => {
-    if (!press) {
+  // A released and a cancelled press end the drag alike: the time it viewed
+  // was set as it moved.
+  const onPointerEnd = (event: PointerEvent) => {
+    if (scrubOffset === null) {
       return;
     }
-    const point = pointAt(event);
-    if (press.kind === "scrub") {
-      setFeel({ active: false });
-      stateRef.current.onScrubEnd();
-    } else if (press.kind === "pending") {
-      // A click: view that time, and let go of any selection.
-      stateRef.current.onSelectionChange(null);
-      stateRef.current.onScrub(timeAt(point.x));
-    }
-    press = null;
+    scrubOffset = null;
+    setFeel({ active: false });
+    stateRef.current.onScrubEnd();
     if (root.hasPointerCapture(event.pointerId)) {
       root.releasePointerCapture(event.pointerId);
     }
     hoverZone = "outside";
-    settleHover(point);
+    settleHover(pointAt(event));
     drawOverlay();
   };
 
   const onPointerLeave = () => {
-    if (press) {
+    if (scrubOffset !== null) {
       return;
     }
     hoverZone = "outside";
@@ -572,15 +499,15 @@ const attachInteractions = (
   root.addEventListener("wheel", onWheel, { passive: false });
   root.addEventListener("pointerdown", onPointerDown);
   root.addEventListener("pointermove", onPointerMove);
-  root.addEventListener("pointerup", onPointerUp);
-  root.addEventListener("pointercancel", onPointerUp);
+  root.addEventListener("pointerup", onPointerEnd);
+  root.addEventListener("pointercancel", onPointerEnd);
   root.addEventListener("pointerleave", onPointerLeave);
   return () => {
     root.removeEventListener("wheel", onWheel);
     root.removeEventListener("pointerdown", onPointerDown);
     root.removeEventListener("pointermove", onPointerMove);
-    root.removeEventListener("pointerup", onPointerUp);
-    root.removeEventListener("pointercancel", onPointerUp);
+    root.removeEventListener("pointerup", onPointerEnd);
+    root.removeEventListener("pointercancel", onPointerEnd);
     root.removeEventListener("pointerleave", onPointerLeave);
     root.style.cursor = "";
   };
@@ -766,16 +693,13 @@ export const EventTimelineChart: FC<{
    */
   timeSource: ReadableStore<{ time: number }>;
   onScrub: (time: number) => void;
-  /** Called as a drag of the playhead or the ruler begins and ends. */
+  /** Called as a drag begins and ends. */
   onScrubStart: () => void;
   onScrubEnd: () => void;
-  /** Arrow keys step between firings while the chart has focus. */
-  onStepEvent: (direction: -1 | 1) => void;
+  /** What an arrow key does while the chart has focus. */
+  onStep: (direction: -1 | 1) => void;
   /** Home and End jump to the start and to the live edge. */
   onJump: (edge: "start" | "end") => void;
-  /** The selected range, drawn as a band; null when nothing is selected. */
-  selection: TimeRange | null;
-  onSelectionChange: (range: TimeRange | null) => void;
   className?: string;
   /** Hold the chart as it stands; updates apply together when it resumes. */
   paused?: boolean;
@@ -792,10 +716,8 @@ export const EventTimelineChart: FC<{
   onScrub,
   onScrubStart,
   onScrubEnd,
-  onStepEvent,
+  onStep,
   onJump,
-  selection,
-  onSelectionChange,
   className,
   paused = false,
 }) => {
@@ -816,31 +738,26 @@ export const EventTimelineChart: FC<{
     viewRange,
     domain,
     timeSource,
-    selection,
     paused,
     onViewRangeChange,
     onScrub,
     onScrubStart,
     onScrubEnd,
-    onSelectionChange,
   });
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     switch (event.key) {
       case "ArrowLeft":
-        onStepEvent(-1);
+        onStep(-1);
         break;
       case "ArrowRight":
-        onStepEvent(1);
+        onStep(1);
         break;
       case "Home":
         onJump("start");
         break;
       case "End":
         onJump("end");
-        break;
-      case "Escape":
-        onSelectionChange(null);
         break;
       default:
         return;
@@ -931,11 +848,12 @@ export const EventTimelineChart: FC<{
     }
   }, [firings, references, paused]);
 
+  // Whatever moved the playhead while the chart was held is drawn on resume.
   useEffect(() => {
     if (!paused) {
       overlayRef.current?.draw();
     }
-  }, [selection, paused]);
+  }, [paused]);
 
   return (
     <div
@@ -946,7 +864,8 @@ export const EventTimelineChart: FC<{
       aria-label="Timeline"
       aria-valuemin={0}
       aria-valuemax={domain}
-      aria-valuenow={timeSource.get().time}
+      // Where the value starts; the overlay keeps it current from then on.
+      aria-valuenow={0}
       onKeyDown={onKeyDown}
     >
       <div ref={wrapperRef} className={className} />
