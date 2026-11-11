@@ -5,6 +5,7 @@ import { additionalGeometry } from "./hash-icon/additional-geometry";
 import { explorationGeometry } from "./hash-icon/exploration-geometry";
 import { FilledShape, IconFillContext } from "./hash-icon/filled-shape";
 import { IconInteraction } from "./hash-icon/interaction";
+import { McpServerGeometry } from "./hash-icon/mcp-server-geometry";
 import { modelingGeometry } from "./hash-icon/modeling-geometry";
 import {
   hashIconEffects,
@@ -84,6 +85,7 @@ const geometry = {
   ...additionalGeometry,
   ...utilityGeometry,
   ...explorationGeometry,
+  mcpServer: <McpServerGeometry />,
   sidebar: null,
   menu: null,
   microphone: null,
@@ -491,6 +493,9 @@ export const WarningIcon = createIcon("warning");
 export const CircleCheckIcon = createIcon("circleCheck");
 export const CircleCloseIcon = createIcon("circleClose");
 export const TerminalIcon = createIcon("terminal");
+export const TestTubeIcon = createIcon("testTube");
+export const TestTubeCheckIcon = createIcon("testTubeCheck");
+export const TestTubeCrossIcon = createIcon("testTubeCross");
 export const TextIcon = createIcon("text");
 export const UserIcon = createIcon("user");
 export const VoiceIcon = createIcon("voice");
@@ -534,6 +539,7 @@ export const InputPipeIcon = createIcon("inputPipe");
 export const LightbulbOnIcon = createIcon("lightbulbOn");
 export const ListTreeIcon = createIcon("listTree");
 export const MagicIcon = createIcon("magic");
+export const McpServerIcon = createIcon("mcpServer");
 export const MemoCircleCheckIcon = createIcon("memoCircleCheck");
 export const MicroscopeIcon = createIcon("microscope");
 export const OneHundredIcon = createIcon("oneHundred");
