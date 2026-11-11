@@ -2,7 +2,6 @@ import { use } from "react";
 
 import { Icon, NumberInput, Popover } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { resolveSimulatorParameters } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
@@ -12,7 +11,9 @@ import {
 } from "../../../../../../../react/simulators/context";
 import { PointerHelpTooltip } from "../../../../../../components/pointer-help-tooltip";
 import {
+  acceptsSimulatorParameter,
   SimulatorParameterInput,
+  SimulatorParameterLabel,
   visibleSimulatorParameters,
 } from "../../../../../../components/simulator-parameter-input";
 
@@ -133,6 +134,14 @@ const lockedNoteStyle = css({
   color: "neutral.fg.subtle",
 });
 
+/** Which way an arrow key moves through the simulators. */
+const ARROW_STEPS: Readonly<Record<string, 1 | -1>> = {
+  ArrowDown: 1,
+  ArrowRight: 1,
+  ArrowUp: -1,
+  ArrowLeft: -1,
+};
+
 const RUNS_ID = "run-settings-runs";
 const END_TIME_ID = "run-settings-end-time";
 
@@ -164,6 +173,37 @@ export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
       )
     : [];
   const hasFields = parameters.length > 0 || mode === "stochastic";
+  const pickable = locked
+    ? []
+    : registrations.filter(
+        (registration) => simulatorRefusal(registration, mode) === null,
+      );
+  // One tab stop for the group, on the picked simulator; the arrow keys move
+  // through the ones that can be picked, and pick as they move.
+  const tabStopId = selected?.id ?? registrations[0]?.id;
+  const onArrowKey = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const step = ARROW_STEPS[event.key];
+    if (step === undefined || pickable.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    const from = pickable.findIndex(({ id }) => id === selected?.id);
+    const next =
+      pickable[
+        from === -1
+          ? step === 1
+            ? 0
+            : pickable.length - 1
+          : (from + step + pickable.length) % pickable.length
+      ];
+    if (!next) {
+      return;
+    }
+    selectSimulator(next.id);
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLElement>('[role="radio"]')
+      [registrations.indexOf(next)]?.focus();
+  };
 
   // The container takes a list of panels, so an absent one is left out of
   // the list rather than rendered as nothing.
@@ -181,6 +221,8 @@ export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
               role="radio"
               aria-checked={isSelected}
               aria-disabled={unavailable}
+              tabIndex={registration.id === tabStopId ? 0 : -1}
+              onKeyDown={onArrowKey}
               className={simulatorItemStyle({
                 selected: isSelected,
                 unavailable,
@@ -219,10 +261,7 @@ export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
                 <label key={`${id}-label`} htmlFor={id}>
                   <span className={fieldLabelStyle}>
                     <span>
-                      {spec.label}
-                      {spec.type === "number" && spec.unit ? (
-                        <span className={unitStyle}> ({spec.unit})</span>
-                      ) : null}
+                      <SimulatorParameterLabel spec={spec} />
                     </span>
                     {spec.description ? (
                       <PointerHelpTooltip content={spec.description} />
@@ -237,12 +276,14 @@ export const RunSettingsPopoverContent: React.FC<{ locked: boolean }> = ({
                   size="xs"
                   disabled={locked}
                   onChange={(value) => {
-                    // A value the spec rejects is not stored.
-                    const candidate = resolveSimulatorParameters(
-                      selected.parameters,
-                      { ...simulatorSelection.parameters, [key]: value },
-                    );
-                    if (candidate.ok) {
+                    if (
+                      acceptsSimulatorParameter(
+                        selected.parameters,
+                        simulatorSelection.parameters,
+                        key,
+                        value,
+                      )
+                    ) {
                       setSimulatorParameter(key, value);
                     }
                   }}
