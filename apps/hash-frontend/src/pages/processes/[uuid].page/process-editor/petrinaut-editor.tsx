@@ -546,9 +546,7 @@ export const PetrinautEditor = ({
         <ErrorTrackerContext value={errorTracker}>
           <ProcessPetrinaut
             handle={session.handle}
-            savedEntityId={
-              session.mode.kind === "saved" ? session.mode.entityId : null
-            }
+            entityId={session.mode.entityId}
             readTitle={readTitle}
             hostSave={hostSave}
             versionLoad={session.versionLoad}

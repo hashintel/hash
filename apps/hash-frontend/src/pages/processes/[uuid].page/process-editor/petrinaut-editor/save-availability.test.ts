@@ -45,16 +45,14 @@ test.each([
     mode: null,
     fromOpenLoad: true,
     documentId: openId,
-    reason:
-      "The net is an unsaved draft, which the user creates with the editor's Create.",
+    reason: "That isn't the net open in the editor.",
   },
   {
-    refused: "a draft",
+    refused: "a net other than the open draft",
     mode: draftMode,
     fromOpenLoad: true,
     documentId: openId,
-    reason:
-      "The net is an unsaved draft, which the user creates with the editor's Create.",
+    reason: "That isn't the net open in the editor.",
   },
   {
     refused: "another net",
@@ -106,3 +104,18 @@ test.each([
     ).toBe(reason);
   },
 );
+
+test("the agent's save of the open draft, named by the id it will be created under, may start", () => {
+  expect(
+    agentSaveRefusal(
+      {
+        readonly: false,
+        saving: false,
+        isDirty: true,
+        mode: draftMode,
+        fromOpenLoad: true,
+      },
+      draftMode.entityId,
+    ),
+  ).toBeNull();
+});

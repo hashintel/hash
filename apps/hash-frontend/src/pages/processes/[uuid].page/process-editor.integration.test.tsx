@@ -150,6 +150,8 @@ const observed = vi.hoisted(() => ({
   handles: [] as PetrinautDocHandle[],
   /** The input of Brunch's mounted session, or `null` when none is. */
   brunch: null as BrunchInput | null,
+  /** How many times a Brunch session has mounted. */
+  brunchMounts: 0,
   alert: null as AlertProps | null,
 }));
 
@@ -320,12 +322,12 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     useLayoutEffect(() => {
       observed.brunch = input;
     });
-    useLayoutEffect(
-      () => () => {
+    useLayoutEffect(() => {
+      observed.brunchMounts += 1;
+      return () => {
         observed.brunch = null;
-      },
-      [],
-    );
+      };
+    }, []);
     return { assistant: null, openAIVoiceConfig: null };
   },
 }));
@@ -626,6 +628,7 @@ beforeEach(() => {
   observed.editor = null;
   observed.handles.length = 0;
   observed.brunch = null;
+  observed.brunchMounts = 0;
   observed.alert = null;
   sentry.captureException.mockClear();
   vi.stubGlobal(
@@ -772,7 +775,13 @@ test("Create turns the draft into the saved net in the same editor, under its UR
   await renderRoute(draftUrl);
   const draft = editor().handle;
   expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
-  expect(observed.brunch).toBeNull();
+  // The draft has Brunch already, under the id its first save creates.
+  const offered = observed.brunch?.openDocument;
+  expect(offered).toMatchObject({
+    documentId: createdId,
+    editor: { handle: draft },
+  });
+  const mounts = observed.brunchMounts;
   editTitle("New net");
 
   pressSave();
@@ -795,10 +804,10 @@ test("Create turns the draft into the saved net in the same editor, under its UR
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
   expect(topBar().revisions).toHaveLength(1);
   expect(topBar().loadedRevisionTime).toBe(topBar().revisions[0]?.decisionTime);
-  expect(observed.brunch?.openDocument).toMatchObject({
-    documentId: createdId,
-    editor: { handle: draft },
-  });
+  // Create changed nothing Brunch's session is built from: the same open
+  // document, in the session that was already mounted.
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
   expect(leaveIsBlocked()).toBe(false);
 });
 
@@ -1311,6 +1320,38 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
   await settle();
   expect(graph.writes).toHaveLength(2);
   expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
+});
+
+test("Brunch's agent save of a draft creates the net under the draft's id, in the session that offered it", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  const offered = observed.brunch?.openDocument;
+  const mounts = observed.brunchMounts;
+  // Never saved, which is what makes the approval card say it creates.
+  expect(observed.brunch?.hostSave?.read(createdId)).toMatchObject({
+    lastSavedTime: null,
+    refusal: null,
+  });
+
+  const saved = agentSave(createdId);
+  await settle();
+
+  const decisionTime = graph.nets
+    .get(createdId)
+    ?.revisions.at(-1)?.decisionTime;
+  await expect(saved).resolves.toMatchObject({
+    status: "saved",
+    decisionTime,
+    stillDirty: false,
+  });
+  expect(
+    graph.writes.map(({ kind, entityId }) => ({ kind, entityId })),
+  ).toEqual([{ kind: "create", entityId: createdId }]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
 });
 
 test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {
