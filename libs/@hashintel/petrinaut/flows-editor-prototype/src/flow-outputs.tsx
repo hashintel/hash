@@ -19,6 +19,7 @@ import {
   stepLabel,
   toggleOutputFlag,
 } from "./document";
+import { useAttrib } from "./attrib";
 import { useEditor } from "./editor-context";
 import { useFlowOutputTake, useStarCopy } from "./outputs";
 
@@ -111,6 +112,19 @@ const fromStyle = css({
   whiteSpace: "nowrap",
   textStyle: "xs",
   color: "neutral.fg.subtle",
+});
+
+const stepLeadStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  flexShrink: 0,
+  maxWidth: "[55%]",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  "& > span": { color: "neutral.fg.subtle" },
 });
 
 const ghostButtonStyle = css({
@@ -281,6 +295,8 @@ export const FlowOutputsPanel = () => {
   const outputs = flowOutputsOf(document);
   const editable = take === 4;
   const featured = useStarCopy() !== null;
+  // ?attrib: the step leads, "Fetch certificate › File entity", with no "from".
+  const attrib = useAttrib() !== null;
   return (
     <div data-flow-outputs-panel>
       <div className={titleStyle}>{featured ? "Featured outputs" : editable ? "Flow outputs" : "Outputs"}</div>
@@ -295,6 +311,12 @@ export const FlowOutputsPanel = () => {
         ) : null}
         {outputs.map((output) => (
           <div key={output.key} className={rowStyle}>
+            {attrib ? (
+              <span className={stepLeadStyle}>
+                {output.stepName}
+                <span>›</span>
+              </span>
+            ) : null}
             {editable ? (
               <input
                 className={nameInputStyle}
@@ -312,7 +334,9 @@ export const FlowOutputsPanel = () => {
                 {output.label}
               </span>
             )}
-            <span className={fromStyle}>from {output.stepName}</span>
+            {attrib ? null : (
+              <span className={fromStyle}>from {output.stepName}</span>
+            )}
             {editable ? (
               <button
                 type="button"

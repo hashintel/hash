@@ -47,7 +47,14 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { flaggedOutputsOf, flattenSteps, outputKey } from "./document";
+import { StepTile, useAttrib } from "./attrib";
+import {
+  findStep,
+  flaggedOutputsOf,
+  flattenSteps,
+  outputKey,
+  stepLabel,
+} from "./document";
 import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
@@ -1392,7 +1399,19 @@ export type ViewerState =
       groups: OutputGroup[];
       /** The group to scroll to (History opens the part that was clicked). */
       focus?: string;
+      /** ?attrib: the same groups by the step that made them, in flow order. */
+      steps?: StepBlock[];
+      /** ?attrib: the list's title when it holds several steps' outputs. */
+      stepsTitle?: string;
     };
+
+/** One step's part of a list (?attrib): "Fetch certificate · 18 certificates". */
+export type StepBlock = {
+  stepId: string;
+  step: string;
+  count: string;
+  groups: OutputGroup[];
+};
 
 const factsGridStyle = css({
   display: "flex",
@@ -1743,6 +1762,62 @@ const TypeTabs = ({
   </div>
 );
 
+/** ?attrib=b: one tab per step, the type tabs' look ("Fetch certificate 18"); they wrap rather than cut a name. */
+const StepTabs = ({
+  steps,
+  current,
+  onPick,
+  className,
+}: {
+  steps: StepBlock[];
+  current: string;
+  onPick: (stepId: string) => void;
+  className?: string;
+}) => (
+  <div
+    role="tablist"
+    aria-label="Steps"
+    className={cx(typeTabsStyle, css({ flexWrap: "wrap", rowGap: "1" }), className)}
+  >
+    {steps.map((block) => (
+      <button
+        key={block.stepId}
+        type="button"
+        role="tab"
+        aria-selected={block.stepId === current}
+        className={typeTabStyle}
+        data-step-tab={block.stepId}
+        onClick={() => onPick(block.stepId)}
+      >
+        {block.step}
+        <span>
+          {block.groups.reduce((sum, group) => sum + groupSize(group), 0)}
+        </span>
+      </button>
+    ))}
+  </div>
+);
+
+/** ?attrib=a: a step section's heading, "Fetch certificate · 18 certificates". */
+const StepHead = ({
+  block,
+  className,
+}: {
+  block: StepBlock;
+  className: string;
+}) => (
+  <div className={className} data-step-head={block.stepId}>
+    {block.step}
+    <span>·</span>
+    <span>{block.count}</span>
+  </div>
+);
+
+/** The step a list opens at: the one whose output was clicked. */
+const stepOfFocus = (steps: StepBlock[], focus: string | undefined) =>
+  steps.find((block) => block.groups.some((group) => group.type === focus))
+    ?.stepId;
+
 /**
  * Wide lists (modal, side sheet): the tabs sit over the tables' first column, 12 px in, so a tab's label starts at the
  * title's x (switch-b crop). The attribute selector outranks typeTabsStyle's -8 px, which used to win.
@@ -2037,22 +2112,70 @@ const MixedBody = ({
   outputs,
   onChange,
   full = false,
+  bare = false,
 }: {
   view: MixedView;
   outputs: RunOutputs;
   onChange: (next: ViewerState) => void;
   /** The 640 px sheet is where "Show all N" leads, so it shows every row. */
   full?: boolean;
+  /** Inside a step's section (?attrib): one group draws no title of its own. */
+  bare?: boolean;
 }) => {
   const take = useEntityTypesTake();
   const tabbed = useEntitySwitch() === "b" && view.groups.length > 1;
   const [shownAll, setShownAll] = useState<string[]>([]);
   const [picked, setPicked] = useState<string | null>(null);
+  const attrib = useAttrib();
   const current =
     picked ??
     view.groups.find((group) => group.type === view.focus)?.type ??
     view.groups[0]?.type ??
     "";
+  if (attrib && view.steps && view.steps.length > 0) {
+    const steps = view.steps;
+    const part = (block: StepBlock) => (
+      <MixedBody
+        view={{
+          kind: "mixed",
+          title: block.count,
+          from: block.step,
+          groups: block.groups,
+        }}
+        outputs={outputs}
+        onChange={onChange}
+        full={full}
+        bare
+      />
+    );
+    if (attrib === "b") {
+      const shownStep =
+        picked ?? stepOfFocus(steps, view.focus) ?? steps[0]!.stepId;
+      const block =
+        steps.find((entry) => entry.stepId === shownStep) ?? steps[0]!;
+      return (
+        <div data-attrib="b">
+          <StepTabs
+            className={wideTabsStyle}
+            steps={steps}
+            current={block.stepId}
+            onPick={setPicked}
+          />
+          {part(block)}
+        </div>
+      );
+    }
+    return (
+      <div data-attrib="a">
+        {steps.map((block) => (
+          <section key={block.stepId} data-output-step={block.stepId}>
+            <StepHead block={block} className={groupTitleStyle} />
+            {part(block)}
+          </section>
+        ))}
+      </div>
+    );
+  }
   if (take === "b" && view.groups.length > 1) {
     type FlatRow = {
       key: string;
@@ -2170,7 +2293,7 @@ const MixedBody = ({
             data-entity-group={group.type}
             data-output-group={group.type}
           >
-            {tabbed ? null : (
+            {tabbed || (bare && view.groups.length === 1) ? null : (
               <div className={groupTitleStyle}>
                 {groupLabel[group.type][1]}
                 <span>{size}</span>
@@ -2372,11 +2495,39 @@ export const loopView = (
     { type: "Certificate" as const, files: outputs.certificates },
     { type: "Email" as const, files: outputs.emails },
   ].filter((group) => groupSize(group) > 0);
+  const blocks: StepBlock[] = [
+    {
+      stepId: "fetchCertificate",
+      step: "Fetch certificate",
+      count: plural(outputs.certificates.length, "certificate"),
+      groups: [{ type: "Certificate", files: outputs.certificates }],
+    },
+    {
+      stepId: "sendReviewEmail",
+      step: "Send review email",
+      count: plural(outputs.emails.length, "email"),
+      groups: [{ type: "Email", files: outputs.emails }],
+    },
+    {
+      stepId: "markReviewed",
+      step: "Mark supplier reviewed",
+      count: `${entityCount(outputs.updated, "b")} updated`,
+      groups: entityGroups(
+        outputs.updated,
+        entityViews(outputs, take).reviewed.columns,
+      ),
+    },
+  ];
+  const steps = blocks.filter((block) =>
+    block.groups.some((group) => groupSize(group) > 0),
+  );
   return {
     kind: "mixed",
     title: groupsCount(groups),
     from: "For each supplier",
     groups,
+    steps,
+    stepsTitle: "Each supplier's outputs",
   };
 };
 
@@ -2399,11 +2550,45 @@ const flaggedView = (
             : [],
     )
     .filter((group) => groupSize(group) > 0);
+  const steps = flags
+    .flatMap((key): StepBlock[] =>
+      key === "findSuppliers.entities"
+        ? [
+            {
+              stepId: "findSuppliers",
+              step: "Find active suppliers",
+              count: entityCount(outputs.entities, "b"),
+              groups: entityGroups(outputs.entities, views.suppliers.columns),
+            },
+          ]
+        : key === "fetchCertificate.fileEntity"
+          ? [
+              {
+                stepId: "fetchCertificate",
+                step: "Fetch certificate",
+                count: plural(outputs.certificates.length, "certificate"),
+                groups: [{ type: "Certificate", files: outputs.certificates }],
+              },
+            ]
+          : key === "sendReviewEmail.messageId"
+            ? [
+                {
+                  stepId: "sendReviewEmail",
+                  step: "Send review email",
+                  count: plural(outputs.emails.length, "email"),
+                  groups: [{ type: "Email", files: outputs.emails }],
+                },
+              ]
+            : [],
+    )
+    .filter((block) => block.groups.some((group) => groupSize(group) > 0));
   return {
     kind: "mixed",
     title: groupsCount(groups),
     from: `${runLabel(outputs.run)} outputs`,
     groups,
+    steps,
+    stepsTitle: "Featured outputs",
     ...(focus ? { focus } : {}),
   };
 };
@@ -2735,6 +2920,56 @@ const ColumnList = ({
         ?.scrollIntoView({ block: "start" });
     }
   }, [focus, switchTake]);
+  const attrib = useAttrib();
+  if (attrib && view.kind === "mixed" && view.steps && view.steps.length > 0) {
+    const steps = view.steps;
+    const part = (block: StepBlock) => (
+      <ColumnList
+        view={{
+          kind: "mixed",
+          title: block.count,
+          from: block.step,
+          groups: block.groups,
+        }}
+        onOpen={onOpen}
+        {...(onShowAll ? { onShowAll } : {})}
+      />
+    );
+    if (attrib === "b") {
+      const shownStep =
+        picked ?? stepOfFocus(steps, focus) ?? steps[0]!.stepId;
+      const block =
+        steps.find((entry) => entry.stepId === shownStep) ?? steps[0]!;
+      return (
+        <div
+          ref={listRef}
+          className={css({ display: "flex", flexDirection: "column", gap: "6" })}
+          data-attrib="b"
+        >
+          <StepTabs steps={steps} current={block.stepId} onPick={setPicked} />
+          {part(block)}
+        </div>
+      );
+    }
+    return (
+      <div
+        ref={listRef}
+        className={css({ display: "flex", flexDirection: "column", gap: "8" })}
+        data-attrib="a"
+      >
+        {steps.map((block) => (
+          <section
+            key={block.stepId}
+            data-output-step={block.stepId}
+            className={css({ display: "flex", flexDirection: "column", gap: "2" })}
+          >
+            <StepHead block={block} className={columnGroupHeadStyle} />
+            {part(block)}
+          </section>
+        ))}
+      </div>
+    );
+  }
   const toggle = (key: string) =>
     setShownAll((current) =>
       current.includes(key)
@@ -2932,6 +3167,7 @@ const OutputColumn = ({
   onExpand?: () => void;
 }) => {
   const file = view.kind === "files" ? view.files[view.index]! : null;
+  const attrib = useAttrib();
   return (
     <>
       <div className={columnHeadStyle}>
@@ -2989,7 +3225,11 @@ const OutputColumn = ({
         ) : view.kind === "files" ? null : (
           <>
             <div className={headBlockStyle}>
-              <span className={strongTitleStyle}>{view.title}</span>
+              <span className={strongTitleStyle}>
+                {attrib && view.kind === "mixed" && view.steps?.length
+                  ? (view.stepsTitle ?? view.title)
+                  : view.title}
+              </span>
               <span className={quietStyle}>
                 <RunIdsIn text={`${runLabel(run)} · ${run.when}`} />
               </span>
@@ -3025,6 +3265,11 @@ const OutputSheet = ({
 }) => {
   const { run } = outputs;
   const file = view.kind === "files" ? view.files[view.index]! : null;
+  // ?attrib: a list of several steps' outputs is titled by what it is; its line names the run only.
+  const byStep =
+    useAttrib() !== null && view.kind === "mixed" && Boolean(view.steps?.length);
+  const listTitle =
+    view.kind === "mixed" && byStep ? (view.stepsTitle ?? view.title) : view.kind === "files" ? "" : view.title;
   return (
     <Drawer
       // 640 px (`sheetWidth`): at 1440 the For each box stays in view beside it.
@@ -3035,9 +3280,7 @@ const OutputSheet = ({
       // A layer over the column: Esc and collapse go back to the column, whose ← then closes the outputs.
       shouldCloseOn="none"
       onClose={onCollapse}
-      aria-label={
-        file ? fileHeading(file) : view.kind === "files" ? "" : view.title
-      }
+      aria-label={file ? fileHeading(file) : listTitle}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -3051,13 +3294,13 @@ const OutputSheet = ({
       }}
     >
       <Drawer.Header
-        title={
-          file ? fileHeading(file) : view.kind === "files" ? "" : view.title
-        }
+        title={file ? fileHeading(file) : listTitle}
         description={
           file
             ? <RunIdsIn text={`${fileMeta(file)} · ${file.supplier} · ${runLabel(run)}`} />
-            : <RunIdsIn text={sourceLine(view.from, run)} />
+            : byStep
+              ? <RunIdsIn text={`${view.from === `${runLabel(run)} outputs` ? "" : `${view.from} · `}${runLabel(run)} · ${run.when}`} />
+              : <RunIdsIn text={sourceLine(view.from, run)} />
         }
         actions={
           <span className={headerActionsStyle} data-output-sheet-actions>
@@ -3501,6 +3744,8 @@ export const StepOutputs = ({
   const edge = useEdgeCase();
   const edgeCase = edge ? edgeCaseOf(edge, outputs, typesTake) : null;
   const fileTypes = useFileTypes();
+  // ?attrib: the heading names the output, "Certificates · 18"; the footer keeps where it was saved, not who uses it.
+  const attrib = useAttrib() !== null && take === "a";
   if (fileTypes && stepId === "fetchCertificate") {
     return <MixedFileOutputs />;
   }
@@ -3597,7 +3842,9 @@ export const StepOutputs = ({
             title={
               take === "d"
                 ? `Files · ${plural(files.length, "PDF")}`
-                : `Certificates · ${plural(files.length, "PDF")}`
+                : attrib
+                  ? `Certificates · ${files.length}`
+                  : `Certificates · ${plural(files.length, "PDF")}`
             }
             linkOut={
               <LinkOut
@@ -3607,7 +3854,9 @@ export const StepOutputs = ({
             }
             flagged={flagged("fileEntity")}
             footer={
-              take === "a"
+              attrib
+                ? "Saved to @acme"
+                : take === "a"
                 ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · used by Send review email`
                 : undefined
             }
@@ -3781,6 +4030,28 @@ const dotStyle = css({ color: "neutral.fg.subtle" });
 const cellFits = 3;
 const cellParts = 2;
 
+/** ?attrib=b: how many characters of step names the one-line cell holds before "+N". */
+const cellChars = 44;
+
+/** ?attrib=a: the step's 16 px tile, 4 px before the count; the underline stays on the words. */
+const tiledPartStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  textDecorationLine: "none",
+  "& > span:last-child": {
+    textDecorationLine: "underline",
+    textDecorationColor: "neutral.a20",
+    textUnderlineOffset: "[3px]",
+  },
+  _hover: { "& > span:last-child": { textDecorationColor: "neutral.fg.muted" } },
+});
+
+/** ?attrib=b: the step's name, its count fainter after it, as on a tab ("Fetch certificate 18"). */
+const namedPartStyle = css({
+  "& > span": { marginLeft: "1", color: "neutral.fg.subtle" },
+});
+
 /** "+N" after a run of counts, as after a run of chips (`fields.tsx`). */
 const cellMoreStyle = css({
   flexShrink: 0,
@@ -3900,7 +4171,10 @@ export const RunOutputsCell = ({
   now: number;
 }) => {
   const { document } = useEditor();
-  const take = useEntityTypesTake();
+  const attrib = useAttrib();
+  // ?attrib: one count per output, never one per entity type ("20 entities", not "14 suppliers · 6 distributors").
+  const typesTake = useEntityTypesTake();
+  const take = attrib ? "b" : typesTake;
   const outputs = runOutputs(run, now);
   const anchor = useRef<HTMLSpanElement>(null);
   const { open, container, node } = useOutputViewer(outputs, anchor);
@@ -3938,15 +4212,108 @@ export const RunOutputsCell = ({
             onOpen: () => open(flaggedView(outputs, flags, take, focus)),
           };
     });
+  const stepOf = (part: CellPart) => part.key.split(".")[0] ?? "";
+  const nameOf = (part: CellPart) => {
+    const step = findStep(document, stepOf(part))?.step;
+    return step ? stepLabel(step) : stepOf(part);
+  };
+  // b: step names, as many as fit one line (about 40 characters), then "+N".
+  const fitting = (() => {
+    let used = 0;
+    let fit = 0;
+    for (const part of parts) {
+      used += nameOf(part).length + String(part.count).length + 4;
+      if (fit > 0 && used > cellChars) {
+        break;
+      }
+      fit += 1;
+    }
+    return fit;
+  })();
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keeps a part's click off the row
     <span
       ref={anchor}
       className={cellStyle}
       data-run-outputs={run.id}
+      data-attrib={attrib ?? undefined}
       onClick={(event) => event.stopPropagation()}
     >
-      {parts.length === 0 ? (
+      {parts.length > 0 && attrib === "a" ? (
+        <>
+          {parts
+            .slice(0, parts.length > cellFits ? cellParts : cellFits)
+            .map((part) => (
+              // The tiles part the counts, so no "·" between them: with dots the column outgrows the table at 1440.
+              <Fragment key={part.key}>
+                <Tooltip content={nameOf(part)}>
+                  <button
+                    type="button"
+                    className={cx(linkStyle, tiledPartStyle)}
+                    data-run-output={part.key}
+                    onClick={part.onOpen}
+                  >
+                    <StepTile stepId={stepOf(part)} />
+                    <span>{part.text}</span>
+                  </button>
+                </Tooltip>
+              </Fragment>
+            ))}
+          {parts.length > cellFits ? (
+            <Tooltip
+              content={parts
+                .slice(cellParts)
+                .map((part) => `${nameOf(part)} · ${part.text}`)
+                .join(", ")}
+            >
+              <button
+                type="button"
+                className={cellMoreStyle}
+                aria-label={`Show ${parts.length - cellParts} more`}
+                onClick={parts[cellParts]!.onOpen}
+              >
+                +{parts.length - cellParts}
+              </button>
+            </Tooltip>
+          ) : null}
+        </>
+      ) : parts.length > 0 && attrib === "b" ? (
+        <>
+          {parts.slice(0, fitting).map((part, index) => (
+            <Fragment key={part.key}>
+              {index > 0 ? <span className={dotStyle}>·</span> : null}
+              <Tooltip content={part.text}>
+                <button
+                  type="button"
+                  className={cx(linkStyle, namedPartStyle)}
+                  data-run-output={part.key}
+                  onClick={part.onOpen}
+                >
+                  {nameOf(part)}
+                  <span>{part.count}</span>
+                </button>
+              </Tooltip>
+            </Fragment>
+          ))}
+          {parts.length > fitting ? (
+            <Tooltip
+              content={parts
+                .slice(fitting)
+                .map((part) => `${nameOf(part)} ${part.count}`)
+                .join(", ")}
+            >
+              <button
+                type="button"
+                className={cellMoreStyle}
+                aria-label={`Show ${parts.length - fitting} more`}
+                onClick={parts[fitting]!.onOpen}
+              >
+                +{parts.length - fitting}
+              </button>
+            </Tooltip>
+          ) : null}
+        </>
+      ) : parts.length === 0 ? (
         <span className={css({ color: "neutral.fg.subtle" })}>
           {flags.length === 0 ? "No outputs flagged" : "Nothing yet"}
         </span>
