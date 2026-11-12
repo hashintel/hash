@@ -44,6 +44,7 @@ import {
   type NetElementAddress,
   netElementKinds,
   type NetStructure,
+  queryBasisToolDescription,
   traceLedger,
 } from "@hashintel/brunch-agent";
 
@@ -66,10 +67,6 @@ import { type VisibleNetView, visibleNetView } from "./visible-net-view";
 import type { HostBinding } from "../agent/host-binding";
 import type { Context } from "@earendil-works/chord";
 import type { Schema } from "@earendil-works/pi-schema";
-
-/** Copied from Brunch's `query-basis.ts`. */
-export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -383,11 +380,27 @@ const netViewNow = async (
     await (await host.conversation(conversationId, context)).context(context),
   ).state;
 
-/** `query_basis` over a Harness's host binding. */
-export const createQueryBasisTool = (host: HostBinding) =>
+/** What an agent mounts the basis query as: its tool name and description. */
+export type QueryBasisToolOptions = {
+  readonly name?: string;
+  readonly description?: string;
+};
+
+/**
+ * The basis query over a Harness's host binding: `query_basis` with the
+ * library's description unless the agent names it otherwise, as the HASH
+ * agent mounts it as `ledger_query_basis`.
+ */
+export const createQueryBasisTool = (
+  host: HostBinding,
+  {
+    name = brunchTools.queryBasis,
+    description = queryBasisToolDescription,
+  }: QueryBasisToolOptions = {},
+) =>
   defineTool({
-    name: brunchTools.queryBasis,
-    description: queryBasisToolDescription,
+    name,
+    description,
     parameters: (({ $schema: _dialect, ...jsonSchema }) => jsonSchema)(
       toJsonSchema(elementSchema, { errorMode: "ignore" }),
     ) as Schema<ElementQuery>,
@@ -424,9 +437,12 @@ export const createQueryBasisTool = (host: HostBinding) =>
     },
   });
 
-/** `query_basis`, for an agent that also selects the Ledger and the Petrinaut browser tools. */
-export const queryBasisExtension = (host: HostBinding) =>
+/** The basis query, for an agent that also selects the Ledger and the Petrinaut browser tools. */
+export const queryBasisExtension = (
+  host: HostBinding,
+  options?: QueryBasisToolOptions,
+) =>
   defineExtension({
     name: "brunch.query-basis",
-    tools: [createQueryBasisTool(host)],
+    tools: [createQueryBasisTool(host, options)],
   });

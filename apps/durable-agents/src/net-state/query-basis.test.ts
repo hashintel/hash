@@ -2,13 +2,15 @@
  * `query_basis`, ported from Brunch's
  * `apps/brunch-agent/src/agents/petrinaut/tools/query-basis.test.ts`: the
  * same cases over browser-call records and a Ledger history in place of a
- * Flue snapshot, then a stale read, then the tool itself on a Harness.
+ * Flue snapshot, then a stale read, then the tool itself on a Harness, then
+ * the HASH agent's `ledger_query_basis` over HASH's merged updates.
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
   type Conversation,
   type ConversationId,
   createRegistry,
+  defineExtension,
   type EntryRecord,
   Harness,
   type JsonObject,
@@ -19,9 +21,12 @@ import { describe, expect, test, vi } from "vitest";
 import {
   brunchTools,
   foldCommits,
+  hashProcessEditorId,
   type LedgerHistoryMessage,
   petrinautContextualUserMessageBody,
+  queryBasisToolDescription,
 } from "@hashintel/brunch-agent";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   fauxAssistantMessage,
@@ -37,6 +42,7 @@ import {
   type BrowserCallResult,
   BrowserCallsDoc,
   claimBrowserCall,
+  defineWaitingBrowserTool,
   finishBrowserCall,
 } from "../browser-call/browser-call";
 import { reportHandEdit } from "../browser-call/hand-edit";
@@ -44,7 +50,12 @@ import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-
 import { ledgerExtension } from "../ledger";
 import { brunchUserInput } from "../server/durable-agents-server/user-input";
 import { netCalls } from "./net-changes";
-import { queryBasis, queryBasisExtension, type Selector } from "./query-basis";
+import {
+  createQueryBasisTool,
+  queryBasis,
+  queryBasisExtension,
+  type Selector,
+} from "./query-basis";
 
 import type { VisibleNetView } from "./visible-net-view";
 import type { JsonValue } from "@earendil-works/chord";
@@ -74,6 +85,52 @@ const definition = {
   differentialEquations: [],
 };
 const [queue] = definition.places;
+
+/**
+ * The net with one input arc into `serve`, from `placeId`, under the IDs the
+ * document stores: HASH's parsed input converts the model's IDs to them.
+ */
+const arcNet = (placeId: string) => ({
+  ...definition,
+  places: ["queue", "buffer"].map((id) => ({
+    id,
+    name: id,
+    colorId: null,
+    dynamicsEnabled: false,
+    x: 0,
+    y: 0,
+  })),
+  transitions: [
+    {
+      id: toPetrinautId("serve"),
+      name: "Serve",
+      inputArcs: [
+        { placeId: toPetrinautId(placeId), weight: 1, type: "standard" },
+      ],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+});
+/** HASH's merged arc update, retargeting `serve`'s input arc from the queue to the buffer and reweighting it. */
+const retargetInput = {
+  editor_id: hashProcessEditorId,
+  transitionId: "serve",
+  arcDirection: "input",
+  placeId: "queue",
+  newPlaceId: "buffer",
+  weight: 2,
+};
+const arcTo = (placeId: string): Selector => ({
+  kind: "arc",
+  transitionId: "serve",
+  arcDirection: "input",
+  placeId,
+});
 
 /** A browser call as its settled record holds it. */
 type NetStep = {
@@ -526,6 +583,39 @@ describe("query_basis", () => {
       await query([user, commit, add, read], queue, "current"),
     ).toMatchObject({ disposition: "basis-absent" });
   });
+
+  test("attributes a HASH merged arc update to the arc it retargeted, per canonical call (§3.1)", async () => {
+    const getNet = netCall(
+      "get-net",
+      "petrinaut_get_net",
+      { editor_id: hashProcessEditorId },
+      { definition: arcNet("queue") },
+      { documentRevision: { before: "revision-1" } },
+    );
+    const retarget = netCall(
+      "arc-moved",
+      "petrinaut_update_arc",
+      retargetInput,
+      { applied: true },
+      {
+        documentRevision: { before: "revision-1", after: "revision-2" },
+        readBack: arcNet("buffer"),
+      },
+    );
+    expect(
+      await query([user, commit, getNet, retarget], arcTo("buffer")),
+    ).toMatchObject({
+      disposition: "basis-absent",
+      readToolCallId: "arc-moved",
+      changes: [
+        {
+          toolCallId: "arc-moved",
+          operation: "petrinaut_update_arc",
+          petrinautRevisionId: "revision-2",
+        },
+      ],
+    });
+  });
 });
 
 describe("the query_basis tool", () => {
@@ -580,12 +670,41 @@ describe("the query_basis tool", () => {
     );
   };
 
+  /**
+   * The HASH agent's pieces this unit owns, without H2's catalogue: its two
+   * net tools as plain waiting tools under HASH's names, and the basis query
+   * mounted as `ledger_query_basis` with the library's description.
+   */
+  const hashTools = (host: ReturnType<typeof createHostBinding>) => ({
+    browserTools: defineExtension({
+      name: "test.hash-browser-tools",
+      tools: ["petrinaut_get_net", "petrinaut_update_arc"].map((name) =>
+        defineWaitingBrowserTool(
+          { name, description: name, parameters: { type: "object" } },
+          { host },
+        ),
+      ),
+    }),
+    queryBasisTools: queryBasisExtension(host, {
+      name: brunchTools.ledgerQueryBasis,
+      description: queryBasisToolDescription,
+    }),
+  });
+
   /** The Ledger, the browser tools and `query_basis` on one Harness over its host binding, bound to the editor. */
-  const openAgent = async (responses: FauxResponseStep[]) => {
+  const openAgent = async (
+    responses: FauxResponseStep[],
+    agent: "petrinaut" | "hash" = "petrinaut",
+  ) => {
     const { models, model } = scriptedModel(responses);
     const host = createHostBinding();
-    const browserTools = createPetrinautBrowserToolsExtension(host);
-    const queryBasisTools = queryBasisExtension(host);
+    const { browserTools, queryBasisTools } =
+      agent === "hash"
+        ? hashTools(host)
+        : {
+            browserTools: createPetrinautBrowserToolsExtension(host),
+            queryBasisTools: queryBasisExtension(host),
+          };
     const registry = createRegistry();
     registry.install(ledgerExtension);
     registry.install(browserCallExtension);
@@ -860,6 +979,128 @@ describe("the query_basis tool", () => {
         output: { disposition, readToolCallId: "read-1" },
       });
       await harness.close(context);
+    });
+  });
+
+  describe("mounted as the HASH agent's ledger_query_basis", () => {
+    const getNet = () =>
+      fauxToolCall(
+        "petrinaut_get_net",
+        { editor_id: hashProcessEditorId },
+        { id: "read-1" },
+      );
+    const queryCall = (selector: Selector) =>
+      fauxToolCall(
+        brunchTools.ledgerQueryBasis,
+        { selector },
+        { id: "query-1" },
+      );
+
+    test("carries its name and the library's description", () => {
+      const host = createHostBinding();
+      expect(
+        createQueryBasisTool(host, {
+          name: brunchTools.ledgerQueryBasis,
+          description: queryBasisToolDescription,
+        }),
+      ).toMatchObject({
+        name: "ledger_query_basis",
+        description: queryBasisToolDescription,
+        executionMode: "sequential",
+      });
+      // The website agent's default.
+      expect(createQueryBasisTool(host)).toMatchObject({
+        name: "query_basis",
+        description: queryBasisToolDescription,
+      });
+    });
+
+    test("[petrinaut_get_net, petrinaut_update_arc retargeting the arc], then a query for the new arc, lists the merged update (§3.1)", async () => {
+      const { harness, root } = await openAgent(
+        [
+          fauxAssistantMessage(getNet(), { stopReason: "toolUse" }),
+          browserCall("arc-moved", "petrinaut_update_arc", retargetInput),
+          fauxAssistantMessage(queryCall(arcTo("buffer")), {
+            stopReason: "toolUse",
+          }),
+          fauxAssistantMessage("Done."),
+        ],
+        "hash",
+      );
+      const submission = await root.submit(
+        { type: "input", content: "Why does Serve take from the buffer?" },
+        context,
+      );
+      await answer(
+        harness,
+        root.id,
+        "read-1",
+        { definition: arcNet("queue") },
+        { documentRevision: { before: "revision-1" } },
+      );
+      await answer(
+        harness,
+        root.id,
+        "arc-moved",
+        { applied: true },
+        {
+          documentRevision: { before: "revision-1", after: "revision-2" },
+          readBack: arcNet("buffer"),
+        },
+      );
+      expect((await submission.wait(context)).status).toBe("done");
+      expect(resultOf(await allEntriesOf(root), "query-1")).toMatchObject({
+        isError: false,
+        output: {
+          disposition: "basis-absent",
+          readToolCallId: "arc-moved",
+          changes: [
+            {
+              toolCallId: "arc-moved",
+              operation: "petrinaut_update_arc",
+              petrinautRevisionId: "revision-2",
+            },
+          ],
+        },
+      });
+      await harness.close(context);
+    });
+
+    describe("runs sequentially beside petrinaut_get_net (§3.6)", () => {
+      test.each([
+        ["[read, ledger_query_basis]", ["read-1", "query-1"], "basis-absent"],
+        ["[ledger_query_basis, read]", ["query-1", "read-1"], "not-found"],
+      ] as const)("%s answers %s", async (_, order, disposition) => {
+        const call = {
+          "read-1": getNet(),
+          "query-1": queryCall(queue),
+        };
+        const { harness, root } = await openAgent(
+          [
+            fauxAssistantMessage(
+              order.map((id) => call[id]),
+              { stopReason: "toolUse" },
+            ),
+            fauxAssistantMessage("Done."),
+          ],
+          "hash",
+        );
+        const submission = await root.submit(
+          { type: "input", content: "Why the queue?" },
+          context,
+        );
+        await answer(harness, root.id, "read-1", queueDefinition, {
+          documentRevision: { before: "revision-2" },
+        });
+        expect((await submission.wait(context)).status).toBe("done");
+        const entries = await allEntriesOf(root);
+        expect(resultOf(entries, "query-1")).toMatchObject({
+          isError: false,
+          output: { disposition },
+        });
+        expect(JSON.stringify(entries)).not.toContain("Dependent call refused");
+        await harness.close(context);
+      });
     });
   });
 });
