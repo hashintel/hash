@@ -19,8 +19,16 @@ import {
   brunchHeaders,
   brunchRoutes,
   brunchTools,
+  commitToolDescription,
+  compileToolDescription,
+  hashEntityReadDescription,
+  hashEntityTypeReadDescription,
+  hashEvidencedDescription,
   hashProcessEditorId,
+  hashSaveDescription,
+  hashWebReadDescription,
   petrinautContextualUserMessageBody,
+  queryBasisToolDescription,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
@@ -28,18 +36,6 @@ import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 import { brunchEnv } from "../../env.ts";
 import { hashSessionCookie } from "../../server/http/hash-session-actor.ts";
 import { flueConversationId } from "../../shared/conversation/identity.ts";
-import {
-  commitToolDescription,
-  compileToolDescription,
-} from "../shared/ledger-tools.ts";
-import { queryBasisToolDescription } from "../shared/query-basis.ts";
-import { hashEvidencedDescription } from "./guidance.ts";
-import { hashSaveDescription } from "./petrinaut/save-net.ts";
-import {
-  hashEntityReadDescription,
-  hashEntityTypeReadDescription,
-  hashWebReadDescription,
-} from "./tools/hash-graph-reads.ts";
 
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -309,8 +305,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   // Every HASH Petrinaut tool names the editor it acts on, which the system
   // prompt gives.
   const createPlace = mounted.inputs.get("petrinaut_create_place") as
-    | StandardSchema
-    | undefined;
+    StandardSchema | undefined;
   const validates = async (value: unknown) =>
     (await createPlace?.["~standard"].validate(value))?.issues === undefined;
   expect(await validates(place)).toBe(false);

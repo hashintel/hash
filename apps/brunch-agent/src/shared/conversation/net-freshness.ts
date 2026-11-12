@@ -5,6 +5,7 @@
  * the browser refuses it if the document has since moved by other means.
  */
 
+import { noNetViewRefusalNaming } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { mayShowNet, netResultView } from "./net-view.ts";
@@ -51,10 +52,7 @@ export const createNetViewTracker = () => {
   };
 };
 
-/** Why a change with no current view of the net in context was not started, naming the reads that give one. */
-export const noNetViewRefusalNaming = (reads: string) =>
-  `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (${reads}), then make the change.`;
-
+/** Why a change with no current view of the net in context was not started, naming the website's reads. */
 export const noNetViewRefusal = noNetViewRefusalNaming(
   `readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}`,
 );
