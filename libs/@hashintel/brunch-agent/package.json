@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "3.0.289",
-    "@ark-ui/react": "5.38.1",
+    "@ark-ui/react": "5.40.0",
     "@flue/sdk": "2.3.0",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
