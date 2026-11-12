@@ -102,6 +102,7 @@ import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signe
 import {
   archiveDataTypeResolver,
   checkUserPermissionsOnDataTypeResolver,
+  checkUserPermissionsOnDataTypesResolver,
   createDataTypeResolver,
   findDataTypeConversionTargetsResolver,
   queryDataTypesResolver,
@@ -162,6 +163,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypeSubgraph: queryEntityTypeSubgraphResolver,
     checkUserPermissionsOnEntityTypes:
       checkUserPermissionsOnEntityTypesResolver,
+    checkUserPermissionsOnDataTypes: checkUserPermissionsOnDataTypesResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,
 
     /** Logged in users (who may not have completed signup) */

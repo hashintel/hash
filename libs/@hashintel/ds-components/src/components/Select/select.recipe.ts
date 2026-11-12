@@ -516,6 +516,17 @@ export const selectRecipe = sva({
         },
       },
     },
+    // The arrow's margins double as the trigger's right inset, so hiding it
+    // leaves the text flush against the border — restore a balanced padding
+    {
+      variant: "default",
+      hideArrow: true,
+      css: {
+        trigger: {
+          paddingRight: "var(--base-input-padding-x)",
+        },
+      },
+    },
     {
       hideArrow: true,
       loading: true,

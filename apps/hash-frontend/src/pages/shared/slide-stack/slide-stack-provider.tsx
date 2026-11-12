@@ -1,9 +1,10 @@
 import { Backdrop, Box, Portal, Slide } from "@mui/material";
 import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { useScrollLock } from "@hashintel/ds-components";
 
-import { DataTypeEditorDrawerById } from "../data-type-editor-drawer-by-id";
+import { DataTypeDrawerById } from "../../types/data-type-drawer";
 import { SlideStackContext } from "./context";
 import { EntitySlide } from "./entity-slide";
 import { EntityTypeSlide } from "./entity-type-slide";
@@ -221,9 +222,17 @@ export const SlideStackProvider = ({
       const item = rewriteSlideItemOverride?.(uncheckedItem) ?? uncheckedItem;
 
       if (item.kind === "dataType") {
-        setDataTypeDrawerIds((prev) =>
-          prev[prev.length - 1] === item.itemId ? prev : [...prev, item.itemId],
-        );
+        // Pushing the already-open type again would stack an identical
+        // drawer; another version of it swaps the top drawer to that version
+        setDataTypeDrawerIds((prev) => {
+          const top = prev[prev.length - 1];
+          if (!top || extractBaseUrl(top) !== extractBaseUrl(item.itemId)) {
+            return [...prev, item.itemId];
+          }
+          return top === item.itemId
+            ? prev
+            : [...prev.slice(0, -1), item.itemId];
+        });
         return;
       }
 
@@ -260,6 +269,9 @@ export const SlideStackProvider = ({
 
   const closeSlideStack = useCallback(() => {
     setItems({ currentIndex: 0, items: [] });
+    // Data types stack as drawers beside the slides — callers dismissing
+    // every overlay (e.g. before navigating) must not strand them
+    setDataTypeDrawerIds([]);
   }, []);
 
   const value = useMemo(
@@ -269,10 +281,13 @@ export const SlideStackProvider = ({
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,
+      slideStackDepth: items.length,
+      dataTypeDrawerDepth: dataTypeDrawerIds.length,
     }),
     [
       closeSlideStack,
       currentIndex,
+      dataTypeDrawerIds.length,
       items,
       pushToSlideStack,
       setSlideContainerRef,
@@ -293,12 +308,21 @@ export const SlideStackProvider = ({
         slideContainerRef={slideContainerRef}
       />
       {dataTypeDrawerIds.map((dataTypeDrawerId, index) => (
-        <DataTypeEditorDrawerById
+        <DataTypeDrawerById
           // eslint-disable-next-line react/no-array-index-key
           key={`${index}-${dataTypeDrawerId}`}
           dataTypeId={dataTypeDrawerId}
           swapKey={`data-type-editor-${index}`}
           onClose={() => setDataTypeDrawerIds((prev) => prev.slice(0, index))}
+          // A saved drawer stays open on the saved version wherever it sits
+          // in the stack — the swapped id remounts it on the new baseline
+          onUpdated={(updated) =>
+            setDataTypeDrawerIds((prev) =>
+              prev.map((id, drawerIndex) =>
+                drawerIndex === index ? updated.schema.$id : id,
+              ),
+            )
+          }
         />
       ))}
     </SlideStackContext.Provider>

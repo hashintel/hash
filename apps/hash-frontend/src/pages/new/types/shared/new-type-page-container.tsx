@@ -46,11 +46,17 @@ export const NewTypePageContainer = ({
         />
         <Box py={3.75}>
           <Container>
-            <OntologyChip
-              domain={frontendDomain}
-              path={`@${activeWorkspace.shortname}/types/${kind === "link" ? "entity" : kind}-type`}
-              sx={[{ marginBottom: 2 }]}
-            />
+            {kind !== "data" ? (
+              <OntologyChip
+                domain={frontendDomain}
+                path={`@${activeWorkspace.shortname}/types/${kind === "link" ? "entity" : kind}-type`}
+                sx={[{ marginBottom: 2 }]}
+              />
+            ) : (
+              // The chip row's 26px + its 16px margin, so this header keeps
+              // the same height as the other create pages'
+              <Box height={42} />
+            )}
             <Typography variant="h1" fontWeight="bold">
               Create new {kind} type
             </Typography>

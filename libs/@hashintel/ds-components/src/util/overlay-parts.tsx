@@ -69,10 +69,13 @@ export const OverlayHeader = ({
   );
 
   if (!hasStructuredHeader) {
+    // The close button floats at the inline end, mirroring the structured
+    // header: custom content keeps the full header width, with only the
+    // rows beside the button narrowed around it
     return (
       <div className={cx(classes.header, classes.hasCustomHeader, className)}>
-        {children && <div>{children}</div>}
         {closeButton}
+        {children && <div>{children}</div>}
       </div>
     );
   }

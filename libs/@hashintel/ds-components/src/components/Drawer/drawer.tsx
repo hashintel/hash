@@ -80,6 +80,26 @@ const drawerStackEntries = new Map<string, DrawerStackEntry>();
 const drawerStackListeners = new Set<() => void>();
 let drawerStackOrderCounter = 0;
 
+/**
+ * Swap keys of drawers that unmounted *while still open* this frame. A parent
+ * swapping one drawer instance for another in a single commit can have the
+ * incoming drawer's first render deferred past the outgoing drawer's cleanup
+ * (e.g. an intermediate portal that resolves its container in a layout
+ * effect), so by the time the incoming drawer checks the stack its sibling has
+ * already left it. Keys live until the next animation frame: long enough for
+ * a same-task takeover, gone before anything that could read as a fresh open.
+ */
+const swapKeysDepartedThisFrame = new Set<string>();
+let departedSwapKeysClearFrame: number | null = null;
+
+const stashDepartedSwapKey = (swapKey: string) => {
+  swapKeysDepartedThisFrame.add(swapKey);
+  departedSwapKeysClearFrame ??= requestAnimationFrame(() => {
+    swapKeysDepartedThisFrame.clear();
+    departedSwapKeysClearFrame = null;
+  });
+};
+
 const emitDrawerStackChange = () => {
   for (const listener of drawerStackListeners) {
     listener();
@@ -196,11 +216,22 @@ const useDrawerStackTranslate = (
     };
 
     measure();
+    // A deps re-run removes and re-adds the entry within one task — un-stash
+    // so only a real departure (unmount) leaves its key behind
+    if (swapKey) {
+      swapKeysDepartedThisFrame.delete(swapKey);
+    }
     const observer = new ResizeObserver(measure);
     observer.observe(contentNode);
 
     return () => {
       observer.disconnect();
+      const entry = drawerStackEntries.get(id);
+      // Only an open drawer's departure marks a swap: one that animated closed
+      // (open already false) ended its slot, so a successor should slide in
+      if (entry?.open && entry.swapKey) {
+        stashDepartedSwapKey(entry.swapKey);
+      }
       drawerStackEntries.delete(id);
       emitDrawerStackChange();
     };
@@ -246,6 +277,7 @@ const DrawerRoot = ({
   swapKey,
   loading,
   onClose,
+  onCloseRequest,
   initialFocusRef,
   returnFocusRef,
   onKeyDown,
@@ -265,9 +297,10 @@ const DrawerRoot = ({
   /**
    * Ties drawers that occupy the same slot together by a shared key. When one
    * drawer opens while another with the same `swapKey` is still on top of the
-   * stack, the incoming drawer skips its enter animation and appears in place,
-   * so switching between them changes the panel content instead of sliding out
-   * and back in. Opening the first drawer in a slot (no sibling present) still
+   * stack — or unmounted while open earlier in the same frame — the incoming
+   * drawer skips its enter animation and appears in place, so switching
+   * between them changes the panel content instead of sliding out and back
+   * in. Opening the first drawer in a slot (no sibling present) still
    * animates in.
    */
   swapKey?: string;
@@ -292,6 +325,12 @@ const DrawerRoot = ({
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
+  /**
+   * Called when a dismissal is requested (close button, Escape, swipe, or
+   * backdrop), before the exit animation plays. Return `false` to keep the
+   * drawer open and handle the request yourself.
+   */
+  onCloseRequest?: () => boolean | void;
   /** Focused when the drawer opens, instead of the default initial focus. */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   /** Receives focus when the drawer closes, instead of the element focused before it opened. */
@@ -305,7 +344,10 @@ const DrawerRoot = ({
   );
 
   const [takingOverFromSwapSibling] = useState(
-    () => !!swapKey && getTopDrawerSwapKey() === swapKey,
+    () =>
+      !!swapKey &&
+      (getTopDrawerSwapKey() === swapKey ||
+        swapKeysDepartedThisFrame.has(swapKey)),
   );
 
   // The parent mounts/unmounts the Drawer to open/close it, but Ark only plays
@@ -353,6 +395,9 @@ const DrawerRoot = ({
   const allowSwipe = shouldCloseOn !== "none";
 
   const requestClose = () => {
+    if (onCloseRequest?.() === false) {
+      return;
+    }
     setOpen(false);
   };
 
