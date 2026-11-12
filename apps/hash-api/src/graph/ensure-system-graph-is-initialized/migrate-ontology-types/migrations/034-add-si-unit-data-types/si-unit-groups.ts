@@ -1,3 +1,5 @@
+import { expandSiPrefixes } from "./si-unit-groups/expand-si-prefixes";
+
 export type SiUnitDefinition = {
   title: string;
   description: string;
@@ -18,7 +20,241 @@ type SiUnitGroup = {
   units: SiUnitDefinition[];
 };
 
-export const siUnitGroups: SiUnitGroup[] = [
+const unprefixedGroups: SiUnitGroup[] = [
+  {
+    title: "Metric Length (SI)",
+    description:
+      "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
+    units: [
+      {
+        title: "Meters",
+        description:
+          "The base unit of length in the International System of Units (SI).",
+        symbol: "m",
+      },
+      {
+        title: "Millimeters",
+        description:
+          "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+        symbol: "mm",
+        conversion: {
+          target: "Meters",
+          factor: 0.001,
+        },
+      },
+      {
+        title: "Centimeters",
+        description:
+          "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
+        symbol: "cm",
+        conversion: {
+          target: "Meters",
+          factor: 0.01,
+        },
+      },
+      {
+        title: "Kilometers",
+        description:
+          "A unit of length in the International System of Units (SI), equal to one thousand meters.",
+        symbol: "km",
+        conversion: {
+          target: "Meters",
+          factor: 1000,
+        },
+      },
+    ],
+  },
+  {
+    title: "Mass",
+    description: "A measure of the amount of matter in an object.",
+    units: [
+      {
+        title: "Kilograms",
+        description: "The SI base unit of mass, equal to 1000 grams.",
+        symbol: "kg",
+      },
+      {
+        title: "Grams",
+        description:
+          "A metric unit of mass equal to one thousandth of a kilogram.",
+        symbol: "g",
+        conversion: {
+          target: "Kilograms",
+          factor: 0.001,
+        },
+      },
+    ],
+  },
+  {
+    title: "Duration",
+    description: "A measure of the length of time.",
+    units: [
+      {
+        title: "Second",
+        description:
+          "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
+        symbol: "s",
+      },
+      {
+        title: "Millisecond",
+        description:
+          "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.",
+        symbol: "ms",
+        conversion: {
+          target: "Second",
+          factor: 0.001,
+        },
+      },
+      {
+        title: "Microsecond",
+        description:
+          "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000000 (1 millionth) of a second.",
+        symbol: "µs",
+        conversion: {
+          target: "Second",
+          factor: 0.000001,
+        },
+      },
+    ],
+  },
+  {
+    title: "Frequency",
+    description:
+      "The number of occurrences of a repeating event per unit of time (temporal frequency).",
+    units: [
+      {
+        title: "Hertz",
+        description:
+          "A unit of frequency in the International System of Units (SI), equivalent to one cycle per second.",
+        symbol: "Hz",
+      },
+      {
+        title: "Kilohertz",
+        description:
+          "A unit of frequency in the International System of Units (SI), equal to one thousand hertz.",
+        symbol: "kHz",
+        conversion: {
+          target: "Hertz",
+          factor: 1000,
+        },
+      },
+      {
+        title: "Megahertz",
+        description:
+          "A unit of frequency in the International System of Units (SI), equal to one million hertz.",
+        symbol: "MHz",
+        conversion: {
+          target: "Hertz",
+          factor: 1000000,
+        },
+      },
+      {
+        title: "Gigahertz",
+        description:
+          "A unit of frequency in the International System of Units (SI), equal to one billion hertz.",
+        symbol: "GHz",
+        conversion: {
+          target: "Hertz",
+          factor: 1000000000,
+        },
+      },
+    ],
+  },
+  {
+    title: "Power",
+    description: "The amount of energy transferred or converted per unit time.",
+    units: [
+      {
+        title: "Watts",
+        description:
+          "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
+        symbol: "W",
+      },
+      {
+        title: "Kilowatts",
+        description:
+          "A unit of power in the International System of Units (SI), equal to one thousand watts.",
+        symbol: "kW",
+        conversion: {
+          target: "Watts",
+          factor: 1000,
+        },
+      },
+      {
+        title: "Megawatts",
+        description:
+          "A unit of power in the International System of Units (SI), equal to one million watts.",
+        symbol: "MW",
+        conversion: {
+          target: "Watts",
+          factor: 1000000,
+        },
+      },
+      {
+        title: "Gigawatts",
+        description:
+          "A unit of power in the International System of Units (SI), equal to one billion watts.",
+        symbol: "GW",
+        conversion: {
+          target: "Watts",
+          factor: 1000000000,
+        },
+      },
+    ],
+  },
+  {
+    title: "Area",
+    description: "A measure of the extent of a two-dimensional surface.",
+    units: [
+      {
+        title: "Square Metres",
+        description:
+          "A metric unit of area equal to a square one metre on each side.",
+        symbol: "m²",
+      },
+      {
+        title: "Square Centimetres",
+        description:
+          "A metric unit of area equal to one ten-thousandth of a square metre.",
+        symbol: "cm²",
+        conversion: {
+          target: "Square Metres",
+          factor: 0.0001,
+        },
+      },
+    ],
+  },
+  {
+    title: "Volume",
+    description:
+      "A measure of the three-dimensional space occupied by something.",
+    units: [
+      {
+        title: "Litres",
+        description: "A metric unit of volume equal to one cubic decimetre.",
+        symbol: "L",
+      },
+      {
+        title: "Millilitres",
+        description:
+          "A metric unit of volume equal to one thousandth of a litre.",
+        symbol: "mL",
+        conversion: {
+          target: "Litres",
+          factor: 0.001,
+        },
+      },
+      {
+        title: "Cubic Metres",
+        description: "A metric unit of volume equal to 1000 litres.",
+        symbol: "m³",
+        conversion: {
+          target: "Litres",
+          factor: 1000,
+        },
+      },
+    ],
+  },
   {
     title: "Electric Current",
     description: "The rate of flow of electric charge.",
@@ -959,7 +1195,8 @@ export const siUnitGroups: SiUnitGroup[] = [
       {
         title: "Henries per Meter",
         symbol: "H/m",
-        description: "The coherent SI unit used to express permeability.",
+        description:
+          "The coherent SI unit used to express magnetic permeability.",
       },
     ],
   },
@@ -1045,3 +1282,8 @@ export const siUnitGroups: SiUnitGroup[] = [
     ],
   },
 ];
+
+export const siUnitGroups: SiUnitGroup[] = unprefixedGroups.map((group) => ({
+  ...group,
+  units: expandSiPrefixes(group.units),
+}));
