@@ -2,5 +2,5 @@
   "title": "TypeScript",
   "description": "HashQL SDK",
   "root": "sdk",
-  "pages": ["../../intro", "(guides)", "reference"]
+  "pages": ["../../index", "(guides)", "reference"]
 }
