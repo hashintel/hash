@@ -1,3 +1,12 @@
+/**
+ * Struct constructors, written `{ "#struct": { name: value } }`.
+ *
+ * {@link @local/hashql#JExpr.struct | `JExpr.struct`} assembles one without checking it. {@link make} checks a finished value against {@link Schema}. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 

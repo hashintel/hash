@@ -14,6 +14,8 @@ import type * as Scope from "../Scope.js";
 import type { Types } from "effect";
 
 /**
+ * The string key that marks an import's bindings, whose type records the source module and the selection.
+ *
  * @category Type IDs
  * @since 0.1.0
  */

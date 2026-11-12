@@ -1,3 +1,12 @@
+/**
+ * Primitive literals, written `{ "#literal": value }`.
+ *
+ * {@link @local/hashql#JExpr.literal | `JExpr.literal`} assembles one without checking it. {@link make} checks a finished value against {@link Schema}. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";

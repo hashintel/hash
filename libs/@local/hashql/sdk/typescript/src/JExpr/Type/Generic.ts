@@ -15,12 +15,16 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 
 /**
+ * Schema for {@link Generic} values.
+ *
  * @category Schemas
  * @since 0.1.0
  */
 export const Schema: typeof Defs.Generic = Defs.Generic;
 
 /**
+ * A generic entry on a path segment: a {@link GenericArgument} or a {@link GenericBound}.
+ *
  * @category Models
  * @since 0.1.0
  */
@@ -45,6 +49,8 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
   Overflow.make(Schema);
 
 /**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
  * @category Constructors
  * @since 0.1.0
  */
@@ -55,6 +61,8 @@ export const makeEffect: (
 ) => Effect.Effect<Generic, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
  * @category Constructors
  * @since 0.1.0
  */
