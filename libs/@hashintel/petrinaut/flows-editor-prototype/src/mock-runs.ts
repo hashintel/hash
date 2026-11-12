@@ -38,9 +38,6 @@ export const mockRuns = (document: EditorDocument): MockRun[] => {
   ];
 };
 
-export const runStatus = (run: MockRun) =>
-  run.failedAt ? `Failed at ${run.failedAt.label}` : "Succeeded";
-
 /** How a step did in a run: done before the failure, failed at it, or not reached after it. */
 export const stepRunStatus = (
   document: EditorDocument,

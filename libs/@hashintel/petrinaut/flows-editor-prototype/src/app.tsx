@@ -30,7 +30,7 @@ import {
 } from "./history-view";
 import { HashShellStrip } from "./hash-shell";
 import { LeftPanel } from "./left-panel";
-import { mockRuns, runStatus } from "./mock-runs";
+import { mockRuns } from "./mock-runs";
 import { needsReviewTake, ReviewSide } from "./needs-review";
 import { ReviewR2Side } from "./needs-review-r2";
 import { PropertiesPanel } from "./properties-panel";
@@ -49,7 +49,6 @@ import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, isTyping, organize } from "./toolbar";
 import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
-import { InlineBanner } from "./ds-parts/inline-banner";
 import { Toast } from "./ds-parts/toast";
 import {
   DraftSaveNote,
@@ -157,16 +156,6 @@ const barButtonStyle = css({
     color: "neutral.fg.muted",
   },
   "&[class]:hover": { backgroundColor: "neutral.bgSolid.surface.hover" },
-});
-
-/** The run banner: the figma-ds InlineBanner at the top of the canvas, centred, with Back to editing at its end. */
-const runBannerStyle = css({
-  position: "absolute",
-  top: "5",
-  left: "[50%]",
-  transform: "[translateX(-50%)]",
-  zIndex: "[6]",
-  whiteSpace: "nowrap",
 });
 
 /** Simulate (J4.4): the DS outline sm button, its label muted, after Start's 14 px grey play tile. */
@@ -776,41 +765,6 @@ export const Editor = ({
                     {inHistory ? null : (
                       <AddNodePicker toolbarAnchor={addNodeRef} />
                     )}
-                    {viewedRun ? (
-                      // Option F (Explorations 903:39224): the run picked in History, on the same canvas.
-                      <InlineBanner
-                        className={runBannerStyle}
-                        role="status"
-                        icon={false}
-                        title={`Run · ${viewedRun.when}`}
-                        description={
-                          <span
-                            className={css({
-                              color: viewedRun.failedAt
-                                ? "[var(--flows-failed-text)]"
-                                : "[var(--flows-done-text)]",
-                            })}
-                          >
-                            {runStatus(viewedRun)}
-                          </span>
-                        }
-                        action={
-                          <Button
-                            size="sm"
-                            variant="subtle"
-                            tone="neutral"
-                            onClick={() =>
-                              setUiState((current) => ({
-                                ...current,
-                                viewRunId: null,
-                              }))
-                            }
-                          >
-                            Back to editing
-                          </Button>
-                        }
-                      />
-                    ) : null}
                     {session ? (
                       <TaskCard
                         session={session}
