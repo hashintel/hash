@@ -106,7 +106,7 @@ export class Api extends Context.Service<
     readonly parse: (
       text: string,
     ) => Effect.Effect<SourceFile, Cause.UnknownError, Scope.Scope>;
-    /** `node` as source text. */
+    /** `node` as source text. A character outside ASCII prints as written, rather than as an escape. */
     readonly print: (node: Node) => Effect.Effect<string, Cause.UnknownError>;
   }
 >()("@local/hashql-docs/TypeScript/Api") {}
@@ -126,7 +126,10 @@ export const layer: Layer.Layer<Api, Cause.UnknownError> = Effect.gen(
           Effect.acquireDisposable,
           Effect.map(({ sourceFile }) => sourceFile),
         ),
-      print: (node) => Effect.tryPromise(() => api.printer.printNode(node)),
+      print: (node) =>
+        Effect.tryPromise(() =>
+          api.printer.printNode(node, { neverAsciiEscape: true }),
+        ),
       // A program lives in the snapshot that creates it, and the snapshot reads the files in memory before the disk.
       createProgram: (roots, { paths, files }) => {
         const options: RawCompilerOptions = {

@@ -1,9 +1,8 @@
-import { Chunk, Option, Struct } from "effect";
+import { Array, Chunk, Option, Struct } from "effect";
 import { SyntaxKind } from "typescript/ast";
 import { getSynthesizedDeepClone } from "typescript/ast/clone";
 import * as factory from "typescript/ast/factory";
 
-import * as QuickInfo from "../../src/QuickInfo.js";
 import { firstHandle, nodeCase, secondHandle, shield } from "./node-case.js";
 import * as Nodes from "./nodes.js";
 
@@ -229,10 +228,6 @@ const objectType = nodeCase({
 });
 
 const referenceSource = factory.createIdentifier("reference");
-const typeParameterSource = factory.createTypeParameterDeclaration(
-  undefined,
-  name,
-);
 const reference = nodeCase({
   name: "Reference",
   make: Nodes.Reference.make,
@@ -268,7 +263,9 @@ const reference = nodeCase({
       field: "quickInfo",
       apply: (fields): Nodes.Reference.Reference.Fields =>
         Struct.assign(fields, {
-          quickInfo: Option.some(QuickInfo.Named({ keyword: "namespace" })),
+          quickInfo: Option.some(
+            Array.of({ parts: ["namespace Space"], signature: Option.none() }),
+          ),
         }),
     },
   ],
@@ -276,9 +273,9 @@ const reference = nodeCase({
     Struct.assign(fields, {
       node: shield(referenceSource),
       quickInfo: Option.some(
-        QuickInfo.Alias({
-          typeParameters: [shield(typeParameterSource)],
-          type: shield(syntaxType),
+        Array.of({
+          parts: ["function Box<", shield(syntaxType), ">.run"],
+          signature: Option.some(shield(callSignatureSource)),
         }),
       ),
     }),
