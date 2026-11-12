@@ -8,15 +8,25 @@
  *   (`net-changes.ts`), not settled tool parts in message order;
  * - a change's Ledger revision is the `LedgerDoc` as of the assistant entry
  *   that issued it (`snapshotAsOf`), not a fold of history cut at its part;
- * - the Ledger's turns get the USER's words from their `pi.user` entries,
- *   which the stored Ledger history does not keep, so the trace's turn
- *   excerpts are Brunch's.
+ * - the Ledger's turns get the USER's words from their input entries, which
+ *   the stored Ledger history does not keep: a `brunch.user` entry's
+ *   `data.userText`, or an older `pi.user` entry's message text, so the
+ *   trace's turn excerpts are Brunch's;
+ * - a hand edit after the model's view also answers `stale-read` (Lu's H8):
+ *   the tool folds the conversation's current effective context with
+ *   `visibleNetView`, the same staleness net freshness refuses on, so a note
+ *   naming the revision a later view already saw is ignored.
+ *
+ * It runs sequentially (fold 3b): one sequential tool serializes its whole
+ * round in call order, so it answers from the net reads issued before it in
+ * the same response, and never from the ones after.
  */
 import {
   type ConversationId,
   defineExtension,
   defineTool,
   type EntryId,
+  type EntryRecord,
   type ToolExecutionApi,
 } from "@earendil-works/pi-durable";
 import { toJsonSchema } from "@valibot/to-json-schema";
@@ -51,7 +61,9 @@ import {
   netCalls,
   type NetElement,
 } from "./net-changes";
+import { type VisibleNetView, visibleNetView } from "./visible-net-view";
 
+import type { HostBinding } from "../agent/host-binding";
 import type { Context } from "@earendil-works/chord";
 import type { Schema } from "@earendil-works/pi-schema";
 
@@ -189,6 +201,8 @@ export type QueryBasisInput = {
   readonly query: Selector;
   /** The Ledger revision as of the entry that issued a call. */
   readonly ledgerRevisionAt: (call: NetCall) => Promise<number | undefined>;
+  /** The model's view now, from its effective context (`visibleNetView`'s state). */
+  readonly netView: VisibleNetView["state"];
 };
 
 export const queryBasis = async (input: QueryBasisInput) => {
@@ -196,6 +210,17 @@ export const queryBasis = async (input: QueryBasisInput) => {
   // after it carried none.
   const latest = latestNetDefinition(input.calls);
   const view = latest?.call;
+  if (input.netView === "stale")
+    return {
+      binding: input.binding,
+      disposition: "stale-read" as const,
+      reason:
+        "The USER changed the net in the editor after the latest net view; read it again, then query.",
+      target: undefined,
+      readToolCallId: view?.toolCallId,
+      basis: undefined,
+      changes: [],
+    };
   if (
     view &&
     input.calls.some(
@@ -268,7 +293,7 @@ export const queryBasis = async (input: QueryBasisInput) => {
   };
 };
 
-/** The USER's words of a `pi.user` entry's message. */
+/** The USER's words of an older `pi.user` entry's message. */
 const userText = (content: string | readonly { type: string }[]) =>
   typeof content === "string"
     ? content
@@ -281,6 +306,24 @@ const userText = (content: string | readonly { type: string }[]) =>
             : [],
         )
         .join(" ");
+
+/** The kind `POST /chat` admits the USER's messages as (`user-input.ts`). */
+const brunchUserKind = "brunch.user";
+
+/**
+ * The USER's words a `brunch.user` entry keeps, as `POST /chat` admitted
+ * them: its `data.userText`. An envelope that did not parse keeps none.
+ */
+const wordsOf = (entry: EntryRecord | undefined): string | undefined => {
+  if (entry?.kind !== brunchUserKind) return undefined;
+  const { data } = entry;
+  return typeof data === "object" &&
+    data !== null &&
+    "userText" in data &&
+    typeof data.userText === "string"
+    ? data.userText
+    : undefined;
+};
 
 /** The conversation's Ledger history, its turns given the USER's words from their entries. */
 const ledgerWithWords = async (
@@ -297,11 +340,12 @@ const ledgerWithWords = async (
           messages
             .filter(({ role }) => role === "user")
             .map(async ({ id }) => {
-              const message = (await tx.entry(Number(id) as EntryId))
-                ?.model?.[0];
+              const entry = await tx.entry(Number(id) as EntryId);
+              const message = entry?.model?.[0];
               return [
                 id,
-                message?.role === "user" ? userText(message.content) : "",
+                wordsOf(entry) ??
+                  (message?.role === "user" ? userText(message.content) : ""),
               ] as const;
             }),
         ),
@@ -325,43 +369,64 @@ const ledgerWithWords = async (
 const bindingOf = (binding: string | null | undefined): unknown =>
   binding === null || binding === undefined ? null : JSON.parse(binding);
 
-export const queryBasisTool = defineTool({
-  name: brunchTools.queryBasis,
-  description: queryBasisToolDescription,
-  parameters: (({ $schema: _dialect, ...jsonSchema }) => jsonSchema)(
-    toJsonSchema(elementSchema, { errorMode: "ignore" }),
-  ) as Schema<ElementQuery>,
-  // Reads only.
-  replay: "safe",
-  execute: async (args, api, context) => {
-    const { selector } = v.parse(elementSchema, args);
-    const { conversationId } = api;
-    const [records, bound, ledger] = await Promise.all([
-      api.snapshot(BrowserCallsDoc, conversationId, context),
-      api.snapshot(BrowserBindingDoc, conversationId, context),
-      ledgerWithWords(api, conversationId, context),
-    ]);
-    const result = await queryBasis({
-      calls: netCalls(records?.calls ?? {}),
-      ledger,
-      binding: bindingOf(bound?.binding),
-      query: selector,
-      ledgerRevisionAt: async ({ issuedEntry }) =>
-        foldLedger(
-          await api.snapshotAsOf(
-            LedgerDoc,
-            conversationId,
-            issuedEntry as EntryId,
-            context,
-          ),
-        ).revision,
-    });
-    return { output: [{ type: "text", text: JSON.stringify(result) }] };
-  },
-});
+/**
+ * The model's view of the net now: the conversation's current effective
+ * context through the host, outside any commit. Throws when the host is
+ * unbound, which fails the call as a tool error.
+ */
+const netViewNow = async (
+  host: HostBinding,
+  conversationId: ConversationId,
+  context: Context,
+) =>
+  visibleNetView(
+    await (await host.conversation(conversationId, context)).context(context),
+  ).state;
+
+/** `query_basis` over a Harness's host binding. */
+export const createQueryBasisTool = (host: HostBinding) =>
+  defineTool({
+    name: brunchTools.queryBasis,
+    description: queryBasisToolDescription,
+    parameters: (({ $schema: _dialect, ...jsonSchema }) => jsonSchema)(
+      toJsonSchema(elementSchema, { errorMode: "ignore" }),
+    ) as Schema<ElementQuery>,
+    // Reads only.
+    replay: "safe",
+    // Answers from the reads issued before it in the same response (fold 3b).
+    executionMode: "sequential",
+    execute: async (args, api, context) => {
+      const { selector } = v.parse(elementSchema, args);
+      const { conversationId } = api;
+      const [records, bound, ledger, netView] = await Promise.all([
+        api.snapshot(BrowserCallsDoc, conversationId, context),
+        api.snapshot(BrowserBindingDoc, conversationId, context),
+        ledgerWithWords(api, conversationId, context),
+        netViewNow(host, conversationId, context),
+      ]);
+      const result = await queryBasis({
+        netView,
+        calls: netCalls(records?.calls ?? {}),
+        ledger,
+        binding: bindingOf(bound?.binding),
+        query: selector,
+        ledgerRevisionAt: async ({ issuedEntry }) =>
+          foldLedger(
+            await api.snapshotAsOf(
+              LedgerDoc,
+              conversationId,
+              issuedEntry as EntryId,
+              context,
+            ),
+          ).revision,
+      });
+      return { output: [{ type: "text", text: JSON.stringify(result) }] };
+    },
+  });
 
 /** `query_basis`, for an agent that also selects the Ledger and the Petrinaut browser tools. */
-export const queryBasisExtension = defineExtension({
-  name: "brunch.query-basis",
-  tools: [queryBasisTool],
-});
+export const queryBasisExtension = (host: HostBinding) =>
+  defineExtension({
+    name: "brunch.query-basis",
+    tools: [createQueryBasisTool(host)],
+  });
