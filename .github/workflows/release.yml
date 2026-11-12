@@ -10,7 +10,7 @@ on:
 jobs:
   mint-token:
     name: Mint token
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.repository == 'hashintel/hash'
     environment: main
     permissions:
@@ -55,7 +55,7 @@ jobs:
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: mint-token
     environment: main
     permissions:

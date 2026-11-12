@@ -437,7 +437,7 @@ jobs:
     name: Benches passed
     needs: [setup, sccache-credentials, unit-benches, integration-benches]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
