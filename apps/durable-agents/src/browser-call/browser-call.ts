@@ -84,6 +84,25 @@ export const browserCallStaleError = staleNetViewRefusal;
  */
 export const netToolOutputLimits = { maxBytes: 256 * 1024 } as const;
 
+/**
+ * The output bound of a tool whose result is text rendered for the model, the
+ * HASH graph reads (HA-5): the net tools' 256 KiB, with the line limit raised
+ * to match, so a whole page of short lines is cut by bytes, not at Pi's
+ * default 2,000 lines. A safety net only: such a tool never shows the net,
+ * cut or not.
+ */
+export const textToolOutputLimits = {
+  maxBytes: netToolOutputLimits.maxBytes,
+  maxLines: netToolOutputLimits.maxBytes,
+} as const;
+
+/** The output bound a browser tool gets, by its facts; Pi's default for any other. */
+const outputLimitsOf = (toolName: string) => {
+  if (mayShowNet(toolName)) return netToolOutputLimits;
+  if (browserToolFacts(toolName).textResult) return textToolOutputLimits;
+  return undefined;
+};
+
 export type BrowserCallStatus =
   /** Issued; no browser has claimed it. */
   | "pending"
@@ -379,6 +398,7 @@ const freshnessAtIssue = async (
     "conversationId" | "taskId" | "callId" | "getTask"
   >,
   context: Context,
+  noViewRefusal: string | undefined,
 ) => {
   const input = (await api.getTask(api.taskId, context))?.input as
     | ToolTaskInput
@@ -392,21 +412,68 @@ const freshnessAtIssue = async (
     api.conversationId,
     input.assistant,
     context,
+    noViewRefusal,
   );
 };
 
-export type WaitingBrowserToolOptions =
+/**
+ * How a catalogue adapts the waiting tool to its own inputs and results. Each
+ * is optional; without them the model's arguments are issued as they are and
+ * the browser's output is what the model sees.
+ */
+export type BrowserToolAdapters<TInput> = {
   /**
-   * A document change is refused without a current view of the net
-   * (`net-freshness.ts`), and otherwise issued against the revision of that
-   * view, read through `host` from the context the model had at the call.
+   * Parses the model's arguments with the tool's own schema, before anything
+   * else; a throw is an error result whose text is its message, with nothing
+   * recorded. The parsed input is what is issued and recorded. Pi checks the
+   * arguments against the JSON Schema only, which can't carry every
+   * refinement, and the browser parses the issued input with the tool's own
+   * schema.
    */
-  | { readonly host: HostBinding }
+  readonly parseInput?: (args: unknown) => TInput;
+  /** Why a parsed input is refused before it is issued, if it is; checked before net freshness. */
+  readonly refuse?: (input: TInput) => string | undefined;
   /**
-   * Only test scaffolding: the proofs and probes call `setNetTitle` alone,
-   * with no net read before it.
+   * What the model and the UI are shown of a settled result, in place of the
+   * browser's output; a throw (an output in an unknown shape) is an error
+   * result whose text is its message. The record keeps the browser's output.
    */
-  | { readonly checksNetView: false };
+  readonly present?: (output: JsonValue, input: TInput) => JsonValue;
+  /**
+   * Appended to every error of a call the browser may have started: a
+   * failure with its effect unknown, an expiry after a start, and a result
+   * `present` could not read. Never to a refusal or a call that never started.
+   */
+  readonly mayHaveRunNote?: string;
+};
+
+export type WaitingBrowserToolOptions<TInput = JsonObject> =
+  BrowserToolAdapters<TInput> &
+    (
+      | {
+          /**
+           * A document change is refused without a current view of the net
+           * (`net-freshness.ts`), and otherwise issued against the revision of that
+           * view, read through `host` from the context the model had at the call.
+           */
+          readonly host: HostBinding;
+          /** The refusal for a change with no view; the website's `noNetViewRefusal` by default. */
+          readonly noViewRefusal?: string;
+        }
+      /**
+       * Only test scaffolding: the proofs and probes call `setNetTitle` alone,
+       * with no net read before it.
+       */
+      | { readonly checksNetView: false }
+    );
+
+const errorResult = (text: string) => ({
+  output: [{ type: "text" as const, text }],
+  isError: true,
+});
+
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
 
 /**
  * A tool the bound browser runs, the tool call waiting for the browser's
@@ -415,36 +482,66 @@ export type WaitingBrowserToolOptions =
  * browser's output becomes the tool's result. Its tasks are registered by
  * `browserCallExtension`, which must be installed wherever it runs.
  *
- * A document change is first checked for a current view of the net, before
- * the commit that would issue it: refused, it records nothing and returns
- * Brunch's refusal as an error result. An issued call's record wins, so a
- * rerun keeps its first decision.
+ * Before the commit that would issue it, a call's input is parsed
+ * (`parseInput`), then checked (`refuse`), and a document change is checked
+ * for a current view of the net: refused at any of them, it records nothing
+ * and returns the refusal as an error result. Each decides the same on a
+ * rerun, and an issued call's record wins, so a rerun keeps its first
+ * decision.
  *
- * A settled result reaches the model rendered (`renderBrowserResult`): a read
- * with its `netRevision`, a change with `netAfterChanges` and `netRevision`.
- * A tool that may show the net gets `netToolOutputLimits`.
+ * A settled result reaches the model as `present` shows it: a text-result
+ * tool's string as itself, anything else rendered (`renderBrowserResult`), a
+ * read with its `netRevision`, a change with `netAfterChanges` and
+ * `netRevision`. A tool that may show the net gets `netToolOutputLimits`, a
+ * text-result tool `textToolOutputLimits`.
  */
-export const defineWaitingBrowserTool = <TParameters extends object>(
+export const defineWaitingBrowserTool = <
+  TParameters extends object,
+  TInput = JsonObject,
+>(
   definition: BrowserToolDefinition<TParameters>,
-  options: WaitingBrowserToolOptions,
-): ToolRegistration<TParameters> =>
-  defineTool<TParameters>({
+  options: WaitingBrowserToolOptions<TInput>,
+): ToolRegistration<TParameters> => {
+  const facts = browserToolFacts(definition.name);
+  const outputLimits = outputLimitsOf(definition.name);
+  /** An error of a call the browser may have started, with the note when there is one. */
+  const mayHaveRunError = (text: string) =>
+    errorResult(
+      options.mayHaveRunNote === undefined
+        ? text
+        : `${text} ${options.mayHaveRunNote}`,
+    );
+  return defineTool<TParameters>({
     name: definition.name,
     description: definition.description,
     parameters: definition.parameters,
     replay: "safe",
-    ...(mayShowNet(definition.name)
-      ? { outputLimits: netToolOutputLimits }
-      : {}),
+    ...(outputLimits === undefined ? {} : { outputLimits }),
     execute: async (args, api, context) => {
       const { conversationId, callId } = api;
+      let input: TInput;
+      try {
+        input =
+          options.parseInput === undefined
+            ? (args as TInput)
+            : options.parseInput(args);
+      } catch (error) {
+        return errorResult(messageOf(error));
+      }
+      const refusal = options.refuse?.(input);
+      if (refusal !== undefined) return errorResult(refusal);
       const freshness =
         "host" in options &&
-        browserToolFacts(definition.name).requiresFreshView &&
+        facts.requiresFreshView &&
         (await api.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
           callId
         ] === undefined
-          ? await freshnessAtIssue(options.host, api, context)
+          ? await freshnessAtIssue(
+              options.host,
+              api,
+              context,
+              options.noViewRefusal,
+            )
           : undefined;
       const issued = await api.commit(
         async (
@@ -471,7 +568,8 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
           calls[callId] = {
             toolCallId: callId,
             toolName: definition.name,
-            input: copyJson(args as JsonObject) as JsonObject,
+            // The parsed input is JSON: it parses the model's JSON arguments.
+            input: copyJson(input as JsonObject) as JsonObject,
             status: "pending",
             issuedAt,
             expiresAt: issuedAt + callTtlMs,
@@ -489,57 +587,62 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
         },
         context,
       );
-      if ("refusal" in issued)
-        return {
-          output: [{ type: "text", text: issued.refusal }],
-          isError: true,
-        };
+      if ("refusal" in issued) return errorResult(issued.refusal);
       const { state } = await api.waitForTask(issued.task, context);
       const { outcome } = state;
       if (outcome.status !== "completed")
         throw new Error(`Browser call task ended ${outcome.status}.`);
       const { result } = outcome;
-      if (result.status === "failed")
-        return {
-          output: [
-            {
-              type: "text",
-              text: failureError(definition.name, result.disposition),
-            },
-          ],
-          isError: true,
-        };
+      if (result.status === "failed") {
+        const text = failureError(definition.name, result.disposition);
+        return result.disposition === "failed"
+          ? mayHaveRunError(text)
+          : errorResult(text);
+      }
       if (result.status === "expired") {
         const record = (await api.snapshot(
           BrowserCallsDoc,
           conversationId,
           context,
         ))!.calls[callId]!;
-        return {
-          output: [{ type: "text", text: unfinishedError(record, "expired") }],
-          isError: true,
-        };
+        const text = unfinishedError(record, "expired");
+        return mayHaveStarted(record)
+          ? mayHaveRunError(text)
+          : errorResult(text);
       }
-      // The model sees the browser's output, rendered with what it shows of the net; the UI's details carry Brunch's envelope with its metadata.
+      let presented: JsonValue;
+      try {
+        presented =
+          options.present === undefined
+            ? result.output
+            : options.present(result.output, input);
+      } catch (error) {
+        return mayHaveRunError(messageOf(error));
+      }
+      // The model sees the presented output: a text result's string as itself, anything else rendered with what it shows of the net. The UI's details carry Brunch's envelope with the presented output and the metadata.
       return {
         output: [
           {
             type: "text",
-            text: renderBrowserResult(
-              definition.name,
-              result.output,
-              result.metadata,
-            ),
+            text:
+              facts.textResult && typeof presented === "string"
+                ? presented
+                : renderBrowserResult(
+                    definition.name,
+                    presented,
+                    result.metadata,
+                  ),
           },
         ],
         details: {
           brunchBrowserResult: true,
-          output: result.output,
+          output: presented,
           ...(result.metadata === null ? {} : { metadata: result.metadata }),
         } satisfies BrowserToolEnvelope,
       };
     },
   });
+};
 
 /** A canonical Petrinaut net mutation, so `browserToolFacts` counts it as a change. */
 export const browserToolName =

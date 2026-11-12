@@ -25,6 +25,8 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { describe, expect, test, vi } from "vitest";
 
+import { hashNoNetViewRefusal } from "@hashintel/brunch-agent";
+
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -40,7 +42,11 @@ import {
   finishBrowserCall,
 } from "../browser-call/browser-call";
 import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
-import { noNetViewRefusal, staleNetViewRefusal } from "./net-freshness";
+import {
+  expectedNetRevision,
+  noNetViewRefusal,
+  staleNetViewRefusal,
+} from "./net-freshness";
 import { handEditEntryKind, renderHandEditNote } from "./visible-net-view";
 
 import type { Message } from "@earendil-works/pi-ai";
@@ -475,5 +481,21 @@ describe("net freshness at issue", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the no-view refusal", () => {
+  test("the website's default keeps Brunch's words, naming its three reads", () => {
+    expect(noNetViewRefusal).toBe(
+      "Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (readNetOutline, readNetStructure or getLatestNetDefinition), then make the change.",
+    );
+  });
+
+  test("a caller's refusal replaces it when there is no view", () => {
+    const none = { entries: [], contributions: [], messages: [] };
+    expect(expectedNetRevision(none)).toEqual({ refusal: noNetViewRefusal });
+    expect(expectedNetRevision(none, hashNoNetViewRefusal)).toEqual({
+      refusal: hashNoNetViewRefusal,
+    });
   });
 });
