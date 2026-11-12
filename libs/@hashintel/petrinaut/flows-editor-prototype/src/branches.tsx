@@ -196,16 +196,19 @@ const valuesStyle = css({
  * are (T1 + K3, `used-in.tsx`): type icon, name, kind chip, the values at the row's end, then the steps that read it.
  * `?usedin=old` keeps the label-column row.
  */
-const DecisionRow = ({
+export const DecisionRow = ({
   stepId,
   actionDefinitionId,
   ports,
   iconOf,
+  hideValues = false,
 }: {
   stepId: string;
   actionDefinitionId: string;
   ports: { outputName: string; label: string }[];
   iconOf: (id: string) => IconName;
+  /** The values are listed elsewhere (Ask a person's Paths), so the row's end stays empty. */
+  hideValues?: boolean;
 }) => {
   const oldUsedIn = useOldUsedIn();
   const readOnly = useReadOnlyPanel();
@@ -224,9 +227,11 @@ const DecisionRow = ({
         readOnly={readOnly}
         iconOf={iconOf}
         end={
-          <span className={valuesStyle}>
-            {ports.map((port) => port.label).join(" · ")}
-          </span>
+          hideValues ? undefined : (
+            <span className={valuesStyle}>
+              {ports.map((port) => port.label).join(" · ")}
+            </span>
+          )
         }
       />
     );

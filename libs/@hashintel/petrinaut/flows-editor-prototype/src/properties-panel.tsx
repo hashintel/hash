@@ -12,10 +12,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { Select } from "./fill-select";
-import { BranchRows, PathsSection } from "./branches";
+import { BranchRows, DecisionRow, PathsSection } from "./branches";
 import { pathsGroups } from "./paths-flags";
 import { namedPorts, pathRenamable, switchTake } from "./switch-flags";
 import {
+  AnswerPathGroups,
+  answersOld,
   IfPathGroups,
   SwitchPathGroups,
   SwitchSections,
@@ -944,6 +946,8 @@ const ActionSections = ({
     );
   }
 
+  const answersAsPaths =
+    step.actionDefinitionId === "requestReview" && !answersOld;
   return (
     <>
       {visibleInputs.length > 0 ? (
@@ -994,7 +998,15 @@ const ActionSections = ({
           iconOf={(id) => nodeLook(document, id).icon}
         />
         {/* Outputs are data (Ciarán, 16 Oct). Only a branching step lists its paths; a straight step's next step is the wire. */}
-        {entry.ports ? (
+        {entry.ports && answersAsPaths ? (
+          <DecisionRow
+            hideValues
+            stepId={step.stepId}
+            actionDefinitionId={step.actionDefinitionId}
+            ports={namedPorts(step, entry.ports)}
+            iconOf={(id) => nodeLook(document, id).icon}
+          />
+        ) : entry.ports ? (
           <BranchRows
             stepId={step.stepId}
             actionDefinitionId={step.actionDefinitionId}
@@ -1003,7 +1015,13 @@ const ActionSections = ({
           />
         ) : null}
       </Section>
-      {entry.ports ? (
+      {entry.ports && answersAsPaths ? (
+        <AnswerPathGroups
+          step={step}
+          ports={entry.ports}
+          iconOf={(id) => nodeLook(document, id).icon}
+        />
+      ) : entry.ports ? (
         <PathsSection
           stepId={step.stepId}
           actionDefinitionId={step.actionDefinitionId}

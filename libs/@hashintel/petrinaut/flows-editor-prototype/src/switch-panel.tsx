@@ -1069,6 +1069,46 @@ export const SwitchPathGroups = ({
 };
 
 /**
+ * Ask a person's answers are its paths (inbox field-people-answers, option 3, 13 Nov): each answer is a group, its
+ * name renamed in place on hover, then "Goes to" and the next-step select, hairlines between; Add answer last, the
+ * same outline button as Add case. `?answers=old` keeps the paths under the Decision output.
+ */
+export const answersOld =
+  new URLSearchParams(globalThis.location.search).get("answers") === "old";
+
+export const AnswerPathGroups = ({
+  step,
+  ports,
+  iconOf,
+}: {
+  step: DraftActionStep;
+  ports: Port[];
+  iconOf: (id: string) => IconName;
+}) => {
+  const readOnly = useReadOnlyPanel();
+  return (
+    <Section title="Paths">
+      <div className={pathGroupsStyle} data-paths="answers">
+        {namedPorts(step, ports).map((port, index) => (
+          <Fragment key={port.outputName}>
+            {index > 0 ? <PathHairline /> : null}
+            <PathHead stepId={step.stepId} port={port} renamable />
+            <GoesToRow stepId={step.stepId} port={port} iconOf={iconOf} />
+          </Fragment>
+        ))}
+        {readOnly ? null : (
+          <div className={css({ gridColumn: "1 / -1", marginTop: "2" })}>
+            <Button size="sm" variant="subtle" iconName="plus">
+              Add answer
+            </Button>
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+};
+
+/**
  * `?switchlayout=a|b|c` (inbox `condition-panels-layout`): S3 on the condition builder's own rows, so If, Switch and
  * Find entities share one layout. A case is its in-place name (regular, as I1's path names), its condition rows
  * (joiner, chip, ⋮ on hover), the Add button and "Goes to"; 16 px on each side of the hairline between cases.
