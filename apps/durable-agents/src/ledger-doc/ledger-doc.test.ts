@@ -24,7 +24,11 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  brunchSignals,
+  brunchTools,
+  ledgerCommentsMessage,
+} from "@hashintel/brunch-agent";
 
 import {
   fauxAssistantMessage,
@@ -485,6 +489,58 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       const ledger = foldLedger(stored);
       expect(ledger.state.entities[0]?.turn).toBe(idsOf("pi.user")[0]);
       expect(ledger.state.claims[0]?.turn).toBe(idsOf("brunch.user")[0]);
+      expectAgreement(entries, ledger);
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test("Ledger comments open a turn, and the commit after them is anchored to it and holds them", async () => {
+    const { models, model } = scriptedModel([
+      ...commitTurn("call-1"),
+      ...commitTurn("call-2"),
+    ]);
+    const harness = await openHarness(new MemoryStorage(), { models }, context);
+    try {
+      const root = await harness.root(context, { agent: { model } });
+      expect((await runBrunchUserTurn(root, "We have a dryer.")).status).toBe(
+        "done",
+      );
+      const comments = [
+        { id: "n1", records: ["e1"], text: "It is one dryer, shared." },
+      ];
+      expect(
+        (
+          await (
+            await root.submit(
+              {
+                type: "input",
+                content: ledgerCommentsMessage(comments).body,
+                entry: {
+                  kind: brunchSignals.ledgerComments,
+                  data: { comments },
+                },
+              },
+              context,
+            )
+          ).wait(context)
+        ).status,
+      ).toBe("done");
+
+      const entries = await transcript(root);
+      const [commentId] = entries
+        .filter(({ kind }) => kind === brunchSignals.ledgerComments)
+        .map(({ id }) => String(id));
+      const ledger = await ledgerOf(harness, root.id);
+      expect(ledger.state.claims[0]?.turn).toBe(commentId);
+      expect(ledger.state.comments).toMatchObject([
+        { id: "n1", records: ["e1"] },
+      ]);
+      const receipts = results(entries).map(({ receipt }) => receipt);
+      expect(receipts).toMatchObject([
+        { status: "recorded", exchanges: 1 },
+        { status: "recorded", exchanges: 2 },
+      ]);
       expectAgreement(entries, ledger);
     } finally {
       await harness.close(context);
