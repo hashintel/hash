@@ -47,7 +47,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { StepTile, useAttrib } from "./attrib";
+import { StepTile, useAttrib, useAttribInLogs } from "./attrib";
 import {
   findStep,
   flaggedOutputsOf,
@@ -4382,7 +4382,7 @@ export const RunOutputsCell = ({
   now: number;
 }) => {
   const { document } = useEditor();
-  const attrib = useAttrib();
+  const attrib = useAttribInLogs();
   // ?attrib: one count per output, never one per entity type ("20 entities", not "14 suppliers · 6 distributors").
   const typesTake = useEntityTypesTake();
   const take = attrib ? "b" : typesTake;

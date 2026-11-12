@@ -19,7 +19,17 @@ import { treeTileColor } from "./status-colors";
 
 export type AttribTake = "a" | "b" | null;
 
+/**
+ * Picked 13 Nov (inbox output-attribution: yes, a; run outputs a; For each outputs a): take a is the default in every
+ * place but Logs. `?attrib=old` keeps today's lists grouped by type; `?attrib=b` shows take b.
+ */
 export const useAttrib = (): AttribTake => {
+  const value = useLocation().query.get("attrib")?.toLowerCase();
+  return value === "b" ? "b" : value === "old" ? null : "a";
+};
+
+/** Logs keep today's counts (output-attribution-logs: today); `?attrib=a|b` still shows a take there. */
+export const useAttribInLogs = (): AttribTake => {
   const value = useLocation().query.get("attrib")?.toLowerCase();
   return value === "a" || value === "b" ? value : null;
 };
