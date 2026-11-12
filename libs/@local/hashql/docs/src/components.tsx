@@ -93,7 +93,7 @@ export interface SignaturesProps extends ChildrenProps {
   readonly counted: "overloads" | "declarations";
 }
 
-/** One declaration's code, with the overloads it numbers, absent when it is the only declaration, and its own comment's facts. */
+/** One declaration's code, with the overloads it numbers, absent when it is the only declaration, and the facts of its own comment that its export or member does not already state. Its deprecation is always its own. */
 export interface SignatureProps
   extends FactProps, OverloadProps, ChildrenProps {}
 

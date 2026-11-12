@@ -217,6 +217,30 @@ export const signatureFacts =
   (value: Tree.Declaration.Signature): Facts =>
     facts(output)({ facts: value.facts, origin: Option.some(value.origin) });
 
+/** The facts of one declaration that `entry`, the facts of its export or its member, leaves unsaid. A reader sees those of the entry on its heading, so a declaration repeats none of them. Its deprecation stays its own, because it says which declaration to stop using. */
+export const unstated =
+  (output: Output) =>
+  (value: Tree.Declaration.Signature, entry: Facts): Facts => {
+    const own = signatureFacts(output)(value);
+
+    return {
+      since: Option.filter(
+        own.since,
+        (version) => !Option.contains(entry.since, version),
+      ),
+      stability: Option.filter(
+        own.stability,
+        (level) => !Option.contains(entry.stability, level),
+      ),
+      internal: own.internal && !entry.internal,
+      deprecated: own.deprecated,
+      source: Option.filter(
+        own.source,
+        (url) => !Option.contains(entry.source, url),
+      ),
+    };
+  };
+
 /** The facts of an export or a member: its first comment's, at its first declaration. */
 export const leading =
   (output: Output) =>

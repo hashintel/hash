@@ -42,8 +42,15 @@ const optional =
       Result.map(Option.toArray),
     );
 
+/** Where declarations are written: in a member or in an export, under the facts of that entry. */
+interface Declared {
+  readonly context: Option.Option<"member">;
+  /** The facts on the entry's heading, which its declarations leave out of their own. */
+  readonly entry: Output.Facts;
+}
+
 const signature =
-  (output: Output.Output, context: Option.Option<"member">, total: number) =>
+  (output: Output.Output, { context, entry }: Declared, total: number) =>
   (value: Tree.Declaration.Signature): Written<Element> =>
     output.printed.signature(value.syntax).pipe(
       Result.flatMap((source) =>
@@ -56,7 +63,7 @@ const signature =
               overloads: Array.map(value.overloads, ({ index }) => index),
               total,
             }),
-            ...Content.facts(Output.signatureFacts(output)(value)),
+            ...Content.facts(Output.unstated(output)(value, entry)),
           },
           [code],
         ),
@@ -65,17 +72,13 @@ const signature =
 
 /** Every declaration, after `title`: what the host puts on the line that names them, such as the declaration's type hierarchy. */
 const signatures =
-  (
-    output: Output.Output,
-    context: Option.Option<"member">,
-    title: readonly Element[],
-  ) =>
+  (output: Output.Output, declared: Declared, title: readonly Element[]) =>
   (value: Tree.Declaration.Signatures): Written<Element> => {
     const total = Output.count(Option.some(value));
 
     return pipe(
       value.children,
-      Array.map(signature(output, context, total)),
+      Array.map(signature(output, declared, total)),
       Result.all,
       Result.map((children) =>
         Content.element("signatures")(
@@ -107,26 +110,27 @@ const documented =
 
 /** A getter or a setter: its declaration, as the one overload it is, then what its own comment documents. */
 const half =
-  (output: Output.Output) =>
+  (output: Output.Output, within: Declared) =>
   (value: Tree.Member.Getter | Tree.Member.Setter): Written<Element> =>
     Result.gen(function* () {
       return Content.element(value.type)({}, [
-        yield* signature(output, Option.some("member"), 1)(value.signature),
+        yield* signature(output, within, 1)(value.signature),
         ...(yield* documented(output)(Option.toArray(value.comment), value)),
       ]);
     });
 
 /** A member's declarations with their documentation. An accessor's are its halves, each with its own. */
 const declared =
-  (output: Output.Output) =>
+  (output: Output.Output, entry: Output.Facts) =>
   (value: Tree.Member.Member): Written<Element[]> => {
+    const within: Declared = { context: Option.some("member"), entry };
     if (value.type === "accessor") {
-      return Result.all(Array.map(value.halves, half(output)));
+      return Result.all(Array.map(value.halves, half(output, within)));
     }
 
     return Result.gen(function* () {
       return [
-        yield* signatures(output, Option.some("member"), [])(value.signatures),
+        yield* signatures(output, within, [])(value.signatures),
         ...(yield* documented(output)(value.comments, value)),
       ];
     });
@@ -141,26 +145,29 @@ const memberNames = {
 
 const member =
   (output: Output.Output) =>
-  (value: Tree.Member.Member): Written<Element> =>
-    declared(output)(value).pipe(
+  (value: Tree.Member.Member): Written<Element> => {
+    const entry = Output.leading(output)({
+      comments: Tree.Member.comments(value),
+      signatures: Output.declarationsOf(value),
+    });
+
+    return pipe(
+      value,
+      declared(output, entry),
       Result.map((children) =>
         Content.element(memberNames[value.type])(
           {
             name: Output.memberId(output)(value),
             title: value.name,
             static: Content.flag(value.static),
-            ...Content.facts(
-              Output.leading(output)({
-                comments: Tree.Member.comments(value),
-                signatures: Output.declarationsOf(value),
-              }),
-            ),
+            ...Content.facts(entry),
             deprecated: Content.flag(value.deprecated),
           },
           children,
         ),
       ),
     );
+  };
 
 /**
  * An export's parts in reading order. The descriptions of its comments come first, and their other sections follow its members and calls.
@@ -177,22 +184,31 @@ const exported =
         optional(Relations.hierarchy({ output, name: place.id, slot }))(
           value.hierarchy,
         );
+      const parts = Array.flatMap(
+        Option.toArray(value.signatures),
+        ({ children }) => children,
+      );
+      const entry = Output.leading(output)({
+        comments: value.comments,
+        signatures: parts,
+      });
+
       const declarations = yield* Option.match(value.signatures, {
         onNone: () => hierarchyIn("header"),
-        onSome: (declared) =>
+        onSome: (stated) =>
           hierarchyIn("title").pipe(
             Result.flatMap((title) =>
-              signatures(output, Option.none(), title)(declared),
+              signatures(
+                output,
+                { context: Option.none(), entry },
+                title,
+              )(stated),
             ),
             Result.map(Array.of),
           ),
       });
       const members = yield* Result.all(
         Array.map(value.members, member(output)),
-      );
-      const parts = Array.flatMap(
-        Option.toArray(value.signatures),
-        ({ children }) => children,
       );
       const namespace = yield* optional((space: Tree.Export.Namespace) =>
         Result.gen(function* () {
@@ -232,12 +248,7 @@ const exported =
           title: place.title,
           names: Content.names(place.names),
           kind: value.kind,
-          ...Content.facts(
-            Output.leading(output)({
-              comments: value.comments,
-              signatures: parts,
-            }),
-          ),
+          ...Content.facts(entry),
           deprecated: Content.flag(value.deprecated),
         },
         [
