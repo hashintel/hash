@@ -107,6 +107,7 @@ export const open = Effect.fnUntraced(function* (options: Options = {}) {
       program,
       roots: [file],
       options: compilerOptions,
+      directory: import.meta.dirname,
     }),
     source,
     exported: (name) =>
