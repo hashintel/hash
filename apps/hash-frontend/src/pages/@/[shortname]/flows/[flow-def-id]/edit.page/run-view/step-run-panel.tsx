@@ -225,6 +225,16 @@ export const StepRunPanel = ({
   const running =
     live && (mark.state === "running" || mark.state === "needsReview");
   const lastError = useMemo(() => getLastError(runs), [runs]);
+  /* The output whose "Used in" entry set the highlight: only it shows the highlight, and only closing it clears it. */
+  const [highlightingOutput, setHighlightingOutput] = useState<string | null>(
+    null,
+  );
+  const getHighlightFrom = (outputName: string) =>
+    highlightingOutput === outputName ? highlightedStepId : null;
+  const highlightFrom = (outputName: string) => (stepId: string | null) => {
+    setHighlightingOutput(stepId === null ? null : outputName);
+    onHighlightStep(stepId);
+  };
   const itemCountsLine =
     perItem && mark.items ? getItemCountsLine(mark.items) : null;
 
@@ -368,12 +378,8 @@ export const StepRunPanel = ({
                 key={outputName}
                 label={`${getNameLabel(outputName)} value`}
                 onClose={() => {
-                  if (
-                    getOutputUses(outputName).some(
-                      (use) => use.step.stepId === highlightedStepId,
-                    )
-                  ) {
-                    onHighlightStep(null);
+                  if (getHighlightFrom(outputName) !== null) {
+                    highlightFrom(outputName)(null);
                   }
                 }}
                 name={
@@ -386,8 +392,8 @@ export const StepRunPanel = ({
                 {renderOutputValue(outputName)}
                 <OutputUses
                   valueUses={getOutputUses(outputName)}
-                  highlightedStepId={highlightedStepId}
-                  onHighlightStep={onHighlightStep}
+                  highlightedStepId={getHighlightFrom(outputName)}
+                  onHighlightStep={highlightFrom(outputName)}
                 />
               </OutputRow>
             ))}

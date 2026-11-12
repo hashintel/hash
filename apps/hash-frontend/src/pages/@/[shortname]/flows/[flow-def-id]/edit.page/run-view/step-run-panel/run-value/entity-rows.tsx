@@ -1,7 +1,10 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -179,10 +182,17 @@ export const EntityRows = ({ entityIds }: { entityIds: EntityId[] }) => {
       {entityIds.map((entityId, index) => {
         const editions =
           entitiesByUuid.get(extractEntityUuidFromEntityId(entityId)) ?? [];
+        /* Else the live edition, which a draft the run created may have been published as, before any later draft. */
         const entity =
           editions.find(
             ({ metadata }) => metadata.recordId.entityId === entityId,
-          ) ?? editions[0];
+          ) ??
+          editions.find(
+            ({ metadata }) =>
+              extractDraftIdFromEntityId(metadata.recordId.entityId) ===
+              undefined,
+          ) ??
+          editions[0];
         const { title, meta, icon, imageUrl } = getRowContent(
           entity,
           typesMap,
