@@ -21,9 +21,8 @@ pub enum SubcommandError {
     UnknownRun,
 }
 
-/// Who asks, for which web.
-#[derive(Debug, clap::Args)]
-pub struct RequestArgs {
+#[derive(Debug, clap::Parser)]
+pub struct SubmitArgs {
     /// The web the request is for.
     #[clap(long, env = "HASH_WEB_ID")]
     pub web: Uuid,
@@ -31,26 +30,6 @@ pub struct RequestArgs {
     /// The actor who makes the request.
     #[clap(long, env = "HASH_ACTOR_ID")]
     pub actor: Uuid,
-}
-
-impl RequestArgs {
-    fn request(&self, id: Uuid) -> Request {
-        Request {
-            web: WebId::new(self.web),
-            actor: ActorEntityUuid::new(self.actor),
-            id,
-        }
-    }
-
-    fn service<R: Runs>(&self, runs: R) -> IntegrationService<R> {
-        IntegrationService::new(runs, WebId::new(self.web))
-    }
-}
-
-#[derive(Debug, clap::Parser)]
-pub struct SubmitArgs {
-    #[clap(flatten)]
-    pub request: RequestArgs,
 
     /// The path of the integration definition.
     pub definition: PathBuf,
@@ -67,8 +46,9 @@ pub struct SubmitArgs {
 
 #[derive(Debug, clap::Parser)]
 pub struct RunArgs {
-    #[clap(flatten)]
-    pub request: RequestArgs,
+    /// The web the run belongs to.
+    #[clap(long, env = "HASH_WEB_ID")]
+    pub web: Uuid,
 
     /// The ID of the run.
     pub run: RunId,
@@ -88,13 +68,14 @@ pub(crate) async fn submit<R: Runs>(
     let definition = fs::read_to_string(&args.definition)
         .change_context(SubcommandError::ReadDefinition)
         .attach_with(|| args.definition.display().to_string())?;
-    let request = args
-        .request
-        .request(args.request_id.unwrap_or_else(Uuid::new_v4));
+    let web = WebId::new(args.web);
+    let request = Request {
+        web,
+        actor: ActorEntityUuid::new(args.actor),
+        id: args.request_id.unwrap_or_else(Uuid::new_v4),
+    };
 
-    let run = args
-        .request
-        .service(runs)
+    let run = IntegrationService::new(runs, web)
         .submit(
             &request,
             Submission {
@@ -118,10 +99,9 @@ pub(crate) async fn submit<R: Runs>(
 /// - [`SubcommandError::Service`] if the integration service could not read the run.
 /// - [`SubcommandError::UnknownRun`] if no run has this ID.
 pub(crate) async fn status<R: Runs>(runs: R, args: RunArgs) -> Result<(), Report<SubcommandError>> {
-    let status = args
-        .request
-        .service(runs)
-        .status(&args.request.request(Uuid::new_v4()), &args.run)
+    let web = WebId::new(args.web);
+    let status = IntegrationService::new(runs, web)
+        .status(web, &args.run)
         .await
         .change_context(SubcommandError::Service)?
         .ok_or_else(|| Report::new(SubcommandError::UnknownRun).attach(args.run.to_string()))?;
@@ -174,9 +154,9 @@ impl From<RunPhase> for Phase {
 ///
 /// - [`SubcommandError::Service`] if the integration service could not record the request.
 pub(crate) async fn cancel<R: Runs>(runs: R, args: RunArgs) -> Result<(), Report<SubcommandError>> {
-    args.request
-        .service(runs)
-        .cancel(&args.request.request(Uuid::new_v4()), &args.run)
+    let web = WebId::new(args.web);
+    IntegrationService::new(runs, web)
+        .cancel(web, &args.run)
         .await
         .change_context(SubcommandError::Service)?;
 

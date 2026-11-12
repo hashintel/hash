@@ -255,11 +255,11 @@ async fn requests_other_web() {
         .await
         .expect_err("should refuse to submit");
     let status = service
-        .status(&foreign, &run)
+        .status(foreign.web, &run)
         .await
         .expect_err("should refuse to read the status");
     let cancel = service
-        .cancel(&foreign, &run)
+        .cancel(foreign.web, &run)
         .await
         .expect_err("should refuse to cancel");
 
@@ -274,7 +274,7 @@ async fn requests_other_web() {
     assert_eq!(service.runs.started().len(), 1, "should start no run");
     assert_eq!(
         service
-            .status(&request(10), &run)
+            .status(web(), &run)
             .await
             .expect("should read the status")
             .map(|status| status.phase),
@@ -292,11 +292,11 @@ async fn status_after_cancel() {
         .expect("should start the run");
 
     service
-        .cancel(&request(10), &run)
+        .cancel(web(), &run)
         .await
         .expect("should cancel the run");
     let status = service
-        .status(&request(10), &run)
+        .status(web(), &run)
         .await
         .expect("should read the status");
 

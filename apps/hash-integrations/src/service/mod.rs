@@ -74,7 +74,7 @@ impl<R: Runs> IntegrationService<R> {
         request: &Request,
         submission: Submission,
     ) -> Result<RunId, Report<ServiceError>> {
-        self.check_web(request)?;
+        self.check_web(request.web)?;
 
         let definition = Definition::from_yaml(&submission.definition)
             .change_context(ServiceError::InvalidDefinition)?;
@@ -105,14 +105,14 @@ impl<R: Runs> IntegrationService<R> {
     ///
     /// # Errors
     ///
-    /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
+    /// - [`ServiceError::WebMismatch`] if `web` is another web than this node's.
     /// - [`ServiceError::Backend`] if the backend could not read the run.
     pub(crate) async fn status(
         &self,
-        request: &Request,
+        web: WebId,
         run: &RunId,
     ) -> Result<Option<RunStatus>, Report<ServiceError>> {
-        self.check_web(request)?;
+        self.check_web(web)?;
 
         self.runs
             .status(run)
@@ -124,14 +124,10 @@ impl<R: Runs> IntegrationService<R> {
     ///
     /// # Errors
     ///
-    /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
+    /// - [`ServiceError::WebMismatch`] if `web` is another web than this node's.
     /// - [`ServiceError::Backend`] if the backend could not record the request.
-    pub(crate) async fn cancel(
-        &self,
-        request: &Request,
-        run: &RunId,
-    ) -> Result<(), Report<ServiceError>> {
-        self.check_web(request)?;
+    pub(crate) async fn cancel(&self, web: WebId, run: &RunId) -> Result<(), Report<ServiceError>> {
+        self.check_web(web)?;
 
         self.runs
             .cancel(run)
@@ -139,8 +135,8 @@ impl<R: Runs> IntegrationService<R> {
             .change_context(ServiceError::Backend)
     }
 
-    fn check_web(&self, request: &Request) -> Result<(), Report<ServiceError>> {
-        if request.web != self.web {
+    fn check_web(&self, web: WebId) -> Result<(), Report<ServiceError>> {
+        if web != self.web {
             bail!(ServiceError::WebMismatch);
         }
 
