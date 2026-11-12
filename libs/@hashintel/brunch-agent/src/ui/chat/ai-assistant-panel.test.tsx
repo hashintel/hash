@@ -6936,6 +6936,37 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(composer.value).toBe("Also, operators change at six.");
   });
 
+  test("a clicked answer that fails to send leaves an empty composer empty", async () => {
+    const { requestMessages, transport } = offerReplies([
+      {
+        kind: "choose",
+        label: "Batch start",
+        options: ["Starts when both are available", "Must be rescheduled"],
+      },
+    ]);
+    const sendOffer = transport.sendMessages;
+    transport.sendMessages = vi.fn((options) =>
+      requestMessages.length === 0
+        ? sendOffer(options)
+        : Promise.reject(new Error("Answer rejected.")),
+    );
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Batches wait for material.",
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Must be rescheduled" }),
+    );
+
+    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
+    expect(
+      screen.getByRole<HTMLTextAreaElement>("textbox", {
+        name: "Message AI assistant",
+      }).value,
+      "The answer is still on the card to click again, so it is not typed for the person.",
+    ).toBe("");
+  });
+
   test("answers sent together are the message typing them sends, and the Ledger reads the same turn", async () => {
     const { requestMessages, transport } = offerReplies([
       {
