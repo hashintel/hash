@@ -31,8 +31,8 @@ import {
 import type { StepRunMark } from "../shared/step-states";
 import type { ValueUse } from "../shared/value-uses";
 import type { ValueDisplay } from "./shared/run-value-display";
+import type { OutputView } from "./shared/use-output-viewer";
 import type { ItemRun } from "./step-run-panel/step-runs";
-import type { OutputContent, OutputView } from "./use-output-viewer";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type {
   FlowDefinition,
@@ -184,8 +184,7 @@ const OutputRow = ({
 /**
  * The panel beside a run's canvas for the step selected: its state, timing and last error, what it got and what it
  * gave, and where what it gave is used. A step that runs per item of a for-each step, and a for-each step, show their
- * items' counts; a step that runs per item also shows the inputs every item got the same. An entity, a file or a list
- * it got or gave opens in the output viewer.
+ * items' counts; a step that runs per item also shows the inputs every item got the same.
  */
 export const StepRunPanel = ({
   step,
@@ -282,7 +281,7 @@ export const StepRunPanel = ({
   const renderValue = (title: string, display: ValueDisplay) => (
     <RunValue
       display={display}
-      onOpen={(content: OutputContent, options) =>
+      onOpen={(content, options) =>
         onOpenValue({ ...content, title, source: name }, options)
       }
     />

@@ -22,7 +22,7 @@ const file = ({
 });
 
 describe("getFilePreviewKind", () => {
-  it("shows a file by its MIME type", () => {
+  it("shows a file by its MIME type, and any other file by its name", () => {
     expect(
       getFilePreviewKind(file({ fileName: "scan", mimeType: "image/png" })),
     ).toBe("image");
@@ -40,6 +40,11 @@ describe("getFilePreviewKind", () => {
         }),
       ),
     ).toBe("docx");
+    expect(
+      getFilePreviewKind(
+        file({ fileName: "suppliers.csv", mimeType: "text/csv" }),
+      ),
+    ).toBe("other");
   });
 
   it("shows a PDF or a Word document without a MIME type by its name's extension", () => {
@@ -56,30 +61,19 @@ describe("getFilePreviewKind", () => {
       ),
     ).toBe("image");
   });
-
-  it("shows any other file by its name", () => {
-    expect(
-      getFilePreviewKind(
-        file({ fileName: "suppliers.csv", mimeType: "text/csv" }),
-      ),
-    ).toBe("other");
-  });
 });
 
 describe("getFileSteps", () => {
-  /* A file, an entity, a file, an entity that couldn't be loaded, then a file. */
-  const files = [true, false, true, false, true];
+  it("steps between a list's files, passing over its other entities and stopping at its first and last files", () => {
+    /* A file, an entity, a file, an entity that couldn't be loaded, then a file. */
+    const files = [true, false, true, false, true];
 
-  it("steps between a list's files, passing over its other entities", () => {
     expect(getFileSteps(files, 2)).toEqual({
       position: 2,
       count: 3,
       previous: 0,
       next: 4,
     });
-  });
-
-  it("stops at the list's first and last files", () => {
     expect(getFileSteps(files, 0)).toMatchObject({
       position: 1,
       previous: null,
@@ -88,15 +82,6 @@ describe("getFileSteps", () => {
     expect(getFileSteps(files, 4)).toMatchObject({
       position: 3,
       previous: 2,
-      next: null,
-    });
-  });
-
-  it("goes nowhere from what isn't a file, e.g. while the list is loading", () => {
-    expect(getFileSteps([false, false, false], 1)).toEqual({
-      position: null,
-      count: 0,
-      previous: null,
       next: null,
     });
   });

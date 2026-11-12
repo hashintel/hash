@@ -3,17 +3,17 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EntityRows } from "../shared/entity-rows";
 import { isFileEntity, useRunEntities } from "../shared/run-entities";
-import { getListPeek } from "../shared/run-value-display";
+import { getListLength, getListPeek } from "../shared/run-value-display";
 import { TextValue } from "../shared/text-value";
 
 import type { ListDisplay, ValueDisplay } from "../shared/run-value-display";
-import type { OutputContent } from "../use-output-viewer";
+import type { OutputContent } from "../shared/use-output-viewer";
 
 const values = css({ display: "flex", flexDirection: "column", gap: "1" });
 const quiet = css({ textStyle: "sm", color: "fg.subtle" });
 const showAll = css({ alignSelf: "flex-start" });
 
-/** A list's first entities, a row each: a file opens on its own, and any other entity opens the whole list. */
+/** A file opens on its own, and any other entity opens the whole list. */
 const EntityPeek = ({
   list,
   shown,
@@ -39,10 +39,7 @@ const EntityPeek = ({
   );
 };
 
-/**
- * A value a step got or gave: text as it is, entities and files as rows that open them, and anything else by what it
- * is. A long list shows its first values, then "Show all N", which opens the whole list wide.
- */
+/** A value a step got or gave. A long list shows its first values, then "Show all N", which opens it wide. */
 export const RunValue = ({
   display,
   onOpen,
@@ -54,10 +51,7 @@ export const RunValue = ({
     return <span className={quiet}>{display.text}</span>;
   }
 
-  const length =
-    display.kind === "inline"
-      ? display.values.length
-      : display.entityIds.length;
+  const length = getListLength(display);
 
   if (length === 0) {
     return <span className={quiet}>None</span>;

@@ -8,7 +8,6 @@ import type {
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
-/** Entities of a list that have the same types, a table's worth. */
 export type EntityGroup = {
   key: string;
   /** None for the entities that couldn't be loaded. */
@@ -52,21 +51,18 @@ export const groupByType = (
     : [...groups.values()];
 };
 
-/** What a group's entities are, in the plural where the type says it, e.g. "Suppliers". */
+/** E.g. "Suppliers", in the plural where the type gives one. */
 export const getGroupLabel = (closedType: ClosedMultiEntityType) =>
   closedType.allOf
     .map(({ title, titlePlural }) => titlePlural ?? title)
     .join(", ");
-
-/** One of a table's columns after the entity's name: a property of the entities' type. */
-export type PropertyColumn = { baseUrl: BaseUrl; title: string };
 
 /** A table's property columns: each of the type's properties that any of its entities has, in the type's order. */
 export const getPropertyColumns = (
   closedType: ClosedMultiEntityType,
   definitions: ClosedMultiEntityTypesDefinitions,
   entities: HashEntity[],
-): PropertyColumn[] =>
+): { baseUrl: BaseUrl; title: string }[] =>
   typedEntries(closedType.properties).flatMap(([baseUrl, schema]) => {
     if (!entities.some(({ properties }) => properties[baseUrl] !== undefined)) {
       return [];

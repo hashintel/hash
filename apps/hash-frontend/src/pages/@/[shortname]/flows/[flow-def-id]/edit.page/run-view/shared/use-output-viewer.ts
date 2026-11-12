@@ -1,19 +1,16 @@
 import { useState } from "react";
 
-import type { ListDisplay } from "./shared/run-value-display";
+import type { ListDisplay } from "./run-value-display";
 import type { EntityId } from "@blockprotocol/type-system";
 
-/** How much of the run's right edge the output viewer's side sheet covers: the DS Drawer's `md` width. */
+/** The side sheet's width: the DS Drawer's `md` size. */
 export const outputSheetWidth = 640;
 
-/** What a value a run got or gave opens as. */
 export type OutputContent =
-  /** A list, whole, of text or of entities. */
   | { kind: "list"; list: ListDisplay }
-  /** A file of a list of entities, which steps through the list's files. */
+  /** The whole list's entities, so that ← → step through its files. */
   | { kind: "file"; entityIds: EntityId[]; index: number };
 
-/** A value open in the output viewer. */
 export type OutputView = OutputContent & {
   /** What the value is, e.g. its output's name. */
   title: string;
@@ -21,10 +18,7 @@ export type OutputView = OutputContent & {
   source: string;
 };
 
-/**
- * What the output viewer shows: the values opened, the last on top, so that going back from a file opened from a list
- * goes back to the list; and whether it's open wide, in the side sheet.
- */
+/** The values opened, the last on top, so that going back from a file opened from a list returns to the list. */
 export const useOutputViewer = () => {
   const [stack, setStack] = useState<OutputView[]>([]);
   const [wide, setWide] = useState(false);

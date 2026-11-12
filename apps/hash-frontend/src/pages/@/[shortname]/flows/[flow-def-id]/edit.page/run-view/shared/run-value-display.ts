@@ -21,8 +21,13 @@ export type ValueDisplay =
   /** Only by what it is, e.g. "An entity query", where its value means little to read. */
   | { kind: "described"; text: string };
 
-/** A value that shows as a list: of text, or of entities. */
 export type ListDisplay = Exclude<ValueDisplay, { kind: "described" }>;
+
+export const getListLength = (list: ListDisplay) =>
+  list.kind === "inline" ? list.values.length : list.entityIds.length;
+
+export const countItems = (count: number) =>
+  `${count} ${count === 1 ? "item" : "items"}`;
 
 const formatDate = (value: string, pattern: string) => {
   const date = parseISO(value);
@@ -105,7 +110,7 @@ export const getValueDisplay = ({ kind, value }: Payload): ValueDisplay => {
         ? upperFirst(
             withArticle(getKindLabel({ payloadKind: kind, array: false })),
           )
-        : `${count} ${count === 1 ? "item" : "items"}`,
+        : countItems(count),
   };
 };
 
@@ -120,10 +125,9 @@ const longTextLines = 12;
 export const isLongText = (text: string) =>
   text.length > longTextCharacters || text.split("\n").length > longTextLines;
 
-/** How many of a list's values a panel shows before "Show all N", which opens the whole list. */
 const peekLength = 5;
 
-/** How many of a list's values a panel shows, and how many "Show all" opens when that's not all of them. */
+/** How many of a list's values a panel shows, and the "Show all N" after them, if any. */
 export const getListPeek = (length: number) => ({
   shown: Math.min(length, peekLength),
   showAll: length > peekLength ? length : null,

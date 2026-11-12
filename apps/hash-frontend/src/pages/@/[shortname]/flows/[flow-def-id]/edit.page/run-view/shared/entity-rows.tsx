@@ -62,7 +62,7 @@ const rowMeta = css({
 });
 const openIcon = css({ display: "flex", color: "fg.subtle" });
 
-/** Entities a run got or gave, a row each, which opens the entity: a file shows as a file. */
+/** Entities a run got or gave, a row each, which opens it. */
 export const EntityRows = ({
   entities: { entities, typesMap, loading, failed },
   onOpen,

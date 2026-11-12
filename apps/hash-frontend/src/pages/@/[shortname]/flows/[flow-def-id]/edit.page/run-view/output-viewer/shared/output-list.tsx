@@ -25,15 +25,13 @@ import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
-const values = css({ display: "flex", flexDirection: "column", gap: "3" });
-const groups = css({ display: "flex", flexDirection: "column", gap: "3" });
-const tabCount = css({ color: "fg.subtle", ml: "1.5" });
+const stack = css({ display: "flex", flexDirection: "column", gap: "3" });
+const tabCount = css({ color: "fg.subtle" });
 const loading = css({ display: "flex", justifyContent: "center", py: "6" });
-/* A table wider than what it's in scrolls sideways. */
 const tableScroll = css({ overflowX: "auto" });
 /* Names line up with the text above the table. */
 const table = css({ "& th:first-child, & td:first-child": { pl: "0" } });
-/* Long values, e.g. a description, keep a column readable: their start shows, and the rest on hover. */
+/* A long value, e.g. a description, shows its start, and the rest on hover. */
 const cell = css({
   display: "block",
   maxWidth: "[280px]",
@@ -47,7 +45,6 @@ const nameLink = css({
   _hover: { textDecoration: "underline" },
 });
 
-/** Entities of one type as a table: each one's name, which opens its page, then the type's properties it has. */
 const EntityTable = ({
   entities,
   closedType,
@@ -123,7 +120,7 @@ const EntityTable = ({
   );
 };
 
-/** One type's entities: files, and those that couldn't be loaded, as rows; any other entities as a table. */
+/** Files, and entities that couldn't be loaded, as rows; any other entities as a table. */
 const GroupBody = ({
   group,
   entities,
@@ -167,17 +164,13 @@ const GroupBody = ({
   );
 };
 
-/**
- * A list a run got or gave, whole: text a value a line, and entities a table per type, with a tab for each type when
- * there are several. Files show as rows, which open them.
- */
+/** A list a run got or gave, whole, with a tab per type when its entities are of several. */
 export const OutputList = ({
   list,
   entities,
   onOpenFile,
 }: {
   list: ListDisplay;
-  /** The list's entities, loaded. */
   entities: RunEntities;
   /** Opens the file at this position in the list. */
   onOpenFile: (index: number) => void;
@@ -186,7 +179,7 @@ export const OutputList = ({
 
   if (list.kind === "inline") {
     return (
-      <div className={values}>
+      <div className={stack}>
         {list.values.map((value, index) => (
           // Values can repeat, and are only ever shown in this order.
           // eslint-disable-next-line react/no-array-index-key
@@ -234,7 +227,7 @@ export const OutputList = ({
   }
 
   return (
-    <div className={groups}>
+    <div className={stack}>
       <Tabs value={picked.key} onChange={setPickedKey} variant="pill" size="sm">
         <Tabs.TabList
           items={typeGroups.map((group) => ({

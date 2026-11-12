@@ -27,22 +27,19 @@ import type {
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 
-/** Entities a run got or gave, each as the run named it, with their types. */
 export type RunEntities = {
   /** By position in the list asked for: none where the entity isn't loaded, found, or visible. */
   entities: (HashEntity | undefined)[];
   typesMap?: ClosedMultiEntityTypesRootMap;
-  /** The types' properties, e.g. to name a table's columns. */
   definitions?: ClosedMultiEntityTypesDefinitions;
   loading: boolean;
   failed: boolean;
 };
 
-/** A file is an entity with a file's URL. */
 export const isFileEntity = (entity: HashEntity | undefined) =>
   !!entity && !!getFileProperties(entity.properties).fileUrl;
 
-/** How an entity shows by name: a file by its name, with a thumbnail if it's an image, and anything else by its label. */
+/** A file by its name, with a thumbnail if it's an image, and any other entity by its label. */
 export const getEntityDisplay = (
   entity: HashEntity | undefined,
   typesMap: ClosedMultiEntityTypesRootMap | undefined,
@@ -91,7 +88,7 @@ export const getEntityDisplay = (
   };
 };
 
-/** Loads entities a run got or gave, in one request, with their types. */
+/** One request for a list's entities and their types, which its rows, tables and type tabs share. */
 export const useRunEntities = (entityIds: EntityId[]): RunEntities => {
   const { data, loading, error } = useQuery<
     QueryEntitiesQuery,

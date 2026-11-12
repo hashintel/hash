@@ -30,7 +30,6 @@ const DocxPreview = dynamic(
   { ssr: false, loading: () => <CircularProgress /> },
 );
 
-/* The file on the Flows grey. */
 const stage = css({
   display: "flex",
   flexShrink: "0",
@@ -40,6 +39,8 @@ const stage = css({
   bg: "neutral.s20",
 });
 const preview = css({ position: "relative", width: "full" });
+/* The previews' search, which nothing here opens. */
+const noSearch = { showSearch: false, setShowSearch: () => undefined };
 const unpreviewable = css({
   display: "flex",
   flexDirection: "column",
@@ -59,7 +60,7 @@ const counter = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-/** ‹ 3 of 18 ›: steps through a list's files. */
+/** ‹ 3 of 18 › */
 export const FileNav = ({
   steps,
   variant,
@@ -97,7 +98,7 @@ export const FileNav = ({
   </>
 );
 
-/** Download, and the file's page in a new tab: `compact` as icons, e.g. in a header with little room. */
+/** Download, and the file's page in a new tab: `compact` as icons, for a header. */
 export const FileActions = ({
   file,
   compact,
@@ -148,24 +149,21 @@ export const FileActions = ({
   );
 };
 
-/**
- * A file in HASH's file preview, full height on the Flows grey: an image as it is, a PDF or a Word document page by page
- * (a PDF's page thumbnails only `wide`, as they need the room), and any other file by its name.
- */
+/** A file in HASH's file preview, on the Flows grey. */
 export const FileStage = ({
   file,
   wide,
   className,
 }: {
   file: HashEntity;
+  /** Shows a PDF's page thumbnails, which need the room. */
   wide: boolean;
-  /** Its size, e.g. full height and edge to edge of what it's in. */
+  /** Its size in what it's in. */
   className: string;
 }) => {
   const { fileUrl, fileName, displayName, description } = getFileProperties(
     file.properties,
   );
-  const [showSearch, setShowSearch] = useState(false);
   /** The Word document that couldn't be shown, which then shows by its name. */
   const [unavailableDocxUrl, setUnavailableDocxUrl] = useState<string>();
   const kind = getFilePreviewKind(file.properties);
@@ -195,16 +193,14 @@ export const FileStage = ({
             key={fileUrl}
             url={fileUrl}
             showThumbnails={wide}
-            showSearch={showSearch}
-            setShowSearch={setShowSearch}
+            {...noSearch}
           />
         ) : kind === "docx" && unavailableDocxUrl !== fileUrl ? (
           <DocxPreview
             key={fileUrl}
             url={fileUrl}
             onUnavailable={() => setUnavailableDocxUrl(fileUrl)}
-            showSearch={showSearch}
-            setShowSearch={setShowSearch}
+            {...noSearch}
           />
         ) : (
           <div className={unpreviewable}>

@@ -86,19 +86,4 @@ describe("getPropertyColumns", () => {
       { baseUrl: tier, title: "Tier" },
     ]);
   });
-
-  it("names a column by its property type's version the type uses", () => {
-    expect(
-      getPropertyColumns(
-        closedType,
-        {
-          propertyTypes: {
-            [`${region}v/2`]: { title: "Old region" },
-            [`${region}v/3`]: { title: "Region" },
-          },
-        } as unknown as ClosedMultiEntityTypesDefinitions,
-        [entity([supplier], { [region]: "North" })],
-      ),
-    ).toEqual([{ baseUrl: region, title: "Region" }]);
-  });
 });

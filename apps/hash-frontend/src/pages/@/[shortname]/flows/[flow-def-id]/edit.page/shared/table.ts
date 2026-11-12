@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-/** A table in the flows editor, e.g. of runs or of a run's entities: a row a line, with a rule under each. */
+/** A table in the flows editor, e.g. of runs or of a run's entities. */
 export const tableStyle = css({
   width: "full",
   borderCollapse: "collapse",

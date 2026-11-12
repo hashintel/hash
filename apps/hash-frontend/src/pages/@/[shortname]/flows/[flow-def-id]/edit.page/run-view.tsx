@@ -10,11 +10,11 @@ import { RunCanvas } from "./canvas";
 import { RunLeftPanel } from "./left-panel";
 import { flowChangedBetween } from "./run-view/flow-changed";
 import { OutputViewer } from "./run-view/output-viewer";
-import { StepRunPanel } from "./run-view/step-run-panel";
 import {
   outputSheetWidth,
   useOutputViewer,
-} from "./run-view/use-output-viewer";
+} from "./run-view/shared/use-output-viewer";
+import { StepRunPanel } from "./run-view/step-run-panel";
 import { useRun } from "./run-view/use-run";
 import { findStep } from "./shared/find-step";
 import { sidePanelWidth } from "./shared/side-panel";
@@ -73,8 +73,7 @@ const Message = ({
 
 /**
  * One of the flow's runs, on the flow's canvas as the run ran it, read-only: each step's card and row in the Steps tab
- * show its state, and follow the run while it's going. Selecting one step shows what it got and gave in a panel,
- * where each opens in the output viewer.
+ * show its state, and follow the run while it's going. Selecting one step shows what it got and gave in a panel.
  */
 export const RunView = ({
   flowRunEntityId,

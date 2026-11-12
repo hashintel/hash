@@ -17,8 +17,9 @@ import {
   isFileEntity,
   useRunEntities,
 } from "./shared/run-entities";
+import { countItems, getListLength } from "./shared/run-value-display";
 
-import type { OutputViewerState } from "./use-output-viewer";
+import type { OutputViewerState } from "./shared/use-output-viewer";
 import type { EntityId } from "@blockprotocol/type-system";
 
 const noEntityIds: EntityId[] = [];
@@ -39,7 +40,7 @@ const head = css({
   borderBottomStyle: "solid",
   borderBottomColor: "bd.subtle",
 });
-const back = css({ ml: "[-6px]" });
+const back = css({ ml: "-1.5" });
 const headTitle = css({
   flex: "1",
   minWidth: "0",
@@ -69,18 +70,11 @@ const headingTitle = css({
 });
 const headingMeta = css({ textStyle: "xs", color: "fg.subtle" });
 /* The file full height, less the run's header and the file's name above it, and edge to edge of the panel. */
-const stage = css({ minHeight: "[calc(100vh - 220px)]", mx: "[-24px]" });
+const stage = css({ minHeight: "[calc(100vh - 220px)]", mx: "-6" });
 const actions = css({ display: "flex", flexWrap: "wrap", gap: "1.5" });
 const loading = css({ display: "flex", justifyContent: "center", py: "6" });
 
-const countItems = (count: number) =>
-  `${count} ${count === 1 ? "item" : "items"}`;
-
-/**
- * A value a run got or gave, open in place of the panel it was opened from, with a back arrow: a file in HASH's file
- * preview, with ← → between its list's files, or a list whole. Expand opens it wide, in a side sheet beside the run,
- * which Esc and collapse close again. Esc in the panel goes back.
- */
+/** A value a run got or gave, open in place of the right panel, and wide in a side sheet once expanded. */
 export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
   const { view, depth } = viewer;
   const entities = useRunEntities(
@@ -133,12 +127,6 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
   const fileHeading = file
     ? getEntityDisplay(file, entities.typesMap, entities)
     : null;
-  const listLength =
-    view.kind === "list"
-      ? view.list.kind === "inline"
-        ? view.list.values.length
-        : view.list.entityIds.length
-      : 0;
 
   return (
     <>
@@ -200,7 +188,9 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
             <>
               <div className={heading}>
                 <span className={headingTitle}>{view.title}</span>
-                <span className={headingMeta}>{countItems(listLength)}</span>
+                <span className={headingMeta}>
+                  {countItems(getListLength(view.list))}
+                </span>
               </div>
               <OutputList
                 list={view.list}

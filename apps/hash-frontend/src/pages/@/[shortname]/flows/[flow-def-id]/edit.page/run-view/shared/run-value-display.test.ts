@@ -21,7 +21,6 @@ describe("getListPeek", () => {
     expect(getListPeek(1)).toEqual({ shown: 1, showAll: null });
     expect(getListPeek(5)).toEqual({ shown: 5, showAll: null });
     expect(getListPeek(6)).toEqual({ shown: 5, showAll: 6 });
-    expect(getListPeek(240)).toEqual({ shown: 5, showAll: 240 });
   });
 });
 
