@@ -74,7 +74,15 @@ test("a type's page lists each type that extends any of its versions, with the v
     await toggle.press("Space");
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    await section.getByRole("row").filter({ has: toggle }).click();
+    await section
+      .getByRole("row")
+      .filter({
+        has: page.getByRole("button", {
+          name: `${childName} v2`,
+          exact: true,
+        }),
+      })
+      .click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
     for (const version of ["v1", "v2"]) {
