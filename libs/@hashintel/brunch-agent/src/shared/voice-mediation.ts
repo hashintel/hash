@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const quote = z.string().max(800).nullable();
-export const zVoiceBriefExtraction = z.object({
+export const voiceBriefExtractionSchema = z.object({
   kind: z.enum(["modelling", "decision"]),
   goal: quote,
   arrivals: quote,
@@ -17,19 +17,20 @@ export const zVoiceBriefExtraction = z.object({
 /** Verbatim excerpts by extraction field, plus the fields still open. */
 export type VoiceBriefFields = Partial<
   Record<
-    Exclude<keyof z.infer<typeof zVoiceBriefExtraction>, "kind"> | "stillOpen",
+    | Exclude<keyof z.infer<typeof voiceBriefExtractionSchema>, "kind">
+    | "stillOpen",
     string
   >
 >;
 export type VoiceLine = { text: string; state: "streaming" | "done" };
-export const zVoiceWrapUpResponse = z.object({ text: z.string() });
+export const voiceWrapUpResponseSchema = z.object({ text: z.string() });
 
 /** Only extractive, verbatim evidence can become a modelling value. */
 export const prepareVoiceBrief = (
   transcript: string,
   extraction: unknown,
 ): VoiceBriefFields => {
-  const parsed = zVoiceBriefExtraction
+  const parsed = voiceBriefExtractionSchema
     .partial()
     .required({ kind: true })
     .parse(extraction);

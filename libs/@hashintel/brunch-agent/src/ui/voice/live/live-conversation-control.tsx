@@ -18,7 +18,7 @@ import {
 import { LiveSpeechCaptions } from "../../../client/voice/live/live-speech-captions";
 import { createUtteranceJudgmentRequester } from "../../../client/voice/live/request-utterance-judgment";
 import { VoiceAudioSettings } from "../../../client/voice/session/voice-audio-settings";
-import { zVoiceWrapUpResponse } from "../../../shared/voice-mediation";
+import { voiceWrapUpResponseSchema } from "../../../shared/voice-mediation";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
@@ -89,7 +89,7 @@ const createLiveMediation = (
       .object({ fields: z.record(z.string(), z.string()) })
       .parse(await prepareVoice("brief", text, signal)).fields,
   summarize: async (text, signal) =>
-    zVoiceWrapUpResponse.parse(await prepareVoice("wrap-up", text, signal))
+    voiceWrapUpResponseSchema.parse(await prepareVoice("wrap-up", text, signal))
       .text,
   offered,
 });
