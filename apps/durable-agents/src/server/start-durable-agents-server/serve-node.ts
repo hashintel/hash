@@ -59,7 +59,8 @@ const writeResponse = async (
     outgoing.end();
     return;
   }
-  const reader = response.body.getReader();
+  const reader: ReadableStreamDefaultReader<Uint8Array> =
+    response.body.getReader();
   const closed = new Promise<void>((resolve) => {
     outgoing.once("close", resolve);
   });

@@ -89,7 +89,7 @@ const recorder = (stream: ReadableStream<UIMessageChunk>) => {
   let ending: "done" | { error: string } | undefined;
   const until = async (predicate: (chunk: UIMessageChunk) => boolean) => {
     for (;;) {
-      let next: ReadableStreamReadResult<UIMessageChunk>;
+      let next: Awaited<ReturnType<typeof reader.read>>;
       try {
         // Each read depends on the one before.
         // eslint-disable-next-line no-await-in-loop
