@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -11,6 +12,7 @@ import {
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 } from "../../../../examples/index";
 import { lowerScenarioToHir } from "../../../../hir/scenario";
 import { compileScenario } from "../compile-scenario";
@@ -370,6 +372,7 @@ describe("adHocStateFromScenario", () => {
 type Example = { title: string; petriNetDefinition: SDCPN };
 
 const EXAMPLES: Example[] = [
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -380,6 +383,7 @@ const EXAMPLES: Example[] = [
   supplyChainProfit,
   supplyChainWithDisruption,
   vaccinationCampaign,
+  wheelTruing,
 ];
 
 const exampleScenarios = (
@@ -445,7 +449,7 @@ describe("adHocStateFromScenario over the core examples", () => {
   it("stores every example scenario in the editable ad-hoc format", () => {
     expect(exampleScenarios("per_place")).toHaveLength(0);
     expect(exampleScenarios("code")).toHaveLength(0);
-    expect(exampleScenarios("adhoc")).toHaveLength(26);
+    expect(exampleScenarios("adhoc")).toHaveLength(30);
   });
 
   it.each(exampleScenarios("adhoc"))(

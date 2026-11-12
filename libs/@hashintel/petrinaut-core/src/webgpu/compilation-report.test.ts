@@ -120,6 +120,8 @@ describe("analyzeCompilation", () => {
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
       vaccinationCampaign: true,
+      bicycleAssembly: true,
+      wheelTruing: true,
     });
     const production = analyze(
       allExamples.productionMachines.petriNetDefinition,
@@ -372,6 +374,14 @@ describe("analyzeCompilation", () => {
         metric__total_cost: "gpu-ready",
         metric__infected: "gpu-ready",
         metric__attack_rate: "gpu-ready",
+      },
+      bicycleAssembly: {
+        metric__bicycles: "gpu-ready",
+        metric__work_in_progress: "gpu-ready",
+      },
+      wheelTruing: {
+        metric__yield: "gpu-ready",
+        metric__passes_per_accepted_wheel: "gpu-ready",
       },
     });
 
