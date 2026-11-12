@@ -9,7 +9,11 @@
  * - `POST …/start` says the holder is executing it, with the lease body;
  * - `POST …/lease`, `…/result` and `…/fail` take the library's bodies;
  * - `GET <id>/browser-calls` reads every call's committed record, without its
- *   capability: what a panel replays after a reload.
+ *   capability: what a panel replays after a reload;
+ * - `POST <id>/browser-calls/hand-edits` admits a panel's hand-edit report,
+ *   with `vHandEditReportBody`, as a stored note the model reads
+ *   (`reportHandEdit`); a wrong binding is refused with 409. It answers with
+ *   the note's submission and is never streamed.
  *
  * The caller's ownership middleware runs before these routes; the capability
  * proves the claim, not the user.
@@ -42,6 +46,11 @@ import {
   renewBrowserCall,
   startBrowserCall,
 } from "./browser-call";
+import {
+  handEditsRoute,
+  reportHandEdit,
+  vHandEditReportBody,
+} from "./hand-edit";
 
 /** A claim: the claiming tab's ID and its canonical editor binding. Not yet in `@hashintel/brunch-agent`. */
 export const vBrowserCallClaimBody = v.object({
@@ -194,6 +203,28 @@ export const createBrowserCallRouter = ({
           ]),
         ),
       });
+    },
+  );
+
+  // Before the claim route, which would otherwise take `hand-edits` for a call ID.
+  router.post(
+    `/:conversationId/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+    async (request) => {
+      request.header("Cache-Control", "no-store");
+      const target = await addressed(request, vHandEditReportBody);
+      if ("response" in target) return target.response;
+      const outcome = await reportHandEdit(
+        target.harness,
+        conversationId,
+        target.body,
+        context,
+      );
+      if (outcome.status === "unknown-conversation")
+        return request.json({ error: outcome.status }, 404);
+      if (outcome.status === "wrong-binding")
+        return request.json({ error: outcome.status }, 409);
+      const { reportId, submission, placement } = outcome;
+      return request.json({ reportId, submission, placement });
     },
   );
 

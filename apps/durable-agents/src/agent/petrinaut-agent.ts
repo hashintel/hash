@@ -18,7 +18,7 @@ import {
 } from "@earendil-works/pi-durable";
 
 import { browserCallExtension } from "../browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
 import { queryBasisExtension } from "../net-state/query-basis";
 import { createHostBinding, type HostBinding } from "./host-binding";
@@ -63,10 +63,10 @@ export type PetrinautAgent = {
 };
 
 /** The extensions a conversation selects, over its Harness's host binding. */
-const selectedExtensions = (_host: HostBinding): readonly Extension[] => [
+const selectedExtensions = (host: HostBinding): readonly Extension[] => [
   petrinautPromptExtension,
   ledgerExtension,
-  petrinautBrowserToolsExtension,
+  createPetrinautBrowserToolsExtension(host),
   contextProjectionExtension,
   toolAdmissionExtension,
   queryBasisExtension,

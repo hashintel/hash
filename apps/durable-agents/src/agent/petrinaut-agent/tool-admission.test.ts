@@ -24,8 +24,9 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../../browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../../ledger";
+import { createHostBinding } from "../host-binding";
 import { admissionRefusal, toolAdmissionExtension } from "./tool-admission";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
@@ -71,9 +72,10 @@ const createServerTools = () => {
 const openConversation = async (responses: FauxResponseStep[]) => {
   const { models, model } = scriptedModel(responses);
   const server = createServerTools();
+  const host = createHostBinding();
   const selected: Extension[] = [
     ledgerExtension,
-    petrinautBrowserToolsExtension,
+    createPetrinautBrowserToolsExtension(host),
     server.extension,
     toolAdmissionExtension,
   ];
@@ -85,6 +87,7 @@ const openConversation = async (responses: FauxResponseStep[]) => {
     { models, registry },
     context,
   );
+  host.bind(harness);
   const root = await harness.root(context, {
     agent: { model, extensions: selected },
   });

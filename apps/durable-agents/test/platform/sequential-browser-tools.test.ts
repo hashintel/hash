@@ -21,6 +21,7 @@ import {
 } from "@earendil-works/pi-durable";
 import { describe, expect, test } from "vitest";
 
+import { createHostBinding } from "../../src/agent/host-binding";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -30,7 +31,7 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
 import { queryBasisTool } from "../../src/net-state/query-basis";
 import {
   allEntries,
@@ -184,6 +185,9 @@ const run = async (
     name: "probe.query",
     tools: [query],
   });
+  const host = createHostBinding();
+  const petrinautBrowserToolsExtension =
+    createPetrinautBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
   registry.install(petrinautBrowserToolsExtension);
@@ -193,6 +197,7 @@ const run = async (
     { models, registry },
     context,
   );
+  host.bind(harness);
   try {
     const root = await harness.root(context, {
       agent: {
