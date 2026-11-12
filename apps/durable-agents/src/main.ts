@@ -5,13 +5,16 @@
  *
  * - `PORT` (4323): where it listens.
  * - `DURABLE_AGENTS_MODEL` (required): a new conversation's model,
- *   `<provider>/<modelId>` from pi-ai's built-in catalog (for example
- *   `anthropic/claude-sonnet-4-5`). Each provider reads its own credentials
- *   from its usual environment variables (`ANTHROPIC_API_KEY`,
- *   `OPENAI_API_KEY`, …) when a turn calls it; no request is made before
- *   then.
+ *   `<provider>/<modelId>` from pi-ai's built-in catalog. Production runs
+ *   `openai/gpt-6.1-sol` (H12).
+ *   Each provider reads its own credentials from its usual environment
+ *   variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, …) when a turn calls
+ *   it; no request is made before then.
  * - The server's limits (`limitsFromEnvironment`), integers of 1 or more:
- *   - `DURABLE_AGENTS_MAX_TURNS` (25): tool rounds one run takes at most.
+ *   - `DURABLE_AGENTS_MAX_TURNS` (100): tool rounds one run takes at most.
+ *     HA-3: the model makes one tool call per response, so a realistic net
+ *     build takes about one round per element; at 25 a large build would
+ *     end `turn_limit`.
  *   - `DURABLE_AGENTS_MAX_CONCURRENT_REQUESTS` (16): model requests in
  *     flight at once.
  *   - `DURABLE_AGENTS_ABANDONED_TURN_MS` (600000): how long a running turn
@@ -52,7 +55,7 @@ const modelFromEnvironment = (
   const separator = value?.indexOf("/") ?? -1;
   if (value === undefined || separator <= 0)
     throw new Error(
-      "Set DURABLE_AGENTS_MODEL to <provider>/<modelId>, for example anthropic/claude-sonnet-4-5.",
+      "Set DURABLE_AGENTS_MODEL to <provider>/<modelId>; production runs openai/gpt-6.1-sol.",
     );
   const model = {
     provider: value.slice(0, separator),

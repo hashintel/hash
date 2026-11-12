@@ -1,14 +1,15 @@
 /**
  * P5: sequential execution of a round with waiting browser tools.
  *
- * `query_basis` (the real tool) is marked `executionMode: "sequential"`. In
- * one round with a waiting net read it reads the browser-call records: does
- * it see the read's result, in either order? With several waiting browser
- * changes in the round, do they run one after another without deadlock, and
- * what latency does that add against a scripted browser?
+ * `ledger_query_basis` (the real tool) is marked `executionMode:
+ * "sequential"`. In one round with a waiting net read it reads the
+ * browser-call records: does it see the read's result, in either order? With
+ * several waiting HASH browser changes in the round, do they run one after
+ * another without deadlock, and what latency does that add against a
+ * scripted browser?
  *
- * The read is `getLatestNetDefinition`, the read whose output carries the
- * definition `query_basis` looks elements up in (`readNetOutline` does not).
+ * The read is `petrinaut_get_net`, whose output carries the definition
+ * `ledger_query_basis` looks elements up in at every detail level.
  */
 import {
   type ConversationId,
@@ -21,6 +22,8 @@ import {
 } from "@earendil-works/pi-durable";
 import { describe, expect, test } from "vitest";
 
+import { brunchTools, hashProcessEditorId } from "@hashintel/brunch-agent";
+
 import { createHostBinding } from "../../src/agent/host-binding";
 import {
   bindBrowserDocument,
@@ -31,7 +34,7 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
-import { createPetrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
+import { createHashBrowserToolsExtension } from "../../src/browser-call/hash-browser-tools";
 import { createQueryBasisTool } from "../../src/net-state/query-basis";
 import {
   allEntries,
@@ -63,6 +66,11 @@ const definition = {
 };
 
 const queryDryer: JsonObject = { selector: { kind: "place", name: "Dryer" } };
+const editor = { editor_id: hashProcessEditorId };
+const getNet: JsonObject = { ...editor, detail: "full" };
+const read = "petrinaut_get_net";
+const createPlace = "petrinaut_create_place";
+const queryBasis = brunchTools.ledgerQueryBasis;
 
 type BrowserLog = {
   readonly toolCallId: string;
@@ -154,7 +162,7 @@ const browserAnswer = (
   output: BrowserCallResult["output"];
   metadata?: BrowserCallResult["metadata"];
 } => {
-  if (record.toolName === "getLatestNetDefinition")
+  if (record.toolName === read)
     return {
       output: { title: "Net", definition },
       metadata: { documentRevision: { before: `revision-${revision}` } },
@@ -178,16 +186,18 @@ const run = async (
   revision = 1;
   const { models, model } = recordingModel(responses);
   const host = createHostBinding();
-  const query = { ...createQueryBasisTool(host), executionMode: mode };
+  const query = {
+    ...createQueryBasisTool(host, { name: queryBasis }),
+    executionMode: mode,
+  };
   const queryExtension = defineExtension({
     name: "probe.query",
     tools: [query],
   });
-  const petrinautBrowserToolsExtension =
-    createPetrinautBrowserToolsExtension(host);
+  const hashBrowserToolsExtension = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(petrinautBrowserToolsExtension);
+  registry.install(hashBrowserToolsExtension);
   registry.install(queryExtension);
   const harness = await Harness.open(
     new MemoryStorage(),
@@ -199,7 +209,7 @@ const run = async (
     const root = await harness.root(context, {
       agent: {
         model,
-        extensions: [petrinautBrowserToolsExtension, queryExtension],
+        extensions: [hashBrowserToolsExtension, queryExtension],
       },
     });
     await harness.commit(
@@ -235,14 +245,11 @@ const disposition = (
     readToolCallId?: string;
   };
 
-describe("P5: a sequential query_basis in a round with a waiting read", () => {
-  test("[read, query_basis] sequential: query_basis runs after the read settles and sees it", async () => {
+describe("P5: a sequential ledger_query_basis in a round with a waiting read", () => {
+  test("[read, ledger_query_basis] sequential: it runs after the read settles and sees it", async () => {
     const { entries } = await run(
       [
-        calls(
-          ["getLatestNetDefinition", "read-1"],
-          ["query_basis", "query-1", queryDryer],
-        ),
+        calls([read, "read-1", getNet], [queryBasis, "query-1", queryDryer]),
         fauxAssistantMessage("done"),
       ],
       "sequential",
@@ -253,13 +260,10 @@ describe("P5: a sequential query_basis in a round with a waiting read", () => {
     });
   });
 
-  test("[query_basis, read] sequential: query_basis runs first and sees no view", async () => {
+  test("[ledger_query_basis, read] sequential: it runs first and sees no view", async () => {
     const { entries } = await run(
       [
-        calls(
-          ["query_basis", "query-1", queryDryer],
-          ["getLatestNetDefinition", "read-1"],
-        ),
+        calls([queryBasis, "query-1", queryDryer], [read, "read-1", getNet]),
         fauxAssistantMessage("done"),
       ],
       "sequential",
@@ -269,13 +273,10 @@ describe("P5: a sequential query_basis in a round with a waiting read", () => {
     });
   });
 
-  test("[read, query_basis] parallel (control): query_basis answers before the browser does and sees no view", async () => {
+  test("[read, ledger_query_basis] parallel (control): it answers before the browser does and sees no view", async () => {
     const { entries } = await run(
       [
-        calls(
-          ["getLatestNetDefinition", "read-1"],
-          ["query_basis", "query-1", queryDryer],
-        ),
+        calls([read, "read-1", getNet], [queryBasis, "query-1", queryDryer]),
         fauxAssistantMessage("done"),
       ],
       "parallel",
@@ -290,12 +291,12 @@ describe("P5: several waiting browser changes in a sequential round", () => {
   const changeRound = (mode: ToolExecutionMode) =>
     run(
       [
-        calls(["getLatestNetDefinition", "read-1"]),
+        calls([read, "read-1", getNet]),
         calls(
-          ["addPlace", "add-1", place("place-a", "A")],
-          ["addPlace", "add-2", place("place-b", "B")],
-          ["addPlace", "add-3", place("place-c", "C")],
-          ["query_basis", "query-1", queryDryer],
+          [createPlace, "add-1", { ...editor, ...place("place-a", "A") }],
+          [createPlace, "add-2", { ...editor, ...place("place-b", "B") }],
+          [createPlace, "add-3", { ...editor, ...place("place-c", "C") }],
+          [queryBasis, "query-1", queryDryer],
         ),
         fauxAssistantMessage("done"),
       ],
@@ -330,7 +331,7 @@ describe("P5: several waiting browser changes in a sequential round", () => {
     expect(
       changes.map((id) => sequential.records[id]?.expectedRevision),
     ).toEqual(["revision-1", "revision-1", "revision-1"]);
-    // A sequential query_basis after the changes sees their read-backs.
+    // A sequential ledger_query_basis after the changes sees their read-backs.
     expect(disposition(sequential.entries, "query-1")).toMatchObject({
       disposition: "basis-absent",
       readToolCallId: "add-3",

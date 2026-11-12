@@ -1,8 +1,9 @@
 /**
  * The fold redesign's two invariants (`fold-redesign.md`, "Proof
  * obligations"), through the server as `startDurableAgentsServer` wires it:
- * `createDurableAgentsServer` with the Petrinaut agent's extensions installed
- * over each Harness's host binding, the browser-call routes beside it, chat
+ * `createDurableAgentsServer` with the HASH agent's extensions installed over
+ * each Harness's host binding and its bound Save installed on open and on
+ * bind, the browser-call routes beside it, chat
  * through AI SDK's own transport and hand edits through their route. Memory
  * storage stands in for Postgres, a faux model for the provider, and a
  * scripted browser claims and answers the calls.
@@ -17,8 +18,9 @@
  *   nothing recorded. A details-only revision (a change that reported a new
  *   revision but no read-back) is never credited.
  *
- * One conversation covers a turn with reads and changes, a pruning round, a
- * hand-edit note, and a compaction whose baseline carries the section.
+ * One conversation, on HASH's tool names, covers a turn with reads and
+ * changes, a pruning round, a hand-edit note, a compaction whose baseline
+ * carries the section, and a Save held to the view after it.
  */
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -43,10 +45,15 @@ import {
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { afterEach, expect, test } from "vitest";
 
-import { browserToolFacts } from "@hashintel/brunch-agent";
+import {
+  browserToolFacts,
+  brunchTools,
+  hashNoNetViewRefusal,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
 
-import { createPetrinautAgent } from "../../../src/agent/petrinaut-agent";
-import { pruneEntryKind } from "../../../src/agent/petrinaut-agent/read-back-pruning";
+import { createHashAgent } from "../../../src/agent/hash-agent";
+import { pruneEntryKind } from "../../../src/agent/hash-agent/read-back-pruning";
 import {
   bindBrowserDocument,
   BrowserBindingDoc,
@@ -55,11 +62,7 @@ import {
   finishBrowserCall,
 } from "../../../src/browser-call/browser-call";
 import { createBrowserCallRouter } from "../../../src/browser-call/browser-call-router";
-import { petrinautBrowserTools } from "../../../src/browser-call/petrinaut-browser-tools";
-import {
-  noNetViewRefusal,
-  staleNetViewRefusal,
-} from "../../../src/net-state/net-freshness";
+import { staleNetViewRefusal } from "../../../src/net-state/net-freshness";
 import { createDurableAgentsServer } from "../../../src/server/durable-agents-server";
 import { browserCallsPrefix } from "../../../src/server/start-durable-agents-server";
 import { drain } from "../server";
@@ -143,7 +146,8 @@ const openServer = () => {
     backgroundTokens: 0,
   };
   const stores = new Map<string, OwnedStorage>();
-  const { agent, extensions } = createPetrinautAgent();
+  const hashAgent = createHashAgent();
+  const { agent, extensions, clientToolNames } = hashAgent;
   const server = createDurableAgentsServer({
     openStorage: async (conversationId) => {
       const existing = stores.get(conversationId);
@@ -163,7 +167,8 @@ const openServer = () => {
     models: model.models,
     agent: { ...agent, model: model.model },
     settings: () => ({ compaction }),
-    clientToolNames: new Set(petrinautBrowserTools.map(({ name }) => name)),
+    afterBind: hashAgent.installBoundSave,
+    clientToolNames,
     context,
   });
   server.app.route(
@@ -231,7 +236,15 @@ const openServer = () => {
       (await harness.waitForTask(task, context)).state.outcome,
     ).toMatchObject({ status: "completed" });
   };
-  return { server, model, ask, conversation, reportHandEdit, compact };
+  return {
+    server,
+    hashAgent,
+    model,
+    ask,
+    conversation,
+    reportHandEdit,
+    compact,
+  };
 };
 
 // ─── The scripted browser ────────────────────────────────────────────────────
@@ -258,6 +271,16 @@ const changed = (before: string, after: string): BrowserAnswer => ({
     readBack: definitionAt(after),
   },
 });
+/** HASH's Save, confirmed by the page. */
+const saved: BrowserAnswer = {
+  output: {
+    status: "saved",
+    decisionTime: "2026-11-12T00:00:00.000Z",
+    title: "Laundry",
+    stillDirty: false,
+  },
+  metadata: { documentRevision: {} },
+};
 /** A change that names its new revision in metadata, which reaches only `details`, with no read-back. */
 const detailsOnly = (before: string, after: string): BrowserAnswer => ({
   output: { applied: true },
@@ -333,7 +356,7 @@ type OracleView =
   | { readonly state: "current"; readonly revision: string };
 
 /** The only net read this script calls; changes must carry their read-back. */
-const readToolName = "getLatestNetDefinition";
+const readToolName = "petrinaut_get_net";
 const sectionBlock = /<net-view revision="([^"]+)">[\s\S]*<\/net-view>/u;
 const noteBlock = /<hand-edit revision="([^"]+)">/u;
 
@@ -472,7 +495,7 @@ const expectI2 = async (
           );
         expect(result).toMatchObject({ isError: true });
         expect(textOf(result)).toBe(
-          view.state === "stale" ? staleNetViewRefusal : noNetViewRefusal,
+          view.state === "stale" ? staleNetViewRefusal : hashNoNetViewRefusal,
         );
         decisions[part.id] = view.state;
       }
@@ -491,7 +514,9 @@ const expectI2 = async (
   return decisions;
 };
 
+const editor = { editor_id: hashProcessEditorId };
 const place = (id: string, name: string) => ({
+  ...editor,
   id,
   name,
   colorId: null,
@@ -500,21 +525,37 @@ const place = (id: string, name: string) => ({
   y: 0,
 });
 const addPlace = (id: string) =>
-  ["addPlace", id, place(`place-${id}`, `Place ${id}`)] as const;
-const readNet = (id: string) => [readToolName, id, {}] as const;
+  [
+    "petrinaut_create_place",
+    id,
+    place(`place-${id}`, `Place${id.toUpperCase()}`),
+  ] as const;
+const readNet = (id: string) =>
+  [readToolName, id, { ...editor, detail: "full" }] as const;
+const saveNet = (id: string) =>
+  [brunchTools.appSaveNet, id, { documentId: binding.documentId }] as const;
 
 /** A long answer, so a compaction keeps only the latest turn. */
 const filler = (label: string) =>
   `${label} ${"The laundry runs on a schedule. ".repeat(120)}`;
 
 test("I1 and I2 hold for every request: reads and changes, a pruning round, a hand-edit note, and a compaction with the section", async () => {
-  const { model, ask, conversation, reportHandEdit, compact, server } =
-    openServer();
+  const {
+    model,
+    ask,
+    conversation,
+    reportHandEdit,
+    compact,
+    server,
+    hashAgent,
+  } = openServer();
   const created = await server.conversations.create(chatId);
   await created.harness.commit(
     (tx) => bindBrowserDocument(tx, created.root.id, binding),
     context,
   );
+  // As `admitBinding` does after the binding's commit.
+  await hashAgent.installBoundSave(created, context);
   const answers = new Map<string, BrowserAnswer>([
     ["read-1", read("R0")],
     ["c0", changed("R0", "R1")],
@@ -525,6 +566,7 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
     ["read-2", read("R5")],
     ["c5", changed("R5", "R6")],
     ["c6", changed("R6", "R7")],
+    ["s1", saved],
   ]);
   const browser = scriptedBrowser(created.harness, created.root.id, answers);
 
@@ -553,6 +595,9 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
   // After compaction the section restores c5's read-back; c6 is issued against it.
   model.script(calls(addPlace("c6")), fauxAssistantMessage("Added."));
   await ask("Add an iron.");
+  // A save is held to the view too, and is no view itself.
+  model.script(calls(saveNet("s1")), fauxAssistantMessage("Saved."));
+  await ask("Save it.");
   await browser.stop();
 
   const { harness, root } = await conversation();
@@ -568,6 +613,7 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
     c5: "R5",
     // From the `net_view` section alone.
     c6: "R6",
+    s1: "R7",
   });
 
   // The scenario covered what the invariants are claimed over.
@@ -583,7 +629,7 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
     ),
   ).toBe(true);
   expect(CompactionEntry.is((await root.context(context)).head)).toBe(true);
-  const afterCompaction = requests.at(-2) ?? [];
+  const afterCompaction = requests.at(-4) ?? [];
   const [lead] = afterCompaction;
   expect(lead?.role).toBe("system");
   expect(
@@ -594,5 +640,5 @@ test("I1 and I2 hold for every request: reads and changes, a pruning round, a ha
       (message) => message.role === "toolResult" && message.toolCallId === "c5",
     ),
   ).toBe(false);
-  expect(callIdsOf(answersOf(entries).at(-2)!)).toEqual(["c6"]);
+  expect(callIdsOf(answersOf(entries).at(-4)!)).toEqual(["c6"]);
 });

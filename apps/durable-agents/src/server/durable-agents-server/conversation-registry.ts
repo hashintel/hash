@@ -11,7 +11,8 @@
  *
  * Opening a conversation, before its scheduling starts: its host binding is
  * bound to the new Harness, its agent gets the request-slot gate and the turn
- * limit, and the crash-loop guard inspects its tasks.
+ * limit, the host's `afterBind` installs what the conversation's stored state
+ * decides, and the crash-loop guard inspects its tasks.
  */
 import {
   type AgentChange,
@@ -55,6 +56,16 @@ export type ConversationRegistryOptions = {
   /** The agent a new conversation's root starts with. */
   readonly agent: AgentChange;
   readonly settings?: HarnessOptions["settings"];
+  /**
+   * Runs on every open, once the host binding is bound and the root is known,
+   * before scheduling resumes: where a host installs into the Harness's
+   * registry what depends on the conversation's stored state, so no request
+   * goes out without it.
+   */
+  readonly afterBind?: (
+    conversation: OpenConversation,
+    context: Context,
+  ) => Promise<void>;
 };
 
 /** What the registry enforces on every conversation it opens. */
@@ -77,6 +88,10 @@ export type OpenConversation = {
   readonly harness: Harness;
   /** The conversation itself: its Harness's root. */
   readonly root: Conversation;
+  /** The Harness's live registry: an install replaces an extension by name for the next operation. */
+  readonly registry: Registry;
+  /** The host binding the registry's extensions were built over, bound to `harness`. */
+  readonly host: HostBinding;
 };
 
 type Opened = OpenConversation & {
@@ -173,6 +188,7 @@ export const createConversationRegistry = (
         return undefined;
       }
       await enforceAgent(root, gate.extension, limits.maxTurns, context);
+      await options.afterBind?.({ harness, root, registry, host }, context);
       await gate.attach(harness, context);
       const crashLoop = await guardCrashLoops(
         harness,
@@ -182,7 +198,14 @@ export const createConversationRegistry = (
       );
       // Continue whatever run the conversation's previous owner left unfinished.
       harness.resume();
-      const entry: Opened = { harness, root, storage, failed: false };
+      const entry: Opened = {
+        harness,
+        root,
+        registry,
+        host,
+        storage,
+        failed: false,
+      };
       void harness.closed.then((end) => {
         if (end.kind === "failed") entry.failed = true;
       });

@@ -12,7 +12,7 @@
  * (`proof/server.ts`), running the same wiring `src/main.ts` runs. The driver:
  *
  * 1. sends a user message to server 1, whose model reads the net (the driver
- *    answers the read as the browser), then calls `addPlace`;
+ *    answers the read as the browser), then calls `petrinaut_create_place`;
  * 2. as the browser (one claimant, the conversation's binding), waits for the
  *    `tool-input-available` chunk, then claims and starts the call;
  * 3. SIGKILLs server 1, the call started and without a result;
@@ -52,8 +52,8 @@ import {
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
+import { createHashAgent } from "../../src/agent/hash-agent";
 import { createHostBinding } from "../../src/agent/host-binding";
-import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
 import {
   type BrowserCallRecord,
   BrowserCallsDoc,
@@ -150,7 +150,7 @@ const textOf = (entry: EntryRecord) =>
 const readStored = async (chatId: string) => {
   const registry = createRegistry();
   const host = createHostBinding();
-  for (const extension of createPetrinautAgent().extensions(host))
+  for (const extension of createHashAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({

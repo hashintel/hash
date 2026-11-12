@@ -10,7 +10,6 @@ import {
   type Conversation,
   type ConversationId,
   createRegistry,
-  defineExtension,
   type EntryRecord,
   Harness,
   type JsonObject,
@@ -42,12 +41,11 @@ import {
   type BrowserCallResult,
   BrowserCallsDoc,
   claimBrowserCall,
-  defineWaitingBrowserTool,
   finishBrowserCall,
 } from "../browser-call/browser-call";
 import { reportHandEdit } from "../browser-call/hand-edit";
-import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
-import { ledgerExtension } from "../ledger";
+import { createHashBrowserToolsExtension } from "../browser-call/hash-browser-tools";
+import { createLedgerExtension } from "../ledger";
 import { brunchUserInput } from "../server/durable-agents-server/user-input";
 import { netCalls } from "./net-changes";
 import {
@@ -671,42 +669,20 @@ describe("the query_basis tool", () => {
   };
 
   /**
-   * The HASH agent's pieces this unit owns, without H2's catalogue: its two
-   * net tools as plain waiting tools under HASH's names, and the basis query
-   * mounted as `ledger_query_basis` with the library's description.
+   * The HASH agent's Ledger, browser tools and `ledger_query_basis` on one
+   * Harness over its host binding, bound to the editor.
    */
-  const hashTools = (host: ReturnType<typeof createHostBinding>) => ({
-    browserTools: defineExtension({
-      name: "test.hash-browser-tools",
-      tools: ["petrinaut_get_net", "petrinaut_update_arc"].map((name) =>
-        defineWaitingBrowserTool(
-          { name, description: name, parameters: { type: "object" } },
-          { host },
-        ),
-      ),
-    }),
-    queryBasisTools: queryBasisExtension(host, {
-      name: brunchTools.ledgerQueryBasis,
-      description: queryBasisToolDescription,
-    }),
-  });
-
-  /** The Ledger, the browser tools and `query_basis` on one Harness over its host binding, bound to the editor. */
-  const openAgent = async (
-    responses: FauxResponseStep[],
-    agent: "petrinaut" | "hash" = "petrinaut",
-  ) => {
+  const openAgent = async (responses: FauxResponseStep[]) => {
     const { models, model } = scriptedModel(responses);
     const host = createHostBinding();
-    const { browserTools, queryBasisTools } =
-      agent === "hash"
-        ? hashTools(host)
-        : {
-            browserTools: createPetrinautBrowserToolsExtension(host),
-            queryBasisTools: queryBasisExtension(host),
-          };
+    const ledgerTools = createLedgerExtension(host);
+    const browserTools = createHashBrowserToolsExtension(host);
+    const queryBasisTools = queryBasisExtension(host, {
+      name: brunchTools.ledgerQueryBasis,
+      description: queryBasisToolDescription,
+    });
     const registry = createRegistry();
-    registry.install(ledgerExtension);
+    registry.install(ledgerTools);
     registry.install(browserCallExtension);
     registry.install(browserTools);
     registry.install(queryBasisTools);
@@ -719,7 +695,7 @@ describe("the query_basis tool", () => {
     const root = await harness.root(context, {
       agent: {
         model,
-        extensions: [ledgerExtension, browserTools, queryBasisTools],
+        extensions: [ledgerTools, browserTools, queryBasisTools],
       },
     });
     await harness.commit(
@@ -752,6 +728,9 @@ describe("the query_basis tool", () => {
     (await root.entries({ order: "ascending" }, 100, undefined, context)).items;
 
   const words = "Cases wait in a queue.";
+  const getNetInput = { editor_id: hashProcessEditorId, detail: "full" };
+  /** The queue's ID as the document stores it: HASH's parsed input converts the model's. */
+  const queueId = toPetrinautId("queue");
 
   test.each([
     [
@@ -777,6 +756,7 @@ describe("the query_basis tool", () => {
     "reads the records, rewinds the Ledger to each change's issue, and quotes the USER's words from %s",
     async (_, userKind, input) => {
       const place = {
+        editor_id: hashProcessEditorId,
         id: "queue",
         name: "Queue",
         colorId: null,
@@ -805,20 +785,20 @@ describe("the query_basis tool", () => {
             },
           ],
         ]),
-        browserCall("read-1", "readNetOutline"),
-        browserCall("add-queue", "addPlace", place),
-        browserCall("read-queue", "getLatestNetDefinition"),
+        browserCall("read-1", "petrinaut_get_net", getNetInput),
+        browserCall("add-queue", "petrinaut_create_place", place),
+        browserCall("read-queue", "petrinaut_get_net", getNetInput),
         ledgerCall("ledger-2", [
           [
             "reflection/create",
             {
               text: "The Queue place holds waiting cases.",
-              netElements: [{ kind: "place", id: "queue" }],
+              netElements: [{ kind: "place", id: queueId }],
               claims: ["c1"],
             },
           ],
         ]),
-        browserCall("query-1", brunchTools.queryBasis, {
+        browserCall("query-1", brunchTools.ledgerQueryBasis, {
           selector: { kind: "place", name: "Queue" },
         }),
         fauxAssistantMessage("The queue rests on what you said."),
@@ -842,7 +822,13 @@ describe("the query_basis tool", () => {
         harness,
         root.id,
         "read-queue",
-        { title: "Queue", definition: { ...definition, places: [place] } },
+        {
+          title: "Queue",
+          definition: {
+            ...definition,
+            places: [{ ...definition.places[0], id: queueId }],
+          },
+        },
         { documentRevision: { before: "revision-2" } },
       );
       expect((await submission.wait(context)).status).toBe("done");
@@ -855,13 +841,13 @@ describe("the query_basis tool", () => {
       expect(result.output).toMatchObject({
         binding,
         disposition: "basis-declared",
-        target: { id: "queue" },
+        target: { id: queueId },
         readToolCallId: "read-queue",
         // Revision 2 (the reflection) committed after the change was issued.
         changes: [
           {
             toolCallId: "add-queue",
-            operation: "addPlace",
+            operation: "petrinaut_create_place",
             petrinautRevisionId: "revision-2",
             ledgerRevision: 1,
           },
@@ -885,9 +871,11 @@ describe("the query_basis tool", () => {
       ["[query_basis, read]", ["query-1", "read-1"], "not-found"],
     ] as const)("%s answers %s", async (_, order, disposition) => {
       const call = {
-        "read-1": fauxToolCall("getLatestNetDefinition", {}, { id: "read-1" }),
+        "read-1": fauxToolCall("petrinaut_get_net", getNetInput, {
+          id: "read-1",
+        }),
         "query-1": fauxToolCall(
-          brunchTools.queryBasis,
+          brunchTools.ledgerQueryBasis,
           { selector: queue },
           { id: "query-1" },
         ),
@@ -931,8 +919,10 @@ describe("the query_basis tool", () => {
       ],
     ] as const)("%s: %s", async (_, edited, disposition) => {
       const { harness, root } = await openAgent([
-        browserCall("read-1", "getLatestNetDefinition"),
-        browserCall("query-1", brunchTools.queryBasis, { selector: queue }),
+        browserCall("read-1", "petrinaut_get_net", getNetInput),
+        browserCall("query-1", brunchTools.ledgerQueryBasis, {
+          selector: queue,
+        }),
         fauxAssistantMessage("Done."),
       ]);
       const submission = await root.submit(
@@ -984,11 +974,7 @@ describe("the query_basis tool", () => {
 
   describe("mounted as the HASH agent's ledger_query_basis", () => {
     const getNet = () =>
-      fauxToolCall(
-        "petrinaut_get_net",
-        { editor_id: hashProcessEditorId },
-        { id: "read-1" },
-      );
+      fauxToolCall("petrinaut_get_net", getNetInput, { id: "read-1" });
     const queryCall = (selector: Selector) =>
       fauxToolCall(
         brunchTools.ledgerQueryBasis,
@@ -1008,7 +994,7 @@ describe("the query_basis tool", () => {
         description: queryBasisToolDescription,
         executionMode: "sequential",
       });
-      // The website agent's default.
+      // Unnamed, it keeps Brunch's website name.
       expect(createQueryBasisTool(host)).toMatchObject({
         name: "query_basis",
         description: queryBasisToolDescription,
@@ -1016,17 +1002,14 @@ describe("the query_basis tool", () => {
     });
 
     test("[petrinaut_get_net, petrinaut_update_arc retargeting the arc], then a query for the new arc, lists the merged update (§3.1)", async () => {
-      const { harness, root } = await openAgent(
-        [
-          fauxAssistantMessage(getNet(), { stopReason: "toolUse" }),
-          browserCall("arc-moved", "petrinaut_update_arc", retargetInput),
-          fauxAssistantMessage(queryCall(arcTo("buffer")), {
-            stopReason: "toolUse",
-          }),
-          fauxAssistantMessage("Done."),
-        ],
-        "hash",
-      );
+      const { harness, root } = await openAgent([
+        fauxAssistantMessage(getNet(), { stopReason: "toolUse" }),
+        browserCall("arc-moved", "petrinaut_update_arc", retargetInput),
+        fauxAssistantMessage(queryCall(arcTo("buffer")), {
+          stopReason: "toolUse",
+        }),
+        fauxAssistantMessage("Done."),
+      ]);
       const submission = await root.submit(
         { type: "input", content: "Why does Serve take from the buffer?" },
         context,
@@ -1075,16 +1058,13 @@ describe("the query_basis tool", () => {
           "read-1": getNet(),
           "query-1": queryCall(queue),
         };
-        const { harness, root } = await openAgent(
-          [
-            fauxAssistantMessage(
-              order.map((id) => call[id]),
-              { stopReason: "toolUse" },
-            ),
-            fauxAssistantMessage("Done."),
-          ],
-          "hash",
-        );
+        const { harness, root } = await openAgent([
+          fauxAssistantMessage(
+            order.map((id) => call[id]),
+            { stopReason: "toolUse" },
+          ),
+          fauxAssistantMessage("Done."),
+        ]);
         const submission = await root.submit(
           { type: "input", content: "Why the queue?" },
           context,

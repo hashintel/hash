@@ -15,8 +15,11 @@
  *
  * They are offered by a Pi Durable Harness, so pi-ai's own builder makes the
  * body; the `beforeProviderRequest` hook captures it and the script inspects
- * it for schema features OpenAI has refused before, and compares their use
- * with the website agent's 49 definitions, which smoke round 3 had accepted.
+ * it for schema features OpenAI has refused before, and names any definition
+ * that differs from the successor's own HASH agent (`createHashAgent`, Save
+ * bound to the probe's document). The website agent's definitions, which
+ * smoke round 3 had accepted and H0c compared against, were retired with it
+ * (HA-1); H0c's comparison is in `probes-hash-port.md`.
  *
  * Usage, from `apps/durable-agents` with `OPENAI_API_KEY` set:
  * - `SMOKE_DRY_RUN=1 yarn tsx test/smoke/hash-schemas.ts`: offline. The body
@@ -53,13 +56,15 @@ import * as v from "valibot";
 
 import {
   brunchTools,
+  canonicalContent,
   hashPetrinautTools,
   type HashPetrinautToolName,
   vLedgerAppendWith,
   vOriginWith,
 } from "@hashintel/brunch-agent";
 
-import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
+import { createHashAgent } from "../../src/agent/hash-agent";
+import { hashBrowserToolDefinitions } from "../../src/browser-call/hash-browser-tools";
 
 import type { Schema } from "@earendil-works/pi-schema";
 
@@ -447,14 +452,23 @@ const declaredTools = (body: unknown) => {
 // ─── The run ─────────────────────────────────────────────────────────────────
 
 const definitions = await hashDefinitions();
-// The extensions a website conversation selects: the 51 tools smoke round 3 sent.
-const website = createPetrinautAgent()
-  .agent.extensions.flatMap((extension) => extension.tools ?? [])
-  .map(({ name, description, parameters }): Definition => ({
-    name,
-    description,
-    parameters: JSON.parse(JSON.stringify(parameters)) as JsonSchemaObject,
-  }));
+/** A definition as compared with the successor's: its description and parameters, as canonical JSON (key order aside). */
+const comparable = ({
+  description,
+  parameters,
+}: {
+  readonly description: string;
+  readonly parameters: unknown;
+}) => canonicalContent({ description, parameters });
+// The successor's HASH agent, Save bound to the probe's document; a later entry replaces the placeholder Save.
+const successor = new Map<string, string>(
+  [
+    ...createHashAgent().agent.extensions.flatMap(
+      (extension) => extension.tools ?? [],
+    ),
+    ...hashBrowserToolDefinitions("probe-document"),
+  ].map((definition) => [definition.name, comparable(definition)]),
+);
 
 const tools: ToolRegistration[] = definitions.map(
   ({ name, description, parameters }) =>
@@ -542,8 +556,6 @@ const sent: Definition[] = declared.tools.map(
   ({ name, description, parameters }) => ({ name, description, parameters }),
 );
 const hashFindings = inspect(sent);
-const websiteFindings = inspect(website);
-const websiteKeywords = new Set(websiteFindings.keywords.keys());
 const lines = ledgerLines();
 
 process.stdout.write(
@@ -573,18 +585,14 @@ process.stdout.write(
       },
       inspection: {
         refusedBefore: hashFindings.refused,
-        // A feature the website set also had was accepted by this model in smoke round 3.
-        refusedBeforeNotInWebsiteSet: hashFindings.refused.filter(
-          (line) => !websiteFindings.refused.includes(line),
-        ),
         keywords: keywordTable(hashFindings),
-        notInWebsiteSet: Object.fromEntries(
-          [...hashFindings.keywords]
-            .filter(([keyword]) => !websiteKeywords.has(keyword))
-            .map(([keyword, users]) => [keyword, [...users]]),
-        ),
-        websiteToolCount: website.length,
-        websiteRefusedBefore: websiteFindings.refused,
+        successorToolCount: successor.size,
+        differsFromSuccessor: definitions
+          .filter(
+            (definition) =>
+              successor.get(definition.name) !== comparable(definition),
+          )
+          .map(({ name }) => name),
       },
       answer,
       ledger: {

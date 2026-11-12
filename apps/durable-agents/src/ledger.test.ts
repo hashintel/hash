@@ -43,7 +43,7 @@ import {
   resultEntry,
   textOf,
 } from "../test/platform/support";
-import { readBackPruningExtension } from "./agent/petrinaut-agent/read-back-pruning";
+import { readBackPruningExtension } from "./agent/hash-agent/read-back-pruning";
 import { bindBrowserDocument } from "./browser-call/browser-call";
 import { createLedgerExtension, foldLedger, LedgerDoc } from "./ledger";
 

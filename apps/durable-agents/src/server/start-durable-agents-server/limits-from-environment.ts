@@ -2,7 +2,7 @@
  * The server's limits from the process environment, each over its default
  * (`defaultServerLimits`):
  *
- * - `DURABLE_AGENTS_MAX_TURNS` (25): tool rounds one run takes at most.
+ * - `DURABLE_AGENTS_MAX_TURNS` (100): tool rounds one run takes at most.
  * - `DURABLE_AGENTS_MAX_CONCURRENT_REQUESTS` (16): model requests in flight
  *   at once in the process.
  * - `DURABLE_AGENTS_ABANDONED_TURN_MS` (600000, ten minutes): how long a

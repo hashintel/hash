@@ -25,7 +25,10 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { describe, expect, test, vi } from "vitest";
 
-import { hashNoNetViewRefusal } from "@hashintel/brunch-agent";
+import {
+  hashNoNetViewRefusal,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
 
 import {
   fauxAssistantMessage,
@@ -41,7 +44,7 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
-import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
+import { createHashBrowserToolsExtension } from "../browser-call/hash-browser-tools";
 import {
   expectedNetRevision,
   noNetViewRefusal,
@@ -55,7 +58,11 @@ import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const context = BACKGROUND_CONTEXT;
 
+const editor = { editor_id: hashProcessEditorId };
+const getNet = { ...editor, detail: "outline" };
+
 const place = {
+  ...editor,
   id: "place-dryer",
   name: "Dryer",
   colorId: null,
@@ -73,14 +80,14 @@ const call = (
     stopReason: "toolUse",
   });
 
-/** A Harness with the Petrinaut browser tools over its own host binding; `bound: false` leaves it unbound. */
+/** A Harness with HASH's browser tools over its own host binding; `bound: false` leaves it unbound. */
 const openHarness = async (
   storage: Storage,
   models: Models,
   { bound = true }: { readonly bound?: boolean } = {},
 ) => {
   const host: HostBinding = createHostBinding();
-  const tools = createPetrinautBrowserToolsExtension(host);
+  const tools = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
   registry.install(tools);
@@ -213,7 +220,7 @@ const go = async (
 describe("net freshness at issue", () => {
   test("refuses a change without a net view in the model's context, and issues nothing", async () => {
     const { models, model } = scriptedModel([
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -221,7 +228,7 @@ describe("net freshness at issue", () => {
     await go(root, "Add a dryer.");
     expect(await toolResult(root, "add-1")).toMatchObject({
       isError: true,
-      content: [{ type: "text", text: noNetViewRefusal }],
+      content: [{ type: "text", text: hashNoNetViewRefusal }],
     });
     expect(await recordOf(opened.harness, root.id, "add-1")).toBeUndefined();
     await opened.harness.close(context);
@@ -229,8 +236,8 @@ describe("net freshness at issue", () => {
 
   test("a read, then a change: the change is issued against the read's revision", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -258,9 +265,9 @@ describe("net freshness at issue", () => {
 
   test("a change after a change's complete read-back is issued against the read-back's revision", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
-      call("addPlace", "add-2", { ...place, id: "place-washer" }),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
+      call("petrinaut_create_place", "add-2", { ...place, id: "place-washer" }),
       fauxAssistantMessage("Added both."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -292,9 +299,9 @@ describe("net freshness at issue", () => {
 
   test("never credits details: a change whose revision is only in its details leaves the earlier view", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
-      call("addPlace", "add-2", { ...place, id: "place-washer" }),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
+      call("petrinaut_create_place", "add-2", { ...place, id: "place-washer" }),
       fauxAssistantMessage("Added both."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -335,8 +342,8 @@ describe("net freshness at issue", () => {
 
   test("a read whose browser reported no revision is no view", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -346,16 +353,16 @@ describe("net freshness at issue", () => {
     );
     expect(await toolResult(root, "add-1")).toMatchObject({
       isError: true,
-      content: [{ type: "text", text: noNetViewRefusal }],
+      content: [{ type: "text", text: hashNoNetViewRefusal }],
     });
     await opened.harness.close(context);
   });
 
   test("a hand-edit note after the read makes it stale: the change is refused in the panel's words, and issues nothing", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
+      call("petrinaut_get_net", "read-1", getNet),
       fauxAssistantMessage("Read it."),
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -382,9 +389,9 @@ describe("net freshness at issue", () => {
 
   test("a note naming the read's own revision leaves the view current", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
+      call("petrinaut_get_net", "read-1", getNet),
       fauxAssistantMessage("Read it."),
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models);
@@ -411,8 +418,8 @@ describe("net freshness at issue", () => {
 
   test("an unbound host fails the change as a tool error and records nothing", async () => {
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     const opened = await openHarness(new MemoryStorage(), models, {
@@ -442,9 +449,9 @@ describe("net freshness at issue", () => {
     );
     const file = join(directory, "session.sqlite");
     const { models, model } = scriptedModel([
-      call("readNetOutline", "read-1"),
+      call("petrinaut_get_net", "read-1", getNet),
       fauxAssistantMessage("The net is empty."),
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
     try {
