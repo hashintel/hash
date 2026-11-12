@@ -7,7 +7,6 @@ export const getHashInstanceSettings = gql`
       isUserAdmin
       enabledIntegrations {
         googleSheets
-        linear
       }
     }
   }
