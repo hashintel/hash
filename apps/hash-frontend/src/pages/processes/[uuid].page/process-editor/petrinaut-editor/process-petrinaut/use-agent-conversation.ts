@@ -59,12 +59,13 @@ type KnownConversation = {
  * entities in the user's own web, and which of them is open on one subject.
  * The agent keeps the messages; each entity is a conversation's handle in the
  * graph, so the open conversation follows the user to another browser, and an
- * archived entity says the conversation has ended.
+ * archived entity says the conversation is over and its messages may go.
  *
  * - A conversation gets its entity when its first message is sent, linked to
  *   the subject. A draft's has no subject to link to until the draft's first
  *   save.
- * - Clearing archives the open conversation's entity and creates the next.
+ * - Clearing creates the next conversation's entity. The earlier one stays,
+ *   linked to the subject; the newest on a subject is the open one.
  * - When the page opens, it archives the user's conversations whose subject
  *   is archived, and those left without a subject for a day.
  *
@@ -86,7 +87,7 @@ export const useAgentConversation = ({
   conversationId: string | null | undefined;
   /** A message was sent in this conversation. */
   start: (conversationId: string) => void;
-  /** This conversation replaces the open one, which has ended. */
+  /** The user cleared the chat: this conversation is now the open one. */
   replace: (conversationId: string) => void;
 } => {
   const { authenticatedUser } = useAuthInfo();
@@ -270,20 +271,24 @@ export const useAgentConversation = ({
 
   /** The entities this page read or created, by conversation id. */
   const known = useRef(new Map<string, KnownConversation>());
-  /** The conversation open on each subject, as this page last set it. */
-  const openBySubject = useRef(new Map<EntityId, string>());
+  /**
+   * The conversations this page has had on each subject. On a draft they are
+   * unlinked, and this is the only record of what they are about.
+   */
+  const heldOn = useRef(new Map<EntityId, Set<string>>());
+  const hold = useCallback((subject: EntityId, conversationId: string) => {
+    const held = heldOn.current.get(subject) ?? new Set<string>();
+    held.add(conversationId);
+    heldOn.current.set(subject, held);
+  }, []);
   useEffect(() => {
     for (const conversation of read ?? []) {
       const { conversationId, entityId } = conversation;
-      const subject = conversation.subjectEntityId;
       if (!known.current.has(conversationId)) {
         known.current.set(conversationId, {
           entityId,
-          linked: subject !== undefined,
+          linked: conversation.subjectEntityId !== undefined,
         });
-      }
-      if (subject !== undefined && !openBySubject.current.has(subject)) {
-        openBySubject.current.set(subject, conversationId);
       }
     }
   }, [read]);
@@ -308,15 +313,17 @@ export const useAgentConversation = ({
     [captureException],
   );
 
-  /** Makes this conversation the subject's open one, creating its entity if it has none. */
-  const open = useCallback(
+  /**
+   * Creates the conversation's entity if it has none, and links it to the
+   * subject once the subject exists.
+   */
+  const record = useCallback(
     async (conversationId: string) => {
       const { userWebId: webId, agentId: agent } = latest.current;
       if (webId === null) {
         return;
       }
       const subject = latest.current.subjectEntityId;
-      openBySubject.current.set(subject, conversationId);
       let conversation = known.current.get(conversationId);
       if (!conversation) {
         const created = await createEntity({
@@ -366,50 +373,41 @@ export const useAgentConversation = ({
     (conversationId: string) => {
       const { subjectEntityId: subject, subjectExists: exists } =
         latest.current;
-      openBySubject.current.set(subject, conversationId);
+      hold(subject, conversationId);
       const conversation = known.current.get(conversationId);
       // Called for every message: only the first has anything to write.
       if (conversation && (conversation.linked || !exists)) {
         return;
       }
-      enqueue("start", () => open(conversationId));
+      enqueue("start", () => record(conversationId));
     },
-    [enqueue, open],
+    [enqueue, hold, record],
   );
 
+  // Clearing starts the next conversation. The one before it is left as it
+  // is: starting afresh doesn't say the earlier conversation may be discarded.
+  // The newest conversation on a subject is the open one, so the new entity
+  // is created now, before any message, for another browser to read.
   const replace = useCallback(
     (conversationId: string) => {
-      enqueue("replace", async () => {
-        const endedId = openBySubject.current.get(
-          latest.current.subjectEntityId,
-        );
-        const ended =
-          endedId === undefined ? undefined : known.current.get(endedId);
-        if (endedId !== undefined && ended) {
-          await archiveEntities({ variables: { entityIds: [ended.entityId] } });
-          known.current.delete(endedId);
-        }
-        await open(conversationId);
-      });
+      hold(latest.current.subjectEntityId, conversationId);
+      enqueue("replace", () => record(conversationId));
     },
-    [archiveEntities, enqueue, open],
+    [enqueue, hold, record],
   );
 
-  // A draft's conversation is linked once the draft's first save has created
-  // its subject.
+  // A draft's conversations are linked once the draft's first save has
+  // created their subject.
   useEffect(() => {
     if (!subjectExists) {
       return;
     }
-    const conversationId = openBySubject.current.get(subjectEntityId);
-    const conversation =
-      conversationId === undefined
-        ? undefined
-        : known.current.get(conversationId);
-    if (conversationId !== undefined && conversation && !conversation.linked) {
-      enqueue("link", () => open(conversationId));
+    for (const conversationId of heldOn.current.get(subjectEntityId) ?? []) {
+      if (known.current.get(conversationId)?.linked === false) {
+        enqueue("link", () => record(conversationId));
+      }
     }
-  }, [subjectExists, subjectEntityId, enqueue, open]);
+  }, [subjectExists, subjectEntityId, enqueue, record]);
 
   // Once per read: end the conversations nothing will open again.
   useEffect(() => {
@@ -421,10 +419,11 @@ export const useAgentConversation = ({
       conversation.subjectEntityId !== undefined
         ? // Its subject is archived. One deleted, or out of the user's sight, is left alone.
           archivedSubjectIds.has(conversation.subjectEntityId)
-        : // Left by a draft that was never saved, unless it is the one open now.
+        : // Left by a draft that was never saved, unless it is the draft open now.
           now - Date.parse(conversation.createdAt) > abandonedAfterMs &&
-          openBySubject.current.get(latest.current.subjectEntityId) !==
-            conversation.conversationId,
+          heldOn.current
+            .get(latest.current.subjectEntityId)
+            ?.has(conversation.conversationId) !== true,
     );
     if (ended.length === 0) {
       return;

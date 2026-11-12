@@ -339,54 +339,45 @@ test("a message in a conversation that already has its entity writes nothing", a
   expect(graph.writes).toEqual([]);
 });
 
-test("clearing archives the open conversation's entity and creates the next one", async () => {
+test("clearing creates the next conversation's entity and leaves the earlier one as it is", async () => {
   graph.stored = [stored("open", live(processId))];
   const { result } = renderConversation(true);
 
-  act(() => result.current.replace("next"));
-  await waitFor(() => expect(graph.writes).toHaveLength(3));
-  expect(graph.writes).toEqual([
-    archived(`${userWebId}~open`),
-    createdConversation("next"),
-    createdLink(`${userWebId}~created-2`),
-  ]);
-
-  // The one just created is now the open one, so a second clear ends it.
-  act(() => result.current.replace("after-next"));
-  await waitFor(() => expect(graph.writes).toHaveLength(6));
-  expect(graph.writes.slice(3)).toEqual([
-    archived(`${userWebId}~created-2`),
-    createdConversation("after-next"),
-    createdLink(`${userWebId}~created-5`),
-  ]);
-});
-
-test("clearing a conversation that has no entity archives nothing", async () => {
-  graph.stored = [];
-  const { result } = renderConversation(true);
   act(() => result.current.replace("next"));
   await waitFor(() => expect(graph.writes).toHaveLength(2));
   expect(graph.writes).toEqual([
     createdConversation("next"),
     createdLink(`${userWebId}~created-1`),
   ]);
+
+  // Its messages then write nothing more.
+  act(() => result.current.start("next"));
+  await settle();
+  expect(graph.writes).toHaveLength(2);
 });
 
-test("a draft's conversation has an unlinked entity until the draft's first save, which links it without unbinding it", async () => {
+test("a draft's conversations have unlinked entities until the draft's first save, which links them without unbinding the open one", async () => {
   graph.stored = [];
   const { result, rerender } = renderConversation(false);
   const beforeSave = result.current;
   expect(beforeSave.conversationId).toBeNull();
 
   act(() => result.current.start("on-draft"));
-  await waitFor(() => expect(graph.writes).toHaveLength(1));
-  expect(graph.writes).toEqual([createdConversation("on-draft")]);
+  act(() => result.current.replace("cleared-on-draft"));
+  await waitFor(() => expect(graph.writes).toHaveLength(2));
+  expect(graph.writes).toEqual([
+    createdConversation("on-draft"),
+    createdConversation("cleared-on-draft"),
+  ]);
 
-  // The first save lands.
+  // The first save lands: both are about the process it created.
   const queriesBeforeSave = graph.queries.length;
   rerender({ subjectExists: true, subjectEntityId: processId });
-  await waitFor(() => expect(graph.writes).toHaveLength(2));
-  expect(graph.writes[1]).toEqual(createdLink(`${userWebId}~created-1`));
+  await waitFor(() => expect(graph.writes).toHaveLength(4));
+  expect(graph.writes.slice(2)).toEqual([
+    createdLink(`${userWebId}~created-1`),
+    createdLink(`${userWebId}~created-2`),
+  ]);
   // Same object, so nothing built on it is rebuilt, and no new read was asked for.
   expect(result.current).toBe(beforeSave);
   expect(
@@ -399,9 +390,9 @@ test("a draft's conversation has an unlinked entity until the draft's first save
       ),
   ).toBe(true);
 
-  act(() => result.current.start("on-draft"));
+  act(() => result.current.start("cleared-on-draft"));
   await settle();
-  expect(graph.writes).toHaveLength(2);
+  expect(graph.writes).toHaveLength(4);
 });
 
 test("a draft's entity found again after a reload is reused, not created twice", async () => {

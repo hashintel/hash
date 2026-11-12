@@ -179,8 +179,8 @@ export interface BrunchConversationPointer {
    */
   readonly start: (conversationId: string) => void;
   /**
-   * The user cleared the chat: this conversation replaces the one that was
-   * bound, which has ended.
+   * The user cleared the chat: this conversation is bound in place of the
+   * one before it. What becomes of the earlier one is the host's to decide.
    */
   readonly replace: (conversationId: string) => void;
 }
