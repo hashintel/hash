@@ -83,7 +83,30 @@ describe("offer_answers input", () => {
         ],
       },
     ],
-    ["five questions", { questions: Array.from({ length: 5 }, () => demand) }],
+    [
+      "five questions",
+      {
+        questions: Array.from({ length: 5 }, (_each, index) => ({
+          ...demand,
+          label: `Production demand ${index + 1}`,
+        })),
+      },
+    ],
+    [
+      "two questions under one label, whatever its case",
+      { questions: [demand, { ...quarantine, label: "production demand " }] },
+    ],
+    [
+      "two options under one label",
+      {
+        questions: [
+          {
+            ...quarantine,
+            options: [{ label: "Drops out" }, { label: "drops out" }],
+          },
+        ],
+      },
+    ],
     ["an unknown key", { questions: [{ ...demand, mark: "clicked" }] }],
     ["an empty label", { questions: [{ ...demand, label: "  " }] }],
     [

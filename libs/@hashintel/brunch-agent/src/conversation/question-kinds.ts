@@ -5,6 +5,7 @@
  */
 
 export {
+  labelKey,
   mergeOffers,
   offerBounds,
   offerText,

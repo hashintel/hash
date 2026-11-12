@@ -102,6 +102,9 @@ export const optionsFor = (
 /** The answer a click on an option gives. */
 export const optionText = ({ label, value }: OfferedOption) => value ?? label;
 
+/** What identifies a question, or an option within one: its label, as read. */
+export const labelKey = (label: string) => label.trim().toLowerCase();
+
 /**
  * One turn's offers as the one set of questions the person answers. A
  * question is known by its label: one offered again keeps the place it was
@@ -114,6 +117,6 @@ export const mergeOffers = (
   const latest = new Map<string, OfferedQuestion>();
   for (const { questions } of offers)
     for (const question of questions)
-      latest.set(question.label.trim().toLowerCase(), question);
+      latest.set(labelKey(question.label), question);
   return { questions: [...latest.values()] };
 };
