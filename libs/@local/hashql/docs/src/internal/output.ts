@@ -246,6 +246,19 @@ export const count = (
       ),
   });
 
+/** What a reader calls the things `count` counts. They are overloads where each one is a call. Where one states no call, as a type merged with a constant does, they are declarations. */
+export const counted = (
+  values: Option.Option<Tree.Declaration.Signatures>,
+): "overloads" | "declarations" =>
+  pipe(
+    Option.toArray(values),
+    Array.flatMap(({ children }) => children),
+    Array.flatMap(({ overloads }) => overloads),
+    Array.every(({ origin }) => AST.CallSignature.isCallSignature(origin)),
+  )
+    ? "overloads"
+    : "declarations";
+
 /** The declarations of a member in source order, which for an accessor are its getter's and its setter's. */
 export const declarationsOf = (
   value: Tree.Member.Member,

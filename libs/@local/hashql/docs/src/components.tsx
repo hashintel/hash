@@ -89,6 +89,8 @@ export interface ExportProps extends FactProps, ChildrenProps {
 /** Every declaration of an export or a member, and how many overloads they number between them. The child whose `slot` is `title` is an export's type hierarchy, and belongs on the line that names them. */
 export interface SignaturesProps extends ChildrenProps {
   readonly overloads: number;
+  /** What a reader calls the overloads: `declarations` where one of them states no call, as a type merged with a constant does. */
+  readonly counted: "overloads" | "declarations";
 }
 
 /** One declaration's code, with the overloads it numbers, absent when it is the only declaration, and its own comment's facts. */
