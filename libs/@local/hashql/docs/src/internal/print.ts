@@ -266,19 +266,22 @@ export const pages = Effect.fnUntraced(function* (
   const printed = new WeakMap<Printable, Code.Source>();
   for (const syntax of found.syntax) {
     if (!printed.has(syntax)) {
-      printed.set(syntax, yield* Code.print(nodesOf(syntax), names));
+      const source = yield* Code.print(nodesOf(syntax), names);
+      printed.set(syntax, source);
     }
   }
   for (const type of found.types) {
     if (!printed.has(type)) {
-      printed.set(type, yield* fitted(type, names));
+      const source = yield* fitted(type, names);
+      printed.set(type, source);
     }
   }
 
   const examples = new WeakMap<SourceFile, Code.Source>();
   for (const program of found.programs) {
     if (!examples.has(program)) {
-      examples.set(program, yield* example(program, ast));
+      const source = yield* example(program, ast);
+      examples.set(program, source);
     }
   }
 
@@ -286,10 +289,9 @@ export const pages = Effect.fnUntraced(function* (
   const located = new WeakMap<Node, Location.Location>();
   for (const declaration of found.declarations) {
     if (!located.has(declaration)) {
-      for (const location of Option.toArray(
-        yield* locations.locate(declaration),
-      )) {
-        located.set(declaration, location);
+      const location = yield* locations.locate(declaration);
+      for (const value of Option.toArray(location)) {
+        located.set(declaration, value);
       }
     }
   }
