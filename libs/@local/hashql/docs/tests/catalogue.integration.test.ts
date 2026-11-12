@@ -91,6 +91,53 @@ describe("catalogue", () => {
   );
 
   it.effect(
+    "shortest_path",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({
+        source:
+          'export * as Outer from "./outer.js"; export { Box } from "./box.js";',
+        files: {
+          "outer.d.ts": 'export * as Inner from "./inner.js";',
+          "inner.d.ts": 'export { Box } from "./box.js";',
+          "box.d.ts": "export interface Box { value: string }",
+        },
+      });
+      const catalogue = Catalogue.fromAST(ast);
+      const box = entry(catalogue, "Outer", "Inner", "Box");
+      expect(box.name.path).toStrictEqual(["Box"]);
+      expect(entry(catalogue, "Box").id).toBe(box.id);
+      expect(paths(catalogue)).toStrictEqual([
+        "",
+        "Outer",
+        "Outer.Inner",
+        "Box",
+      ]);
+    }),
+  );
+
+  it.effect(
+    "shorter_type_only_path",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* ParserFixture.success({
+        source:
+          'export * as Outer from "./outer.js"; export type { Box } from "./box.js";',
+        files: {
+          "outer.d.ts": 'export { Box } from "./box.js";',
+          "box.d.ts": "export class Box { value: string }",
+        },
+      });
+      const box = entry(Catalogue.fromAST(ast), "Box");
+      expect(box.name.path).toStrictEqual(["Box"]);
+      expect([box.typeOnlyExport, box.nameTypeOnlyExport]).toStrictEqual([
+        false,
+        true,
+      ]);
+    }),
+  );
+
+  it.effect(
     "namespace_restriction",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

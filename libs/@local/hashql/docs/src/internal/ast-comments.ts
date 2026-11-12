@@ -8,7 +8,7 @@ import * as DocSource from "./ast/doc-source.js";
 import * as Source from "./ast/source.js";
 
 import type { Cause } from "effect";
-import type { JSDoc, Node } from "typescript/ast";
+import type { ExportDeclaration, JSDoc, Node } from "typescript/ast";
 
 type Documentation = AST.Documentation.Interned;
 
@@ -36,6 +36,29 @@ const stray = (comment: JSDoc): DocumentationError.DocumentationError =>
   DocumentationError.DocumentationError.make({
     file: comment.getSourceFile().fileName,
     reason: { _tag: "StrayModuleComment", start: comment.getStart() },
+  });
+
+/**
+ * Fails on a comment that `statement` carries, as `export * as Space from "./space.js"` can.
+ *
+ * A re-export shows the documentation of what it exports, so nothing would show its own comment to a reader. The `@module` comment that leads the file is the file's own, and stays.
+ */
+export const checkReexport = (
+  statement: ExportDeclaration,
+): Effect.Effect<void, DocumentationError.DocumentationError> =>
+  Option.match(Array.head(Source.strayModuleComments(statement)), {
+    onSome: (comment) => Effect.fail(stray(comment)),
+    onNone: () =>
+      Option.match(Source.commentOf(statement), {
+        onNone: () => Effect.void,
+        onSome: (comment) =>
+          Effect.fail(
+            DocumentationError.DocumentationError.make({
+              file: comment.getSourceFile().fileName,
+              reason: { _tag: "ReexportComment", start: comment.getStart() },
+            }),
+          ),
+      }),
   });
 
 /** One parser serves one parse, so a cache in the layer never sees a second graph. */

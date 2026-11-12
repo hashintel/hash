@@ -1,14 +1,15 @@
 import { Array, Function } from "effect";
-import { isIdentifier } from "typescript/ast";
-import { getCombinedModifierFlags } from "typescript/ast/utils";
-
-import type {
-  Declaration,
-  Identifier,
+import {
   ModifierFlags,
-  Node,
-  NodeFlags,
+  isIdentifier,
+  isPrivateIdentifier,
 } from "typescript/ast";
+import {
+  getCombinedModifierFlags,
+  getNameOfDeclaration,
+} from "typescript/ast/utils";
+
+import type { Declaration, Identifier, Node, NodeFlags } from "typescript/ast";
 
 export type { Node } from "typescript/ast";
 
@@ -33,6 +34,16 @@ export const hasModifier: {
     // oxlint-disable-next-line no-bitwise -- `ModifierFlags` is the compiler's bit set.
     (getCombinedModifierFlags(declaration) & modifier) !== 0,
 );
+
+/** Whether a class keeps `member` to itself, as a `private` member or one named with `#`. */
+export const isPrivate = (member: Declaration): boolean => {
+  const name = getNameOfDeclaration(member);
+
+  return (
+    hasModifier(member, ModifierFlags.Private) ||
+    (name !== undefined && isPrivateIdentifier(name))
+  );
+};
 
 /** Walks identifier occurrences, retaining repeated and shadowed names in syntax order. */
 export const identifiers = (node: Node): readonly Identifier[] => {
