@@ -7119,6 +7119,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-orchestration"
+version = "0.0.0"
+dependencies = [
+ "backon",
+ "derive_more",
+ "error-stack",
+ "pretty_assertions",
+ "proptest",
+ "proptest-derive",
+ "rstest",
+ "serde",
+ "serde_core",
+ "serde_json",
+ "simple-mermaid",
+ "time",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [
