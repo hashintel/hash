@@ -37,6 +37,7 @@ const summary = (
   status: FlowRunStatus.Completed,
   startedAt: "2026-11-09T08:00:00Z",
   closedAt: "2026-11-09T08:05:00Z",
+  updatedAt: "2026-11-09T08:05:00Z",
   openInputRequests: [],
   ...overrides,
 });

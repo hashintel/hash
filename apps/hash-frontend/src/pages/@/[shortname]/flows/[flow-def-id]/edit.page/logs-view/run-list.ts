@@ -29,6 +29,7 @@ export type RunSummary = Pick<
   | "status"
   | "startedAt"
   | "closedAt"
+  | "updatedAt"
   | "openInputRequests"
 >;
 

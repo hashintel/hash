@@ -28,6 +28,7 @@ export const getFlowDefinitionRunsQuery = gql`
       limit: $limit
     ) {
       nextCursor
+      totalCount
       flowRuns {
         flowRunEntityId
         flowScheduleId
@@ -35,6 +36,7 @@ export const getFlowDefinitionRunsQuery = gql`
         status
         startedAt
         closedAt
+        updatedAt
         openInputRequests
       }
     }

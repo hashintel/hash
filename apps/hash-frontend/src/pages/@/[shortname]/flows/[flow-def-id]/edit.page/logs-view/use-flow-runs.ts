@@ -45,17 +45,26 @@ const firstPageVariables = (
 });
 
 /**
- * Reads every page of the flow's runs. The API orders runs by when each last changed, and only sorts within a page,
- * so the Logs tab sorts, filters and counts all of them itself.
+ * Reads pages of the flow's runs into `runs`, from the first until `isLastPage` or there are no more: a run read
+ * again replaces the one read before, and a new one is added. `totalCount` is how many runs the API has for the flow.
  */
-export const loadAllRuns = async (
-  client: FlowRunsClient,
-  flowDefinitionEntityId: EntityId,
-  fetchPolicy: "cache-first" | "network-only",
-) => {
+const readPages = async ({
+  client,
+  flowDefinitionEntityId,
+  fetchPolicy,
+  runs,
+  isLastPage,
+}: {
+  client: FlowRunsClient;
+  flowDefinitionEntityId: EntityId;
+  fetchPolicy: "cache-first" | "network-only";
+  runs: RunSummary[];
+  isLastPage: (page: RunSummary[]) => boolean;
+}) => {
   /* A run that changes while the pages are read can move to a later page, so it's kept once, as last read. */
-  const runs = new Map<EntityId, RunSummary>();
+  const merged = new Map(runs.map((run) => [run.flowRunEntityId, run]));
   let cursor: string | null = null;
+  let totalCount = 0;
 
   do {
     const { data } = await client.query({
@@ -64,39 +73,67 @@ export const loadAllRuns = async (
       fetchPolicy,
     });
 
-    for (const run of data.getFlowRuns.flowRuns) {
-      runs.set(run.flowRunEntityId, run);
+    const page = data.getFlowRuns.flowRuns;
+
+    for (const run of page) {
+      merged.set(run.flowRunEntityId, run);
     }
 
-    cursor = data.getFlowRuns.nextCursor ?? null;
+    totalCount = data.getFlowRuns.totalCount;
+    cursor = isLastPage(page) ? null : (data.getFlowRuns.nextCursor ?? null);
   } while (cursor !== null);
 
-  return [...runs.values()];
+  return { runs: [...merged.values()], totalCount };
 };
 
 /**
- * Reads the first page, which holds the runs that changed most recently, into `runs`: a run on it replaces the one
- * read before, and a new one is added. Misses a change only when more runs than fit on a page changed since `runs`
- * were read.
+ * Reads every page of the flow's runs. The API orders runs by when each last changed, and only sorts within a page,
+ * so the Logs tab sorts, filters and counts all of them itself.
+ */
+export const loadAllRuns = async (
+  client: FlowRunsClient,
+  flowDefinitionEntityId: EntityId,
+  fetchPolicy: "cache-first" | "network-only",
+) => {
+  const { runs } = await readPages({
+    client,
+    flowDefinitionEntityId,
+    fetchPolicy,
+    runs: [],
+    isLastPage: () => false,
+  });
+
+  return runs;
+};
+
+/**
+ * Reads the runs that changed since `runs` were read into them. The API gives the runs that changed most recently
+ * first, so pages are read until one holds a run that changed before the latest change in `runs`. A run that's gone,
+ * such as an archived one, isn't among those, so when the API has a different number of runs than were read, every
+ * page is read again.
  */
 export const loadRecentRuns = async (
   client: FlowRunsClient,
   flowDefinitionEntityId: EntityId,
   runs: RunSummary[],
 ) => {
-  const { data } = await client.query({
-    query: getFlowDefinitionRunsQuery,
-    variables: firstPageVariables(flowDefinitionEntityId),
+  const latestChange = runs.reduce(
+    (latest, { updatedAt }) => Math.max(latest, Date.parse(updatedAt)),
+    -Infinity,
+  );
+
+  const recent = await readPages({
+    client,
+    flowDefinitionEntityId,
     fetchPolicy: "network-only",
+    runs,
+    isLastPage: (page) =>
+      page.some(({ updatedAt }) => Date.parse(updatedAt) < latestChange),
   });
 
-  const merged = new Map(runs.map((run) => [run.flowRunEntityId, run]));
-
-  for (const run of data.getFlowRuns.flowRuns) {
-    merged.set(run.flowRunEntityId, run);
-  }
-
-  return [...merged.values()];
+  return recent.runs.length === recent.totalCount
+    ? recent.runs
+    : loadAllRuns(client, flowDefinitionEntityId, "network-only");
 };
 
 /** Whether the flow's runs were read before, so are in the cache. */
@@ -110,8 +147,8 @@ const hasCachedRuns = (
   }) !== null;
 
 /**
- * The flow's runs. Every page is read when shown and when the page is shown again; in between, the most recently
- * changed runs are read every few seconds while the page is visible. Runs read on an earlier visit show at once, until
+ * The flow's runs. Every page is read when shown; after that, the runs that changed since the last read are read every
+ * few seconds while the page is visible, and when it's shown again. Runs read on an earlier visit show at once, until
  * the fresh read replaces them. A failed refresh keeps the runs last read and tries again at the next one.
  */
 export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
@@ -124,7 +161,7 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     /* Set when a refresh fell due while the page was hidden, to refresh as soon as it's shown. */
     let refreshDue = false;
-    /* The runs last read, which a refresh of the most recent ones is merged into. */
+    /* The runs last read, which a refresh of the ones that changed since is merged into. */
     let lastRead: RunSummary[] | null = null;
 
     const read = async (load: () => Promise<RunSummary[]>) => {
@@ -150,7 +187,6 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
       }
     };
 
-    /* While the page was hidden, more runs may have changed than the first page holds, so every page is read then. */
     const refresh = async (readEveryPage: boolean) => {
       await read(() =>
         readEveryPage || !lastRead
@@ -174,7 +210,7 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible" && refreshDue) {
         refreshDue = false;
-        void refresh(true);
+        void refresh(false);
       }
     };
 
