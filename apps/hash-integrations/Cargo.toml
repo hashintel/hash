@@ -25,11 +25,11 @@ clap_complete  = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
 mimalloc       = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
+serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
-uuid           = { workspace = true, features = ["v5"] }
+uuid           = { workspace = true, features = ["v4", "v5"] }
 
 [dev-dependencies]
-serde_json      = { workspace = true }
 similar-asserts = { workspace = true }
 tokio           = { workspace = true, features = ["macros", "rt"] }
 
