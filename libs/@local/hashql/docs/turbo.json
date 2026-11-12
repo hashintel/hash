@@ -2,7 +2,11 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/**"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
     },
     "codegen": {
       "dependsOn": ["@local/hashql#build"],
