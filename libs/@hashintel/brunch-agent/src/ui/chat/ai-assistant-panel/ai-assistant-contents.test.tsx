@@ -5639,6 +5639,7 @@ describe("questions docked on the composer", () => {
   const quarantine = {
     kind: "choose",
     label: "Quarantined shipment",
+    text: "Quarantined shipment?",
     options: [
       { label: "Stays open", value: "It stays counted as an open order" },
       { label: "Drops out", value: "It drops out until quality releases it" },
@@ -5768,8 +5769,8 @@ describe("questions docked on the composer", () => {
 
   const three = [
     quarantine,
-    { kind: "open", label: "Recent order" },
-    { kind: "confirm", label: "Production demand" },
+    { kind: "open", label: "Recent order", text: "Recent order?" },
+    { kind: "confirm", label: "Production demand", text: "Production demand?" },
   ];
 
   test("several questions show one at a time: Send moves on, and on the last sends them all", () => {
@@ -5830,6 +5831,31 @@ describe("questions docked on the composer", () => {
     );
   });
 
+  test("a turn of open questions docks too, each showing its wording", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [
+        opening,
+        asking([
+          {
+            kind: "open",
+            label: "Recent order",
+            text: "Can you walk me through one recent order?",
+          },
+        ]),
+      ],
+    });
+    expect(
+      within(dock() as HTMLElement).getByText(
+        "Can you walk me through one recent order?",
+      ),
+    ).not.toBeNull();
+    fireEvent.change(composer(), {
+      target: { value: "It took nine days." },
+    });
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith("It took nine days.");
+  });
+
   test("a values question names what to type", () => {
     renderDock({
       messages: [
@@ -5838,6 +5864,7 @@ describe("questions docked on the composer", () => {
           {
             kind: "values",
             label: "Reorder points",
+            text: "Reorder points?",
             fields: [
               { label: "Lower reorder point", unit: "units" },
               { label: "Higher reorder point", unit: "units" },
@@ -5871,12 +5898,6 @@ describe("questions docked on the composer", () => {
         ],
       },
     ],
-    [
-      "when every question is open",
-      {
-        messages: [opening, asking([{ kind: "open", label: "Recent order" }])],
-      },
-    ],
   ] satisfies [string, Partial<ContentsProps>][])(
     "is absent %s",
     (_name, props) => {
@@ -5888,7 +5909,7 @@ describe("questions docked on the composer", () => {
   test("without questions, Send is the composer's own", () => {
     const { onSendAnswer, onSubmit } = renderDock({
       input: "A message.",
-      messages: [opening, asking([{ kind: "open", label: "Recent order" }])],
+      messages: [opening],
     });
     send();
     expect(onSubmit).toHaveBeenCalledOnce();

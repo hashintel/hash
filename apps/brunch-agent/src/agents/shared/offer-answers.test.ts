@@ -18,6 +18,7 @@ const offer = {
     {
       kind: "choose" as const,
       label: "Quarantined shipment",
+      text: "How is a quarantined shipment counted?",
       options: [
         { label: "Stays counted as open" },
         { label: "Drops out until released" },

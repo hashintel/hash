@@ -52,7 +52,7 @@ The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?
 
 When a reply offers quick answers, the panel docks its questions on the composer one at a time, and the composer's Send moves to the next question rather than sending. So the persona gets the whole set at once and answers it at once:
 
-- The `assistant_message` event carries `questions`: each question's label and kind, with its options (label and fuller value) or its value fields. The helper prints them as a numbered list after the reply.
+- The `assistant_message` event carries `questions`: each question's label, wording and kind, with its options (label and fuller value) or its value fields. The helper prints them as a numbered list after the reply.
 - `answer` (with `answers`, one string per question in order) drives the dock as a person would: it clicks the option an answer names by its label, types any other answer, presses Send between questions, and sends them all from the last. A blank answer skips its question with the dock's arrow. The number of answers must match the number of docked questions.
 - `say` still answers a single docked question, since the composer's text is that question's answer. With several docked it is refused before anything is typed.
 

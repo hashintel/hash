@@ -17,11 +17,8 @@ import {
   agentOwnershipHeaders,
   brunchHeaders,
   brunchRoutes,
-  brunchTools,
-  mergeOffers,
-  offersAnswers,
+  offerIn,
   petrinautUserMessageText,
-  zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
 import type {
@@ -100,27 +97,15 @@ export const allowDestructiveEdits = async (
 export const offeredQuestionsOf = (
   snapshot: FlueConversationSnapshot,
   submissionIds: readonly string[],
-): OfferedQuestion[] => {
-  const offer = mergeOffers(
+): OfferedQuestion[] =>
+  offerIn(
     snapshot.messages
       .filter(
         ({ submissionId }) =>
           submissionId !== undefined && submissionIds.includes(submissionId),
       )
-      .flatMap(({ parts }) =>
-        parts.flatMap((part) => {
-          if (
-            part.type !== "dynamic-tool" ||
-            part.toolName !== brunchTools.offerAnswers
-          )
-            return [];
-          const parsed = zOfferAnswersInput.safeParse(part.input);
-          return parsed.success ? [parsed.data] : [];
-        }),
-      ),
-  );
-  return offersAnswers(offer) ? offer.questions : [];
-};
+      .flatMap(({ parts }) => parts),
+  )?.questions ?? [];
 
 /**
  * Give each docked question its answer the way a person would: a click on

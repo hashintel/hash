@@ -4,9 +4,9 @@ import {
   mergeOffers,
   neverOffer,
   type OfferedQuestion,
-  offersAnswers,
   optionsFor,
   optionText,
+  spokenQuestion,
 } from "./kinds";
 
 /** Questions from the P0 contrast set, as the reply that asked them offers them. */
@@ -14,25 +14,40 @@ const p0 = {
   readingOfTheirWords: {
     kind: "choose",
     label: "Quarantined shipment",
+    text: "Quarantined shipment?",
     options: [
       { label: "Stays open", value: "It stays counted as an open order" },
       { label: "Drops out", value: "It drops out until quality releases it" },
     ],
   },
-  confirmation: { kind: "confirm", label: "Production demand" },
+  confirmation: {
+    kind: "confirm",
+    label: "Production demand",
+    text: "Production demand?",
+  },
   values: {
     kind: "values",
     label: "Reorder points",
+    text: "Reorder points?",
     fields: [
       { label: "Lower", unit: "units" },
       { label: "Higher", unit: "units" },
     ],
   },
-  narrative: { kind: "open", label: "Recent Flowbind order" },
-  purpose: { kind: "open", label: "Decision to compare" },
+  narrative: {
+    kind: "open",
+    label: "Recent Flowbind order",
+    text: "Recent Flowbind order?",
+  },
+  purpose: {
+    kind: "open",
+    label: "Decision to compare",
+    text: "Decision to compare?",
+  },
   appetite: {
     kind: "choose",
     label: "Time to spend",
+    text: "Time to spend?",
     options: ["Quick", "Standard", "Thorough", "Deep"].map((label) => ({
       label,
     })),
@@ -65,25 +80,25 @@ describe("the answers each kind offers as buttons", () => {
   });
 });
 
-describe("what an offer must offer", () => {
-  test("a purpose or narrative question alone offers nothing", () => {
-    expect(offersAnswers({ questions: [p0.purpose] })).toBe(false);
-    expect(offersAnswers({ questions: [p0.narrative] })).toBe(false);
-  });
-
-  test("the opening battery offers its appetite question", () => {
-    expect(
-      offersAnswers({
-        questions: [p0.narrative, p0.purpose, p0.narrative, p0.appetite],
-      }),
-    ).toBe(true);
-  });
-
-  test("never offers on the user's purpose, or on open or narrative questions", () => {
+describe("what is never offered as choices", () => {
+  test("the user's purpose, and open or narrative questions", () => {
     expect(neverOffer).toEqual([
       expect.stringContaining("the user's purpose"),
       expect.stringContaining("open or narrative"),
     ]);
+  });
+});
+
+describe("a question said aloud", () => {
+  test("a choice names each alternative in full after the question", () => {
+    expect(spokenQuestion(p0.readingOfTheirWords)).toBe(
+      "Quarantined shipment? It stays counted as an open order; It drops out until quality releases it.",
+    );
+  });
+
+  test("any other question is its wording", () => {
+    expect(spokenQuestion(p0.narrative)).toBe(p0.narrative.text);
+    expect(spokenQuestion(p0.confirmation)).toBe(p0.confirmation.text);
   });
 });
 
@@ -114,14 +129,6 @@ describe("several offers in one turn", () => {
         { questions: [p0.confirmation, reworded] },
       ]),
     ).toEqual({ questions: [reworded, p0.values, p0.confirmation] });
-  });
-
-  test("a closed question asked again as an open one no longer offers answers", () => {
-    const merged = mergeOffers([
-      { questions: [p0.confirmation] },
-      { questions: [{ kind: "open", label: p0.confirmation.label }] },
-    ]);
-    expect(offersAnswers(merged)).toBe(false);
   });
 
   test("no offers are no questions", () => {

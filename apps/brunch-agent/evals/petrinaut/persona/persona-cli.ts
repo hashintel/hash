@@ -121,29 +121,30 @@ const formatTranscript = (data: unknown) => {
 };
 
 const describeQuestion = (question: PersonaQuestion, index: number) => {
-  const head = `${index + 1}. ${question.label}`;
+  const head = `${index + 1}. ${question.label}: ${question.text}`;
   if (question.options?.length)
     return [
-      `${head}: pick one by its label, or answer in your own words`,
+      head,
+      "   Pick one by its label, or answer in your own words:",
       ...question.options.map(({ label, value }) =>
         value === undefined ? `   - ${label}` : `   - ${label}: ${value}`,
       ),
     ].join("\n");
   if (question.fields?.length)
-    return `${head}: ${question.fields
+    return `${head}\n   Give: ${question.fields
       .map(({ label, unit }) =>
         unit === undefined ? label : `${label} (${unit})`,
       )
       .join(", ")}`;
-  return `${head}: answer in your own words`;
+  return head;
 };
 
 /** What the panel docks on the composer, as the persona needs to answer it. */
 const formatQuestions = (questions: readonly PersonaQuestion[]) =>
   [
     questions.length === 1
-      ? 'Brunch put this question on its message box. Reply with `say`, or pick an option with `answer "<its label>"`:'
-      : `Brunch put ${questions.length} questions on its message box. Answer them together with \`answer\`, one quoted argument each in this order, "" to skip one:`,
+      ? 'Brunch asks this on its message box. Reply with `say`, or pick an option with `answer "<its label>"`:'
+      : `Brunch asks ${questions.length} questions on its message box. Answer them together with \`answer\`, one quoted argument each in this order, "" to skip one:`,
     ...questions.map(describeQuestion),
   ].join("\n");
 

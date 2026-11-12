@@ -1,13 +1,5 @@
-import {
-  brunchTools,
-  type OfferedQuestions,
-  zOfferAnswersInput,
-} from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
-import {
-  mergeOffers,
-  offersAnswers,
-} from "../../../../conversation/question-kinds";
 import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
@@ -135,22 +127,4 @@ export const getMessageRenderItems = (
     }
   });
   return turn;
-};
-
-/**
- * The one set of questions a message offers answers for, across every offer
- * its turn made. Undefined when it offers none.
- */
-export const offerOf = (
-  message: PetrinautAiMessage,
-): OfferedQuestions | undefined => {
-  const offer = mergeOffers(
-    message.parts.flatMap((part) => {
-      if (!isToolPart(part) || getToolName(part) !== brunchTools.offerAnswers)
-        return [];
-      const parsed = zOfferAnswersInput.safeParse(part.input);
-      return parsed.success ? [parsed.data] : [];
-    }),
-  );
-  return offersAnswers(offer) ? offer : undefined;
 };

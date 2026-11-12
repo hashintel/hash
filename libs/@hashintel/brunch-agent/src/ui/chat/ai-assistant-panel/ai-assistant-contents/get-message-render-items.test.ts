@@ -2,10 +2,10 @@ import { describe, expect, test } from "vitest";
 
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
+import { offerIn } from "../../../../conversation/offer-answers";
 import { definePetrinautAiInteractiveTool } from "../../ai-interactive-tool";
 import {
   getMessageRenderItems,
-  offerOf,
 } from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
@@ -162,6 +162,7 @@ describe("conversation turn structure", () => {
           {
             kind: "choose",
             label: "Quarantined shipment",
+            text: "Quarantined shipment?",
             options: [
               { label: "Stays counted as open" },
               { label: "Drops out until released" },
@@ -196,7 +197,7 @@ describe("conversation turn structure", () => {
       };
       const turn = getMessageRenderItems(message);
       expect(turn.cards).toEqual([]);
-      expect(offerOf(message)).toEqual(offer);
+      expect(offerIn(message.parts)).toEqual(offer);
       expect(turn.work.tools.map((tool) => tool.id)).toEqual(["commit-1"]);
       expect(turn.answers.map((answer) => answer.part.text)).toEqual([
         "Does it stay counted as open?",
@@ -216,12 +217,17 @@ describe("conversation turn structure", () => {
     const quarantine = {
       kind: "choose",
       label: "Quarantined shipment",
+      text: "Quarantined shipment?",
       options: [
         { label: "Stays counted as open" },
         { label: "Drops out until released" },
       ],
     };
-    const demand = { kind: "confirm", label: "Production demand" };
+    const demand = {
+      kind: "confirm",
+      label: "Production demand",
+      text: "Production demand?",
+    };
     const experiment = (toolCallId: string) =>
       ({
         type: "tool-createExperiment",
@@ -232,15 +238,11 @@ describe("conversation turn structure", () => {
 
     test("are one set of questions", () => {
       expect(
-        offerOf({
-          id: "turn",
-          role: "assistant",
-          parts: [
-            offerPart("offer-1", [quarantine]),
-            experiment("experiment-1"),
-            offerPart("offer-2", [demand]),
-          ],
-        }),
+        offerIn([
+          offerPart("offer-1", [quarantine]),
+          experiment("experiment-1"),
+          offerPart("offer-2", [demand]),
+        ]),
       ).toEqual({ questions: [quarantine, demand] });
     });
 
@@ -254,24 +256,16 @@ describe("conversation turn structure", () => {
         ],
       };
       expect(
-        offerOf({
-          id: "turn",
-          role: "assistant",
-          parts: [
-            offerPart("offer-1", [quarantine, demand]),
-            offerPart("offer-2", [reworded]),
-          ],
-        }),
+        offerIn([
+          offerPart("offer-1", [quarantine, demand]),
+          offerPart("offer-2", [reworded]),
+        ]),
       ).toEqual({ questions: [reworded, demand] });
     });
 
-    test("a turn whose questions are all open offers nothing", () => {
+    test("a turn that calls no offer asks nothing", () => {
       expect(
-        offerOf({
-          id: "turn",
-          role: "assistant",
-          parts: [{ type: "text", text: "Walk me through one order." }],
-        }),
+        offerIn([{ type: "text", text: "Walk me through one order." }]),
       ).toBeUndefined();
     });
   });

@@ -61,6 +61,7 @@ const offer = (id: string) =>
         {
           kind: "choose",
           label: "Quarantined shipment",
+          text: "Quarantined shipment?",
           options: [
             { label: "Stays counted as open" },
             { label: "Drops out until released" },

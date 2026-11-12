@@ -6762,6 +6762,7 @@ describe("AiAssistantPanel composer submissions", () => {
   const batchStart = {
     kind: "choose",
     label: "Batch start",
+    text: "Batch start?",
     options: [
       {
         label: "Starts when ready",
@@ -6813,8 +6814,8 @@ describe("AiAssistantPanel composer submissions", () => {
   test("answers to several questions go out as one message, and the Ledger reads it as one turn", async () => {
     const { requestMessages, transport } = offerReplies([
       batchStart,
-      { kind: "open", label: "Last delay" },
-      { kind: "confirm", label: "Delay clock" },
+      { kind: "open", label: "Last delay", text: "Last delay?" },
+      { kind: "confirm", label: "Delay clock", text: "Delay clock?" },
     ]);
     renderTestPanel({
       aiAssistant: { transport },
@@ -6852,7 +6853,7 @@ describe("AiAssistantPanel composer submissions", () => {
   test("answers that fail to send come back as text to send again", async () => {
     const { requestMessages, transport } = offerReplies([
       batchStart,
-      { kind: "confirm", label: "Delay clock" },
+      { kind: "confirm", label: "Delay clock", text: "Delay clock?" },
     ]);
     const sendOffer = transport.sendMessages;
     transport.sendMessages = vi.fn((options) =>
