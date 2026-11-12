@@ -9,11 +9,17 @@ export function ApiMember({
   since,
   stability,
   internal,
+  source,
   children,
 }: Components.MemberProps): ReactNode {
   return (
     <div className="api-item api-member" id={name}>
-      <Facts since={since} stability={stability} internal={internal} />
+      <Facts
+        since={since}
+        stability={stability}
+        internal={internal}
+        source={source}
+      />
       {children}
     </div>
   );
