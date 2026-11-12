@@ -7129,6 +7129,7 @@ dependencies = [
  "hash-graph-test-data",
  "hash-integrations-definition",
  "hash-integrations-engine",
+ "insta",
  "pretty_assertions",
  "reqwest 0.13.4",
  "serde",

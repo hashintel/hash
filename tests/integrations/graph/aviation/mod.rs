@@ -33,10 +33,7 @@ use serde::Deserialize;
 use serde_json::json;
 use tempfile::TempDir;
 use type_system::{
-    knowledge::{
-        entity::{Entity, Link, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, metadata::PropertyMetadata},
-    },
+    knowledge::entity::{Entity, Link, provenance::ProvidedEntityEditionProvenance},
     ontology::{
         VersionedUrl,
         data_type::DataType,
@@ -345,51 +342,20 @@ fn entity<'entities>(
 }
 
 fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
-    for entity in entities {
-        assert!(
-            entity.metadata.read_only,
-            "integration entities should be read-only"
-        );
-        assert!(
-            !entity.metadata.archived,
-            "the aviation records should be active"
-        );
-        assert_eq!(entity.metadata.provenance.created_by_id, actor.into());
-        assert_eq!(entity.metadata.provenance.edition.provided, provenance());
-    }
-    for (icao, name) in [("ESSA", "Arlanda"), ("ESSB", "Bromma")] {
-        let airfield = entity(entities, web_id, "airfield", icao);
-        assert_eq!(
-            airfield.properties,
-            serde_json::from_value::<PropertyObject>(
-                json!({format!("{TYPES}/property-type/name/"): name})
-            )
-            .expect("the expected airfield properties should be valid")
-        );
-        assert!(airfield.link_data.is_none());
-    }
-    for (tail, model, date, mass, unit) in [
-        ("SE-XXX", "DC-3", "1946-04-02", 8030, "kilogram"),
-        ("N100", "L-1049", "1957-07-15", 69000, "pound"),
+    let mut records = BTreeMap::new();
+    for (kind, source) in [
+        ("airfield", "ESSA"),
+        ("airfield", "ESSB"),
+        ("aircraft", "SE-XXX"),
+        ("aircraft", "N100"),
     ] {
-        let aircraft = entity(entities, web_id, "aircraft", tail);
-        assert_eq!(
-            aircraft.properties,
-            serde_json::from_value::<PropertyObject>(json!({
-                format!("{TYPES}/property-type/model/"): model,
-                format!("{TYPES}/property-type/first-flight/"): date,
-                format!("{TYPES}/property-type/empty-mass/"): mass,
-            }))
-            .expect("the expected aircraft properties should be valid")
+        records.insert(
+            format!("{kind}/{source}"),
+            entity(entities, web_id, kind, source),
         );
-        assert!(aircraft.link_data.is_none());
-        let mass_url = url("property-type", "empty-mass").base_url;
-        let Some(PropertyMetadata::Value(metadata)) =
-            aircraft.metadata.properties.value.get(&mass_url)
-        else {
-            panic!("the mass should have value metadata");
-        };
-        assert_eq!(metadata.metadata.data_type_id, Some(url("data-type", unit)));
+    }
+    for tail in ["SE-XXX", "N100"] {
+        let aircraft = entity(entities, web_id, "aircraft", tail);
         let link_source = format!(
             "{}::{tail}::{}::ESSA",
             url("entity-type", "aircraft"),
@@ -407,11 +373,36 @@ fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
                 .record_id
                 .entity_id
         );
-        assert!(
-            link.properties.is_empty(),
-            "based-at should have no properties"
-        );
+        records.insert(format!("based-at/{tail}/ESSA"), link);
     }
+    let names: HashMap<_, _> = records
+        .iter()
+        .map(|(name, entity)| (entity.metadata.record_id.entity_id, name))
+        .collect();
+    let snapshot: BTreeMap<_, _> = records
+        .iter()
+        .map(|(name, entity)| {
+            assert_eq!(entity.metadata.provenance.created_by_id, actor.into());
+            let link = entity.link_data.as_ref().map(|Link::Directed { source, target }| {
+                json!({
+                    "source": names.get(&source.entity_id).expect("the link source should be stored"),
+                    "target": names.get(&target.entity_id).expect("the link target should be stored"),
+                })
+            });
+            (name, json!({
+                "entityTypeIds": entity.metadata.entity_type_ids,
+                "properties": entity.properties,
+                "propertyMetadata": entity.metadata.properties,
+                "readOnly": entity.metadata.read_only,
+                "archived": entity.metadata.archived,
+                "provenance": entity.metadata.provenance.edition.provided,
+                "link": link,
+            }))
+        })
+        .collect();
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_json_snapshot!("aviation", snapshot);
+    });
 }
 
 #[tokio::test]
