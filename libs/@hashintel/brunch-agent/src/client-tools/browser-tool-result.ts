@@ -16,16 +16,16 @@ const zJsonLike: z.ZodType = z.lazy(() =>
   ]),
 );
 // Check without cloning or normalizing the result; typed as the JSON received.
-const vJson = v.custom<z.infer<ReturnType<typeof z.json>>>(
+const vJsonLike = v.custom<z.infer<ReturnType<typeof z.json>>>(
   (value) => zJsonLike.safeParse(value).success,
   "Expected a JSON value",
 );
 
 /** The result boundary, before HTTP serialization and after receipt. */
 export const vBrowserToolResult = v.object({
-  output: vJson,
+  output: vJsonLike,
   /** Host-owned verified sidecar; canonical output remains unchanged. */
-  metadata: v.optional(vJson),
+  metadata: v.optional(vJsonLike),
 });
 
 /** A browser-executed result, exchanged in band with the server. */
