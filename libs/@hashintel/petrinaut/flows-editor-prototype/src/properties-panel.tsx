@@ -19,6 +19,7 @@ import {
   type CatalogEntry,
   forEachEntry,
   getCatalogEntry,
+  stepOutputs,
   type InputView,
 } from "./catalog";
 import {
@@ -741,7 +742,7 @@ const ActionSections = ({
         <OutputRows
           stepId={step.stepId}
           // A branching step's port values are not data: they show as its paths, under the output they come from.
-          outputs={entry.outputs.filter(
+          outputs={stepOutputs(step).filter(
             (output) =>
               !entry.ports?.some((port) => port.outputName === output.name),
           )}
@@ -870,7 +871,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             id: child.stepId,
             label: stepLabel(child),
             items: (
-              getCatalogEntry(child.actionDefinitionId)?.outputs ?? []
+              stepOutputs(child)
             ).map((output) => ({
               value: `${child.stepId}.${output.name}`,
               text: output.label,

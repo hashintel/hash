@@ -5,6 +5,7 @@
 import {
   type CatalogEntry,
   getCatalogEntry,
+  stepOutputs,
   humanize,
   type InputView,
 } from "./catalog";
@@ -427,7 +428,7 @@ export const sourceOptions = (
         ? earlier.collect && !scope.includes(earlier.stepId)
           ? [earlier.collect.as]
           : []
-        : (getCatalogEntry(earlier.actionDefinitionId)?.outputs ?? []).map(
+        : stepOutputs(earlier).map(
             (output) => output.name,
           );
     for (const outputName of outputNames) {
@@ -441,7 +442,7 @@ export const sourceOptions = (
       if (shape && fitted) {
         const output =
           earlier.kind === "action"
-            ? getCatalogEntry(earlier.actionDefinitionId)?.outputs.find(
+            ? stepOutputs(earlier).find(
                 (candidate) => candidate.name === outputName,
               )
             : undefined;
@@ -486,7 +487,7 @@ export const describeSource = (
       const step = findStep(document, source.stepId)?.step;
       const output =
         step?.kind === "action"
-          ? getCatalogEntry(step.actionDefinitionId)?.outputs.find(
+          ? stepOutputs(step).find(
               (candidate) => candidate.name === source.outputName,
             )
           : undefined;

@@ -8,7 +8,7 @@ import {
   isMockActionDefinitionId,
   mockActionDefinitions,
 } from "./mock-action-definitions";
-import { mockSenders } from "./mock-graph";
+import { findPropertyType, mockSenders } from "./mock-graph";
 import { prdBlocks, type PrdSource } from "./mock-prd-ports";
 import { switchPorts, switchTake } from "./switch-flags";
 
@@ -393,3 +393,31 @@ export const groupEntries = (
   group: (typeof stepGroups)[number],
   entries: CatalogEntry[],
 ) => group.ids.flatMap((id) => entries.filter((entry) => entry.id === id));
+
+type OutputOwner = {
+  actionDefinitionId: string;
+  inputs: Record<string, { kind: string; payload?: { value?: unknown } }>;
+};
+
+/**
+ * A step's outputs by their real names. A Read entity step's one output is the property it reads, so it takes that
+ * property's name ("Certificate link", "Name") instead of the catalog's generic "Property value".
+ */
+export const stepOutputs = (step: OutputOwner): OutputView[] => {
+  const outputs = getCatalogEntry(step.actionDefinitionId)?.outputs ?? [];
+  if (step.actionDefinitionId !== "readEntity") {
+    return outputs;
+  }
+  const property = step.inputs.property;
+  const baseUrl =
+    property?.kind === "constant"
+      ? (property.payload?.value as { propertyTypeBaseUrl?: string } | null)
+          ?.propertyTypeBaseUrl
+      : undefined;
+  const title = findPropertyType(baseUrl)?.title;
+  return title
+    ? outputs.map((output) =>
+        output.name === "value" ? { ...output, label: title } : output,
+      )
+    : outputs;
+};

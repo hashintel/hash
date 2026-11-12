@@ -7,7 +7,7 @@
 import { Icon, type IconName } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getCatalogEntry, humanize } from "./catalog";
+import { getCatalogEntry, humanize, stepOutputs } from "./catalog";
 import {
   type EditorDocument,
   findStep,
@@ -45,7 +45,7 @@ export const refLook = (
     }
     const entry =
       step.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
-    const output = entry?.outputs.find(
+    const output = (step.kind === "action" ? stepOutputs(step) : []).find(
       (candidate) => candidate.name === source.outputName,
     );
     return {

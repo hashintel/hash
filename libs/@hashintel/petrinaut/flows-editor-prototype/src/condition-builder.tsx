@@ -27,7 +27,7 @@ import { HashIcon } from "@hashintel/ds-icons";
 
 import {
   type CatalogEntry,
-  getCatalogEntry,
+  stepOutputs,
   humanize,
   type InputView,
 } from "./catalog";
@@ -258,7 +258,7 @@ export const tokenPath = (
     // The step's own name; its output's name only when it is not the step's main output.
     const outputs =
       step.kind === "action"
-        ? (getCatalogEntry(step.actionDefinitionId)?.outputs ?? [])
+        ? stepOutputs(step)
         : [];
     const output = outputs.find(
       (candidate) => candidate.name === source.outputName,

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getCatalogEntry } from "./catalog";
+import { stepOutputs } from "./catalog";
 import {
   type DraftStep,
   type EditorDocument,
@@ -35,7 +35,7 @@ type FlowOutput = {
 
 const outputsOf = (step: DraftStep) =>
   step.kind === "action"
-    ? (getCatalogEntry(step.actionDefinitionId)?.outputs ?? [])
+    ? stepOutputs(step)
     : [];
 
 const flowOutputsOf = (document: EditorDocument): FlowOutput[] =>
