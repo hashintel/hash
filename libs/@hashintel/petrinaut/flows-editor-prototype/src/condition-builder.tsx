@@ -65,6 +65,12 @@ import {
 import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
 import { conditionLayout, conditionRowsOld, joinerTake } from "./switch-flags";
+import { refLook, RefTileOutput } from "./ref-path";
+
+/** `?conditionref=old`: another step's value in a condition reads "Step › Output" with no tile (before 13 Nov). */
+const conditionRefOld =
+  new URLSearchParams(globalThis.location.search).get("conditionref") ===
+  "old";
 import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -699,6 +705,11 @@ const ConditionRowView = ({
       ]
     : null;
 
+  const tokenLook =
+    row.valueSource && row.valueSource.kind !== "constant"
+      ? refLook(document, row.valueSource, step.stepId)
+      : null;
+
   const valueConfig = (): FilterOperator<Record<string, unknown>>["input"] => {
     if (row.valueSource && tokenParts) {
       return {
@@ -726,8 +737,13 @@ const ConditionRowView = ({
               onPointerEnter={sourceHover.onPointerEnter}
               onPointerLeave={sourceHover.onPointerLeave}
             >
-              {/* No icon: the step's name says where the value is from (ledger 23 Oct; Figma 643:22529). */}
-              <TokenLabel parts={tokenParts} />
+              {tokenLook && !conditionRefOld ? (
+                // The step's tile, then the output name (condition-value-ref 3p); the hover gives the whole path.
+                <RefTileOutput look={tokenLook} />
+              ) : (
+                // No icon: the step's name says where the value is from (ledger 23 Oct; Figma 643:22529).
+                <TokenLabel parts={tokenParts} />
+              )}
             </span>
           </Tooltip>
         ),

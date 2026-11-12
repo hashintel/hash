@@ -127,6 +127,25 @@ export const RefPath = ({
   </span>
 );
 
+const tileOutputStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  minWidth: "[0]",
+  whiteSpace: "nowrap",
+  "& [data-ref-output]": { overflow: "hidden", textOverflow: "ellipsis", minWidth: "[0]" },
+});
+
+/** The tile and the output name only, for a narrow slot such as a condition's value (condition-value-ref 3p). */
+export const RefTileOutput = ({ look }: { look: RefLook }) => (
+  <span className={tileOutputStyle} data-ref-tile-output>
+    <span className={tileStyle} style={treeTileColor(look.icon)} aria-hidden>
+      <Icon name={look.icon} size="sm" />
+    </span>
+    <span data-ref-output>{look.output}</span>
+  </span>
+);
+
 const chipTextStyle = css({
   display: "inline-flex",
   alignItems: "center",
