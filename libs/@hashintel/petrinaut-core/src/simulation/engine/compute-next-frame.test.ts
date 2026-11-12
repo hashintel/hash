@@ -33,7 +33,6 @@ describe("computeNextFrame", () => {
       name: id,
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
       ...(capacity === undefined ? {} : { capacity }),
@@ -106,7 +105,8 @@ describe("computeNextFrame", () => {
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1, y: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1, y: 1 }));",
         },
       ],
       parameters: [],
@@ -116,7 +116,7 @@ describe("computeNextFrame", () => {
           name: "Place1",
           colorId: "type1",
           dynamicsEnabled: true,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },
@@ -175,6 +175,139 @@ describe("computeNextFrame", () => {
     ]);
   });
 
+  describe("composed dynamics", () => {
+    // Two bodies on a line. `attraction` couples every pair and pulls each
+    // body toward the other by `k` times their separation; `drift` moves
+    // every body by one unit.
+    const bodies = (
+      place: Pick<SDCPN["places"][number], "dynamics">,
+    ): SDCPN => ({
+      types: [
+        {
+          id: "body",
+          name: "Body",
+          iconSlug: "circle",
+          displayColor: "#000000",
+          elements: [{ elementId: "x", name: "x", type: "real" }],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "attraction",
+          name: "Attraction",
+          colorId: "body",
+          arity: 2,
+          code: `const [a, b] = tokens;
+const pull = parameters.k * (b.x - a.x);
+return [{ x: pull }, { x: -pull }];`,
+        },
+        {
+          id: "drift",
+          name: "Drift",
+          colorId: "body",
+          arity: 1,
+          code: `return { x: 1 };`,
+        },
+      ],
+      parameters: [
+        {
+          id: "k",
+          name: "k",
+          variableName: "k",
+          type: "real",
+          defaultValue: "0.1",
+        },
+      ],
+      places: [
+        {
+          id: "space",
+          name: "Space",
+          colorId: "body",
+          dynamicsEnabled: true,
+          x: 0,
+          y: 0,
+          ...place,
+        },
+      ],
+      transitions: [],
+    });
+
+    const positionsAfterOneStep = (sdcpn: SDCPN): number[] => {
+      const simulation = buildSimulation({
+        sdcpn,
+        initialMarking: { space: [{ x: 0 }, { x: 10 }] },
+        parameterValues: {},
+        seed: 1,
+        dt: 1,
+        maxTime: null,
+      });
+      const result = computeNextFrame(simulation);
+      return decodePlaceTokens(
+        result.simulation.frameLayout,
+        result.simulation.frames[1]!,
+        "space",
+      ).map((token) => Number(token.x));
+    };
+
+    it("moves two tokens toward each other under a symmetric arity-2 attraction", () => {
+      expect(
+        positionsAfterOneStep(
+          bodies({
+            dynamics: [{ differentialEquationId: "attraction" }],
+          }),
+        ),
+      ).toEqual([1, 9]);
+    });
+
+    it("sums an arity-1 equation with an arity-2 one", () => {
+      expect(
+        positionsAfterOneStep(
+          bodies({
+            dynamics: [
+              { differentialEquationId: "drift" },
+              { differentialEquationId: "attraction" },
+            ],
+          }),
+        ),
+      ).toEqual([2, 10]);
+    });
+
+    it("sums every term, an equation listed twice counting twice", () => {
+      expect(
+        positionsAfterOneStep(
+          bodies({
+            dynamics: [
+              { differentialEquationId: "drift" },
+              { differentialEquationId: "attraction" },
+              { differentialEquationId: "drift" },
+            ],
+          }),
+        ),
+      ).toEqual([3, 11]);
+    });
+
+    it("leaves a lone token still under a pairwise equation", () => {
+      const simulation = buildSimulation({
+        sdcpn: bodies({
+          dynamics: [{ differentialEquationId: "attraction" }],
+        }),
+        initialMarking: { space: [{ x: 4 }] },
+        parameterValues: {},
+        seed: 1,
+        dt: 1,
+        maxTime: null,
+      });
+      const result = computeNextFrame(simulation);
+      expect(
+        decodePlaceTokens(
+          result.simulation.frameLayout,
+          result.simulation.frames[1]!,
+          "space",
+        ),
+      ).toEqual([{ x: 4 }]);
+    });
+  });
+
   it("preserves uuid lanes through dynamics, firing, compaction, and frame reads", () => {
     // The NaN-payload uuid would be corrupted by any accidental routing of
     // its lanes through a Float64Array (NaN canonicalization).
@@ -199,7 +332,8 @@ describe("computeNextFrame", () => {
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1 }));",
         },
       ],
       parameters: [],
@@ -209,7 +343,7 @@ describe("computeNextFrame", () => {
           name: "Source",
           colorId: "type1",
           dynamicsEnabled: true,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },
@@ -218,7 +352,6 @@ describe("computeNextFrame", () => {
           name: "Target",
           colorId: "type1",
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -312,7 +445,6 @@ describe("computeNextFrame", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -363,7 +495,6 @@ describe("computeNextFrame", () => {
           name: "Place1",
           colorId: null,
           dynamicsEnabled: true,
-          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -407,7 +538,8 @@ describe("computeNextFrame", () => {
           id: "diffeq1",
           name: "Differential Equation 1",
           colorId: "type1",
-          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
+          arity: 1,
+          code: "export default Dynamics((token, parameters) => ({ x: 1 }));",
         },
       ],
       parameters: [],
@@ -417,7 +549,7 @@ describe("computeNextFrame", () => {
           name: "Place1",
           colorId: "type1",
           dynamicsEnabled: false,
-          differentialEquationId: "diffeq1",
+          dynamics: [{ differentialEquationId: "diffeq1" }],
           x: 0,
           y: 0,
         },

@@ -28,7 +28,6 @@ const place = (
   name: id,
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 0,
   y: 0,
   ...overrides,
@@ -92,7 +91,7 @@ describe("buildConnectionIndex", () => {
         place("Stock", {
           colorId: "colour",
           dynamicsEnabled: true,
-          differentialEquationId: "decay",
+          dynamics: [{ differentialEquationId: "decay" }],
         }),
       ],
       types: [
@@ -105,7 +104,7 @@ describe("buildConnectionIndex", () => {
         },
       ],
       differentialEquations: [
-        { id: "decay", name: "Decay", colorId: "colour", code: "" },
+        { arity: 1, id: "decay", name: "Decay", colorId: "colour", code: "" },
       ],
     };
 
@@ -127,6 +126,7 @@ describe("buildConnectionIndex", () => {
       ],
       differentialEquations: [
         {
+          arity: 1,
           id: "growth",
           name: "Growth",
           colorId: null,
@@ -283,7 +283,7 @@ describe("buildNetGraph", () => {
       ],
       parameters: [parameter("rate", "growth_rate")],
       differentialEquations: [
-        { id: "decay", name: "Decay", colorId: null, code: "" },
+        { arity: 1, id: "decay", name: "Decay", colorId: null, code: "" },
       ],
     };
 
@@ -361,7 +361,7 @@ describe("buildDependentCounts", () => {
         },
       ],
       differentialEquations: [
-        { id: "decay", name: "Decay", colorId: "colour", code: "" },
+        { arity: 1, id: "decay", name: "Decay", colorId: "colour", code: "" },
       ],
     };
 

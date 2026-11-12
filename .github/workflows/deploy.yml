@@ -15,9 +15,7 @@ env:
 
   AWS_REGION: eu-central-1
   AWS_ECR_ACCOUNT_ID: "469596578827"
-  AWS_DEPLOY_ACCOUNT_ID: "054238437032"
   OIDC_HASH_CD_PUSH_ROLE: github-oidc-hash-cd-push
-  OIDC_HASH_CD_DEPLOY_ROLE: github-oidc-hash-cd-deploy
 
 # PR and merge_group runs cancel their previous attempt (cancel-in-progress):
 # a new commit or queue reshuffle obsoletes the in-flight build-only validation.
@@ -27,9 +25,10 @@ env:
 # matrix is computed per-commit (turbo affected vs HEAD^), so if a publishing
 # run were dropped, the services that *only* that commit changed would never
 # publish. The builds themselves run unserialized — their pushes are immutable
-# (GHCR by digest, ECR :sha/:run). Only the mutable tags and rollouts serialize
-# per service via `queue: max`: :staging in `stage`, :latest in `manifest`, ECS
-# in `deploy`; the tag-if-newer guard keeps :staging/:latest moving only forward.
+# (GHCR by digest, ECR :sha/:run). Only the mutable :latest tag serializes per
+# service via `queue: max` in `manifest`, where the tag-if-newer guard keeps it
+# moving only forward. The workflow that `promote` dispatches serializes the
+# staging rollouts itself.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -48,8 +47,6 @@ jobs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
       backend-images: ${{ steps.packages.outputs.backend-images }}
       backend-manifests: ${{ steps.packages.outputs.backend-manifests }}
-      backend-deploys: ${{ steps.packages.outputs.backend-deploys }}
-      backend-staging: ${{ steps.packages.outputs.backend-staging }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6.0.2
@@ -62,15 +59,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           rust: false
 
-      # Service catalog: the single source of truth for build/manifest/deploy.
+      # Service catalog: the single source of truth for build/manifest.
       # App images are detected via turbo's affected-package query (`package`,
       # dependency-aware — a shared-lib change rebuilds its dependents). Kratos
       # and Hydra aren't JS packages so turbo can't see them; their image
       # context is their own directory, so a git diff of `paths` is a complete
-      # change signal. `ecs` lists the ECS task definitions to redeploy when the
-      # image publishes; one app may drive several (e.g. `graph` → graph +
-      # graph-admin + type-fetcher). `arches` lists what to build; it defaults
-      # to both for GHCR services (multi-arch manifest) and to arm64 otherwise.
+      # change signal. `arches` lists what to build; it defaults to both for
+      # GHCR services (multi-arch manifest) and to arm64 otherwise.
       # ECR holds one architecture per repository (Inspector does not scan
       # manifest lists): the service's only arch when it builds one, else
       # arm64, unless `ecr_arch` says otherwise.
@@ -95,21 +90,14 @@ jobs:
               service:    "graph",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-graph/docker/Dockerfile",
-              context:    ".",
-              ecs: [
-                { service: "graph",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph" },
-                { service: "graph-admin",  cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph-admin" },
-                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" },
-                { service: "atlas",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-atlas" }
-              ]
+              context:    "."
             },
             {
               package:    "@apps/hash-api",
               service:    "api",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-api/docker/Dockerfile",
-              context:    ".",
-              ecs: [{ service: "api", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-api" }]
+              context:    "."
             },
             {
               package:    "@apps/hash-frontend",
@@ -118,32 +106,28 @@ jobs:
               dockerfile: "apps/hash-frontend/docker/Dockerfile",
               context:    ".",
               # TODO(FE-752): drop build_args once frontend is runtime-configurable.
-              build_args: "API_ORIGIN=http://localhost:5001\nFRONTEND_URL=http://localhost:3000\n",
-              ecs:        []
+              build_args: "API_ORIGIN=http://localhost:5001\nFRONTEND_URL=http://localhost:3000\n"
             },
             {
               package:    "@apps/brunch-agent",
               service:    "brunch-agent",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/brunch-agent/docker/Dockerfile",
-              context:    ".",
-              ecs: [{ service: "brunch-agent", cluster: "h-stage-euc1-brunch", service_name: "h-stage-euc1-brunch-agent" }]
+              context:    "."
             },
             {
               package:    "@apps/hash-ai-worker-ts",
               service:    "ai-worker-ts",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-ai-worker-ts/docker/Dockerfile",
-              context:    ".",
-              ecs: [{ service: "ai-ts-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-ai-ts" }]
+              context:    "."
             },
             {
               package:    "@apps/hash-integration-worker",
               service:    "integration-worker",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-integration-worker/docker/Dockerfile",
-              context:    ".",
-              ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
+              context:    "."
             },
             {
               package:    "hash-graph-atlas",
@@ -153,26 +137,21 @@ jobs:
               # the arm64 default; with one arch listed it is also the ECR arch.
               arches:     ["amd64"],
               dockerfile: "libs/@local/graph/atlas/docker/Dockerfile",
-              context:    ".",
-              # A Batch job pulls the image by tag when it is submitted; there
-              # is no ECS service to redeploy.
-              ecs:        []
+              context:    "."
             },
             {
               service:    "kratos",
               push:       ["ecr"],
               dockerfile: "infra/compose/kratos/Dockerfile",
               context:    "infra/compose/kratos",
-              paths:      ["infra/compose/kratos"],
-              ecs: [{ service: "kratos", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-kratos" }]
+              paths:      ["infra/compose/kratos"]
             },
             {
               service:    "hydra",
               push:       ["ecr"],
               dockerfile: "infra/compose/hydra/Dockerfile",
               context:    "infra/compose/hydra",
-              paths:      ["infra/compose/hydra"],
-              ecs: [{ service: "hydra", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-hydra" }]
+              paths:      ["infra/compose/hydra"]
             }
           ]')
 
@@ -236,7 +215,7 @@ jobs:
               | $e.arches[]
               | $e + {arch: .}
               | select($skip_amd64 != true or .arch != "amd64" or ($e.arches | length) == 1)
-              | del(.package, .ecs, .paths, .arches)
+              | del(.package, .paths, .arches)
             ] | { include: . }' <<<"$RESOLVED_CATALOG")
 
           # Manifest matrix: services that publish multi-arch to GHCR.
@@ -244,21 +223,8 @@ jobs:
             map(select(.push | index("ghcr"))) | { service: [.[].service] }
           ' <<<"$AFFECTED_CATALOG")
 
-          # Deploy matrix: flatten the per-service `ecs` arrays.
-          DEPLOY_MATRIX=$(jq -c '
-            [.[] | .ecs[]] | { include: . }
-          ' <<<"$AFFECTED_CATALOG")
-
-          # Staging matrix: services whose image is pushed to ECR and tagged
-          # :staging (one guard run per such service).
-          STAGING_MATRIX=$(jq -c '
-            map(select(.push | index("ecr"))) | { service: [.[].service] }
-          ' <<<"$AFFECTED_CATALOG")
-
           echo "backend-images=$BUILD_MATRIX" | tee -a "$GITHUB_OUTPUT"
           echo "backend-manifests=$MANIFEST_MATRIX" | tee -a "$GITHUB_OUTPUT"
-          echo "backend-deploys=$DEPLOY_MATRIX" | tee -a "$GITHUB_OUTPUT"
-          echo "backend-staging=$STAGING_MATRIX" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
     if: >-
@@ -360,8 +326,7 @@ jobs:
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
     # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
     # :sha/:run) are idempotent, so parallel runs don't race — they run free.
-    # Only the mutable tags need serialization: :staging in the `stage` job,
-    # :latest in the `manifest` job.
+    # Only the mutable :latest tag needs serialization, in the `manifest` job.
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
@@ -419,8 +384,8 @@ jobs:
             echo "push=$push"
 
             # ECR is single-arch (the entry's ecr_arch), tag-based. Only
-            # immutable tags here (:sha / :run); the mutable :staging tag is
-            # set by the `stage` job.
+            # immutable tags here (:sha / :run); the staging promotion finds
+            # this run's images by them and moves the mutable :staging tag.
             echo "ecr_tags<<EOF"
             if $push_ecr; then
               echo "$ecr_host/$ECR_REPO/$SERVICE:sha-$SHA"
@@ -478,54 +443,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Advance the mutable ECR :staging tag, serialized per service so an
-  # out-of-order run can't move it backwards. The build job runs unserialized
-  # (its pushes are immutable); only this small, fast tag step needs ordering.
-  stage:
-    name: Tag :staging (${{ matrix.service }})
-    runs-on: ubuntu-latest
-    needs: [setup, build]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-staging).service[0] != null
-    concurrency:
-      group: ${{ github.workflow }}-staging-${{ matrix.service }}
-      queue: max
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.backend-staging) }}
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v6.0.2
-        with:
-          # tag-if-newer needs full history for `git merge-base --is-ancestor`.
-          fetch-depth: 0
-
-      - name: Configure AWS credentials (ECR push)
-        uses: aws-actions/configure-aws-credentials@v4.3.1
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Log in to ECR
-        uses: $/.github/actions/docker-ecr-login
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.11.1
-
-      # ECR images are single-arch. Advance :staging onto this commit's
-      # immutable sha tag only if it is newer than the one currently tagged.
-      - name: Advance :staging if newer
-        uses: $/.github/actions/tag-if-newer
-        with:
-          image: ${{ env.AWS_ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.repository }}/${{ matrix.service }}
-          mutable-tag: staging
-          source-tag: sha-${{ github.sha }}
-          candidate-sha: ${{ github.sha }}
-
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [setup, build]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
     # Serialize the `:latest` multi-arch manifest per service so a newer push's
@@ -593,50 +513,43 @@ jobs:
           source-tag: sha-${{ github.sha }}
           candidate-sha: ${{ github.sha }}
 
-  deploy:
-    name: Redeploy ${{ matrix.service }}
-    runs-on: ubuntu-latest
-    needs: [setup, build, stage]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-deploys).include[0] != null
-    # Serialize ECS redeploys per service (one rollout at a time per service);
-    # different services deploy in parallel. `queue: max` => no deploy dropped.
-    concurrency:
-      group: ${{ github.workflow }}-deploy-${{ matrix.service_name }}
-      queue: max
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.backend-deploys) }}
+  # Staging is rolled out by the promote workflow of the infrastructure
+  # repository: it takes `main` as of this commit from the :run tags pushed
+  # above, moves :staging and redeploys the services. This job only starts that
+  # run, which reports its own outcome.
+  promote:
+    name: Promote to staging
+    runs-on: ubuntu-24.04
+    needs: [setup, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    # The Vault role binds this environment, which accepts only the main branch.
+    environment: main
     permissions:
       id-token: write
-      contents: read
     steps:
-      - uses: actions/checkout@v6.0.2
-
-      - name: Configure AWS credentials (ECS deploy)
-        uses: aws-actions/configure-aws-credentials@v4.3.1
+      - name: Dispatch the staging promotion
+        uses: hashintel/actions/.github/actions/dispatch-promotion@main
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_DEPLOY_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Redeploy ${{ matrix.service }} staging service
-        uses: $/.github/actions/redeploy-ecs-service
-        with:
-          ECS_CLUSTER_NAME: ${{ matrix.cluster }}
-          ECS_SERVICE_NAME: ${{ matrix.service_name }}
+          target-environment: staging
+          vault-address: ${{ vars.VAULT_PROD_ADDR }}
+          vault-role: ci-hash-deploy
+          app-id: "5695957"
+          transit-key: github-app-hash-deploy
+          cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
+          cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
 
   # Single gate suitable as a Required status check in branch protection. The
   # underlying matrix jobs change as services are added/removed; this job's
   # name is stable. It is also the one place failures are announced to Slack:
   # the Check steps cover every pipeline job, so a step-level `failure()`
-  # fires whenever any of setup/sourcemaps/build/manifest/deploy fails —
-  # including the case where `build` fails and `deploy` is skipped (which a
-  # `needs: deploy` notifier would miss, since a skipped job is not a failure).
+  # fires whenever any of setup/sourcemaps/build/manifest/promote fails —
+  # including the case where `build` fails and `promote` is skipped (which a
+  # `needs: promote` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
-    needs:
-      [setup, sccache-credentials, sourcemaps, build, stage, manifest, deploy]
+    needs: [setup, sccache-credentials, sourcemaps, build, manifest, promote]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check setup
         run: |
@@ -650,15 +563,12 @@ jobs:
       - name: Check build
         run: |
           [[ ${{ needs.build.result }} =~ success|skipped ]]
-      - name: Check stage
-        run: |
-          [[ ${{ needs.stage.result }} =~ success|skipped ]]
       - name: Check manifest
         run: |
           [[ ${{ needs.manifest.result }} =~ success|skipped ]]
-      - name: Check deploy
+      - name: Check promote
         run: |
-          [[ ${{ needs.deploy.result }} =~ success|skipped ]]
+          [[ ${{ needs.promote.result }} =~ success|skipped ]]
 
       - name: Notify Slack on main failure
         uses: rtCamp/action-slack-notify@v2.4.0

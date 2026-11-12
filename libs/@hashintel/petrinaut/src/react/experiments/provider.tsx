@@ -6,18 +6,12 @@
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
+import { type MonteCarloExperiment } from "@hashintel/petrinaut-core";
 import {
-  type MonteCarloExperiment,
-  getDefaultMonteCarloShardCount,
-  type WorkerFactory,
-} from "@hashintel/petrinaut-core";
-import {
-  createReusableWorkerFactory,
   type ExperimentBackendRegistration,
   selectExperimentBackend,
   type ExperimentBackend,
 } from "@hashintel/petrinaut-core/experiments";
-import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
@@ -28,9 +22,9 @@ import {
   usePetrinautNavigation,
 } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
+import { findSimulator, SimulatorsContext } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
-  type ExperimentComputeBackend,
   type CreateExperimentOptions,
   type ExperimentRecord,
   ExperimentsActionsContext,
@@ -45,8 +39,9 @@ import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
+  computeBackendOf,
   createExperimentRequestBuilder,
-  experimentBackendRegistrations,
+  experimentSimulatorBackends,
   newExperimentRecord,
 } from "./provider/create-experiment";
 import {
@@ -66,19 +61,6 @@ import type {
 
 export { buildSweepAxes } from "./provider/create-experiment";
 
-type ExperimentsProviderProps = React.PropsWithChildren<{
-  workerFactory?: WorkerFactory;
-  /**
-   * How many workers each experiment splits its runs across.
-   *
-   * Defaults to one per logical core minus one. Sharding never changes an
-   * experiment's results, only how quickly it finishes, so this exists for hosts
-   * that need to cap CPU use (or pin behaviour in tests) rather than to affect
-   * output.
-   */
-  experimentShardCount?: number;
-}>;
-
 type ExperimentHandleRegistration = {
   handle: MonteCarloExperiment;
   off: () => void;
@@ -96,49 +78,22 @@ const fail: (message: string) => never = (message) => {
   throw new Error(message);
 };
 
-export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
+/**
+ * Creates experiments on the simulators the host registers, and lists them
+ * with what they stream. The workers, their pool and the GPU are the
+ * simulators' own; this provider compiles the request and follows the handle.
+ */
+export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
   children,
-  workerFactory,
-  experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const languageClient = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
+  const simulatorsRef = useLatest(use(SimulatorsContext));
   const navigation = usePetrinautNavigation();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const languageClientRef = useLatest(languageClient);
-  const createBaseWorker = useStableCallback(() =>
-    (workerFactory ?? createMonteCarloWorker)(),
-  );
-  const shardCountRef = useLatest(experimentShardCount);
-  // One worker pool per provider: batches lease workers instead of spawning
-  // and killing a pool's worth per ladder rung and per surface cell. The
-  // base factory is read at call time, so an injected factory stays live;
-  // changing it drains the old pool below.
-  const [reusableWorkerFactory] = useState(() =>
-    createReusableWorkerFactory(createBaseWorker, {
-      // A sweep commit releases the whole working set at once: TWO sharded
-      // foreground batches (the ladder pipelines its rungs) plus the surface
-      // lanes. The pool must hold that set or every commit terminates the
-      // overflow and respawns it a moment later.
-      maxIdle:
-        2 * (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
-    }),
-  );
-  // Factory change: flush pooled workers built from the old base factory
-  // (leases in flight finish on it and re-pool; the next lease is fresh).
-  useEffect(
-    () => () => reusableWorkerFactory.drain(),
-    [reusableWorkerFactory, workerFactory],
-  );
-  // Unmount: shut the pool for good. Handles released by later cleanups (and
-  // in-flight leases finishing afterwards) must terminate their workers
-  // rather than pool them where nothing will ever lease or drain again.
-  useEffect(
-    () => () => reusableWorkerFactory.dispose(),
-    [reusableWorkerFactory],
-  );
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -227,6 +182,42 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setExperiments((prev) =>
       patchExperimentRecords(prev, experimentId, patch, finishedAt),
     );
+  };
+
+  /**
+   * What the record says about the backend that ran, and the notice when it
+   * is not the one asked for.
+   */
+  const recordChosenBackend = (
+    experiment: ExperimentRecord,
+    selection: {
+      backendId: string;
+      declined: readonly { reason: string }[];
+    },
+  ) => {
+    const [firstDeclined] = selection.declined;
+    const simulator = findSimulator(
+      simulatorsRef.current.registrations,
+      selection.backendId,
+    );
+    if (firstDeclined) {
+      addNotification({
+        message: `${experiment.name} is running on ${
+          simulator?.label ?? selection.backendId
+        }: ${firstDeclined.reason}`,
+        tone: "neutral",
+      });
+    }
+    patchExperiment(experiment.id, {
+      computeBackend: computeBackendOf(selection.backendId),
+      computeBackendFallbackReason: firstDeclined?.reason ?? null,
+      simulatorLabel: simulator?.label ?? null,
+      // Stepping starts next. Setup — compiling user code, spinning up
+      // workers, acquiring the GPU device — is deliberately outside the
+      // measurement, so two backends are compared on the work they differ
+      // in.
+      startedAt: Date.now(),
+    });
   };
 
   const rememberBackend = (
@@ -374,18 +365,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         netParameterVariableNames,
         onBackendChosen: (selection) => {
           rememberBackend(experimentId, selection.backend);
-          const [firstDeclined] = selection.declined;
-          if (firstDeclined) {
-            addNotification({
-              message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
-              tone: "neutral",
-            });
-          }
-          patchExperiment(experimentId, {
-            computeBackend: selection.backendId as ExperimentComputeBackend,
-            computeBackendFallbackReason: firstDeclined?.reason ?? null,
-            startedAt: Date.now(),
-          });
+          recordChosenBackend(experiment, selection);
         },
         onNote,
       }),
@@ -489,10 +469,17 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     });
     options?.ownership?.signal.throwIfAborted();
 
+    // Resolved before the record exists, so a simulator nobody registered
+    // rejects the creation instead of listing an experiment that cannot run.
+    const { registrations, samplePeriod } = experimentSimulatorBackends(
+      simulatorsRef.current,
+      input,
+    );
+
     const experimentId = generateUuid();
     const experiment = newExperimentRecord({
       id: experimentId,
-      input,
+      input: samplePeriod === input.dt ? input : { ...input, dt: samplePeriod },
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
@@ -527,15 +514,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         );
         const buildRequest = createExperimentRequestBuilder({
           input,
+          dt: samplePeriod,
           sdcpn: compiledExperimentSdcpn,
           extensions: experimentExtensions,
           compiled,
           requestHirArtifacts: languageClientRef.current.requestHirArtifacts,
-        });
-        const registrations = experimentBackendRegistrations({
-          computeBackend: input.computeBackend,
-          createWorker: reusableWorkerFactory,
-          shardCount: shardCountRef.current,
         });
         const onNote = (note: { message: string }) => {
           addNotification({
@@ -587,15 +570,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         const { handle } = selection;
-        // Only the backends the user chose *against* are worth reporting, and
-        // only when something was declined — otherwise this is the happy path.
-        const [firstDeclined] = selection.declined;
-        if (firstDeclined) {
-          addNotification({
-            message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
-            tone: "neutral",
-          });
-        }
         for (const note of selection.notes) {
           addNotification({
             message: `${experiment.name}: ${note.message}`,
@@ -605,15 +579,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         pendingRegistrationsRef.current.delete(experimentId);
         rememberBackend(experimentId, selection.backend);
-        patchExperiment(experimentId, {
-          computeBackend: selection.backendId as ExperimentComputeBackend,
-          computeBackendFallbackReason: firstDeclined?.reason ?? null,
-          // Stepping starts on the next line. Setup — compiling user code,
-          // spinning up workers, acquiring the GPU device — is deliberately
-          // outside the measurement, so the two backends are compared on the
-          // work they actually differ in.
-          startedAt: Date.now(),
-        });
+        // Only the backends the user chose *against* are worth reporting, and
+        // only when something was declined — otherwise this is the happy path.
+        recordChosenBackend(experiment, selection);
 
         registerExperimentHandle(experiment, handle);
         handle.start();
@@ -636,6 +604,46 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     void initializeExperiment();
 
+    return experiment;
+  };
+
+  const adoptExperiment: ExperimentsContextValue["adoptExperiment"] = (
+    input,
+  ) => {
+    const experimentId = generateUuid();
+    const experiment: ExperimentRecord = {
+      ...newExperimentRecord({
+        id: experimentId,
+        input: {
+          name: input.name,
+          scenarioId: input.scenarioId,
+          scenarioParameterValues: {},
+          runCount: input.runCount,
+          seed: input.seed,
+          dt: input.dt,
+          maxTime: input.maxTime,
+          metricSpecs: input.metricSpecs,
+        },
+        scenarioName: input.scenarioName,
+        axes: [],
+        fixedScenarioValues: {},
+        scenario: null,
+      }),
+      definition: input.definition,
+      computeBackend: input.computeBackend,
+      simulatorLabel: input.simulatorLabel ?? null,
+      // When it began stepping is its previous owner's knowledge; from here
+      // the record counts from the moment it was listed.
+      startedAt: Date.now(),
+    };
+    setExperiments((prev) => [experiment, ...prev]);
+    registerExperimentHandle(experiment, input.handle);
+    // A finished experiment reports nothing more, so nothing would release
+    // its handle: its frames are in the record already.
+    const status = input.handle.status.get();
+    if (status === "Complete" || status === "Error" || status === "Cancelled") {
+      disposeExperimentHandle(experimentId);
+    }
     return experiment;
   };
 
@@ -686,6 +694,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setSelectedExperimentId,
   );
   const stableCreateExperiment = useStableCallback(createExperiment);
+  const stableAdoptExperiment = useStableCallback(adoptExperiment);
   const stableCancelExperiment = useStableCallback(cancelExperiment);
   const stableRemoveExperiment = useStableCallback(removeExperiment);
   const stableSetSweepSelection = useStableCallback(setSweepSelection);
@@ -695,6 +704,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
     setSelectedExperimentId: stableSetSelectedExperimentId,
     createExperiment: stableCreateExperiment,
+    adoptExperiment: stableAdoptExperiment,
     cancelExperiment: stableCancelExperiment,
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: stableSetSweepSelection,

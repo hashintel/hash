@@ -1,7 +1,5 @@
 import * as v from "valibot";
 
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
-
 import type {
   AdHocOptimizeSettings,
   AdHocPlaceState,
@@ -25,10 +23,10 @@ export const netReaderToolNames = {
 
 export type NetReaderLevel = keyof typeof netReaderToolNames;
 
-export const netReaderInputSchema = v.strictObject({});
+export const vNetReaderInput = v.strictObject({});
 
 export const parseNetReaderInput = (value: unknown) =>
-  v.parse(netReaderInputSchema, value);
+  v.parse(vNetReaderInput, value);
 
 export const netReaderDescriptions: Record<NetReaderLevel, string> = {
   outline:
@@ -36,20 +34,6 @@ export const netReaderDescriptions: Record<NetReaderLevel, string> = {
   structure:
     "Read the current net's structure with every core property, including lambda, kernel, equation, scenario and metric code. Canvas positions, visualizer code, icons, colours and host metadata are left out. Returns { title, definition, extensions }.",
 };
-
-export const netReaderLevelOf = (
-  toolName: string,
-): NetReaderLevel | undefined =>
-  toolName === netReaderToolNames.outline
-    ? "outline"
-    : toolName === netReaderToolNames.structure
-      ? "structure"
-      : undefined;
-
-/** Tools whose settled result shows the model the net's current structure. */
-export const isNetObservationTool = (toolName: string): boolean =>
-  toolName === getLatestNetDefinitionToolName ||
-  netReaderLevelOf(toolName) !== undefined;
 
 type Projection = (value: unknown) => unknown;
 

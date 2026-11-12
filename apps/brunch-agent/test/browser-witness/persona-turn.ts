@@ -38,7 +38,6 @@ const net: SDCPN = {
     name,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: index * 200,
     y: 0,
   })),

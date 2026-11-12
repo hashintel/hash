@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  defineSimulator,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -16,6 +17,7 @@ import {
   buildSweepAxes,
   compileExperimentScenario,
   createExperimentRequestBuilder,
+  experimentSimulatorBackends,
   newExperimentRecord,
 } from "./create-experiment";
 
@@ -26,6 +28,7 @@ import type {
   Constraint,
   Scenario,
   SDCPN,
+  SimulatorRegistration,
 } from "@hashintel/petrinaut-core";
 
 const span = { start: 0, length: 0 };
@@ -127,7 +130,6 @@ const queueSdcpn: SDCPN = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -332,6 +334,7 @@ describe("createExperimentRequestBuilder", () => {
         artifact: {
           source: expect.any(String) as string,
           placeNames: ["Infected"],
+          shape: "discrete",
         },
         sampleRuns: "notErrored",
         runOutput: { type: "distribution" },
@@ -379,5 +382,82 @@ describe("createExperimentRequestBuilder", () => {
         },
       ],
     });
+  });
+});
+
+describe("experimentSimulatorBackends", () => {
+  it("keeps the parameters the default Stochastic selection holds, and steps at the experiment's dt", async () => {
+    const assessed = vi.fn();
+    const registration = defineSimulator(
+      {
+        id: "test.stepped",
+        label: "Stepped",
+        description: "For tests.",
+        parameters: {
+          dt: {
+            type: "number",
+            label: "Time step",
+            default: 0.1,
+            min: 0,
+            exclusiveMin: true,
+          },
+          method: {
+            type: "enum",
+            label: "Method",
+            options: [
+              { value: "euler", label: "Euler" },
+              { value: "rk4", label: "Runge-Kutta 4" },
+            ],
+            default: "rk4",
+          },
+        },
+        produces: { run: false, experiment: true },
+        samplePeriodParameter: "dt",
+      },
+      {
+        isAvailable: () => true,
+        load: () =>
+          Promise.resolve({
+            needsHirTrees: false,
+            assess: (request) => {
+              assessed(request.simulatorParameters);
+              return Promise.resolve({
+                eligible: false,
+                blockers: [
+                  { code: "test", message: "Refused", origin: "model" },
+                ],
+              });
+            },
+          }),
+      },
+    ) as SimulatorRegistration;
+
+    const { registrations, samplePeriod } = experimentSimulatorBackends(
+      {
+        registrations: [registration],
+        defaultSelections: {
+          quick: { simulatorId: registration.id },
+          stochastic: {
+            simulatorId: registration.id,
+            parameters: { dt: 0.5, method: "euler" },
+          },
+        },
+      },
+      { dt: 0.2 },
+    );
+    expect(samplePeriod).toBe(0.2);
+
+    const backend = await registrations[0]!.load();
+    await backend.assess({
+      sdcpn: queueSdcpn,
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: samplePeriod,
+      maxTime: 1,
+      runCount: 1,
+      metricSpecs: [],
+    });
+    expect(assessed).toHaveBeenCalledWith({ dt: 0.2, method: "euler" });
   });
 });

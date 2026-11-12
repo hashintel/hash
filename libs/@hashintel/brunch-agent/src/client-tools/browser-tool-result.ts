@@ -1,11 +1,27 @@
+import * as v from "valibot";
+import { z } from "zod";
+
+const zJson = z.json();
+// Use the existing JSON parser without cloning or normalizing the result.
+const vJson = v.custom<z.infer<typeof zJson>>(
+  (value) => zJson.safeParse(value).success,
+  "Expected a JSON value",
+);
+
+/** The result boundary, before HTTP serialization and after receipt. */
+export const vBrowserToolResult = v.object({
+  output: vJson,
+  /** Host-owned verified sidecar; canonical output remains unchanged. */
+  metadata: v.optional(vJson),
+});
+
 /** A browser-executed result, exchanged in band with the server. */
-export interface ClientToolResult {
+export type ClientToolResult = Readonly<
+  v.InferOutput<typeof vBrowserToolResult>
+> & {
   readonly toolCallId: string;
   readonly toolName: string;
-  readonly output: unknown;
-  /** Host-owned verified sidecar; canonical output remains unchanged. */
-  readonly metadata?: unknown;
-}
+};
 
 /** How the server records a settled browser result as the tool's output in history. */
 export type BrowserToolEnvelope = Pick<
@@ -16,18 +32,22 @@ export type BrowserToolEnvelope = Pick<
 /** The settled browser-tool envelope a recorded tool output holds, if it is one. */
 export const browserToolEnvelopeOf = (
   value: unknown,
-): BrowserToolEnvelope | undefined =>
-  typeof value === "object" &&
-  value !== null &&
-  "brunchBrowserResult" in value &&
-  value.brunchBrowserResult === true &&
-  "output" in value
-    ? {
-        brunchBrowserResult: true,
-        output: value.output,
-        ...("metadata" in value ? { metadata: value.metadata } : {}),
-      }
+): BrowserToolEnvelope | undefined => {
+  if (
+    !(
+      typeof value === "object" &&
+      value !== null &&
+      "brunchBrowserResult" in value &&
+      value.brunchBrowserResult === true &&
+      "output" in value
+    )
+  )
+    return undefined;
+  const parsed = v.safeParse(vBrowserToolResult, value);
+  return parsed.success
+    ? { brunchBrowserResult: true, ...parsed.output }
     : undefined;
+};
 
 /**
  * The browser's own output inside a settled browser-tool envelope; any other

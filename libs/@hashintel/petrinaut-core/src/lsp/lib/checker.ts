@@ -1,18 +1,23 @@
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getTransitionLogicAvailability,
+  sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
 } from "../../extensions";
 import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
+  buildMetricContext,
   buildVisualizerContext,
 } from "../../hir";
+import { lowerAndCheck } from "../../hir/compile";
+import { inferMetricShape } from "../../hir/metric-shape";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import { getItemFilePath } from "./file-paths";
 
 import type { HirSurfaceContext } from "../../hir";
+import type { MetricShape } from "../../hir/metric-shape";
 import type { SDCPN } from "../../types/sdcpn";
 import type { LanguageServers } from "./language-servers";
 import type { VirtualFileLanguageServer } from "./virtual-file-language-server";
@@ -44,6 +49,12 @@ export type SDCPNCheckResult = {
   isValid: boolean;
   /** All diagnostics grouped by item */
   itemDiagnostics: SDCPNDiagnostic[];
+  /**
+   * The shape of every metric whose code lowers, by metric id. Metrics are
+   * lowered here for what the net's consumers learn from their code; their
+   * diagnostics are the metric editing session's.
+   */
+  metricShapes: Record<string, MetricShape>;
 };
 
 /** TS `DiagnosticCategory.Error` (kept numeric — `typescript` is imported
@@ -105,7 +116,7 @@ export function checkSDCPN(
     const allDiagnostics = collectItemDiagnostics(
       server,
       filePath,
-      de.colorId ? buildDynamicsContext(sdcpn, de.colorId, extensions) : null,
+      buildDynamicsContext(sdcpn, de, extensions),
     );
 
     if (allDiagnostics.length > 0) {
@@ -193,7 +204,25 @@ export function checkSDCPN(
     }
   }
 
+  const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
+  const metricContext = buildMetricContext(sanitized, extensions);
+  const metricShapes: Record<string, MetricShape> = {};
+  for (const metric of sanitized.metrics ?? []) {
+    if (metric.code.trim() === "") {
+      continue;
+    }
+    const item = lowerAndCheck(metric.code, "metric", metricContext);
+    if (item.ok) {
+      metricShapes[metric.id] = inferMetricShape(
+        item.fn,
+        sanitized.places,
+        sanitized.types,
+      );
+    }
+  }
+
   return {
+    metricShapes,
     isValid: !itemDiagnostics.some(
       (item) =>
         item.itemType !== "place-visualizer" &&

@@ -101,6 +101,8 @@ export {
 } from "./hir/lower-typescript";
 export {
   AMBIENT_INPUT_NAMES,
+  dynamicsInputName,
+  SINGLE_TOKEN_INPUT_NAME,
   detectStateConstraintForm,
   detectUserCodeForm,
   getStateConstraintExpression,

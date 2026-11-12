@@ -2,9 +2,18 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import type { IconName } from "@hashintel/ds-components";
 import type {
+  ActionDefinition,
   FlowActionDefinitionId,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
+
+/** A definition may name an action that doesn't exist. */
+export const getActionDefinition = (actionDefinitionId: string) =>
+  (
+    actionDefinitions as Partial<
+      Record<string, ActionDefinition<FlowActionDefinitionId>>
+    >
+  )[actionDefinitionId];
 
 export const stepNoun = { singular: "step", plural: "steps" } as const;
 
@@ -203,10 +212,7 @@ export const getStepDisplay = (
 
   const addable = findAddableAction(step.actionDefinitionId);
 
-  /* A definition may name an action that doesn't exist. */
-  const definition = (
-    actionDefinitions as Partial<Record<string, { name: string }>>
-  )[step.actionDefinitionId];
+  const definition = getActionDefinition(step.actionDefinitionId);
 
   return {
     title: addable?.label ?? definition?.name ?? step.actionDefinitionId,

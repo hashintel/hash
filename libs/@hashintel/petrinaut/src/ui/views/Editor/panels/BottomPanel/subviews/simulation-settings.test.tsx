@@ -4,13 +4,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  defineSimulator,
+  DEFAULT_PETRINAUT_EXTENSIONS,
+} from "@hashintel/petrinaut-core";
 
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../../../../react/lsp/context";
-import { SimulationContext } from "../../../../../../react/simulation/context";
+import {
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../../../../react/simulation/context";
+import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { simulationSettingsSubView } from "./simulation-settings";
 
@@ -42,23 +49,33 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   // The real Select is an Ark menu jsdom cannot drive; a native select with
   // the same items stands in for the scenario picker.
   const Select = ({
+    "aria-label": ariaLabel,
     items,
     onChange,
     value,
   }: {
-    items: readonly { value: string; text: string }[];
+    "aria-label"?: string;
+    items: readonly { value: string; text: string; disabled?: boolean }[];
     onChange: (value: string) => void;
     value: string;
   }) => (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
+    <select
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
       {items.map((item) => (
-        <option key={item.value} value={item.value}>
+        <option key={item.value} value={item.value} disabled={item.disabled}>
           {item.text}
         </option>
       ))}
     </select>
   );
-  return { ...actual, Select };
+  // The Ark segment group floats its indicator from measurements jsdom
+  // cannot make; the stub is a row of pressed buttons.
+  const { SegmentedControl } =
+    await import("../../SimulateView/shared/ds-control-stubs");
+  return { ...actual, Select, SegmentedControl };
 });
 
 // jsdom provides neither observer; the scroll fades and the value editor's
@@ -95,7 +112,6 @@ const sdcpn: SDCPN = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -129,37 +145,72 @@ const sdcpnContextValue: SDCPNContextValue = {
 };
 
 const simulationContextValue: SimulationContextValue = {
-  state: "NotRun",
-  error: null,
-  errorItemId: null,
-  parameterValues: {},
-  initialMarking: {},
-  selectedScenarioId: null,
-  scenarioParameterValues: {},
-  compiledScenarioResult: null,
-  scenarioCompilationErrors: null,
-  adHocScenario: null,
+  ...DEFAULT_SIMULATION_CONTEXT,
   adHocNetParameters: sdcpn.parameters,
-  dt: 0.01,
-  maxTime: null,
-  totalFrames: 0,
-  getFrame: () => Promise.resolve(null),
-  getAllFrames: () => Promise.resolve([]),
-  getFramesInRange: () => Promise.resolve([]),
-  setSelectedScenarioId: () => {},
-  setAdHocScenario: () => {},
-  setScenarioParameterValue: () => {},
-  setInitialMarking: () => {},
-  setParameterValue: () => {},
-  setDt: () => {},
-  setMaxTime: () => {},
-  initialize: () => Promise.resolve(),
-  run: () => {},
-  pause: () => {},
-  reset: () => {},
-  setBackpressure: () => {},
-  ack: () => {},
+  simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
 };
+
+const neverLoaded = {
+  isAvailable: () => true,
+  load: () => Promise.reject(new Error("The picker loads no simulator")),
+};
+
+const registrations = [
+  defineSimulator(
+    {
+      id: "test.stepped",
+      label: "Stepped",
+      description: "Advances in steps.",
+      parameters: {
+        dt: {
+          type: "number",
+          label: "Step size",
+          unit: "s",
+          default: 0.01,
+          min: 0,
+          exclusiveMin: true,
+        },
+      },
+      produces: { run: true, experiment: true },
+    },
+    neverLoaded,
+  ),
+  defineSimulator(
+    {
+      id: "test.solved",
+      label: "Solved",
+      description: "Chooses its steps.",
+      parameters: {
+        tolerance: {
+          type: "number",
+          label: "Max error",
+          default: 1e-6,
+          min: 0,
+          exclusiveMin: true,
+        },
+        exact: { type: "boolean", label: "Exact", default: false },
+        order: {
+          type: "integer",
+          label: "Order",
+          default: 4,
+          enabledWhen: { key: "exact", in: [true] },
+        },
+      },
+      produces: { run: true, experiment: false },
+    },
+    neverLoaded,
+  ),
+  defineSimulator(
+    {
+      id: "test.batched",
+      label: "Batched",
+      description: "Computes many runs.",
+      parameters: {},
+      produces: { run: false, experiment: true },
+    },
+    neverLoaded,
+  ),
+];
 
 const SimulationSettings = simulationSettingsSubView.component;
 
@@ -172,14 +223,45 @@ const Providers = ({
 }) => (
   <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
     <SDCPNContext value={sdcpnContextValue}>
-      <SimulationContext value={{ ...simulationContextValue, ...simulation }}>
-        {children}
-      </SimulationContext>
+      <SimulatorsContext
+        value={{
+          registrations,
+          defaultSelections: {
+            quick: { simulatorId: "test.stepped" },
+            stochastic: { simulatorId: "test.stepped" },
+          },
+        }}
+      >
+        <SimulationContext value={{ ...simulationContextValue, ...simulation }}>
+          {children}
+        </SimulationContext>
+      </SimulatorsContext>
     </SDCPNContext>
   </LanguageClientContext>
 );
 
 describe("SimulationSettings", () => {
+  it("reads what Play computes on one line, beside the scenario", () => {
+    render(
+      <Providers
+        simulation={{
+          simulatorSelection: {
+            simulatorId: "test.stepped",
+            parameters: { dt: 0.5 },
+          },
+        }}
+      >
+        <SimulationSettings />
+      </Providers>,
+    );
+
+    // The simulator's fields are in the picker's popover, not in the row.
+    expect(screen.queryByLabelText(/Step size/)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Simulator: Stepped, 0.5 s" }),
+    ).toBeTruthy();
+  });
+
   it("shows the scenario form with no scenario selected", () => {
     render(
       <Providers simulation={{}}>
@@ -193,8 +275,9 @@ describe("SimulationSettings", () => {
     // The icon slot adds a zero-width space to the button's name.
     expect(screen.getByRole("button", { name: /Clear/ })).toBeTruthy();
     // The net parameter is an expression override in the form, not a
-    // numeric input row: the only spinbutton left is the Time Step.
-    expect(screen.getAllByRole("spinbutton")).toHaveLength(1);
+    // numeric input row, and the simulator selected here is not one this
+    // host registers, so it brings no field either.
+    expect(screen.queryAllByRole("spinbutton")).toHaveLength(0);
     expect(screen.queryByRole("slider")).toBe(null);
   });
 

@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/actions/.github/workflows/preflight-dependencies.yml@41315b492dafd1dfa97eaf302f056859ae7a3778 # main
+    uses: hashintel/actions/.github/workflows/preflight-dependencies.yml@12218f636ffc50085953865e21b360b3ac580f9d # main
 
   labeler:
     name: Labeler
@@ -35,4 +35,4 @@ jobs:
     name: PR title
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-pr-title.yml@41315b492dafd1dfa97eaf302f056859ae7a3778 # main
+    uses: hashintel/actions/.github/workflows/preflight-pr-title.yml@12218f636ffc50085953865e21b360b3ac580f9d # main

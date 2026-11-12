@@ -28,10 +28,27 @@ export const brunchProductName = "brunch";
  */
 export const brunchTools = {
   activateSkill: "activate_skill",
+  /**
+   * HASH's process page saves the open net as a new version, once the person
+   * approves it, through the editor's own Save.
+   */
+  appSaveNet: "app_save_net",
   draftPetrinautExperiment: "draft_petrinaut_experiment",
+  /** HASH's process page reads entities from the graph as the signed-in user. */
+  hashQueryEntities: "hash_query_entities",
+  /** HASH's process page reads the entity types the signed-in user can see. */
+  hashQueryEntityTypes: "hash_query_entity_types",
+  /** HASH's process page lists the signed-in user's own and org webs. */
+  hashQueryWebs: "hash_query_webs",
   ledgerCommit: "ledger_commit",
+  /** The Petrinaut agent's Ledger map; the HASH agent's is `ledgerQuery`. */
   ledgerCompile: "ledger_compile",
+  /** The HASH agent's Ledger map, the same tool as `ledgerCompile`. */
+  ledgerQuery: "ledger_query",
+  /** The HASH agent's basis query, the same tool as `queryBasis`. */
+  ledgerQueryBasis: "ledger_query_basis",
   ping: "ping",
+  /** The Petrinaut agent's basis query; the HASH agent's is `ledgerQueryBasis`. */
   queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",
   task: "task",
@@ -46,20 +63,27 @@ export const brunchSignals = {
 } as const;
 
 /**
- * Where a browser host stores its owner key. Keeps its pre-rename name: it
- * addresses owner keys already stored in users' browsers, and a new name would
- * orphan their conversations.
+ * Where a browser host stores its actor key. The value keeps its pre-rename
+ * name: it addresses actor keys already stored in users' browsers, and a new
+ * value would orphan their conversations.
  */
-export const brunchOwnerKeyStorageKey = "brunch-principal-v1";
+export const brunchActorKeyStorageKey = "brunch-principal-v1";
 
 /**
- * Request headers that carry conversation identity. The owner key's header
- * name predates its rename from "principal" and is a wire name: changing it
- * needs a coordinated deploy of every client and server.
+ * Request headers that carry conversation identity: who is acting, and which
+ * of their conversations.
  */
 export const brunchHeaders = {
+  actor: "x-brunch-actor",
   conversation: "x-brunch-conversation",
-  ownerKey: "x-brunch-principal",
+  /**
+   * The actor header's former name, which Brunch still reads when `actor` is
+   * absent, so a browser client and Brunch can deploy in either order.
+   * Temporary: remove once the Petrinaut website sends `actor` from its own
+   * server-side hop and no client sends this name. The HASH agent's route
+   * reads neither: its actor comes from the user's HASH session.
+   */
+  legacyPrincipal: "x-brunch-principal",
 } as const;
 
 /** Server routes and route segments. */
@@ -68,14 +92,22 @@ export const brunchRoutes = {
   agents: "/agents",
   /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
   petrinautAgent: "petrinaut",
+  /** The HASH agent's route, which HASH's process page talks to. */
+  hashAgent: "hash",
+  /**
+   * Answers `{ actorKey }` for the HASH session the request carries, which
+   * HASH's process page needs to address the user's conversations. Under the
+   * HASH agent's mount, so no further path needs opening to reach Brunch.
+   */
+  hashIdentity: "/agents/hash/identity",
   /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
   browserCalls: "browser-calls",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
 } as const;
 
-/** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
-export const localUiOwnerKey = "local";
+/** Actor key for the stock Flue UI at `/`. Not a second ownership rule. */
+export const localUiActorKey = "local";
 
 /** Prefix of the conversation ID the Petrinaut website derives from a net ID. */
 export const previewConversationIdPrefix = "petrinaut-preview:";

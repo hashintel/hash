@@ -36,8 +36,6 @@ import { submitExternalInputResponse } from "./flows/submit-external-input-respo
 import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
-import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
 import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
 import { blocksResolver } from "./knowledge/block/block";
@@ -97,6 +95,7 @@ import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-posit
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
+import { sessionAccountResolver } from "./knowledge/user/session-account";
 import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
@@ -167,6 +166,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     /** Logged in users (who may not have completed signup) */
     me: loggedInMiddleware(meResolver),
+    sessionAccount: loggedInMiddleware(sessionAccountResolver),
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
     getMyPendingInvitations: loggedInMiddleware(
       getMyPendingInvitationsResolver,
@@ -195,9 +195,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     searchEntities: loggedInAndSignedUpMiddleware(searchEntitiesResolver),
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
-    ),
-    getLinearOrganization: loggedInAndSignedUpMiddleware(
-      getLinearOrganizationResolver,
     ),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
@@ -329,11 +326,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
     archiveFlowSchedule: loggedInAndSignedUpMiddleware(
       archiveFlowScheduleResolver,
-    ),
-
-    // Integration
-    syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
-      syncLinearIntegrationWithWebsMutation,
     ),
 
     // API tokens

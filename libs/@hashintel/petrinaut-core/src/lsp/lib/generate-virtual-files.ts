@@ -1,6 +1,7 @@
 import ts from "@typescript/typescript6";
 
 import { getArcEndpoint } from "../../arc-endpoints";
+import { isSupportedArity } from "../../equation-arity";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -11,6 +12,7 @@ import {
 import {
   AMBIENT_INPUT_NAMES,
   buildLambdaContext,
+  dynamicsInputName,
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
@@ -131,13 +133,15 @@ function dualFormCodeFile(options: {
   modulePrefixLines: string[];
   /** Import lines for the types the body wrapper's signature references. */
   bodyImportLines: string[];
+  /** Name of the ambient input object, when it is not the surface's usual one. */
+  inputName?: string;
   /** TypeScript type of the ambient input object. */
   inputType: string;
   /** Declared return type of the body. */
   returnType: string;
   parametersDefsPath: string;
 }): VirtualFile {
-  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  const inputName = options.inputName ?? AMBIENT_INPUT_NAMES[options.surface];
   return applyFormWrapper({
     content: options.content,
     formWrappers: {
@@ -318,7 +322,25 @@ export function generateVirtualFiles(
         })
       : null;
 
-    // Type definitions file
+    // Type definitions file. The equation sees `tokens` as a tuple of
+    // `arity` tokens and returns one record (arity 1) or a tuple of records;
+    // its module form declares one parameter per token.
+    const tokenType = sanitizedColorId ? `Color_${sanitizedColorId}` : "number";
+    const tuple = (element: string, count: number): string =>
+      `[${Array.from({ length: count }, () => element).join(", ")}]`;
+    // A net from a host can carry any number here; the checker reports an
+    // arity outside the supported range, and these types stay small.
+    const arity = isSupportedArity(de.arity) ? de.arity : 1;
+    const tokensType = tuple("Token", arity);
+    const derivativesType =
+      arity === 1 ? "Derivative" : tuple("Derivative", arity);
+    const dynamicsFunctionParameters = [
+      ...Array.from(
+        { length: arity },
+        (_, position) => `token${position}: Token`,
+      ),
+      "parameters: Parameters",
+    ].join(", ");
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
@@ -326,17 +348,19 @@ export function generateVirtualFiles(
           ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
           : "",
         ``,
-        sanitizedColorId
-          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `export type Tokens = Array<number>;`,
+        `export type Token = ${tokenType};`,
+        `export type Tokens = ${tokensType};`,
         color
           ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
           : `export type Derivative = Record<string, never>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
+        `export type Derivatives = ${derivativesType};`,
+        `export type Dynamics = (fn: (${dynamicsFunctionParameters}) => Derivatives) => void;`,
       ].join("\n"),
     });
 
-    // User code file, wrapped according to its authoring form
+    // User code file, wrapped according to its authoring form. A body over
+    // one token sees it as `token`; over more, the `tokens` tuple.
+    const inputName = dynamicsInputName(arity);
     files.set(
       deCodePath,
       dualFormCodeFile({
@@ -344,14 +368,15 @@ export function generateVirtualFiles(
         surface: "dynamics",
         modulePrefixLines: [
           `import type { Dynamics } from "${deDefsPath}";`,
-          `/** @deprecated Write the function body directly; tokens and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
+          `/** @deprecated Write the function body directly; ${inputName} and parameters are already available. Remove export default Dynamics(...) and keep its body. */`,
           `declare const Dynamics: Dynamics;`,
         ],
         bodyImportLines: [
-          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+          `import type { Derivatives, Token, Tokens } from "${deDefsPath}";`,
         ],
-        inputType: "Tokens",
-        returnType: "Derivative[]",
+        inputName,
+        inputType: arity === 1 ? "Token" : "Tokens",
+        returnType: "Derivatives",
         parametersDefsPath,
       }),
     );

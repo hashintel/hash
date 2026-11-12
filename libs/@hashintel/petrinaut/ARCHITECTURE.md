@@ -12,40 +12,52 @@ covers only the React side of the boundary.
 
 ## Quick Simulation
 
+### SimulatorsProvider (`src/react/simulators/`)
+
+- Registers the built-in simulators (JS fixed step, JS adaptive, WebGPU
+  fixed step) and whatever the host adds, with the worker factories the host
+  supplies. Their experiments lease workers from one pool.
+- Publishes the registrations and the selection each mode starts a session
+  on.
+
 ### SimulationProvider (`src/react/simulation/`)
 
 - Owns the run configuration as React state: `initialMarking`
   (`Record<placeId, TokenRecord[] | number>` — keyed by place **ID**; a
   number is an uncoloured token count, and the records inside are keyed by
-  element name), parameter values, seed, `dt`,
+  element name), parameter values, the mode (one run, or many), the
+  simulator picked in each mode with its parameter values, and
   `maxTime` (`number | null`; null = unbounded run). When a scenario is
   compiled, its marking and parameter overrides
   take effect over the base state.
-- Calls `createSimulation()` from the core with the browser worker factory,
-  then mirrors the handle's `status` and `frames` stores into context via a
-  `useStore` subscription.
-- Exposes `getFrame(index)` / `getFramesInRange(...)`, `ack(frameNumber)`,
-  and `setBackpressure(...)` to downstream consumers.
+- `initialize({ seed })` assesses the selected simulator and starts what the
+  mode computes: a run (`EventSimulation`) in Quick mode, an experiment
+  (`MonteCarloExperiment`) in Stochastic mode. The handle's status is
+  mirrored into context via a `useStore` subscription.
+- Exposes `getFrame(index)` / `getFramesInRange(...)` over the run's recorded
+  events, and `playbackSource`: the coverage, status and `demand(time)` that
+  playback moves over, whichever mode computed it.
 - `initialMarking` is session state — it is configuration for the _next_ run
   and survives `reset()`.
 
-### PlaybackProvider (`src/react/playback/`)
+### EventPlaybackProvider (`src/react/event-playback/`)
 
-- Drives the viewed frame with a `requestAnimationFrame` loop calling the
-  core `playback` module's `tick()` (speed, dt, total frames, done-flag).
-- On `frameIndex` change, fetches `getFrame(frameIndex)` and publishes the
-  resulting `SimulationFrameReader` as `currentFrameReader`.
-- Implements the ack policy per play mode (the core's
-  `getPlayModeBackpressure` defines profiles for the compute modes only):
-  - `viewOnly` — pauses the worker and never acks: nothing new is computed.
-  - `computeBuffer` — acks when playback is within ~0.5 s of the last
-    computed frame: keeps a small rolling buffer ahead of the playhead.
-  - `computeMax` — acks on every arrival: compute as fast as possible.
+- Drives the viewed **time** with a `requestAnimationFrame` loop calling the
+  core `createEventPlayback` model's `tick()` (speed, covered time,
+  done-flag). The viewed time lives in a store, so a frame of playback
+  renders only what shows it.
+- Flow control is by time: the provider demands `viewed time + lead` from
+  the playback source, and the lead depends on the play mode:
+  - `viewOnly` — pauses the run and demands nothing: nothing new is computed.
+  - `computeBuffer` — a short lead ahead of the playhead.
+  - `computeMax` — computes as far ahead as the run goes.
 
 ### ExecutionFrameSource (`src/react/execution-frame/`)
 
 An abstraction over "where frames come from" so canvas and timeline
-components work identically for live playback and Actual-mode recordings:
+components work identically for a run's playback and Actual-mode recordings.
+For a run, a frame is a recorded event and the viewed frame is the state at
+the viewed time:
 `{ totalFrames, currentFrameIndex, currentFrameReader, scrubToFrame, getFramesInRange }`.
 
 ### Who reads what
@@ -67,12 +79,16 @@ authoring surface that is inherently React (users write JSX).
 ### ExperimentsProvider (`src/react/experiments/`)
 
 - One `ExperimentRecord` per experiment: config (`runCount`, seed, `dt`,
-  `maxTime`, metric specs), `status`, `progress`
-  (`MonteCarloWorkerProgress`), `metricFrames`, `latestMetricFramesById`.
-- Creates a `MonteCarloExperiment` handle per record
-  (`createMonteCarloExperiment` + the Monte Carlo worker factory) and mirrors
-  its `status` / `progress` / `metrics` stores. On completion the worker is
-  disposed; the accumulated metric frames stay for display.
+  `maxTime`, metric specs), the label of the simulator that computes it,
+  `status`, `progress` (`MonteCarloWorkerProgress`), `metricFrames`,
+  `latestMetricFramesById`.
+- Starts each experiment on a registered simulator: the one the input names,
+  or the default Stochastic one. The provider holds no workers of its own;
+  the simulators lease them from the pool of `SimulatorsProvider`. It mirrors
+  the handle's `status` / `progress` / `metrics` stores, and the accumulated
+  metric frames stay for display once the run is over.
+- `adoptExperiment` lists an experiment something else started, which is how
+  a Stochastic simulation is kept.
 
 ### ExperimentMetricTimeline (`src/ui/.../experiments/`)
 

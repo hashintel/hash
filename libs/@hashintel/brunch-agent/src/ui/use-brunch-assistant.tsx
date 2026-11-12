@@ -65,6 +65,7 @@ import {
 } from "./tools/brunch-draft-experiment-interactive-tool";
 import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import {
+  type BrunchHostSave,
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
   useBrunchMutationApprovalTools,
@@ -77,6 +78,7 @@ import {
   type CanonicalPetrinautReplay,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
+import { createHashPetrinautSaveTool } from "./tools/hash-petrinaut-save";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
 import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
@@ -91,11 +93,20 @@ import { WordsHeaderAction } from "./words/words-configurer";
 import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
+import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
   SdcpnInitialData,
+  VersionLoad,
 } from "@hashintel/brunch-agent";
+
+export type { VersionLoad } from "@hashintel/brunch-agent";
+export type {
+  BrunchDocumentSaveState,
+  BrunchHostSave,
+  ReadBrunchDocumentSaveState,
+} from "./tools/brunch-mutation-approval";
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
@@ -118,7 +129,8 @@ const useProcessAgentSession = (
       input.brunchSelected && input.binding !== null
         ? createBrunchFlueClient(
             {
-              ownerKey: input.ownerKey,
+              actorKey: input.actorKey,
+              legacyActorHeader: input.legacyActorHeader,
               chatEndpoint: input.chatEndpoint,
               fetch: input.fetch,
             },
@@ -129,7 +141,8 @@ const useProcessAgentSession = (
   }, [
     input.binding,
     input.brunchSelected,
-    input.ownerKey,
+    input.actorKey,
+    input.legacyActorHeader,
     input.chatEndpoint,
     input.fetch,
   ]);
@@ -192,7 +205,8 @@ export interface BrunchAssistant {
  * new identity recreates the conversation's client and tracker.
  */
 export const useBrunchAssistant = ({
-  ownerKey,
+  actorKey,
+  legacyActorHeader,
   chatEndpoint,
   fetch: hostFetch,
   selected,
@@ -200,6 +214,10 @@ export const useBrunchAssistant = ({
   voice,
   interviewBudget,
   words,
+  hostTools,
+  hostSave,
+  versionLoad,
+  starterChips,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -211,6 +229,26 @@ export const useBrunchAssistant = ({
   readonly voice: BrunchVoicePreferences;
   readonly interviewBudget: BrunchInterviewBudgetPreferences;
   readonly words: BrunchWordsPreferences;
+  /**
+   * Tools the host runs itself when its agent calls them, such as HASH's
+   * entity read, offered beside Brunch's own while a document is bound. Each
+   * name must be one the server issues to the browser. Pass a stable list.
+   */
+  readonly hostTools?: readonly PetrinautAiAutomaticTool[];
+  /** Host-owned empty-net suggestions; omitted by default. Pass a stable list. */
+  readonly starterChips?: PetrinautAiAssistant["starterChips"];
+  /**
+   * The host's own Save, for a host whose agent saves: Brunch offers the
+   * agent's save from it, its refusals settle a save before its card, and the
+   * card shows its title and last saved time. Pass a stable object.
+   */
+  readonly hostSave?: BrunchHostSave;
+  /**
+   * The host's latest load of another saved version of the open net, while
+   * the net open builds on it. Each message carries it, so Brunch tells its
+   * agent once, and the Ledger marks reflections on elements the net lacks.
+   */
+  readonly versionLoad?: VersionLoad;
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -291,7 +329,7 @@ export const useBrunchAssistant = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
-  const conversationWords = useConversationWords(ownerKey, conversationId);
+  const conversationWords = useConversationWords(actorKey, conversationId);
   // Words are edited from Voice mode, so they apply only while Voice is on.
   const wordsActive =
     selected && voice.enabled && words.enabled && conversationId !== null;
@@ -329,11 +367,20 @@ export const useBrunchAssistant = ({
   // for a decision render as approvals.
   const mutationApprovalTools = useBrunchMutationApprovalTools(
     mutationApproval.coordinator,
+    hostSave,
+  );
+  const hostSaveTool = useMemo(
+    () =>
+      hostSave === undefined
+        ? undefined
+        : createHashPetrinautSaveTool(hostSave),
+    [hostSave],
   );
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected: selected,
-    ownerKey,
+    actorKey,
+    legacyActorHeader,
     chatEndpoint,
     fetch: hostFetch,
   });
@@ -536,6 +583,7 @@ export const useBrunchAssistant = ({
             interviewBudgetLevel,
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
+            ...(versionLoad === undefined ? {} : { versionLoad }),
             ...(constructionBrowser
               ? {
                   initialData: {
@@ -547,7 +595,7 @@ export const useBrunchAssistant = ({
               ? {}
               : {
                   liveToolStream: brunchLiveToolStream(
-                    { ownerKey, fetch: hostFetch },
+                    { actorKey, legacyActorHeader, fetch: hostFetch },
                     conversationId,
                   ),
                 }),
@@ -594,10 +642,12 @@ export const useBrunchAssistant = ({
       interviewBudgetLevel,
       interviewRepliesAsked,
       latestTurnId,
-      ownerKey,
+      actorKey,
+      legacyActorHeader,
       hostFetch,
       readWords,
       reportBrunchFailure,
+      versionLoad,
     ],
   );
 
@@ -606,7 +656,8 @@ export const useBrunchAssistant = ({
       constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
             client: flueClientPromise,
-            ownerKey,
+            actorKey,
+            legacyActorHeader,
             fetch: hostFetch,
             binding: constructionBrowser.binding,
             metadataFor: (toolCallId, output) =>
@@ -617,7 +668,10 @@ export const useBrunchAssistant = ({
             prepareInput: (call) => {
               canonicalHostTools?.mapClientToolInput(call);
             },
-            admit: createBrunchMutationAdmission(mutationApproval.coordinator),
+            admit: createBrunchMutationAdmission(
+              mutationApproval.coordinator,
+              hostSave,
+            ),
             acceptsRevision: (expected) =>
               canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
@@ -627,8 +681,10 @@ export const useBrunchAssistant = ({
       flueClientPromise,
       canonicalHostTools,
       mutationApproval,
-      ownerKey,
+      actorKey,
+      legacyActorHeader,
       hostFetch,
+      hostSave,
     ],
   );
 
@@ -683,12 +739,13 @@ export const useBrunchAssistant = ({
                 conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
                 highlightChanges={highlightChanges}
+                versionLoaded={versionLoad !== undefined}
               />
             ),
           }
         : undefined,
       primaryLabel: "Chat",
-      presentation: "brunch",
+      starterChips,
       mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
         const shown = showLedgerComments(messages);
         const withNotes = withInterviewBudgetLevelChanges(
@@ -769,7 +826,11 @@ export const useBrunchAssistant = ({
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
       inBandBrowserTools,
-      automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      automaticTools: [
+        ...(canonicalHostTools?.tools ?? []),
+        ...(canonicalHostTools ? (hostTools ?? []) : []),
+        ...(canonicalHostTools && hostSaveTool ? [hostSaveTool] : []),
+      ],
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
@@ -820,6 +881,8 @@ export const useBrunchAssistant = ({
     flueHistory.ready,
     flueHistory.snapshot,
     highlightChanges,
+    hostTools,
+    hostSaveTool,
     inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,
@@ -829,6 +892,8 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    starterChips,
+    versionLoad,
     wordsActive,
   ]);
 

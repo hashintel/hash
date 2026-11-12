@@ -329,6 +329,7 @@ export type {
   LspTransport,
   LspWorkerFactory,
   MarkupContent,
+  NetAnalysis,
   SignatureHelp,
   TextDocumentIdentifier,
 } from "./lsp";
@@ -344,14 +345,79 @@ export type {
   HirMetricArtifact,
 } from "./hir";
 
+// --- Event-driven simulation (experimental) ---
+export {
+  ADAPTIVE_SIMULATOR_ID,
+  FIXED_STEP_SIMULATOR_ID,
+  SOLVER_ERROR_DIAGNOSTIC,
+} from "./simulation/event-trace";
+export type {
+  EventSimulation,
+  EventSimulationEvent,
+  EventTraceSummary,
+  TraceEvent,
+  TraceEventKind,
+} from "./simulation/event-trace";
+
+// --- Simulators (experimental) ---
+export {
+  assessSimulator,
+  createExperimentReader,
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
+  DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
+  defaultSimulatorParameters,
+  defineSimulator,
+  experimentBackendOfSimulator,
+  placeCountMetricId,
+  placeCountMetricSpecs,
+  resolveSimulatorParameters,
+  simulatorFromExperimentBackend,
+  simulatorSamplePeriod,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
+} from "./simulation/simulators";
+export type {
+  CountStatistics,
+  ExperimentBackendStepping,
+  ExperimentReader,
+  JsSimulatorOptions,
+  ResolvedSimulatorParameters,
+  SimulationRequest,
+  SimulationRequestBase,
+  Simulator,
+  SimulatorAssessment,
+  SimulatorExperimentRequest,
+  SimulatorImplementation,
+  SimulatorManifest,
+  SimulatorOffer,
+  SimulatorParameterProblem,
+  SimulatorParameterSpec,
+  SimulatorParameterSpecs,
+  SimulatorParameterValues,
+  SimulatorProducts,
+  SimulatorRegistration,
+  SimulatorSelectionOutcome,
+  SimulatorStart,
+  SimulatorStartOptions,
+  StoredSimulatorParameters,
+  WebGpuFixedStepSimulatorOptions,
+} from "./simulation/simulators";
+
 // --- Playback ---
 export {
+  createEventPlayback,
   createPlayback,
+  EVENT_PLAY_MODE_LEAD,
   formatPlaybackSpeed,
   getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
 } from "./playback";
 export type {
+  EventPlayback,
+  EventPlaybackSnapshot,
+  EventTickInput,
+  EventTickResult,
   Playback,
   ComputePlayMode,
   PlaybackSnapshot,
@@ -411,6 +477,14 @@ export {
   parseArcEndpointKey,
   placeArcEndpoint,
 } from "./arc-endpoints";
+export {
+  isSupportedArity,
+  MAX_DIFFERENTIAL_EQUATION_ARITY,
+} from "./equation-arity";
+export {
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+} from "./place-dynamics";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
@@ -685,3 +759,4 @@ export {
   parseVisualizerSvgOptions,
   type VisualizerSvgOptions,
 } from "./view-hir/visualizer-svg";
+export type { MetricShape } from "./hir/metric-shape";

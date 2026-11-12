@@ -1,6 +1,6 @@
 # AI Assistant
 
-This page describes Brunch's assistant, which a host adds to the Petrinaut editor as a plugin. Like Petrinaut's in-app AI assistant, it can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and may or may not be enabled in other Petrinaut embeds.
+This page describes Brunch's assistant, which a host adds to the Petrinaut editor as a plugin. It can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available. The Petrinaut website offers Brunch alongside its separate native assistant; HASH offers Brunch for editable saved process nets when its connection is available. HASH uses `petrinaut_*` tool names for editor operations, while the website uses the canonical Petrinaut tool names.
 
 ## Opening the panel
 
@@ -32,9 +32,9 @@ The header text is not selectable. Header icons animate on hover and click unles
 
 ## The conversation
 
-In the stock assistant, an empty conversation asks you to **Describe the process you want to create**; later turns say **Continue iterating...**. Press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, the field always says **Continue iterating...**, and its button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
+Press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, the field says **Continue iterating...**, and its button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
-The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. The stock assistant keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.
+The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. Suggestion chips wrap to fit the panel. Empty-net starters are supplied by the host: the Petrinaut website offers demo examples, while HASH does not. Existing models offer review and explanation suggestions.
 
 As soon as you send, **Working…** and a small blue spinner appear in the
 transcript, where that turn's activity will appear, below any spoken Voice
@@ -44,7 +44,6 @@ duplicate status below it. Suggestion chips keep their space while hidden and
 cannot be activated during work. The spinner stays still with reduced motion
 enabled. While viewing Ledger, a status row above the composer reports
 **Working…** instead.
-The stock assistant shows its working label without these Brunch statuses.
 
 A host can add its own controls and status around the composer. In Brunch, host controls sit at the left edge of the composer and of the Voice dock, apart from Send, Voice and Stop. A host status row sits above the composer, or above the Voice dock. Brunch also shows host notes, such as a change of setting, in the transcript of Chat and Voice: a short line with an information icon unless the host supplies its own content.
 
@@ -57,27 +56,26 @@ activity scrolls with the conversation rather than inside its own area. **Workin
 stays until the response ends, then becomes **Activity · Ns**; history without
 timing says **Activity**. Previously completed turns start collapsed. A new
 **Approval required** request reveals its controls. Expand
-activity to inspect **Thought for Ns** and **Used N tools**. Other hosts retain
-their collapsed reasoning default and automatic work/tool collapsing. Stopped
+activity to inspect **Thought for Ns** and **Used N tools**. Stopped
 work says **Stopped after N tools** and retains a **Response stopped** note.
 Unfinished tools show **Cancelled** while completed rows keep their results.
 Timing is shown when supplied or observed during this session; unavailable tool
 durations show a dash. Disclosure icons are neutral; status dots distinguish
 pending, completed, and failed tools.
 
-Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout asks separately; see `applyAutoLayout` below.
+Before Brunch removes model elements, an approval lists the requested removals. Associated arcs or references may also be removed. **Allow** applies that removal; **Deny** withholds that call and tells Brunch nothing was changed. Brunch's later calls in the same response wait until you answer, then continue to run. **Always allow** permits later removals only in the current mounted conversation, until you leave or reload. It does not grant permission for another conversation or browser session. Stop cancels a pending approval. Auto-layout confirmation depends on the tool entrypoint; see below.
 
 When the host supplies them, Voice also shows a collapsed brief directly under your message, an immediate spoken-agent reply before the work, and a wrap-up after the produced cards. The brief says **Preparing request** while its fields are being prepared, **Sending request** once the fields are ready but not yet accepted, and **Request sent** after acceptance. Expand a prepared brief to see **Prepared from what you said** and its right-aligned fields. Missing excerpts display **Still open**; that placeholder is not sent as an extracted fact. If preparation fails, your original words are sent without prepared fields: the brief says **Sending without preparation**, then **Sent without preparation** after acceptance. These optional parts are absent in hosts that do not provide them. In Chat, a small neutral voice-bars icon marks user messages sent using Voice; typed messages have no icon. In Voice, those per-message icons are hidden.
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
 
-Brunch work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. The stock assistant shows reasoning and tool calls directly, opens streaming reasoning by default, and uses its standard tool cards. Keyboard focus uses Petrinaut's blue outline.
+Brunch work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. Keyboard focus uses Petrinaut's blue outline.
 
 While a response is streaming you can:
 
 - Expand the work disclosure to watch reasoning and tool operations. The working label shimmers while active. Brunch Chat opens streaming reasoning; you can close it without interrupting the response.
 - Expand **Used N tools** to inspect chronological tool rows, each with its name, duration and status dot: amber pending, green completed, red error, or a grey dash for a cancelled call or one with no result. Expand a row to read its arguments and result. **Preparing…** means streamed arguments are arriving; **Running…** means execution is pending. Interactive questions remain available for your answer.
-- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. Stop also withholds browser tools that have not started. Brunch's integrated assistant returns browser results within the active reply rather than requiring a second message; other hosts may still use an automatic follow-up. Already-applied changes are not rolled back. If a browser result is lost after a change may have happened, its outcome is unknown and the assistant does not automatically retry it. A silently disconnected browser is detected after a bounded liveness wait, not immediately.
+- Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. Brunch requests a durable stop before cancelling its local stream. Stop also withholds browser tools that have not started. Brunch returns browser results within the active reply rather than requiring a second message. Already-applied changes are not rolled back. If a browser result is lost after a change may have happened, its outcome is unknown and the assistant does not automatically retry it. A silently disconnected browser is detected after a bounded liveness wait, not immediately.
 - Type your next message in the composer -- it is queued for after the current response ends.
 
 The assistant's compilation check runs against the current model, even when its diagnostics are unchanged from the previous check. If you edit the model during that check, the result asks for another check instead of claiming the new version compiles. Compilation checks do not establish simulation correctness.
@@ -91,9 +89,9 @@ If a tool follow-up finishes without adding a reply, the turn ends with a neutra
 
 If a failed response leaves a tool call without a recorded result, its row shows **No result — response failed**. The row is neutral and offers no approval or retry controls; the panel does not execute the unanswered call. This does not mean the call never ran, so check the net before asking for the change again. Recorded results stay visible. When the host restores the conversation on reopening, the row keeps this label.
 
-Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Spoken user messages remain in the transcript and show the voice-bars icon in Chat when their voice origin is retained. Durably aborted assistant entries retain their **Stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+Brunch restores canonical conversation history. Reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Spoken user messages remain in the transcript and show the voice-bars icon in Chat when their voice origin is retained. Durably aborted assistant entries retain their **Stopped** label even after later completed replies.
 
-A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
+Brunch also follows live history. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
 
 ### Ledger in Brunch
 
@@ -328,7 +326,7 @@ Voice ends when the panel closes. If Realtime Voice is interrupted, allow
 microphone access or check the connection, then select **Reconnect voice
 mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
-The delete button appears in the top right once the conversation contains messages. When Voice is inactive, **Clear AI chat** in ordinary Brunch starts a fresh conversation and resets conversation-only approvals. It preserves the model and the old saved history; it is not a history-deletion action. Reopening the page returns to the new conversation. Other hosts can clear local messages or disable this control.
+The delete button appears in the top right once the conversation contains messages. When Voice is inactive, **Clear AI chat** in ordinary Brunch starts a fresh conversation and resets conversation-only approvals. It preserves the model and the old saved history; it is not a history-deletion action. Reopening the page returns to the new conversation.
 
 An interrupted Voice session shows a gentle red waveform without a visible status label. Recovery controls remain available and screen readers still announce the interruption. Open **Voice issues** for a short title and explanation. **Copy details** becomes **Copied** after success; **Dismiss** clears the displayed issues without ending Voice.
 
@@ -341,7 +339,7 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 - **Applied mutation tools** (completed status dot) -- a successful result turns the title into a confirmation: "Added place X", "Updated transition Y", "Removed scenario Baseline", and so on. Successive tools remain visible as individual chronological rows. The status colour reports completion or failure, not whether a mutation added, updated, or deleted an entity.
 - **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
-- **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget. Brunch uses **Allow** / **Deny**; the stock assistant uses **Yes, auto-layout** / **No, keep current layout**. Otherwise it'll run it without asking.
+- **Auto-layout** -- rearranges places and transitions on the canvas. The canonical `applyAutoLayout` tool asks via **Allow** / **Deny** when its `askUserFirst` input is `true`; with `false` it runs without that prompt. HASH's `petrinaut_layout_auto` tool applies layout immediately, as one undo step. Confirmation is not inferred from whether you arranged the net yourself.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
   structured question inline and continue after you submit the answer. The
@@ -352,13 +350,13 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 
-An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
+An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change read-only restrictions or Stop behaviour. They do not cover title changes or auto-layout commands.
 
 ### Document titles
 
-Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. The host also controls the assistant's tool manifest: `setNetTitle` is useful only alongside `setTitle` and should be omitted for a read-only title. If it is nevertheless called, Petrinaut reports that no change was applied because the host does not provide title editing.
+Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. Calling `setNetTitle` without title editing reports that no change was applied because the host does not provide a title setter.
 
-For example, the Petrinaut website's worked-model route displays its template title as read-only and its Brunch tool manifest exposes no title mutation while still allowing permitted net edits. Ordinary local documents on that website supply title editing.
+The Petrinaut website's local documents supply title editing. HASH exposes the corresponding `petrinaut_set_net_title` tool; it reports a refusal without a title setter or while read-only.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 
@@ -391,12 +389,7 @@ experiments running in this panel.
 
 ### Brunch-drafted experiments
 
-On the Petrinaut website, Brunch can propose an experiment when your modelling
-conversation establishes a decision, objective, parameter range, operating
-regime and horizon. The card says **Drafted — not run · not saved with the
-document**. Review its settings, declarations and unsupported restrictions,
-then choose **Run** or **Dismiss**. Brunch can continue the conversation while
-the card waits; drafting never starts execution.
+With an open document bound, Brunch offers experiment drafts in both the Petrinaut website and HASH. It can propose an experiment when your modelling conversation establishes a decision, objective, parameter range, operating regime and horizon. The card says **Drafted — not run · not saved with the document**. Review its settings, declarations and unsupported restrictions, then choose **Run** or **Dismiss**. Brunch can continue the conversation while the card waits; drafting never starts execution.
 
 An unsupported hard restriction disables **Run**. A metric labelled
 **reported, not enforced** only measures a condition; it does not enforce it.
@@ -447,10 +440,7 @@ to show diagnostics for the code you are editing.
 
 ## Host configuration
 
-Whether the assistant is available, which additional composer controls or Voice modes appear, where the
-conversation is stored (in-memory, in your host app's database, or anywhere else), and the model
-behind it are all controlled by the host application that embeds Petrinaut. Read-only documents
-and the simulate-mode restrictions described above always apply when applicable.
+The host controls whether Brunch is available and which additional composer controls or Voice modes appear. Brunch's shared integration binds the open document to a durable Flue conversation and follows its history. HASH disables Voice, Custom words and Interview length controls; the Petrinaut website offers those optional features. Read-only documents and the simulate-mode restrictions described above still apply.
 
 A host may place its assistant provider and Voice availability controls under
 **User settings → Labs**. Petrinaut displays that host-provided content after

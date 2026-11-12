@@ -97,8 +97,13 @@ export const hashIconStudies = [
   {
     concept: "Test",
     category: "Code",
-    names: ["testTube", "testCheck"],
-    variants: ["An experiment", "A validation result"],
+    names: ["testTube", "testTubeCheck", "testTubeCross", "testCheck"],
+    variants: [
+      "An experiment",
+      "A successful test",
+      "A failed test",
+      "A validation result",
+    ],
     motion: "The liquid shifts and the result gives a short pulse.",
   },
   {
@@ -152,6 +157,8 @@ const categories = {
     "chevronLeft",
     "chevronRight",
     "externalLink",
+    "link",
+    "linkBroken",
     "rightToLine",
     "sidebar",
     "menu",
@@ -231,6 +238,7 @@ const categories = {
     "diagramSubtask",
   ],
   AI: [
+    "mcpServer",
     "assistant",
     "agent",
     "sparkles",
@@ -271,7 +279,10 @@ export const hashIconCatalog = hashIconNames.map((name) => {
   const words = name.replace(/([A-Z])/g, " $1");
   return {
     name,
-    label: words.charAt(0).toUpperCase() + words.slice(1),
+    label:
+      name === "mcpServer"
+        ? "MCP Server"
+        : words.charAt(0).toUpperCase() + words.slice(1),
     category,
     description: descriptions[name],
     related: hashIconNames.filter((candidate) =>

@@ -55,7 +55,6 @@ test("the empty-net prompt starts a chat that edits the net, saving the transcri
             name: "Queue",
             colorId: null,
             dynamicsEnabled: false,
-            differentialEquationId: null,
             x: 0,
             y: 0,
           },

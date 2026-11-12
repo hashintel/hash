@@ -167,13 +167,12 @@ Required fields for a plain net:
 | Arc        | `placeId` (or an explicit `endpoint`)             |
 
 Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
-`type: "standard"`, place `colorId: null`, `dynamicsEnabled: false`, and
-`differentialEquationId: null`,
+`type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
 Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
-place `isPort`, `visualizerCode`, `showAsInitialState`) pass through only when
-present, so a normalized document compares equal to what the editor itself
+place `isPort`, `dynamics`, `visualizerCode`, `showAsInitialState`) pass
+through only when present, so a normalized document compares equal to what the editor itself
 produces (`isSDCPNEqual`).
 
 Arcs name their target place in one of two forms. `placeId` is the shorthand
@@ -387,18 +386,18 @@ export function WorkflowEditor({
 The document carries no title; `title` and `setTitle` are host state. The
 full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 
-| Prop                                                                     | Purpose                                                                                                                                  |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `handle`                                                                 | The document handle. Required; all other props are optional.                                                                             |
-| `title`, `setTitle`                                                      | Host-owned title shown in the top bar.                                                                                                   |
-| `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
-| `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
-| `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
-| `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
-| `presentationProfile`                                                    | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
-| `slots`                                                                  | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
-| `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
-| `plugins`                                                                | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
+| Prop                                                                          | Purpose                                                                                                                                  |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle`                                                                      | The document handle. Required; all other props are optional.                                                                             |
+| `title`, `setTitle`                                                           | Host-owned title shown in the top bar.                                                                                                   |
+| `readonly`                                                                    | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
+| `hideNetManagementControls`                                                   | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
+| `existingNets`, `createNewNet`, `loadPetriNet`                                | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
+| `navigation`                                                                  | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
+| `presentationProfile`                                                         | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
+| `slots`                                                                       | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
+| `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
+| `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).

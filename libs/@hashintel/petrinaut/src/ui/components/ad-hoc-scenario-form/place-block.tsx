@@ -14,8 +14,8 @@ import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
+import { tableContainerStyle } from "../spreadsheet-kit/form-table";
 import { AdHocFormContext } from "./form-context";
-import { tableContainerStyle } from "./spreadsheet/form-table";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";

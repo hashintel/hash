@@ -27,10 +27,10 @@ export const otelSetup: ReturnType<typeof registerOpenTelemetry> = (() => {
       instrumentations: [
         createHttpInstrumentation(otlpEndpoint),
         new GrpcInstrumentation(),
-        // Native `fetch` (used by Linear SDK / outbound API calls) goes
-        // through undici, which the http instrumentation does not patch.
-        // The shared helper sets `peer.service` so Tempo's service_graphs
-        // processor renders Linear etc. as external-service edges.
+        // Native `fetch` (used by outbound API calls) goes through undici,
+        // which the http instrumentation does not patch. The shared helper
+        // sets `peer.service` so Tempo's service_graphs processor renders
+        // external APIs as external-service edges.
         createUndiciInstrumentation(),
       ],
     });

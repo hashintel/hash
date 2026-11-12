@@ -12,11 +12,13 @@ import {
   PetrinautDocumentProvider,
 } from "./petrinaut-provider-layers";
 import { SimulationProvider } from "./simulation/provider";
+import { SimulatorsProvider } from "./simulators/provider";
 
 import type { NetManagement } from "./net-management-context";
 import type {
-  Petrinaut,
   LspWorkerFactory,
+  Petrinaut,
+  SimulatorRegistration,
   WorkerFactory,
 } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
@@ -27,17 +29,27 @@ export type PetrinautProviderProps = {
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
   /**
-   * Optional simulation worker factory. When provided, the SimulationProvider
-   * uses it instead of the bundled inlined-blob default. Hosts that consume
-   * the published dist (rather than building from source) should pass their
-   * own factory — e.g. via Vite's `?worker` directive — to avoid load-time
-   * issues with the inlined worker.
+   * Optional factory for the worker a Quick Simulation's run is stepped in.
+   * When provided, the built-in simulators use it instead of the bundled
+   * inlined-blob default. Hosts that consume the published dist (rather
+   * than building from source) should pass their own factory — e.g. via
+   * Vite's `?worker` directive — to avoid load-time issues with the inlined
+   * worker.
    */
-  simulationWorkerFactory?: WorkerFactory;
+  eventSimulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional factory for a worker of the pool an experiment's runs are split
+   * across, with the same role and default as `eventSimulationWorkerFactory`.
+   */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
+   * Simulators the host adds to the built-in ones. They are listed after
+   * them wherever a simulator is picked.
+   */
+  simulators?: readonly SimulatorRegistration[];
+  /**
    * Optional language-server worker factory. Same shape as
-   * `simulationWorkerFactory` — provided when the host needs to bundle the
+   * `eventSimulationWorkerFactory` — provided when the host needs to bundle the
    * LSP worker themselves rather than relying on the inlined-blob default.
    */
   lspWorkerFactory?: LspWorkerFactory;
@@ -59,8 +71,9 @@ export type PetrinautProviderProps = {
 export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
   netManagement,
-  simulationWorkerFactory,
+  eventSimulationWorkerFactory,
   monteCarloWorkerFactory,
+  simulators,
   lspWorkerFactory,
   navigation,
   children,
@@ -80,20 +93,24 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
           workerFactory={lspWorkerFactory}
         >
           <NotificationsProvider>
-            <SimulationProvider
-              key={instance.handle.id}
-              workerFactory={simulationWorkerFactory}
+            <SimulatorsProvider
+              runWorkerFactory={eventSimulationWorkerFactory}
+              experimentWorkerFactory={monteCarloWorkerFactory}
+              registrations={simulators}
             >
-              <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-                <OptimizationsProvider>
-                  <ExperimentHostProvider>
-                    <PetrinautCanvasProvider>
-                      {children}
-                    </PetrinautCanvasProvider>
-                  </ExperimentHostProvider>
-                </OptimizationsProvider>
-              </ExperimentsProvider>
-            </SimulationProvider>
+              {/* The editor's Quick Simulation runs on a registered simulator. */}
+              <SimulationProvider key={instance.handle.id}>
+                <ExperimentsProvider>
+                  <OptimizationsProvider>
+                    <ExperimentHostProvider>
+                      <PetrinautCanvasProvider>
+                        {children}
+                      </PetrinautCanvasProvider>
+                    </ExperimentHostProvider>
+                  </OptimizationsProvider>
+                </ExperimentsProvider>
+              </SimulationProvider>
+            </SimulatorsProvider>
           </NotificationsProvider>
         </LanguageClientProvider>
       </PetrinautNavigationProvider>

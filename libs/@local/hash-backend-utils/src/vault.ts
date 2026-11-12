@@ -170,7 +170,56 @@ type VaultSecret<D = unknown> = {
   };
 };
 
-type UserSecretPath = `users/${ActorEntityUuid}/${string}`;
+const userSecretPathPrefix = "users";
+
+const userSecretServices = ["google", "linear"] as const;
+
+export type UserSecretService = (typeof userSecretServices)[number];
+
+type UserSecretPath =
+  `${typeof userSecretPathPrefix}/${ActorEntityUuid}/${UserSecretService}/${string}`;
+
+/**
+ * Axios and Vault resolve dot segments, backslashes and percent-encoding before routing, so a segment
+ * outside this set could address a different user's secret than the one the path names.
+ */
+const userSecretPathSegmentRegex = /^[a-zA-Z0-9_.-]+$/;
+
+const isUserSecretService = (value: string): value is UserSecretService =>
+  userSecretServices.some((service) => service === value);
+
+const parseUserSecretPath = (
+  path: string,
+): { accountId: string; service: UserSecretService } | null => {
+  const segments = path.split("/");
+
+  if (
+    !segments.every(
+      (segment) =>
+        segment !== "." &&
+        segment !== ".." &&
+        userSecretPathSegmentRegex.test(segment),
+    )
+  ) {
+    return null;
+  }
+
+  const [prefix, accountId, service, ...rest] = segments;
+
+  if (
+    prefix !== userSecretPathPrefix ||
+    accountId === undefined ||
+    service === undefined ||
+    !isUserSecretService(service) ||
+    rest.length === 0
+  ) {
+    return null;
+  }
+
+  return { accountId, service };
+};
+
+const invalidUserSecretPathMessage = `User secret path must have the form '${userSecretPathPrefix}/<accountId>/<service>/...' with service one of ${userSecretServices.map((service) => `'${service}'`).join(", ")}, and segments other than '.' or '..' containing only alphanumeric characters, underscores, hyphens, and periods`;
 
 type RenewableToken = {
   clientToken: string;
@@ -318,8 +367,12 @@ export class VaultClient {
   }): Promise<VaultSecret<D>> {
     const { path, data } = params;
 
+    if (!parseUserSecretPath(path)) {
+      throw new Error(invalidUserSecretPathMessage);
+    }
+
     const response = await this.#client.post<{ data: VaultSecret["metadata"] }>(
-      `/${this.#secretMountPath}/data/${path.replace(/^\//, "")}`,
+      `/${this.#secretMountPath}/data/${path}`,
       { data },
     );
 
@@ -335,10 +388,14 @@ export class VaultClient {
   }): Promise<VaultSecret<D>> {
     const { path } = params;
 
-    const userAccountIdInPath = path.split("/").at(1);
-    if (userAccountIdInPath !== params.userAccountId) {
+    const parsedPath = parseUserSecretPath(path);
+    if (!parsedPath) {
+      throw new Error(invalidUserSecretPathMessage);
+    }
+
+    if (parsedPath.accountId !== params.userAccountId) {
       throw new Error(
-        `User accountId '${userAccountIdInPath}' in secret path does not match provided accountId '${params.userAccountId}'`,
+        `User accountId '${parsedPath.accountId}' in secret path does not match provided accountId '${params.userAccountId}'`,
       );
     }
 
@@ -408,8 +465,6 @@ export const createVaultClient = async ({ logger }: { logger: Logger }) => {
   });
 };
 
-export type UserSecretService = "google" | "linear";
-
 export const createUserSecretPath = ({
   accountId,
   restOfPath,
@@ -422,5 +477,5 @@ export const createUserSecretPath = ({
   /** The service the secret is for */
   service: UserSecretService;
 }): UserSecretPath => {
-  return `users/${accountId}/${service}/${restOfPath.replace(/^\//, "")}`;
+  return `${userSecretPathPrefix}/${accountId}/${service}/${restOfPath.replace(/^\//, "")}`;
 };

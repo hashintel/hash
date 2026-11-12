@@ -124,26 +124,18 @@ New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename th
 
 ## Connecting with arcs
 
-Drag from a node's handle to connect it:
+Hover over a place or transition to reveal its outgoing handle, then drag the handle onto the node you want to connect:
 
 - **Place to Transition** creates an **input arc** (standard input arcs consume tokens from the place).
 - **Transition to Place** creates an **output arc** (the transition produces tokens in the place).
 
+A blue outline marks a valid target. Release on empty space or press **Escape** to cancel. You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
+
+Arcs attach to the node outlines and follow them when you move either node. Two arcs in opposite directions between the same nodes use separate curves.
+
 Petri nets are bipartite: you cannot connect a place to another place or a transition to another transition. New arcs default to weight 1. Input arcs default to **Standard**, and can be changed to **Read** or **Inhibitor** in the arc properties panel.
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
-
-### Automatic arc connections
-
-Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections) to connect nodes directly through their outlines:
-
-1. Hover over a place or transition to reveal its outgoing handle.
-2. Drag the handle onto the target node. A blue outline shows a valid target.
-3. Release to create the arc. Its endpoints follow the node outlines when you move either node.
-
-Drag from the source: place to transition creates an input arc; transition to place creates an output arc. Release on empty space or press **Escape** to cancel. Dropping onto a subnet does not create an arc in this mode.
-
-You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
 
 ## Component ports
 
@@ -153,10 +145,10 @@ Open the subnet, select a boundary place, and enable **Component port** in the p
 
 When you instantiate that subnet as a component, each port appears as a handle on the component instance:
 
-- Drag from a transition to a component port to create an output arc into that port.
-- Drag from a component port to a transition to create an input arc from that port.
+- Drag a transition's outgoing handle onto a component port to create an output arc into that port.
+- Drag from a component port onto a transition to create an input arc from that port.
 
-Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+A port arc meets the component at its port rather than at its outline. Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
 
 ## Arc weight
 
@@ -192,6 +184,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 | **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
 The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
+
+When a panel opens or resizes, the canvas glides just far enough to keep the selection in view. Selecting a single item elsewhere, such as in the Entities tree, Search or Diagnostics, brings it into view the same way. Panning or zooming yourself stops the glide.
 
 Hold **Shift** and drag to draw a selection box in either mode. Hold **Cmd** (Ctrl on Windows/Linux) and click a node to add it to the selection, or click a selected node to remove it. A selection box drawn with Cmd held adds the nodes inside it to the selection instead of replacing it. Both work with Shift held as well, whichever key you press first.
 

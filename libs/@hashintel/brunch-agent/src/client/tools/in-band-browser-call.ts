@@ -1,12 +1,18 @@
+import * as v from "valibot";
+
 import {
   agentOwnershipHeaders,
-  browserExecutedToolInputSchemas,
-  browserNetToolNames,
   brunchRoutes,
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
-import type { BrunchFetch } from "../brunch-flue-client";
+import { vBrowserToolResult } from "../../client-tools/browser-tool-result";
+import {
+  browserExecutedTools,
+  browserToolFacts,
+} from "../../petrinaut/browser-executed-tools";
+
+import type { BrunchConnection, BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
 import type {
   BrowserCallClaim,
@@ -40,35 +46,45 @@ export type InBandBrowserCallAdmission = (
 export const BROWSER_CALL_STALE_MESSAGE =
   "The document changed by other means after the agent's last view of the net; the call was not started.";
 
-/** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
-export const createInBandBrowserCalls = (input: {
-  readonly client: Promise<FlueClient>;
-  readonly ownerKey: string;
-  readonly binding: BrowserContext["binding"];
-  readonly metadataFor: (
-    toolCallId: string,
-    output: unknown,
-  ) => ClientToolResultMetadata | undefined;
-  readonly prepareInput: (call: {
-    toolCallId: string;
-    toolName: string;
-    input: unknown;
-  }) => void;
-  readonly admit?: InBandBrowserCallAdmission;
-  /** Whether a change issued against `expected` may still run on the bound document. */
-  readonly acceptsRevision: (expected: string) => boolean;
-  /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
-  readonly fetch?: BrunchFetch;
-}) => {
+/**
+ * The page's side of Brunch's in-band browser calls. A browser tool's call
+ * stays open on the server while the page claims it, runs it and posts its
+ * result to the agent's `browser-calls` routes, so the result reaches the
+ * same model turn that asked for it instead of arriving later as a new
+ * message or signal. The waiting call lives in the memory of the Brunch task
+ * that issued it, so a result that reaches another task, as can happen while
+ * a deploy overlaps old and new tasks, finds no call (FE-2149).
+ */
+export const createInBandBrowserCalls = (
+  input: Pick<BrunchConnection, "actorKey" | "legacyActorHeader" | "fetch"> & {
+    readonly client: Promise<FlueClient>;
+    readonly binding: BrowserContext["binding"];
+    readonly metadataFor: (
+      toolCallId: string,
+      output: unknown,
+    ) => ClientToolResultMetadata | undefined;
+    readonly prepareInput: (call: {
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }) => void;
+    readonly admit: InBandBrowserCallAdmission;
+    /** Whether a change issued against `expected` may still run on the bound document. */
+    readonly acceptsRevision: (expected: string) => boolean;
+  },
+) => {
   const request: BrunchFetch = input.fetch ?? ((url, init) => fetch(url, init));
   const claim = async (call: IssuedCall) => {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
-    const headers = agentOwnershipHeaders({
-      ownerKey: input.ownerKey,
-      conversationId: input.binding.conversationId,
-    });
+    const headers = agentOwnershipHeaders(
+      {
+        actorKey: input.actorKey,
+        conversationId: input.binding.conversationId,
+      },
+      input,
+    );
     const claimSignal = AbortSignal.any([
       call.signal,
       AbortSignal.timeout(6_000),
@@ -98,19 +114,19 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputSchema = browserExecutedToolInputSchemas[call.toolName];
+    const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
     if (
       !issued ||
       issued.toolName !== call.toolName ||
       issued.binding !== canonicalContent(input.binding) ||
-      !inputSchema
+      !inputParser
     )
       throw new Error("Browser call was not issued for this document.");
     // Both sides parse, so ids compare converted whether or not the server
     // that issued the call converts them.
     if (
-      canonicalContent(inputSchema.parse(call.input)) !==
-      canonicalContent(inputSchema.parse(issued.input))
+      canonicalContent(inputParser.parse(call.input)) !==
+      canonicalContent(inputParser.parse(issued.input))
     )
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;
@@ -175,6 +191,10 @@ export const createInBandBrowserCalls = (input: {
         clearInterval(lease);
         if (call.signal.aborted) return;
         const metadata = input.metadataFor(call.toolCallId, output);
+        const result = v.parse(vBrowserToolResult, {
+          output,
+          ...(metadata === undefined ? {} : { metadata }),
+        });
         const response = await request(url, {
           method: "POST",
           headers: { ...headers, "content-type": "application/json" },
@@ -183,8 +203,7 @@ export const createInBandBrowserCalls = (input: {
             binding: claimed.binding,
             toolName: call.toolName,
             canonicalInput: claimed.input,
-            output,
-            ...(metadata === undefined ? {} : { metadata }),
+            ...result,
           } satisfies BrowserCallResultBody),
           signal: call.signal,
         });
@@ -196,7 +215,8 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    has: (toolName: string) => browserNetToolNames.has(toolName),
+    // A tool an interactive card runs, such as the draft, is claimed there.
+    has: (toolName: string) => browserToolFacts(toolName).automatic,
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
@@ -210,7 +230,7 @@ export const createInBandBrowserCalls = (input: {
       let started = false;
       try {
         if (call.signal.aborted) return;
-        const admission = (await input.admit?.(call)) ?? { admitted: true };
+        const admission = await input.admit(call);
         if (!admission.admitted) {
           await issued.submit(admission.output);
           return;

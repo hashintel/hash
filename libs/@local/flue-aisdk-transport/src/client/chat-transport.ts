@@ -205,8 +205,14 @@ const conflictingSubmissionId = (error: FlueApiError): string | null => {
     : null;
 };
 
+/**
+ * Statuses that always mean the message was refused before admission. 413
+ * and 429 come from limits that answer before the request reaches the
+ * agent, a host's or a proxy's alike, so neither can follow an admitted turn.
+ * A 5xx stays ambiguous: a proxy may answer one after the agent admitted it.
+ */
 const documentedPreAdmissionStatuses = new Set([
-  400, 401, 403, 404, 405, 409, 415,
+  400, 401, 403, 404, 405, 409, 413, 415, 429,
 ]);
 
 const admissionError = (

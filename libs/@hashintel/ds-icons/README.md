@@ -164,3 +164,7 @@ Every name also has a named component, such as `SortDownShapesIcon` or
 alphabetical, and numeric exports remain available. Related-icon metadata links
 each opposite and alternative sort family. Sort icons use the same one-time
 hover feedback as the rest of the set; continuous effects remain opt-in.
+
+## Brand artwork
+
+Brand artwork is maintained separately in the private `@hashintel/salt-brands` package. This package contains symbol icons and does not include a brand catalogue or brand assets.

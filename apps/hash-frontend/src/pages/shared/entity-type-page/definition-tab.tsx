@@ -1,3 +1,4 @@
+import { Stack } from "@mui/material";
 import { useMemo } from "react";
 
 import { EntityTypeEditor } from "@hashintel/type-editor";
@@ -6,10 +7,13 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
 import { useNewTypeOwner } from "../shared/use-new-type-owner";
+import { DependentTypes } from "./definition-tab/dependent-types";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
 import type {
+  BaseUrl,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -19,6 +23,8 @@ type DefinitionTabProps = {
     entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
+  entityTypeBaseUrl: BaseUrl | null;
+  latestVersion: OntologyTypeVersion | null;
   onNavigateToType: (
     kind: "entityType" | "dataType",
     url: VersionedUrl,
@@ -28,6 +34,8 @@ type DefinitionTabProps = {
 
 export const DefinitionTab = ({
   entityTypeAndPropertyTypes,
+  entityTypeBaseUrl,
+  latestVersion,
   onNavigateToType,
   readonly,
 }: DefinitionTabProps) => {
@@ -88,18 +96,30 @@ export const DefinitionTab = ({
   }
 
   return (
-    <EntityTypeEditor
-      customization={{ onNavigateToType }}
-      dataTypeOptions={dataTypeOptions}
-      entityType={entityTypeAndPropertyTypes.entityType}
-      entityTypeOptions={entityTypeOptions}
-      entityTypePermissions={
-        entityTypesContext.entityTypePermissions ?? undefined
-      }
+    <Stack
       key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
-      ontologyFunctions={ontologyFunctions}
-      propertyTypeOptions={propertyTypeOptions}
-      readonly={readonly}
-    />
+      spacing={6.5}
+    >
+      <EntityTypeEditor
+        customization={{ onNavigateToType }}
+        dataTypeOptions={dataTypeOptions}
+        entityType={entityTypeAndPropertyTypes.entityType}
+        entityTypeOptions={entityTypeOptions}
+        entityTypePermissions={
+          entityTypesContext.entityTypePermissions ?? undefined
+        }
+        ontologyFunctions={ontologyFunctions}
+        propertyTypeOptions={propertyTypeOptions}
+        readonly={readonly}
+      />
+      <DependentTypes
+        entityType={entityTypeAndPropertyTypes.entityType}
+        entityTypeBaseUrl={entityTypeBaseUrl}
+        latestVersion={latestVersion}
+        onOpenType={(entityTypeId) =>
+          onNavigateToType("entityType", entityTypeId)
+        }
+      />
+    </Stack>
   );
 };

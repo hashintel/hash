@@ -73,7 +73,6 @@ function createMinimalSDCPN(): SDCPN {
         name: "Place1",
         colorId: "type1",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       },

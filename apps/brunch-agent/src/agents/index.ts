@@ -1,5 +1,7 @@
 import { brunchRoutes } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "../env.ts";
+import { HashAgent } from "./hash/agent.ts";
 import { PetrinautAgent } from "./petrinaut/agent.ts";
 
 /** One agent this app serves under `/agents/<route>`. */
@@ -10,6 +12,11 @@ export interface MountedAgent {
   readonly aliases?: readonly string[];
   /** Kept off a production server: comparison candidates are for local runs. */
   readonly devOnly?: boolean;
+  /**
+   * Mounted on a production server only when this environment variable is
+   * `true`, so serving the agent there is a deliberate setting.
+   */
+  readonly productionSwitch?: string;
 }
 
 /**
@@ -23,5 +30,10 @@ export const agents: readonly MountedAgent[] = [
     // The deployed website still calls `/agents/chat`; drop this once its
     // `VITE_BRUNCH_CHAT_ENDPOINT` names `/agents/petrinaut`.
     aliases: ["chat"],
+  },
+  {
+    route: brunchRoutes.hashAgent,
+    agent: HashAgent,
+    productionSwitch: brunchEnv.hashAgentEnabled,
   },
 ];

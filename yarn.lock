@@ -536,7 +536,6 @@ __metadata:
     "@graphql-codegen/typescript-resolvers": "npm:6.1.1"
     "@graphql-tools/schema": "npm:10.1.3"
     "@keyv/redis": "npm:5.1.3"
-    "@linear/sdk": "npm:61.0.0"
     "@local/advanced-types": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/harpc-client": "workspace:*"
@@ -809,7 +808,6 @@ __metadata:
   dependencies:
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@linear/sdk": "npm:61.0.0"
     "@local/eslint": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
     "@local/hash-graph-client": "workspace:*"
@@ -6732,7 +6730,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphql-typed-document-node/core@npm:3.2.0, @graphql-typed-document-node/core@npm:^3.1.0, @graphql-typed-document-node/core@npm:^3.1.1, @graphql-typed-document-node/core@npm:^3.2.0":
+"@graphql-typed-document-node/core@npm:3.2.0, @graphql-typed-document-node/core@npm:^3.1.1, @graphql-typed-document-node/core@npm:^3.2.0":
   version: 3.2.0
   resolution: "@graphql-typed-document-node/core@npm:3.2.0"
   peerDependencies:
@@ -7112,6 +7110,9 @@ __metadata:
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
     "@ark-ui/react": "npm:5.38.1"
+    "@dnd-kit/core": "npm:6.3.1"
+    "@dnd-kit/sortable": "npm:7.0.2"
+    "@dnd-kit/utilities": "npm:3.2.2"
     "@fontsource-variable/inter": "npm:5.2.8"
     "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
@@ -8861,17 +8862,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@linear/sdk@npm:61.0.0":
-  version: 61.0.0
-  resolution: "@linear/sdk@npm:61.0.0"
-  dependencies:
-    "@graphql-typed-document-node/core": "npm:^3.1.0"
-    graphql: "npm:^15.4.0"
-    isomorphic-unfetch: "npm:^3.1.0"
-  checksum: 10c0/f2241c200175e5ae71b8114ef6ba05f5b65f29faa513b05c1c87765e7346d270764077fe6f739c8ae3f48d5495bfafc8066ba4ac4b9df4d5873397501e3ea506
-  languageName: node
-  linkType: hard
-
 "@lit-labs/react@npm:1.2.1":
   version: 1.2.1
   resolution: "@lit-labs/react@npm:1.2.1"
@@ -9281,7 +9271,6 @@ __metadata:
     "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@linear/sdk": "npm:61.0.0"
     "@local/advanced-types": "workspace:*"
     "@local/eslint": "workspace:*"
     "@local/flow-petri-net": "workspace:*"
@@ -27618,13 +27607,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:^15.4.0":
-  version: 15.9.0
-  resolution: "graphql@npm:15.9.0"
-  checksum: 10c0/0e93f7138daae07dcb0713ce5e2ae7f8039e911b6180f0170c4929664ec32ab8e690a9ea12be2dc4ab18544f9898989765122f30d2d07d38b0ce2a4c839d29bc
-  languageName: node
-  linkType: hard
-
 "grpc-js-reflection-client@npm:^1.2.20":
   version: 1.2.21
   resolution: "grpc-js-reflection-client@npm:1.2.21"
@@ -29510,16 +29492,6 @@ __metadata:
   version: 3.0.1
   resolution: "isobject@npm:3.0.1"
   checksum: 10c0/03344f5064a82f099a0cd1a8a407f4c0d20b7b8485e8e816c39f249e9416b06c322e8dec5b842b6bb8a06de0af9cb48e7bc1b5352f0fadc2f0abac033db3d4db
-  languageName: node
-  linkType: hard
-
-"isomorphic-unfetch@npm:^3.1.0":
-  version: 3.1.0
-  resolution: "isomorphic-unfetch@npm:3.1.0"
-  dependencies:
-    node-fetch: "npm:^2.6.1"
-    unfetch: "npm:^4.2.0"
-  checksum: 10c0/d3b61fca06304db692b7f76bdfd3a00f410e42cfa7403c3b250546bf71589d18cf2f355922f57198e4cc4a9872d3647b20397a5c3edf1a347c90d57c83cf2a89
   languageName: node
   linkType: hard
 
@@ -40453,13 +40425,6 @@ __metadata:
   version: 8.12.3
   resolution: "undici@npm:8.12.3"
   checksum: 10c0/714919e62b4160eea195fb35c7f5c4907235741e47bfde8a014ac58f6d24df13434e23400d7f48e2c455fd2b259d27f07fce514f04a5b4e99936ba62cbc4bb71
-  languageName: node
-  linkType: hard
-
-"unfetch@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "unfetch@npm:4.2.0"
-  checksum: 10c0/a5c0a896a6f09f278b868075aea65652ad185db30e827cb7df45826fe5ab850124bf9c44c4dafca4bf0c55a0844b17031e8243467fcc38dd7a7d435007151f1b
   languageName: node
   linkType: hard
 

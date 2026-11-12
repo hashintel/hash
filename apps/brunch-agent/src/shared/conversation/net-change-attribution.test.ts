@@ -43,6 +43,28 @@ const snapshot = {
           typeId: "customer",
           element: { elementId: "age", name: "age", type: "real" },
         }),
+        applied("place", "petrinaut_create_place", {
+          editor_id: "process-editor",
+          id: "queue",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        }),
+        applied("place-moved", "petrinaut_update_place", {
+          editor_id: "process-editor",
+          placeId: "queue",
+          position: { x: 100, y: 200 },
+        }),
+        applied("arc-moved", "petrinaut_update_arc", {
+          editor_id: "process-editor",
+          transitionId: "serve",
+          arcDirection: "input",
+          placeId: "queue",
+          newPlaceId: "buffer",
+          weight: 2,
+        }),
       ],
     },
   ],
@@ -59,6 +81,27 @@ test("a change is attributed by the element kinds its canonical tool targets, no
   expect(attributed("type", "inhibitor")).toEqual([]);
   // A type element belongs to its type.
   expect(attributed("type", "customer")).toEqual(["element"]);
+});
+
+test("a HASH Petrinaut tool's change is attributed by the element kinds its canonical operation targets", () => {
+  expect(attributed("place", toPetrinautId("queue"))).toEqual(["place"]);
+});
+
+const arcAttributed = (placeId: string) =>
+  callsForElement(snapshot, {
+    kind: "arc",
+    id: "arc",
+    arc: {
+      transitionId: toPetrinautId("serve"),
+      arcDirection: "input",
+      placeId: toPetrinautId(placeId),
+    },
+  }).map(({ toolCallId }) => toolCallId);
+
+test("a merged arc update is attributed, through the canonical calls it makes, to the arc it retargeted and reweighted", () => {
+  expect(arcAttributed("buffer")).toEqual(["arc-moved"]);
+  // The arc it moved away from keeps only its own changes.
+  expect(arcAttributed("queue")).toEqual(["arc-kind"]);
 });
 
 test("a change written with the model's own ids is attributed to the converted element the document holds", () => {

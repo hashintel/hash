@@ -61,7 +61,6 @@ const savedDocument = (id: string, lastUpdated: string) => ({
         y: 0,
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
       },
     ],
   },

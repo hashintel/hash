@@ -2,13 +2,13 @@ import { use, useRef, useState } from "react";
 
 import { Button, Icon, NumberInput, Popover } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-
 import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
-  PlaybackContext,
   type PlaybackSpeed,
-} from "../../../../../react/playback/context";
+} from "@hashintel/petrinaut-core";
+
+import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SettingsIcon } from "../../../../experimental-icons";
@@ -167,6 +167,7 @@ export const PlaybackSettingsMenu = ({
 
   const {
     state: simulationState,
+    mode,
     maxTime,
     setMaxTime,
   } = use(SimulationContext);
@@ -178,9 +179,11 @@ export const PlaybackSettingsMenu = ({
     isComputeAvailable,
     setPlaybackSpeed,
     setPlayMode,
-  } = use(PlaybackContext);
+  } = use(EventPlaybackContext);
 
   const hasSimulation = simulationState !== "NotRun";
+  // Many runs are compared at the same times, so they always have an end.
+  const needsEndTime = mode === "stochastic";
 
   // Derive stopping condition from maxTime
   const stoppingCondition: "indefinitely" | "fixed" =
@@ -378,17 +381,20 @@ export const PlaybackSettingsMenu = ({
                         size="sm"
                         className={menuItemStyle({
                           selected: stoppingCondition === "indefinitely",
-                          disabled: hasSimulation,
+                          disabled: hasSimulation || needsEndTime,
                         })}
                         onClick={() =>
                           !hasSimulation &&
+                          !needsEndTime &&
                           handleStoppingConditionChange("indefinitely")
                         }
-                        aria-disabled={hasSimulation}
+                        aria-disabled={hasSimulation || needsEndTime}
                         tooltip={
                           hasSimulation
                             ? "Reset simulation to change stopping conditions"
-                            : undefined
+                            : needsEndTime
+                              ? "A Stochastic simulation needs an end time"
+                              : undefined
                         }
                       >
                         <Icon

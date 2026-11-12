@@ -25,7 +25,6 @@ const foreignStateConstraint = (): Constraint => {
         name: "Queue",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 0,
         y: 0,
       },
@@ -63,6 +62,7 @@ describe("constraintIndicatorSpecs", () => {
         artifact: {
           source: expect.any(String) as string,
           placeNames: ["Infected"],
+          shape: "discrete",
         },
         sampleRuns: "notErrored",
         runOutput: { type: "distribution" },

@@ -452,7 +452,7 @@ jobs:
     name: Linting passed
     needs: [setup, sccache-credentials, package, global]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check setup script
         run: |

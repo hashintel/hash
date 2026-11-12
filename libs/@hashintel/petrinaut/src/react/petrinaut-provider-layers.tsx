@@ -1,10 +1,10 @@
+import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
-import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { ActiveNetProvider } from "./state/active-net-provider";
 import { CanvasViewportProvider } from "./state/canvas-viewport-provider";
@@ -74,12 +74,12 @@ export const PetrinautCanvasProvider: React.FC<
   PetrinautCanvasProviderProps
 > = ({ children, initialPlaybackSpeed }) => (
   <CanvasViewportProvider>
-    <PlaybackProvider initialSpeed={initialPlaybackSpeed}>
+    <EventPlaybackProvider initialSpeed={initialPlaybackSpeed}>
       <ActiveNetProvider>
         <EditorProvider>
           <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
         </EditorProvider>
       </ActiveNetProvider>
-    </PlaybackProvider>
+    </EventPlaybackProvider>
   </CanvasViewportProvider>
 );

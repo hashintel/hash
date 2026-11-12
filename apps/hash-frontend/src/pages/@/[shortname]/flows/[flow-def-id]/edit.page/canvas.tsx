@@ -8,7 +8,6 @@ import {
   ReactFlowProvider,
   useNodesInitialized,
   useReactFlow,
-  useStore,
   useStoreApi,
 } from "@xyflow/react";
 import {
@@ -34,6 +33,7 @@ import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { stepCardSize, stepGap } from "./canvas/sizes";
+import { useSelectedStepInView, useStepFocus } from "./canvas/use-step-focus";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -128,10 +128,7 @@ const FlowCanvas = ({
     fitView,
     getInternalNode,
     getNodes,
-    getViewport,
-    getZoom,
     screenToFlowPosition,
-    setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const store = useStoreApi<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -218,82 +215,9 @@ const FlowCanvas = ({
     setSelectedEdgeIds(new Set());
   }
 
-  /* Retried as nodes appear, until the requested step can be brought into view. */
-  const focusedRequestRef = useRef<typeof focusRequest>(null);
-  useEffect(() => {
-    if (!focusRequest || focusedRequestRef.current === focusRequest) {
-      return;
-    }
+  useStepFocus(focusRequest, coveredRight);
 
-    const node = getInternalNode(getStepNodeId(focusRequest.stepId));
-
-    if (node) {
-      focusedRequestRef.current = focusRequest;
-      const { x, y } = node.internals.positionAbsolute;
-
-      const zoom = getZoom();
-
-      void setCenter(
-        x +
-          (node.measured.width ?? stepCardSize.width) / 2 +
-          coveredRight / 2 / zoom,
-        y + (node.measured.height ?? stepCardSize.height) / 2,
-        { zoom, duration: 300 },
-      );
-    }
-  }, [
-    focusRequest,
-    nodesInitialized,
-    getInternalNode,
-    getZoom,
-    setCenter,
-    coveredRight,
-  ]);
-
-  /* A step selected partly out of view, or under the step panel when it opens, is brought into view. */
-  const paneWidth = useStore((state) => state.width);
-  const paneHeight = useStore((state) => state.height);
-  const soleSelectedStepId =
-    selectedStepIds.length === 1 ? selectedStepIds[0] : undefined;
-  useEffect(() => {
-    const node = soleSelectedStepId
-      ? getInternalNode(getStepNodeId(soleSelectedStepId))
-      : undefined;
-
-    if (!node) {
-      return;
-    }
-
-    const { x, y } = node.internals.positionAbsolute;
-    const width = node.measured.width ?? stepCardSize.width;
-    const height = node.measured.height ?? stepCardSize.height;
-    const viewport = getViewport();
-    const left = x * viewport.zoom + viewport.x;
-    const top = y * viewport.zoom + viewport.y;
-
-    if (
-      left < 0 ||
-      top < 0 ||
-      left + width * viewport.zoom > paneWidth - coveredRight ||
-      top + height * viewport.zoom > paneHeight
-    ) {
-      void setCenter(
-        x + width / 2 + coveredRight / 2 / viewport.zoom,
-        y + height / 2,
-        { zoom: viewport.zoom, duration: 300 },
-      );
-    }
-  }, [
-    soleSelectedStepId,
-    paneWidth,
-    paneHeight,
-    coveredRight,
-    /* A step just added is measured after it's selected. */
-    nodesInitialized,
-    getInternalNode,
-    getViewport,
-    setCenter,
-  ]);
+  useSelectedStepInView(selectedStepIds, coveredRight);
 
   const graph = useMemo(
     () =>
@@ -434,38 +358,40 @@ const FlowCanvas = ({
   /* Kept the same while dragging, as every card and line reads it. */
   const canvasActions = useMemo<CanvasActions>(
     () => ({
-      openAddMenuAfter: (anchor, stepId) => {
-        const node = getInternalNode(
-          stepId === null ? startNodeId : getStepNodeId(stepId),
-        );
+      editing: {
+        openAddMenuAfter: (anchor, stepId) => {
+          const node = getInternalNode(
+            stepId === null ? startNodeId : getStepNodeId(stepId),
+          );
 
-        if (!node) {
-          return;
-        }
+          if (!node) {
+            return;
+          }
 
-        const position = getFreePosition(
-          {
-            x:
-              node.position.x +
-              (node.measured.width ?? stepCardSize.width) +
-              stepGap,
-            y: node.position.y,
-          },
-          getTakenPlaces(),
-        );
+          const position = getFreePosition(
+            {
+              x:
+                node.position.x +
+                (node.measured.width ?? stepCardSize.width) +
+                stepGap,
+              y: node.position.y,
+            },
+            getTakenPlaces(),
+          );
 
-        setAddMenu({
-          anchor: anchor.getBoundingClientRect(),
-          addStep: (actionDefinitionId) =>
-            selectStep(
-              editor.addStep(
-                actionDefinitionId,
-                stepId === null ? { position } : { after: stepId, position },
+          setAddMenu({
+            anchor: anchor.getBoundingClientRect(),
+            addStep: (actionDefinitionId) =>
+              selectStep(
+                editor.addStep(
+                  actionDefinitionId,
+                  stepId === null ? { position } : { after: stepId, position },
+                ),
               ),
-            ),
-        });
+          });
+        },
+        removeConnection: editor.removeConnection,
       },
-      removeConnection: editor.removeConnection,
       toggleCollapsed: onToggleCollapsed,
     }),
     [editor, getInternalNode, getTakenPlaces, selectStep, onToggleCollapsed],
@@ -846,10 +772,12 @@ const FlowCanvas = ({
           <CanvasToolbar
             tool={tool}
             onToolChange={setTool}
-            onAddStep={addStepInView}
-            emptyFlow={emptyFlow}
-            onOrganize={() => {
-              void organize();
+            editing={{
+              onAddStep: addStepInView,
+              emptyFlow,
+              onOrganize: () => {
+                void organize();
+              },
             }}
             fitPadding={fitPadding}
           />
@@ -872,3 +800,5 @@ export const Canvas = (props: CanvasProps) => (
     <FlowCanvas {...props} />
   </ReactFlowProvider>
 );
+
+export { RunCanvas } from "./canvas/run-canvas";

@@ -12,7 +12,6 @@ const placeCell = (id: string): NotebookCell => ({
     name: id,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
   },
@@ -135,7 +134,13 @@ describe("orderCellsTopologically", () => {
       {
         kind: "differentialEquation" as const,
         id: "Decay",
-        equation: { id: "Decay", name: "Decay", colorId: null, code: "" },
+        equation: {
+          id: "Decay",
+          name: "Decay",
+          colorId: null,
+          code: "",
+          arity: 1,
+        },
       },
     ];
 

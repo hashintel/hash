@@ -33,7 +33,6 @@ import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
@@ -43,7 +42,6 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   getHashClientTypeFromRequest,
   getUserAgentFromRequest,
@@ -72,23 +70,15 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
-import {
-  getBrunchAgentOrigin,
-  setupBrunchAgentProxy,
-} from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
-import { linearWebhook } from "./integrations/linear/webhook";
-import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import { clientIpFromHeader } from "./lib/client-ip";
 import {
   CORS_CONFIG,
@@ -813,12 +803,6 @@ const main = async () => {
 
   setupAnalysisHandler(app, keyv);
 
-  setupBrunchAgentProxy(app, {
-    logger,
-    origin: getBrunchAgentOrigin(),
-    publicOrigin: apiOrigin,
-  });
-
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
 
@@ -920,10 +904,6 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
-  app.post("/webhooks/linear", linearWebhook);
-
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
   app.post(
@@ -1014,29 +994,6 @@ const main = async () => {
     //   "Unverified email cleanup job",
     //   unverifiedEmailCleanupJob.stop,
     // );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    if (!vaultClient) {
-      throw new Error(
-        "Vault client is required for realtime sync and was not created (check preceding logs)",
-      );
-    }
-
-    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
-      graphApi,
-      redis,
-      logger,
-      vaultClient,
-    });
-
-    void integrationSyncBackWatcher.start();
-
-    shutdown.addCleanup(
-      "Integration sync back watcher",
-      integrationSyncBackWatcher.stop,
-    );
   }
 };
 

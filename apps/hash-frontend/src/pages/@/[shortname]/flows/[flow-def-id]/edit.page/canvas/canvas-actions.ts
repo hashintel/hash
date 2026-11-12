@@ -3,9 +3,12 @@ import { createContext, use } from "react";
 import type { FlowConnection } from "@local/hash-isomorphic-utils/flows/flow-editor";
 
 export type CanvasActions = {
-  /** `null` adds after Start. */
-  openAddMenuAfter: (anchor: Element, stepId: string | null) => void;
-  removeConnection: (connection: FlowConnection) => void;
+  /** `null` on a canvas that can't be edited, such as a run's. */
+  editing: {
+    /** `null` adds after Start. */
+    openAddMenuAfter: (anchor: Element, stepId: string | null) => void;
+    removeConnection: (connection: FlowConnection) => void;
+  } | null;
   toggleCollapsed: (stepId: string) => void;
 };
 

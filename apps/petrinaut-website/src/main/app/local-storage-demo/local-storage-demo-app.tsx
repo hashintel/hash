@@ -19,7 +19,7 @@ import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import { readAssistantSelection } from "./assistant-selection";
-import { getOrCreateBrunchOwnerKey } from "./brunch-owner-key";
+import { getOrCreateBrunchActorKey } from "./brunch-actor-key";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
@@ -31,13 +31,35 @@ import { useWordsPreference } from "./words-preference";
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
+/** Demo suggestions belong to this website, not every Brunch host. */
+const brunchStarterChips = [
+  {
+    id: "supply-chain",
+    label: "Supply chain",
+    prompt:
+      "Build a supply-chain SDCPN — orders flowing through warehouses, in-transit, and delivered states. Interview me first for more details.",
+  },
+  {
+    id: "epidemic",
+    label: "Epidemic",
+    prompt:
+      "Build an SIR-style epidemic model with susceptible, infected, and recovered places. Interview me first for more details.",
+  },
+  {
+    id: "surprise-me",
+    label: "Surprise me",
+    prompt:
+      "Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).",
+  },
+];
+
 /** Where Brunch's chat is mounted, resolved once per page load. */
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-/** This browser's Brunch owner key, kept in local storage. */
-const brunchOwnerKey = getOrCreateBrunchOwnerKey();
+/** This browser's Brunch actor key, kept in local storage. */
+const brunchActorKey = getOrCreateBrunchActorKey();
 
 /**
  * The editor's plugins, with Petrinaut AI and, once configured, Brunch.
@@ -203,9 +225,14 @@ export const LocalStorageDemoApp = ({
     [currentNetId, brunchEditor],
   );
   const brunch = useBrunchAssistant({
-    ownerKey: brunchOwnerKey,
+    actorKey: brunchActorKey,
+    // The website calls Brunch from the browser, which may reach a Brunch
+    // that predates the actor header. Temporary: drop once the website sends
+    // the actor from its own server-side hop.
+    legacyActorHeader: true,
     chatEndpoint: brunchPreviewConfig.chatEndpoint,
     selected: brunchShown,
+    starterChips: brunchStarterChips,
     openDocument: brunchOpenDocument,
     voice: {
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,

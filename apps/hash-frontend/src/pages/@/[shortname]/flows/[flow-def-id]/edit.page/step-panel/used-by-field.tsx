@@ -1,11 +1,9 @@
-import { upperFirst } from "lodash";
-
-import { Button, Chip, Form, Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Form } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getStepDisplay } from "../shared/step-display";
-import { getStepName } from "./shared/find-step";
-import { getKindIcon, getKindLabel } from "./shared/value-display";
+import { getStepName } from "../shared/find-step";
+import { ValueName } from "../shared/value-name";
+import { StepChips } from "./shared/step-chips";
 
 import type {
   PayloadKind,
@@ -15,12 +13,6 @@ import type {
 /** Steps named in the summary before the rest are counted as "and N more". */
 const namedStepCount = 3;
 
-const nameWithType = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-});
-const typeIcon = css({ display: "flex", color: "fg.subtle" });
 const usedByText = css({ textStyle: "sm", color: "fg.subtle" });
 const usedByValue = css({
   display: "flex",
@@ -34,10 +26,8 @@ const summary = css({
 });
 const chips = css({
   display: "none",
-  flexWrap: "wrap",
-  gap: "1",
-  _groupHover: { display: "flex" },
-  _groupFocusWithin: { display: "flex" },
+  _groupHover: { display: "block" },
+  _groupFocusWithin: { display: "block" },
 });
 
 /*
@@ -62,9 +52,8 @@ const getUsedBySummary = (names: string[]) => {
 };
 
 /**
- * A value a step gives, or a flow input: its name after an icon for its type, with the type on hover, and the steps
- * that use it, named in a line that turns into a chip per step on hover. `shape` is `null` while the type isn't known,
- * e.g. for an output that takes its kind from an input that isn't picked yet.
+ * A value a step gives, or a flow input: its name and type, and the steps that use it, named in a line that turns
+ * into a chip per step on hover.
  *
  * Given `flowOutput`, a star at the end of the row marks or unmarks the value as one of the flow's outputs, which show
  * in its runs' results.
@@ -104,29 +93,7 @@ export const UsedByField = ({
           </span>
         )
       }
-      label={
-        <span className={nameWithType}>
-          <Tooltip
-            position="top"
-            content={
-              shape ? upperFirst(getKindLabel(shape)) : "Type not known yet"
-            }
-          >
-            <span
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable so the type can be read from the keyboard
-              tabIndex={0}
-              className={typeIcon}
-            >
-              <Icon
-                name={shape ? getKindIcon(shape) : "circle"}
-                size="xs"
-                alt={shape ? getKindLabel(shape) : "Type not known yet"}
-              />
-            </span>
-          </Tooltip>
-          {name}
-        </span>
-      }
+      label={<ValueName name={name} shape={shape} />}
     >
       {usedBy.length === 0 ? (
         <span className={usedByText}>Not used yet</span>
@@ -141,15 +108,7 @@ export const UsedByField = ({
             {getUsedBySummary(usedByNames)}
           </span>
           <span className={chips}>
-            {usedBy.map((step) => (
-              <Chip
-                key={step.stepId}
-                size="md"
-                prefix={{ iconName: getStepDisplay(step).icon }}
-              >
-                {getStepName(step)}
-              </Chip>
-            ))}
+            <StepChips steps={usedBy} />
           </span>
         </span>
       )}

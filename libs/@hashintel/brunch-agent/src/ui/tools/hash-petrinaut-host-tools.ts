@@ -1,0 +1,181 @@
+import {
+  hashPetrinautTools,
+  type HashPetrinautToolName,
+  hashProcessEditorId,
+} from "@hashintel/brunch-agent";
+import {
+  arcMatchesEndpoint,
+  petrinautExperimentRequestSchema,
+  placeArcEndpoint,
+  readPetrinautDocToolInputSchema,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
+import { zNetDetail } from "../../hash/petrinaut-tools";
+import {
+  applyPetrinautAiCommand,
+  executePetrinautAiMutation,
+  executeSetNetTitle,
+} from "../chat/ai-assistant-panel";
+import { readUserGuidePage } from "../chat/docs/user-guide";
+import { netReadOutput } from "./brunch-petrinaut-tools";
+
+import type {
+  PetrinautAiAutomaticTool,
+  PetrinautAiAutomaticToolExecuteParams,
+} from "../chat/ai-automatic-tool";
+
+type Output = ReturnType<typeof executePetrinautAiMutation>;
+
+/**
+ * One output for a call's steps: a single step's own; several steps' applied
+ * titles, with what each did; or, when none changed anything, the first
+ * step's no-op.
+ */
+const combinedOutput = (
+  toolName: string,
+  outputs: readonly Output[],
+): Output => {
+  const [first] = outputs;
+  if (first === undefined)
+    return {
+      applied: false,
+      reason: `${toolName} named nothing to change and left the document unchanged.`,
+    };
+  if (outputs.length === 1) return first;
+  const applied = outputs.flatMap((output) => (output.applied ? [output] : []));
+  const [firstApplied] = applied;
+  if (firstApplied === undefined) return first;
+  return {
+    applied: true,
+    title: applied.map(({ title }) => title).join("; "),
+    items: outputs.map((output) =>
+      output.applied ? output.title : output.reason,
+    ),
+    ...(firstApplied.target === undefined
+      ? {}
+      : { target: firstApplied.target }),
+  };
+};
+
+/**
+ * One of HASH's Petrinaut tools as the page runs it: its canonical calls, in
+ * order, on the editor the call names. A refusal, such as a read-only
+ * editor's, stops the call with the refusal as its output; it always comes on
+ * the first call. The server refuses any other editor before issuing the
+ * call; one arriving here fails as an input the tool doesn't accept would.
+ */
+/** Whether `call`'s `updateArcPlace` names an arc that exists on the target net. */
+const sourceArcExists = (
+  definition: SDCPN,
+  call: Extract<
+    ReturnType<
+      (typeof hashPetrinautTools)[HashPetrinautToolName]["parseCall"]
+    >["calls"][number],
+    { toolName: "updateArcPlace" }
+  >,
+): boolean => {
+  const {
+    transitionId,
+    arcDirection,
+    oldPlaceId,
+    oldEndpoint,
+    targetSubnetId,
+  } = call.input;
+  const net = targetSubnetId
+    ? definition.subnets?.find(({ id }) => id === targetSubnetId)
+    : definition;
+  const transition = net?.transitions.find(({ id }) => id === transitionId);
+  if (!transition) return false;
+  const endpoint =
+    oldEndpoint ?? (oldPlaceId ? placeArcEndpoint(oldPlaceId) : null);
+  if (!endpoint) return false;
+  const arcs =
+    arcDirection === "input" ? transition.inputArcs : transition.outputArcs;
+  return arcs.some((arc) => arcMatchesEndpoint(arc, endpoint));
+};
+
+/**
+ * The tools that change no element, each run from the call's input through
+ * the plugin, as the canonical operation it stands for runs.
+ */
+const standIns: Partial<
+  Record<
+    HashPetrinautToolName,
+    (
+      input: Readonly<Record<string, unknown>>,
+      params: PetrinautAiAutomaticToolExecuteParams,
+    ) => unknown
+  >
+> = {
+  petrinaut_get_net: (input, { handle, document }) =>
+    netReadOutput({
+      handle,
+      title: document.title.get(),
+      detail: zNetDetail.parse(input.detail),
+    }),
+  petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
+    readDiagnosticsContext(),
+  // Refused without a title setter or while read-only: the refusal is the output.
+  petrinaut_set_net_title: (input, { document }) =>
+    executeSetNetTitle({ input, document }),
+  // Applied at once: it is one undo step.
+  petrinaut_layout_auto: (_input, { document }) =>
+    applyPetrinautAiCommand({
+      aiToolCall: {
+        toolName: "applyAutoLayout",
+        input: { askUserFirst: false },
+      },
+      applyAutoLayout: document.edit.applyAutoLayout,
+    }),
+  petrinaut_create_experiment: (input, { experiments, signal }) =>
+    experiments.run(petrinautExperimentRequestSchema.parse(input), { signal }),
+  // The page `readPetrinautDoc` reads: Brunch's own for its assistant.
+  petrinaut_read_guide: (input) =>
+    readUserGuidePage(readPetrinautDocToolInputSchema.parse(input).doc),
+};
+
+const hashPetrinautHostTool = (
+  toolName: HashPetrinautToolName,
+): PetrinautAiAutomaticTool => {
+  const { zInput, parseCall } = hashPetrinautTools[toolName];
+  const standIn = standIns[toolName];
+  return {
+    toolName,
+    inputParser: zInput,
+    outputParser: { parse: (value) => value },
+    execute: (params) => {
+      const { input, handle, edit } = params;
+      const { editorId, input: callInput, calls } = parseCall(input);
+      if (editorId !== hashProcessEditorId)
+        throw new Error(`The page shows no editor "${editorId}".`);
+      if (standIn !== undefined) return standIn(callInput, params);
+      const getDefinition = () => {
+        const definition = handle.doc();
+        if (!definition)
+          throw new Error("The bound browser document is unavailable.");
+        return definition;
+      };
+      const outputs: Output[] = [];
+      for (const call of calls) {
+        const missingSourceArc =
+          call.toolName === "updateArcPlace" &&
+          !sourceArcExists(getDefinition(), call);
+        // Refused while the editor is read-only: the refusal is the output.
+        const output = executePetrinautAiMutation({
+          aiToolCall: call,
+          getDefinition,
+          edit,
+        });
+        if ("blocked" in output || missingSourceArc) return output;
+        outputs.push(output);
+      }
+      return combinedOutput(toolName, outputs);
+    },
+  };
+};
+
+/** HASH's Petrinaut tools, for HASH's process page to pass Brunch as host tools. */
+export const hashPetrinautHostTools: readonly PetrinautAiAutomaticTool[] = (
+  Object.keys(hashPetrinautTools) as HashPetrinautToolName[]
+).map(hashPetrinautHostTool);

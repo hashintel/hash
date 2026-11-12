@@ -16,7 +16,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
-import { SimulationContext, type SimulationState } from "../simulation/context";
+import {
+  SimulationContext,
+  type SimulationState,
+  DEFAULT_SIMULATION_CONTEXT,
+} from "../simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -121,38 +125,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     <PetrinautInstanceContext value={instance}>
       <SDCPNContext value={sdcpnContextValue}>
         <SimulationContext
-          value={{
-            state: simulationState,
-            error: null,
-            errorItemId: null,
-            parameterValues: {},
-            initialMarking: {},
-            selectedScenarioId: null,
-            scenarioParameterValues: {},
-            compiledScenarioResult: null,
-            scenarioCompilationErrors: null,
-            adHocScenario: null,
-            adHocNetParameters: [],
-            setAdHocScenario: () => {},
-            dt: 0.01,
-            maxTime: null,
-            totalFrames: 0,
-            getFrame: () => Promise.resolve(null),
-            getAllFrames: () => Promise.resolve([]),
-            getFramesInRange: () => Promise.resolve([]),
-            setSelectedScenarioId: () => {},
-            setScenarioParameterValue: () => {},
-            setInitialMarking: () => {},
-            setParameterValue: () => {},
-            setDt: () => {},
-            setMaxTime: () => {},
-            initialize: () => Promise.resolve(),
-            run: () => {},
-            pause: () => {},
-            reset: () => {},
-            setBackpressure: () => {},
-            ack: () => {},
-          }}
+          value={{ ...DEFAULT_SIMULATION_CONTEXT, state: simulationState }}
         >
           <EditorContext value={editorContextValue(globalMode)}>
             {children}
@@ -176,7 +149,6 @@ const samplePastePayload: ClipboardPayload = {
         name: "Pasted",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 10,
         y: 10,
       },
@@ -266,7 +238,6 @@ describe("usePetrinautCommands", () => {
               name: "P",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },

@@ -2,13 +2,13 @@ import { defineTool } from "@flue/runtime";
 
 import {
   brunchTools,
-  draftPetrinautExperimentInputSchema,
+  zDraftPetrinautExperimentInput,
 } from "@hashintel/brunch-agent";
 
 import {
   browserResultEnvelope,
   type BrowserToolExecutor,
-} from "./petrinaut-construction.ts";
+} from "../conversation/browser-tool-executor.ts";
 
 /**
  * Drafts one experiment for this conversation. The server resolves the
@@ -25,7 +25,7 @@ export const createDraftExperimentTool = (options: {
     name: brunchTools.draftPetrinautExperiment,
     description:
       "Draft one experiment from the latest canonical getLatestNetDefinition read in this conversation. Use saved identifiers from that read. The browser prepares the proposal against the live model and shows it as drafted, not run, with Run and Dismiss; the person starts it. Carry every restriction the request cannot enforce in `unsupported` — the request has no constraints — and never fold one into the objective. Call once per meaningful configuration; a later call supersedes the earlier draft. Do not call this to run an experiment.",
-    input: draftPetrinautExperimentInputSchema,
+    input: zDraftPetrinautExperimentInput,
     async run({ data, toolCallId, signal }) {
       await options.authorizeDraft(toolCallId);
       const result = await options.executeBrowserTool({

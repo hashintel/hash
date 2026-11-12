@@ -10,6 +10,7 @@ import {
 import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import { NotificationsProvider } from "../../../../../../react/notifications/provider";
+import { SimulatorsProvider } from "../../../../../../react/simulators/provider";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../../monaco/provider";
@@ -544,14 +545,16 @@ const RealSweepStory = ({
       <MonacoProvider>
         <NotificationsProvider>
           <UserSettingsProvider>
-            <ExperimentsProvider>
-              <RealSweepSession
-                computeBackend={computeBackend}
-                runCount={runCount}
-                maxTime={maxTime}
-                dt={dt}
-              />
-            </ExperimentsProvider>
+            <SimulatorsProvider>
+              <ExperimentsProvider>
+                <RealSweepSession
+                  computeBackend={computeBackend}
+                  runCount={runCount}
+                  maxTime={maxTime}
+                  dt={dt}
+                />
+              </ExperimentsProvider>
+            </SimulatorsProvider>
           </UserSettingsProvider>
         </NotificationsProvider>
       </MonacoProvider>

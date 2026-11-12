@@ -1,0 +1,115 @@
+import { advanceRun } from "../../monte-carlo/advance-run";
+import { getFrameTime } from "../../monte-carlo/time";
+import {
+  createStepperRunState,
+  firedTransitionIds,
+  positiveNumberParameter,
+} from "./run-stepper";
+
+import type {
+  RunAdvance,
+  RunStepper,
+  RunStepperConfig,
+  StepperParameters,
+} from "./run-stepper";
+
+export const FIXED_STEP_SIMULATOR_ID = "js-fixed-step";
+
+/**
+ * Simulated seconds the fixed-step stepper lets pass without a firing before
+ * it asks for the state to be kept. Its own policy: no caller sets it.
+ */
+const REFERENCE_INTERVAL = 0.1;
+
+/**
+ * Steps an advance takes at most when its caller named no stop. A step far
+ * smaller than `REFERENCE_INTERVAL` puts that many steps between two states
+ * worth keeping, and a caller held in one advance for all of them could
+ * hear nothing else meanwhile.
+ */
+const STEPS_PER_ADVANCE = 10_000;
+
+export type FixedStepStepperParameters = {
+  /** Simulated seconds per step. */
+  dt: number;
+};
+
+export const readFixedStepStepperParameters = (
+  parameters: StepperParameters,
+): FixedStepStepperParameters => ({
+  dt: positiveNumberParameter(FIXED_STEP_SIMULATOR_ID, parameters, "dt"),
+});
+
+/**
+ * Steps one run of the fixed-step engine, the loop experiments run, and
+ * stops where something is worth keeping: a step with at least one firing,
+ * a step that ends a stretch of `REFERENCE_INTERVAL` without one, and the
+ * run's last state.
+ *
+ * The run is one run of a Monte Carlo experiment, so it keeps two frame
+ * buffers whatever the step count, and its seed derives from `seed` and its
+ * index as that experiment's run would.
+ */
+export function createFixedStepStepper(
+  config: RunStepperConfig,
+  { dt }: FixedStepStepperParameters,
+): RunStepper {
+  const run = createStepperRunState(config, dt);
+  const stepsPerReference = Math.max(1, Math.round(REFERENCE_INTERVAL / dt));
+  /** The step whose state was last handed back as worth keeping. */
+  let lastKeptStep = 0;
+
+  const time = () => getFrameTime(run.frameNumber, dt);
+  const advanceOf = (
+    kind: RunAdvance["kind"],
+    fired: readonly string[],
+  ): RunAdvance => {
+    if (kind !== "stopped") {
+      lastKeptStep = run.frameNumber;
+    }
+    return {
+      time: time(),
+      kind,
+      firedTransitionIds: fired,
+      completion: run.completionReason,
+      error: run.error,
+    };
+  };
+
+  return {
+    run,
+    get time() {
+      return time();
+    },
+    advance(stopAt) {
+      const lastStep =
+        stopAt === undefined
+          ? run.frameNumber + STEPS_PER_ADVANCE
+          : Number.POSITIVE_INFINITY;
+      const stopTime = stopAt ?? Number.POSITIVE_INFINITY;
+      // A sliver of slack, so a stop on a multiple of `dt` is reached
+      // whatever the rounding of the product.
+      while (
+        run.frameNumber < lastStep &&
+        getFrameTime(run.frameNumber + 1, dt) <= stopTime + dt * 1e-6
+      ) {
+        if (!advanceRun(run)) {
+          // The run was already over, or the step failed: there is no new
+          // state. The step that ended the run handed its state back.
+          return advanceOf("stopped", []);
+        }
+        const fired = firedTransitionIds(run);
+        if (fired.length > 0) {
+          return advanceOf("firing", fired);
+        }
+        if (
+          run.frameNumber - lastKeptStep >= stepsPerReference ||
+          run.completionReason !== null
+        ) {
+          return advanceOf("reference", []);
+        }
+      }
+      return advanceOf("stopped", []);
+    },
+  };
+}

@@ -1,10 +1,15 @@
+import { Position } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  fixedEndpoint,
   getOutlineArcPath,
   getOutlineAttachment,
   type OutlineNode,
 } from "./outline-arcs";
+
+const numbersOf = (path: string) =>
+  [...path.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 
 const circle: OutlineNode = {
   position: { x: 40, y: 60 },
@@ -92,8 +97,44 @@ describe("outline arc paths", () => {
   });
 
   it("ends an unsnapped preview at the pointer", () => {
-    const [path] = getOutlineArcPath(source, { x: 75, y: 200 });
+    const [path] = getOutlineArcPath(source, fixedEndpoint(75, 200));
     expect(path).toMatch(/ 75,200$/);
+  });
+
+  it("leaves a subnet port along the side its handle sits on", () => {
+    const [path] = getOutlineArcPath(
+      fixedEndpoint(-200, 100, Position.Right),
+      target,
+    );
+    const [, firstX, firstY] =
+      path.match(/^M -200,100 C ([-\d.]+),([-\d.]+) /) ?? [];
+    expect(Number(firstX)).toBeGreaterThan(-200);
+    expect(Number(firstY)).toBe(100);
+  });
+
+  it("arrives at a subnet port from the side its handle sits on", () => {
+    const [path] = getOutlineArcPath(
+      source,
+      fixedEndpoint(300, 100, Position.Left),
+    );
+    const lastControlX = Number(path.match(/ ([-\d.]+),[-\d.]+ 300,100$/)?.[1]);
+    expect(lastControlX).toBeLessThan(300);
+  });
+
+  it("separates arcs into and out of one component at the transition", () => {
+    const transition = { ...circle, width: 160, height: 80, cornerRadius: 0 };
+    const startY = (path: string) => numbersOf(path)[1] ?? Number.NaN;
+    const endY = (path: string) => numbersOf(path).at(-1) ?? Number.NaN;
+    const intoPort = fixedEndpoint(400, 110, Position.Left);
+    const outOfPort = fixedEndpoint(600, 110, Position.Right);
+
+    const [together] = getOutlineArcPath(transition, intoPort);
+    const [back] = getOutlineArcPath(outOfPort, transition);
+    expect(Math.abs(startY(together) - endY(back))).toBeLessThan(10);
+
+    const [into] = getOutlineArcPath(transition, intoPort, true);
+    const [outOf] = getOutlineArcPath(outOfPort, transition, true);
+    expect(Math.abs(startY(into) - endY(outOf))).toBeGreaterThan(30);
   });
 
   it.each([0, 1, 50, 100])(

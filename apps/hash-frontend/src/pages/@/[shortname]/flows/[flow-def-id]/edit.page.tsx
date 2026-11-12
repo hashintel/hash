@@ -2,13 +2,18 @@ import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { generateFlowEditorPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useSnackbar } from "../../../../../components/hooks/use-snackbar";
 import {
   archiveFlowDefinitionMutation,
+  startFlowMutation,
   updateFlowDefinitionMutation,
 } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
@@ -24,8 +29,12 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
-import { StepPanel, stepPanelWidth } from "./edit.page/step-panel";
-import { findStep } from "./edit.page/step-panel/shared/find-step";
+import { LogsView } from "./edit.page/logs-view";
+import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
+import { RunView } from "./edit.page/run-view";
+import { findStep } from "./edit.page/shared/find-step";
+import { sidePanelWidth } from "./edit.page/shared/side-panel";
+import { StepPanel } from "./edit.page/step-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
   FlowChangedElsewhereError,
@@ -36,6 +45,8 @@ import {
 import type {
   ArchiveFlowDefinitionMutation,
   ArchiveFlowDefinitionMutationVariables,
+  StartFlowMutation,
+  StartFlowMutationVariables,
   UpdateFlowDefinitionMutation,
   UpdateFlowDefinitionMutationVariables,
 } from "../../../../../graphql/api-types.gen";
@@ -43,8 +54,13 @@ import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { CanvasHandle } from "./edit.page/canvas";
 import type { StepPanelSubject } from "./edit.page/step-panel";
+import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  FlowDataSources,
+  FlowInputValues,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
@@ -84,6 +100,18 @@ const useCollapsedSidebar = () => {
   }, []);
 };
 
+/**
+ * The API requires data sources to run a flow with an AI action. Nothing in the editor picks files or turns on internet
+ * access, so a run from it has neither.
+ */
+const editorRunDataSources: FlowDataSources = {
+  files: { fileEntityIds: [] },
+  internetAccess: {
+    enabled: false,
+    browserPlugin: { enabled: false, domains: [] },
+  },
+};
+
 const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
   error.graphQLErrors.some(({ extensions }) => extensions.code === "CONFLICT");
@@ -98,10 +126,13 @@ const getRefusalReason = (error: unknown) =>
 
 const FlowEditor = ({
   flowDefinitionEntityId,
+  shortname,
   flow,
   reloadFlow,
 }: {
   flowDefinitionEntityId: EntityId;
+  /** The shortname of the web the flow is in, for the paths of its runs. */
+  shortname: string;
   flow: FlowDefinitionToEdit;
   reloadFlow: () => Promise<FlowDefinitionToEdit | null>;
 }) => {
@@ -112,6 +143,11 @@ const FlowEditor = ({
     UpdateFlowDefinitionMutation,
     UpdateFlowDefinitionMutationVariables
   >(updateFlowDefinitionMutation);
+
+  const [startFlow] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
 
   const [archiveFlowDefinition] = useMutation<
     ArchiveFlowDefinitionMutation,
@@ -164,12 +200,13 @@ const FlowEditor = ({
     },
   });
 
-  const { flowDefinition } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
-  );
+  const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
+  const { flowDefinition } = editorState;
 
-  /* Replacing the editor after a conflict remounts the canvas and clears the selection. */
+  /*
+   * Replacing the editor after a conflict remounts the run form and the canvas, e.g. closing a run form filled in for
+   * the flow as it was, and clears the selection.
+   */
   const [session, setSession] = useState<{
     editor: typeof editor;
     key: number;
@@ -236,6 +273,35 @@ const FlowEditor = ({
       return next;
     });
 
+  /* The web the flow is in, which the editor's path names. */
+  const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
+  const getRunPath = (flowRunEntityId: EntityId) =>
+    generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
+
+  /* A run starts the flow as saved, so the edits not saved yet are saved first. */
+  const runFlow = async (flowInputs: FlowInputValues) => {
+    if (!(await flush())) {
+      throw new Error("Your latest edits couldn't be saved.");
+    }
+
+    const { data } = await startFlow({
+      variables: {
+        flowDefinitionEntityId,
+        flowInputs,
+        webId,
+        dataSources: editorRunDataSources,
+      },
+    });
+
+    if (!data) {
+      throw new Error("The run didn't start.");
+    }
+
+    await router.push(getRunPath(data.startFlow), undefined, {
+      shallow: true,
+    });
+  };
+
   const archiveFlow = async () => {
     /*
      * Saving first, so that no save is made after the flow is archived, which would be refused. Edits the API refused
@@ -263,6 +329,25 @@ const FlowEditor = ({
     return true;
   };
 
+  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
+  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
+  const flowRunEntityId =
+    view === "logs"
+      ? parseRunParam(router.query.run, flowDefinitionEntityId)
+      : null;
+  const showView = (nextView: FlowEditorView) => {
+    const editorPath = generateFlowEditorPath({
+      shortname,
+      flowDefinitionEntityId,
+    });
+
+    void router.push(
+      nextView === "logs" ? `${editorPath}?view=logs` : editorPath,
+      undefined,
+      { shallow: true },
+    );
+  };
+
   const leaveWithoutSaving = () => {
     discardUnsavedEdits();
     void router.push("/flows");
@@ -273,87 +358,115 @@ const FlowEditor = ({
       sx={{ display: "flex", flexDirection: "column", height: editorHeight }}
     >
       <TopBar
-        name={flowDefinition.name}
+        editorKey={session.key}
+        webId={webId}
+        editorState={editorState}
+        flowDefinitionEntityId={flowDefinitionEntityId}
+        view={view}
+        flowRunEntityId={flowRunEntityId}
+        onViewChange={showView}
         onRename={editor.setName}
         saveStatus={status}
-        editsRefused={saveRefusedReason !== null}
+        saveRefusedReason={saveRefusedReason}
         onRetrySave={() => {
           void flush();
         }}
+        onRun={runFlow}
         onArchive={archiveFlow}
         onLeave={leave}
         onLeaveWithoutSaving={leaveWithoutSaving}
       />
-      <div className={editorBody}>
-        <LeftPanel
-          steps={flowDefinition.steps}
-          selectedStepIds={selectedStepIds}
-          onStepClick={(stepId) =>
-            setSession((current) => ({
-              ...current,
-              selectedStepIds: [stepId],
-              startSelected: false,
-              focusRequest: { stepId },
-            }))
-          }
-          collapsedGroupIds={collapsedStepIds}
-          onToggleGroup={toggleCollapsed}
-          onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
-          onAddStep={(actionDefinitionId) =>
-            canvasRef.current?.addStepInView(actionDefinitionId)
-          }
-        />
-        <div className={canvasArea}>
-          {(saveRefusedReason !== null || changedElsewhere) && (
-            <div
-              className={notices}
-              style={panelSubject ? { right: stepPanelWidth + 16 } : undefined}
-            >
-              {saveRefusedReason !== null && (
-                <Banner tone="error">
-                  <Banner.Title>Your latest edits can't be saved</Banner.Title>
-                  <Banner.Description as="div">
-                    {saveRefusedReason.split("\n").map((line) => (
-                      <div key={line}>{line}</div>
-                    ))}
-                  </Banner.Description>
-                </Banner>
-              )}
-              {changedElsewhere && (
-                <Banner
-                  tone="warning"
-                  dismissible={{ onDismiss: dismissChangedElsewhere }}
-                >
-                  <Banner.Title>This flow changed elsewhere</Banner.Title>
-                  <Banner.Description>
-                    It was saved from somewhere else, so it now shows the latest
-                    version. Your latest edits weren't saved.
-                  </Banner.Description>
-                </Banner>
-              )}
-            </div>
-          )}
-          <Canvas
-            key={session.key}
-            ref={canvasRef}
-            editor={editor}
-            selectedStepIds={selectedStepIds}
-            startSelected={startSelected}
-            onSelectionChange={setSelection}
-            focusRequest={focusRequest}
-            collapsedStepIds={collapsedStepIds}
-            onToggleCollapsed={toggleCollapsed}
-            coveredRight={panelSubject ? stepPanelWidth : 0}
+      {view === "logs" ? (
+        flowRunEntityId ? (
+          <RunView
+            key={flowRunEntityId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            currentDefinition={flowDefinition}
+            onBackToLogs={() => showView("logs")}
           />
-          {panelSubject && (
-            <StepPanel
+        ) : (
+          <LogsView
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            getRunPath={getRunPath}
+          />
+        )
+      ) : (
+        <div className={editorBody}>
+          <LeftPanel
+            steps={flowDefinition.steps}
+            selectedStepIds={selectedStepIds}
+            onStepClick={(stepId) =>
+              setSession((current) => ({
+                ...current,
+                selectedStepIds: [stepId],
+                startSelected: false,
+                focusRequest: { stepId },
+              }))
+            }
+            collapsedGroupIds={collapsedStepIds}
+            onToggleGroup={toggleCollapsed}
+            onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
+            onAddStep={(actionDefinitionId) =>
+              canvasRef.current?.addStepInView(actionDefinitionId)
+            }
+          />
+          <div className={canvasArea}>
+            {(saveRefusedReason !== null || changedElsewhere) && (
+              <div
+                className={notices}
+                style={
+                  panelSubject ? { right: sidePanelWidth + 16 } : undefined
+                }
+              >
+                {saveRefusedReason !== null && (
+                  <Banner tone="error">
+                    <Banner.Title>
+                      Your latest edits can't be saved
+                    </Banner.Title>
+                    <Banner.Description as="div">
+                      {saveRefusedReason.split("\n").map((line) => (
+                        <div key={line}>{line}</div>
+                      ))}
+                    </Banner.Description>
+                  </Banner>
+                )}
+                {changedElsewhere && (
+                  <Banner
+                    tone="warning"
+                    dismissible={{ onDismiss: dismissChangedElsewhere }}
+                  >
+                    <Banner.Title>This flow changed elsewhere</Banner.Title>
+                    <Banner.Description>
+                      It was saved from somewhere else, so it now shows the
+                      latest version. Your latest edits weren't saved.
+                    </Banner.Description>
+                  </Banner>
+                )}
+              </div>
+            )}
+            <Canvas
+              key={session.key}
+              ref={canvasRef}
               editor={editor}
-              subject={panelSubject}
-              onSelectStart={() => setSelection({ stepIds: [], start: true })}
+              selectedStepIds={selectedStepIds}
+              startSelected={startSelected}
+              onSelectionChange={setSelection}
+              focusRequest={focusRequest}
+              collapsedStepIds={collapsedStepIds}
+              onToggleCollapsed={toggleCollapsed}
+              coveredRight={panelSubject ? sidePanelWidth : 0}
             />
-          )}
+            {panelSubject && (
+              <StepPanel
+                editor={editor}
+                subject={panelSubject}
+                onSelectStart={() => setSelection({ stepIds: [], start: true })}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </DsComponentsScope>
   );
 };
@@ -373,8 +486,10 @@ const EditorLoading = () => (
 
 const FlowEditorLoader = ({
   flowDefinitionEntityId,
+  shortname,
 }: {
   flowDefinitionEntityId: EntityId;
+  shortname: string;
 }) => {
   const { flow, loading, reload } = useFlowDefinitionToEdit(
     flowDefinitionEntityId,
@@ -388,6 +503,7 @@ const FlowEditorLoader = ({
     return (
       <FlowEditor
         flowDefinitionEntityId={flowDefinitionEntityId}
+        shortname={shortname}
         flow={flow}
         reloadFlow={reload}
       />
@@ -406,7 +522,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
   /* The path has the uuid of the definition's entity, and its shortname names the web the definition is in. */
   const { loading, routeNamespace } = useRouteNamespace();
 
-  if (!routeNamespace) {
+  if (!routeNamespace?.shortname) {
     return loading ? <EditorLoading /> : <NotFound />;
   }
 
@@ -419,6 +535,7 @@ const FlowEditorPage: NextPageWithLayout = () => {
     <FlowEditorLoader
       key={flowDefinitionEntityId}
       flowDefinitionEntityId={flowDefinitionEntityId}
+      shortname={routeNamespace.shortname}
     />
   );
 };

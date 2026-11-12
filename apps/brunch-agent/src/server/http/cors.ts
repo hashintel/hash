@@ -9,18 +9,34 @@ import type { MiddlewareHandler } from "hono";
 const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
-  brunchHeaders.ownerKey,
+  brunchHeaders.actor,
+  // Temporary, as Brunch reads it: until no browser sends the former name.
+  brunchHeaders.legacyPrincipal,
   brunchHeaders.conversation,
 ];
-// No upstream package exports this complete set, so keep the browser-response list local.
-// hash-api's Brunch proxy (`apps/hash-api/src/brunch-agent/setup-brunch-agent-proxy.ts`) mirrors it by hand.
+/**
+ * The HASH route's request headers. Its client still sends the actor header,
+ * which the route ignores; no HASH client sends the former name.
+ */
+const HASH_CORS_REQUEST_HEADERS = [
+  "Content-Type",
+  brunchHeaders.actor,
+  brunchHeaders.conversation,
+];
+/**
+ * Response headers a cross-origin browser must be able to read: the
+ * durable-streams client reads its next offset, cursor and up-to-date state
+ * from the `stream-*` headers, and a conversation's admission names its
+ * instance in `location`.
+ */
 const AGENT_CORS_RESPONSE_HEADERS = [
-  "flue-error-ref",
-  "Stream-Next-Offset",
-  "Stream-Cursor",
-  "Stream-Up-To-Date",
-  "Stream-Closed",
+  "location",
+  "stream-next-offset",
+  "stream-cursor",
+  "stream-up-to-date",
+  "stream-closed",
   "stream-sse-data-encoding",
+  "flue-error-ref",
 ];
 // Enforce exact lexical origins before WHATWG URL parsing normalizes forgiving separator forms.
 const exactHttpOriginPattern =
@@ -29,12 +45,28 @@ const exactHttpOriginPattern =
 // One wildcard label in front of a domain with at least two labels: `*.stage.hash.ai`, never `*.ai`.
 const wildcardHostPattern = /^\*\.[^.*]+(?:\.[^.*]+)+$/u;
 
-const invalidOriginConfiguration = (): Error =>
+type OriginListOptions = {
+  /** The variable the list comes from, named in configuration errors. */
+  readonly variable: string;
+  /** Whether an entry may be a one-label wildcard. */
+  readonly wildcards: boolean;
+};
+
+const invalidConfiguration = ({
+  variable,
+  wildcards,
+}: OriginListOptions): Error =>
   new Error(
-    `${brunchEnv.corsAllowedOrigins} must contain only comma-separated exact HTTP(S) origins, optionally with one leading wildcard label such as https://*.example.com`,
+    wildcards
+      ? `${variable} must contain only comma-separated exact HTTP(S) origins, optionally with one leading wildcard label such as https://*.example.com`
+      : `${variable} must contain only comma-separated exact HTTP(S) origins`,
   );
 
-const normalizeCorsOrigin = (value: string): string => {
+const normalizeCorsOrigin = (
+  value: string,
+  options: OriginListOptions,
+): string => {
+  const invalidOriginConfiguration = () => invalidConfiguration(options);
   if (!exactHttpOriginPattern.test(value)) {
     throw invalidOriginConfiguration();
   }
@@ -58,7 +90,10 @@ const normalizeCorsOrigin = (value: string): string => {
     throw invalidOriginConfiguration();
   }
 
-  if (url.hostname.includes("*") && !wildcardHostPattern.test(url.hostname)) {
+  if (
+    url.hostname.includes("*") &&
+    (!options.wildcards || !wildcardHostPattern.test(url.hostname))
+  ) {
     throw invalidOriginConfiguration();
   }
 
@@ -101,8 +136,16 @@ const isAllowedOrigin = (
   });
 };
 
+/**
+ * `BRUNCH_CORS_ALLOWED_ORIGINS` by default; pass the HASH route's variable and
+ * `wildcards: false` for its list.
+ */
 export const parseCorsAllowedOrigins = (
   value: string | undefined,
+  options: OriginListOptions = {
+    variable: brunchEnv.corsAllowedOrigins,
+    wildcards: true,
+  },
 ): string[] => {
   if (value === undefined || value.trim() === "") {
     return [];
@@ -110,21 +153,39 @@ export const parseCorsAllowedOrigins = (
 
   const entries = value.split(",").map((entry) => entry.trim());
   if (entries.some((entry) => entry.length === 0)) {
-    throw invalidOriginConfiguration();
+    throw invalidConfiguration(options);
   }
 
-  return [...new Set(entries.map(normalizeCorsOrigin))];
+  return [
+    ...new Set(entries.map((entry) => normalizeCorsOrigin(entry, options))),
+  ];
 };
 
+/**
+ * CORS for one agent's routes. With `sessionCredentials`, for the HASH route
+ * alone: the allowed origins may send the user's HASH session cookie and read
+ * the answers to it, so that list holds HASH's exact origins and nothing else.
+ * Every request under the agent's mount but the identity route must carry
+ * the conversation header, so a page on another origin, even one the
+ * cookie's domain covers, is stopped at the preflight before Brunch acts on
+ * it. The identity route needs no header but changes nothing, and CORS keeps
+ * its answer from such a page.
+ */
 export const createAgentCors = (
   allowedOrigins: readonly string[],
+  {
+    sessionCredentials = false,
+  }: { readonly sessionCredentials?: boolean } = {},
 ): MiddlewareHandler => {
   const honoCors = cors({
     origin: (origin) =>
       isAllowedOrigin(allowedOrigins, origin) ? origin : null,
     allowMethods: AGENT_CORS_METHODS,
-    allowHeaders: AGENT_CORS_REQUEST_HEADERS,
+    allowHeaders: sessionCredentials
+      ? HASH_CORS_REQUEST_HEADERS
+      : AGENT_CORS_REQUEST_HEADERS,
     exposeHeaders: AGENT_CORS_RESPONSE_HEADERS,
+    credentials: sessionCredentials,
     maxAge: 600,
   });
 

@@ -3,6 +3,7 @@ import {
   CancellationScope,
   isCancellation,
   proxyActivities,
+  sleep,
   TemporalFailure,
   upsertMemo,
   workflowInfo,
@@ -25,7 +26,6 @@ import {
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
-import { sleep } from "../utils.js";
 import { getActionActivityOptions } from "./action-activity-options.js";
 import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";

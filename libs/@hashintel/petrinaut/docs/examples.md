@@ -61,7 +61,7 @@ A small service system: customers arrive, wait, are served by a limited staff po
 
 **Demonstrates:**
 
-- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
+- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the WebGPU simulator runs it as shipped.
 - Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
 - A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
 
@@ -200,3 +200,34 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
 <img width="1106" height="320" alt="probabilistic-satellites" src="https://github.com/user-attachments/assets/e696a4f7-f61a-4b8b-9b34-1598a7190376" />
+
+## Satellites with Attraction
+
+The [Probabilistic Satellite Launcher](#probabilistic-satellite-launcher) with one change: the satellites pull on each other. The Space place composes two equations, and the constellation drifts as every pair attracts.
+
+**Demonstrates:**
+
+- **An equation over two tokens** -- _Mutual Attraction_ couples every pair of satellites: `const [a, b] = tokens;` and an array of two derivative objects, one per satellite, so the pull is symmetric. The `attraction_constant` parameter sets its strength.
+- **Composed dynamics** -- the Space place lists the one-token orbit equation and the attraction after it; their derivatives are summed every step. See [composing equations](petri-net-extensions.md#composing-equations).
+- Everything else -- launches, collisions, crashes, the visualizer, the metrics and the five scenarios -- is the launcher's.
+
+**Suggested initial state:** pick **Pre-deployed Constellation** and press Play: the ring starts in circular orbits and the attraction draws neighbours together until pairs collide. Raise `attraction_constant` to see it sooner, or lower it toward 0 to recover the launcher's orbits. This net runs on the CPU: the GPU backend does not integrate composed dynamics.
+
+**Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [visualizers](petri-net-extensions.md#visualizer), [scenarios](scenarios.md).
+
+## Planets and Satellites
+
+An n-body gravity simulation. A sun, planets of different masses and sizes, a moon and satellites are all tokens of one **Body** type in one **Space** place, and every body pulls on every other.
+
+**Demonstrates:**
+
+- **Two composed equations** -- _Motion_ couples one token and moves each body by its velocity; _Gravity_ couples two tokens and is Newton's law for the pair, `G · m / d²` toward each other, softened so a near miss stays finite. The simulator applies Gravity to every pair of bodies and sums, so the planets perturb each other and the moon follows its planet. See [composing equations](petri-net-extensions.md#composing-equations).
+- **Units that make the numbers meaningful** -- distances are canvas units, masses arbitrary units, and `gravitational_constant` scales the speeds: a circular orbit at distance `r` around mass `M` has speed `√(G · M / r)`, which the scenario and the launch kernel both use.
+- **Merging on contact** -- "Merge" consumes two bodies whose surfaces touch (arc weight 2) and produces one with their combined mass, the mass-weighted position, the momentum-conserving velocity and the volume-conserving radius (`∛(r₁³ + r₂³)`). The **Total mass** metric stays flat through merges while **Heaviest body** steps up.
+- **A read arc that picks a planet** -- "Launch" reads one body without consuming it and fires at `launch_rate` only for a body at least `planet_mass_threshold` heavy and lighter than `star_mass_threshold`; its kernel places a satellite at `launch_altitude` above the planet, in a random direction, at the circular-orbit speed on top of the planet's own velocity.
+- **Scenario variables doing the physics** -- _Sun, Two Planets and a Moon_ computes every orbital speed from `gravitational_constant` in the [ad-hoc scenario form](ad-hoc-scenarios.md)'s place variables, and gives the sun the recoil that keeps the system's total momentum at zero.
+- **A visualizer at scale** -- bodies are drawn at their radius, coloured as star, planet or satellite by mass, with a heading tick on the small ones.
+
+**Suggested initial state:** pick **Sun, Two Planets and a Moon**, set the playback speed to 10x or faster and press Play; select Space and open its visualizer to watch the planets circle the sun while the moon circles its planet and satellites appear. The orbits are slow in simulated time on purpose: the simulator integrates with a fixed step, and an orbit that turns through much more than a fraction of a degree per step spirals out. Even so the moon, on the fastest orbit, drifts off its planet after a few planet years; lower the time step for long runs. Raise `launch_rate` to crowd the orbits until satellites merge into each other or fall into a planet; lower `gravitational_constant` to loosen every orbit at once. This net runs on the CPU: the GPU backend takes one equation over one token per place.
+
+**Key concepts:** [equations over several tokens](petri-net-extensions.md#equations-over-several-tokens), [composing equations](petri-net-extensions.md#composing-equations), [read arcs](petri-net-extensions.md#read-arcs), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md), [visualizers](petri-net-extensions.md#visualizer).

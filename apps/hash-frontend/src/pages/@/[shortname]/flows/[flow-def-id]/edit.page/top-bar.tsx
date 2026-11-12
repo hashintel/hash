@@ -1,19 +1,28 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import {
+  BreadCrumbs,
   Button,
   Chip,
   Dialog,
   EllipsisMenu,
-  TextInput,
+  SegmentedControl,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
+import { RenameInput } from "./shared/rename-input";
+import { getShortRunId, shortRunIdFont } from "./shared/run-id";
+import { RunActions } from "./top-bar/run-actions";
+import { RunFlow } from "./top-bar/run-flow";
 
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const topBar = css({
+  position: "relative",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -31,8 +40,15 @@ const titleGroup = css({
   alignItems: "center",
   gap: "2",
   minWidth: "0",
+  /* Stops short of the view switch, which is centred over the bar. */
+  maxWidth: "[calc(50% - 5rem)]",
 });
-const flowName = css({ fontWeight: "medium", minWidth: "0" });
+const viewSwitch = css({
+  position: "absolute",
+  top: "[50%]",
+  left: "[50%]",
+  transform: "[translate(-50%, -50%)]",
+});
 const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
@@ -68,65 +84,6 @@ const SaveStatus = ({
         </Chip>
       );
   }
-};
-
-/**
- * The flow's name, editable when clicked. Escape, or leaving it blank or unchanged, keeps the name the flow has, which
- * a reload after a conflict may have changed meanwhile.
- */
-const FlowName = ({
-  name,
-  onRename,
-}: {
-  name: string;
-  onRename: (name: string) => void;
-}) => {
-  const [editing, setEditing] = useState<{
-    from: string;
-    typed: string;
-  } | null>(null);
-  const cancelledRef = useRef(false);
-
-  return (
-    <TextInput
-      variant="subtle"
-      size="sm"
-      width="fitContent"
-      showEditIcon
-      aria-label="Flow name"
-      placeholder="Untitled flow"
-      className={flowName}
-      value={editing?.typed ?? name}
-      onFocus={() => setEditing({ from: name, typed: name })}
-      onChange={(typed) =>
-        setEditing((current) => current && { ...current, typed })
-      }
-      onKeyDown={(event) => {
-        if (
-          (event.key !== "Enter" && event.key !== "Escape") ||
-          event.nativeEvent.isComposing
-        ) {
-          return;
-        }
-
-        cancelledRef.current = event.key === "Escape";
-
-        if (event.currentTarget instanceof HTMLElement) {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const renamed = editing?.typed.trim();
-
-        if (!cancelledRef.current && renamed && renamed !== editing?.from) {
-          onRename(renamed);
-        }
-
-        cancelledRef.current = false;
-        setEditing(null);
-      }}
-    />
-  );
 };
 
 const ArchiveFlowDialog = ({
@@ -220,25 +177,54 @@ const LeaveFlowDialog = ({
   </Dialog>
 );
 
+/** Whether the editor shows the flow, to edit it, or its runs. */
+export type FlowEditorView = "editor" | "logs";
+
 /**
- * The flow editor's top bar: back to the flows page, the flow's name, whether its edits are saved, and its menu.
+ * The flow editor's top bar: back to the flows page, the flow's name, the switch between editing the flow and its
+ * runs, whether its edits are saved, Run, and its menu. Showing a run, it names the run after the flow, with the way
+ * back to the flow's runs between them, and has Stop or Re-run for it in place of Run.
  */
 export const TopBar = ({
-  name,
+  editorKey,
+  webId,
+  editorState,
+  flowDefinitionEntityId,
+  view,
+  flowRunEntityId,
+  onViewChange,
   onRename,
   saveStatus,
-  editsRefused,
+  saveRefusedReason,
   onRetrySave,
+  onRun,
   onArchive,
   onLeave,
   onLeaveWithoutSaving,
 }: {
-  name: string;
+  /**
+   * Changes when the flow is reloaded after changing elsewhere, closing a run form filled in for the flow as it was.
+   * The rest of the bar keeps its state, e.g. the leave confirmation for a leave that the reload interrupted.
+   */
+  editorKey: number;
+  /** The web the flow is in. */
+  webId: WebId;
+  editorState: FlowEditorState;
+  flowDefinitionEntityId: EntityId;
+  view: FlowEditorView;
+  /** The run shown, in the Logs view. */
+  flowRunEntityId: EntityId | null;
+  onViewChange: (view: FlowEditorView) => void;
   onRename: (name: string) => void;
   saveStatus: FlowSaveStatus;
-  /** Whether the API refused the latest edits. */
-  editsRefused: boolean;
+  /** Why the API refused the latest edits, if it did. */
+  saveRefusedReason: string | null;
   onRetrySave: () => void;
+  /**
+   * Saves any edits not saved yet, then starts a run with these inputs and opens it. Throws, saying why, if the edits
+   * couldn't be saved or the run didn't start.
+   */
+  onRun: (flowInputs: FlowInputValues) => Promise<void>;
   /** Archives the flow and leaves the editor. */
   onArchive: () => Promise<void>;
   /**
@@ -249,6 +235,7 @@ export const TopBar = ({
   /** Leaves the editor for the flows page, dropping any edits not saved yet. */
   onLeaveWithoutSaving: () => void;
 }) => {
+  const { name } = editorState.flowDefinition;
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -267,6 +254,15 @@ export const TopBar = ({
     }
   };
 
+  const renameInput = (
+    <RenameInput
+      value={name}
+      placeholder="Untitled flow"
+      ariaLabel="Flow name"
+      onRename={onRename}
+    />
+  );
+
   return (
     <div className={topBar}>
       <div className={titleGroup}>
@@ -280,10 +276,56 @@ export const TopBar = ({
             void leave();
           }}
         />
-        <FlowName name={name} onRename={onRename} />
+        {flowRunEntityId ? (
+          <BreadCrumbs size="sm">
+            {renameInput}
+            {/* Never collapsed: it's the way back to the runs. */}
+            <BreadCrumbs.Item noCollapse onClick={() => onViewChange("logs")}>
+              Runs
+            </BreadCrumbs.Item>
+            <BreadCrumbs.Item noCollapse>
+              <span className={shortRunIdFont}>
+                {getShortRunId(flowRunEntityId)}
+              </span>
+            </BreadCrumbs.Item>
+          </BreadCrumbs>
+        ) : (
+          renameInput
+        )}
+      </div>
+      <div className={viewSwitch}>
+        <SegmentedControl<FlowEditorView>
+          size="sm"
+          aria-label="Flow view"
+          items={[
+            { value: "editor", label: "Editor" },
+            { value: "logs", label: "Logs" },
+          ]}
+          value={view}
+          onChange={onViewChange}
+        />
       </div>
       <div className={barGroup}>
         <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        {flowRunEntityId ? (
+          <RunActions
+            key={`${editorKey}:${flowRunEntityId}`}
+            webId={webId}
+            flowRunEntityId={flowRunEntityId}
+            flowDefinitionEntityId={flowDefinitionEntityId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        ) : (
+          <RunFlow
+            key={editorKey}
+            webId={webId}
+            editorState={editorState}
+            saveRefusedReason={saveRefusedReason}
+            onRun={onRun}
+          />
+        )}
         <EllipsisMenu
           iconName="ellipsisVertical"
           size="md"
@@ -302,7 +344,7 @@ export const TopBar = ({
           name={name}
           onArchive={onArchive}
           onClose={() => setArchiveDialogOpen(false)}
-          editsRefused={editsRefused}
+          editsRefused={saveRefusedReason !== null}
         />
       )}
       {leaveDialogOpen && (

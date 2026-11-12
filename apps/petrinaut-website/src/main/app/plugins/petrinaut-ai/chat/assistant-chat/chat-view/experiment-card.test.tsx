@@ -193,6 +193,7 @@ it("opens only the matching record on explicit request, preferring the tool resu
     metricSpecs: [],
     computeBackend: "cpu",
     computeBackendFallbackReason: null,
+    simulatorLabel: null,
     startedAt: 0,
     finishedAt: 1,
     progress: null,

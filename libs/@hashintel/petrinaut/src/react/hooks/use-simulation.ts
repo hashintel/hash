@@ -5,6 +5,7 @@ import {
   type SimulationContextValue,
   type SimulationState,
 } from "../simulation/context";
+import { useStore } from "../use-store";
 
 import type {
   SimulationFrameReader,
@@ -19,14 +20,15 @@ export function useSimulationStatus(): SimulationState {
   return use(SimulationContext).state;
 }
 
-/** Total number of computed frames available right now. */
+/** Number of frames available right now: the events the run has recorded. */
 export function useSimulationFrameCount(): number {
-  return use(SimulationContext).totalFrames;
+  return useStore(use(SimulationContext).totalFramesStore);
 }
 
 /**
- * Async access to a specific frame reader by index. Resolves to `null` when
- * the index is out of range or no simulation exists.
+ * Async access to a specific frame reader by index: the state the run
+ * recorded at that event. Resolves to `null` when the index is out of range
+ * or no simulation exists.
  */
 export function useGetSimulationFrameReader(): (
   index: number,
@@ -41,8 +43,6 @@ export type SimulationActionsBundle = {
   run: SimulationContextValue["run"];
   pause: SimulationContextValue["pause"];
   reset: SimulationContextValue["reset"];
-  ack: SimulationContextValue["ack"];
-  setBackpressure: SimulationContextValue["setBackpressure"];
 };
 
 /** Bundle of simulation control actions. */
@@ -53,27 +53,28 @@ export function useSimulationActions(): SimulationActionsBundle {
     run: ctx.run,
     pause: ctx.pause,
     reset: ctx.reset,
-    ack: ctx.ack,
-    setBackpressure: ctx.setBackpressure,
   };
 }
 
 /**
  * The current simulation parameters as the user has configured them.
- * Includes scenario-overridden values when a scenario is selected.
+ * Includes scenario-overridden values when a scenario is selected. A time
+ * step, where the selected simulator has one, is among the simulator's own
+ * parameters.
  */
 export function useSimulationParameters(): {
   parameterValues: Record<string, string>;
   initialMarking: SimulationContextValue["initialMarking"];
-  dt: number;
   maxTime: number | null;
+  /** The simulator the next run is computed by, with its parameter values. */
+  simulator: SimulationContextValue["simulatorSelection"];
 } {
   const ctx = use(SimulationContext);
   return {
     parameterValues: ctx.parameterValues,
     initialMarking: ctx.initialMarking,
-    dt: ctx.dt,
     maxTime: ctx.maxTime,
+    simulator: ctx.simulatorSelection,
   };
 }
 

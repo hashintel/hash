@@ -2,7 +2,7 @@ import { BookIcon } from "@storybook/icons";
 // Default import + React.useState: the manager bundle compiles JSX with the
 // classic transform, so React must be in scope (and read, for tsc).
 import React from "react";
-import { IconButton } from "storybook/internal/components";
+import { ToggleButton } from "storybook/internal/components";
 import { GLOBALS_UPDATED, SET_GLOBALS } from "storybook/internal/core-events";
 import { addons, types, type API } from "storybook/manager-api";
 import { create } from "storybook/theming/create";
@@ -28,10 +28,12 @@ const DocsModeTool = ({ api }: { api: API }) => {
   const [enabled, setEnabled] = React.useState(isDocsModeEnabled);
 
   return (
-    <IconButton
+    <ToggleButton
       key="docs-mode"
-      title={enabled ? "Switch to story mode" : "Switch to docs mode"}
-      active={enabled}
+      pressed={enabled}
+      variant="ghost"
+      padding="small"
+      ariaLabel={enabled ? "Switch to story mode" : "Switch to docs mode"}
       onClick={() => {
         const next = !enabled;
         globalThis.localStorage.setItem(docsModeStorageKey, String(next));
@@ -40,7 +42,7 @@ const DocsModeTool = ({ api }: { api: API }) => {
       }}
     >
       <BookIcon />
-    </IconButton>
+    </ToggleButton>
   );
 };
 
@@ -86,7 +88,9 @@ addons.register("hash/manager-theme", (api) => {
 
 addons.setConfig({
   theme: managerThemes.light,
-  panelPosition: window.matchMedia("(min-width: 1401px)").matches
-    ? "right"
-    : "bottom",
+  layout: {
+    panelPosition: window.matchMedia("(min-width: 1401px)").matches
+      ? "right"
+      : "bottom",
+  },
 });

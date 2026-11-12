@@ -1,7 +1,11 @@
 import { Fragment, useRef, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { getDocumentUri } from "@hashintel/petrinaut-core";
+import {
+  getDocumentUri,
+  getPlaceDynamicsEquationIds,
+  placeUsesDifferentialEquation,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -612,11 +616,16 @@ const typeName = (net: ActiveNetDefinition, colorId: string | null): string => {
 
 const placeSummary = (net: ActiveNetDefinition, place: Place): string => {
   const parts = [typeName(net, place.colorId)];
-  if (place.dynamicsEnabled && place.differentialEquationId !== null) {
-    const equation = net.differentialEquations.find(
-      ({ id }) => id === place.differentialEquationId,
+  const equationIds = place.dynamicsEnabled
+    ? getPlaceDynamicsEquationIds(place)
+    : [];
+  if (equationIds.length > 0) {
+    const names = equationIds.map(
+      (equationId) =>
+        net.differentialEquations.find(({ id }) => id === equationId)?.name ??
+        equationId,
     );
-    parts.push(`d/dt: ${equation?.name ?? place.differentialEquationId}`);
+    parts.push(`d/dt: ${names.join(" + ")}`);
   }
   if (place.isPort) {
     parts.push("port");
@@ -651,8 +660,8 @@ const equationSummary = (
   net: ActiveNetDefinition,
   equation: DifferentialEquation,
 ): string => {
-  const places = net.places.filter(
-    ({ differentialEquationId }) => differentialEquationId === equation.id,
+  const places = net.places.filter((place) =>
+    placeUsesDifferentialEquation(place, equation.id),
   );
   return `${typeName(net, equation.colorId)} · ${places.length} place${places.length === 1 ? "" : "s"}`;
 };
@@ -701,10 +710,11 @@ const PlaceBody: React.FC<{
       label: color.name || color.id,
     })),
   ];
-  const equationOptions = net.differentialEquations.map((equation) => ({
-    value: equation.id,
-    label: equation.name || equation.id,
-  }));
+  const composedEquationNames = getPlaceDynamicsEquationIds(place).map(
+    (equationId) =>
+      net.differentialEquations.find(({ id }) => id === equationId)?.name ??
+      equationId,
+  );
 
   return (
     <>
@@ -749,27 +759,10 @@ const PlaceBody: React.FC<{
             />
           </WidgetCell>
           {place.dynamicsEnabled ? (
-            equationOptions.length > 0 ? (
-              <WidgetCell parts={parts} partId="dynamics" column={1}>
-                <PartSelect
-                  aria-label="Differential equation"
-                  value={place.differentialEquationId ?? ""}
-                  options={[
-                    { value: "", label: "no equation" },
-                    ...equationOptions,
-                  ]}
-                  onChange={(value) =>
-                    updatePlace({
-                      placeId: place.id,
-                      update: {
-                        differentialEquationId: value === "" ? null : value,
-                      },
-                    })
-                  }
-                />
-              </WidgetCell>
+            composedEquationNames.length > 0 ? (
+              <span>{composedEquationNames.join(" + ")}</span>
             ) : (
-              <span className={mutedStyle}>no equations in the net</span>
+              <span className={mutedStyle}>no equations composed</span>
             )
           ) : (
             <span className={mutedStyle}>disabled</span>

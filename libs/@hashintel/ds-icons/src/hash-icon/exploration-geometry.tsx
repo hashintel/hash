@@ -1,6 +1,14 @@
 import { FilledShape } from "./filled-shape";
 
 const matrixBrackets = <path d="M6 3H3v18h3M18 3h3v18h-3" />;
+const testTube = (
+  <>
+    <FilledShape cutout={<path data-icon-detail="liquid-level" d="M6 12h5" />}>
+      <path d="M11 5 3.5 12.5a4.2 4.2 0 0 0 6 6L17 11" />
+    </FilledShape>
+    <path d="m9 3 9 9" />
+  </>
+);
 
 export const explorationGeometry = {
   sum: <path data-icon-detail="notation" d="M19 4H5l8 8-8 8h14" />,
@@ -133,15 +141,17 @@ export const explorationGeometry = {
       </>
     </FilledShape>
   ),
-  testTube: (
+  testTube: <g transform="translate(1.5 0)">{testTube}</g>,
+  testTubeCheck: (
     <>
-      <FilledShape
-        cutout={<path data-icon-detail="liquid-level" d="M6 12h5" />}
-      >
-        <path d="M11 5 3.5 12.5a4.2 4.2 0 0 0 6 6L17 11" />
-      </FilledShape>
-      <path d="m9 3 9 9" />
-      <path data-icon-detail="test-result" d="m14 18 2 2 5-5" />
+      {testTube}
+      <path data-icon-detail="test-result" d="m14 18 2 2 5-5" fill="none" />
+    </>
+  ),
+  testTubeCross: (
+    <>
+      {testTube}
+      <path data-icon-detail="test-result" d="m15 15 5 5m0-5-5 5" fill="none" />
     </>
   ),
   testCheck: (
