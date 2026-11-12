@@ -51,6 +51,19 @@ const forms = [
   [SymbolFlags.TypeAlias, Types.alias],
 ] as const;
 
+/** The quick info of what `subject` names where it stands, or none for a symbol that quick info has no line for. */
+export const fromSubject = Effect.fnUntraced(function* (
+  subject: Subject.Subject,
+) {
+  const described = yield* Effect.forEach(
+    Array.filter(forms, ([flags]) => Subject.shows(subject, flags)),
+    ([, describe]) => describe(subject),
+  );
+  const lines: readonly Line[] = Array.flatten(described);
+
+  return Option.liftPredicate(lines, Array.isReadonlyArrayNonEmpty);
+});
+
 /**
  * The quick info of `name`, which the compiler resolves to `found`, or none for a name that has none, such as one the program cannot resolve.
  *
@@ -82,15 +95,7 @@ export const of: {
       return Option.none<QuickInfo>();
     }
 
-    const lines = yield* Effect.forEach(
-      Array.filter(forms, ([flags]) => Subject.shows(subject.value, flags)),
-      ([, describe]) => describe(subject.value),
-    );
-
-    return Option.liftPredicate(
-      Array.flatten(lines),
-      Array.isReadonlyArrayNonEmpty,
-    );
+    return yield* fromSubject(subject.value);
   }),
 );
 
