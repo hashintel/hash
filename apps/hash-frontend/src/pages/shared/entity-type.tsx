@@ -104,6 +104,7 @@ const TypeDefinition = ({
         entityTypeAndPropertyTypes ? (
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+            entityTypeBaseUrl={entityTypeBaseUrl}
             onNavigateToType={onNavigateToType}
             readonly={readonly}
           />
