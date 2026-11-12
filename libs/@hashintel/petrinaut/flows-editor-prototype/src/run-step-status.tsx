@@ -1,6 +1,6 @@
 /**
  * A step's Status in a run, as decided in the Run outputs playground (5 Nov, Aakarsh: "date-time on always"): the
- * step's own facts, "12 s · 5 Nov, 14:02", and a second line only when it applies (attempts, waiting on someone). The
+ * step's own facts, "12 s · 5 Nov, 14:02"; a reason (attempts, waiting on someone) shows on hover. The
  * run's id and trigger are not repeated here.
  *
  * The For each's item list (spec R8; Ciarán and Dora, 26 Oct): every item with its mark, failures first. Picking one
@@ -8,7 +8,7 @@
  */
 import { useState } from "react";
 
-import { Button, Drawer } from "@hashintel/ds-components";
+import { Button, Drawer, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
@@ -219,7 +219,17 @@ const builtNoteStyle = css({
  */
 const statusLook = new URLSearchParams(globalThis.location.search).get("statuslook");
 
-/** One Status: the mark and its word, then the facts after it, then a quiet line per reason or person. */
+/**
+ * `?statusreason=line`: the reason as a quiet line under the Status line, as before. The default drops that line and
+ * shows the reason as a tooltip on the Status line (Aakarsh, 13 Nov: "Yes, everywhere").
+ */
+const reasonOnLine = new URLSearchParams(globalThis.location.search).get("statusreason") === "line";
+
+const reasonTriggerStyle = css({ display: "flex", minWidth: "[0]" });
+
+const reasonTooltipStyle = css({ display: "flex", flexDirection: "column" });
+
+/** One Status: the mark and its word, then the facts after it; its reasons show on hover or focus. */
 export const StatusLine = ({
   state,
   word,
@@ -230,10 +240,11 @@ export const StatusLine = ({
   word: string;
   facts: (string | undefined)[];
   notes?: React.ReactNode[];
-}) => (
-  <div className={statusLineStyle} data-status-line data-status-look={statusLook ?? undefined}>
-    <span className={firstLineStyle}>
-      <RunGlyph state={state} size={16} />
+}) => {
+  const reasonTooltip = !reasonOnLine && notes.length > 0;
+  const line = (
+    <span className={firstLineStyle} data-status-line-row>
+      <RunGlyph state={state} size={16} tooltip={!reasonTooltip} />
       <span className={firstLineTextStyle}>
         <span className={builtStatusLine ? builtWordStyle : wordStyle}>{word}</span>
         {facts
@@ -242,13 +253,37 @@ export const StatusLine = ({
           .join("")}
       </span>
     </span>
-    {notes.map((note, index) => (
-      <span key={index} className={builtStatusLine ? builtNoteStyle : noteStyle}>
-        {note}
-      </span>
-    ))}
-  </div>
-);
+  );
+  return (
+    <div className={statusLineStyle} data-status-line data-status-look={statusLook ?? undefined}>
+      {reasonTooltip ? (
+        <Tooltip
+          content={
+            <span className={reasonTooltipStyle} data-status-reason>
+              {notes.map((note, index) => (
+                <span key={index}>{note}</span>
+              ))}
+            </span>
+          }
+          position="top-start"
+          openDelay="fast"
+          className={reasonTriggerStyle}
+        >
+          {line}
+        </Tooltip>
+      ) : (
+        line
+      )}
+      {reasonOnLine
+        ? notes.map((note, index) => (
+            <span key={index} className={builtStatusLine ? builtNoteStyle : noteStyle}>
+              {note}
+            </span>
+          ))
+        : null}
+    </div>
+  );
+};
 
 const failureNote = (failure: RunFacts["failures"][number]) =>
   `${suppliers[failure.item] ?? "An item"} · ${
