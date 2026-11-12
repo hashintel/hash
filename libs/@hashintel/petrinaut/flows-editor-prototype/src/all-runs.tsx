@@ -609,8 +609,8 @@ const RunsTable = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          {/* A heading with a count reads "Name · N" (11 Nov convergence A15). */}
-          Runs · {runs.length}
+          {/* No count: the status filter's chips already show it (12 Nov). */}
+          Runs
         </span>
       </div>
       <div
@@ -1691,7 +1691,7 @@ const Overview = ({ history }: { history: HistoryValue }) => {
             color: "neutral.fg.heading",
           })}
         >
-          All runs · {runs.length}
+          All runs
         </span>
         {tilesTake ? (
           <StatTiles
