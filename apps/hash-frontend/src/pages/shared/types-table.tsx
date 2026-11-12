@@ -41,7 +41,6 @@ import {
   useActors,
 } from "../../shared/use-actors";
 import { createRenderChipCell } from "./chip-cell";
-import { DataTypeEditorDrawerById } from "./data-type-editor-drawer-by-id";
 import { useDataTypesContext } from "./data-types-context";
 import { DsComponentsScope } from "./ds-components-scope";
 import {
@@ -622,35 +621,19 @@ export const TypesTable: FunctionComponent<
 
   const theme = useTheme();
 
-  const [dataTypeIdBeingEdited, setDataTypeIdBeingEdited] =
-    useState<VersionedUrl | null>(null);
-
   /**
-   * Data types in the user's webs open the editor drawer, which resolves the
-   * user's per-type permissions and stays read-only unless they allow editing;
-   * everything else (external webs, entity types) opens the read-only slide.
+   * Data types open the editor drawer (the slide stack intercepts dataType
+   * pushes), which resolves the user's per-type permissions and stays
+   * read-only unless they allow editing; entity types open the slide.
    */
   const openType = useCallback(
     (rowKind: TypesTableRow["kind"], typeId: VersionedUrl) => {
-      if (rowKind === "data-type") {
-        const dataType = dataTypes?.[typeId];
-        const typeWebId =
-          dataType && "webId" in dataType.metadata
-            ? dataType.metadata.webId
-            : null;
-
-        if (dataType && internalWebs.some(({ webId }) => webId === typeWebId)) {
-          setDataTypeIdBeingEdited(typeId);
-          return;
-        }
-      }
-
       pushToSlideStack({
         kind: rowKind === "data-type" ? "dataType" : "entityType",
         itemId: typeId,
       });
     },
-    [dataTypes, internalWebs, pushToSlideStack],
+    [pushToSlideStack],
   );
 
   const createGetCellContent = useCallback(
@@ -1340,12 +1323,6 @@ export const TypesTable: FunctionComponent<
             types={filteredTypes}
           />
         </Box>
-      )}
-      {dataTypeIdBeingEdited && (
-        <DataTypeEditorDrawerById
-          dataTypeId={dataTypeIdBeingEdited}
-          onClose={() => setDataTypeIdBeingEdited(null)}
-        />
       )}
     </Box>
   );

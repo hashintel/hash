@@ -23,6 +23,12 @@ vi.mock("@mui/material", () => {
   };
 });
 vi.mock("next-seo", () => ({ NextSeo: () => null }));
+vi.mock("next/router", () => ({
+  useRouter: () => ({ isReady: false, query: {}, replace: vi.fn() }),
+}));
+vi.mock("./data-type-drawer", () => ({
+  DataTypeDrawer: () => null,
+}));
 vi.mock("@blockprotocol/graph/stdlib", () => ({
   getEntityTypes: () => [],
   getRoots: () => [],

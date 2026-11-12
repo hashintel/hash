@@ -12,6 +12,11 @@ export const dataTypeTypedef = gql`
 
   scalar UserPermissionsOnDataType
 
+  type DataTypePermissionsRecord {
+    dataTypeId: VersionedUrl!
+    permissions: UserPermissionsOnDataType!
+  }
+
   extend type Query {
     queryDataTypes(request: QueryDataTypesParams!): QueryDataTypesResponse!
 
@@ -29,6 +34,14 @@ export const dataTypeTypedef = gql`
     checkUserPermissionsOnDataType(
       dataTypeId: VersionedUrl!
     ): UserPermissionsOnDataType!
+
+    """
+    Check the requesting user's permissions on multiple data types at once,
+    returning the permissions for each requested type.
+    """
+    checkUserPermissionsOnDataTypes(
+      dataTypeIds: [VersionedUrl!]!
+    ): [DataTypePermissionsRecord!]!
   }
 
   extend type Mutation {

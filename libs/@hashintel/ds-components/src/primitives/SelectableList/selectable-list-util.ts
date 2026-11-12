@@ -133,9 +133,9 @@ export const isGroup = (
 /**
  * Whether any item nested under a collapsible item — at any depth, through
  * groups and nested collapsibles — is enabled. The collapse toggle follows
- * its subtree, not the row's own `disabled`: a disabled row's chevron stays
- * usable while something enabled hides beneath it, and the chevron disables
- * itself when nothing does.
+ * its subtree, not the row's own `disabled`: the chevron dims when nothing
+ * enabled hides beneath it, while staying clickable either way so the
+ * disabled subtree can still be browsed.
  */
 export const hasEnabledDescendant = (item: CollapsibleItem): boolean => {
   const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
@@ -153,33 +153,6 @@ export const hasEnabledDescendant = (item: CollapsibleItem): boolean => {
     return isCollapsibleItem(entry) && entry.subItems.some(visitEntry);
   };
   return item.subItems.some(visitEntry);
-};
-
-/** Collects the collapsible item ids whose toggle is usable — see `hasEnabledDescendant`. */
-const collectToggleableCollapsibleIds = (
-  items: Array<ItemOrGroup<Item>>,
-): ReadonlySet<string> => {
-  const result = new Set<string>();
-  const visitEntry = (entry: ItemOrGroup<Item>) => {
-    if (isGroup(entry)) {
-      for (const item of entry.items) {
-        visitEntry(item);
-      }
-      return;
-    }
-    if (isCollapsibleItem(entry)) {
-      if (hasEnabledDescendant(entry)) {
-        result.add(getItemId(entry));
-      }
-      for (const child of entry.subItems) {
-        visitEntry(child);
-      }
-    }
-  };
-  for (const entry of items) {
-    visitEntry(entry);
-  }
-  return result;
 };
 
 /** Expansion state of a list's `collapsible` items. */
@@ -349,22 +322,15 @@ export const useCollapsibleExpansion = (
     }
     return result;
   }, [defaults, toggled]);
-  const toggleableIds = useMemo(
-    () => collectToggleableCollapsibleIds(items),
-    [items],
-  );
   const onToggle = useCallback(
     (id: string) => {
-      if (!toggleableIds.has(id)) {
-        return;
-      }
       setToggled((previous) => {
         const next = new Map(previous);
         next.set(id, !(previous.get(id) ?? defaults.get(id) ?? false));
         return next;
       });
     },
-    [defaults, toggleableIds],
+    [defaults],
   );
   const expand = useCallback(
     (ids: ReadonlySet<string>) => {
@@ -427,10 +393,7 @@ export const useCollapsibleToggleKeyDown = (
   items: Array<ItemOrGroup<Item>>,
   expansion: CollapsibleExpansion,
 ) => {
-  const toggleableIds = useMemo(
-    () => collectToggleableCollapsibleIds(items),
-    [items],
-  );
+  const collapsibleIds = useMemo(() => collectCollapsibleIds(items), [items]);
 
   return (event: React.KeyboardEvent, menu: UseMenuContext) => {
     if (
@@ -456,7 +419,7 @@ export const useCollapsibleToggleKeyDown = (
       return;
     }
     const highlighted = menu.highlightedValue;
-    if (highlighted === null || !toggleableIds.has(highlighted)) {
+    if (highlighted === null || !collapsibleIds.has(highlighted)) {
       return;
     }
     const isExpanded = expansion.expandedIds.has(highlighted);

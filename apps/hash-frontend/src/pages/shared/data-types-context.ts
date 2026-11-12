@@ -12,6 +12,7 @@ export type DataTypesContextValue = {
   loading: boolean;
   error: Error | null;
   ensureFetched: () => void;
+  /** Resolves once the refreshed types are loaded — await before re-reading */
   refetch: () => Promise<void>;
   onDataTypeSaved: (dataType: DataTypeWithMetadata) => void;
 };

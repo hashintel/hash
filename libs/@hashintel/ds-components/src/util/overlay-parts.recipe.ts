@@ -76,10 +76,10 @@ export const overlayPartsStyles = sva({
         borderTopRightRadius: "[0]",
       },
     },
+    // flow-root contains the floated close button, so the header keeps its
+    // height when the custom content is shorter than the button
     hasCustomHeader: {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: "2",
+      display: "flow-root",
       minWidth: "0",
     },
     headerMain: {},
@@ -198,6 +198,11 @@ export const overlayPartsStyles = sva({
         "[calc(var(--panel-top-padding) * -1 + var(--panel-close-button-gap))]",
       marginRight:
         "[calc(var(--panel-horizontal-padding) * -1 + var(--panel-close-button-gap))]",
+      // The gap custom content keeps from the floated button (margin-left:
+      // auto computes to 0 on floats, so this replaces the former flex gap)
+      ".panel__hasCustomHeader &": {
+        marginLeft: "2",
+      },
     },
     loadingOverlay: {
       position: "absolute",
