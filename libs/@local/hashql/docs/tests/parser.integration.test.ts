@@ -1088,6 +1088,44 @@ export interface Box<T> { readonly value: T }`,
         });
       }),
     );
+
+    it.effect(
+      "literal_member",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const ast = yield* success({
+          source: `/**
+ * Runs a job.
+ *
+ * @example
+ * \`\`\`ts
+ * import { run } from "./declarations.js";
+ * run({ body: 1 });
+ * \`\`\`
+ */
+export declare function run(options: Options): void;
+export interface Options { readonly body: number }`,
+        });
+        const program = pipe(
+          Array.fromIterable(ast.nodes()),
+          Array.filter(AST.Documentation.isDocumentation),
+          Array.flatMap((documentation) => documentation.examples),
+          Array.head,
+          Option.flatMap(ast.programOf),
+          Option.getOrThrow,
+        );
+        const member = pipe(
+          TypeScript.Node.identifiers(program),
+          Array.findLast((name) => name.text === "body"),
+          Option.flatMap(ast.nameOf),
+          Option.getOrThrow,
+        );
+        expect(ast.getBySymbol(member.target)).toMatchObject({
+          _tag: "Property",
+          name: "body",
+        });
+      }),
+    );
   });
 
   describe("bases", () => {

@@ -14,6 +14,7 @@ import * as QuickInfo from "../QuickInfo.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Heritage from "./ast-heritage.js";
 import * as Names from "./ast-names.js";
+import * as Subject from "./quick-info-subject.js";
 
 import type { Cause, Scope } from "effect";
 
@@ -68,13 +69,10 @@ const compile = Effect.fnUntraced(function* ({ example, file }: Compiled) {
 
   for (const [name, found] of Array.zip(names, symbols)) {
     if (Option.isSome(found)) {
-      const symbol = yield* TypeScript.Checker.resolveAlias(found.value).pipe(
-        Effect.flatMap(Names.declared),
-      );
-
-      // A name that resolves to nothing, such as an import the program cannot find, has no meaning to show.
-      const isUnknown = yield* checker.isUnknownSymbol(symbol);
-      if (!isUnknown) {
+      // A name that resolves to nothing, such as an import the program cannot find, has no meaning to show. The subject is what an editor shows for the name, so a member of an object literal refers to the property the code around the literal expects.
+      const subject = yield* Subject.of(name, found.value);
+      if (Option.isSome(subject)) {
+        const symbol = yield* Names.declared(subject.value.symbol);
         // The AST already holds every name the package declares, so a name it does not hold is outside the package, the example's own included.
         const target = yield* store.internedSymbol(symbol).pipe(
           Option.match({
@@ -85,7 +83,7 @@ const compile = Effect.fnUntraced(function* ({ example, file }: Compiled) {
 
         store.name(name, {
           target,
-          quickInfo: yield* QuickInfo.of(name, found.value),
+          quickInfo: yield* QuickInfo.fromSubject(subject.value),
         });
       }
     }
