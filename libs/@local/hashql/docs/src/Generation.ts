@@ -79,6 +79,7 @@ export const fromDirectory = Effect.fnUntraced(function* (options: Options) {
   const program = TypeScript.Program.layer(
     Array.map(roots, ([, file]) => file),
     {
+      directory: options.directory,
       paths: Record.fromEntries(
         Array.map(roots, ([name, file]) => [name, [file]] as const),
       ),
