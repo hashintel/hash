@@ -694,11 +694,17 @@ const ReviewStatus = ({ request }: { request: R2Request }) => {
 };
 
 /** The form, with when it was asked and the run under it. */
-const AnswerForm = ({ request }: { request: R2Request }) => {
+const AnswerForm = ({
+  request,
+  context,
+}: {
+  request: R2Request;
+  context?: React.ReactNode;
+}) => {
   const run = useWaitingRun();
   return (
     <div className={css({ display: "flex", flexDirection: "column", gap: "3" })}>
-      <RequestForm key={request.id} request={request} />
+      <RequestForm key={request.id} request={request} context={context} />
       {run && oldStatusLine ? (
         <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           Asked {request.asked}
@@ -774,6 +780,43 @@ const reasonWithout = (request: R2Request, item: RunItem | undefined) => {
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 };
 
+/** `?q2=old`: what the step found shows as a block under the form, and Status keeps its reason (before parity Q2 B2). */
+const q2Old = new URLSearchParams(globalThis.location.search).get("q2") === "old";
+
+/** Parity Q2 B2 (13 Nov): what the step found, as one line under the question: "2 files found on Kestrel Alloys' page". */
+const contextLink = (request: R2Request): string | null => {
+  const { context } = request;
+  if (context.kind === "files") {
+    const name = request.path.split(" › ").at(-1) ?? "";
+    const owner = name.endsWith("s") ? `${name}'` : `${name}'s`;
+    return `${context.files.length} files found on ${owner} page`;
+  }
+  if (context.kind === "entities") {
+    const failed = context.rows.filter((row) => row.state === "failed").length;
+    return [`For each ${context.type.toLowerCase()}`, String(context.total), failed ? `${failed} failed` : null]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  return null;
+};
+
+/** 14/22 muted, underlined: a link, not a heading. */
+const contextLinkStyle = css({
+  alignSelf: "flex-start",
+  padding: "0",
+  border: "none",
+  background: "[none]",
+  textAlign: "left",
+  textStyle: "sm",
+  lineHeight: "[22px]",
+  color: "neutral.fg.muted",
+  textDecoration: "underline",
+  textDecorationColor: "neutral.bd.solid",
+  textUnderlineOffset: "[3px]",
+  cursor: "pointer",
+  _hover: { color: "neutral.fg.body" },
+});
+
 /**
  * Panel parity (apply-all, 13 Nov): the question pinned under the header, then exactly the step's run panel. The
  * open-in-inbox icon moves from the header to the question. Read certificate link's files and the sign-off's supplier
@@ -782,11 +825,16 @@ const reasonWithout = (request: R2Request, item: RunItem | undefined) => {
 const ParityReviewPanel = ({ request }: { request: R2Request }) => {
   const history = useRunView();
   const { answers } = useReview();
+  const [contextOpen, setContextOpen] = useState(false);
   if (!history) {
     return null;
   }
   const item = itemOf(request);
   const answer = answerOf(request, answers);
+  const link = q2Old ? null : contextLink(request);
+  // With the link under the question, Status only says where the step is: a reason that repeats what was found goes.
+  const reason = (text: string) =>
+    link && request.context.kind === "files" ? [] : [text];
   const status = oldStatusLine ? undefined : (
     <Section title="Status">
       {answer ? (
@@ -794,18 +842,33 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
           state="done"
           word="Answered"
           facts={[`Asked ${request.asked}`]}
-          notes={[`${reasonWithout(request, item)} · ${answer.by}, ${answer.at}`]}
+          notes={
+            link && request.context.kind === "files"
+              ? [`${answer.by}, ${answer.at}`]
+              : [`${reasonWithout(request, item)} · ${answer.by}, ${answer.at}`]
+          }
         />
       ) : (
         <StatusLine
           state="needsReview"
           word="Needs review"
           facts={[`Asked ${request.asked}`]}
-          notes={[reasonWithout(request, item)]}
+          notes={reason(reasonWithout(request, item))}
         />
       )}
     </Section>
   );
+  const contextLine = link ? (
+    <button
+      type="button"
+      className={contextLinkStyle}
+      aria-expanded={contextOpen}
+      onClick={() => setContextOpen((open) => !open)}
+      data-q2-link
+    >
+      {link}
+    </button>
+  ) : undefined;
   return (
     <div className={css({ display: "contents" })} data-review-panel>
       <RunStepPanel
@@ -821,12 +884,12 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
                 "& [data-review-form] > div:first-child > span:first-child": { paddingRight: "[40px]" },
               })}
             >
-              <AnswerForm request={request} />
+              <AnswerForm request={request} context={contextLine} />
               <span className={css({ position: "absolute", top: "[-6px]", right: "[0]" })}>
                 <InboxButton request={request} />
               </span>
             </div>
-            {request.context.kind === "entity" ? null : (
+            {request.context.kind === "entity" || (link && !contextOpen) ? null : (
               <ContextView request={request} pageWidth={156} />
             )}
           </>

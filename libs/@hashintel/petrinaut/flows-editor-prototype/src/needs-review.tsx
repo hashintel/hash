@@ -484,7 +484,14 @@ const formStyle = css({
 });
 
 /** The request's form: the question, a radio group and a comment, Submit. Answered: the same, read-only. */
-export const RequestForm = ({ request }: { request: ReviewRequest }) => {
+export const RequestForm = ({
+  request,
+  context,
+}: {
+  request: ReviewRequest;
+  /** A line right under the question, before the choices: what the step found, as a link (parity Q2 B2). */
+  context?: React.ReactNode;
+}) => {
   const { answers } = useReview();
   const answer = answerOf(request, answers);
   const [choice, setChoice] = useState<string>(answer?.choice ?? "");
@@ -506,6 +513,7 @@ export const RequestForm = ({ request }: { request: ReviewRequest }) => {
             {request.detail}
           </span>
         ) : null}
+        {context}
       </div>
       <RadioGroup
         size="sm"
