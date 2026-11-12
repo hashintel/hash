@@ -1,9 +1,9 @@
 import { Array, Option, Result, pipe } from "effect";
 
 import * as Content from "./hast-content.js";
+import * as Output from "./output.js";
 
 import type * as Tree from "../Tree/index.js";
-import type * as Output from "./output.js";
 import type { Element } from "hast";
 
 type Written<A> = Result.Result<A, Output.Failure>;
@@ -94,8 +94,9 @@ const returns =
       ),
     );
 
+/** An error and its descriptions. In a list that `varies`, an error every overload throws says so. */
 const thrown =
-  (output: Output.Output) =>
+  (output: Output.Output, varies: boolean) =>
   (value: Tree.Callable.Throw): Written<Element> =>
     Result.gen(function* () {
       const error = yield* pipe(
@@ -108,9 +109,10 @@ const thrown =
         Result.transposeOption,
       );
       const descriptions = yield* described(output)(value.descriptions);
+      const overloads = Content.overloads(value.applies);
 
       return Content.element("throw")(
-        { overloads: Content.overloads(value.applies) },
+        { overloads, every: Content.flag(varies && overloads === undefined) },
         [...Option.toArray(error), ...descriptions],
       );
     });
@@ -150,5 +152,8 @@ export const callable =
         Array.map(returns(output)),
         Result.all,
       ),
-      list(value.throws, { name: "throws", write: thrown(output) }),
+      list(value.throws, {
+        name: "throws",
+        write: thrown(output, Output.varies(value.throws)),
+      }),
     ]).pipe(Result.map(Array.flatten));

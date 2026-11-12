@@ -105,7 +105,44 @@ export const section: {
 export const note = (overloads: Array.NonEmptyReadonlyArray<number>): string =>
   `(${overloads.join(", ")})`;
 
-/** `children` after the overloads `applies` names, on the first paragraph's line or on a line of their own before code. */
+/** Every overload, as Markdown writes it beside the numbers of what holds in some overloads only. */
+export const everyNote = "(all)";
+
+/** `children` after `prefix`, on the first paragraph's line or on a line of its own before code. */
+export const after: {
+  (
+    prefix: Option.Option<string>,
+  ): (children: readonly RootContent[]) => RootContent[];
+  (
+    children: readonly RootContent[],
+    prefix: Option.Option<string>,
+  ): RootContent[];
+} = Function.dual(
+  2,
+  (
+    children: readonly RootContent[],
+    prefix: Option.Option<string>,
+  ): RootContent[] => {
+    if (Option.isNone(prefix) || !Array.isReadonlyArrayNonEmpty(children)) {
+      return Array.copy(children);
+    }
+
+    const [first, ...rest] = children;
+    if (first.type === "paragraph") {
+      return Array.prepend(rest, {
+        ...first,
+        children: Array.prepend(first.children, text(`${prefix.value} `)),
+      });
+    }
+
+    return Array.prepend(children, {
+      type: "paragraph",
+      children: [text(prefix.value)],
+    });
+  },
+);
+
+/** `children` after the overloads `applies` names. */
 export const noted: {
   (
     applies: Tree.Callable.Applies,
@@ -119,26 +156,8 @@ export const noted: {
   (
     children: readonly RootContent[],
     applies: Tree.Callable.Applies,
-  ): RootContent[] => {
-    const numbered = Output.overloads(applies);
-    if (Option.isNone(numbered) || !Array.isReadonlyArrayNonEmpty(children)) {
-      return Array.copy(children);
-    }
-
-    const prefix = note(numbered.value);
-    const [first, ...rest] = children;
-    if (first.type === "paragraph") {
-      return Array.prepend(rest, {
-        ...first,
-        children: Array.prepend(first.children, text(`${prefix} `)),
-      });
-    }
-
-    return Array.prepend(children, {
-      type: "paragraph",
-      children: [text(prefix)],
-    });
-  },
+  ): RootContent[] =>
+    after(children, Option.map(Output.overloads(applies), note)),
 );
 
 /** A declaration's facts on one line: `Since 0.2 · beta · Internal · Source`. */
@@ -173,6 +192,45 @@ export const code = (source: Code.Source): CodeBlock => ({
   lang: "ts",
   value: source.text,
 });
+
+/** One of several declarations names its overloads and its own facts on the line before its code. */
+const numbered =
+  (output: Output.Output) =>
+  (value: Tree.Declaration.Signature): RootContent => ({
+    type: "paragraph",
+    children: [
+      text(note(Array.map(value.overloads, ({ index }) => index))),
+      ...pipe(
+        facts(Output.signatureFacts(output)(value)),
+        Option.toArray,
+        Array.flatMap(({ children }) => [text(" · "), ...children]),
+      ),
+    ],
+  });
+
+/** Each declaration's code after its facts, which name its overloads when there are several. */
+export const declarations =
+  (output: Output.Output) =>
+  (children: readonly Tree.Declaration.Signature[]): Written<RootContent[]> =>
+    pipe(
+      children,
+      Array.map((value) =>
+        output.printed.signature(value.syntax).pipe(
+          Result.map((printed): RootContent[] => {
+            if (children.length === 1) {
+              return [
+                ...Option.toArray(facts(Output.signatureFacts(output)(value))),
+                code(printed),
+              ];
+            }
+
+            return [numbered(output)(value), code(printed)];
+          }),
+        ),
+      ),
+      Result.all,
+      Result.map(Array.flatten),
+    );
 
 /** What an `@deprecated` says, after a bold `Deprecated:` on its first paragraph's line. */
 const deprecated = (content: readonly RootContent[]): RootContent[] => {

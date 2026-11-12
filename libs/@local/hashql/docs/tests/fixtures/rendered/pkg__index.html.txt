@@ -32,6 +32,9 @@ import * as pkg from "@scope/pkg";
   * [`child`](#Model.child)
   * [`Alias`](#Value) A value.
   * [`Helpers`](./Model/Helpers.html)
+* [`Box`](#Box) Box.
+  * [`held`](#Box.held) Reads.
+  * [`ready`](#Box.ready) Ready.
 
 **Functions**
 
@@ -170,21 +173,21 @@ Instance make.
 
 <a id="Model.value"></a>**`value`**
 
-(1) · [Source](index.d.ts#L31)
+[Source](index.d.ts#L31)
 
 ```ts
 get value(): Value;
 ```
 
-(2) · [Source](index.d.ts#L32)
+Getter.
+
+[Source](index.d.ts#L32)
 
 ```ts
 set value(input: Value);
 ```
 
-(1) Getter.
-
-(2) Setter.
+Setter.
 
 **Returned by**
 
@@ -210,6 +213,76 @@ Namespace with [`Value`](#Value).
 ```ts
 export const child: Value;
 ```
+
+### <a id="Box"></a>Box
+
+Box.
+
+**Signature**
+
+[Source](index.d.ts#L68)
+
+```ts
+export class Box {
+  get held(): Value;
+  set held(next: Value | number);
+  readonly ready: boolean;
+}
+```
+
+**Members**
+
+<a id="Box.held"></a>**`held`**
+
+[Source](index.d.ts#L73)
+
+```ts
+get held(): Value;
+```
+
+Reads.
+
+**Returns**
+
+`Value`
+
+The held value.
+
+**Throws**
+
+`RangeError`
+
+When empty.
+
+[Source](index.d.ts#L75)
+
+```ts
+set held(next: Value | number);
+```
+
+Writes.
+
+**Parameters**
+
+`next: Value | number`
+
+The value to hold.
+
+<a id="Box.ready"></a>**`ready`**
+
+[Source](index.d.ts#L77)
+
+```ts
+readonly ready: boolean;
+```
+
+Ready.
+
+**Throws**
+
+`Error`
+
+When unset.
 
 ## <a id="category-functions"></a>Functions
 

@@ -95,7 +95,7 @@ export interface SignaturesProps extends ChildrenProps {
 export interface SignatureProps
   extends FactProps, OverloadProps, ChildrenProps {}
 
-/** A member. Its children are its declarations, or an accessor's getter and setter, then its comments and documented calls. */
+/** A member. Its children are its declarations, then its comments and documented calls. An accessor's children are its getter and its setter, each with its own declaration, comment and documented calls. */
 export interface MemberProps extends FactProps, ChildrenProps {
   /** The member's anchor. */
   readonly name: string;
@@ -122,7 +122,10 @@ export interface FormProps extends OverloadProps, ChildrenProps {}
 export interface DescribedProps extends OverloadProps, ChildrenProps {}
 
 /** An error the calls throw: the error itself, then its descriptions. */
-export interface ThrowProps extends OverloadProps, ChildrenProps {}
+export interface ThrowProps extends OverloadProps, ChildrenProps {
+  /** Every overload throws the error. Present when only some overloads throw another error of the same calls, so each error says which overloads throw it. */
+  readonly every?: boolean | undefined;
+}
 
 /** One group of related exports. */
 export interface RelationProps extends ChildrenProps {
