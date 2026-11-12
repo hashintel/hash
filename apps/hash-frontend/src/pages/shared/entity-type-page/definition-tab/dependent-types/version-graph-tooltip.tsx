@@ -27,7 +27,7 @@ type VersionGraphTooltipTriggerProps = {
     onBlur: () => void;
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   };
-  /** Hides the tooltip, for example when the row is toggled. */
+  /** Hides the tooltip until the pointer next enters the row, for example when the row is toggled. */
   hide: () => void;
 };
 
@@ -254,6 +254,7 @@ export const VersionGraphTooltip = ({
   const [maxWidth, setMaxWidth] = useState(0);
   const rowElement = useRef<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
+  const hiddenUntilPointerEnters = useRef(false);
 
   const show = () => {
     setMaxWidth(
@@ -264,6 +265,10 @@ export const VersionGraphTooltip = ({
     setOpen(true);
   };
   const hide = () => setOpen(false);
+  const hideUntilPointerEnters = () => {
+    hiddenUntilPointerEnters.current = true;
+    hide();
+  };
 
   const scrollWithArrowKeys = (event: KeyboardEvent<HTMLElement>) => {
     if (
@@ -284,8 +289,15 @@ export const VersionGraphTooltip = ({
     <Tooltip
       id={id}
       open={open}
-      onOpen={show}
+      onOpen={() => {
+        if (!hiddenUntilPointerEnters.current) {
+          show();
+        }
+      }}
       onClose={hide}
+      onMouseEnter={() => {
+        hiddenUntilPointerEnters.current = false;
+      }}
       enterDelay={showDelay}
       enterNextDelay={showDelay}
       leaveDelay={hideDelay}
@@ -324,7 +336,7 @@ export const VersionGraphTooltip = ({
           onBlur: hide,
           onKeyDown: scrollWithArrowKeys,
         },
-        hide,
+        hide: hideUntilPointerEnters,
       })}
     </Tooltip>
   );
