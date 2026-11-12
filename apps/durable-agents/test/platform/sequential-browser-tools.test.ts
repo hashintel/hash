@@ -32,7 +32,7 @@ import {
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
 import { createPetrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
-import { queryBasisTool } from "../../src/net-state/query-basis";
+import { createQueryBasisTool } from "../../src/net-state/query-basis";
 import {
   allEntries,
   calls,
@@ -172,20 +172,17 @@ const browserAnswer = (
 
 const run = async (
   responses: FauxResponseStep[],
-  mode: ToolExecutionMode | undefined,
+  mode: ToolExecutionMode,
   delayMs = 20,
 ) => {
   revision = 1;
   const { models, model } = recordingModel(responses);
-  const query =
-    mode === undefined
-      ? queryBasisTool
-      : { ...queryBasisTool, executionMode: mode };
+  const host = createHostBinding();
+  const query = { ...createQueryBasisTool(host), executionMode: mode };
   const queryExtension = defineExtension({
     name: "probe.query",
     tools: [query],
   });
-  const host = createHostBinding();
   const petrinautBrowserToolsExtension =
     createPetrinautBrowserToolsExtension(host);
   const registry = createRegistry();
@@ -281,7 +278,7 @@ describe("P5: a sequential query_basis in a round with a waiting read", () => {
         ),
         fauxAssistantMessage("done"),
       ],
-      undefined,
+      "parallel",
     );
     expect(disposition(entries, "query-1")).toMatchObject({
       disposition: "not-found",
@@ -290,7 +287,7 @@ describe("P5: a sequential query_basis in a round with a waiting read", () => {
 });
 
 describe("P5: several waiting browser changes in a sequential round", () => {
-  const changeRound = (mode: ToolExecutionMode | undefined) =>
+  const changeRound = (mode: ToolExecutionMode) =>
     run(
       [
         calls(["getLatestNetDefinition", "read-1"]),
@@ -308,7 +305,7 @@ describe("P5: several waiting browser changes in a sequential round", () => {
 
   test("run one after another without deadlock; latency is the sum of the browser's times, against their maximum in parallel", async () => {
     const sequential = await changeRound("sequential");
-    const parallel = await changeRound(undefined);
+    const parallel = await changeRound("parallel");
     const span = (log: readonly BrowserLog[], ids: readonly string[]) => {
       const rows = log.filter(({ toolCallId }) => ids.includes(toolCallId));
       return (

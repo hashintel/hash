@@ -22,8 +22,8 @@ import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-
 import { ledgerExtension } from "../ledger";
 import { queryBasisExtension } from "../net-state/query-basis";
 import { createHostBinding, type HostBinding } from "./host-binding";
-import { contextProjectionExtension } from "./petrinaut-agent/context-projection";
-import { toolAdmissionExtension } from "./petrinaut-agent/tool-admission";
+import { netViewSectionExtension } from "./petrinaut-agent/net-view-section";
+import { readBackPruningExtension } from "./petrinaut-agent/read-back-pruning";
 
 /**
  * Copied from `apps/brunch-agent/src/agents/petrinaut/prompts/system.md`,
@@ -62,14 +62,24 @@ export type PetrinautAgent = {
   readonly agent: AgentChange & { readonly extensions: readonly Extension[] };
 };
 
-/** The extensions a conversation selects, over its Harness's host binding. */
+/**
+ * The extensions a conversation selects, over its Harness's host binding.
+ * Each model request is the stored effective context plus these sections: no
+ * hook rewrites a request or refuses a call. The pruning hook writes the
+ * read-back pruning after each tool round; the `net_view` section restores
+ * the model's last view in the baseline Pi writes after a compaction.
+ *
+ * Known limitation (H9, refuse rather than restore, covers tool views only):
+ * an edit that removed the `net_view` section's system entry would see the
+ * section put the view back at the next request. No planned write does this.
+ */
 const selectedExtensions = (host: HostBinding): readonly Extension[] => [
   petrinautPromptExtension,
   ledgerExtension,
   createPetrinautBrowserToolsExtension(host),
-  contextProjectionExtension,
-  toolAdmissionExtension,
-  queryBasisExtension,
+  readBackPruningExtension(host),
+  queryBasisExtension(host),
+  netViewSectionExtension(host),
 ];
 
 export const createPetrinautAgent = (): PetrinautAgent => ({

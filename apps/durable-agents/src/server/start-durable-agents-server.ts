@@ -8,6 +8,8 @@
  *   surface, whose client is AI SDK's stock `DefaultChatTransport`.
  * - `POST /conversations/:id/browser-calls/:callId` (claim) and its `/start`,
  *   `/lease`, `/result` and `/fail`: the browser half of a waiting call.
+ * - `POST /conversations/:id/browser-calls/hand-edits`: the panel's report of
+ *   a hand edit, admitted as a `brunch.hand-edit` note the model reads.
  *
  * A chat request carries its browser's document binding beside the messages
  * (`body: { binding }` on the transport, Brunch's `BrowserContext["binding"]`).
