@@ -488,12 +488,15 @@ export {
 } from "./place-dynamics";
 export {
   hasRunningDynamics,
+  isContinuousNet,
   isSourcePredicate,
   isTimedNet,
   isTimedTransition,
   runClockOf,
+  runContinuityOf,
   STEP_SAMPLE_PERIOD,
   type RunClock,
+  type RunContinuity,
 } from "./net-timing";
 export { GRID_SIZE } from "./grid-size";
 export {

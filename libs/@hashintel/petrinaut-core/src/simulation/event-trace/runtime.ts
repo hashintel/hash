@@ -2,7 +2,12 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions";
-import { runClockOf, type RunClock } from "../../net-timing";
+import {
+  runClockOf,
+  runContinuityOf,
+  type RunClock,
+  type RunContinuity,
+} from "../../net-timing";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
@@ -67,6 +72,12 @@ export interface EventSimulation {
    * untimed net. Every `time` of the run is in that unit.
    */
   readonly clock: RunClock;
+  /**
+   * What lies between two events of the run: the continuous evolution of a
+   * net with dynamics, or nothing. A viewer of a discrete run has only its
+   * events to view.
+   */
+  readonly continuity: RunContinuity;
   readonly status: ReadableStore<SimulationState>;
   readonly trace: ReadableStore<EventTraceSummary>;
   readonly events: EventStream<EventSimulationEvent>;
@@ -218,6 +229,7 @@ export function createEventSimulation(
 
     handle = {
       clock: runClockOf(config.sdcpn, extensions),
+      continuity: runContinuityOf(config.sdcpn, extensions),
       status,
       trace,
       events,

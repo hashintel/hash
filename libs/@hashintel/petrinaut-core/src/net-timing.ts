@@ -4,7 +4,7 @@ import {
 } from "./extensions";
 import { getPlaceDynamicsEquationIds } from "./place-dynamics";
 
-import type { Place, SDCPN, Transition } from "./types/sdcpn";
+import type { Color, Place, SDCPN, Transition } from "./types/sdcpn";
 
 /**
  * Whether the transition fires at a rate: a delay drawn against simulated
@@ -16,16 +16,72 @@ export const isTimedTransition = (
 ): boolean =>
   extensions.stochasticity && transition.lambdaType === "stochastic";
 
-/** Whether the place's tokens evolve continuously while the net runs. */
+/**
+ * Whether the place's tokens evolve continuously while the net runs: its
+ * dynamics are on with an equation listed, and its tokens have a `real`
+ * attribute for the equation to move. The engines integrate no other place.
+ *
+ * `types` are the token types of the net the place is in. A type that is
+ * not among them is taken to have a `real` attribute.
+ */
 export const hasRunningDynamics = (
   place: Pick<Place, "colorId" | "dynamicsEnabled" | "dynamics">,
   extensions: Pick<PetrinautExtensionSettings, "colors" | "dynamics">,
+  types: readonly Pick<Color, "id" | "elements">[],
+): boolean => {
+  if (
+    !extensions.colors ||
+    !extensions.dynamics ||
+    !place.dynamicsEnabled ||
+    place.colorId === null ||
+    getPlaceDynamicsEquationIds(place).length === 0
+  ) {
+    return false;
+  }
+  const type = types.find(({ id }) => id === place.colorId);
+  return (
+    type === undefined ||
+    type.elements.some((element) => element.type === "real")
+  );
+};
+
+/** What the inferences below read of a net. */
+type NetContent = Pick<SDCPN, "places" | "transitions" | "types" | "subnets">;
+
+/**
+ * The net and its subnets. Subnets count whether or not an instance uses
+ * them, so an inference does not depend on flattening the net.
+ */
+const netsOf = (
+  sdcpn: NetContent,
+  extensions: Pick<PetrinautExtensionSettings, "subnets">,
+): Pick<SDCPN, "places" | "transitions" | "types">[] => [
+  sdcpn,
+  ...(extensions.subnets ? (sdcpn.subnets ?? []) : []),
+];
+
+/**
+ * Whether the net's state changes between two firings.
+ *
+ * A net is **continuous** when a place's tokens evolve under its dynamics:
+ * its state moves all the time, and a run can be read at any time.
+ *
+ * A net with no running dynamics is **discrete**. Its state changes only
+ * when a transition fires, at a rate or not, so a run has nothing to show
+ * between two events.
+ *
+ * Dynamics are something that takes time, so a continuous net is timed. A
+ * discrete net is timed or untimed. The property is inferred, never stored.
+ */
+export const isContinuousNet = (
+  sdcpn: NetContent,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): boolean =>
-  extensions.colors &&
-  extensions.dynamics &&
-  place.dynamicsEnabled &&
-  place.colorId !== null &&
-  getPlaceDynamicsEquationIds(place).length > 0;
+  netsOf(sdcpn, extensions).some((net) =>
+    net.places.some((place) =>
+      hasRunningDynamics(place, extensions, net.types),
+    ),
+  );
 
 /**
  * Whether time passes in the net.
@@ -38,18 +94,17 @@ export const hasRunningDynamics = (
  * fires as soon as it holds, so nothing separates one firing from the next
  * but their order: a run is a sequence of steps and has no clock.
  *
- * The property is inferred, never stored. Subnets count whether or not an
- * instance uses them, so the answer does not depend on flattening the net.
+ * The property is inferred, never stored.
  */
 export const isTimedNet = (
-  sdcpn: Pick<SDCPN, "places" | "transitions" | "subnets">,
+  sdcpn: NetContent,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): boolean =>
-  [sdcpn, ...(extensions.subnets ? (sdcpn.subnets ?? []) : [])].some(
-    (net) =>
-      net.transitions.some((transition) =>
-        isTimedTransition(transition, extensions),
-      ) || net.places.some((place) => hasRunningDynamics(place, extensions)),
+  isContinuousNet(sdcpn, extensions) ||
+  netsOf(sdcpn, extensions).some((net) =>
+    net.transitions.some((transition) =>
+      isTimedTransition(transition, extensions),
+    ),
   );
 
 /**
@@ -60,9 +115,24 @@ export type RunClock = "time" | "steps";
 
 /** The clock a run of the net is read against, alone or in an experiment. */
 export const runClockOf = (
-  sdcpn: Pick<SDCPN, "places" | "transitions" | "subnets">,
+  sdcpn: NetContent,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): RunClock => (isTimedNet(sdcpn, extensions) ? "time" : "steps");
+
+/**
+ * What lies between two events of a run. In a continuous run the state
+ * evolves there, so every position the run covers has a state of its own.
+ * In a discrete run nothing does: the state holds from one event to the
+ * next, and the events are the only positions worth viewing.
+ */
+export type RunContinuity = "continuous" | "discrete";
+
+/** Whether a run of the net evolves between its events. */
+export const runContinuityOf = (
+  sdcpn: NetContent,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): RunContinuity =>
+  isContinuousNet(sdcpn, extensions) ? "continuous" : "discrete";
 
 /**
  * The spacing of an experiment's samples on a clock that counts steps: every

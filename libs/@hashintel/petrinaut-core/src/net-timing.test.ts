@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions";
-import { isSourcePredicate, isTimedNet } from "./net-timing";
+import {
+  isContinuousNet,
+  isSourcePredicate,
+  isTimedNet,
+  runClockOf,
+  runContinuityOf,
+} from "./net-timing";
 
 import type { Place, SDCPN, Transition } from "./types/sdcpn";
 
@@ -109,6 +115,90 @@ describe("isTimedNet", () => {
         subnets: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe("isContinuousNet", () => {
+  const rated = net({
+    transitions: [transition({ lambdaType: "stochastic" })],
+  });
+
+  it("is discrete with predicates only, and with rates only", () => {
+    expect(isContinuousNet(net())).toBe(false);
+    // Time passes between two firings, and nothing else does.
+    expect(isContinuousNet(rated)).toBe(false);
+  });
+
+  it("is continuous once a place runs dynamics", () => {
+    expect(isContinuousNet(net({ places: [movingPlace] }))).toBe(true);
+  });
+
+  it("ignores dynamics that are switched off, untyped or empty, or whose extension is disabled", () => {
+    expect(
+      isContinuousNet(
+        net({
+          places: [
+            { ...movingPlace, dynamicsEnabled: false },
+            { ...movingPlace, colorId: null },
+            { ...movingPlace, dynamics: [] },
+          ],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isContinuousNet(net({ places: [movingPlace] }), {
+        ...DEFAULT_PETRINAUT_EXTENSIONS,
+        dynamics: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("ignores dynamics on tokens with no real attribute, which nothing can move", () => {
+    const typed = (type: "real" | "integer") =>
+      net({
+        places: [movingPlace],
+        types: [
+          {
+            id: "type",
+            name: "Type",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [{ elementId: "element", name: "value", type }],
+          },
+        ],
+      });
+
+    expect(isContinuousNet(typed("real"))).toBe(true);
+    expect(isContinuousNet(typed("integer"))).toBe(false);
+    expect(isTimedNet(typed("integer"))).toBe(false);
+  });
+
+  it("counts a subnet's dynamics", () => {
+    const subnet = {
+      id: "subnet",
+      name: "Subnet",
+      places: [movingPlace],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    };
+    expect(isContinuousNet(net({ subnets: [subnet] }))).toBe(true);
+    expect(
+      isContinuousNet(net({ subnets: [subnet] }), {
+        ...DEFAULT_PETRINAUT_EXTENSIONS,
+        subnets: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("leaves three kinds of run: a continuous net is always timed", () => {
+    const kindOf = (sdcpn: SDCPN) =>
+      `${runClockOf(sdcpn)}, ${runContinuityOf(sdcpn)}`;
+
+    expect(kindOf(net())).toBe("steps, discrete");
+    expect(kindOf(rated)).toBe("time, discrete");
+    expect(kindOf(net({ places: [movingPlace] }))).toBe("time, continuous");
   });
 });
 
