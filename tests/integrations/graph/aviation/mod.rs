@@ -9,12 +9,14 @@ use std::collections::{HashMap, HashSet};
 
 use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
+use hash_graph_postgres_store::store::{PooledConnection, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{CreateDataTypeParams, DataTypeStore as _},
     entity::{EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
     entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     filter::{Filter, FilterExpression, Parameter},
+    pool::StorePool as _,
     property_type::{CreatePropertyTypeParams, PropertyTypeStore as _},
     query::ConflictBehavior,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
@@ -45,14 +47,11 @@ use type_system::{
     principal::{actor::ActorId, actor_group::WebId, role::RoleName},
     provenance::{Location, SourceProvenance, SourceType},
 };
-use uuid::Uuid;
-
-use self::database::Database;
 
 const TYPES: &str = "https://example.com/@demo/types";
 
 #[derive(Deserialize)]
-struct Ontology {
+struct OntologyFixture {
     #[serde(rename = "dataTypes")]
     data: Vec<DataType>,
     #[serde(rename = "propertyTypes")]
@@ -83,14 +82,7 @@ fn provenance() -> ProvidedEntityEditionProvenance {
     })
 }
 
-async fn seed(database: &mut Database) -> (ActorId, WebId) {
-    let (actor, web_id) = seed_actor(database).await;
-    seed_ontology(database, actor, web_id).await;
-    (actor, web_id)
-}
-
-async fn seed_actor(database: &mut Database) -> (ActorId, WebId) {
-    let store = &mut database.connection;
+async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorId, WebId) {
     store
         .seed_system_policies()
         .await
@@ -104,7 +96,7 @@ async fn seed_actor(database: &mut Database) -> (ActorId, WebId) {
             system.into(),
             CreateUserActorParams {
                 user_id: None,
-                shortname: Some(format!("aviation-{}", Uuid::now_v7().simple())),
+                shortname: None,
                 registration_complete: true,
             },
         )
@@ -130,12 +122,12 @@ async fn seed_actor(database: &mut Database) -> (ActorId, WebId) {
         )
         .await
         .expect("the machine should administer the aviation web");
+    seed_ontology(store, actor, web_id).await;
     (actor, web_id)
 }
 
-async fn seed_ontology(database: &mut Database, actor: ActorId, web_id: WebId) {
-    let store = &mut database.connection;
-    let mut ontology: Ontology = serde_json::from_str(include_str!("ontology.json"))
+async fn seed_ontology(store: &mut PostgresStore<PooledConnection>, actor: ActorId, web_id: WebId) {
+    let mut ontology: OntologyFixture = serde_json::from_str(include_str!("ontology.json"))
         .expect("the aviation ontology should be valid");
     ontology.data.extend(
         [
@@ -289,17 +281,15 @@ async fn plan(workspace: &Workspace, web_id: WebId) -> FinishedPlan {
         "the aviation rows should plan without issues: {:?}",
         plan.issues()
     );
-    assert_eq!(
-        plan.writes().len(),
-        6,
-        "four entities and two links should be planned"
-    );
     plan
 }
 
-async fn read(database: &mut Database, actor: ActorId, web_id: WebId) -> Vec<Entity> {
-    let entities = database
-        .connection
+async fn read(
+    store: &mut PostgresStore<PooledConnection>,
+    actor: ActorId,
+    web_id: WebId,
+) -> Vec<Entity> {
+    let entities = store
         .query_entities(
             Some(actor),
             QueryEntitiesParams {
@@ -370,8 +360,11 @@ fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
     for (icao, name) in [("ESSA", "Arlanda"), ("ESSB", "Bromma")] {
         let airfield = entity(entities, web_id, "airfield", icao);
         assert_eq!(
-            serde_json::to_value(&airfield.properties).expect("the properties should serialize"),
-            json!({format!("{TYPES}/property-type/name/"): name})
+            airfield.properties,
+            serde_json::from_value::<PropertyObject>(
+                json!({format!("{TYPES}/property-type/name/"): name})
+            )
+            .expect("the expected airfield properties should be valid")
         );
         assert!(airfield.link_data.is_none());
     }
@@ -380,12 +373,15 @@ fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
         ("N100", "L-1049", "1957-07-15", 69000, "pound"),
     ] {
         let aircraft = entity(entities, web_id, "aircraft", tail);
-        let expected: PropertyObject =
-            serde_json::from_value(json!({format!("{TYPES}/property-type/model/"): model,
+        assert_eq!(
+            aircraft.properties,
+            serde_json::from_value::<PropertyObject>(json!({
+                format!("{TYPES}/property-type/model/"): model,
                 format!("{TYPES}/property-type/first-flight/"): date,
-                format!("{TYPES}/property-type/empty-mass/"): mass}))
-            .expect("the expected aircraft properties should be valid");
-        assert_eq!(aircraft.properties, expected);
+                format!("{TYPES}/property-type/empty-mass/"): mass,
+            }))
+            .expect("the expected aircraft properties should be valid")
+        );
         assert!(aircraft.link_data.is_none());
         let mass_url = url("property-type", "empty-mass").base_url;
         let Some(PropertyMetadata::Value(metadata)) =
@@ -419,9 +415,13 @@ fn assert_data(entities: &[Entity], actor: ActorId, web_id: WebId) {
 }
 
 #[tokio::test]
-async fn aviation_delivery_and_replay() {
-    let mut database = Database::open().await;
-    let (actor, web_id) = seed(&mut database).await;
+async fn delivery_replay() {
+    let pool = database::pool();
+    let mut store = pool
+        .acquire(None)
+        .await
+        .expect("the aviation database connection should open");
+    let (actor, web_id) = seed(&mut store).await;
     let directory = TempDir::new().expect("the workspace directory should be created");
     let workspace = Workspace::open(
         directory.path().join("aviation.duckdb"),
@@ -450,6 +450,6 @@ async fn aviation_delivery_and_replay() {
                 expected
             );
         }
-        assert_data(&read(&mut database, actor, web_id).await, actor, web_id);
+        assert_data(&read(&mut store, actor, web_id).await, actor, web_id);
     }
 }

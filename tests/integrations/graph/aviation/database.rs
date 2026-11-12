@@ -6,41 +6,25 @@ use hash_graph_postgres_store::{
         PostgresStoreSettings,
     },
 };
-use hash_graph_store::pool::StorePool as _;
 
-pub(super) struct Database {
-    pub connection: <PostgresStorePool as hash_graph_store::pool::StorePool>::Store<'static>,
-    _pool: PostgresStorePool,
-}
-
-impl Database {
-    pub(super) async fn open() -> Self {
-        load_env(Environment::Test);
-        let connection_info = DatabaseConnectionInfo::new(
-            DatabaseType::Postgres,
-            std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned()),
-            Secret::from_string(
-                std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
-            ),
-            std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned()),
-            std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
-                port.parse().expect("the Postgres port should be valid")
-            }),
-            std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned()),
-        );
-        let pool = PostgresStorePool::new(
-            &connection_info,
-            &DatabasePoolConfig::default(),
-            PostgresStoreSettings::default(),
-        )
-        .expect("the Postgres pool should be configured");
-        let connection = pool
-            .acquire_owned(None)
-            .await
-            .expect("the aviation database connection should open");
-        Self {
-            connection,
-            _pool: pool,
-        }
-    }
+pub(super) fn pool() -> PostgresStorePool {
+    load_env(Environment::Test);
+    let connection_info = DatabaseConnectionInfo::new(
+        DatabaseType::Postgres,
+        std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned()),
+        Secret::from_string(
+            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+        ),
+        std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned()),
+        std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
+            port.parse().expect("the Postgres port should be valid")
+        }),
+        std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned()),
+    );
+    PostgresStorePool::new(
+        &connection_info,
+        &DatabasePoolConfig::default(),
+        PostgresStoreSettings::default(),
+    )
+    .expect("the Postgres pool should be configured")
 }

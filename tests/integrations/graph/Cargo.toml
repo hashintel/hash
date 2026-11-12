@@ -24,7 +24,6 @@ serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 tempfile          = { workspace = true }
 tokio             = { workspace = true, features = ["macros"] }
-uuid              = { workspace = true, features = ["v7"] }
 
 [lints]
 workspace = true
