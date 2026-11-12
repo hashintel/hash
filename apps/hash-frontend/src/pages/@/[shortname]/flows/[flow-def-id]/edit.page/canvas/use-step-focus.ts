@@ -1,4 +1,4 @@
-import { useNodesInitialized, useReactFlow } from "@xyflow/react";
+import { useNodesInitialized, useReactFlow, useStore } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 
 import { getStepNodeId } from "./flow-graph";
@@ -46,5 +46,59 @@ export const useStepFocus = (
     getZoom,
     setCenter,
     coveredRight,
+  ]);
+};
+
+/** Brings the one step selected into view when it's partly out of view, or under a panel, e.g. one just opened. */
+export const useSelectedStepInView = (
+  selectedStepIds: string[],
+  /** How much of the canvas's right edge a panel covers, in pixels. */
+  coveredRight: number,
+) => {
+  const { getInternalNode, getViewport, setCenter } = useReactFlow();
+  const nodesInitialized = useNodesInitialized();
+  const paneWidth = useStore((state) => state.width);
+  const paneHeight = useStore((state) => state.height);
+  const soleSelectedStepId =
+    selectedStepIds.length === 1 ? selectedStepIds[0] : undefined;
+
+  useEffect(() => {
+    const node = soleSelectedStepId
+      ? getInternalNode(getStepNodeId(soleSelectedStepId))
+      : undefined;
+
+    if (!node) {
+      return;
+    }
+
+    const { x, y } = node.internals.positionAbsolute;
+    const width = node.measured.width ?? stepCardSize.width;
+    const height = node.measured.height ?? stepCardSize.height;
+    const viewport = getViewport();
+    const left = x * viewport.zoom + viewport.x;
+    const top = y * viewport.zoom + viewport.y;
+
+    if (
+      left < 0 ||
+      top < 0 ||
+      left + width * viewport.zoom > paneWidth - coveredRight ||
+      top + height * viewport.zoom > paneHeight
+    ) {
+      void setCenter(
+        x + width / 2 + coveredRight / 2 / viewport.zoom,
+        y + height / 2,
+        { zoom: viewport.zoom, duration: 300 },
+      );
+    }
+  }, [
+    soleSelectedStepId,
+    paneWidth,
+    paneHeight,
+    coveredRight,
+    /* A step just added is measured after it's selected. */
+    nodesInitialized,
+    getInternalNode,
+    getViewport,
+    setCenter,
   ]);
 };

@@ -1,13 +1,13 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
+import { findStep, getStepName } from "../shared/find-step";
 import { getNameLabel } from "../shared/name-label";
+import { getActionDefinition } from "../shared/step-display";
 import { getStepsBefore } from "../shared/step-order";
 import { getFlowInputLabel } from "../shared/value-display";
-import { findStep, getStepName } from "./shared/find-step";
-import { indexValueUses } from "./value-uses";
+import { indexValueUses } from "../shared/value-uses";
 
 import type {
   ConnectionSource,
@@ -24,14 +24,6 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 export const flowInputsLabel = "Flow inputs";
-
-/** A definition may name an action that doesn't exist. */
-export const getActionDefinition = (actionDefinitionId: string) =>
-  (
-    actionDefinitions as Partial<
-      Record<string, ActionDefinition<FlowActionDefinitionId>>
-    >
-  )[actionDefinitionId];
 
 /**
  * What can feed an input of a step: the kinds it accepts, and whether it's an array and required. An input that takes

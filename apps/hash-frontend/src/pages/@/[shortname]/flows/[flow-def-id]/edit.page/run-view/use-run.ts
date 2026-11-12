@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useEffect, useMemo, useState } from "react";
 
+import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
@@ -16,6 +17,7 @@ import type {
 import type { StepRunMark } from "../shared/step-states";
 import type { ApolloError } from "@apollo/client";
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const pollIntervalMs = 2_000;
@@ -37,6 +39,12 @@ export type Run =
        */
       ranDefinition: FlowDefinition<string> | null;
       marks: Map<string, StepRunMark>;
+      /** The runs of its steps by step run id: a step's id, or for a step inside a for-each step, one per item. */
+      stepRuns: Map<string, FlowRunStepRunState>;
+      /** The ids of the step runs waiting on a person to answer their questions. */
+      waitingOnPerson: Set<string>;
+      /** Whether it's still going, so more of its steps will run. */
+      live: boolean;
       /** Why the last check for the run's new events failed, while it keeps checking. */
       checkFailure: string | null;
     };
@@ -45,8 +53,8 @@ const isNotFound = (error: ApolloError) =>
   error.graphQLErrors.some(({ extensions }) => extensions.code === "NOT_FOUND");
 
 /**
- * A run of the flow, followed while it's running: its status, its steps' marks from its events, and the edition of the
- * flow it ran.
+ * A run of the flow, followed while it's running: its status, its steps' runs and marks from its events, and the
+ * edition of the flow it ran.
  */
 export const useRun = ({
   flowRunEntityId,
@@ -122,18 +130,29 @@ export const useRun = ({
     });
   const ranDefinition = ranFlow?.flowDefinition ?? null;
 
-  const marks = useMemo(() => {
+  const steps = useMemo(() => {
     if (!run || events.status !== "loaded") {
       return null;
     }
 
     try {
-      return getStepRunMarks({
-        steps: (ranDefinition ?? currentDefinition).steps,
-        stepRuns: getStepRunsFromEvents(events.events, run),
-        events: events.events,
-        live,
-      });
+      const stepRuns = getStepRunsFromEvents(events.events, run);
+
+      return {
+        marks: getStepRunMarks({
+          steps: (ranDefinition ?? currentDefinition).steps,
+          stepRuns,
+          events: events.events,
+          live,
+        }),
+        stepRuns: new Map(stepRuns.map((stepRun) => [stepRun.stepId, stepRun])),
+        /* Requests for web pages are answered by the browser plugin, not a person. */
+        waitingOnPerson: new Set(
+          getOpenInputRequests(events.events).flatMap(({ stepId, type }) =>
+            type === "human-input" ? [stepId] : [],
+          ),
+        ),
+      };
     } catch (stepRunsError) {
       /* Events that don't add up are reported, rather than thrown. */
       return stepRunsError instanceof Error
@@ -171,18 +190,21 @@ export const useRun = ({
     return { status: "failed", message: events.message, retry: null };
   }
 
-  if (marks instanceof Error) {
-    return { status: "failed", message: marks.message, retry: null };
+  if (steps instanceof Error) {
+    return { status: "failed", message: steps.message, retry: null };
   }
 
-  if (events.status !== "loaded" || !marks || ranFlowLoading) {
+  if (events.status !== "loaded" || !steps || ranFlowLoading) {
     return { status: "loading" };
   }
 
   return {
     status: "loaded",
     ranDefinition,
-    marks,
+    marks: steps.marks,
+    stepRuns: steps.stepRuns,
+    waitingOnPerson: steps.waitingOnPerson,
+    live,
     checkFailure: events.checkFailure ?? null,
   };
 };

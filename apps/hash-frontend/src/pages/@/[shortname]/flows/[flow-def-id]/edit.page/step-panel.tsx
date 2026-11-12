@@ -5,20 +5,23 @@ import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
+import { findStep } from "./shared/find-step";
 import { getNameLabel } from "./shared/name-label";
-import { getStepDisplay, startDisplay } from "./shared/step-display";
+import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
+import {
+  getActionDefinition,
+  getStepDisplay,
+  startDisplay,
+} from "./shared/step-display";
+import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
-import {
-  getActionDefinition,
-  getNewFlowInput,
-} from "./step-panel/input-sources";
+import { getNewFlowInput } from "./step-panel/input-sources";
 import { QueryField } from "./step-panel/query-field";
-import { findStep } from "./step-panel/shared/find-step";
 import { UsedByField } from "./step-panel/used-by-field";
-import { indexValueUses } from "./step-panel/value-uses";
 
+import type { FlowValue } from "./shared/value-uses";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -32,7 +35,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = ReturnType<typeof indexValueUses>;
+type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
 
 const takesEntityQuery = (input: InputDefinition) =>
   "oneOfPayloadKinds" in input &&
@@ -41,26 +44,6 @@ const takesEntityQuery = (input: InputDefinition) =>
 /** What the panel shows: the start step, or one step at any depth. */
 export type StepPanelSubject = { start: true } | { stepId: string };
 
-/** The panel floats over the canvas's right edge, so opening it doesn't resize the canvas or move what's on it. */
-export const stepPanelWidth = 384;
-
-const panel = css({
-  position: "absolute",
-  zIndex: "docked",
-  top: "0",
-  right: "0",
-  bottom: "0",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8",
-  width: "[384px]",
-  p: "4",
-  bg: "bgSolid.min",
-  overflowY: "auto",
-  borderLeftWidth: "1px",
-  borderLeftStyle: "solid",
-  borderLeftColor: "bd.subtle",
-});
 const header = css({ display: "flex", alignItems: "flex-start", gap: "2" });
 const headerIcon = css({ display: "flex", color: "fg.body", pt: "0.5" });
 const headerText = css({
@@ -70,14 +53,7 @@ const headerText = css({
   flex: "1",
   minWidth: "0",
 });
-const heading = css({
-  m: "0",
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "fg.heading",
-});
 const fixedDescription = css({ textStyle: "sm", color: "fg.body" });
-const section = css({ display: "flex", flexDirection: "column", gap: "2" });
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
 
@@ -95,23 +71,10 @@ const PanelHeader = ({
       <Icon name={icon} size="sm" />
     </span>
     <div className={headerText}>
-      <h2 className={heading}>{title}</h2>
+      <PanelTitle>{title}</PanelTitle>
       {children}
     </div>
   </div>
-);
-
-const PanelSection = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) => (
-  <section className={section}>
-    <h3 className={heading}>{title}</h3>
-    {children}
-  </section>
 );
 
 /** What "Add input" adds: a required text input, which any step input that takes text can use. */
@@ -160,7 +123,7 @@ const StartPanel = ({
   };
 
   return (
-    <aside className={panel} aria-label="Start">
+    <SidePanel label="Start">
       <PanelHeader icon={startDisplay.icon} title={startDisplay.title}>
         <span className={fixedDescription}>{startDisplay.description}</span>
       </PanelHeader>
@@ -185,7 +148,7 @@ const StartPanel = ({
           Add input
         </Button>
       </PanelSection>
-    </aside>
+    </SidePanel>
   );
 };
 
@@ -237,7 +200,7 @@ const SelectedStepPanel = ({
   );
 
   return (
-    <aside className={panel} aria-label={title}>
+    <SidePanel label={title}>
       <PanelHeader icon={icon} title={title}>
         <TextInput
           variant="subtle"
@@ -320,7 +283,7 @@ const SelectedStepPanel = ({
           </Form.Section>
         </PanelSection>
       )}
-    </aside>
+    </SidePanel>
   );
 };
 
@@ -338,10 +301,11 @@ export const StepPanel = ({
     editor.subscribe,
     editor.getState,
   );
-  const stepsUsing = useMemo(
-    () => indexValueUses(flowDefinition.steps),
-    [flowDefinition.steps],
-  );
+  const stepsUsing = useMemo<StepsUsing>(() => {
+    const usesOf = indexValueUses(flowDefinition.steps);
+
+    return (value) => usesOf(value).map(({ step }) => step);
+  }, [flowDefinition.steps]);
 
   if ("start" in subject) {
     return (

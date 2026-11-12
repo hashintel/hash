@@ -8,7 +8,6 @@ import {
   ReactFlowProvider,
   useNodesInitialized,
   useReactFlow,
-  useStore,
   useStoreApi,
 } from "@xyflow/react";
 import {
@@ -34,7 +33,7 @@ import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { stepCardSize, stepGap } from "./canvas/sizes";
-import { useStepFocus } from "./canvas/use-step-focus";
+import { useSelectedStepInView, useStepFocus } from "./canvas/use-step-focus";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -129,9 +128,7 @@ const FlowCanvas = ({
     fitView,
     getInternalNode,
     getNodes,
-    getViewport,
     screenToFlowPosition,
-    setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const store = useStoreApi<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -220,50 +217,7 @@ const FlowCanvas = ({
 
   useStepFocus(focusRequest, coveredRight);
 
-  /* A step selected partly out of view, or under the step panel when it opens, is brought into view. */
-  const paneWidth = useStore((state) => state.width);
-  const paneHeight = useStore((state) => state.height);
-  const soleSelectedStepId =
-    selectedStepIds.length === 1 ? selectedStepIds[0] : undefined;
-  useEffect(() => {
-    const node = soleSelectedStepId
-      ? getInternalNode(getStepNodeId(soleSelectedStepId))
-      : undefined;
-
-    if (!node) {
-      return;
-    }
-
-    const { x, y } = node.internals.positionAbsolute;
-    const width = node.measured.width ?? stepCardSize.width;
-    const height = node.measured.height ?? stepCardSize.height;
-    const viewport = getViewport();
-    const left = x * viewport.zoom + viewport.x;
-    const top = y * viewport.zoom + viewport.y;
-
-    if (
-      left < 0 ||
-      top < 0 ||
-      left + width * viewport.zoom > paneWidth - coveredRight ||
-      top + height * viewport.zoom > paneHeight
-    ) {
-      void setCenter(
-        x + width / 2 + coveredRight / 2 / viewport.zoom,
-        y + height / 2,
-        { zoom: viewport.zoom, duration: 300 },
-      );
-    }
-  }, [
-    soleSelectedStepId,
-    paneWidth,
-    paneHeight,
-    coveredRight,
-    /* A step just added is measured after it's selected. */
-    nodesInitialized,
-    getInternalNode,
-    getViewport,
-    setCenter,
-  ]);
+  useSelectedStepInView(selectedStepIds, coveredRight);
 
   const graph = useMemo(
     () =>

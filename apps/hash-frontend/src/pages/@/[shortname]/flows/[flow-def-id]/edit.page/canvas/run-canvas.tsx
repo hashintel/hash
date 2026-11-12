@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { notReachedMark, startMark } from "../shared/step-states";
 import { CanvasActionsContext } from "./canvas-actions";
@@ -21,7 +21,8 @@ import { ConnectionEdge } from "./connection-edge";
 import { getFlowGraph } from "./flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./flow-nodes";
 import { layOutFlow } from "./layout";
-import { useStepFocus } from "./use-step-focus";
+import { getUndimmedNodeIds } from "./undimmed-nodes";
+import { useSelectedStepInView, useStepFocus } from "./use-step-focus";
 
 import type { StepRunMark } from "../shared/step-states";
 import type { CanvasActions } from "./canvas-actions";
@@ -45,6 +46,9 @@ const nodeTypes = {
 const edgeTypes = { connection: ConnectionEdge };
 
 const canvas = css({ position: "relative", width: "full", height: "full" });
+/* While a step is highlighted, the rest fade back, so it stands out where it is, and fade in again after. */
+const dimmable = css({ transition: "opacity", transitionDuration: "fast" });
+const dimmed = css({ opacity: "0.3" });
 
 const startRun: CardRun = { mark: startMark, featured: false };
 
@@ -70,6 +74,13 @@ type RunCanvasProps = {
   focusRequest: { stepId: string } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
+  /**
+   * A step to show apart from the rest, e.g. one using the selected step's output: every other step is dimmed but
+   * those selected.
+   */
+  highlightedStepId: string | null;
+  /** How much of the canvas's right edge a panel covers, in pixels. */
+  coveredRight: number;
 };
 
 const FlowRunCanvas = ({
@@ -80,6 +91,8 @@ const FlowRunCanvas = ({
   focusRequest,
   collapsedStepIds,
   onToggleCollapsed,
+  highlightedStepId,
+  coveredRight,
 }: RunCanvasProps) => {
   const { fitView } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -116,15 +129,25 @@ const FlowRunCanvas = ({
     };
   }, [flowDefinition]);
 
+  /* As in the editor: fitting leaves the cards clear of the panel. */
+  const fitPadding = useMemo(
+    () =>
+      coveredRight > 0
+        ? ({ x: "5%", y: "5%", right: `${coveredRight + 24}px` } as const)
+        : undefined,
+    [coveredRight],
+  );
+
   const fittedRef = useRef(false);
   useEffect(() => {
     if (nodesInitialized && !fittedRef.current) {
       fittedRef.current = true;
-      void fitView({ maxZoom: 1 });
+      void fitView({ maxZoom: 1, padding: fitPadding });
     }
-  }, [nodesInitialized, fitView]);
+  }, [nodesInitialized, fitView, fitPadding]);
 
-  useStepFocus(focusRequest, 0);
+  useStepFocus(focusRequest, coveredRight);
+  useSelectedStepInView(selectedStepIds, coveredRight);
 
   const graph = useMemo(() => {
     if (!layout) {
@@ -153,6 +176,26 @@ const FlowRunCanvas = ({
     [flowDefinition.outputs],
   );
 
+  /* While a step is highlighted, it and the selected steps stay as they are, so both ends of what links them show. */
+  const undimmedNodeIds = useMemo(
+    () =>
+      highlightedStepId === null
+        ? null
+        : getUndimmedNodeIds({
+            stepIds: [highlightedStepId, ...selectedStepIds],
+            steps: flowDefinition.steps,
+            collapsedStepIds,
+            nodes: graph.nodes,
+          }),
+    [
+      highlightedStepId,
+      selectedStepIds,
+      flowDefinition.steps,
+      collapsedStepIds,
+      graph.nodes,
+    ],
+  );
+
   const nodes = useMemo(() => {
     const selectedStepIdSet = new Set(selectedStepIds);
 
@@ -174,10 +217,21 @@ const FlowRunCanvas = ({
         deletable: false,
         connectable: false,
         selected: stepId !== null && selectedStepIdSet.has(stepId),
+        className: cx(
+          dimmable,
+          undimmedNodeIds !== null && !undimmedNodeIds.has(node.id) && dimmed,
+        ),
         ...(measured && { measured }),
       };
     });
-  }, [graph.nodes, marks, featuredStepIds, selectedStepIds, measurements]);
+  }, [
+    graph.nodes,
+    marks,
+    featuredStepIds,
+    selectedStepIds,
+    undimmedNodeIds,
+    measurements,
+  ]);
 
   const edges = useMemo(
     () =>
@@ -185,8 +239,18 @@ const FlowRunCanvas = ({
         ...edge,
         selectable: false,
         focusable: false,
+        /* A line stays as it is only between two steps that do. */
+        className: cx(
+          dimmable,
+          undimmedNodeIds !== null &&
+            !(
+              undimmedNodeIds.has(edge.source) &&
+              undimmedNodeIds.has(edge.target)
+            ) &&
+            dimmed,
+        ),
       })),
-    [graph.edges],
+    [graph.edges, undimmedNodeIds],
   );
 
   const onNodesChange = (changes: NodeChange<FlowNode>[]) => {
@@ -252,14 +316,19 @@ const FlowRunCanvas = ({
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} />
-          <MiniMap position="top-right" pannable zoomable />
+          <MiniMap
+            position="top-right"
+            pannable
+            zoomable
+            style={{ marginRight: coveredRight + 15 }}
+          />
         </ReactFlow>
         <Panel position="bottom-center">
           <CanvasToolbar
             tool={tool}
             onToolChange={setTool}
             editing={null}
-            fitPadding={undefined}
+            fitPadding={fitPadding}
           />
         </Panel>
       </div>
