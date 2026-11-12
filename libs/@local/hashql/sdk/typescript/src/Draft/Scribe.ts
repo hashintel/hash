@@ -7,7 +7,7 @@
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
-import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
+import { Array, Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import { nominalValue } from "../internal/draft-scribe.js";
 import * as Referential from "../internal/referential.js";
@@ -314,12 +314,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       readonly else?: ($: Context.Context<S>) => Expression.Value.Any;
     },
   ): Expression.Expression.Any {
-    const consequent = new ContextImpl<S>(this.#scope, this.#next).build(
-      branches.then,
-    );
-    const alternate = Result.transposeMapOption(
-      Option.fromUndefinedOr(branches.else),
-      (body) => new ContextImpl<S>(this.#scope, this.#next).build(body),
+    const consequent = this.build(branches.then);
+    const alternate = Option.fromUndefinedOr(branches.else).pipe(
+      Result.transposeMapOption((body) => this.build(body)),
     );
 
     return pipe(
@@ -385,7 +382,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     body: ($: Context.Context<S>) => Expression.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
     try {
+      const stackSize = this.#wrappers.length;
       const expression = body(this);
+
       if (
         !Expression.isExpression(expression) &&
         !(
@@ -396,9 +395,12 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
         return Result.fail(ProgramError.Construction.invalidBodyResult());
       }
 
+      const wrappers = Array.drop(this.#wrappers, stackSize);
+      this.#wrappers.splice(stackSize);
+
       return pipe(
         {
-          wrappers: Result.all(this.#wrappers),
+          wrappers: Result.all(wrappers),
           node: Expression.toNode(expression),
         },
         Result.all,
