@@ -64,19 +64,22 @@ test("a type's page lists each type that extends any of its versions, with the v
 
     const section = typesThatExtend(page, parentName);
     const toggle = section.getByRole("button", {
-      name: `${childName} v2, versions v1–v2, extends ${parentName} v1, v2`,
+      name: `${childName} v2`,
       exact: true,
     });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    await toggle.click();
+    await toggle.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await toggle.press("Space");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    const ranges = section.getByRole("group", {
-      name: `Version ranges of ${childName}`,
-    });
+    await section.getByRole("row").filter({ has: toggle }).click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
     for (const version of ["v1", "v2"]) {
       await expect(
-        ranges.getByRole("button", {
+        section.getByRole("button", {
           name: `Open ${childName} ${version}, the highest version in ${version}, which extends ${parentName} ${version}`,
         }),
       ).toBeVisible();
