@@ -79,12 +79,16 @@ authoring surface that is inherently React (users write JSX).
 ### ExperimentsProvider (`src/react/experiments/`)
 
 - One `ExperimentRecord` per experiment: config (`runCount`, seed, `dt`,
-  `maxTime`, metric specs), `status`, `progress`
-  (`MonteCarloWorkerProgress`), `metricFrames`, `latestMetricFramesById`.
-- Creates a `MonteCarloExperiment` handle per record
-  (`createMonteCarloExperiment` + the Monte Carlo worker factory) and mirrors
-  its `status` / `progress` / `metrics` stores. On completion the worker is
-  disposed; the accumulated metric frames stay for display.
+  `maxTime`, metric specs), the label of the simulator that computes it,
+  `status`, `progress` (`MonteCarloWorkerProgress`), `metricFrames`,
+  `latestMetricFramesById`.
+- Starts each experiment on a registered simulator: the one the input names,
+  or the default Stochastic one. The provider holds no workers of its own;
+  the simulators lease them from the pool of `SimulatorsProvider`. It mirrors
+  the handle's `status` / `progress` / `metrics` stores, and the accumulated
+  metric frames stay for display once the run is over.
+- `adoptExperiment` lists an experiment something else started, which is how
+  a Stochastic simulation is kept.
 
 ### ExperimentMetricTimeline (`src/ui/.../experiments/`)
 

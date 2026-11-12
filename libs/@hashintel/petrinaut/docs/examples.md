@@ -61,7 +61,7 @@ A small service system: customers arrive, wait, are served by a limited staff po
 
 **Demonstrates:**
 
-- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
+- **GPU-ready modelling**: no typed tokens — create an experiment measuring **Waiting** or **Served** and the WebGPU simulator runs it as shipped.
 - Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
 - A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
 

@@ -241,68 +241,25 @@ const Providers = ({
 );
 
 describe("SimulationSettings", () => {
-  it("offers the simulator and its parameters for an event-driven run, in place of the Time Step", () => {
-    const selectSimulator = vi.fn();
-    const setSimulatorParameter = vi.fn();
-    const { rerender } = render(
+  it("reads what Play computes on one line, beside the scenario", () => {
+    render(
       <Providers
         simulation={{
           simulatorSelection: {
             simulatorId: "test.stepped",
-            parameters: { dt: 0.01 },
+            parameters: { dt: 0.5 },
           },
-          selectSimulator,
-          setSimulatorParameter,
         }}
       >
         <SimulationSettings />
       </Providers>,
     );
 
-    // The simulator brings its own fields.
-    expect(screen.queryByLabelText(/Time Step/)).toBeNull();
-    expect(screen.queryByLabelText(/Max error/)).toBeNull();
-    const step = screen.getByLabelText(/Step size/);
-    fireEvent.change(step, { target: { value: "0.5" } });
-    expect(setSimulatorParameter).toHaveBeenCalledWith("dt", 0.5);
-    // A value the spec rejects is not stored.
-    setSimulatorParameter.mockClear();
-    fireEvent.change(step, { target: { value: "0" } });
-    expect(setSimulatorParameter).not.toHaveBeenCalled();
-
-    const picker = screen.getByLabelText("Simulator");
-    // A simulator that computes no single run is listed and cannot be picked.
-    expect(
-      Array.from(picker.querySelectorAll("option")).map((option) => [
-        option.textContent,
-        option.disabled,
-      ]),
-    ).toEqual([
-      ["Stepped", false],
-      ["Solved", false],
-      ["Batched", true],
-    ]);
-    fireEvent.change(picker, { target: { value: "test.solved" } });
-    expect(selectSimulator).toHaveBeenCalledWith("test.solved");
-
-    rerender(
-      <Providers
-        simulation={{
-          simulatorSelection: {
-            simulatorId: "test.solved",
-            parameters: { tolerance: 1e-4, exact: false },
-          },
-          selectSimulator,
-          setSimulatorParameter,
-        }}
-      >
-        <SimulationSettings />
-      </Providers>,
-    );
+    // The simulator's fields are in the picker's popover, not in the row.
     expect(screen.queryByLabelText(/Step size/)).toBeNull();
-    expect(screen.getByLabelText(/Max error/)).toBeTruthy();
-    // Shown only while the parameter it depends on holds the right value.
-    expect(screen.queryByLabelText(/Order/)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Simulator: Stepped, 0.5 s" }),
+    ).toBeTruthy();
   });
 
   it("shows the scenario form with no scenario selected", () => {

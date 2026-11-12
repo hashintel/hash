@@ -32,11 +32,15 @@ Override values for this run:
 - With **No scenario** selected: the form's **Parameters** table -- an expression per [net-level parameter](petri-net-extensions.md#global-parameters), the default shown with a `default` tag until you override it; expressions may read the Variables above as `scenario.<name>`.
 - With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter overrides](scenarios.md#parameters) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. Every scenario shows computed parameter values and the exact tokens the run will start with, recomputed as you change scenario parameters. Select a read-only value to see its source expression in a floating cell over the selected value. The expression disappears when focus moves away. Very large places preview their first 100 rows.
 
-Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
+Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running or paused. Reset the simulation to change them.
+
+### Run settings
+
+The capsule at the right of the scenario row says what **Play** computes and with what. It holds the mode switch and, beside it, the simulator with the values it runs at, such as `JS fixed step 0.01 s`. It stays on one line at any panel width; when space runs short the values are cut with an ellipsis, and hovering shows them in full.
 
 ### Mode
 
-The **Mode** switch beside the scenario picker chooses what **Play** computes:
+The mode switch chooses what **Play** computes:
 
 - **Quick simulation** (the default) computes one run and plays it on the canvas, token by token.
 - **Stochastic** computes many runs of the same configuration and shows each place's token count across them. See [Stochastic simulation](#stochastic-simulation).
@@ -45,7 +49,7 @@ Each mode keeps its own simulator and parameter values. The switch is locked whi
 
 ### Simulator
 
-The **Simulator** picker chooses what computes the next run. The fields to its right are the selected simulator's own parameters, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
+Click the simulator in the capsule to open its popover. It opens over the panel, so nothing in the panel moves. The list at the top chooses what computes the next run, each simulator with a line on what it does. Under **Parameters** are the selected simulator's own fields, so they change with it. Each simulator keeps the values you gave it when you switch to another and back.
 
 | Simulator             | Parameters                    | Modes                        | What it does                                                                                                                                                               |
 | --------------------- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,7 +57,7 @@ The **Simulator** picker chooses what computes the next run. The fields to its r
 | **JS adaptive**       | **Max error**                 | Quick simulation, Stochastic | Integrates every place's dynamics with an error-controlled solver that chooses its own steps, and samples the time of each firing from the transitions' rates.             |
 | **WebGPU fixed step** | **Time step**, **ODE method** | Stochastic                   | Computes all the runs at once on the graphics card. Offered where the browser supports WebGPU; the same limits apply as for [experiments](experiments.md#compute-backend). |
 
-A simulator that cannot compute what the mode shows is greyed in the list, with the reason beside its name. The picker and its fields are locked while a simulation exists; reset to change them.
+A simulator that cannot compute what the mode shows is greyed in the list, with the reason in place of its description. While a simulation exists the popover still opens, to read the values, but nothing in it can be changed; reset the simulation first.
 
 - **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds in Quick simulation and `0.1` in Stochastic, where every run pays for it.
 - **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
@@ -76,13 +80,13 @@ If there are unresolved error-severity [diagnostics](petri-net-extensions.md#dia
 
 ### Navigating Simulation Settings
 
-Use arrow keys to move between the scenario picker, its action buttons, the time-step field, and the tables below. Enter opens a picker or edits a selected table value. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
+Use arrow keys to move between the scenario picker, its action buttons, the run settings, and the tables below. Enter opens a picker or edits a selected table value. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
 
 The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on the compact **Show all places** switch beside the Initial state title and info icon to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
 
 ## Stochastic simulation
 
-With **Mode** set to **Stochastic**, Simulation Settings gains two fields after the simulator's own:
+With the mode set to **Stochastic**, the simulator's popover gains two fields after the simulator's own, and the capsule reads them after the simulator's values, such as `0.1 s · 100 runs · to 60 s`:
 
 - **Runs** -- how many independent runs are computed. Default: `100`. More runs give a steadier mean and a truer spread, and take longer.
 - **End time** -- the simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs one; switching to Stochastic sets `60` seconds when none was set.
@@ -166,6 +170,8 @@ Controls how computation and playback interact:
 | **Play + compute buffer**    | Compute only a small buffer ahead of the playhead.           |
 | **Play + compute max**       | Compute as fast as possible while playing.                   |
 
+A Stochastic simulation is not paced by the playhead: once started, its runs compute to the end time in every mode.
+
 ### Stopping condition
 
 - **Run indefinitely** -- simulation continues until manually paused or deadlock. Not available for a Stochastic simulation, which needs an end time.
@@ -175,7 +181,7 @@ Stopping conditions are **locked after the simulation starts**. Reset the simula
 
 ## Timeline
 
-The **Timeline** tab appears in the bottom panel during and after simulation. It shows token counts per place over time as a chart.
+The **Timeline** tab appears in the bottom panel during and after simulation. It shows token counts per place over time as a chart. Resetting the simulation closes the tab and returns the panel to **Simulation Settings**, where the next run is set up.
 
 <img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
