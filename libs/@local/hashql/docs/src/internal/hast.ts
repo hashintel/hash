@@ -402,12 +402,14 @@ const trait =
         },
         Relations.uses,
       );
+      const hierarchy = yield* optional(
+        Relations.hierarchy({ output, name, slot: "header" }),
+      )(value.hierarchy);
+      const written = yield* description(output)(value.description);
 
       return Content.element("trait")({ name, title: value.name }, [
-        ...(yield* optional(
-          Relations.hierarchy({ output, name, slot: "header" }),
-        )(value.hierarchy)),
-        yield* description(output)(value.description),
+        ...hierarchy,
+        written,
         ...whereDeclared(output)(value),
         ...implementors,
       ]);

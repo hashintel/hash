@@ -74,7 +74,8 @@ export const print = Effect.fnUntraced(function* (
   }
 
   const api = yield* Api.Api;
-  const raw = Array.join(yield* Effect.forEach(nodes, api.print), "\n");
+  const printed = yield* Effect.forEach(nodes, api.print);
+  const raw = Array.join(printed, "\n");
   const { prefix, suffix } = Syntax.context(original);
   // oxlint-disable-next-line typescript/promise-function-async -- Effect captures both promise rejections and synchronous formatter exceptions.
   const formatted = yield* Effect.tryPromise(() =>
