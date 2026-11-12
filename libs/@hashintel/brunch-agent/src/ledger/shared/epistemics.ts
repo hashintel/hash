@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-const evidencedDescription =
+const defaultEvidencedDescription =
   "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.";
 
 /**
@@ -9,7 +9,7 @@ const evidencedDescription =
  * description that names them.
  */
 export const originSchemaWith = ({
-  evidencedDescription: evidenced = evidencedDescription,
+  evidencedDescription = defaultEvidencedDescription,
 }: { evidencedDescription?: string } = {}) =>
   v.pipe(
     v.union([
@@ -23,7 +23,7 @@ export const originSchemaWith = ({
         v.literal("inferred"),
         v.description("The agent derived it from what was said."),
       ),
-      v.pipe(v.literal("evidenced"), v.description(evidenced)),
+      v.pipe(v.literal("evidenced"), v.description(evidencedDescription)),
       v.pipe(v.literal("stated"), v.description("The USER said it.")),
     ]),
     v.description(
