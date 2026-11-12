@@ -352,6 +352,18 @@ describe("default SI data types", () => {
       ["Degrees Fahrenheit", "Temperature (Imperial)", "Temperature"],
       ["Pound-Force Feet", "Torque (Imperial)", "Torque"],
       ["Amperes", "Electric Current (Metric)", "Electric Current"],
+      [
+        "Henries per Meter",
+        "Magnetic Permeability (Metric)",
+        "Magnetic Permeability",
+      ],
+      [
+        "Henries per Foot",
+        "Magnetic Permeability (Imperial)",
+        "Magnetic Permeability",
+      ],
+      ["Darcies", "Fluid Permeability (Metric)", "Fluid Permeability"],
+      ["Square Feet", "Fluid Permeability (Imperial)", "Fluid Permeability"],
     ] as const) {
       expect(getSeeded(unit).schema.allOf).toContainEqual({
         $ref: getSeeded(system).schema.$id,
@@ -368,6 +380,36 @@ describe("default SI data types", () => {
     ]) {
       expect(seeded.has(title)).toBe(false);
     }
+  });
+
+  it("reuses square-length units for fluid permeability without merging the quantities", () => {
+    for (const title of [
+      "Square Metres",
+      "Square Centimetres",
+      "Square Millimetres",
+      "Square Micrometres",
+      "Square Feet",
+      "Square Inches",
+    ]) {
+      const system = ["Square Feet", "Square Inches"].includes(title)
+        ? "Imperial"
+        : "Metric";
+      expect(getSeeded(title).schema.allOf).toEqual([
+        { $ref: getSeeded(`Area (${system})`).schema.$id },
+        { $ref: getSeeded(`Fluid Permeability (${system})`).schema.$id },
+      ]);
+    }
+    for (const title of [
+      "Darcies",
+      "Millidarcies",
+      "Microdarcies",
+      "Nanodarcies",
+    ]) {
+      expect(getSeeded(title).schema.allOf).toEqual([
+        { $ref: getSeeded("Fluid Permeability (Metric)").schema.$id },
+      ]);
+    }
+    expect(seeded.has("Permeability")).toBe(false);
   });
 
   it("creates parents and conversion targets before their dependents", () => {
@@ -407,6 +449,7 @@ describe("default SI data types", () => {
     ["Grays", "Sieverts"],
     ["Newton Meters", "Joules"],
     ["Radians", "Steradians"],
+    ["Darcies", "Henries per Meter"],
   ])("keeps %s separate from %s", (left, right) => {
     const leftType = getSeeded(left);
     expect(leftType.conversions).not.toHaveProperty(
@@ -419,6 +462,24 @@ describe("default SI data types", () => {
 });
 
 describe("SI unit conversions", () => {
+  it.each([
+    ["Darcies", 1e-12],
+    ["Millidarcies", 1e-15],
+    ["Microdarcies", 1e-18],
+    ["Nanodarcies", 1e-21],
+  ])("converts %s to square metres with relative accuracy", (title, scale) => {
+    const conversion = getConversion(title, "Square Metres");
+    const expected = scale / 1.01325;
+    expect(createConversionFunction([conversion.to])(1) / expected).toBeCloseTo(
+      1,
+      12,
+    );
+    expect(createConversionFunction([conversion.from])(expected)).toBeCloseTo(
+      1,
+      12,
+    );
+  });
+
   it.each([
     ["Feet", "Meters", 1, 0.3048],
     ["Miles", "Meters", 1, 1609.344],
@@ -520,6 +581,8 @@ describe("SI unit conversions", () => {
     ],
     ["Pound-Force Feet", "Pound-Force Inches", "Newton Meters", 1, 12],
     ["Days", "Hour", "Second", 1, 24],
+    ["Darcies", "Millidarcies", "Square Metres", 1, 1000],
+    ["Darcies", "Square Feet", "Square Metres", 1e12, 1 / 1.01325 / 0.09290304],
   ])(
     "converts %s to %s through %s",
     (source, target, reference, value, expected) => {
@@ -537,6 +600,22 @@ describe("SI unit conversions", () => {
       ).toBeCloseTo(value, 10);
     },
   );
+
+  it("converts darcies and square micrometres within the existing evaluator precision", () => {
+    const darcies = getConversion("Darcies", "Square Metres");
+    const squareMicrometres = getConversion(
+      "Square Micrometres",
+      "Square Metres",
+    );
+    expect(
+      createConversionFunction([darcies.to, squareMicrometres.from])(1),
+    ).toBeCloseTo(1 / 1.01325, 12);
+    expect(
+      createConversionFunction([squareMicrometres.to, darcies.from])(
+        1 / 1.01325,
+      ),
+    ).toBeCloseTo(1, 7);
+  });
 
   it("composes Fahrenheit and Celsius conversions through their shared Kelvin target", () => {
     const fahrenheit = getConversion("Degrees Fahrenheit", "Kelvins");

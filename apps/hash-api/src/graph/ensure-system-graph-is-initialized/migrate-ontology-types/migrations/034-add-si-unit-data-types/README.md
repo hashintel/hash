@@ -13,7 +13,7 @@ including quetta, ronna, ronto, and quecto.
 
 ## Quantity and system groups
 
-The catalogue has 63 quantity parents and 106 system subgroups. For example:
+The catalogue has 64 quantity parents and 108 system subgroups. For example:
 
 ```text
 Length
@@ -25,13 +25,13 @@ Volume
   Volume (US Customary) → US Liquid Gallons, US Liquid Pints, …
 ```
 
-All quantities have a metric group. Forty also have imperial units. US customary
+All quantities have a metric group. Forty-one also have imperial units. US customary
 subgroups distinguish mass, volume, and density definitions that differ from
 imperial ones. Shared units such as pounds and cubic feet belong to both system
 subgroups where both exist. Quantities without distinct imperial units, such as
 electric current and capacitance, have no imperial subgroup.
 
-The catalogue includes 991 concrete units. Imperial coverage spans length, mass,
+The catalogue includes 995 concrete units. Imperial coverage spans length, mass,
 area, volume, temperature, force, pressure, energy, power, speed, acceleration,
 density, viscosity, torque, heat, light, and compound units that use imperial
 length or mass alongside shared electrical or chemical units.
@@ -44,12 +44,32 @@ units receive updated versions of those too. The migration can resume after a
 partial run without creating further versions. Existing properties pinned to
 old units are not rewritten to accept every unit in the new quantity groups.
 
+## Permeability
+
+`Magnetic Permeability` groups henries per metre and per foot. `Fluid Permeability`
+is a separate quantity for intrinsic permeability: the ability of a porous
+material to transmit fluids independently of the fluid's properties. The
+[USGS definition](https://pubs.usgs.gov/pp/0708/report.pdf) distinguishes it from
+hydraulic conductivity, which also depends on fluid density and viscosity.
+
+Fluid permeability reuses square metres, square centimetres, square millimetres,
+square micrometres, square feet, and square inches. Each shared unit has both
+its area and fluid-permeability system parents and is seeded once. Darcies,
+millidarcies, microdarcies, and nanodarcies belong only to fluid permeability:
+[NIST explicitly distinguishes darcies from area units](https://www.nist.gov/pml/special-publication-811/nist-guide-si-footnotes).
+
+Darcy conversions use 1 d = 10⁻¹² / 1.01325 m², consistent with the
+[NIST conversion table](https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8).
+The expressions divide before applying the small scale factor. The shared
+square-length units retain their existing formulas and evaluator precision.
+There is no conversion to magnetic permeability or hydraulic conductivity.
+
 ## Conversions
 
 Each system subgroup inherits from its abstract quantity parent. Concrete units have a symbol and,
 where another unit of the same quantity is available, a bidirectional conversion
 to a shared reference unit. The graph can compose conversions between units that
-share that reference, including across metric, imperial, and US customary subgroups. There are 928 bidirectional conversion definitions.
+share that reference, including across metric, imperial, and US customary subgroups. There are 932 bidirectional conversion definitions.
 
 The catalogue stores the existing `Record<BaseUrl, Conversions>` schema directly,
 with `to` and `from` expressions. Targets use the existing system data type base

@@ -3829,6 +3829,13 @@ export const systemDataTypes = {
     title: "CZK",
     description: "An amount denominated in Czech Koruna (ISO 4217 CZK).",
   },
+  darcies: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/darcies/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/darcies/" as BaseUrl,
+    title: "Darcies",
+    description:
+      "A non-SI unit of intrinsic permeability equal to 1/1.01325 square micrometres.",
+  },
   date: {
     dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/date/" as BaseUrl,
@@ -5126,6 +5133,32 @@ export const systemDataTypes = {
     title: "Flow Type",
     description: "The type of a flow, determining which task queue it runs on.",
   },
+  fluidPermeability: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/fluid-permeability/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/fluid-permeability/" as BaseUrl,
+    title: "Fluid Permeability",
+    description:
+      "The intrinsic ability of a porous material to transmit fluids, independent of the fluid's properties.",
+  },
+  fluidPermeabilityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/fluid-permeability-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/fluid-permeability-imperial/" as BaseUrl,
+    title: "Fluid Permeability (Imperial)",
+    description:
+      "Fluid Permeability expressed in imperial units, including units shared with US customary measurement.",
+  },
+  fluidPermeabilityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/fluid-permeability-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/fluid-permeability-metric/" as BaseUrl,
+    title: "Fluid Permeability (Metric)",
+    description:
+      "Fluid Permeability expressed in metric units, including SI units and their accepted companions.",
+  },
   footCandles: {
     dataTypeId: "https://hash.ai/@h/types/data-type/foot-candles/v/1",
     dataTypeBaseUrl:
@@ -5775,7 +5808,8 @@ export const systemDataTypes = {
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/henries-per-foot/" as BaseUrl,
     title: "Henries per Foot",
-    description: "A unit of permeability expressed in henries per foot.",
+    description:
+      "A unit of magnetic permeability expressed in henries per foot.",
   },
   henriesPerMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/henries-per-meter/v/1",
@@ -6672,6 +6706,32 @@ export const systemDataTypes = {
     description:
       "Magnetic Flux expressed in metric units, including SI units and their accepted companions.",
   },
+  magneticPermeability: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/magnetic-permeability/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-permeability/" as BaseUrl,
+    title: "Magnetic Permeability",
+    description:
+      "The magnetic flux density per unit magnetic field strength in a material.",
+  },
+  magneticPermeabilityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/magnetic-permeability-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-permeability-imperial/" as BaseUrl,
+    title: "Magnetic Permeability (Imperial)",
+    description:
+      "Magnetic Permeability expressed in imperial units, including units shared with US customary measurement.",
+  },
+  magneticPermeabilityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/magnetic-permeability-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-permeability-metric/" as BaseUrl,
+    title: "Magnetic Permeability (Metric)",
+    description:
+      "Magnetic Permeability expressed in metric units, including SI units and their accepted companions.",
+  },
   mass: {
     dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mass/" as BaseUrl,
@@ -7042,6 +7102,14 @@ export const systemDataTypes = {
     title: "Microcoulombs",
     description: "A unit equal to 10^-6 coulombs.",
   },
+  microdarcies: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/microdarcies/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/microdarcies/" as BaseUrl,
+    title: "Microdarcies",
+    description:
+      "A unit of intrinsic permeability equal to one millionth of a darcy.",
+  },
   microfarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/microfarads/v/1",
     dataTypeBaseUrl:
@@ -7271,6 +7339,14 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/millicoulombs/" as BaseUrl,
     title: "Millicoulombs",
     description: "A unit equal to 10^-3 coulombs.",
+  },
+  millidarcies: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/millidarcies/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/millidarcies/" as BaseUrl,
+    title: "Millidarcies",
+    description:
+      "A unit of intrinsic permeability equal to one thousandth of a darcy.",
   },
   millifarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/millifarads/v/1",
@@ -7661,6 +7737,14 @@ export const systemDataTypes = {
     title: "Nanocoulombs",
     description: "A unit equal to 10^-9 coulombs.",
   },
+  nanodarcies: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/nanodarcies/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/nanodarcies/" as BaseUrl,
+    title: "Nanodarcies",
+    description:
+      "A unit of intrinsic permeability equal to one billionth of a darcy.",
+  },
   nanofarads: {
     dataTypeId: "https://hash.ai/@h/types/data-type/nanofarads/v/1",
     dataTypeBaseUrl:
@@ -7981,30 +8065,6 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/percentage/" as BaseUrl,
     title: "Percentage",
     description: "A measure of the proportion of a whole.",
-  },
-  permeability: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/permeability/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/permeability/" as BaseUrl,
-    title: "Permeability",
-    description:
-      "The magnetic flux density per unit magnetic field strength in a material.",
-  },
-  permeabilityImperial: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/permeability-imperial/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/permeability-imperial/" as BaseUrl,
-    title: "Permeability (Imperial)",
-    description:
-      "Permeability expressed in imperial units, including units shared with US customary measurement.",
-  },
-  permeabilityMetric: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/permeability-metric/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/permeability-metric/" as BaseUrl,
-    title: "Permeability (Metric)",
-    description:
-      "Permeability expressed in metric units, including SI units and their accepted companions.",
   },
   permittivity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/permittivity/v/1",
