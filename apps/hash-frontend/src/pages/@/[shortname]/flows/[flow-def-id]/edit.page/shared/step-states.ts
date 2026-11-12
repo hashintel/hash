@@ -403,5 +403,8 @@ export const getBarSegments = ({ state, items }: StepRunMark): BarSegment[] => {
       )
     : [];
 
-  return segments.length > 0 ? segments : [{ state, weight: 1 }];
+  /* A for-each step under way, or stopped, before any of its items got anywhere shows its own state. */
+  return segments.some((segment) => segment.state !== "notReached")
+    ? segments
+    : [{ state, weight: 1 }];
 };

@@ -335,4 +335,10 @@ describe("getBarSegments", () => {
       { state: "failed", weight: 1 },
     ]);
   });
+
+  it("fills the bar of a for-each step with its own state while none of its items got anywhere", () => {
+    expect(
+      getBarSegments({ state: "running", items: counts({ notReached: 3 }) }),
+    ).toEqual([{ state: "running", weight: 1 }]);
+  });
 });
