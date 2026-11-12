@@ -1,3 +1,5 @@
+import { readdir } from "node:fs/promises";
+
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
@@ -8,7 +10,7 @@ import {
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
 import { createSystemDataTypeIfNotExists } from "../util";
-import migrate from "./032-add-si-unit-data-types.migration";
+import migrate from "./034-add-si-unit-data-types.migration";
 
 import type { MigrationFunction } from "../types";
 import type {
@@ -79,6 +81,16 @@ const getConversion = (source: string, target: string) => {
 };
 
 describe("default SI data types", () => {
+  it("has a unique migration number so every migration runs", async () => {
+    const migrationFiles = (
+      await readdir(new URL(".", import.meta.url))
+    ).filter((fileName) => fileName.endsWith(".migration.ts"));
+    const migrationNumbers = migrationFiles.map(
+      (fileName) => fileName.split("-")[0],
+    );
+    expect(new Set(migrationNumbers).size).toBe(migrationNumbers.length);
+  });
+
   it("covers the seven base units and all 22 specially named derived units", () => {
     const titles = new Set([
       ...[
@@ -216,7 +228,6 @@ describe("default SI data types", () => {
     ["Grays", "Sieverts"],
     ["Newton Meters", "Joules"],
     ["Radians", "Steradians"],
-    ["Kelvins", "Kelvin Temperature Difference"],
   ])("keeps %s separate from %s", (left, right) => {
     const leftType = getSeeded(left);
     expect(leftType.conversions).not.toHaveProperty(
@@ -236,13 +247,6 @@ describe("SI unit conversions", () => {
     ["Degrees Fahrenheit", "Kelvins", 32, 273.15],
     ["Degrees Fahrenheit", "Kelvins", 212, 373.15],
     ["Degrees Fahrenheit", "Kelvins", -459.67, 0],
-    ["Celsius Temperature Difference", "Kelvin Temperature Difference", 10, 10],
-    [
-      "Fahrenheit Temperature Difference",
-      "Kelvin Temperature Difference",
-      18,
-      10,
-    ],
     ["Radians", "Degree", Math.PI, 180],
     ["Kilometers per Hour", "Meters per Second", 36, 10],
     ["Milliamperes", "Amperes", 1000, 1],
@@ -293,7 +297,7 @@ describe("SI unit conversions", () => {
     }
   });
 
-  it("bounds temperature readings at absolute zero and allows negative differences", () => {
+  it("bounds temperature readings at absolute zero", () => {
     for (const [title, minimum] of [
       ["Kelvins", 0],
       ["Degrees Celsius", -273.15],
@@ -301,8 +305,5 @@ describe("SI unit conversions", () => {
     ] as const) {
       expect(getSeeded(title).schema).toMatchObject({ minimum });
     }
-    expect(
-      getSeeded("Kelvin Temperature Difference").schema,
-    ).not.toHaveProperty("minimum");
   });
 });

@@ -1,6 +1,6 @@
 # Default SI units
 
-Migration 032 adds the missing SI units to the default ontology. Together with
+Migration 034 adds the missing SI units to the default ontology. Together with
 migrations 000, 023, and 026, it covers all seven SI base units, all 22 derived
 units with special names, and every compound-unit example in tables 5 and 6 of
 the [BIPM SI Brochure, ninth edition](https://www.bipm.org/en/publications/si-brochure).
@@ -34,9 +34,11 @@ floating-point approximation of π to convert to the existing `Degree` type.
 
 Temperature readings use `Temperature` and convert through `Kelvins`. For example,
 0 °C and 32 °F both convert to 273.15 K. Their schemas bound readings at absolute
-zero. Temperature intervals use a separate `Temperature Difference` parent:
-10 °C of temperature difference equals 10 K, and 18 °F of difference equals 10 K.
-Differences can be negative and have no offset.
+zero. These types represent temperature readings, not temperature differences.
+A property such as `Temperature Difference` describes the meaning of a value,
+but the current conversion expressions have no property context. Reusing the
+reading types would apply offsets to differences and reject negative kelvin
+differences. Supporting intervals with shared unit types is outside this change.
 
 ## Scope
 
