@@ -15,7 +15,7 @@ import {
 } from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { SxProps, Theme } from "@mui/material";
+import type { BoxProps, Theme } from "@mui/material";
 import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from "react";
 
 /** The white card around a table, which scrolls sideways when the page is narrow, and the grid its rows share, with the open column added on the right. */
@@ -71,29 +71,11 @@ export const HeaderRow = ({ children }: { children: ReactNode }) => (
   </Box>
 );
 
-export const ColumnHeader = ({
-  sx,
-  children,
-}: {
-  sx?: SxProps<Theme>;
-  children: ReactNode;
-}) => (
-  <Box role="columnheader" sx={sx}>
-    {children}
-  </Box>
+export const ColumnHeader = (props: BoxProps) => (
+  <Box role="columnheader" {...props} />
 );
 
-export const Cell = ({
-  sx,
-  children,
-}: {
-  sx?: SxProps<Theme>;
-  children?: ReactNode;
-}) => (
-  <Box role="cell" sx={sx}>
-    {children}
-  </Box>
-);
+export const Cell = (props: BoxProps) => <Box role="cell" {...props} />;
 
 export const OpenTypeButton = ({
   label,
@@ -128,9 +110,6 @@ export const OpenTypeButton = ({
       onFocusVisible={onFocusVisible}
       onBlur={onBlur}
       sx={({ palette }) => ({
-        position: "absolute",
-        right: 0,
-        top: 0,
         width: openColumnWidth,
         height: rowHeight,
         borderRadius: 1,
