@@ -133,10 +133,16 @@ const unknown = (
     },
   });
 
-/** Fails on a `@param` or a `@typeParam` in `documentation` that names no parameter of `signatures`, because its description would document nothing a reader sees. */
+/** The names a `@param` and a `@typeParam` can document: those of a call, or the type parameters a declaration has itself. */
+export type Declared = Pick<
+  AST.Signature.Signature,
+  "parameters" | "typeParameters"
+>;
+
+/** Fails on a `@param` or a `@typeParam` in `documentation` that names nothing in `declared`, because its description would document nothing a reader sees. */
 export const checkParameters = Effect.fnUntraced(function* (
   documentation: Option.Option<Documentation>,
-  signatures: readonly AST.Signature.Signature[],
+  declared: readonly Declared[],
 ): Effect.fn.Return<void, DocumentationError.DocumentationError, AST.Store> {
   if (Option.isNone(documentation)) {
     return;
@@ -145,10 +151,10 @@ export const checkParameters = Effect.fnUntraced(function* (
   const store = yield* AST.Store;
   const comment = store.get(documentation.value);
   const file = comment.node.getSourceFile().fileName;
-  const parameters = Array.flatMap(signatures, (signature) =>
+  const parameters = Array.flatMap(declared, (signature) =>
     Array.map(Array.fromIterable(signature.parameters), (id) => store.get(id)),
   );
-  const typeParameters = Array.flatMap(signatures, (signature) =>
+  const typeParameters = Array.flatMap(declared, (signature) =>
     Array.map(Array.fromIterable(signature.typeParameters), (id) =>
       store.get(id),
     ),

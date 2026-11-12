@@ -116,6 +116,10 @@ const parseNamespace = (
     ),
     documentation: Comments.documentation(node),
   }).pipe(
+    // A namespace states no call and has no type parameters.
+    Effect.tap(({ documentation }) =>
+      Comments.checkParameters(documentation, []),
+    ),
     Effect.tap(() =>
       Effect.forEach(
         Array.filter(statementsOf(node), Syntax.isExportDeclaration),
