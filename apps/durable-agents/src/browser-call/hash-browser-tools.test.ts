@@ -37,7 +37,11 @@ import {
 } from "../../test/scripted-model";
 import { createHostBinding } from "../agent/host-binding";
 import { noNetViewRefusal } from "../net-state/net-freshness";
-import { pruneEdits, visibleNetView } from "../net-state/visible-net-view";
+import {
+  pruneEdits,
+  renderNetChange,
+  visibleNetView,
+} from "../net-state/visible-net-view";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -787,4 +791,92 @@ describe("a declined removal (§3.7)", () => {
       await harness.close(context);
     }
   });
+});
+
+// ─── The output bound, through the real tool path ────────────────────────────
+
+describe("the output bound on a change's read-back (H10)", () => {
+  const changeOutput = { applied: true };
+  const readBackOf = (padding: number) => ({
+    places: [{ id: place.id }],
+    padding: "x".repeat(padding),
+  });
+  /** A read-back whose rendered change result is exactly `bytes` long (ASCII). */
+  const readBackRenderingTo = (bytes: number) => {
+    const base = renderNetChange(changeOutput, readBackOf(0), "R2").length;
+    return readBackOf(bytes - base);
+  };
+
+  test.each([
+    ["over Pi's default 50 KiB", 60 * 1024, "complete"],
+    ["exactly at 256 KiB", 256 * 1024, "complete"],
+    ["one byte over 256 KiB", 256 * 1024 + 1, "cut"],
+  ] as const)(
+    "a read-back %s (%i bytes) arrives %s; a cut one is not a view, so the next change keeps the earlier read's revision",
+    async (_name, bytes, arrives) => {
+      const { models, model } = scriptedModel([
+        call("petrinaut_get_net", "read", getNet),
+        call("petrinaut_create_place", "big", place),
+        call("petrinaut_create_place", "next", {
+          ...place,
+          id: "place-washer",
+          name: "Washer",
+        }),
+        fauxAssistantMessage("Done."),
+      ]);
+      const host = createHostBinding();
+      const tools = createHashBrowserToolsExtension(host);
+      const registry = createRegistry();
+      registry.install(browserCallExtension);
+      registry.install(tools);
+      const harness = await Harness.open(
+        new MemoryStorage(),
+        // The faux model's window is small: a 256 KiB result would compact.
+        { models, registry, settings: { compaction: { enabled: false } } },
+        context,
+      );
+      host.bind(harness);
+      try {
+        const root = await harness.root(context, {
+          agent: { model, extensions: [tools] },
+        });
+        await harness.commit(
+          (tx) => bindBrowserDocument(tx, root.id, binding),
+          context,
+        );
+        const readBack = readBackRenderingTo(bytes);
+        await go(root, "Add a dryer and a washer.", async () => {
+          await answer(
+            harness,
+            root.id,
+            "read",
+            { title: "Net" },
+            { documentRevision: { before: "R1" } },
+          );
+          await answer(harness, root.id, "big", changeOutput, {
+            documentRevision: { before: "R1", after: "R2" },
+            readBack,
+          });
+          await answer(harness, root.id, "next", changeOutput);
+        });
+        const texts = textOf(await resultOf(root, "big"));
+        const rendered = renderNetChange(changeOutput, readBack, "R2");
+        expect(rendered.length).toBe(bytes);
+        expect({
+          exact: texts.length === 1 && texts[0] === rendered,
+          truncated: (texts.at(-1) ?? "").startsWith(
+            "<harness>\n[warn] Output truncated",
+          ),
+          nextIssuedAgainst: (await recordOf(harness, root.id, "next"))
+            ?.expectedRevision,
+        }).toEqual(
+          arrives === "complete"
+            ? { exact: true, truncated: false, nextIssuedAgainst: "R2" }
+            : { exact: false, truncated: true, nextIssuedAgainst: "R1" },
+        );
+      } finally {
+        await harness.close(context);
+      }
+    },
+  );
 });

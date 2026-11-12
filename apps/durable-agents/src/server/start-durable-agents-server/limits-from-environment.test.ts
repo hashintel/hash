@@ -10,7 +10,7 @@ import {
 test("an empty environment gives the defaults", () => {
   expect(limitsFromEnvironment({})).toEqual(defaultServerLimits);
   expect(defaultServerLimits).toEqual({
-    maxTurns: 25,
+    maxTurns: 100,
     maxConcurrentRequests: 16,
     abandonedTurnMs: 600_000,
     crashLoopRestarts: 5,
@@ -25,7 +25,7 @@ test("an empty environment gives the defaults", () => {
 test("a blank variable gives its default", () => {
   expect(
     limitsFromEnvironment({ DURABLE_AGENTS_MAX_TURNS: " " }).maxTurns,
-  ).toBe(25);
+  ).toBe(100);
   expect(poolLimitsFromEnvironment({ DURABLE_AGENTS_PG_POOL_MAX: "" })).toEqual(
     defaultPoolLimits,
   );

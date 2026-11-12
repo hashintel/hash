@@ -875,8 +875,8 @@ const pingTool = defineTool({
   execute: async () => ({ output: [{ type: "text", text: "pong" }] }),
 });
 
-test("a run that keeps calling tools fails visibly at the 25-round default", async () => {
-  const rounds = 25;
+test("a run that keeps calling tools fails visibly at the 100-round default (HA-3)", async () => {
+  const rounds = 100;
   const { server, transport, faux } = openChat({
     responses: Array.from({ length: rounds + 5 }, (_, round) =>
       fauxAssistantMessage(fauxToolCall("ping", {}, { id: `ping-${round}` }), {

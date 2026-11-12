@@ -3,12 +3,17 @@
  * compose Postgres): only a `POST /chat` with a valid document binding
  * creates a conversation, every other route finds an unknown one absent
  * without creating its schema, and a known conversation refuses a malformed
- * binding (400) and a different one (409).
+ * binding (400) and a different one (409). The HASH agent's Save names the
+ * bound document on the first request and after another process reopens the
+ * conversation, and the history route answers through the same app.
  */
 import { randomUUID } from "node:crypto";
 
+import { getCurrentTools } from "@earendil-works/pi-ai/utils/transcript";
 import { Pool } from "pg";
 import { afterAll, expect, test } from "vitest";
+
+import { brunchTools, hashSaveDescription } from "@hashintel/brunch-agent";
 
 import { conversationSchema } from "../../src/server/conversation-storage";
 import {
@@ -18,6 +23,7 @@ import {
 import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
 import { fauxAssistantMessage, scriptedModel } from "../scripted-model";
 
+import type { Message } from "@earendil-works/pi-ai";
 import type { BrowserContext } from "@hashintel/brunch-agent";
 
 const poolConfig = postgresConfigFromEnvironment();
@@ -34,8 +40,12 @@ const schemaExists = async (chatId: string) =>
 /** One server process on the real wiring, its model answering `answers` in order. */
 const startServer = async (answers: string[]) => {
   const pool = new Pool(poolConfig);
+  const requests: Message[][] = [];
   const { models, model, state } = scriptedModel(
-    answers.map((answer) => fauxAssistantMessage(answer)),
+    answers.map((answer) => (request) => {
+      requests.push(structuredClone(request.messages));
+      return fauxAssistantMessage(answer);
+    }),
   );
   const server = await startDurableAgentsServer({
     port: 0,
@@ -75,6 +85,8 @@ const startServer = async (answers: string[]) => {
       return { status: response.status, text: await response.text() };
     },
     modelRequests: () => state.callCount,
+    /** Each model request's messages, in order. */
+    requests,
     close: async () => {
       await server.close();
       await pool.end();
@@ -94,10 +106,17 @@ test("an unknown conversation is created only by a chat request with a valid bin
     const stream = await fetch(`${server.origin}/chat/${chatId}/stream`);
     expect(stream.status).toBe(404);
     expect((await server.post(`/chat/${chatId}/abort`, {})).status).toBe(404);
+    expect(
+      (await fetch(`${server.origin}/chat/${chatId}/messages`)).status,
+    ).toBe(404);
 
     const call = `${browserCallsPrefix}/${chatId}/browser-calls/call-1`;
     const proof = { capability: "capability", binding: "binding" };
-    const outcome = { ...proof, toolName: "addPlace", canonicalInput: {} };
+    const outcome = {
+      ...proof,
+      toolName: "petrinaut_create_place",
+      canonicalInput: {},
+    };
     const browserCalls = await Promise.all([
       server.post(call, { claimant: "tab-1", binding: "binding" }),
       server.post(`${call}/start`, proof),
@@ -169,6 +188,55 @@ test("a known conversation refuses a malformed binding with 400 and a different 
     expect(server.modelRequests()).toBe(2);
   } finally {
     await server.close();
+    await admin.query(
+      `DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`,
+    );
+  }
+});
+
+test("Save names the bound document on the first request and after another process reopens the conversation; the history route answers through the same app", async () => {
+  const chatId = `save-${randomUUID()}`;
+  const binding = bindingFor(chatId);
+  const saveDescription = (messages: readonly Message[] | undefined) =>
+    getCurrentTools(messages ?? []).find(
+      ({ name }) => name === brunchTools.appSaveNet,
+    )?.description;
+  const first = await startServer(["First answer."]);
+  try {
+    expect((await first.chat(chatId, "user-1", { binding })).status).toBe(200);
+    expect(saveDescription(first.requests[0])).toBe(
+      hashSaveDescription(binding.documentId),
+    );
+  } finally {
+    await first.close();
+  }
+  // A second process opens the conversation anew: its registry starts with the placeholder Save.
+  const second = await startServer(["Second answer."]);
+  try {
+    expect((await second.chat(chatId, "user-2", {})).status).toBe(200);
+    expect(saveDescription(second.requests[0])).toBe(
+      hashSaveDescription(binding.documentId),
+    );
+    const history = await fetch(`${second.origin}/chat/${chatId}/messages`);
+    expect(history.status).toBe(200);
+    expect(history.headers.get("cache-control")).toBe("no-store");
+    const messages = (await history.json()) as {
+      role: string;
+      parts: { type: string; text?: string }[];
+    }[];
+    expect(
+      messages.map(({ role, parts }) => [
+        role,
+        parts.flatMap((part) => (part.type === "text" ? [part.text] : [])),
+      ]),
+    ).toEqual([
+      ["user", ["Hello."]],
+      ["assistant", ["First answer."]],
+      ["user", ["Hello."]],
+      ["assistant", ["Second answer."]],
+    ]);
+  } finally {
+    await second.close();
     await admin.query(
       `DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`,
     );

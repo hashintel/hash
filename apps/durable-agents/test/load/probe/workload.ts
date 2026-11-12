@@ -5,7 +5,7 @@
  *
  * A user message carries a marker naming its conversation, its turn and how
  * many places the turn adds. A conversation's first turn reads the net first
- * (`readNetOutline`): net freshness admits a change only against a view of
+ * (`petrinaut_get_net`): net freshness admits a change only against a view of
  * the net in the model's context, and that view lasts the conversation. The
  * model counts the tool results since the last user message: fewer than the
  * turn's browser calls, it makes the next one; else it answers with the
@@ -16,21 +16,25 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { hashProcessEditorId } from "@hashintel/brunch-agent";
+
 import { fauxAssistantMessage, fauxToolCall } from "../../scripted-model";
 
 import type { Message } from "@earendil-works/pi-ai";
 import type { FauxResponseFactory } from "@earendil-works/pi-ai/providers/faux";
 
-/** The browser tool every change of the workload makes: a canonical net mutation. */
-export const loadToolName = "addPlace";
+/** The browser tool every change of the workload makes: HASH's create-place, a net change. */
+export const loadToolName = "petrinaut_create_place";
 
 /** The net read a conversation's first turn makes before its changes. */
-export const loadReadToolName = "readNetOutline";
+export const loadReadToolName = "petrinaut_get_net";
+
+const loadReadInput = { editor_id: hashProcessEditorId, detail: "outline" };
 
 export type TurnPlan = {
   readonly conversationId: string;
   readonly turn: number;
-  /** Places the turn adds, one `addPlace` call each. */
+  /** Places the turn adds, one `petrinaut_create_place` call each. */
   readonly calls: number;
 };
 
@@ -63,8 +67,10 @@ export const answerText = ({ conversationId, turn }: TurnPlan) =>
   `Turn ${turn} of ${conversationId} is done.`;
 
 export const placeInput = (plan: TurnPlan, call: number) => ({
+  editor_id: hashProcessEditorId,
   id: `place-${plan.turn}-${call}`,
-  name: `Place ${plan.turn}.${call}`,
+  // Petrinaut's names are PascalCase, digits only at the end.
+  name: `Place${plan.turn * 1000 + call}`,
   colorId: null,
   dynamicsEnabled: false,
   x: 40 * call,
@@ -113,9 +119,12 @@ export const loadModelStep =
       return fauxAssistantMessage(answerText(plan));
     const id = `call-${randomUUID()}`;
     if (readsFirst(plan) && results === 0)
-      return fauxAssistantMessage(fauxToolCall(loadReadToolName, {}, { id }), {
-        stopReason: "toolUse",
-      });
+      return fauxAssistantMessage(
+        fauxToolCall(loadReadToolName, loadReadInput, { id }),
+        {
+          stopReason: "toolUse",
+        },
+      );
     const change = results - (readsFirst(plan) ? 1 : 0);
     return fauxAssistantMessage(
       fauxToolCall(loadToolName, placeInput(plan, change), { id }),

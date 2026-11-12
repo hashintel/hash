@@ -12,8 +12,8 @@ import {
   ROOT_CONVERSATION_ID,
 } from "@earendil-works/pi-durable";
 
+import { createHashAgent } from "../../../src/agent/hash-agent";
 import { createHostBinding } from "../../../src/agent/host-binding";
-import { createPetrinautAgent } from "../../../src/agent/petrinaut-agent";
 import {
   type BrowserCallRecord,
   BrowserCallsDoc,
@@ -84,7 +84,7 @@ export const readStoredConversation = async (
     };
   const registry = createRegistry();
   const host = createHostBinding();
-  for (const extension of createPetrinautAgent().extensions(host))
+  for (const extension of createHashAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({ pool, schema, readOnly: true }),

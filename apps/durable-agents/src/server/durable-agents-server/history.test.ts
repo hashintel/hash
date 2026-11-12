@@ -33,7 +33,7 @@ import {
   fauxAssistantMessage,
   fauxToolCall,
 } from "../../../test/scripted-model";
-import { pruneEntryKind } from "../../agent/petrinaut-agent/read-back-pruning";
+import { pruneEntryKind } from "../../agent/hash-agent/read-back-pruning";
 import {
   browserCallExtension,
   browserToolName,

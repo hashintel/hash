@@ -24,9 +24,16 @@
  *   `keepRecentTokens` is 1 (so the kept tail holds no net view), restarts
  *   the server, and turn 4 asks for a change with no read: the `net_view`
  *   section should restore the view the summary dropped.
+ * - Then, budget allowing, turn 5 asks to save the net (`app_save_net`, its
+ *   description naming the bound document after the restart) and turn 6 asks
+ *   a question only a HASH graph read answers.
+ * - Every turn shows whether it ended on a `ledger_commit` with `endTurn`
+ *   (fold 7), with no empty request after it.
  *
- * The browser reports Brunch's revision metadata and refuses a claimed
- * change whose `expectedRevision` the net has moved past by other means.
+ * The agent is Brunch's HASH agent (`createHashAgent`), so every tool has
+ * HASH's name and every Petrinaut tool names the editor. The browser reports
+ * Brunch's revision metadata and refuses a claimed change whose
+ * `expectedRevision` the net has moved past by other means.
  *
  * Requests are counted by `count-provider-requests.ts`, preloaded into the
  * server process and imported into this one (which sends the compaction's
@@ -66,14 +73,16 @@ import * as v from "valibot";
 import {
   type BrowserCallClaim,
   type BrowserContext,
+  brunchTools,
   canonicalContent,
   type ClientToolResultMetadata,
+  hashProcessEditorId,
   type NetStructure,
   vBrowserCallResultBody,
 } from "@hashintel/brunch-agent";
 
+import { createHashAgent } from "../../src/agent/hash-agent";
 import { createHostBinding } from "../../src/agent/host-binding";
-import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
 import { BrowserCallsDoc } from "../../src/browser-call/browser-call";
 import { LedgerDoc } from "../../src/ledger";
 import { conversationSchema } from "../../src/server/conversation-storage";
@@ -93,7 +102,8 @@ const dryRun = process.env.SMOKE_DRY_RUN === "1";
  * meets the server's refusal of a change with no view in context.
  */
 const noReadProbe = process.env.SMOKE_PROBE === "no-read-change";
-const budget = dryRun ? 0 : 20;
+/** Smoke round 4's estimate is about 25 requests (`hash-agent-port.md` §6). */
+const budget = dryRun ? 0 : 25;
 const turnTimeoutMs = dryRun ? 20_000 : 4 * 60_000;
 /** One ledger per model, so a new model's round starts at 0. */
 const ledgerPath = join(
@@ -205,31 +215,40 @@ type Arc = Record<string, unknown> & { placeId?: unknown; endpoint?: unknown };
 
 /** Mutation tools the scripted browser applies to its net. */
 const netChangingTools = new Set([
-  "addPlace",
-  "addTransition",
-  "addArc",
-  "setNetTitle",
+  "petrinaut_create_place",
+  "petrinaut_create_transition",
+  "petrinaut_create_arc",
+  "petrinaut_set_net_title",
 ]);
 /** Net reads the scripted browser answers, each reporting the revision it saw. */
-const readTools = new Set([
-  "readNetOutline",
-  "readNetStructure",
-  "getLatestNetDefinition",
+const readTools = new Set(["petrinaut_get_net"]);
+/** HASH's graph reads, answered from a small fixed graph. */
+const graphReadTools = new Set<string>([
+  brunchTools.hashQueryEntities,
+  brunchTools.hashQueryEntityTypes,
+  brunchTools.hashQueryWebs,
 ]);
-const toolKind = (toolName: string): "read" | "change" | "other" =>
+type ToolKind = "read" | "change" | "save" | "graph" | "other";
+const toolKind = (toolName: string): ToolKind =>
   readTools.has(toolName)
     ? "read"
     : netChangingTools.has(toolName)
       ? "change"
-      : "other";
+      : toolName === brunchTools.appSaveNet
+        ? "save"
+        : graphReadTools.has(toolName)
+          ? "graph"
+          : "other";
 
 /**
  * A browser that applies place, transition and arc additions to a small net
  * it keeps and answers net reads from it, in the panel's output shapes:
  * `{ title, target, applied: true }` for an applied mutation
  * (`tool-summaries.ts`), `{ title, definition, extensions }` for a read
- * (`net-readers.ts`). It keeps IDs as the model sent them, where the panel
- * would convert a non-UUID ID to a stable UUID.
+ * (`net-readers.ts`). It keeps IDs as the server issued them: HASH's schemas
+ * have already converted a non-UUID ID to its stable UUID. It saves as
+ * HASH's page does when the user approves the card, and answers graph reads
+ * from one web with no entities.
  */
 const fakeBrowser = () => {
   let title = "Untitled";
@@ -282,13 +301,16 @@ const fakeBrowser = () => {
     };
   };
   const answer = (toolName: string, input: unknown): unknown => {
-    const { targetSubnetId: _subnet, ...fields }: Record<string, unknown> =
-      typeof input === "object" && input !== null
-        ? (input as Record<string, unknown>)
-        : {};
+    const {
+      targetSubnetId: _subnet,
+      editor_id: _editor,
+      ...fields
+    }: Record<string, unknown> = typeof input === "object" && input !== null
+      ? (input as Record<string, unknown>)
+      : {};
     const id = typeof fields.id === "string" ? fields.id : randomUUID();
     switch (toolName) {
-      case "addPlace":
+      case "petrinaut_create_place":
         if (places.some((place) => place.id === id))
           return declined(
             `Add place ${text(fields.name)} left the document unchanged.`,
@@ -299,7 +321,7 @@ const fakeBrowser = () => {
           target: { kind: "selection", item: { type: "place", id } },
           applied: true,
         };
-      case "addTransition":
+      case "petrinaut_create_transition":
         if (transitions.some((transition) => transition.id === id))
           return declined(
             `Add transition ${text(fields.name)} left the document unchanged.`,
@@ -319,7 +341,7 @@ const fakeBrowser = () => {
           target: { kind: "selection", item: { type: "transition", id } },
           applied: true,
         };
-      case "addArc": {
+      case "petrinaut_create_arc": {
         const transition = transitions.find(
           (each) => each.id === fields.transitionId,
         );
@@ -348,7 +370,7 @@ const fakeBrowser = () => {
           applied: true,
         };
       }
-      case "setNetTitle": {
+      case "petrinaut_set_net_title": {
         const previous = title;
         title = text(fields.title);
         return {
@@ -358,14 +380,36 @@ const fakeBrowser = () => {
             previous !== title ? `Previous title: ${previous}` : undefined,
         };
       }
-      case "readNetOutline":
-        return read("outline");
-      case "readNetStructure":
-        return read("structure");
-      case "getLatestNetDefinition":
-        return read("full");
-      case "getNetCompilationErrors":
+      case "petrinaut_get_net":
+        return read(
+          fields.detail === "outline" || fields.detail === "structure"
+            ? fields.detail
+            : "full",
+        );
+      case "petrinaut_get_diagnostics":
         return { diagnostics: [] };
+      case brunchTools.appSaveNet:
+        return {
+          status: "saved",
+          decisionTime: new Date().toISOString(),
+          title,
+          stillDirty: false,
+        };
+      case brunchTools.hashQueryWebs:
+        return {
+          webs: [
+            {
+              webId: "web-smoke",
+              kind: "user",
+              shortname: "smoke",
+              name: "Smoke User",
+            },
+          ],
+        };
+      case brunchTools.hashQueryEntityTypes:
+        return { entityTypes: [] };
+      case brunchTools.hashQueryEntities:
+        return { propertyTypes: [], entityTypes: [], entities: [] };
       default:
         return declined(`The smoke browser does not run ${toolName}.`);
     }
@@ -386,7 +430,7 @@ const fakeBrowser = () => {
   ): { output: unknown; metadata?: ClientToolResultMetadata } => {
     const before = revision();
     const output = answer(toolName, input);
-    if (readTools.has(toolName))
+    if (readTools.has(toolName) || graphReadTools.has(toolName))
       return { output, metadata: { documentRevision: { before } } };
     if (!netChangingTools.has(toolName)) return { output };
     const after = revision();
@@ -436,7 +480,7 @@ const fakeBrowser = () => {
 /** One tool call of a turn, in the order the model made it, with what became of it. */
 type TimelineItem = {
   toolName: string;
-  kind: "read" | "change" | "other";
+  kind: ToolKind;
   server?: boolean;
   /** The server's refusal (or other tool error) text. */
   refused?: string;
@@ -864,10 +908,21 @@ const drive = async () => {
         server = await startServer();
         running = true;
         transport = transportFor(server.origin);
-        if (remaining() >= 2)
+        const fourth =
+          remaining() >= 2
+            ? await runTurn(
+                "Turn 4 (after compaction)",
+                "Add a place called Archive.",
+              )
+            : undefined;
+        const fifth =
+          fourth?.finished === true && remaining() >= 3
+            ? await runTurn("Turn 5 (save)", "Please save the net to HASH now.")
+            : undefined;
+        if (fifth?.finished === true && remaining() >= 3)
           await runTurn(
-            "Turn 4 (after compaction)",
-            "Add a place called Archive.",
+            "Turn 6 (graph read)",
+            "Which HASH webs can I see? Look them up rather than guessing.",
           );
       } else
         print(
@@ -938,7 +993,7 @@ const openHarness = async (
   const readOnly = settings === undefined;
   const registry = createRegistry();
   const host = createHostBinding();
-  for (const extension of createPetrinautAgent().extensions(host))
+  for (const extension of createHashAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({
@@ -1143,6 +1198,12 @@ const observe = (
   const [turn2] = turn("Turn 2");
   const [turn3] = turn("Turn 3");
   const [turn4] = turn("Turn 4");
+  const [turn5] = turn("Turn 5");
+  const [turn6] = turn("Turn 6");
+  const assistants = stored.transcript.filter(
+    (entry): entry is Extract<typeof entry, { stopReason: unknown }> =>
+      "stopReason" in entry,
+  );
   const beforeFirstChange = (outcome: TurnOutcome | undefined) => {
     const index =
       outcome?.timeline.findIndex(({ kind }) => kind === "change") ?? -1;
@@ -1211,6 +1272,38 @@ const observe = (
       ),
       turn4: turn4 && { timeline: turn4.timeline, reply: turn4.replyText },
     },
+    "6 save and graph read": {
+      turn5: turn5 && { timeline: turn5.timeline, reply: turn5.replyText },
+      turn6: turn6 && { timeline: turn6.timeline, reply: turn6.replyText },
+      saveResults: toolResults.filter(
+        ({ toolName }) => toolName === brunchTools.appSaveNet,
+      ),
+      graphReadResults: toolResults.filter(({ toolName }) =>
+        graphReadTools.has(toolName),
+      ),
+    },
+    // Fold 7: a turn that ends on a ledger_commit with endTurn makes no request after it.
+    "7 endTurn": [...new Set(assistants.map(({ turn: index }) => index))].map(
+      (index) => {
+        const last = assistants.findLast(({ turn: each }) => each === index);
+        const calls = (last?.content ?? []).flatMap((part) =>
+          "toolCall" in part ? [part.toolCall] : [],
+        );
+        return {
+          turn: index,
+          requests: assistants.filter(({ turn: each }) => each === index)
+            .length,
+          endedOnLedgerCommit: calls.includes(brunchTools.ledgerCommit),
+          emptyFinal:
+            last !== undefined &&
+            last.content.every(
+              (part) =>
+                !("toolCall" in part) &&
+                !("text" in part && (part.text ?? "").trim() !== ""),
+            ),
+        };
+      },
+    ),
   };
 };
 
@@ -1221,21 +1314,25 @@ const observe = (
  */
 const checkBrowser = () => {
   const browser = fakeBrowser();
+  const editor = { editor_id: hashProcessEditorId };
   const steps: [string, unknown][] = [
-    ["readNetOutline", {}],
-    ["addPlace", { id: "queue", name: "Queue" }],
-    ["addTransition", { id: "serve", name: "Serve" }],
+    ["petrinaut_get_net", { ...editor, detail: "outline" }],
+    ["petrinaut_create_place", { ...editor, id: "queue", name: "Queue" }],
+    ["petrinaut_create_transition", { ...editor, id: "serve", name: "Serve" }],
     [
-      "addArc",
+      "petrinaut_create_arc",
       {
+        ...editor,
         transitionId: "serve",
         arcDirection: "input",
         placeId: "queue",
         weight: 1,
       },
     ],
-    ["addPlace", { id: "queue", name: "Queue" }],
-    ["readNetStructure", {}],
+    ["petrinaut_create_place", { ...editor, id: "queue", name: "Queue" }],
+    ["petrinaut_get_net", { ...editor, detail: "structure" }],
+    [brunchTools.appSaveNet, { documentId: "net-check" }],
+    [brunchTools.hashQueryWebs, {}],
   ];
   const start = browser.revision();
   for (const [toolName, input] of steps)

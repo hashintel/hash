@@ -14,6 +14,8 @@ import {
 } from "@earendil-works/pi-durable";
 import { expect, test, vi } from "vitest";
 
+import { hashProcessEditorId } from "@hashintel/brunch-agent";
+
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -28,30 +30,38 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "./browser-call";
-import { createPetrinautBrowserToolsExtension } from "./petrinaut-browser-tools";
+import { createHashBrowserToolsExtension } from "./hash-browser-tools";
 
 import type { Message } from "@earendil-works/pi-ai";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const context = BACKGROUND_CONTEXT;
+const editor = { editor_id: hashProcessEditorId };
 
 test("a record keeps the browser's output and metadata, its issuing entry, and its place in the round", async () => {
   const { models, model } = scriptedModel([
     fauxAssistantMessage(
       [
-        fauxToolCall("readNetOutline", {}, { id: "outline" }),
-        fauxToolCall("readNetStructure", {}, { id: "structure" }),
+        fauxToolCall(
+          "petrinaut_get_net",
+          { ...editor, detail: "outline" },
+          { id: "outline" },
+        ),
+        fauxToolCall(
+          "petrinaut_get_net",
+          { ...editor, detail: "structure" },
+          { id: "structure" },
+        ),
       ],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage("Read it twice."),
   ]);
   const host = createHostBinding();
-  const petrinautBrowserToolsExtension =
-    createPetrinautBrowserToolsExtension(host);
+  const hashBrowserToolsExtension = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(petrinautBrowserToolsExtension);
+  registry.install(hashBrowserToolsExtension);
   const harness = await Harness.open(
     new MemoryStorage(),
     { models, registry },
@@ -59,7 +69,7 @@ test("a record keeps the browser's output and metadata, its issuing entry, and i
   );
   host.bind(harness);
   const root = await harness.root(context, {
-    agent: { model, extensions: [petrinautBrowserToolsExtension] },
+    agent: { model, extensions: [hashBrowserToolsExtension] },
   });
   await harness.commit(
     (tx) =>
@@ -182,6 +192,7 @@ test("a settled result reaches the model rendered: a read with netRevision, a ch
       return typeof step === "function" ? step(request, ...rest) : step;
     };
   const place = {
+    ...editor,
     id: "place-dryer",
     name: "Dryer",
     colorId: null,
@@ -191,13 +202,18 @@ test("a settled result reaches the model rendered: a read with netRevision, a ch
   };
   const { models, model } = scriptedModel(
     [
-      fauxAssistantMessage(fauxToolCall("readNetOutline", {}, { id: "read" }), {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        fauxToolCall(
+          "petrinaut_get_net",
+          { ...editor, detail: "outline" },
+          { id: "read" },
+        ),
+        { stopReason: "toolUse" },
+      ),
       fauxAssistantMessage(
         [
-          fauxToolCall("addPlace", place, { id: "change" }),
-          fauxToolCall("getNetCompilationErrors", {}, { id: "doc" }),
+          fauxToolCall("petrinaut_create_place", place, { id: "change" }),
+          fauxToolCall("petrinaut_get_diagnostics", editor, { id: "doc" }),
         ],
         { stopReason: "toolUse" },
       ),
@@ -205,7 +221,7 @@ test("a settled result reaches the model rendered: a read with netRevision, a ch
     ].map(recorded),
   );
   const host = createHostBinding();
-  const tools = createPetrinautBrowserToolsExtension(host);
+  const tools = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
   registry.install(tools);

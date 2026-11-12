@@ -25,7 +25,8 @@ import {
   petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
 
-import { ledgerExtension, LedgerDoc } from "../../src/ledger";
+import { createHostBinding } from "../../src/agent/host-binding";
+import { createLedgerExtension, LedgerDoc } from "../../src/ledger";
 import { drain, openMemoryServer, streamedText } from "./server";
 import {
   allEntries,
@@ -165,13 +166,15 @@ describe("P3: a custom input entry kind", () => {
         }),
         fauxAssistantMessage("Recorded."),
       ]);
+      const host = createHostBinding();
       const registry = createRegistry();
-      registry.install(ledgerExtension);
+      registry.install(createLedgerExtension(host));
       const harness = await Harness.open(
         new MemoryStorage(),
         { models, registry },
         context,
       );
+      host.bind(harness);
       const root = await harness.root(context, { agent: { model } });
       const draft =
         kind === "pi.user"
