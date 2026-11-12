@@ -10,25 +10,31 @@ import type { Simulator } from "./simulator";
 /** The sample period of a simulator that has no step of its own to sample at. */
 export const DEFAULT_EXPERIMENT_SAMPLE_PERIOD = 0.1;
 
-export type ExperimentBackendSimulatorOptions<
-  Specs extends SimulatorParameterSpecs,
-> = {
-  /**
-   * The step the backend's own engine advances by, for a simulator that is
-   * that engine. It steps and samples on one time step, so an experiment
-   * samples at it: asked for a different period, the simulator refuses
-   * rather than rounds.
-   */
-  timeStepOf?: (parameters: SimulatorParameterValues<Specs>) => number;
-  /**
-   * The simulator the backend's workers advance each run with, for one that
-   * is not the backend's own engine. The experiment's sample period is then
-   * free, and {@link DEFAULT_EXPERIMENT_SAMPLE_PERIOD} when it names none.
-   */
-  simulatorOf?: (
-    parameters: SimulatorParameterValues<Specs>,
-  ) => MonteCarloSimulatorSelection;
-};
+/**
+ * How the runs of a backend-made simulator are stepped. The two cannot be
+ * mixed: either the backend's own engine does it, or a simulator hosted in
+ * the backend's workers.
+ */
+export type ExperimentBackendStepping<Specs extends SimulatorParameterSpecs> =
+  | {
+      /**
+       * The key of the number parameter the backend's own engine steps by.
+       * That engine samples on its step, so an experiment samples at it too:
+       * asked for a different period, the simulator refuses rather than
+       * rounds.
+       */
+      readonly timeStepParameter: keyof Specs & string;
+    }
+  | {
+      /**
+       * The simulator the backend's workers advance each run with. The
+       * experiment's sample period is then free, and
+       * {@link DEFAULT_EXPERIMENT_SAMPLE_PERIOD} when it names none.
+       */
+      readonly simulatorOf: (
+        parameters: SimulatorParameterValues<Specs>,
+      ) => MonteCarloSimulatorSelection;
+    };
 
 /**
  * An experiment backend as a simulator that computes experiments: with its
@@ -39,7 +45,7 @@ export const simulatorFromExperimentBackend = <
   const Specs extends SimulatorParameterSpecs,
 >(
   backend: ExperimentBackend,
-  { timeStepOf, simulatorOf }: ExperimentBackendSimulatorOptions<Specs>,
+  stepping: ExperimentBackendStepping<Specs>,
 ): Simulator<Specs> => ({
   needsHirTrees: backend.needsHirTrees,
   assess: (request) =>
@@ -60,7 +66,11 @@ export const simulatorFromExperimentBackend = <
             ],
           };
         }
-        const timeStep = timeStepOf?.(request.simulatorParameters);
+        const stepped =
+          "timeStepParameter" in stepping
+            ? request.simulatorParameters[stepping.timeStepParameter]
+            : undefined;
+        const timeStep = typeof stepped === "number" ? stepped : undefined;
         const dt =
           timeStep ??
           experiment.samplePeriod ??
@@ -99,9 +109,9 @@ export const simulatorFromExperimentBackend = <
           ...(request.hirArtifacts === undefined
             ? {}
             : { hirArtifacts: request.hirArtifacts }),
-          ...(simulatorOf === undefined
-            ? {}
-            : { simulator: simulatorOf(request.simulatorParameters) }),
+          ...("simulatorOf" in stepping
+            ? { simulator: stepping.simulatorOf(request.simulatorParameters) }
+            : {}),
         };
         const assessment = await backend.assess(experimentRequest);
         if (!assessment.eligible) {

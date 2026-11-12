@@ -148,6 +148,47 @@ describe("assessSimulator", () => {
     });
     expect(assess).not.toHaveBeenCalled();
   });
+
+  it("releases what the loaded simulator keeps: at once when it refuses, on dispose when it offers", async () => {
+    const dispose = vi.fn();
+    const loading = (eligible: boolean) =>
+      defineSimulator(manifest, {
+        isAvailable: () => true,
+        load: () =>
+          Promise.resolve({
+            needsHirTrees: false,
+            assess: () =>
+              Promise.resolve(
+                eligible
+                  ? { eligible: true as const, notes: [] }
+                  : {
+                      eligible: false as const,
+                      blockers: [
+                        {
+                          code: "test.refused",
+                          message: "Refused",
+                          origin: "model" as const,
+                        },
+                      ] as const,
+                    },
+              ),
+            dispose,
+          }),
+      });
+
+    const refused = await assessSimulator(loading(false), {}, requestBase);
+    expect(refused.ok).toBe(false);
+    expect(dispose).toHaveBeenCalledOnce();
+
+    dispose.mockClear();
+    const offered = await assessSimulator(loading(true), {}, requestBase);
+    if (!offered.ok) {
+      throw new Error("The simulator should offer");
+    }
+    expect(dispose).not.toHaveBeenCalled();
+    offered.dispose();
+    expect(dispose).toHaveBeenCalledOnce();
+  });
 });
 
 describe("simulatorFromExperimentBackend", () => {
@@ -177,7 +218,7 @@ describe("simulatorFromExperimentBackend", () => {
   ) => {
     const simulator = simulatorFromExperimentBackend<typeof stepParameters>(
       backend,
-      { timeStepOf: (parameters) => parameters.dt },
+      { timeStepParameter: "dt" },
     );
     const assessment = await simulator.assess({
       ...request,

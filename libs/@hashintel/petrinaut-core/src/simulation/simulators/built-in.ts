@@ -13,10 +13,8 @@ import type { ExperimentBackend } from "../../experiments/experiment-backend";
 import type { GpuOdeMethod } from "../../webgpu/compile-net-shader/dynamics";
 import type { WorkerFactory } from "../api";
 import type { EventSimulation, StepperSelection } from "../event-trace";
-import type {
-  SimulatorParameterSpecs,
-  StoredSimulatorParameters,
-} from "./parameters";
+import type { ExperimentBackendStepping } from "./experiment-backend-simulator";
+import type { SimulatorParameterSpecs } from "./parameters";
 import type {
   SimulationRequest,
   SimulatorManifest,
@@ -36,7 +34,6 @@ const timeStep = {
   default: 0.01,
   min: 0,
   exclusiveMin: true,
-  scale: "log",
 } as const;
 
 export const jsFixedStepSimulatorManifest = {
@@ -45,6 +42,7 @@ export const jsFixedStepSimulatorManifest = {
   description: "Advances in steps of one size. Runs any net.",
   parameters: { dt: timeStep },
   produces: { run: true, experiment: true },
+  samplePeriodParameter: "dt",
 } as const satisfies SimulatorManifest;
 
 export const jsAdaptiveSimulatorManifest = {
@@ -60,7 +58,6 @@ export const jsAdaptiveSimulatorManifest = {
       default: DEFAULT_SOLVER_TOLERANCE,
       min: 0,
       exclusiveMin: true,
-      scale: "log",
     },
   },
   produces: { run: true, experiment: true },
@@ -85,6 +82,7 @@ export const webGpuFixedStepSimulatorManifest = {
     },
   },
   produces: { run: false, experiment: true },
+  samplePeriodParameter: "dt",
 } as const satisfies SimulatorManifest;
 
 /**
@@ -133,44 +131,48 @@ const startEventSimulationRun = async (
   }
 };
 
-const stepperSelection = (
-  id: string,
-  parameters: StoredSimulatorParameters,
-): StepperSelection => ({ id, parameters });
-
-export type JsFixedStepSimulatorOptions = {
+export type JsSimulatorOptions = {
   /** Builds the worker a single run is stepped in. */
   createRunWorker: WorkerFactory;
-  /** Builds a worker of the pool an experiment's runs are split across. */
+  /**
+   * Builds a worker of the pool an experiment's runs are split across. For
+   * the adaptive simulator it has to host the simulator's stepper, as the
+   * worker of `createMonteCarloWorker` does.
+   */
   createExperimentWorker: WorkerFactory;
   /** Workers per experiment. Defaults to the pool's own choice. */
   shardCount?: number;
-  batchSize?: number;
 };
 
-/** The fixed-step engine in JS: single runs and experiments from one step loop. */
-export const createJsFixedStepSimulator = (
-  options: JsFixedStepSimulatorOptions,
-): SimulatorRegistration<typeof jsFixedStepSimulatorManifest.parameters> =>
-  defineSimulator(jsFixedStepSimulatorManifest, {
+/**
+ * A simulator whose runs a stepper in JS advances: a single run in the
+ * event simulation worker, an experiment across the worker pool.
+ */
+const createJsSimulator = <const Specs extends SimulatorParameterSpecs>(
+  manifest: SimulatorManifest<Specs>,
+  options: JsSimulatorOptions,
+  {
+    needsHirTrees,
+    stepping,
+  }: {
+    needsHirTrees: boolean;
+    stepping: ExperimentBackendStepping<Specs>;
+  },
+): SimulatorRegistration<Specs> =>
+  defineSimulator(manifest, {
     isAvailable: () => true,
     load: () => {
-      const experiments = simulatorFromExperimentBackend<
-        typeof jsFixedStepSimulatorManifest.parameters
-      >(
+      const experiments = simulatorFromExperimentBackend<Specs>(
         createWorkerPoolExperimentBackend({
           createWorker: options.createExperimentWorker,
           ...(options.shardCount === undefined
             ? {}
             : { shardCount: options.shardCount }),
-          ...(options.batchSize === undefined
-            ? {}
-            : { batchSize: options.batchSize }),
         }),
-        { timeStepOf: (parameters) => parameters.dt },
+        stepping,
       );
       return Promise.resolve({
-        needsHirTrees: experiments.needsHirTrees,
+        needsHirTrees,
         assess: async (request) => {
           const assessment = await experiments.assess(request);
           return assessment.eligible
@@ -179,10 +181,10 @@ export const createJsFixedStepSimulator = (
                 startRun: (startOptions) =>
                   startEventSimulationRun(
                     request,
-                    stepperSelection(
-                      FIXED_STEP_SIMULATOR_ID,
-                      request.simulatorParameters,
-                    ),
+                    {
+                      id: manifest.id,
+                      parameters: request.simulatorParameters,
+                    },
                     options.createRunWorker,
                     startOptions,
                   ),
@@ -193,69 +195,29 @@ export const createJsFixedStepSimulator = (
     },
   });
 
-export type JsAdaptiveSimulatorOptions = {
-  /** Builds the worker a single run is stepped in. */
-  createRunWorker: WorkerFactory;
-  /**
-   * Builds a worker of the pool an experiment's runs are split across. It
-   * has to host the simulator's stepper, as the worker of
-   * `createMonteCarloWorker` does.
-   */
-  createExperimentWorker: WorkerFactory;
-  /** Workers per experiment. Defaults to the pool's own choice. */
-  shardCount?: number;
-  batchSize?: number;
-};
+/** The fixed-step engine in JS: single runs and experiments from one step loop. */
+export const createJsFixedStepSimulator = (
+  options: JsSimulatorOptions,
+): SimulatorRegistration<typeof jsFixedStepSimulatorManifest.parameters> =>
+  createJsSimulator(jsFixedStepSimulatorManifest, options, {
+    needsHirTrees: false,
+    stepping: {
+      timeStepParameter: jsFixedStepSimulatorManifest.samplePeriodParameter,
+    },
+  });
 
 /**
  * The error-controlled solver in JS: single runs, and experiments whose runs
  * are each stepped by the solver and stopped at every sample time.
  */
 export const createJsAdaptiveSimulator = (
-  options: JsAdaptiveSimulatorOptions,
+  options: JsSimulatorOptions,
 ): SimulatorRegistration<typeof jsAdaptiveSimulatorManifest.parameters> =>
-  defineSimulator(jsAdaptiveSimulatorManifest, {
-    isAvailable: () => true,
-    load: () => {
-      const experiments = simulatorFromExperimentBackend<
-        typeof jsAdaptiveSimulatorManifest.parameters
-      >(
-        createWorkerPoolExperimentBackend({
-          createWorker: options.createExperimentWorker,
-          ...(options.shardCount === undefined
-            ? {}
-            : { shardCount: options.shardCount }),
-          ...(options.batchSize === undefined
-            ? {}
-            : { batchSize: options.batchSize }),
-        }),
-        {
-          simulatorOf: (parameters) =>
-            stepperSelection(ADAPTIVE_SIMULATOR_ID, parameters),
-        },
-      );
-      return Promise.resolve({
-        // The solver classifies each place's dynamics from its HIR.
-        needsHirTrees: true,
-        assess: async (request) => {
-          const assessment = await experiments.assess(request);
-          return assessment.eligible
-            ? {
-                ...assessment,
-                startRun: (startOptions) =>
-                  startEventSimulationRun(
-                    request,
-                    stepperSelection(
-                      ADAPTIVE_SIMULATOR_ID,
-                      request.simulatorParameters,
-                    ),
-                    options.createRunWorker,
-                    startOptions,
-                  ),
-              }
-            : assessment;
-        },
-      });
+  createJsSimulator(jsAdaptiveSimulatorManifest, options, {
+    // The solver classifies each place's dynamics from its HIR.
+    needsHirTrees: true,
+    stepping: {
+      simulatorOf: (parameters) => ({ id: ADAPTIVE_SIMULATOR_ID, parameters }),
     },
   });
 
@@ -293,12 +255,31 @@ export const createWebGpuFixedStepSimulator = (
           if (!simulator) {
             simulator = options.loadBackend({ odeMethod }).then((backend) =>
               simulatorFromExperimentBackend<Specs>(backend, {
-                timeStepOf: (parameters) => parameters.dt,
+                timeStepParameter:
+                  webGpuFixedStepSimulatorManifest.samplePeriodParameter,
               }),
             );
             byMethod.set(odeMethod, simulator);
           }
-          return (await simulator).assess(request);
+          try {
+            return await (await simulator).assess(request);
+          } catch (error) {
+            // A backend that failed to load is not kept: the next request
+            // loads it again.
+            byMethod.delete(odeMethod);
+            return {
+              eligible: false,
+              blockers: [
+                {
+                  code: "backend-failed-to-load",
+                  message: `The WebGPU backend could not be loaded: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
+                  origin: "environment",
+                },
+              ],
+            };
+          }
         },
         dispose: () => {
           for (const simulator of byMethod.values()) {
@@ -309,11 +290,3 @@ export const createWebGpuFixedStepSimulator = (
       });
     },
   });
-
-/** The manifests of the built-in simulators, in picker order. */
-export const builtInSimulatorManifests: readonly SimulatorManifest<SimulatorParameterSpecs>[] =
-  [
-    jsFixedStepSimulatorManifest,
-    jsAdaptiveSimulatorManifest,
-    webGpuFixedStepSimulatorManifest,
-  ];

@@ -14,8 +14,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import {
+  createJsAdaptiveSimulator,
+  createJsFixedStepSimulator,
+  createWebGpuFixedStepSimulator,
   DEFAULT_PETRINAUT_EXTENSIONS,
   DiagnosticSeverity,
+  FIXED_STEP_SIMULATOR_ID,
   getConstraintDocumentUri,
 } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
@@ -24,6 +28,7 @@ import { ExperimentsActionsContext } from "../../../../../../react/experiments/c
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { SimulatorsContext } from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   defaultUserSettings,
@@ -41,6 +46,7 @@ import type {
 } from "../../../../../../react/experiments/context";
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
+import type { SimulatorsContextValue } from "../../../../../../react/simulators/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
 import type {
@@ -262,6 +268,32 @@ const createdSweep = (
     }),
   );
 
+const neverStarted = () => {
+  throw new Error("The form starts nothing itself");
+};
+
+/** The simulators the editor registers. The form reads them and loads none. */
+const simulators: SimulatorsContextValue = {
+  registrations: [
+    createJsFixedStepSimulator({
+      createRunWorker: neverStarted,
+      createExperimentWorker: neverStarted,
+    }),
+    createJsAdaptiveSimulator({
+      createRunWorker: neverStarted,
+      createExperimentWorker: neverStarted,
+    }),
+    createWebGpuFixedStepSimulator({ loadBackend: neverStarted }),
+  ],
+  defaultSelections: {
+    quick: { simulatorId: FIXED_STEP_SIMULATOR_ID },
+    stochastic: {
+      simulatorId: FIXED_STEP_SIMULATOR_ID,
+      parameters: { dt: 0.1 },
+    },
+  },
+};
+
 const TestProviders = ({
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => createdExperiment("experiment-test"),
@@ -311,40 +343,42 @@ const TestProviders = ({
 
   return (
     <PortalContainerContext value={portalContainerRef}>
-      <LanguageClientContext value={languageClient ?? makeLanguageClient()}>
-        <ExperimentsActionsContext
-          value={{
-            setSelectedExperimentId,
-            createExperiment,
-            adoptExperiment: () => {
-              throw new Error("Nothing adopts an experiment here");
-            },
-            cancelExperiment: () => {},
-            removeExperiment,
-            setSweepSelection: () => {},
-            navigateSweep: () => Promise.resolve(null),
-          }}
-        >
-          <OptimizationsContext
+      <SimulatorsContext value={simulators}>
+        <LanguageClientContext value={languageClient ?? makeLanguageClient()}>
+          <ExperimentsActionsContext
             value={{
-              optimizations: [],
-              optimizationUnavailableReason: null,
-              createOptimization,
-              cancelOptimization: () => {},
-              removeOptimization: () => {},
+              setSelectedExperimentId,
+              createExperiment,
+              adoptExperiment: () => {
+                throw new Error("Nothing adopts an experiment here");
+              },
+              cancelExperiment: () => {},
+              removeExperiment,
+              setSweepSelection: () => {},
+              navigateSweep: () => Promise.resolve(null),
             }}
           >
-            <SDCPNContext value={sdcpnContextValue}>
-              <UserSettingsContext value={settings}>
-                <PetrinautOptimizationContext value={optimizationSource}>
-                  <div ref={portalContainerRef} />
-                  <CreateExperimentDrawer open onClose={() => {}} />
-                </PetrinautOptimizationContext>
-              </UserSettingsContext>
-            </SDCPNContext>
-          </OptimizationsContext>
-        </ExperimentsActionsContext>
-      </LanguageClientContext>
+            <OptimizationsContext
+              value={{
+                optimizations: [],
+                optimizationUnavailableReason: null,
+                createOptimization,
+                cancelOptimization: () => {},
+                removeOptimization: () => {},
+              }}
+            >
+              <SDCPNContext value={sdcpnContextValue}>
+                <UserSettingsContext value={settings}>
+                  <PetrinautOptimizationContext value={optimizationSource}>
+                    <div ref={portalContainerRef} />
+                    <CreateExperimentDrawer open onClose={() => {}} />
+                  </PetrinautOptimizationContext>
+                </UserSettingsContext>
+              </SDCPNContext>
+            </OptimizationsContext>
+          </ExperimentsActionsContext>
+        </LanguageClientContext>
+      </SimulatorsContext>
     </PortalContainerContext>
   );
 };
@@ -440,107 +474,157 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** The Backend field: the CPU/GPU labels with the toggle between them. */
-const findGpuRow = (): HTMLElement | null =>
-  document.querySelector<HTMLElement>("[data-backend-state]");
+const WEBGPU = "webgpu-fixed-step";
+
+/** The Simulator cell, which says what it stands on and what it refuses. */
+const simulatorCell = (): HTMLElement =>
+  document.querySelector<HTMLElement>("[data-simulator]")!;
+
+/** The simulator the experiment would run on. */
+const chosenSimulator = (): string | null =>
+  simulatorCell().getAttribute("data-simulator");
 
 /**
  * `pending` until the analysis lands, then `available` or `unavailable`.
  *
- * Both `pending` and `unavailable` disable the toggle, so asserting on
- * `disabled` alone cannot tell a slow answer from a negative one.
+ * Both `pending` and `unavailable` grey the GPU simulator out, so asserting
+ * on the greyed item alone cannot tell a slow answer from a negative one.
  */
-const backendState = (): string | null =>
-  findGpuRow()?.getAttribute("data-backend-state") ?? null;
+const gpuSimulatorState = (): "pending" | "available" | "unavailable" => {
+  const listed = (attribute: string) =>
+    (simulatorCell().getAttribute(attribute) ?? "").split(" ").includes(WEBGPU);
+  if (listed("data-pending-simulators")) {
+    return "pending";
+  }
+  return listed("data-refused-simulators") ? "unavailable" : "available";
+};
 
-/** The toggle between the two labels, so its state can be asserted. */
-const findGpuControl = (): HTMLInputElement =>
-  findGpuRow()!.querySelector<HTMLInputElement>("input[type='checkbox']")!;
+/** The design system's select keeps a native one in step, which tests drive. */
+const nativeSelectOffering = (value: string): HTMLSelectElement =>
+  [...document.querySelectorAll("select")].find((select) =>
+    [...select.options].some((option) => option.value === value),
+  )!;
 
-/** Whichever side label is currently marked as selected. */
-const selectedSideLabel = (): string | null =>
-  findGpuRow()!.querySelector("[data-selected='true']")?.textContent ?? null;
+const pickSimulator = (simulatorId: string) => {
+  fireEvent.change(nativeSelectOffering(simulatorId), {
+    target: { value: simulatorId },
+  });
+};
 
-describe("CreateExperimentDrawer GPU switch", () => {
-  it("is absent when the browser has no WebGPU support", () => {
+describe("CreateExperimentDrawer simulator", () => {
+  it("stands on the fixed-step simulator at a tenth of a second, and hands both to the experiment", async () => {
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      createdExperiment("experiment-test"),
+    );
+    render(<TestProviders createExperiment={createExperiment} />);
+
+    expect(chosenSimulator()).toBe("js-fixed-step");
+    expect(
+      (screen.getByLabelText(/^Time step/) as HTMLInputElement).value,
+    ).toBe("0.1");
+    // A simulator that samples at its time step shows no second field for it.
+    expect(screen.queryByLabelText(/^Sample every/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    expect(createExperiment.mock.calls[0]![0]).toMatchObject({
+      dt: 0.1,
+      simulator: { simulatorId: "js-fixed-step", parameters: { dt: 0.1 } },
+    });
+    expect(createExperiment.mock.calls[0]![0].computeBackend).toBeUndefined();
+  });
+
+  it("shows the adaptive simulator's own field and the spacing of the samples", async () => {
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      createdExperiment("experiment-test"),
+    );
+    render(<TestProviders createExperiment={createExperiment} />);
+
+    pickSimulator("js-adaptive");
+    expect(chosenSimulator()).toBe("js-adaptive");
+    expect(screen.queryByLabelText(/^Time step/)).toBeNull();
+    expect(screen.getByLabelText(/^Max error/)).toBeInstanceOf(HTMLElement);
+    fireEvent.change(screen.getByLabelText(/^Sample every/), {
+      target: { value: "0.5" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    expect(createExperiment.mock.calls[0]![0]).toMatchObject({
+      dt: 0.5,
+      simulator: { simulatorId: "js-adaptive", parameters: {} },
+    });
+  });
+
+  it("keeps what was typed for a simulator while another one is picked", () => {
+    render(<TestProviders />);
+
+    fireEvent.change(screen.getByLabelText(/^Time step/), {
+      target: { value: "0.25" },
+    });
+    pickSimulator("js-adaptive");
+    pickSimulator("js-fixed-step");
+    expect(
+      (screen.getByLabelText(/^Time step/) as HTMLInputElement).value,
+    ).toBe("0.25");
+  });
+
+  it("refuses the GPU simulator when the browser has no WebGPU support", () => {
     vi.stubGlobal("navigator", {});
     render(<TestProviders />);
 
-    expect(document.querySelector("[data-backend-state]")).toBeNull();
-    expect(screen.queryByText("GPU")).toBeNull();
+    expect(gpuSimulatorState()).toBe("unavailable");
+    expect(chosenSimulator()).toBe("js-fixed-step");
   });
 
-  it("offers the switch for a net the GPU can run", async () => {
+  it("offers the GPU simulator for a net the GPU can run", async () => {
     render(<TestProviders />);
 
-    // The analysis is asynchronous, and the toggle is disabled until it lands —
-    // the same state as unavailable, which is why the row publishes which it is.
-    expect(backendState()).toBe("pending");
-    expect(findGpuControl().disabled).toBe(true);
+    // The analysis is asynchronous, and the simulator is greyed until it
+    // lands — the same look as unavailable, which is why the cell says which.
+    expect(gpuSimulatorState()).toBe("pending");
 
     await waitFor(() => {
-      expect(backendState()).toBe("available");
+      expect(gpuSimulatorState()).toBe("available");
     });
+    // Offered, not chosen: the form stays on its default.
+    expect(chosenSimulator()).toBe("js-fixed-step");
 
-    expect(findGpuControl().disabled).toBe(false);
-    // Defaults to the CPU side, and the labels say which side that is.
-    expect(selectedSideLabel()).toBe("CPU");
+    pickSimulator(WEBGPU);
+    expect(chosenSimulator()).toBe(WEBGPU);
+    expect(screen.getByText(/^ODE method/)).toBeInstanceOf(HTMLElement);
   });
 
-  it("greys the switch out and explains why when the net cannot run", async () => {
+  it("greys the GPU simulator out when the net cannot run on it", async () => {
     render(<TestProviders sdcpnContextValue={colouredContextValue} />);
 
     await waitFor(() => {
-      expect(backendState()).toBe("unavailable");
+      expect(gpuSimulatorState()).toBe("unavailable");
     });
-
-    expect(findGpuControl().disabled).toBe(true);
-    // Disabled means it cannot leave the CPU side.
-    expect(selectedSideLabel()).toBe("CPU");
-
-    // The reason itself rides on a tooltip, which Ark mounts lazily on hover
-    // through a pointer state machine jsdom cannot drive faithfully — asserting
-    // on it here would test Ark, flakily. What the reason *says* is covered by
-    // `summarizeGpuUnavailability` in petrinaut-core, and the same
-    // `Tooltip content={...}` pattern carries the backend badge's explanation in
-    // the experiment drawer. Untested here: that this particular instance is
-    // wired to that particular string.
+    expect(chosenSimulator()).toBe("js-fixed-step");
   });
 
-  it("turns the switch back off if the net stops being eligible", async () => {
-    // The submitted backend and the switch's own state read the same derived
-    // value, so a net edited into ineligibility after the switch was flipped
-    // cannot leave a GPU experiment queued behind a switch that looks off.
+  it("returns to the default simulator if the net stops being eligible", async () => {
+    // The submitted simulator and the picker's own value read the same
+    // derived result, so a net edited into ineligibility after the GPU was
+    // picked cannot leave a GPU experiment queued behind a picker that shows
+    // another simulator.
     const { rerender } = render(<TestProviders />);
 
     await waitFor(() => {
-      expect(backendState()).toBe("available");
+      expect(gpuSimulatorState()).toBe("available");
     });
-
-    fireEvent.click(findGpuControl());
-    await waitFor(() => {
-      expect(findGpuControl().checked).toBe(true);
-    });
-    expect(selectedSideLabel()).toBe("GPU");
+    pickSimulator(WEBGPU);
+    expect(chosenSimulator()).toBe(WEBGPU);
 
     rerender(<TestProviders sdcpnContextValue={colouredContextValue} />);
 
     await waitFor(() => {
-      expect(backendState()).toBe("unavailable");
+      expect(gpuSimulatorState()).toBe("unavailable");
     });
-    expect(findGpuControl().disabled).toBe(true);
-  });
-
-  it("keeps the switch off by default even for an eligible net", async () => {
-    render(<TestProviders />);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("available");
-    });
-
-    expect(findGpuControl().disabled).toBe(false);
-    expect(findGpuControl().checked).toBe(false);
-    expect(selectedSideLabel()).toBe("CPU");
+    expect(chosenSimulator()).toBe("js-fixed-step");
   });
 });
 
@@ -1201,7 +1285,7 @@ describe("CreateExperimentDrawer constraints", () => {
       screen.getByRole("group", { name: "Parameter constraint 1" }),
     ).toBeTruthy();
 
-    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
+    fireEvent.change(nativeSelectOffering("scenario-other"), {
       target: { value: "scenario-other" },
     });
     // The other scenario's sweep has to be turned on again, as its inputs reset.
@@ -1222,30 +1306,29 @@ describe("CreateExperimentDrawer constraints", () => {
     await openConstrainedSweep();
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
     await waitFor(() => {
-      expect(backendState()).toBe("available");
+      expect(gpuSimulatorState()).toBe("available");
     });
 
     fireEvent.click(
       screen.getByRole("button", { name: "Add state constraint" }),
     );
-    // A blank row is skipped at submission, so it does not gate the switch.
+    // A blank row is skipped at submission, so it does not gate the simulator.
     await waitFor(() => {
-      expect(backendState()).toBe("available");
+      expect(gpuSimulatorState()).toBe("available");
     });
     fireEvent.change(
       codeOf(screen.getByRole("group", { name: "State constraint 1" })),
       { target: { value: "return state.places.Infected.count < 100;" } },
     );
     await waitFor(() => {
-      expect(backendState()).toBe("unavailable");
+      expect(gpuSimulatorState()).toBe("unavailable");
     });
-    expect(findGpuControl().disabled).toBe(true);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Remove state constraint 1" }),
     );
     await waitFor(() => {
-      expect(backendState()).toBe("available");
+      expect(gpuSimulatorState()).toBe("available");
     });
   });
 });

@@ -29,6 +29,7 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     metricSpecs: [],
     computeBackend: "cpu",
     computeBackendFallbackReason: null,
+    simulatorLabel: null,
     startedAt: null,
     finishedAt: null,
     progress: null,

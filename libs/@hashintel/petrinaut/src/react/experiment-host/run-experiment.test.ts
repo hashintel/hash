@@ -90,6 +90,7 @@ const makeRecord = (optimize = false): ExperimentRecord => ({
   metricSpecs: [],
   computeBackend: "cpu",
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   startedAt: 0,
   finishedAt: null,
   progress: {

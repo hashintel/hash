@@ -21,8 +21,8 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
-  isWebGpuAvailable,
   synthesizeAdHocOptimization,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -35,6 +35,11 @@ import {
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import {
+  findSimulator,
+  simulatorRefusal,
+  SimulatorsContext,
+} from "../../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -56,7 +61,6 @@ import {
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
-import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
@@ -66,6 +70,12 @@ import {
 } from "./create-experiment-drawer/constraint-drafts";
 import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
 import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import {
+  EMPTY_EXPERIMENT_SIMULATOR,
+  resolveExperimentSimulator,
+  experimentSimulatorError,
+} from "./create-experiment-drawer/experiment-simulator-draft";
+import { ExperimentSimulatorFields } from "./create-experiment-drawer/experiment-simulator-fields";
 import {
   fieldStyle,
   gridStyle,
@@ -263,7 +273,6 @@ const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
-const DEFAULT_DT = "0.1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
 * Custom metric code that will be run on each frame.
@@ -867,6 +876,7 @@ export const CreateExperimentDrawer = ({
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
+  const simulators = use(SimulatorsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -878,7 +888,9 @@ export const CreateExperimentDrawer = ({
   const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
-  const [dt, setDt] = useState(DEFAULT_DT);
+  const [simulatorDraft, setSimulatorDraft] = useState(
+    EMPTY_EXPERIMENT_SIMULATOR,
+  );
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
   const [constraintDrafts, setConstraintDrafts] =
@@ -892,7 +904,6 @@ export const CreateExperimentDrawer = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [gpuRequested, setGpuRequested] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const addMetricButtonRef = useRef<HTMLButtonElement>(null);
   const metricTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -1004,34 +1015,6 @@ export const CreateExperimentDrawer = ({
     objectiveDraft,
     metricDrafts,
   );
-  const objectiveExecution = {
-    dt: Number(dt),
-    maxTime: Number(maxTime),
-    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
-  };
-  const objectiveError = objectiveEnabled
-    ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
-    : null;
-
-  const formError =
-    metricFormError ??
-    objectiveError ??
-    constraintLspError ??
-    (sweepSummary?.error ? sweepSummary.text : null);
-  const footerError = error ?? formError;
-  const canRun = !isSubmitting && formError === null;
-  const submitLabel = objectiveEnabled
-    ? isSubmitting
-      ? "Starting"
-      : "Optimize"
-    : sweepSummary
-      ? isSubmitting
-        ? "Creating"
-        : "Create sweep"
-      : isSubmitting
-        ? "Starting"
-        : "Run";
-
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
   // judge yet, and Run is disabled for the same reason. A drafted state
   // constraint rides along as the placeholder spec the gate refuses.
@@ -1050,19 +1033,74 @@ export const CreateExperimentDrawer = ({
     draftMetricSpecs = null;
   }
 
-  const webGpuAvailable = isWebGpuAvailable();
+  const webGpuSimulator = findSimulator(
+    simulators.registrations,
+    WEBGPU_FIXED_STEP_SIMULATOR_ID,
+  );
   const gpu = useGpuAvailability({
-    enabled: open && webGpuAvailable,
+    enabled: open && webGpuSimulator?.isAvailable() === true,
     sdcpn: petriNetDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
   });
-  // Derived rather than stored, so a net edited into ineligibility after the
-  // switch was flipped neither shows as on nor submits a GPU experiment. The
-  // switch's own state and the submitted backend read the same value, so they
-  // cannot disagree.
-  const gpuSelected = gpuRequested && gpu.available;
-  const computeBackend = gpuSelected ? "webgpu" : "cpu";
+  // The GPU simulator's verdict on this net comes from the analysis above;
+  // the others are known from their registrations.
+  const simulatorRefusals = new Map(
+    simulators.registrations.map((registration) => {
+      const known = simulatorRefusal(registration, "stochastic");
+      if (known !== null) {
+        return [registration.id, { reason: known, pending: false }];
+      }
+      return [
+        registration.id,
+        registration.id === WEBGPU_FIXED_STEP_SIMULATOR_ID && !gpu.available
+          ? {
+              reason:
+                gpu.reason ?? "Checking whether the net can run on the GPU",
+              pending: gpu.pending,
+            }
+          : null,
+      ];
+    }),
+  );
+  // Derived rather than stored, so a net edited into ineligibility after a
+  // simulator was picked neither shows it as chosen nor submits it. The
+  // picker's own value and the submitted simulator read the same result, so
+  // they cannot disagree.
+  const experimentSimulator = resolveExperimentSimulator(
+    simulatorDraft,
+    simulators,
+    simulatorRefusals,
+  );
+
+  const objectiveExecution = {
+    dt: experimentSimulator.samplePeriod,
+    maxTime: Number(maxTime),
+    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
+  };
+  const objectiveError = objectiveEnabled
+    ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
+    : null;
+
+  const formError =
+    metricFormError ??
+    experimentSimulatorError(experimentSimulator) ??
+    objectiveError ??
+    constraintLspError ??
+    (sweepSummary?.error ? sweepSummary.text : null);
+  const footerError = error ?? formError;
+  const canRun = !isSubmitting && formError === null;
+  const submitLabel = objectiveEnabled
+    ? isSubmitting
+      ? "Starting"
+      : "Optimize"
+    : sweepSummary
+      ? isSubmitting
+        ? "Creating"
+        : "Create sweep"
+      : isSubmitting
+        ? "Starting"
+        : "Run";
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -1071,7 +1109,7 @@ export const CreateExperimentDrawer = ({
     setAdHocState(null);
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
-    setDt(DEFAULT_DT);
+    setSimulatorDraft(EMPTY_EXPERIMENT_SIMULATOR);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
@@ -1080,7 +1118,6 @@ export const CreateExperimentDrawer = ({
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
-    setGpuRequested(false);
   };
 
   const handleClose = () => {
@@ -1212,12 +1249,12 @@ export const CreateExperimentDrawer = ({
           adHocSweeps: adHocSweeping,
           runCount: Number(runCount),
           seed: Number(seed),
-          dt: Number(dt),
+          dt: experimentSimulator.samplePeriod,
           maxTime: Number(maxTime),
           metricSpecs,
-          // Read here rather than in ExperimentsProvider, which is mounted outside
-          // UserSettingsProvider and so cannot see this setting.
-          computeBackend,
+          ...(experimentSimulator.selection
+            ? { simulator: experimentSimulator.selection }
+            : {}),
           constraints,
           constraintPolicy:
             constraints.length > 0
@@ -1311,24 +1348,6 @@ export const CreateExperimentDrawer = ({
                       <div className={fieldStyle}>
                         <label
                           className={labelStyle}
-                          htmlFor="experiment-time-step"
-                        >
-                          Time step
-                        </label>
-                        <NumberInput
-                          htmlForId="experiment-time-step"
-                          size="sm"
-                          min={0}
-                          step="any"
-                          value={dt === "" ? null : Number(dt)}
-                          onChange={(nextDt) =>
-                            setDt(nextDt === null ? "" : String(nextDt))
-                          }
-                        />
-                      </div>
-                      <div className={fieldStyle}>
-                        <label
-                          className={labelStyle}
                           htmlFor="experiment-max-time"
                         >
                           Max time (s)
@@ -1347,23 +1366,17 @@ export const CreateExperimentDrawer = ({
                           }
                         />
                       </div>
-                      {/* A labelled cell in the same grid as Runs / Time step / Max time:
-                  the backend is a property of the experiment like the rest, and a
-                  bare control below the grid read as an orphan. */}
-                      {webGpuAvailable && (
-                        <div className={fieldStyle}>
-                          <span className={labelStyle}>Backend</span>
-                          <ComputeBackendToggle
-                            gpu={gpu}
-                            selected={gpuSelected}
-                            onSelectedChange={setGpuRequested}
-                          />
-                        </div>
-                      )}
+                      {/* Cells of the same grid as Runs and Max time: what
+                  computes the runs is a property of the experiment like
+                  the rest. */}
+                      <ExperimentSimulatorFields
+                        draft={simulatorDraft}
+                        resolved={experimentSimulator}
+                        refusals={simulatorRefusals}
+                        onChange={setSimulatorDraft}
+                      />
                     </div>
                   </FocusControls>
-                  {/* Only shown once WebGPU is switched on in settings — otherwise the
-                choice does not exist and the row would be noise. */}
                 </Section>
 
                 <Section title="Scenario" collapsible defaultOpen>

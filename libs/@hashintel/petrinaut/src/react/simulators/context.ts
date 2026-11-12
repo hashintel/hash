@@ -50,6 +50,27 @@ export const findSimulator = (
   registrations.find((registration) => registration.id === simulatorId);
 
 /**
+ * Why a simulator cannot compute what a mode shows, or null when it can.
+ * Known from the registration alone, so a picker asks nothing of a
+ * simulator it has not loaded.
+ */
+export const simulatorRefusal = (
+  registration: SimulatorRegistration,
+  mode: SimulationMode,
+): string | null => {
+  if (!registration.isAvailable()) {
+    return "Not supported by this browser";
+  }
+  if (mode === "quick" && !registration.produces.run) {
+    return "Computes many runs at once";
+  }
+  if (mode === "stochastic" && !registration.produces.experiment) {
+    return "Computes one run at a time";
+  }
+  return null;
+};
+
+/**
  * No simulators: the value outside a `SimulatorsProvider`. A run cannot
  * start from it, and the picker shows nothing to pick.
  */

@@ -1,5 +1,6 @@
 import { createContext } from "react";
 
+import type { SimulatorSelection } from "../simulators/context";
 import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
@@ -87,11 +88,26 @@ export type CreateExperimentInput = {
   /** Number of runs per parameter combination. */
   runCount: number;
   seed: number;
+  /**
+   * Spacing of the samples, in simulated seconds. A simulator that samples
+   * at its time step does so whatever is asked here, and the record's `dt`
+   * says what it was. Without `simulator`, the time step itself.
+   */
   dt: number;
   maxTime: number;
   metricSpecs: readonly ExperimentMetricSpecInput[];
   /**
-   * Backend to attempt. Defaults to `cpu`.
+   * The simulator that computes the runs, with the parameter values the
+   * form holds for it. One that steps at a fixed time step and cannot take
+   * the net falls back to the default simulator at the same step, and the
+   * record says so. Any other refusal fails the experiment with its reason.
+   *
+   * Left out, `computeBackend` chooses between the fixed-step engine on
+   * worker threads and on the GPU, stepping at `dt`.
+   */
+  simulator?: SimulatorSelection;
+  /**
+   * Backend to attempt when no `simulator` is named. Defaults to `cpu`.
    *
    * `webgpu` is a request, not a guarantee: a net the GPU backend cannot run
    * falls back to the CPU, and `ExperimentRecord.computeBackend` records which
@@ -144,8 +160,17 @@ export type ExperimentRecord = {
    * (statistically equivalent) trajectories.
    */
   computeBackend: ExperimentComputeBackend;
-  /** Why the GPU backend was not used, when `webgpu` was requested but declined. */
+  /**
+   * Why the simulator or backend asked for was not used, when another one
+   * ran in its place.
+   */
   computeBackendFallbackReason: string | null;
+  /**
+   * The simulator that computed the runs, as the picker names it. Null until
+   * one is chosen, and for an experiment that named a compute backend
+   * instead of a simulator.
+   */
+  simulatorLabel: string | null;
   /**
    * When stepping began — i.e. when the engine handle was started, after user
    * code compiled and the workers (or the GPU device and shader) were ready.
@@ -273,6 +298,8 @@ export type AdoptExperimentInput = {
   maxTime: number;
   metricSpecs: readonly ExperimentMetricSpecInput[];
   computeBackend: ExperimentComputeBackend;
+  /** The simulator that computes it, as the picker names it. */
+  simulatorLabel?: string;
 };
 
 export type ExperimentsContextValue = {

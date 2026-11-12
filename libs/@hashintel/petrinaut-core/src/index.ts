@@ -348,19 +348,13 @@ export type {
 // --- Event-driven simulation (experimental) ---
 export {
   ADAPTIVE_SIMULATOR_ID,
-  createEventSimulation,
-  DEFAULT_SOLVER_TOLERANCE,
   FIXED_STEP_SIMULATOR_ID,
   SOLVER_ERROR_DIAGNOSTIC,
 } from "./simulation/event-trace";
 export type {
-  CreateEventSimulationConfig,
   EventSimulation,
-  EventSimulationConfig,
   EventSimulationEvent,
   EventTraceSummary,
-  StepperParameters,
-  StepperSelection,
   TraceEvent,
   TraceEventKind,
 } from "./simulation/event-trace";
@@ -368,8 +362,6 @@ export type {
 // --- Simulators (experimental) ---
 export {
   assessSimulator,
-  builtInSimulatorManifests,
-  countStatisticsOfBins,
   createExperimentReader,
   createJsAdaptiveSimulator,
   createJsFixedStepSimulator,
@@ -377,21 +369,19 @@ export {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   defaultSimulatorParameters,
   defineSimulator,
-  jsAdaptiveSimulatorManifest,
-  jsFixedStepSimulatorManifest,
+  experimentBackendOfSimulator,
   placeCountMetricId,
   placeCountMetricSpecs,
   resolveSimulatorParameters,
   simulatorFromExperimentBackend,
+  simulatorSamplePeriod,
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
-  webGpuFixedStepSimulatorManifest,
 } from "./simulation/simulators";
 export type {
   CountStatistics,
-  ExperimentBackendSimulatorOptions,
+  ExperimentBackendStepping,
   ExperimentReader,
-  JsAdaptiveSimulatorOptions,
-  JsFixedStepSimulatorOptions,
+  JsSimulatorOptions,
   ResolvedSimulatorParameters,
   SimulationRequest,
   SimulationRequestBase,

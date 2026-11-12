@@ -70,22 +70,6 @@ export const petrinautPandaPreset = {
           },
         },
         /**
-         * Breathing purple glow for the GPU side of the experiment backend
-         * toggle. Both steps repeat the control's inset shadows, because
-         * animating `box-shadow` replaces the whole property and the depth
-         * would otherwise vanish for the duration.
-         */
-        petrinautGpuGlow: {
-          "0%, 100%": {
-            boxShadow:
-              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 5px var(--colors-purple-a30), 0 0 11px var(--colors-purple-a15)",
-          },
-          "50%": {
-            boxShadow:
-              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 9px var(--colors-purple-a50), 0 0 20px var(--colors-purple-a30)",
-          },
-        },
-        /**
          * The halo breathing around a card whose controls an optimizer
          * drives: a pseudo-element carrying the peak shadow, its opacity
          * alone animating, over the card's own static ring.

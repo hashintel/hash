@@ -2,14 +2,18 @@ import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { WEBGPU_FIXED_STEP_SIMULATOR_ID } from "@hashintel/petrinaut-core";
 
 import { ExperimentsActionsContext } from "../../../../../react/experiments/context";
+import { computeBackendOf } from "../../../../../react/experiments/provider/create-experiment";
 import { NotificationsContext } from "../../../../../react/notifications/context";
 import {
   SimulationContext,
   type StochasticRun,
 } from "../../../../../react/simulation/context";
+import {
+  findSimulator,
+  SimulatorsContext,
+} from "../../../../../react/simulators/context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useStore } from "../../../../../react/use-store";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -43,6 +47,7 @@ export const StochasticRunStatus: React.FC<{ run: StochasticRun }> = ({
   const { keepStochasticRun, selectedScenarioId } = use(SimulationContext);
   const { petriNetDefinition } = use(SDCPNContext);
   const { addNotification } = use(NotificationsContext);
+  const { registrations } = use(SimulatorsContext);
 
   const completedRuns = progress?.completedRuns ?? 0;
   const scenarioName =
@@ -63,10 +68,9 @@ export const StochasticRunStatus: React.FC<{ run: StochasticRun }> = ({
       dt: samplePeriodOf(run),
       maxTime: run.maxTime,
       metricSpecs: run.metricSpecs,
-      computeBackend:
-        run.simulator.simulatorId === WEBGPU_FIXED_STEP_SIMULATOR_ID
-          ? "webgpu"
-          : "cpu",
+      computeBackend: computeBackendOf(run.simulator.simulatorId),
+      simulatorLabel: findSimulator(registrations, run.simulator.simulatorId)
+        ?.label,
     });
     keepStochasticRun();
     addNotification({

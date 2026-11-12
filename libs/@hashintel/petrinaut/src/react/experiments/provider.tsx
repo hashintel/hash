@@ -28,9 +28,9 @@ import {
   usePetrinautNavigation,
 } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
+import { findSimulator, SimulatorsContext } from "../simulators/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
-  type ExperimentComputeBackend,
   type CreateExperimentOptions,
   type ExperimentRecord,
   ExperimentsActionsContext,
@@ -45,8 +45,10 @@ import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
+  computeBackendOf,
   createExperimentRequestBuilder,
   experimentBackendRegistrations,
+  experimentSimulatorBackends,
   newExperimentRecord,
 } from "./provider/create-experiment";
 import {
@@ -104,6 +106,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const languageClient = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
+  const simulatorsRef = useLatest(use(SimulatorsContext));
   const navigation = usePetrinautNavigation();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -227,6 +230,42 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setExperiments((prev) =>
       patchExperimentRecords(prev, experimentId, patch, finishedAt),
     );
+  };
+
+  /**
+   * What the record says about the backend that ran, and the notice when it
+   * is not the one asked for.
+   */
+  const recordChosenBackend = (
+    experiment: ExperimentRecord,
+    selection: {
+      backendId: string;
+      declined: readonly { reason: string }[];
+    },
+  ) => {
+    const [firstDeclined] = selection.declined;
+    const simulator = findSimulator(
+      simulatorsRef.current.registrations,
+      selection.backendId,
+    );
+    if (firstDeclined) {
+      addNotification({
+        message: `${experiment.name} is running on ${
+          simulator ? simulator.label : "the CPU"
+        }: ${firstDeclined.reason}`,
+        tone: "neutral",
+      });
+    }
+    patchExperiment(experiment.id, {
+      computeBackend: computeBackendOf(selection.backendId),
+      computeBackendFallbackReason: firstDeclined?.reason ?? null,
+      simulatorLabel: simulator?.label ?? null,
+      // Stepping starts next. Setup — compiling user code, spinning up
+      // workers, acquiring the GPU device — is deliberately outside the
+      // measurement, so two backends are compared on the work they differ
+      // in.
+      startedAt: Date.now(),
+    });
   };
 
   const rememberBackend = (
@@ -374,18 +413,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         netParameterVariableNames,
         onBackendChosen: (selection) => {
           rememberBackend(experimentId, selection.backend);
-          const [firstDeclined] = selection.declined;
-          if (firstDeclined) {
-            addNotification({
-              message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
-              tone: "neutral",
-            });
-          }
-          patchExperiment(experimentId, {
-            computeBackend: selection.backendId as ExperimentComputeBackend,
-            computeBackendFallbackReason: firstDeclined?.reason ?? null,
-            startedAt: Date.now(),
-          });
+          recordChosenBackend(experiment, selection);
         },
         onNote,
       }),
@@ -489,10 +517,21 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     });
     options?.ownership?.signal.throwIfAborted();
 
+    // Resolved before the record exists, so a simulator nobody registered
+    // rejects the creation instead of listing an experiment that cannot run.
+    const onSimulator = input.simulator
+      ? experimentSimulatorBackends({
+          simulators: simulatorsRef.current,
+          selection: input.simulator,
+          requestedSamplePeriod: input.dt,
+        })
+      : null;
+    const samplePeriod = onSimulator?.samplePeriod ?? input.dt;
+
     const experimentId = generateUuid();
     const experiment = newExperimentRecord({
       id: experimentId,
-      input,
+      input: samplePeriod === input.dt ? input : { ...input, dt: samplePeriod },
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
       axes: compiled.axes,
@@ -527,16 +566,19 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         );
         const buildRequest = createExperimentRequestBuilder({
           input,
+          dt: samplePeriod,
           sdcpn: compiledExperimentSdcpn,
           extensions: experimentExtensions,
           compiled,
           requestHirArtifacts: languageClientRef.current.requestHirArtifacts,
         });
-        const registrations = experimentBackendRegistrations({
-          computeBackend: input.computeBackend,
-          createWorker: reusableWorkerFactory,
-          shardCount: shardCountRef.current,
-        });
+        const registrations =
+          onSimulator?.registrations ??
+          experimentBackendRegistrations({
+            computeBackend: input.computeBackend,
+            createWorker: reusableWorkerFactory,
+            shardCount: shardCountRef.current,
+          });
         const onNote = (note: { message: string }) => {
           addNotification({
             message: `${experiment.name}: ${note.message}`,
@@ -587,15 +629,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         const { handle } = selection;
-        // Only the backends the user chose *against* are worth reporting, and
-        // only when something was declined — otherwise this is the happy path.
-        const [firstDeclined] = selection.declined;
-        if (firstDeclined) {
-          addNotification({
-            message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
-            tone: "neutral",
-          });
-        }
         for (const note of selection.notes) {
           addNotification({
             message: `${experiment.name}: ${note.message}`,
@@ -605,15 +638,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         pendingRegistrationsRef.current.delete(experimentId);
         rememberBackend(experimentId, selection.backend);
-        patchExperiment(experimentId, {
-          computeBackend: selection.backendId as ExperimentComputeBackend,
-          computeBackendFallbackReason: firstDeclined?.reason ?? null,
-          // Stepping starts on the next line. Setup — compiling user code,
-          // spinning up workers, acquiring the GPU device — is deliberately
-          // outside the measurement, so the two backends are compared on the
-          // work they actually differ in.
-          startedAt: Date.now(),
-        });
+        // Only the backends the user chose *against* are worth reporting, and
+        // only when something was declined — otherwise this is the happy path.
+        recordChosenBackend(experiment, selection);
 
         registerExperimentHandle(experiment, handle);
         handle.start();
@@ -663,6 +690,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       }),
       definition: input.definition,
       computeBackend: input.computeBackend,
+      simulatorLabel: input.simulatorLabel ?? null,
       // When it began stepping is its previous owner's knowledge; from here
       // the record counts from the moment it was listed.
       startedAt: Date.now(),

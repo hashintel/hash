@@ -2,6 +2,7 @@ import { resolveSimulatorParameters } from "./parameters";
 
 import type { AbortSignalLike } from "../../environment";
 import type {
+  ExperimentBlocker,
   ExperimentBlockers,
   ExperimentNote,
 } from "../../experiments/experiment-assessment";
@@ -121,6 +122,12 @@ export type SimulatorManifest<
   readonly description: string;
   readonly parameters: Specs;
   readonly produces: SimulatorProducts;
+  /**
+   * The key of the number parameter an experiment of this simulator is
+   * sampled at, for a simulator that steps and samples on one time step.
+   * Left out, an experiment chooses its own sample period.
+   */
+  readonly samplePeriodParameter?: keyof Specs & string;
 };
 
 export type SimulatorImplementation<
@@ -139,7 +146,8 @@ export type SimulatorRegistration<
 /**
  * Declares a simulator. The manifest comes first, so the implementation's
  * requests are typed by the parameters it declares. Throws when an enum
- * parameter defaults to a value outside its options.
+ * parameter defaults to a value outside its options, or when the sample
+ * period is not one of the number parameters.
  */
 export const defineSimulator = <const Specs extends SimulatorParameterSpecs>(
   manifest: SimulatorManifest<Specs>,
@@ -155,6 +163,15 @@ export const defineSimulator = <const Specs extends SimulatorParameterSpecs>(
       );
     }
   }
+  const { samplePeriodParameter } = manifest;
+  if (
+    samplePeriodParameter !== undefined &&
+    manifest.parameters[samplePeriodParameter]?.type !== "number"
+  ) {
+    throw new Error(
+      `Simulator "${manifest.id}" samples at "${samplePeriodParameter}", which is not one of its number parameters`,
+    );
+  }
   return { ...manifest, ...implementation };
 };
 
@@ -165,8 +182,60 @@ export type SimulationRequestBase = Omit<
 >;
 
 export type SimulatorSelectionOutcome =
-  | { readonly ok: true; readonly offer: SimulatorOffer }
+  | {
+      readonly ok: true;
+      readonly offer: SimulatorOffer;
+      /**
+       * Releases what the simulator loaded for this assessment keeps between
+       * starts, such as a GPU device. Called once what the offer started is
+       * disposed, or when nothing is started from it.
+       */
+      dispose(this: void): void;
+    }
   | { readonly ok: false; readonly blockers: ExperimentBlockers };
+
+/** The refusal of a simulator this environment cannot run. */
+export const simulatorUnavailable = (
+  registration: Pick<SimulatorRegistration, "label">,
+): ExperimentBlockers => [
+  {
+    code: "simulator-unavailable",
+    message: `${registration.label} cannot run in this environment`,
+    origin: "environment",
+  },
+];
+
+/**
+ * The parameter values a simulator runs at, or why it cannot run at all:
+ * the environment lacks what it needs, or its spec rejects a value. Decided
+ * from the registration alone, before the simulator is loaded.
+ */
+export const resolveSimulatorSelection = (
+  registration: SimulatorRegistration,
+  parameters: StoredSimulatorParameters,
+):
+  | { readonly ok: true; readonly values: SimulatorParameterValues }
+  | { readonly ok: false; readonly blockers: ExperimentBlockers } => {
+  if (!registration.isAvailable()) {
+    return { ok: false, blockers: simulatorUnavailable(registration) };
+  }
+  const resolved = resolveSimulatorParameters(
+    registration.parameters,
+    parameters,
+  );
+  if (resolved.ok) {
+    return resolved;
+  }
+  const [first, ...rest] = resolved.problems.map(
+    ({ key, message }): ExperimentBlocker => ({
+      code: "invalid-simulator-parameter",
+      message,
+      origin: "configuration",
+      itemId: key,
+    }),
+  );
+  return { ok: false, blockers: [first!, ...rest] };
+};
 
 /**
  * Takes a registration and the parameter values a form holds to an offer:
@@ -187,41 +256,28 @@ export const assessSimulator = async (
         simulator: Pick<Simulator, "needsHirTrees">,
       ) => SimulationRequestBase | Promise<SimulationRequestBase>),
 ): Promise<SimulatorSelectionOutcome> => {
-  if (!registration.isAvailable()) {
-    return {
-      ok: false,
-      blockers: [
-        {
-          code: "simulator-unavailable",
-          message: `${registration.label} cannot run in this environment`,
-          origin: "environment",
-        },
-      ],
-    };
-  }
-  const resolved = resolveSimulatorParameters(
-    registration.parameters,
-    parameters,
-  );
+  const resolved = resolveSimulatorSelection(registration, parameters);
   if (!resolved.ok) {
-    const [first, ...rest] = resolved.problems;
-    const blocker = ({ key, message }: (typeof resolved.problems)[number]) =>
-      ({
-        code: "invalid-simulator-parameter",
-        message,
-        origin: "configuration",
-        itemId: key,
-      }) as const;
-    return { ok: false, blockers: [blocker(first), ...rest.map(blocker)] };
+    return resolved;
   }
   const simulator = await registration.load();
-  const requestBase =
-    typeof request === "function" ? await request(simulator) : request;
-  const assessment = await simulator.assess({
-    ...requestBase,
-    simulatorParameters: resolved.values,
-  });
-  return assessment.eligible
-    ? { ok: true, offer: assessment }
-    : { ok: false, blockers: assessment.blockers };
+  const dispose = () => simulator.dispose?.();
+  try {
+    const requestBase =
+      typeof request === "function" ? await request(simulator) : request;
+    const assessment = await simulator.assess({
+      ...requestBase,
+      simulatorParameters: resolved.values,
+    });
+    if (assessment.eligible) {
+      return { ok: true, offer: assessment, dispose };
+    }
+    dispose();
+    return { ok: false, blockers: assessment.blockers };
+  } catch (error) {
+    // Building the request can fail, or be abandoned: nothing was offered,
+    // so nothing else will release the simulator.
+    dispose();
+    throw error;
+  }
 };

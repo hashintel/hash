@@ -1,11 +1,14 @@
 import {
   compileScenario,
   constraintLabel,
+  experimentBackendOfSimulator,
   getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
   synthesizeAdHocOptimization,
+  simulatorSamplePeriod,
   synthesizeAdHocScenario,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
   type InitialMarking,
   type PetrinautExtensionSettings,
   type Scenario,
@@ -17,6 +20,7 @@ import {
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
+import { findSimulator } from "../../simulators/context";
 import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
   buildAdHocSweepAxes,
@@ -27,7 +31,12 @@ import { sweepSelectionKey } from "../sweep-session";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
 import type {
+  SimulatorSelection,
+  SimulatorsContextValue,
+} from "../../simulators/context";
+import type {
   CreateExperimentInput,
+  ExperimentComputeBackend,
   ExperimentRecord,
   ExperimentSweepState,
 } from "../context";
@@ -408,6 +417,7 @@ export const newExperimentRecord = ({
   metricSpecs: input.metricSpecs,
   computeBackend: "cpu",
   computeBackendFallbackReason: null,
+  simulatorLabel: null,
   startedAt: null,
   finishedAt: null,
   progress: null,
@@ -436,12 +446,15 @@ export const newExperimentRecord = ({
  */
 export const createExperimentRequestBuilder = ({
   input,
+  dt = input.dt,
   sdcpn,
   extensions,
   compiled,
   requestHirArtifacts,
 }: {
   input: CreateExperimentInput;
+  /** The spacing of the samples, when the simulator sets it. Defaults to the input's. */
+  dt?: number;
   /** The exact snapshot to run, metrics substituted. */
   sdcpn: SDCPN;
   extensions: PetrinautExtensionSettings;
@@ -502,7 +515,7 @@ export const createExperimentRequestBuilder = ({
       initialMarking: compiled.initialMarking,
       parameterValues: compiled.parameterValues,
       seed: input.seed,
-      dt: input.dt,
+      dt,
       maxTime: input.maxTime,
       runCount: input.runCount,
       metricSpecs: [...metricSpecs, ...indicatorSpecs],
@@ -555,3 +568,70 @@ export const experimentBackendRegistrations = ({
   });
   return registrations;
 };
+
+/**
+ * What an experiment that names a simulator runs on: the backends to try,
+ * best first, and the spacing of its samples.
+ *
+ * A simulator that samples at its time step fixes the spacing; any other
+ * takes the one asked for. A fixed-step simulator that is not the default is
+ * followed by the default one at the same step, which is the fallback a GPU
+ * experiment has always had. The default is the simulator a Stochastic
+ * simulation starts on.
+ */
+export const experimentSimulatorBackends = ({
+  simulators,
+  selection,
+  requestedSamplePeriod,
+}: {
+  simulators: SimulatorsContextValue;
+  selection: SimulatorSelection;
+  requestedSamplePeriod: number;
+}): {
+  registrations: ExperimentBackendRegistration[];
+  samplePeriod: number;
+} => {
+  const registration = findSimulator(
+    simulators.registrations,
+    selection.simulatorId,
+  );
+  if (!registration) {
+    throw new Error(`Simulator "${selection.simulatorId}" is not registered`);
+  }
+  const timeStep = simulatorSamplePeriod(registration, selection.parameters);
+  const samplePeriod = timeStep ?? requestedSamplePeriod;
+  const registrations = [
+    experimentBackendOfSimulator(registration, selection.parameters),
+  ];
+
+  const fallbackSelection = simulators.defaultSelections.stochastic;
+  const fallback = findSimulator(
+    simulators.registrations,
+    fallbackSelection.simulatorId,
+  );
+  if (
+    timeStep !== null &&
+    fallback !== undefined &&
+    fallback.id !== registration.id &&
+    fallback.samplePeriodParameter !== undefined
+  ) {
+    registrations.push(
+      experimentBackendOfSimulator(fallback, {
+        ...fallbackSelection.parameters,
+        [fallback.samplePeriodParameter]: samplePeriod,
+      }),
+    );
+  }
+  return { registrations, samplePeriod };
+};
+
+/**
+ * Which of the two compute paths the backend that ran is: the graphics
+ * card, or worker threads.
+ */
+export const computeBackendOf = (
+  backendId: string,
+): ExperimentComputeBackend =>
+  backendId === "webgpu" || backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID
+    ? "webgpu"
+    : "cpu";
