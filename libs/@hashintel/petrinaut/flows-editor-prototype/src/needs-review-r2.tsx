@@ -51,7 +51,7 @@ import {
   sectionTitleStyle,
 } from "./ui";
 import { useEscapeCloses } from "./use-escape-closes";
-import { repeatsTrim } from "./repeats-flag";
+import { repeatsPicked, repeatsTrim } from "./repeats-flag";
 import { RunStepPanel, useRunView } from "./history-view";
 import { type RunItem, runPanelOld, supplierItem } from "./run-panel-parity";
 
@@ -578,7 +578,7 @@ const ContextView = ({
   if (context.kind === "entity") {
     return (
       <Section
-        title={repeatsTrim ? context.type : `${context.type} · ${context.name}`}
+        title={repeatsPicked ? context.type : `${context.type} · ${context.name}`}
       >
         {context.rows.map((row) => (
           <PropertyRow key={row.label} label={row.label}>
@@ -708,7 +708,8 @@ const AnswerForm = ({
       {run && oldStatusLine ? (
         <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           Asked {request.asked}
-          {repeatsTrim ? null : (
+          {repeatsTrim ||
+          (repeatsPicked && request.stepId === "fetchCertificate") ? null : (
             <>
               {" · "}
               <RunIdText run={run} prefix />

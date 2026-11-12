@@ -8,7 +8,7 @@ import { RunIdsIn } from "./run-id";
 
 import type { EditorDocument } from "./document";
 import type { ItemProgress, StepState } from "./run-history";
-import { repeatsTrim } from "./repeats-flag";
+import { repeatsPicked } from "./repeats-flag";
 
 export type FlowListEntry = {
   id: string;
@@ -288,7 +288,7 @@ export const Home = ({
                     </td>
                     <td className={css({ color: "neutral.fg.muted.hover" })}>
                       {flow.runCount
-                        ? repeatsTrim
+                        ? repeatsPicked
                           ? `${flow.runCount}`
                           : `${flow.runCount} ${flow.runCount === 1 ? "run" : "runs"}`
                         : "–"}

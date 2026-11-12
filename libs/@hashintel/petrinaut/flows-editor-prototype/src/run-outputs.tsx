@@ -64,7 +64,7 @@ import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { Table } from "./ds-parts/table";
 import { RunIdsIn, runLabel } from "./run-id";
 import { ShowAllRow } from "./show-all-row";
-import { repeatsTrim } from "./repeats-flag";
+import { repeatsPicked, repeatsTrim } from "./repeats-flag";
 import { TextLink } from "./text-link";
 import {
   clockPlus,
@@ -4392,7 +4392,7 @@ export const RunOutputsCell = ({
   if (outputs.findFailed) {
     return (
       <span className={css({ color: "neutral.fg.subtle" })}>
-        {repeatsTrim ? "Nothing" : "Nothing · stopped at Find active suppliers"}
+        {repeatsPicked ? "Nothing" : "Nothing · stopped at Find active suppliers"}
       </span>
     );
   }
