@@ -201,6 +201,25 @@ describe("DependentTypesSection", () => {
     within(section).getByRole("switch", { name: "Include former types" });
   });
 
+  it("switches between the layouts", () => {
+    const { section } = renderSection({ rows: [user] });
+
+    const byChild = within(section).getByRole("button", {
+      name: "By type",
+    });
+    const byParent = within(section).getByRole("button", {
+      name: "By version",
+    });
+    expect(byChild.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(byParent);
+
+    expect(byParent.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      within(section).queryByRole("button", { name: userToggleName }),
+    ).toBeNull();
+  });
+
   it("warns that types or versions may be missing when a query reached its row limit", () => {
     const { section } = renderSection({ rows: [user], incomplete: true });
 
