@@ -7,17 +7,16 @@ import {
   formatVersionList,
   formatVersions,
   subgridRowSx,
-  toggleRowSx,
   treeCellSx,
-  visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
+  Cell,
+  ColumnHeader,
+  ExpandableRow,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
-  RowToggle,
   TableCard,
-  TypeLabel,
 } from "./dependent-types-table-parts";
 import { VersionGraphTooltip } from "./version-graph-tooltip";
 
@@ -62,14 +61,9 @@ const RangeRow = ({
         />
       }
     >
-      <Box sx={firstCellSx} />
-      <Box sx={[treeCellSx, nestedTextSx]}>{versions}</Box>
-      <Box sx={[cellSx, nestedTextSx]}>
-        <Box component="span" sx={visuallyHidden}>
-          extends {parentTitle}{" "}
-        </Box>
-        {`v${range.parentVersion}`}
-      </Box>
+      <Cell sx={firstCellSx} />
+      <Cell sx={[treeCellSx, nestedTextSx]}>{versions}</Cell>
+      <Cell sx={[cellSx, nestedTextSx]}>{`v${range.parentVersion}`}</Cell>
     </NestedRow>
   );
 };
@@ -102,49 +96,34 @@ const DependentTypeTableRow = ({
         parentTitle={parentTitle}
         parentLatestVersion={parentLatestVersion}
       >
-        {({ toggleProps, hide }) => (
-          <Box sx={toggleRowSx}>
-            <RowToggle
-              {...toggleProps}
-              expanded={expanded}
-              aria-label={
-                former
-                  ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-                  : `${title} v${version}, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-              }
-              onClick={() => {
-                hide();
-                setExpanded(!expanded);
-              }}
-            >
-              <Box sx={{ ...firstCellSx, maxWidth: 1 }}>
-                <TypeLabel
-                  entityType={entityType}
-                  former={former}
-                  isLink={isLink}
-                  version={version}
-                />
-              </Box>
-              <Box sx={treeCellSx}>{versions}</Box>
-              <Box sx={cellSx}>{parentVersions}</Box>
-            </RowToggle>
-            <OpenTypeButton
-              label={
-                former
-                  ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
-                  : `Open ${title} v${version}`
-              }
-              onClick={() => onOpenType($id)}
-            />
-          </Box>
+        {({ rowRef, toggleProps, hide }) => (
+          <ExpandableRow
+            ref={rowRef}
+            type={{ entityType, former, isLink, version }}
+            expanded={expanded}
+            onToggle={() => {
+              hide();
+              setExpanded(!expanded);
+            }}
+            toggleProps={toggleProps}
+            openButton={
+              <OpenTypeButton
+                label={
+                  former
+                    ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
+                    : `Open ${title} v${version}`
+                }
+                onClick={() => onOpenType($id)}
+              />
+            }
+          >
+            <Cell sx={treeCellSx}>{versions}</Cell>
+            <Cell sx={cellSx}>{parentVersions}</Cell>
+          </ExpandableRow>
         )}
       </VersionGraphTooltip>
       {expanded ? (
-        <Box
-          sx={subgridRowSx}
-          role="group"
-          aria-label={`Version ranges of ${title}`}
-        >
+        <Box sx={subgridRowSx}>
           {row.ranges.map((range, index) => (
             <RangeRow
               key={`${range.firstVersion}-${range.parentVersion}`}
@@ -163,28 +142,30 @@ const DependentTypeTableRow = ({
 
 /** One row per dependent type, expandable into its version ranges. */
 export const DependentTypesByTypeTable = ({
+  labelledBy,
   entityTypeTitle,
   parentLatestVersion,
   rows,
   isLinkType,
   onOpenType,
 }: {
+  labelledBy: string;
   entityTypeTitle: string;
   parentLatestVersion: number;
   rows: DependentTypeRow[];
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
-  <TableCard gridTemplateColumns={gridTemplateColumns}>
+  <TableCard gridTemplateColumns={gridTemplateColumns} labelledBy={labelledBy}>
     <HeaderRow>
-      <Box sx={firstCellSx}>Type</Box>
-      <Box sx={treeCellSx}>Versions</Box>
-      <Box sx={cellSx}>
+      <ColumnHeader sx={firstCellSx}>Type</ColumnHeader>
+      <ColumnHeader sx={treeCellSx}>Versions</ColumnHeader>
+      <ColumnHeader sx={cellSx}>
         Extends{" "}
         <Box component="span" sx={{ fontWeight: 700 }}>
           {entityTypeTitle}
         </Box>
-      </Box>
+      </ColumnHeader>
     </HeaderRow>
     {rows.map((row) => (
       <DependentTypeTableRow

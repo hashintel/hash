@@ -1,10 +1,7 @@
 import { Box, Tooltip } from "@mui/material";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 
-import {
-  openColumnWidth,
-  visuallyHidden,
-} from "./dependent-types-table-layout";
+import { openColumnWidth } from "./dependent-types-table-layout";
 import {
   ellipsisWidth,
   getVersionGraphLayout,
@@ -21,9 +18,10 @@ import type { PopperProps, Theme } from "@mui/material";
 import type { KeyboardEvent, ReactElement, ReactNode, RefObject } from "react";
 
 type VersionGraphTooltipTriggerProps = {
+  /** Set on the row, whose width limits the tooltip's. */
+  rowRef: (element: HTMLElement | null) => void;
   /** Spread on the row's toggle button: focusing it with the keyboard shows the tooltip at once. */
   toggleProps: {
-    ref: (element: HTMLElement | null) => void;
     "aria-describedby"?: string;
     onFocusVisible: () => void;
     onBlur: () => void;
@@ -174,12 +172,10 @@ const VersionGraphCard = ({
         boxShadow: boxShadows.md,
       })}
     >
-      <Box component="span" sx={visuallyHidden}>
-        {layout.summary}
-      </Box>
       <Box
         ref={scrollRef}
-        aria-hidden
+        role="img"
+        aria-label={layout.summary}
         sx={{ overflowX: "auto", overflowY: "hidden" }}
       >
         <Box sx={{ width: layout.width }}>
@@ -256,13 +252,13 @@ export const VersionGraphTooltip = ({
   const id = useId();
   const [open, setOpen] = useState(false);
   const [maxWidth, setMaxWidth] = useState(0);
-  const toggleElement = useRef<HTMLElement | null>(null);
+  const rowElement = useRef<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
 
   const show = () => {
     setMaxWidth(
       getVersionGraphTooltipMaxWidth(
-        toggleElement.current?.offsetWidth ?? Infinity,
+        rowElement.current?.offsetWidth ?? Infinity,
       ),
     );
     setOpen(true);
@@ -319,10 +315,10 @@ export const VersionGraphTooltip = ({
       }
     >
       {children({
+        rowRef: (element) => {
+          rowElement.current = element;
+        },
         toggleProps: {
-          ref: (element) => {
-            toggleElement.current = element;
-          },
           "aria-describedby": open ? id : undefined,
           onFocusVisible: show,
           onBlur: hide,

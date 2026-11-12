@@ -1,5 +1,3 @@
-import type { SxProps, Theme } from "@mui/material";
-
 export const rowHeight = 40;
 
 export const openColumnWidth = 40;
@@ -37,19 +35,6 @@ export const treeCellSx = {
   pl: `${treeGutterWidth + 8}px`,
 } as const;
 
-/** Hides text on screen while screen readers still read it. */
-export const visuallyHidden = {
-  position: "absolute",
-  width: "1px",
-  height: "1px",
-  m: "-1px",
-  p: 0,
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-  border: 0,
-} as const;
-
 /** A box that spans the table's grid and lays its children on the table's columns. */
 export const subgridRowSx = {
   display: "grid",
@@ -57,15 +42,5 @@ export const subgridRowSx = {
   gridColumn: "1 / -1",
 } as const;
 
-export const rowToggleClassName = "dependent-type-row-toggle";
-
 /** The grid that holds a table's header and rows. */
 export const tableGridClassName = "dependent-types-table-grid";
-
-/** The box around an expandable row, which highlights the row's toggle while any part of the row is hovered. */
-export const toggleRowSx: SxProps<Theme> = ({ palette }) => ({
-  ...subgridRowSx,
-  position: "relative",
-  height: rowHeight,
-  [`&:hover .${rowToggleClassName}`]: { background: palette.gray[10] },
-});
