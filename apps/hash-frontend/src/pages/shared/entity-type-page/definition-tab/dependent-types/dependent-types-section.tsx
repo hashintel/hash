@@ -173,14 +173,11 @@ export const DependentTypesSection = ({
         <EmptyListCard
           icon={<IconDiagramNestedLight />}
           headline={<>No types extend {entityTypeTitle}</>}
-          description={
-            <>Types that extend another type inherit its properties and links</>
-          }
+          description={<>Types can extend other types to build on them</>}
           subDescription={
             <>
               e.g. an <strong>employee</strong> type might extend{" "}
-              <strong>person</strong> and add a <strong>job title</strong>{" "}
-              property
+              <strong>person</strong>
             </>
           }
         />
