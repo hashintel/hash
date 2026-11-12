@@ -1,8 +1,3 @@
-import {
-  crashLoopErrorText,
-  stoppedByCrashLoop,
-} from "../conversation-registry/crash-loop-guard";
-
 /**
  * Project the watched views of one followed submission onto AI SDK UI message
  * chunks, in the shape `@local/flue-aisdk-transport`'s `createFlueUiStream`
@@ -10,7 +5,23 @@ import {
  * whole committed window, so the projector diffs against what it already
  * wrote, and a fresh projector over a reattached follow starts from the
  * committed view.
+ *
+ * The response's committed entries go through one writer, which the history
+ * route (`projectResponseEntries`) runs over stored entries too, so a
+ * reopened conversation shows each response with the live stream's message
+ * ID and parts.
+ *
+ * A hand-edit note that lands inside the response (at a `postTools`
+ * boundary) is a `data-brunch-hand-edit` part, written just before the next
+ * committed output after it, so a note after the response's last output
+ * (at its `final` boundary, or between turns) is never part of it.
  */
+import { handEditEntryKind } from "../../../net-state/visible-net-view";
+import {
+  crashLoopErrorText,
+  stoppedByCrashLoop,
+} from "../conversation-registry/crash-loop-guard";
+
 import type {
   AssistantMessage,
   ToolResultMessage,
@@ -45,9 +56,20 @@ type StreamingPart = {
 
 type ContentPart = AssistantMessage["content"][number];
 
-/** The UI message a submission's answer streams into: stable across follows, so a reconnect continues it. */
-export const responseMessageId = (submission: SubmissionRecord) =>
-  `durable:${submission.id}`;
+/**
+ * The UI message the answer to the input placed as entry `input` streams
+ * into: stable across follows, so a reconnect continues it, and derived from
+ * the stored entry, so the history route names it the same.
+ */
+export const responseMessageId = (input: EntryId) => `durable:${input}`;
+
+/** The UI part a hand-edit note is shown as, with the note entry's `data`. */
+export const handEditPartType = "data-brunch-hand-edit";
+
+/** The ID of a hand-edit note's data part. */
+export const handEditPartId = (note: EntryId) => `durable:note:${note}`;
+
+const isHandEditNote = (entry: EntryRecord) => entry.kind === handEditEntryKind;
 
 const partText = (part: ContentPart): string | undefined => {
   if (part.type === "text") return part.text;
@@ -139,13 +161,16 @@ const toolResultOf = (entry: EntryRecord): ToolResultMessage | undefined => {
   return message?.role === "toolResult" ? message : undefined;
 };
 
-export const createViewProjector = (
+/**
+ * The writer of one response message: its start, steps, parts, tool calls and
+ * results, and the hand-edit notes inside it, from committed entries and, live,
+ * the streaming partial.
+ */
+const createResponseWriter = (
   options: ProjectionOptions,
   write: (chunk: UIMessageChunk) => void,
 ) => {
   let messageId: string | undefined;
-  let finished = false;
-  let anchorSeen = false;
   let partOrdinal = 0;
   /** Parts of the open step by content index, across partial and committed forms. */
   let openStep: Map<number, StreamingPart> | undefined;
@@ -155,6 +180,10 @@ export const createViewProjector = (
   const endedParts = new Set<string>();
   const toolInputs = new Set<string>();
   const toolOutputs = new Set<string>();
+  /** Notes seen since the last output, written before the next one. */
+  const pendingNotes: EntryRecord[] = [];
+  /** Notes seen before the response started. */
+  const notesBefore: EntryRecord[] = [];
 
   const dynamic = (toolName: string): true | undefined =>
     options.dynamicClientToolNames?.has(toolName) === true ? true : undefined;
@@ -163,6 +192,17 @@ export const createViewProjector = (
     if (messageId !== undefined) return;
     messageId = id;
     write({ type: "start", messageId });
+  };
+
+  /** Write the notes seen since the last output: more output follows them, so they are inside the response. */
+  const flushNotes = () => {
+    for (const note of pendingNotes.splice(0)) {
+      write({
+        type: handEditPartType,
+        id: handEditPartId(note.id),
+        data: note.data ?? null,
+      });
+    }
   };
 
   const ensureStep = (): Map<number, StreamingPart> => {
@@ -261,6 +301,7 @@ export const createViewProjector = (
   const projectToolResult = (entry: EntryRecord, result: ToolResultMessage) => {
     toolOutputs.add(result.toolCallId);
     if (!toolInputs.has(result.toolCallId)) return;
+    flushNotes();
     const text = toolResultText(entry, result);
     write(
       result.isError
@@ -279,20 +320,109 @@ export const createViewProjector = (
     );
   };
 
-  /** Where the submission's response starts in `view`, or undefined when not placed yet. */
+  /**
+   * Project one committed entry of the response, once: an assistant message,
+   * a tool result, or a hand-edit note. Anything else, such as a prune write,
+   * a compaction summary or another input, is not part of the response.
+   */
+  const projectEntry = (entry: EntryRecord, responseId: string) => {
+    if (processedEntries.has(entry.id)) return;
+    const assistant = assistantOf(entry);
+    const result = toolResultOf(entry);
+    if (assistant !== undefined) {
+      processedEntries.add(entry.id);
+      ensureStarted(responseId);
+      flushNotes();
+      ensureStep();
+      projectContent(assistant, true);
+      finishStep();
+    } else if (result !== undefined && !toolOutputs.has(result.toolCallId)) {
+      processedEntries.add(entry.id);
+      projectToolResult(entry, result);
+    } else if (isHandEditNote(entry)) {
+      processedEntries.add(entry.id);
+      // Before the response started, a note is not part of it.
+      if (messageId === undefined) notesBefore.push(entry);
+      else pendingNotes.push(entry);
+    }
+  };
+
+  /** Project the streaming partial of generation `attempt`. */
+  const projectPartial = (
+    content: AssistantMessage["content"],
+    attempt: number,
+    responseId: string,
+  ) => {
+    ensureStarted(responseId);
+    // A retried attempt streams from its own start: the failed attempt's parts stay in their own step.
+    if (openStepAttempt !== undefined && openStepAttempt !== attempt)
+      finishStep();
+    flushNotes();
+    projectContent({ content }, false);
+    openStepAttempt = attempt;
+  };
+
+  return {
+    projectEntry,
+    projectPartial,
+    finishStep,
+    isProcessed: (entry: EntryId) => processedEntries.has(entry),
+    /** Notes before the response started, which are not part of it. */
+    notesBefore: (): readonly EntryRecord[] => notesBefore,
+    /** Notes after the response's last output so far, which no output has placed inside it. */
+    notesAfter: (): readonly EntryRecord[] => pendingNotes,
+  };
+};
+
+/**
+ * The chunks of the response to the input placed as entry `input`, from
+ * `entries`, the committed entries after it up to the next input, as the
+ * live stream writes them for the same entries; and the hand-edit notes
+ * outside it, before its first output and after its last.
+ */
+export const projectResponseEntries = (
+  input: EntryId,
+  entries: readonly EntryRecord[],
+  options: ProjectionOptions,
+): {
+  readonly chunks: readonly UIMessageChunk[];
+  readonly notesBefore: readonly EntryRecord[];
+  readonly notesAfter: readonly EntryRecord[];
+} => {
+  const chunks: UIMessageChunk[] = [];
+  const writer = createResponseWriter(options, (chunk) => chunks.push(chunk));
+  const responseId = responseMessageId(input);
+  for (const entry of entries) writer.projectEntry(entry, responseId);
+  return {
+    chunks,
+    notesBefore: writer.notesBefore(),
+    notesAfter: writer.notesAfter(),
+  };
+};
+
+export const createViewProjector = (
+  options: ProjectionOptions,
+  write: (chunk: UIMessageChunk) => void,
+) => {
+  let finished = false;
+  let anchorSeen = false;
+  const writer = createResponseWriter(options, write);
+
+  /** Where the submission's response starts in `view`, and its input entry; undefined when not placed yet. */
   const responseStart = (
     submission: SubmissionRecord,
     view: ConversationView,
-  ): number | undefined => {
+  ): { readonly start: number; readonly input: EntryId } | undefined => {
     if (submission.type !== "input" || submission.entry === undefined)
       return undefined;
-    const anchor = view.entries.findIndex(({ id }) => id === submission.entry);
+    const input = submission.entry;
+    const anchor = view.entries.findIndex(({ id }) => id === input);
     if (anchor !== -1) {
       anchorSeen = true;
-      return anchor + 1;
+      return { start: anchor + 1, input };
     }
     // The window drops its oldest entries in one splice; once the anchor was seen, all that is left follows it.
-    return anchorSeen ? 0 : undefined;
+    return anchorSeen ? { start: 0, input } : undefined;
   };
 
   /** A user's stop ends in `abort`; the crash-loop guard's, which the transcript records, and any failure in `error`. */
@@ -300,7 +430,7 @@ export const createViewProjector = (
     submission: Extract<SubmissionRecord, { status: "unanswered" }>,
     view: ConversationView,
   ) => {
-    finishStep();
+    writer.finishStep();
     finished = true;
     if (submission.reason !== "aborted")
       write({ type: "error", errorText: runErrorText(submission) });
@@ -312,29 +442,17 @@ export const createViewProjector = (
   const accept = (frame: ViewFrame): void => {
     if (finished) return;
     const { submission, view } = frame;
-    const start = responseStart(submission, view);
-    if (start === undefined) {
+    const response = responseStart(submission, view);
+    if (response === undefined) {
       // Withdrawn while queued: it never reached the transcript.
       if (submission.status === "unanswered")
         settleUnanswered(submission, view);
       return;
     }
-    const responseId = responseMessageId(submission);
+    const responseId = responseMessageId(response.input);
 
-    for (const entry of view.entries.slice(start)) {
-      if (processedEntries.has(entry.id)) continue;
-      const assistant = assistantOf(entry);
-      const result = toolResultOf(entry);
-      if (assistant !== undefined) {
-        processedEntries.add(entry.id);
-        ensureStarted(responseId);
-        ensureStep();
-        projectContent(assistant, true);
-        finishStep();
-      } else if (result !== undefined && !toolOutputs.has(result.toolCallId)) {
-        processedEntries.add(entry.id);
-        projectToolResult(entry, result);
-      }
+    for (const entry of view.entries.slice(response.start)) {
+      writer.projectEntry(entry, responseId);
       if (submission.status === "done" && entry.id === submission.answer) break;
     }
 
@@ -346,23 +464,16 @@ export const createViewProjector = (
       partial !== undefined &&
       live?.run?.inputs.includes(submission.id) === true
     ) {
-      ensureStarted(responseId);
-      // A retried attempt streams from its own start: the failed attempt's parts stay in their own step.
-      if (
-        openStepAttempt !== undefined &&
-        openStepAttempt !== generation.attempt
-      )
-        finishStep();
-      projectContent(
-        { content: partial.content as AssistantMessage["content"] },
-        false,
+      writer.projectPartial(
+        partial.content as AssistantMessage["content"],
+        generation.attempt,
+        responseId,
       );
-      openStepAttempt = generation.attempt;
     }
 
     if (submission.type === "input" && submission.status === "done") {
-      if (!processedEntries.has(submission.answer)) return;
-      finishStep();
+      if (!writer.isProcessed(submission.answer)) return;
+      writer.finishStep();
       finished = true;
       write({ type: "finish", finishReason: "stop" });
     } else if (submission.status === "unanswered") {

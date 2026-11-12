@@ -635,12 +635,14 @@ describe("POST /chat admits a brunch.user input", () => {
     );
     expect(requests).toHaveLength(2);
     const { harness, root } = await openConversation(server);
-    // The client's message id is still `durable:<submission ID>` of the first admission.
+    // The client's message id is still `durable:<input entry ID>` of the first admission.
     const firstSubmission = await harness.commit(
       async (tx) => tx.submissionByRequest(root.id, "user-1"),
       context,
     );
-    expect(startMessageId(late.chunks)).toBe(`durable:${firstSubmission?.id}`);
+    expect(startMessageId(late.chunks)).toBe(
+      `durable:${firstSubmission?.entry}`,
+    );
     const entries = await root.entries(
       { order: "ascending" },
       100,
