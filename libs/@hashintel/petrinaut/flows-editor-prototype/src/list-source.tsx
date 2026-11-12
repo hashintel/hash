@@ -62,10 +62,18 @@ const tileStyle = css({
   "& svg": { width: "[18px !important]", height: "[18px !important]" },
 });
 
-const linesStyle = css({ flex: "1", minWidth: "[0]", display: "flex", flexDirection: "column" });
+/** The lines take part in baseline alignment, so the row's label lines up with line one (the tile stays centred). */
+const linesStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  alignSelf: "baseline",
+});
 
 const lineOneStyle = css({
   textStyle: "sm",
+  lineHeight: "[20px]",
   color: "neutral.fg.heading",
   overflowWrap: "anywhere",
   "&[data-placeholder]": { color: "neutral.fg.muted" },

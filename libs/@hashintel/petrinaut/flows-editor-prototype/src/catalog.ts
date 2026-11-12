@@ -421,3 +421,10 @@ export const stepOutputs = (step: OutputOwner): OutputView[] => {
       )
     : outputs;
 };
+
+/** The labels Figma uses where the draft PRD's or the humanized name differs; the panel and Used in both read them. */
+export const inputLabels: Record<string, string> = {
+  "sendEmail.to": "To",
+  "getFileFromUrl.url": "URL",
+  "getWebPageByUrl.url": "URL",
+};

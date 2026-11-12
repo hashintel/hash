@@ -24,6 +24,7 @@ import {
   type CatalogEntry,
   forEachEntry,
   getCatalogEntry,
+  inputLabels,
   stepOutputs,
   type InputView,
 } from "./catalog";
@@ -280,12 +281,6 @@ const trimmedInputs: Record<string, string[]> = {
   getFileFromUrl: ["description", "displayName"],
 };
 
-/** The labels Figma uses where the draft PRD's or the humanized name differs. */
-const inputLabels: Record<string, string> = {
-  "sendEmail.to": "To",
-  "getFileFromUrl.url": "URL",
-  "getWebPageByUrl.url": "URL",
-};
 
 const Checks = ({ stepId }: { stepId: string }) => {
   const { validation } = useEditor();

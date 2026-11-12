@@ -29,7 +29,7 @@ import { useRunView } from "./history-view";
 import { useLocation } from "./router";
 import { PropertyRow, SourceChip } from "./ui";
 import { kindIcon } from "./kind-icon";
-import { UsedInBlock, useOldUsedIn } from "./used-in";
+import { OutputHead, UsedInBlock, useOldUsedIn } from "./used-in";
 
 export { kindIcon };
 
@@ -550,6 +550,41 @@ const outputsStackStyle = css({
   flexDirection: "column",
   gap: "6",
 });
+
+const runCountStyle = css({ textStyle: "sm", color: "neutral.fg.muted" });
+
+/** A run's output: the editor's row (icon, name, type, star) with how many it made, then what it made under it. */
+export const RunOutputRow = ({
+  stepId,
+  outputName,
+  label,
+  kind,
+  count,
+  children,
+}: {
+  stepId: string;
+  outputName: string;
+  label: string;
+  kind: string | null;
+  count?: number | string;
+  children?: React.ReactNode;
+}) => (
+  <OutputHead
+    stepId={stepId}
+    outputName={outputName}
+    label={label}
+    kind={kind}
+    typeIcon={kindIcon(kind)}
+    end={
+      <>
+        {count === undefined ? null : <span className={runCountStyle}>{count}</span>}
+        <OutputFlag stepId={stepId} outputName={outputName} readOnly />
+      </>
+    }
+  >
+    {children}
+  </OutputHead>
+);
 
 export const OutputRows = ({
   stepId,

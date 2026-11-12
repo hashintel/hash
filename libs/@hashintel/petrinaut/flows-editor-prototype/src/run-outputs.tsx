@@ -32,7 +32,7 @@ import { Mail, Paperclip } from "lucide-react";
  *
  * MOCK: no flow runs and no files exist; the certificates and emails are drawn from the seed suppliers.
  */
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, Fragment, use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -780,6 +780,9 @@ const FlagMark = () => (
   </Tooltip>
 );
 
+/** Under a run's output row (panel parity): the row already names the output, so a block drops its own heading. */
+const BareBlocks = createContext(false);
+
 const Block = ({
   title,
   action,
@@ -791,7 +794,10 @@ const Block = ({
   /** Flagged "Show in run history" in the editor. */
   flagged?: boolean;
   children: React.ReactNode;
-}) => (
+}) =>
+  use(BareBlocks) ? (
+    <section className={blockStyle}>{children}</section>
+  ) : (
   <section className={blockStyle}>
     <div className={blockHeadStyle}>
       <span
@@ -3762,6 +3768,151 @@ const edgeCaseOf = (
 };
 
 /** The Outputs part of a step's run panel. Returns null for steps with plain outputs (the sign-off's Decision). */
+const bareBodyStyle = css({ display: "flex", flexDirection: "column", gap: "3", paddingLeft: "[34px]" });
+
+/**
+ * What a run made under one output row (panel parity, 13 Nov): the step's own card or rows with no heading, no footer
+ * and no failures (those are in Status). Send email's emails sit under Message ID (parity Q7 A).
+ */
+export const RunOutputBody = ({
+  stepId,
+  outputName,
+  outputs,
+}: {
+  stepId: string;
+  outputName: string;
+  outputs: RunOutputs;
+}) => {
+  const take = useStepOutputsTake();
+  const typesTake = useEntityTypesTake();
+  const anchor = useRef<HTMLDivElement>(null);
+  const { open, openAll, node } = useOutputViewer(outputs, anchor);
+  const views = entityViews(outputs, typesTake);
+  const names = (rows: SupplierEntity[]) => rows.map((row) => row.name);
+  const openFiles = (files: OutputFile[], from: string) => (index: number) =>
+    open({ kind: "files", files, index, from });
+  let body: React.ReactNode = null;
+  if (stepId === "findSuppliers") {
+    body = (
+      <EntityOutput
+        label="Entities"
+        icon="cubes"
+        count={entityCount(outputs.entities, typesTake)}
+        names={names(outputs.entities)}
+        onOpen={() => open(views.suppliers)}
+      />
+    );
+  } else if (stepId === "readName" || stepId === "readEmail" || stepId === "readCertificateLink") {
+    const property =
+      stepId === "readName" ? "Name" : stepId === "readEmail" ? "Contact email" : "Certificate link";
+    const view = views.values(property);
+    body = (
+      <EntityOutput
+        label={property}
+        icon="text"
+        count={plural(outputs.entities.length, "value")}
+        names={outputs.entities.map((row) => {
+          const cell = view.columns.at(-1)!.cell(row);
+          return typeof cell === "string" ? cell : row.name;
+        })}
+        onOpen={() => open(view)}
+      />
+    );
+  } else if (stepId === "markReviewed") {
+    body = (
+      <EntityOutput
+        label="Entity"
+        icon="cubes"
+        count={entityCount(outputs.updated, typesTake)}
+        names={names(outputs.updated)}
+        onOpen={() => open(views.reviewed)}
+      />
+    );
+  } else if (stepId === "fetchCertificate") {
+    const files = outputs.certificates;
+    body = (
+      <FileList
+        take={take === "d" ? "a" : take}
+        files={files}
+        title="File entity"
+        linkOut={null}
+        noun="certificates"
+        onOpen={openFiles(files, "Fetch certificate")}
+        onShowAll={() =>
+          openAll({
+            kind: "mixed",
+            title: plural(files.length, "certificate"),
+            from: "Fetch certificate",
+            groups: [{ type: "Certificate", files }],
+          })
+        }
+      />
+    );
+  } else if (stepId === "sendReviewEmail" && outputName === "messageId") {
+    const files = outputs.emails;
+    body = (
+      <FileList
+        take={take === "d" ? "a" : take}
+        files={files}
+        title="Message ID"
+        linkOut={null}
+        noun="emails"
+        onOpen={openFiles(files, "Send review email")}
+        onShowAll={() =>
+          openAll({
+            kind: "mixed",
+            title: plural(files.length, "email"),
+            from: "Send review email",
+            groups: [{ type: "Email", files }],
+          })
+        }
+      />
+    );
+  }
+  if (!body) {
+    return null;
+  }
+  return (
+    <BareBlocks value>
+      <div ref={anchor} className={bareBodyStyle} data-run-output-body={`${stepId}.${outputName}`}>
+        {body}
+        {node}
+      </div>
+    </BareBlocks>
+  );
+};
+
+const allItemsLinkStyle = css({
+  alignSelf: "flex-start",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
+  textDecoration: "underline",
+  textDecorationColor: "neutral.bd.subtle",
+  textUnderlineOffset: "[4px]",
+  background: "[transparent]",
+  border: "none",
+  padding: "0",
+  textAlign: "left",
+  cursor: "pointer",
+  _hover: { color: "neutral.fg.heading" },
+});
+
+/** Under For each's Items (parity Q8 A): every item's outputs at once, the view its Outputs card used to open. */
+export const AllItemsOutputsLink = ({ outputs }: { outputs: RunOutputs }) => {
+  const typesTake = useEntityTypesTake();
+  const anchor = useRef<HTMLDivElement>(null);
+  const { open, node } = useOutputViewer(outputs, anchor);
+  const view = loopView(outputs, typesTake);
+  return (
+    <div ref={anchor} className={css({ gridColumn: "1 / -1", display: "flex" })}>
+      <button type="button" className={allItemsLinkStyle} onClick={() => open(view)} data-all-items-outputs>
+        All items’ outputs · {view.title}
+      </button>
+      {node}
+    </div>
+  );
+};
+
 export const StepOutputs = ({
   stepId,
   outputs,

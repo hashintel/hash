@@ -57,6 +57,12 @@ import { openTriggersPage } from "./flow-triggers";
 import { selectedLabel } from "./menu-rows";
 import { propertyPathOf } from "./property-path";
 import { RunRefValue } from "./ref-path";
+import {
+  AllItemsOutputsLink,
+  ParitySections,
+  type RunItem,
+  runPanelOld,
+} from "./run-panel-parity";
 import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
@@ -889,7 +895,20 @@ const RunHeader = ({
   );
 };
 
-export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
+export const RunStepPanel = ({
+  history,
+  question,
+  status,
+  item: questionItem,
+}: {
+  history: HistoryValue;
+  /** Needs review: the question, pinned under the header above exactly this panel (panel parity, 13 Nov). */
+  question?: React.ReactNode;
+  /** Needs review: the question's own Status in place of the step's. */
+  status?: React.ReactNode;
+  /** The item the question is about. */
+  item?: RunItem;
+}) => {
   const { document, ui } = useEditor();
   const { run, steps, now } = history;
   const stepId = ui.selectedId;
@@ -967,6 +986,8 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
           }
         />
       )}
+      {question}
+      {status ?? (
       <Section title="Status">
         {oldStatusLine ? (
           <div
@@ -1006,11 +1027,24 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
           />
         )}
       </Section>
+      )}
       {stepId === forEachId && state.state !== "notReached" ? (
         <Section title="Items">
           <ForEachItems facts={facts} />
+          {runPanelOld ? null : <AllItemsOutputsLink outputs={runOutputs(run, now)} />}
         </Section>
       ) : null}
+      {!runPanelOld && stepId !== runTriggerId && stepId !== START_ID ? (
+        <ParitySections
+          stepId={stepId}
+          facts={facts}
+          state={state}
+          outputs={runOutputs(run, now)}
+          item={questionItem}
+        />
+      ) : null}
+      {!runPanelOld && stepId !== runTriggerId && stepId !== START_ID ? null : (
+      <>
       {detail.inputs.length > 0 ? (
         <Section title="Inputs">
           {detail.inputs.map(([key, value]) => (
@@ -1036,6 +1070,8 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
           ))}
         </Section>
       ) : null}
+      </>
+      )}
     </aside>
   );
 };

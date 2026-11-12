@@ -52,6 +52,8 @@ import {
 } from "./ui";
 import { useEscapeCloses } from "./use-escape-closes";
 import { repeatsTrim } from "./repeats-flag";
+import { RunStepPanel, useRunView } from "./history-view";
+import { type RunItem, runPanelOld, supplierItem } from "./run-panel-parity";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK requests, each with what the step shows for it
@@ -740,6 +742,100 @@ const panelBodyStyle = css({
   padding: "6",
 });
 
+/** The question's item for the Item or Entity row (parity Q1 c), with the fields the old context block listed. */
+const itemOf = (request: R2Request): RunItem | undefined =>
+  request.context.kind === "entity"
+    ? {
+        name: request.context.name,
+        fields: (() => {
+          const base = supplierItem(request.context.name);
+          const link = request.context.rows.find((row) => row.label === "Certificate link");
+          const email = request.context.rows.find((row) => row.label === "Email");
+          return base.fields.map((field) =>
+            field.label === "Certificate link" && link
+              ? { ...field, value: link.value, failed: link.failed }
+              : field.label === "Contact email" && email
+                ? { ...field, value: email.value }
+                : field,
+          );
+        })(),
+      }
+    : request.path.includes(" › ")
+      ? supplierItem(request.path.split(" › ").at(-1) ?? "")
+      : undefined;
+
+/** With the item named in its own row, the reason line drops the item's name: "Certificate link returned 404 · 3 tries". */
+const reasonWithout = (request: R2Request, item: RunItem | undefined) => {
+  const prefix = item ? `${item.name} · ` : "";
+  if (!prefix || !request.why.startsWith(prefix)) {
+    return request.why;
+  }
+  const rest = request.why.slice(prefix.length);
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+
+/**
+ * Panel parity (apply-all, 13 Nov): the question pinned under the header, then exactly the step's run panel. The
+ * open-in-inbox icon moves from the header to the question. Read certificate link's files and the sign-off's supplier
+ * list (parity Q2, open) stay under the question as today.
+ */
+const ParityReviewPanel = ({ request }: { request: R2Request }) => {
+  const history = useRunView();
+  const { answers } = useReview();
+  if (!history) {
+    return null;
+  }
+  const item = itemOf(request);
+  const answer = answerOf(request, answers);
+  const status = oldStatusLine ? undefined : (
+    <Section title="Status">
+      {answer ? (
+        <StatusLine
+          state="done"
+          word="Answered"
+          facts={[`Asked ${request.asked}`]}
+          notes={[`${reasonWithout(request, item)} · ${answer.by}, ${answer.at}`]}
+        />
+      ) : (
+        <StatusLine
+          state="needsReview"
+          word="Needs review"
+          facts={[`Asked ${request.asked}`]}
+          notes={[reasonWithout(request, item)]}
+        />
+      )}
+    </Section>
+  );
+  return (
+    <div className={css({ display: "contents" })} data-review-panel>
+      <RunStepPanel
+        history={history}
+        item={item}
+        status={status}
+        question={
+          <>
+            {/* The icon sits beside the question's text; the form below it keeps the panel's full width. */}
+            <div
+              className={css({
+                position: "relative",
+                "& [data-review-form] > div:first-child > span:first-child": { paddingRight: "[40px]" },
+              })}
+            >
+              <AnswerForm request={request} />
+              <span className={css({ position: "absolute", top: "[-6px]", right: "[0]" })}>
+                <InboxButton request={request} />
+              </span>
+            </div>
+            {request.context.kind === "entity" ? null : (
+              <ContextView request={request} pageWidth={156} />
+            )}
+          </>
+        }
+      />
+    </div>
+  );
+};
+
 const ReviewPanel = ({
   request,
   withList,
@@ -748,6 +844,9 @@ const ReviewPanel = ({
   withList?: boolean;
 }) => {
   const { open } = useShown();
+  if (!runPanelOld && !withList) {
+    return <ParityReviewPanel request={request} />;
+  }
   // No "Answer" label over the question (11 Nov call, outcomes L18).
   const answer = <AnswerForm request={request} />;
   return (

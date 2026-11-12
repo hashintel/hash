@@ -20,7 +20,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Icon, type IconName, type MenuItem, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getCatalogEntry, humanize } from "./catalog";
+import { getCatalogEntry, humanize, inputLabels } from "./catalog";
 import {
   type EditorDocument,
   findStep,
@@ -104,11 +104,20 @@ const sameOutput =
     source.stepId === stepId &&
     source.outputName === outputName;
 
+/** `?runpanel=old` also keeps Used in's engine labels ("Recipient address"). */
+const namesOld =
+  new URLSearchParams(globalThis.location.search).get("runpanel") === "old";
+
 const inputLabel = (document: EditorDocument, stepId: string, name: string) => {
   const step = findStep(document, stepId)?.step;
   const entry =
     step?.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
-  return entry?.inputs.find((input) => input.name === name)?.label ?? humanize(name);
+  // The field's own label, so Used in names Send review email's To as the panel does (panel parity, 13 Nov).
+  const own =
+    step?.kind === "action" && !namesOld
+      ? inputLabels[`${step.actionDefinitionId}.${name}`]
+      : undefined;
+  return own ?? entry?.inputs.find((input) => input.name === name)?.label ?? humanize(name);
 };
 
 /** The steps that read an output, in flow order, each with the inputs it fills by their real names. */
@@ -2019,6 +2028,39 @@ const RestBlock = ({
     </div>
   );
 };
+
+/**
+ * An output's own row with no Used in under it: a run's read-only panel (panel parity, 13 Nov), with what the run made
+ * under the row.
+ */
+export const OutputHead = ({
+  stepId,
+  outputName,
+  label,
+  kind,
+  typeIcon,
+  end,
+  children,
+}: {
+  stepId: string;
+  outputName: string;
+  label: string;
+  kind: string | null;
+  typeIcon: IconName;
+  end?: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <div className={blockStyle} data-output={`${stepId}.${outputName}`}>
+    <div className={headStyle} data-row>
+      <span data-type-icon>
+        <Icon name={typeIcon} size="sm" />
+      </span>
+      <OutputName label={label} kind={kind} />
+      {end ? <span className={headEndStyle}>{end}</span> : null}
+    </div>
+    {children}
+  </div>
+);
 
 export const UsedInBlock = ({
   stepId,
