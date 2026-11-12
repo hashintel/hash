@@ -31,20 +31,94 @@ export const notReachedMark: StepRunMark = { state: "notReached", items: null };
 /** Start has no step run of its own: it ran as soon as the run did. */
 export const startMark: StepRunMark = { state: "done", items: null };
 
-const stateOfStatus: Record<FlowStepStatus, ItemState> = {
+/**
+ * What one run of a step did, or why it has none. Finer than the states shown, so that adding runs up keeps apart
+ * what shows alike: a step not reached yet, one never reached, one waiting on a failed step and one cancelled part way
+ * all show as not reached.
+ */
+type StepRunOutcome =
+  /** No run yet, while its run is live. */
+  | "pending"
+  /** No run, and its run has stopped. */
+  | "unreached"
+  /**
+   * No run, or a cancelled one, as another step for its item failed: the steps after a failed one wait on it and never
+   * start, and those under way when it failed are cancelled.
+   */
+  | "blocked"
+  | "running"
+  | "needsReview"
+  | "completed"
+  | "failed"
+  | "timedOut"
+  /** Cancelled, or being cancelled, part way through. */
+  | "cancelled"
+  /** Skipped by the run itself, rather than stopped. */
+  | "skipped";
+
+const outcomeOfStatus: Record<FlowStepStatus, StepRunOutcome> = {
   [FlowStepStatus.Scheduled]: "running",
   [FlowStepStatus.Started]: "running",
-  [FlowStepStatus.Completed]: "done",
+  [FlowStepStatus.Completed]: "completed",
   [FlowStepStatus.InformationRequired]: "needsReview",
   [FlowStepStatus.Failed]: "failed",
-  [FlowStepStatus.TimedOut]: "failed",
-  /*
-   * A step cancelled with its run never finished, like one the run never reached, so a step whose run was cancelled
-   * part way shows as skipped rather than done.
-   */
-  [FlowStepStatus.CancelRequested]: "notReached",
-  [FlowStepStatus.Cancelled]: "notReached",
+  [FlowStepStatus.TimedOut]: "timedOut",
+  [FlowStepStatus.CancelRequested]: "cancelled",
+  [FlowStepStatus.Cancelled]: "cancelled",
   [FlowStepStatus.Skipped]: "skipped",
+};
+
+/** How a step run shows: on a card of its own, or as its item's part of its card's status bar. */
+const stateOfOutcome: Record<StepRunOutcome, ItemState> = {
+  pending: "notReached",
+  unreached: "notReached",
+  blocked: "notReached",
+  running: "running",
+  needsReview: "needsReview",
+  completed: "done",
+  failed: "failed",
+  timedOut: "failed",
+  /* A step cancelled part way never finished, like one its run never reached. */
+  cancelled: "notReached",
+  skipped: "skipped",
+};
+
+/** What one item of a for-each step came to, or what one step run counts as when a step's runs across items add up. */
+type ItemOutcome =
+  | "pending"
+  | "running"
+  | "needsReview"
+  | "completed"
+  | "failed"
+  /** Its run stopped before it finished, however far it got. */
+  | "stopped"
+  | "skipped";
+
+type UnblockedOutcome = Exclude<StepRunOutcome, "blocked">;
+
+/** What a step run counts as in its item, or in its step across items. A blocked run counts as neither. */
+const itemOutcomeOfStepRun: Record<UnblockedOutcome, ItemOutcome> = {
+  pending: "pending",
+  unreached: "stopped",
+  cancelled: "stopped",
+  running: "running",
+  needsReview: "needsReview",
+  completed: "completed",
+  failed: "failed",
+  timedOut: "failed",
+  skipped: "skipped",
+};
+
+/** How an item shows in its for-each step's counts and status bar. */
+const stateOfItemOutcome: Record<ItemOutcome, ItemState> = {
+  pending: "notReached",
+  running: "running",
+  needsReview: "needsReview",
+  completed: "done",
+  failed: "failed",
+  /* Items stopped part way and items never started count alike. */
+  stopped: "notReached",
+  skipped: "skipped",
 };
 
 /** In the order a bar draws them: what's finished first, what's still to come last. */
@@ -69,48 +143,94 @@ const countItems = (states: ItemState[]): ItemCounts => {
   return counts;
 };
 
-/**
- * What a step's items add up to. Items not reached yet keep a step running while its run is `live`; once the run has
- * stopped, they never will be, so the step was skipped part way, unless some of its items failed, which shows first.
- */
-const getStateOfItems = (counts: ItemCounts, live: boolean): StepState => {
-  const total = itemStates.reduce((sum, state) => sum + counts[state], 0);
+const isFailure = (outcome: StepRunOutcome) =>
+  outcome === "failed" || outcome === "timedOut";
 
-  if (counts.needsReview > 0) {
+const isUnblocked = (outcome: StepRunOutcome): outcome is UnblockedOutcome =>
+  outcome !== "blocked";
+
+const toItemOutcomes = (outcomes: StepRunOutcome[]): ItemOutcome[] =>
+  outcomes.filter(isUnblocked).map((outcome) => itemOutcomeOfStepRun[outcome]);
+
+/**
+ * What an item came to from its steps' outcomes for it. A failure in any step fails it. While its run is `live`,
+ * steps not run yet or being cancelled keep it running; once the run has stopped, they mean it stopped.
+ */
+const getItemOutcome = (
+  stepOutcomes: StepRunOutcome[],
+  live: boolean,
+): ItemOutcome => {
+  const outcomes = toItemOutcomes(stepOutcomes);
+
+  if (outcomes.includes("needsReview")) {
     return "needsReview";
   }
 
-  if (counts.running > 0) {
+  if (outcomes.includes("running")) {
     return "running";
   }
 
-  if (counts.notReached === total && total > 0) {
+  if (outcomes.includes("failed")) {
+    return "failed";
+  }
+
+  if (
+    outcomes.length > 0 &&
+    outcomes.every((outcome) => outcome === "pending")
+  ) {
+    return "pending";
+  }
+
+  if (outcomes.includes("pending") || outcomes.includes("stopped")) {
+    return live ? "running" : "stopped";
+  }
+
+  return outcomes.length > 0 &&
+    outcomes.every((outcome) => outcome === "skipped")
+    ? "skipped"
+    : "completed";
+};
+
+/**
+ * What outcomes add up to: a for-each step's items, or a step inside one across its items. With none finished, it's
+ * not reached. While its run is `live`, outcomes not reached yet or being cancelled keep it running. Once the run has
+ * stopped, failures show first, then anything stopped part way, as skipped.
+ */
+const getStateOfOutcomes = (
+  outcomes: ItemOutcome[],
+  live: boolean,
+): StepState => {
+  if (outcomes.includes("needsReview")) {
+    return "needsReview";
+  }
+
+  if (outcomes.includes("running")) {
+    return "running";
+  }
+
+  if (
+    outcomes.length > 0 &&
+    outcomes.every((outcome) => outcome === "pending" || outcome === "stopped")
+  ) {
     return "notReached";
   }
 
-  if (counts.notReached > 0 && live) {
+  if (live && (outcomes.includes("pending") || outcomes.includes("stopped"))) {
     return "running";
   }
 
-  if (counts.failed > 0) {
-    return counts.done > 0 ? "doneWithFailures" : "failed";
+  if (outcomes.includes("failed")) {
+    return outcomes.includes("completed") ? "doneWithFailures" : "failed";
   }
 
-  return (counts.done > 0 && counts.notReached === 0) || total === 0
-    ? "done"
-    : "skipped";
-};
+  if (outcomes.includes("stopped")) {
+    return "skipped";
+  }
 
-/** An item's state from its steps' states for it: a failure in any step fails the item. */
-const getItemState = (stepStates: ItemState[], live: boolean): ItemState => {
-  const counts = countItems(stepStates);
-  /* The steps after a failed one wait on it and never start, so they don't keep its item running. */
-  const state = getStateOfItems(
-    counts.failed > 0 ? { ...counts, notReached: 0 } : counts,
-    live,
-  );
-
-  return state === "doneWithFailures" ? "failed" : state;
+  return outcomes.length > 0 &&
+    outcomes.every((outcome) => outcome === "skipped")
+    ? "skipped"
+    : "done";
 };
 
 /** The number of items each for-each step started, by its id, as the run last started it. */
@@ -129,7 +249,7 @@ const getItemCountByStepId = (events: FlowRunEvent[]) => {
 /**
  * Each step's mark in a run, by step id, including the steps inside for-each steps. A step with no run of its own is
  * not reached. A for-each step has no run of its own unless it was skipped: it starts its items, and its state is
- * theirs, an item failing when any of its steps does.
+ * what they came to.
  *
  * `live` is whether the run is still going, so more of its steps will run.
  */
@@ -150,16 +270,25 @@ export const getStepRunMarks = ({
   const itemCountByStepId = getItemCountByStepId(events);
   const marks = new Map<string, StepRunMark>();
 
-  const getRunState = (stepRunId: string): ItemState => {
-    const status = statusByStepRunId.get(stepRunId);
+  const noRunOutcome: StepRunOutcome = live ? "pending" : "unreached";
 
-    return status === undefined ? "notReached" : stateOfStatus[status];
+  const getOutcome = (
+    stepRunId: string,
+    itemFailed: boolean,
+  ): StepRunOutcome => {
+    const status = statusByStepRunId.get(stepRunId);
+    const outcome =
+      status === undefined ? noRunOutcome : outcomeOfStatus[status];
+
+    return itemFailed && (outcome === noRunOutcome || outcome === "cancelled")
+      ? "blocked"
+      : outcome;
   };
 
   for (const step of steps) {
     if (step.kind === "action") {
       marks.set(step.stepId, {
-        state: getRunState(step.stepId),
+        state: stateOfOutcome[getOutcome(step.stepId, false)],
         items: null,
       });
       continue;
@@ -177,9 +306,22 @@ export const getStepRunMarks = ({
       }
 
       marks.set(step.stepId, {
-        state: getRunState(step.stepId),
+        state: stateOfOutcome[getOutcome(step.stepId, false)],
         items: countItems([]),
       });
+      continue;
+    }
+
+    /* With no items, there was nothing to run its steps for. */
+    if (itemCount === 0) {
+      for (const innerStep of step.steps) {
+        marks.set(innerStep.stepId, {
+          state: "skipped",
+          items: countItems([]),
+        });
+      }
+
+      marks.set(step.stepId, { state: "done", items: countItems([]) });
       continue;
     }
 
@@ -187,50 +329,50 @@ export const getStepRunMarks = ({
       { length: itemCount },
       (_, itemIndex) => itemIndex,
     );
-    const innerSteps = step.steps.map(({ stepId }) => ({
-      stepId,
-      stateByItem: itemIndexes.map((itemIndex) =>
-        getRunState(generateStepRunId(stepId, itemIndex)),
-      ),
-    }));
 
-    const itemFailed = itemIndexes.map((itemIndex) =>
-      innerSteps.some(({ stateByItem }) => stateByItem[itemIndex] === "failed"),
-    );
-
-    for (const { stepId, stateByItem } of innerSteps) {
-      /* The steps after a failed one wait on it and never start, so its item leaves them neither running nor skipped. */
-      const reachableStates = stateByItem.filter(
-        (state, itemIndex) => state !== "notReached" || !itemFailed[itemIndex],
-      );
-      const state =
-        reachableStates.length > 0
-          ? getStateOfItems(countItems(reachableStates), live)
-          : "notReached";
-
-      marks.set(stepId, {
-        /* With no items, there was nothing to run it for. */
-        state: itemCount === 0 ? "skipped" : state,
-        items: countItems(stateByItem),
-      });
-    }
-
-    const counts = countItems(
-      itemIndexes.map((itemIndex) =>
-        getItemState(
-          innerSteps.map(
-            ({ stateByItem }) => stateByItem[itemIndex] ?? "notReached",
-          ),
-          live,
+    const failedItemIndexes = new Set(
+      itemIndexes.filter((itemIndex) =>
+        step.steps.some(({ stepId }) =>
+          isFailure(getOutcome(generateStepRunId(stepId, itemIndex), false)),
         ),
       ),
     );
-    const state = getStateOfItems(counts, live);
 
-    /* Once started, it's under way until its items are, even before any of them has. */
+    const getItemStepOutcome = (stepId: string, itemIndex: number) =>
+      getOutcome(
+        generateStepRunId(stepId, itemIndex),
+        failedItemIndexes.has(itemIndex),
+      );
+
+    for (const { stepId } of step.steps) {
+      const outcomes = itemIndexes.map((itemIndex) =>
+        getItemStepOutcome(stepId, itemIndex),
+      );
+      const reachable = toItemOutcomes(outcomes);
+
+      marks.set(stepId, {
+        state:
+          reachable.length > 0
+            ? getStateOfOutcomes(reachable, live)
+            : "notReached",
+        items: countItems(outcomes.map((outcome) => stateOfOutcome[outcome])),
+      });
+    }
+
+    const itemOutcomes = itemIndexes.map((itemIndex) =>
+      getItemOutcome(
+        step.steps.map(({ stepId }) => getItemStepOutcome(stepId, itemIndex)),
+        live,
+      ),
+    );
+    const state = getStateOfOutcomes(itemOutcomes, live);
+
     marks.set(step.stepId, {
+      /* Once started, it's under way until its items are, even before any of them has, or stopped part way. */
       state: state === "notReached" ? (live ? "running" : "skipped") : state,
-      items: counts,
+      items: countItems(
+        itemOutcomes.map((outcome) => stateOfItemOutcome[outcome]),
+      ),
     });
   }
 
