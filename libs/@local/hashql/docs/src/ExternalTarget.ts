@@ -1,4 +1,4 @@
-import { Array, Effect, HashMap, HashSet, Option, pipe } from "effect";
+import { Array, Effect, HashMap, Option, pipe } from "effect";
 import {
   SyntaxKind,
   isClassLikeDeclaration,
@@ -12,9 +12,11 @@ import {
   isTypeQueryNode,
   isVariableStatement,
 } from "typescript/ast";
+import { SymbolFlags } from "typescript/async";
 
 import * as Checker from "./TypeScript/Checker.js";
 import * as Program from "./TypeScript/Program.js";
+import { hasFlag } from "./TypeScript/Symbol.js";
 
 import type { Cause } from "effect";
 import type { Node } from "typescript/ast";
@@ -80,39 +82,6 @@ const globalOf = (name: string): string => {
     }
   }
 };
-
-/** Names TypeScript declares that are types alone, which neither the handbook nor MDN documents. */
-const undocumented = HashSet.make("PropertyKey");
-
-/** The page for one of TypeScript's own declarations: the handbook's section for a utility type, and MDN's page for a JavaScript global or a web API. */
-const libraryPageOf = (name: string, file: string): Option.Option<URL> =>
-  pipe(
-    libraryPattern.exec(file)?.groups?.["library"],
-    Option.fromUndefinedOr,
-    Option.flatMap((library) => {
-      const utility = HashMap.get(utilityTypes, name);
-      if (Option.isSome(utility)) {
-        return Option.some(
-          new URL(
-            `https://www.typescriptlang.org/docs/handbook/utility-types.html#${utility.value}`,
-          ),
-        );
-      }
-      if (HashSet.has(undocumented, name)) {
-        return Option.none();
-      }
-
-      const section = library.startsWith("dom")
-        ? "Web/API"
-        : "Web/JavaScript/Reference/Global_Objects";
-
-      return Option.some(
-        new URL(
-          `https://developer.mozilla.org/en-US/docs/${section}/${globalOf(name)}`,
-        ),
-      );
-    }),
-  );
 
 /** What a name means where it stands, which picks among the declarations that share it. */
 export type Meaning = "type" | "value" | "namespace";
@@ -217,6 +186,50 @@ const topOf = (node: Node): Node => {
   return top;
 };
 
+/**
+ * The page for `declaration`, one of TypeScript's own for `symbol` in the library `library`: the handbook's section for a utility type, and MDN's page for a JavaScript global or a web API.
+ *
+ * MDN gives a page to each global a program can name. A declaration at the top of its file has that page when its name is the global's, or when it describes the global, as `ReadonlyArray` describes `Array`.
+ */
+const libraryPageOf = Effect.fnUntraced(function* (
+  symbol: CompilerSymbol,
+  declaration: Node,
+  library: string,
+): Effect.fn.Return<Option.Option<URL>, Cause.UnknownError, Checker.Checker> {
+  if (topOf(declaration) !== declaration) {
+    return Option.none();
+  }
+
+  const utility = HashMap.get(utilityTypes, symbol.name);
+  if (Option.isSome(utility)) {
+    return Option.some(
+      new URL(
+        `https://www.typescriptlang.org/docs/handbook/utility-types.html#${utility.value}`,
+      ),
+    );
+  }
+
+  const checker = yield* Checker.Checker;
+  const global = globalOf(symbol.name);
+  let described = Option.some(symbol);
+
+  if (global !== symbol.name) {
+    described = yield* checker.resolveName(global, declaration);
+  }
+
+  if (!Option.exists(described, hasFlag(SymbolFlags.Value))) {
+    return Option.none();
+  }
+
+  const section = library.startsWith("dom")
+    ? "Web/API"
+    : "Web/JavaScript/Reference/Global_Objects";
+
+  return Option.some(
+    new URL(`https://developer.mozilla.org/en-US/docs/${section}/${global}`),
+  );
+});
+
 type Handle = CompilerSymbol["declarations"][number];
 
 /** The declaration of `symbol` a name with `reading` means, or its first declaration when none has that meaning. */
@@ -250,12 +263,10 @@ const pageOfHandle = Effect.fnUntraced(function* (
   }
 
   const declaration = resolved.value;
-  const library = libraryPageOf(
-    symbol.name,
-    declaration.getSourceFile().fileName,
-  );
-  if (Option.isSome(library)) {
-    return library;
+  const library = libraryPattern.exec(declaration.getSourceFile().fileName)
+    ?.groups?.["library"];
+  if (library !== undefined) {
+    return yield* libraryPageOf(symbol, declaration, library);
   }
 
   const page = pageOf(declaration);

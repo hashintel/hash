@@ -268,6 +268,55 @@ export declare const choose: {
     }),
   );
 
+  it.effect.each([
+    ['/** The box. */\nexport { Box } from "./box.js";', 0],
+    [
+      'export interface Value {}\n/** Everything. */\nexport * from "./box.js";',
+      26,
+    ],
+    [
+      'export interface Value {}\n/** The space. */\nexport type * as Space from "./box.js";',
+      26,
+    ],
+    ["interface Value {}\n/** The value. */\nexport { Value };", 19],
+  ] as const)(
+    "reexport_comment_%#",
+    Effect.fnUntraced(function* ([source, start]: readonly [string, number]) {
+      expect.hasAssertions();
+      expect(
+        yield* parse({
+          source,
+          files: { "box.d.ts": "export interface Box {}" },
+        }),
+      ).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          _tag: "DocumentationError",
+          reason: { _tag: "ReexportComment", start },
+        },
+      });
+    }),
+  );
+
+  it.effect(
+    "reexport_module_comment",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source: '/** The file. @module */\nexport { Box } from "./box.js";',
+        files: { "box.d.ts": "export interface Box {}" },
+      });
+      const root = HashMap.get(ast.entrypoints, "fixture").pipe(
+        Option.getOrThrow,
+        ast.get,
+      );
+      const namespace = root.namespace.pipe(Option.getOrThrow, ast.get);
+      expect(
+        ast.get(Option.getOrThrow(namespace.documentation)).node.getText(),
+      ).toBe("/** The file. @module */");
+    }),
+  );
+
   it.effect(
     "shared_documentation",
     Effect.fnUntraced(function* () {
@@ -351,6 +400,24 @@ export declare const choose: {
       expect(
         Array.fromIterable(ast.nodes()).filter(AST.Property.isProperty),
       ).toHaveLength(1);
+    }),
+  );
+
+  it.effect(
+    "private_members",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source:
+          "export declare class Box { #private; private secret; protected guarded: number; private hidden(): void; private get kept(): string; value: string }",
+      });
+      const box = first(ast, AST.ClassDeclaration.isClassDeclaration);
+      expect(
+        Array.map(Chunk.toReadonlyArray(box.members), ast.get),
+      ).toMatchObject([
+        { _tag: "Property", name: "guarded" },
+        { _tag: "Property", name: "value" },
+      ]);
     }),
   );
 
@@ -561,6 +628,27 @@ export declare const choose: {
       expect(qualified(ast, "typeof C.b")).toMatchObject([
         { _tag: "Declaration", symbol: { name: "C" } },
       ]);
+    }),
+  );
+
+  it.effect(
+    "instantiated_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source:
+          "export interface Module<T> { readonly types: T }\ndeclare const held: Module<{ a: 1 }>;\nexport type Types = typeof held.types;",
+      });
+      const reference = pipe(
+        Array.fromIterable(ast.nodes()),
+        Array.filter(AST.TypeReference.isTypeReference),
+        Array.findFirst((node) => node.node.getText() === "typeof held.types"),
+        Option.getOrThrow,
+      );
+      expect(ast.getBySymbol(reference.target)).toMatchObject({
+        _tag: "Property",
+        name: "types",
+      });
     }),
   );
 
@@ -962,6 +1050,44 @@ export interface Box {}`;
         ]);
       }),
     );
+
+    it.effect(
+      "instantiated_member",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const ast = yield* success({
+          source: `/**
+ * Holds a value.
+ *
+ * @example
+ * \`\`\`ts
+ * import type { Box } from "./declarations.js";
+ * declare const box: Box<string>;
+ * box.value;
+ * \`\`\`
+ */
+export interface Box<T> { readonly value: T }`,
+        });
+        const program = pipe(
+          Array.fromIterable(ast.nodes()),
+          Array.filter(AST.Documentation.isDocumentation),
+          Array.flatMap((documentation) => documentation.examples),
+          Array.head,
+          Option.flatMap(ast.programOf),
+          Option.getOrThrow,
+        );
+        const member = pipe(
+          TypeScript.Node.identifiers(program),
+          Array.findLast((name) => name.text === "value"),
+          Option.flatMap(ast.nameOf),
+          Option.getOrThrow,
+        );
+        expect(ast.getBySymbol(member.target)).toMatchObject({
+          _tag: "Property",
+          name: "value",
+        });
+      }),
+    );
   });
 
   describe("bases", () => {
@@ -1080,6 +1206,39 @@ export interface Box {}`;
           symbol: { name: "Space" },
         });
         expect(declarationNames(ast)).toContain("Hidden");
+      }),
+    );
+
+    it.effect(
+      "effect_module",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const ast = yield* success({
+          source:
+            'import type { Option } from "effect"; export type Value = Option.Option<string>;',
+        });
+        expect(qualified(ast, "Option.Option<string>")).toMatchObject([
+          { _tag: "ExternalItem", name: "Option" },
+        ]);
+      }),
+    );
+
+    it.effect(
+      "dependency_file",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const ast = yield* success({
+          source:
+            'import type * as Shapes from "shapes"; export type Value = Shapes.Box;',
+          files: {
+            "node_modules/shapes/package.json":
+              '{ "name": "shapes", "types": "./index.d.ts" }',
+            "node_modules/shapes/index.d.ts": "export interface Box {}",
+          },
+        });
+        expect(qualified(ast, "Shapes.Box")).toMatchObject([
+          { _tag: "ExternalItem", name: '"shapes/index"' },
+        ]);
       }),
     );
 

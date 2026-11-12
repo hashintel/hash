@@ -1,5 +1,6 @@
 import { Array, Context, Effect, Option, pipe } from "effect";
 import * as Syntax from "typescript/ast";
+import { SymbolFlags } from "typescript/async";
 
 import * as AST from "../AST/index.js";
 import * as ExternalTarget from "../ExternalTarget.js";
@@ -109,21 +110,62 @@ export const required = (
     ),
   );
 
-/** The name an Effect module qualifies `symbol` with, as in `Equal.Equal`, or else its own name. */
-const nameOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
+/**
+ * The symbol of the syntax that declares `symbol`, which is the symbol the AST holds a node under.
+ *
+ * The checker derives a symbol of its own for a member of each instantiation of a generic type, such as `types` of `Module<{ a: 1 }>`, and the AST holds the member once. A property of a union has one derived symbol for the declarations of all its types. That symbol names no single declaration, so it stays as it is.
+ */
+export const declared = Effect.fnUntraced(function* (
+  symbol: CompilerSymbol,
+): Effect.fn.Return<
+  CompilerSymbol,
+  Cause.UnknownError,
+  TypeScript.Checker.Checker | TypeScript.Program.Program
+> {
+  if (!TypeScript.Symbol.hasFlag(symbol, SymbolFlags.Transient)) {
+    return symbol;
+  }
+
   const program = yield* TypeScript.Program.Program;
-  const declarations = yield* program.declarations(symbol);
+  const symbols = yield* pipe(
+    yield* program.declarations(symbol),
+    Array.filter((node) => !Syntax.isSourceFile(node)),
+    Effect.forEach(TypeScript.Checker.getSymbolOfDeclaration),
+    Effect.map(Array.dedupeWith((self, that) => self.id === that.id)),
+  );
 
   return pipe(
-    Array.head(declarations),
-    Option.flatMap((node) =>
-      ExternalTarget.effectModuleOf(node.getSourceFile().fileName),
-    ),
-    Option.match({
-      onNone: () => symbol.name,
-      onSome: (module) => `${module}.${symbol.name}`,
-    }),
+    Array.head(symbols),
+    Option.filter(() => symbols.length === 1),
+    Option.getOrElse(() => symbol),
   );
+});
+
+// The part of a file's path that leads to the directory holding its package.
+const installation = /^".*\/node_modules\//u;
+
+/**
+ * The name the pages of `symbol` give it. An Effect module has its own name alone, as `Schema` does, and it qualifies what it declares, as in `Equal.Equal`. Any other symbol keeps its own name.
+ *
+ * The compiler names a file by its path. The part below `node_modules` names the file within its package, and the part above it belongs to the machine that built the documentation, so a file outside Effect keeps the former alone.
+ */
+const nameOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
+  const program = yield* TypeScript.Program.Program;
+  const declaration = Array.head(yield* program.declarations(symbol));
+  const qualifier = Option.flatMap(declaration, (node) =>
+    ExternalTarget.effectModuleOf(node.getSourceFile().fileName),
+  );
+
+  if (Option.exists(declaration, Syntax.isSourceFile)) {
+    return Option.getOrElse(qualifier, () =>
+      symbol.name.replace(installation, '"'),
+    );
+  }
+
+  return Option.match(qualifier, {
+    onNone: () => symbol.name,
+    onSome: (name) => `${name}.${symbol.name}`,
+  });
 });
 
 /** The item outside the package `symbol` names, with its documented name, its pages and its bases. A dependency's types cannot extend the package's, so its bases are outside the package too. */
@@ -160,7 +202,7 @@ type ParseDeclaration<E, R> = (
  * A declaration the parse is still building reserves the symbols inside it before it parses the names that refer to them. A symbol such a declaration has not reserved fails, because its node would come too late for the name that reached it.
  */
 export const reach = Effect.fnUntraced(function* <E, R>(
-  symbol: CompilerSymbol,
+  named: CompilerSymbol,
   parse: ParseDeclaration<E, R>,
 ): Effect.fn.Return<
   AST.Target.InternedSymbol,
@@ -174,6 +216,7 @@ export const reach = Effect.fnUntraced(function* <E, R>(
   const store = yield* AST.Store;
   const program = yield* TypeScript.Program.Program;
   const checker = yield* TypeScript.Checker.Checker;
+  const symbol = yield* declared(named);
 
   const held = store.internedSymbol(symbol);
   if (Option.isSome(held)) {
