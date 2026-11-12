@@ -129,6 +129,28 @@ describe("usage", () => {
   );
 
   it.effect(
+    "callable_properties",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
+      export interface A {} export interface B {} export interface C {}
+      export type Step<S> = (value: S) => C;
+      export interface Context {
+        readonly run: (value: A) => B;
+        readonly pick: { (value: A): A; (value: B): B };
+        readonly step: Step<A>;
+        readonly plain: C;
+      }
+    `);
+      expect(Array.map(["A", "B", "C"], users)).toStrictEqual([
+        { accepted: ["run", "pick"], returned: ["pick"] },
+        { accepted: ["pick"], returned: ["run", "pick"] },
+        { accepted: [], returned: ["step"] },
+      ]);
+    }),
+  );
+
+  it.effect(
     "private_and_self",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

@@ -386,6 +386,109 @@ layer(Reference.layer({ source: Reference.source }), {
   );
 
   it.effect(
+    "callable_property_calls",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `export type Step<S> = (value: S) => void;
+export interface Context {
+  /** Runs.
+   * @param value - The input.
+   * @returns The output.
+   */
+  readonly run: (value: string) => number;
+  /** Picks.
+   * @param value - The choice.
+   */
+  readonly pick: { (value: string): string; (value: number, extra: boolean): number };
+  /** Steps.
+   * @param value - The state.
+   */
+  readonly step: Step<string>;
+  /** Plain. */
+  readonly plain: string;
+}`,
+      });
+      const { members } = ownOf(reference, "Context");
+      const declared = Array.filter(
+        members,
+        (member): member is Exclude<Tree.Member.Member, Tree.Member.Accessor> =>
+          member.type !== "accessor",
+      );
+      expect(
+        Array.map(declared, (member) => [
+          member.name,
+          member.type,
+          ...numbersOf(Option.some(member.signatures)),
+        ]),
+      ).toStrictEqual([
+        ["run", "method", [1]],
+        ["pick", "method", [1, 2]],
+        ["step", "method", [1]],
+        ["plain", "property", [1]],
+      ]);
+      expect(Array.flatMap(members, memberCalls)).toStrictEqual([
+        [
+          "run",
+          Option.some("Runs."),
+          {
+            parameters: [
+              {
+                name: "value",
+                forms: [["string", [1]]],
+                descriptions: [["The input.", [1]]],
+              },
+            ],
+            returns: Option.some({
+              forms: [["number", [1]]],
+              descriptions: [["The output.", [1]]],
+            }),
+            throws: [],
+          },
+        ],
+        [
+          "pick",
+          Option.some("Picks."),
+          {
+            parameters: [
+              {
+                name: "value",
+                forms: [
+                  ["string", [1]],
+                  ["number", [2]],
+                ],
+                descriptions: [["The choice.", [1, 2]]],
+              },
+            ],
+            returns: Option.none(),
+            throws: [],
+          },
+        ],
+        [
+          "step",
+          Option.some("Steps."),
+          {
+            parameters: [
+              {
+                name: "value",
+                forms: [["string", [1]]],
+                descriptions: [["The state.", [1]]],
+              },
+            ],
+            returns: Option.none(),
+            throws: [],
+          },
+        ],
+        [
+          "plain",
+          Option.some("Plain."),
+          { parameters: [], returns: Option.none(), throws: [] },
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
     "renamed_export",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
