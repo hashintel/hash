@@ -253,7 +253,7 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Declares a nominal type and returns one handle that is both the type and its constructor.
    *
-   * The handle is a type expression for `Type.Opaque<N, T>`, where `N` is the declared name and `T` is the definition's type, and a constructor from an exactly typed value of `T`, including structural shorthand such as `Foo({ foo: true })`. Calling it emits a call to the declared name. TypeScript tells newtypes apart by name, so `name` must be a string literal.
+   * The handle is a type expression for {@link Type.Opaque | `Type.Opaque<N, T>`}, where `N` is the declared name and `T` is the definition's type, and a constructor from an exactly typed value of `T`, including structural shorthand such as `Foo({ foo: true })`. Calling it emits a call to the declared name. TypeScript tells newtypes apart by name, so `name` must be a string literal.
    */
   readonly newtype: <
     const N extends string,

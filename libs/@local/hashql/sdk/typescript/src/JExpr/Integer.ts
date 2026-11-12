@@ -1,3 +1,12 @@
+/**
+ * Integer literals as tagged source text, such as `{ _tag: "Integer", value: "42" }`.
+ *
+ * {@link @local/hashql#JExpr.integer | `JExpr.integer`} wraps one in a literal without checking its spelling. {@link make} checks a finished value against {@link Schema}. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";

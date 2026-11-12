@@ -34,6 +34,8 @@ export { genericType, type, value } from "./Declaration.js";
 export type { Declaration } from "./Declaration.js";
 
 /**
+ * The string key that marks a module, which {@link isModule} checks.
+ *
  * @category Type IDs
  * @since 0.1.0
  */

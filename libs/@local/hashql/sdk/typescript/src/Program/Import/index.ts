@@ -40,7 +40,6 @@ import type * as Namespace from "../Namespace.js";
 export type TypeId = "~hashql/Import";
 const TypeId: TypeId = "~hashql/Import";
 
-/** The bindings an import adds to a scope, with the source module and selection that produced them. */
 export type * as Bindings from "./Bindings.js";
 
 /**

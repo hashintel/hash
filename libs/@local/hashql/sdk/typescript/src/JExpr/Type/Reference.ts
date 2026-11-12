@@ -13,6 +13,8 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
 /**
+ * Schema for {@link Reference} values.
+ *
  * @category Schemas
  * @since 0.1.0
  */
@@ -47,6 +49,8 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Reference =
   Overflow.make(Schema);
 
 /**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
  * @category Constructors
  * @since 0.1.0
  */
@@ -57,6 +61,8 @@ export const makeEffect: (
 ) => Effect.Effect<Reference, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
  * @category Constructors
  * @since 0.1.0
  */

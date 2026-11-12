@@ -6,6 +6,7 @@
  * @since 0.1.0
  * @module
  */
+
 import { Function, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";

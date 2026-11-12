@@ -13,12 +13,18 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
 /**
+ * Schema for {@link Struct} values.
+ *
  * @category Schemas
  * @since 0.1.0
  */
 export const Schema: typeof Defs.Struct = Defs.Struct;
 
 /**
+ * Type syntax for named fields, holding distinct decoded names and their types in order.
+ *
+ * Its annotation text is `(name: T)`, or `(:)` when empty.
+ *
  * @category Models
  * @since 0.1.0
  */
@@ -43,6 +49,8 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Struct =
   Overflow.make(Schema);
 
 /**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
  * @category Constructors
  * @since 0.1.0
  */
@@ -53,6 +61,8 @@ export const makeEffect: (
 ) => Effect.Effect<Struct, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
  * @category Constructors
  * @since 0.1.0
  */

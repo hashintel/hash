@@ -1,3 +1,12 @@
+/**
+ * String expressions: source text that HashQL parses as a path, a type or an argument shorthand.
+ *
+ * {@link make} confirms only that a value is a string, since HashQL parses the text when it compiles the program. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";

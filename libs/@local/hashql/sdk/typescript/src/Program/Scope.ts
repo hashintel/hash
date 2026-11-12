@@ -29,6 +29,8 @@ import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
 
 /**
+ * The string key that marks a scope, which {@link isScope} checks.
+ *
  * @category Type IDs
  * @since 0.1.0
  */

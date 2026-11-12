@@ -13,12 +13,16 @@ import * as Defs from "./schema.js";
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
 /**
+ * Schema for {@link Union} values.
+ *
  * @category Schemas
  * @since 0.1.0
  */
 export const Schema: typeof Defs.Union = Defs.Union;
 
 /**
+ * Type syntax for a value of at least one member type, with annotation text `A | B`.
+ *
  * @category Models
  * @since 0.1.0
  */
@@ -43,6 +47,8 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Union =
   Overflow.make(Schema);
 
 /**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
  * @category Constructors
  * @since 0.1.0
  */
@@ -53,6 +59,8 @@ export const makeEffect: (
 ) => Effect.Effect<Union, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
  * @category Constructors
  * @since 0.1.0
  */
