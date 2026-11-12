@@ -982,8 +982,8 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         kind="For each"
         description={step.description}
         subtitle={
-          step.over
-            ? `Runs its steps once per ${itemName(document, step.stepId)}`
+          step.description.startsWith("For each ")
+            ? `Runs its steps once per ${step.description.slice("For each ".length)}`
             : "Runs its steps once per item of a list"
         }
         stepId={step.stepId}

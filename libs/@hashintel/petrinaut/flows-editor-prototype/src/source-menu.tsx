@@ -733,9 +733,7 @@ export const SourceMenu = ({
       ? [
           {
             id: "item-properties",
-            label: oldSourceGroups
-              ? currentItemName
-              : `Current ${currentItemName}`,
+            label: currentItemName,
             items: itemRows,
           },
         ]
