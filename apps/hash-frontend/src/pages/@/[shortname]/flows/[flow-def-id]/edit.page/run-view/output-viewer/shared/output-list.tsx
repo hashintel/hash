@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { Banner, LoadingSpinner, Tabs } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
@@ -135,22 +133,24 @@ const GroupBody = ({
     group.entityTypeIds && entities.typesMap
       ? getClosedMultiEntityTypeFromMap(entities.typesMap, group.entityTypeIds)
       : null;
+  const allFiles = groupEntities.every(isFileEntity);
 
-  if (
-    !closedType ||
-    !entities.definitions ||
-    groupEntities.every(isFileEntity)
-  ) {
+  if (!closedType || !entities.definitions || allFiles) {
     return (
       <EntityRows
         entities={{ ...entities, entities: groupEntities }}
-        onOpen={(position) => {
-          const index = group.indexes[position];
+        /* Only files open: an entity that couldn't be loaded has nothing more to show. */
+        onOpen={
+          allFiles
+            ? (position) => {
+                const index = group.indexes[position];
 
-          if (index !== undefined && isFileEntity(entities.entities[index])) {
-            onOpenFile(index);
-          }
-        }}
+                if (index !== undefined) {
+                  onOpenFile(index);
+                }
+              }
+            : undefined
+        }
       />
     );
   }
@@ -168,15 +168,18 @@ const GroupBody = ({
 export const OutputList = ({
   list,
   entities,
+  typeKey,
+  onPickType,
   onOpenFile,
 }: {
   list: ListDisplay;
   entities: RunEntities;
+  /** The type tab picked, else the first. */
+  typeKey: string | undefined;
+  onPickType: (typeKey: string) => void;
   /** Opens the file at this position in the list. */
   onOpenFile: (index: number) => void;
 }) => {
-  const [pickedKey, setPickedKey] = useState<string | null>(null);
-
   if (list.kind === "inline") {
     return (
       <div className={stack}>
@@ -206,8 +209,7 @@ export const OutputList = ({
   }
 
   const typeGroups = groupByType(entities.entities);
-  const picked =
-    typeGroups.find(({ key }) => key === pickedKey) ?? typeGroups[0];
+  const picked = typeGroups.find(({ key }) => key === typeKey) ?? typeGroups[0];
 
   if (!picked) {
     return null;
@@ -228,7 +230,7 @@ export const OutputList = ({
 
   return (
     <div className={stack}>
-      <Tabs value={picked.key} onChange={setPickedKey} variant="pill" size="sm">
+      <Tabs value={picked.key} onChange={onPickType} variant="pill" size="sm">
         <Tabs.TabList
           items={typeGroups.map((group) => ({
             id: group.key,

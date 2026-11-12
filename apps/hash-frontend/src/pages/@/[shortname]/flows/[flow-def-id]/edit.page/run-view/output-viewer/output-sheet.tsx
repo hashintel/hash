@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -33,23 +33,32 @@ export const OutputSheet = ({
   file,
   fileSteps,
   onGoToFile,
+  onPickType,
   onOpenFile,
   onCollapse,
 }: {
   view: OutputView;
   entities: RunEntities;
-  /** None until it's loaded. */
-  file: HashEntity | null;
+  /** The file open, once it's loaded and found. */
+  file: HashEntity | undefined;
   fileSteps: FileSteps | null;
   onGoToFile: (index: number) => void;
+  onPickType: (typeKey: string) => void;
   onOpenFile: (index: number) => void;
   onCollapse: () => void;
 }) => {
-  const fileHeading = file
-    ? getEntityDisplay(file, entities.typesMap, entities)
-    : null;
+  /* Also says when the file is loading, or couldn't be loaded or found. */
+  const fileHeading =
+    view.kind === "file"
+      ? getEntityDisplay(file, entities.typesMap, entities)
+      : null;
   /* Takes Esc and ← → from the start, on what it shows rather than a button, whose tooltip would take the first Esc. */
   const contentRef = useRef<HTMLDivElement>(null);
+
+  /* And again once a file opens from the list, whose row had them. */
+  useEffect(() => {
+    contentRef.current?.focus({ preventScroll: true });
+  }, [view.kind]);
 
   return (
     <Drawer
@@ -59,6 +68,7 @@ export const OutputSheet = ({
       variant="plain"
       showBackdrop={false}
       shouldCloseOn="none"
+      loading={view.kind === "file" && !file && entities.loading}
       initialFocusRef={contentRef}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
@@ -99,6 +109,8 @@ export const OutputSheet = ({
             <OutputList
               list={view.list}
               entities={entities}
+              typeKey={view.typeKey}
+              onPickType={onPickType}
               onOpenFile={onOpenFile}
             />
           ) : file ? (

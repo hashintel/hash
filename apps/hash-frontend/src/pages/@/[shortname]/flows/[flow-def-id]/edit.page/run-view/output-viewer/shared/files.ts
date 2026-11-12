@@ -56,6 +56,11 @@ export const goByFileKey = (
   steps: FileSteps,
   onGo: (index: number) => void,
 ) => {
+  /* With a modifier they're the browser's, e.g. ⌘← to go back. */
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return;
+  }
+
   const index =
     event.key === "ArrowLeft"
       ? steps.previous

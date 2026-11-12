@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getFilePreviewKind, getFileSteps } from "./files";
+import { getFilePreviewKind, getFileSteps, goByFileKey } from "./files";
 
 import type { PropertyObject } from "@blockprotocol/type-system";
+import type { KeyboardEvent } from "react";
 
 const file = ({
   fileName,
@@ -84,5 +85,32 @@ describe("getFileSteps", () => {
       previous: 2,
       next: null,
     });
+  });
+});
+
+describe("goByFileKey", () => {
+  const keyDown = (key: string, { metaKey = false } = {}) => ({
+    key,
+    altKey: false,
+    ctrlKey: false,
+    metaKey,
+    shiftKey: false,
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
+  });
+
+  it("steps on an arrow, and leaves an arrow with a modifier to the browser, e.g. ⌘← to go back", () => {
+    const steps = getFileSteps([true, true, true], 1);
+    const onGo = vi.fn();
+    const next = keyDown("ArrowRight");
+    const browserBack = keyDown("ArrowLeft", { metaKey: true });
+
+    goByFileKey(next as unknown as KeyboardEvent, steps, onGo);
+    goByFileKey(browserBack as unknown as KeyboardEvent, steps, onGo);
+
+    expect(onGo).toHaveBeenCalledTimes(1);
+    expect(onGo).toHaveBeenCalledWith(2);
+    expect(next.preventDefault).toHaveBeenCalled();
+    expect(browserBack.preventDefault).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,7 @@
+import { Fragment } from "react";
+
 import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { getEntityDisplay } from "./run-entities";
 
@@ -19,6 +21,8 @@ const row = css({
   bg: "[transparent]",
   color: "fg.body",
   textAlign: "left",
+});
+const openableRow = css({
   cursor: "pointer",
   _hover: { bg: "bg.subtle" },
   _focusVisible: { bg: "bg.subtle" },
@@ -68,8 +72,8 @@ export const EntityRows = ({
   onOpen,
 }: {
   entities: RunEntities;
-  /** Opens the entity at this position in the list. */
-  onOpen: (index: number) => void;
+  /** Opens the entity at this position in `entities`. Without it, the rows don't open. */
+  onOpen?: (index: number) => void;
 }) => (
   <div className={rows}>
     {entities.map((entity, index) => {
@@ -78,16 +82,8 @@ export const EntityRows = ({
         typesMap,
         { loading, failed },
       );
-
-      return (
-        <button
-          // A list can name the same entity twice, and is only ever shown in this order.
-          // eslint-disable-next-line react/no-array-index-key
-          key={index}
-          type="button"
-          className={row}
-          onClick={() => onOpen(index)}
-        >
+      const content = (
+        <>
           <span className={thumbnail}>
             {imageUrl ? (
               <img src={imageUrl} alt="" className={thumbnailImage} />
@@ -99,10 +95,28 @@ export const EntityRows = ({
             <span className={rowTitle}>{title}</span>
             {meta && <span className={rowMeta}>{meta}</span>}
           </span>
-          <span className={openIcon}>
-            <Icon name="chevronRight" size="sm" />
-          </span>
-        </button>
+        </>
+      );
+
+      return (
+        // A list can name the same entity twice, and is only ever shown in this order.
+        // eslint-disable-next-line react/no-array-index-key
+        <Fragment key={index}>
+          {onOpen ? (
+            <button
+              type="button"
+              className={cx(row, openableRow)}
+              onClick={() => onOpen(index)}
+            >
+              {content}
+              <span className={openIcon}>
+                <Icon name="chevronRight" size="sm" />
+              </span>
+            </button>
+          ) : (
+            <div className={row}>{content}</div>
+          )}
+        </Fragment>
       );
     })}
   </div>

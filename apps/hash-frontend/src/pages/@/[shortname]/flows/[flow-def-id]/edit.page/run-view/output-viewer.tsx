@@ -76,7 +76,7 @@ const loading = css({ display: "flex", justifyContent: "center", py: "6" });
 
 /** A value a run got or gave, open in place of the right panel, and wide in a side sheet once expanded. */
 export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
-  const { view, depth } = viewer;
+  const { view, depth, wide } = viewer;
   const entities = useRunEntities(
     !view
       ? noEntityIds
@@ -88,18 +88,18 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
   );
   const columnRef = useRef<HTMLElement>(null);
 
-  /* Takes Esc and ← → from the start, and again on going back from a file to its list. */
+  /* Takes Esc and ← → from the start, and again on going back from a file to its list and on collapsing. */
   useEffect(() => {
-    if (depth > 0) {
+    if (depth > 0 && !wide) {
       columnRef.current?.focus({ preventScroll: true });
     }
-  }, [depth]);
+  }, [depth, wide]);
 
   if (!view) {
     return null;
   }
 
-  const file = view.kind === "file" ? entities.entities[view.index] : null;
+  const file = view.kind === "file" ? entities.entities[view.index] : undefined;
   const fileSteps =
     view.kind === "file"
       ? getFileSteps(entities.entities.map(isFileEntity), view.index)
@@ -120,9 +120,10 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
       });
     }
   };
-  const collapse = () => {
-    viewer.collapse();
-    columnRef.current?.focus({ preventScroll: true });
+  const pickType = (typeKey: string) => {
+    if (view.kind === "list") {
+      viewer.replace({ ...view, typeKey });
+    }
   };
   const fileHeading = file
     ? getEntityDisplay(file, entities.typesMap, entities)
@@ -136,17 +137,14 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
         ref={columnRef}
         tabIndex={-1}
         aria-label={view.title}
+        /* Under the side sheet, which isn't modal, it would stay in the tab order and be read twice. */
+        inert={wide}
         className={cx(sidePanelFrame, column)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            /* The side sheet over it closes first. */
-            if (viewer.wide) {
-              collapse();
-            } else {
-              viewer.back();
-            }
+            viewer.back();
           } else if (fileSteps) {
             goByFileKey(event, fileSteps, goToFile);
           }
@@ -195,6 +193,8 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
               <OutputList
                 list={view.list}
                 entities={entities}
+                typeKey={view.typeKey}
+                onPickType={pickType}
                 onOpenFile={openFile}
               />
             </>
@@ -222,15 +222,16 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
           )}
         </div>
       </section>
-      {viewer.wide && (
+      {wide && (
         <OutputSheet
           view={view}
           entities={entities}
-          file={file ?? null}
+          file={file}
           fileSteps={fileSteps}
           onGoToFile={goToFile}
+          onPickType={pickType}
           onOpenFile={openFile}
-          onCollapse={collapse}
+          onCollapse={viewer.collapse}
         />
       )}
     </>

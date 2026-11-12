@@ -7,7 +7,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 export const outputSheetWidth = 640;
 
 export type OutputContent =
-  | { kind: "list"; list: ListDisplay }
+  /** `typeKey` is the type tab picked, kept here so that going back to the list and Expand keep it. */
+  | { kind: "list"; list: ListDisplay; typeKey?: string }
   /** The whole list's entities, so that ← → step through its files. */
   | { kind: "file"; entityIds: EntityId[]; index: number };
 
