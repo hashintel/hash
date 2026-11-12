@@ -373,7 +373,9 @@ const methods = (
 
 /** One parser serves one parse, so its caches never see a second graph. */
 export const layer = Effect.context<
-  Comments.CommentParser | TypeScript.Checker.Checker
+  | Comments.CommentParser
+  | TypeScript.Checker.Checker
+  | TypeScript.Program.Program
 >().pipe(
   Effect.map((services) => {
     const cache: Cache = { types: new WeakMap() };

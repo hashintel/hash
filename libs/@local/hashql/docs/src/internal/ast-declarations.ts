@@ -189,6 +189,18 @@ const typeParametersOf = (
     Effect.map(Chunk.fromIterable),
   );
 
+/** A declaration that states no call has type parameters at most, so its comment's `@typeParam` names one of those and it takes no `@param`. */
+const checkDocumented = ({
+  documentation,
+  typeParameters = Chunk.empty(),
+}: {
+  readonly documentation: Option.Option<AST.Documentation.Interned>;
+  readonly typeParameters?: Chunk.Chunk<AST.TypeParameter.Interned>;
+}): Parsed<void> =>
+  Comments.checkParameters(documentation, [
+    { parameters: Chunk.empty(), typeParameters },
+  ]);
+
 const classDeclaration = (
   node: Syntax.ClassDeclaration,
 ): Parsed<AST.ClassDeclaration.Interned> =>
@@ -205,19 +217,26 @@ const classDeclaration = (
     ),
     members: Types.classMembers(node.members),
     documentation: Comments.documentation(node),
-  }).pipe(Effect.map(AST.ClassDeclaration.make), Effect.flatMap(AST.intern));
+  }).pipe(
+    Effect.tap(checkDocumented),
+    Effect.map(AST.ClassDeclaration.make),
+    Effect.flatMap(AST.intern),
+  );
 
 const enumMember = (
   member: Syntax.EnumMember,
 ): Parsed<AST.EnumMember.Interned> =>
   Effect.flatMap(TypeScript.Checker.getSymbolOfDeclaration(member), (symbol) =>
     AST.reserveSymbol([symbol], () =>
-      Effect.map(Comments.documentation(member), (documentation) =>
-        AST.EnumMember.make({
-          node: member,
-          name: Source.nameOf(member.name),
-          documentation,
-        }),
+      Comments.documentation(member).pipe(
+        Effect.tap((documentation) => checkDocumented({ documentation })),
+        Effect.map((documentation) =>
+          AST.EnumMember.make({
+            node: member,
+            name: Source.nameOf(member.name),
+            documentation,
+          }),
+        ),
       ),
     ),
   );
@@ -233,7 +252,11 @@ const enumDeclaration = (
       Effect.map(Chunk.fromIterable),
     ),
     documentation: Comments.documentation(node),
-  }).pipe(Effect.map(AST.EnumDeclaration.make), Effect.flatMap(AST.intern));
+  }).pipe(
+    Effect.tap(checkDocumented),
+    Effect.map(AST.EnumDeclaration.make),
+    Effect.flatMap(AST.intern),
+  );
 
 const typeDeclaration = (
   node: Syntax.TypeAliasDeclaration | Syntax.InterfaceDeclaration,
@@ -245,6 +268,7 @@ const typeDeclaration = (
       documentation: Comments.documentation(node),
       type: Types.type(node.type),
     }).pipe(
+      Effect.tap(checkDocumented),
       Effect.map(AST.TypeAliasDeclaration.make),
       Effect.flatMap(AST.intern),
     );
@@ -262,6 +286,7 @@ const typeDeclaration = (
     ),
     members: Types.typeMembers(node.members),
   }).pipe(
+    Effect.tap(checkDocumented),
     Effect.map(AST.InterfaceDeclaration.make),
     Effect.flatMap(AST.intern),
   );

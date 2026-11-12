@@ -467,6 +467,10 @@ export declare const choose: {
       'import type { Api } from "shapes";\nexport declare const applied: Api["run"];',
       "ConstantDeclaration",
     ],
+    [
+      "declare function run(value: string): string;\nexport declare const applied: typeof run;",
+      "ConstantDeclaration",
+    ],
   ] as const)(
     "applied_declaration_%#",
     Effect.fnUntraced(function* ([source, tag]: readonly [string, string]) {
@@ -496,6 +500,67 @@ export declare const choose: {
         Option.getOrThrow,
       );
       expect(value._tag).toBe(tag);
+    }),
+  );
+
+  it.effect.each([
+    ["export interface Api { readonly run: (value: string) => string }", 1],
+    [
+      "export interface Api { readonly run: { (value: string): string; <T>(value: T): T; readonly marker: string } }",
+      2,
+    ],
+    [
+      "export type Fn<S> = (value: S) => S;\nexport interface Api { readonly run: Fn<string> }",
+      1,
+    ],
+    ["export interface Api { readonly run?: (value: string) => string }", 1],
+    [
+      "export declare class Api { static readonly run: (value: string) => string }",
+      1,
+    ],
+  ] as const)(
+    "callable_property_%#",
+    Effect.fnUntraced(function* ([source, calls]: readonly [string, number]) {
+      expect.hasAssertions();
+      const ast = yield* success({ source });
+      const callable = first(ast, AST.CallableProperty.isCallableProperty);
+      expect(callable).toMatchObject({
+        _tag: "Method",
+        flavour: "property",
+        name: "run",
+      });
+      expect(Chunk.size(callable.overloads)).toBe(calls);
+      expect(
+        Array.fromIterable(ast.nodes()).filter(AST.Property.isProperty),
+      ).toHaveLength(calls - 1);
+    }),
+  );
+
+  it.effect.each([
+    "type Inner<X> = (value: X) => X;\nexport type Outer<T> = Inner<T>;\nexport interface Api { readonly run: Outer<string> }",
+    "declare function run(value: string): string;\nexport interface Api { readonly run: typeof run }",
+    'import type { Api as Shapes } from "shapes";\nexport interface Api { readonly run: Shapes["run"] }',
+    "export interface Api { readonly run: string }",
+  ])(
+    "plain_property_%#",
+    Effect.fnUntraced(function* (source: string) {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source,
+        files: {
+          "node_modules/shapes/package.json":
+            '{ "name": "shapes", "types": "./index.d.ts" }',
+          "node_modules/shapes/index.d.ts":
+            "export interface Api { run(value: string): void }",
+        },
+      });
+      const nodes = Array.fromIterable(ast.nodes());
+      expect(
+        nodes.filter(AST.CallableProperty.isCallableProperty),
+      ).toHaveLength(0);
+      expect(
+        nodes.filter(AST.Property.isProperty).map(({ name }) => name),
+      ).toStrictEqual(["run"]);
     }),
   );
 
@@ -1361,6 +1426,56 @@ export interface Options { readonly body: number }`,
         "UnknownTypeParameter",
         "U",
       ],
+      [
+        "export interface Api {\n/** @param missing - Nothing. */ readonly run: (input: string) => void }",
+        "UnknownParameter",
+        "missing",
+      ],
+      [
+        "export interface Api {\n/** @param input - Nothing. */ readonly value: string }",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "/** @param input - Nothing. */ export declare const value: string;",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "/** @param input - Nothing. */ export declare const value = 1;",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "/** @param input - Nothing. */ export type Handler = (input: string) => void;",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "/** @typeParam U - Nothing. */ export interface Box<T> { readonly value: T }",
+        "UnknownTypeParameter",
+        "U",
+      ],
+      [
+        "/** @typeParam U - Nothing. */ export declare class Box<T> { readonly value: T }",
+        "UnknownTypeParameter",
+        "U",
+      ],
+      [
+        "/** @param input - Nothing. */ export declare enum Kind { First }",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "export declare enum Kind {\n/** @param input - Nothing. */ First }",
+        "UnknownParameter",
+        "input",
+      ],
+      [
+        "/** @param input - Nothing. */ export declare namespace Space { const value: string }",
+        "UnknownParameter",
+        "input",
+      ],
     ] as const)(
       "unknown_name_%#",
       Effect.fnUntraced(function* ([source, reason, name]: readonly [
@@ -1379,16 +1494,17 @@ export interface Options { readonly body: number }`,
       }),
     );
 
-    it.effect(
-      "known_names",
-      Effect.fnUntraced(function* () {
+    it.effect.each([
+      "/** @typeParam T - The input. @param input - The input. */ export declare function make<T>(input: T): void;",
+      "export interface Api {\n/** @typeParam T - The input. @param input - The input. */ readonly run: <T>(input: T) => void }",
+      "/** @typeParam T - The held type. */ export interface Box<T> { readonly value: T }",
+      "/** @typeParam T - The held type. */ export declare class Box<T> { readonly value: T }",
+      "/** @typeParam T - The held type. */ export type Box<T> = readonly T[];",
+    ])(
+      "known_names_%#",
+      Effect.fnUntraced(function* (source: string) {
         expect.hasAssertions();
-        expect(
-          yield* success({
-            source:
-              "/** @typeParam T - The input. @param input - The input. */ export declare function make<T>(input: T): void;",
-          }),
-        ).toBeDefined();
+        expect(yield* success({ source })).toBeDefined();
       }),
     );
   });
