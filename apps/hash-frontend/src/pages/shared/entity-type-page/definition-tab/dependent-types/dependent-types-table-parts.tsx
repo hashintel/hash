@@ -1,31 +1,31 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, ButtonBase, Typography } from "@mui/material";
-import { useId } from "react";
 
 import { EntityOrTypeIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
 import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
 import {
+  firstCellSx,
   openColumnWidth,
   rowHeight,
-  rowToggleClassName,
   subgridRowSx,
   tableGridClassName,
   treeGutterWidth,
   treeLineOffset,
-  visuallyHidden,
 } from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { ButtonBaseProps, Theme } from "@mui/material";
-import type { ReactNode } from "react";
+import type { BoxProps, ButtonBaseProps, Theme } from "@mui/material";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 
 /** The white card around a table, which scrolls sideways when the page is narrow, and the grid its rows share, with the open column added on the right. */
 export const TableCard = ({
   gridTemplateColumns,
+  labelledBy,
   children,
 }: {
   gridTemplateColumns: string;
+  labelledBy: string;
   children: ReactNode;
 }) => (
   <Box
@@ -37,6 +37,8 @@ export const TableCard = ({
     })}
   >
     <Box
+      role="table"
+      aria-labelledby={labelledBy}
       className={tableGridClassName}
       sx={{
         display: "grid",
@@ -53,6 +55,7 @@ export const TableCard = ({
 
 export const HeaderRow = ({ children }: { children: ReactNode }) => (
   <Box
+    role="row"
     sx={({ palette }) => ({
       ...subgridRowSx,
       alignItems: "center",
@@ -68,43 +71,51 @@ export const HeaderRow = ({ children }: { children: ReactNode }) => (
   </Box>
 );
 
+export const ColumnHeader = (props: BoxProps) => (
+  <Box role="columnheader" {...props} />
+);
+
+export const Cell = (props: BoxProps) => <Box role="cell" {...props} />;
+
 export const OpenTypeButton = ({
   label,
-  description,
+  describedBy,
   onClick,
   onFocusVisible,
   onBlur,
 }: {
   label: string;
-  /** Read out after the label, for a description shown elsewhere only on hover. */
-  description?: string;
+  /** The id of a description on screen, such as an open tooltip. */
+  describedBy?: string;
   onClick: () => void;
   onFocusVisible?: () => void;
   onBlur?: () => void;
-}) => {
-  const descriptionId = useId();
-
-  return (
+}) => (
+  <Box
+    role="cell"
+    sx={{
+      position: "absolute",
+      right: 0,
+      top: 0,
+      zIndex: 1,
+      width: openColumnWidth,
+      height: rowHeight,
+    }}
+  >
     <ButtonBase
       aria-label={label}
-      aria-describedby={description ? descriptionId : undefined}
+      aria-describedby={describedBy}
       disableRipple
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
+      onClick={onClick}
       onFocusVisible={onFocusVisible}
       onBlur={onBlur}
       sx={({ palette }) => ({
-        position: "absolute",
-        right: 0,
-        top: 0,
         width: openColumnWidth,
         height: rowHeight,
         borderRadius: 1,
         color: palette.gray[70],
         opacity: 0,
-        "*:hover > &, &.Mui-focusVisible": { opacity: 1 },
+        '[role="row"]:hover &, &.Mui-focusVisible': { opacity: 1 },
         "@media (hover: none)": { opacity: 1 },
         "& .open-type-button-dot": {
           width: 28,
@@ -127,14 +138,9 @@ export const OpenTypeButton = ({
       <span className="open-type-button-dot">
         <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
       </span>
-      {description ? (
-        <Box component="span" id={descriptionId} sx={visuallyHidden}>
-          {description}
-        </Box>
-      ) : null}
     </ButtonBase>
-  );
-};
+  </Box>
+);
 
 /** A row's cells on the table's grid, in the first grid row of the box around them, so that the chevron or the tree lines can share its second column. */
 const rowGridSx = ({ palette }: Theme) => ({
@@ -172,37 +178,11 @@ const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
   </Box>
 );
 
-/** The button that spans an expandable row's cells and expands or collapses it. */
-export const RowToggle = ({
-  expanded,
-  children,
-  ...props
-}: Omit<
-  ButtonBaseProps,
-  "aria-expanded" | "className" | "disableRipple" | "sx"
-> & { expanded: boolean }) => (
-  <ButtonBase
-    {...props}
-    aria-expanded={expanded}
-    className={rowToggleClassName}
-    disableRipple
-    sx={[
-      rowGridSx,
-      ({ palette }) => ({
-        borderRadius: 1,
-        justifyItems: "start",
-        textAlign: "left",
-        "&.Mui-focusVisible": {
-          outline: `2px solid ${palette.blue[70]}`,
-          outlineOffset: 2,
-        },
-      }),
-    ]}
-  >
-    {children}
-    <ExpandChevron expanded={expanded} />
-  </ButtonBase>
-);
+const rowSx = ({ palette }: Theme) => ({
+  position: "relative",
+  borderRadius: 1,
+  "&:hover": { background: palette.gray[10] },
+});
 
 /** The vertical line and elbow that join a nested row to the row above it. */
 const TreeLines = ({ last }: { last: boolean }) => (
@@ -248,20 +228,20 @@ export const NestedRow = ({
   openButton: ReactNode;
   children: ReactNode;
 }) => (
-  <Box
-    sx={({ palette }) => ({
-      ...subgridRowSx,
-      position: "relative",
-      height: rowHeight,
-      borderRadius: 1,
-      "&:hover": { background: palette.gray[10] },
-    })}
-  >
+  <Box role="row" sx={[{ ...subgridRowSx, height: rowHeight }, rowSx]}>
     <Box sx={rowGridSx}>{children}</Box>
     {openButton}
     <TreeLines last={last} />
   </Box>
 );
+
+type TypeLabelProps = {
+  entityType: EntityTypeWithMetadata;
+  former: boolean;
+  isLink: boolean;
+  /** The version shown after the title of a current type. */
+  version: number;
+};
 
 /** A type's icon, title, and its latest version or a "Former" tag. */
 export const TypeLabel = ({
@@ -269,13 +249,7 @@ export const TypeLabel = ({
   former,
   isLink,
   version,
-}: {
-  entityType: EntityTypeWithMetadata;
-  former: boolean;
-  isLink: boolean;
-  /** The version shown after the title of a current type. */
-  version: number;
-}) => (
+}: TypeLabelProps) => (
   <Box
     component="span"
     sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}
@@ -335,3 +309,66 @@ export const TypeLabel = ({
     </Box>
   </Box>
 );
+
+/** A type's row that expands into nested rows: the toggle with the type's label, the other cells, the open button, and the chevron that shows whether the row is expanded. The toggle's pseudo-element covers the row, so that a click anywhere on the row toggles it. */
+export const ExpandableRow = ({
+  type,
+  expanded,
+  onToggle,
+  toggleProps,
+  openButton,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
+  ref?: Ref<HTMLDivElement>;
+  type: TypeLabelProps;
+  expanded: boolean;
+  onToggle: () => void;
+  toggleProps?: Pick<
+    ButtonBaseProps,
+    "aria-describedby" | "onFocusVisible" | "onBlur" | "onKeyDown"
+  >;
+  openButton: ReactNode;
+}) => {
+  const { title } = type.entityType.schema;
+
+  return (
+    <Box {...props} role="row" sx={[rowGridSx, rowSx, { userSelect: "none" }]}>
+      <Cell sx={{ ...firstCellSx, maxWidth: 1 }}>
+        <ButtonBase
+          {...toggleProps}
+          aria-label={
+            type.former ? `${title}, former` : `${title} v${type.version}`
+          }
+          aria-expanded={expanded}
+          onClick={onToggle}
+          sx={({ palette }) => ({
+            position: "static",
+            display: "flex",
+            justifyContent: "flex-start",
+            width: 1,
+            font: "inherit",
+            lineHeight: "inherit",
+            letterSpacing: "inherit",
+            textAlign: "left",
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              inset: 0,
+              borderRadius: 1,
+            },
+            "&.Mui-focusVisible::after": {
+              outline: `2px solid ${palette.blue[70]}`,
+              outlineOffset: 2,
+            },
+          })}
+        >
+          <TypeLabel {...type} />
+        </ButtonBase>
+      </Cell>
+      {children}
+      {openButton}
+      <ExpandChevron expanded={expanded} />
+    </Box>
+  );
+};

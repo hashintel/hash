@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { ButtonBase, ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 import {
   act,
   cleanup,
@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { theme } from "@hashintel/design-system/theme";
 
 import { makeRow } from "./dependent-type-fixtures";
+import { ExpandableRow } from "./dependent-types-table-parts";
 import { VersionGraphTooltip } from "./version-graph-tooltip";
 
 import type { DependentTypeRow } from "./dependent-type-rows";
@@ -47,12 +48,16 @@ const renderRows = (rows: DependentTypeRow[]) => {
             parentTitle="Company"
             parentLatestVersion={3}
           >
-            {({ toggleProps, hide }) => (
-              <div data-testid={title}>
-                <ButtonBase {...toggleProps} onClick={hide}>
-                  {title}
-                </ButtonBase>
-              </div>
+            {({ rowRef, toggleProps, hide }) => (
+              <ExpandableRow
+                ref={rowRef}
+                data-testid={title}
+                type={{ ...row, isLink: false }}
+                expanded={false}
+                onToggle={hide}
+                toggleProps={toggleProps}
+                openButton={null}
+              />
             )}
           </VersionGraphTooltip>
         );
@@ -167,26 +172,31 @@ describe("VersionGraphTooltip", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
 
     wait(1);
-    expect(
-      screen.getAllByRole("tooltip").map((tooltip) => tooltip.textContent),
-    ).toEqual([expect.stringContaining(shellCompanySummary)]);
+    expect(screen.getAllByRole("tooltip")).toHaveLength(1);
+    within(screen.getByRole("tooltip")).getByRole("img", {
+      name: shellCompanySummary,
+    });
   });
 
   it("shows the graph at once when the toggle gets focus, and describes the toggle with a summary of the versions", () => {
     renderRows([shellCompany]);
 
-    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
-
-    screen.getByRole("button", {
-      name: "Shell Company",
-      description: shellCompanySummary,
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
     });
+    focusWithKeyboard(toggle);
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(toggle.getAttribute("aria-describedby")).toBe(tooltip.id);
+    within(tooltip).getByRole("img", { name: shellCompanySummary });
   });
 
   it("does not show the graph when a mouse press focuses the toggle", () => {
     renderRows([shellCompany]);
 
-    const toggle = screen.getByRole("button", { name: "Shell Company" });
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
     act(() => {
       fireEvent.mouseDown(toggle);
       toggle.focus();
@@ -198,7 +208,9 @@ describe("VersionGraphTooltip", () => {
   it("hides the graph when the toggle loses focus", () => {
     renderRows([shellCompany]);
 
-    const toggle = screen.getByRole("button", { name: "Shell Company" });
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
     focusWithKeyboard(toggle);
     act(() => {
       toggle.blur();
@@ -212,7 +224,9 @@ describe("VersionGraphTooltip", () => {
   it("hides the graph on Escape while the toggle has focus", () => {
     renderRows([shellCompany]);
 
-    const toggle = screen.getByRole("button", { name: "Shell Company" });
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
     focusWithKeyboard(toggle);
     fireEvent.keyDown(toggle, { key: "Escape" });
 
@@ -234,7 +248,9 @@ describe("VersionGraphTooltip", () => {
   it("hides the graph when the row is toggled", () => {
     renderRows([shellCompany]);
 
-    const toggle = screen.getByRole("button", { name: "Shell Company" });
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
     focusWithKeyboard(toggle);
     fireEvent.click(toggle);
 
@@ -245,7 +261,9 @@ describe("VersionGraphTooltip", () => {
   it("draws the parent's versions, only the type's versions that extend one, and a line for each extension", () => {
     renderRows([shellCompany]);
 
-    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
+    focusWithKeyboard(
+      screen.getByRole("button", { name: "Shell Company, former" }),
+    );
     const tooltip = screen.getByRole("tooltip");
 
     expect(
@@ -262,7 +280,9 @@ describe("VersionGraphTooltip", () => {
     vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(900);
     renderRows([shellCompany]);
 
-    focusWithKeyboard(screen.getByRole("button", { name: "Shell Company" }));
+    focusWithKeyboard(
+      screen.getByRole("button", { name: "Shell Company, former" }),
+    );
 
     expect(
       [...screen.getByRole("tooltip").querySelectorAll("div")].filter(
@@ -289,7 +309,9 @@ describe("VersionGraphTooltip", () => {
     it("scrolls the graph sideways while the toggle has focus", () => {
       renderRows([shellCompany]);
 
-      const toggle = screen.getByRole("button", { name: "Shell Company" });
+      const toggle = screen.getByRole("button", {
+        name: "Shell Company, former",
+      });
       focusWithKeyboard(toggle);
 
       expect(fireEvent.keyDown(toggle, { key: "ArrowRight" })).toBe(false);
@@ -311,7 +333,9 @@ describe("VersionGraphTooltip", () => {
     it("leaves the keys alone once the graph is hidden", () => {
       renderRows([shellCompany]);
 
-      const toggle = screen.getByRole("button", { name: "Shell Company" });
+      const toggle = screen.getByRole("button", {
+        name: "Shell Company, former",
+      });
       focusWithKeyboard(toggle);
       fireEvent.keyDown(toggle, { key: "Escape" });
 

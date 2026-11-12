@@ -1,5 +1,5 @@
 import { Box, Tooltip } from "@mui/material";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
 
@@ -9,14 +9,15 @@ import {
   formatVersions,
   subgridRowSx,
   tableGridClassName,
-  toggleRowSx,
   treeCellSx,
 } from "./dependent-types-table-layout";
 import {
+  Cell,
+  ColumnHeader,
+  ExpandableRow,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
-  RowToggle,
   TableCard,
   TypeLabel,
 } from "./dependent-types-table-parts";
@@ -48,9 +49,11 @@ const DependentTypeSubRow = ({
 }) => {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const descriptionId = useId();
 
   const { entityType, former } = row;
   const { title, description } = entityType.schema;
+  const descriptionShown = !!description && (hovered || focused);
 
   return (
     <NestedRow
@@ -58,17 +61,19 @@ const DependentTypeSubRow = ({
       openButton={
         <OpenTypeButton
           label={`Open ${title} v${highestVersion}, the highest version that extends ${parentLabel}`}
-          description={description}
+          describedBy={descriptionShown ? descriptionId : undefined}
           onClick={() => onOpenType(highestVersionId)}
           onFocusVisible={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
       }
     >
-      <Box sx={firstCellSx} />
-      <Box sx={{ ...treeCellSx, maxWidth: 1, display: "flex" }}>
+      <Cell sx={firstCellSx} />
+      <Cell sx={{ ...treeCellSx, maxWidth: 1, display: "flex" }}>
         <Tooltip
+          id={descriptionId}
           title={description}
+          describeChild
           open={hovered || focused}
           onOpen={() => setHovered(true)}
           onClose={() => setHovered(false)}
@@ -82,12 +87,12 @@ const DependentTypeSubRow = ({
             />
           </Box>
         </Tooltip>
-      </Box>
-      <Box sx={cellSx}>
+      </Cell>
+      <Cell sx={cellSx}>
         {ranges
           .map((range) => formatVersions(range.firstVersion, range.lastVersion))
           .join(", ")}
-      </Box>
+      </Cell>
     </NestedRow>
   );
 };
@@ -112,63 +117,57 @@ const ParentVersionTableRow = ({
 
   return (
     <Box sx={subgridRowSx}>
-      <Box sx={toggleRowSx}>
-        <RowToggle
-          expanded={expanded}
-          aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
-          onClick={() => setExpanded(!expanded)}
+      <ExpandableRow
+        type={{
+          entityType: parent,
+          former: false,
+          isLink: isLinkType(parent),
+          version: parentVersion,
+        }}
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        openButton={
+          <OpenTypeButton
+            label={`Open ${parentLabel}`}
+            onClick={() =>
+              onOpenType(
+                `${extractBaseUrl(parent.schema.$id)}v/${parentVersion}` as VersionedUrl,
+              )
+            }
+          />
+        }
+      >
+        <Cell
+          sx={{
+            ...treeCellSx,
+            maxWidth: 1,
+            display: "flex",
+            alignItems: "baseline",
+            gap: 1.5,
+          }}
         >
-          <Box sx={{ ...firstCellSx, maxWidth: 1 }}>
-            <TypeLabel
-              entityType={parent}
-              former={false}
-              isLink={isLinkType(parent)}
-              version={parentVersion}
-            />
+          <Box
+            component="span"
+            sx={({ palette }) => ({
+              flex: "none",
+              minWidth: 52,
+              fontSize: 13,
+              color: palette.gray[70],
+            })}
+          >
+            {count}
           </Box>
           <Box
-            sx={{
-              ...treeCellSx,
-              maxWidth: 1,
-              display: "flex",
-              alignItems: "baseline",
-              gap: 1.5,
-            }}
+            component="span"
+            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
           >
-            <Box
-              component="span"
-              sx={({ palette }) => ({
-                flex: "none",
-                minWidth: 52,
-                fontSize: 13,
-                color: palette.gray[70],
-              })}
-            >
-              {count}
-            </Box>
-            <Box
-              component="span"
-              sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              {titles}
-            </Box>
+            {titles}
           </Box>
-        </RowToggle>
-        <OpenTypeButton
-          label={`Open ${parentLabel}`}
-          onClick={() =>
-            onOpenType(
-              `${extractBaseUrl(parent.schema.$id)}v/${parentVersion}` as VersionedUrl,
-            )
-          }
-        />
-      </Box>
+        </Cell>
+        <Cell />
+      </ExpandableRow>
       {expanded ? (
-        <Box
-          sx={subgridRowSx}
-          role="group"
-          aria-label={`Types that extend ${parentLabel}`}
-        >
+        <Box sx={subgridRowSx}>
           {types.map((type, index) => (
             <DependentTypeSubRow
               key={type.row.entityType.schema.$id}
@@ -187,39 +186,41 @@ const ParentVersionTableRow = ({
 
 /** One row per version of the parent, newest first, expandable into the types that extend it. */
 export const DependentTypesByVersionTable = ({
+  labelledBy,
   entityType,
   parentVersionRows,
   isLinkType,
   onOpenType,
 }: {
+  labelledBy: string;
   /** The type on the page, whose versions are the rows. */
   entityType: EntityTypeWithMetadata;
   parentVersionRows: ParentVersionRow[];
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
-  <TableCard gridTemplateColumns={gridTemplateColumns}>
+  <TableCard gridTemplateColumns={gridTemplateColumns} labelledBy={labelledBy}>
     <HeaderRow>
-      <Box
+      <ColumnHeader
         sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
       >
         <Box component="span" sx={{ fontWeight: 700 }}>
           {entityType.schema.title}
         </Box>{" "}
         version
-      </Box>
-      <Box sx={treeCellSx}>Extended by</Box>
-      <Box
+      </ColumnHeader>
+      <ColumnHeader sx={treeCellSx}>Extended by</ColumnHeader>
+      <ColumnHeader
         sx={{
           ...cellSx,
           // Only an expanded row puts values in this column.
-          [`.${tableGridClassName}:not(:has([role="group"])) &`]: {
+          [`.${tableGridClassName}:not(:has([aria-expanded="true"])) &`]: {
             visibility: "hidden",
           },
         }}
       >
         Versions
-      </Box>
+      </ColumnHeader>
     </HeaderRow>
     {parentVersionRows.map((parentVersionRow) => (
       <ParentVersionTableRow

@@ -185,6 +185,7 @@ export const DependentTypesSection = ({
       {shownRows && shownRows.length > 0 ? (
         layout === "byType" ? (
           <DependentTypesByTypeTable
+            labelledBy={headingId}
             entityTypeTitle={entityTypeTitle}
             parentLatestVersion={parentLatestVersion}
             rows={shownRows}
@@ -193,6 +194,7 @@ export const DependentTypesSection = ({
           />
         ) : (
           <DependentTypesByVersionTable
+            labelledBy={headingId}
             entityType={entityType}
             parentVersionRows={getParentVersionRows({ rows: shownRows })}
             isLinkType={isLinkType}
