@@ -22,6 +22,7 @@ This directory contains external services used throughout HASH, including authen
 ### Workflow Execution
 
 - **Temporal** - Reliable workflow execution and task orchestration
+- **Restate** - Durable execution of integration runs, in the `dev` profile only
 
 ### Observability Stack
 

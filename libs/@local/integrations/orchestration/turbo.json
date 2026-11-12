@@ -32,7 +32,17 @@
       "command": ["mise", "run", "test:unit", "hash-integrations-orchestration"]
     },
     "test:integration": {
-      "command": ["cargo", "nextest", "run", "--features", "dbos", "--test", "dbos"]
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--features",
+        "dbos,restate",
+        "--test",
+        "dbos",
+        "--test",
+        "restate"
+      ]
     }
   }
 }

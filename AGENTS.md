@@ -82,8 +82,10 @@ The compose stack and the graph take these, so a new dev server stays off them a
 | 5432       | Postgres                    | `POSTGRES_PORT`                |
 | 6379       | Redis                       |                                |
 | 7233       | Temporal server             | `HASH_TEMPORAL_SERVER_PORT`    |
+| 8080       | Restate ingress             | `HASH_RESTATE_INGRESS_PORT`    |
 | 8200       | Vault                       | `HASH_VAULT_PORT`              |
 | 9000, 9001 | MinIO API and console       |                                |
+| 9070       | Restate admin API           | `HASH_RESTATE_ADMIN_PORT`      |
 
 The Brunch agent's `start` script and its production image listen on 3002; the dev pair uses 4321 and 4915.
 

@@ -366,6 +366,27 @@ services:
       timeout: 2s
       retries: 10
 
+  restate:
+    profiles:
+      - dev
+    image: "docker.restate.dev/restatedev/restate:${HASH_RESTATE_VERSION:-1.8.1}"
+    deploy:
+      restart_policy:
+        condition: on-failure
+    extra_hosts:
+      # Restate calls workers that run on the host, such as the orchestration backend's tests.
+      - host.docker.internal:host-gateway
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${HASH_RESTATE_INGRESS_PORT:-8080}:8080"
+      - "${HASH_RESTATE_ADMIN_PORT:-9070}:9070"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9070/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
   # ==========================================================================
   # Object storage (S3-compatible) — local MinIO for file uploads.
   # ==========================================================================
