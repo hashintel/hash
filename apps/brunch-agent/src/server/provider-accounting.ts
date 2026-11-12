@@ -23,7 +23,7 @@ import type {
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
 
-const vConfig = v.strictObject({
+const configSchema = v.strictObject({
   ledgerPath: v.pipe(v.string(), v.check(isAbsolute)),
   runId: v.pipe(v.string(), v.minLength(1)),
 });
@@ -35,9 +35,9 @@ export const createStepARequestAccounting = (
 ) => {
   if (configuration === undefined || configuration === "") return undefined;
   // Do not print an invalid configuration: it is an untrusted environment boundary.
-  let config: v.InferOutput<typeof vConfig>;
+  let config: v.InferOutput<typeof configSchema>;
   try {
-    config = v.parse(vConfig, JSON.parse(configuration));
+    config = v.parse(configSchema, JSON.parse(configuration));
   } catch {
     throw new Error("Invalid Step A accounting configuration.");
   }
