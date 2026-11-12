@@ -37,8 +37,11 @@ const failure = css({ maxWidth: "[560px]", mx: "auto" });
 /** The editor's Logs view: the flow's runs. */
 export const LogsView = ({
   flowDefinitionEntityId,
+  getRunPath,
 }: {
   flowDefinitionEntityId: EntityId;
+  /** Where a run opens. */
+  getRunPath: (flowRunEntityId: EntityId) => string;
 }) => {
   const { flowRuns, retry } = useFlowRuns(flowDefinitionEntityId);
   const { authenticatedUser } = useAuthenticatedUser();
@@ -106,6 +109,7 @@ export const LogsView = ({
           toRunRow(run, webShortnames.get(run.webId) ?? null),
         )}
         now={flowRuns.loadedAt}
+        getRunPath={getRunPath}
       />
     </div>
   );

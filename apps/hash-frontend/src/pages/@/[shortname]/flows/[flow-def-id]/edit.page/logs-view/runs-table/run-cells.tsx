@@ -4,6 +4,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../../../components/hooks/use-snackbar";
 import { Link } from "../../../../../../../../shared/ui/link";
+import { shortRunIdFont } from "../../shared/run-id";
 import { runStates } from "../run-state";
 
 import type { RunRow } from "../run-list";
@@ -12,9 +13,6 @@ import type { IconName } from "@hashintel/ds-components";
 
 const idCell = css({ display: "flex", alignItems: "center", gap: "1" });
 const shortId = css({
-  /* The `mono` token starts with Geist Mono's variable, which the frontend doesn't define, so it falls back to Inter. */
-  fontFamily: "[ui-monospace, SFMono-Regular, monospace]",
-  fontSize: "[13px]",
   color: "fg.heading",
   _hover: { textDecoration: "underline" },
 });
@@ -31,8 +29,8 @@ export const IdCell = ({
   href,
 }: {
   row: RunRow;
-  /** The run's page, unless it's in a web the user isn't a member of. */
-  href: string | null;
+  /** Where the run opens. */
+  href: string;
 }) => {
   const { triggerSnackbar } = useSnackbar();
 
@@ -49,18 +47,15 @@ export const IdCell = ({
 
   return (
     <div className={cx("group", idCell)}>
-      {href ? (
-        <Link
-          href={href}
-          noLinkStyle
-          /* The row opens the run too. */
-          onClick={(event) => event.stopPropagation()}
-        >
-          <span className={shortId}>{row.shortId}</span>
-        </Link>
-      ) : (
-        <span className={shortId}>{row.shortId}</span>
-      )}
+      <Link
+        href={href}
+        shallow
+        noLinkStyle
+        /* The row opens the run too. */
+        onClick={(event) => event.stopPropagation()}
+      >
+        <span className={cx(shortRunIdFont, shortId)}>{row.shortId}</span>
+      </Link>
       <span
         role="presentation"
         /* Copying doesn't open the run. */

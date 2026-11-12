@@ -3,7 +3,6 @@ import { useState } from "react";
 
 import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import {
   countRunsByTab,
@@ -20,6 +19,7 @@ import { AddRunFilter, RunFilterBar } from "./runs-table/run-filters";
 import type { RunFilters, RunRow, RunSort, RunSortKey } from "./run-list";
 import type { RunTab } from "./run-state";
 import type { RunFilterProperty } from "./runs-table/run-filters";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection, Sorter } from "@hashintel/ds-components";
 
 const tabs: { id: RunTab; label: string }[] = [
@@ -161,8 +161,16 @@ const SortHeader = ({
   );
 };
 
-/** The flow's runs, by status tab, with Sort and Filter. */
-export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
+/** The flow's runs, by status tab, with Sort and Filter. A row opens its run. */
+export const RunsTable = ({
+  rows,
+  now,
+  getRunPath,
+}: {
+  rows: RunRow[];
+  now: Date;
+  getRunPath: (flowRunEntityId: EntityId) => string;
+}) => {
   const router = useRouter();
   const [tab, setTab] = useState<RunTab>("all");
   const [sort, setSort] = useState<RunSort>(defaultRunSort);
@@ -181,14 +189,6 @@ export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
   );
   const appliedFilterCount =
     (filters.states.length > 0 ? 1 : 0) + (filters.trigger ? 1 : 0);
-
-  const runPathOf = (row: RunRow) =>
-    row.webShortname
-      ? generateWorkerRunPath({
-          shortname: row.webShortname,
-          flowRunEntityId: row.flowRunEntityId,
-        })
-      : null;
 
   return (
     <>
@@ -262,31 +262,27 @@ export const RunsTable = ({ rows, now }: { rows: RunRow[]; now: Date }) => {
         </thead>
         <tbody>
           {shown.map((row) => {
-            const runPath = runPathOf(row);
+            const runPath = getRunPath(row.flowRunEntityId);
             const duration = getRunDuration(row, now);
 
             return (
               <tr
                 key={row.flowRunEntityId}
-                className={runPath ? openableRow : undefined}
-                onClick={
-                  runPath
-                    ? (event) => {
-                        /* A click that ends selecting text isn't a click on the row. */
-                        if (window.getSelection()?.toString()) {
-                          return;
-                        }
+                className={openableRow}
+                onClick={(event) => {
+                  /* A click that ends selecting text isn't a click on the row. */
+                  if (window.getSelection()?.toString()) {
+                    return;
+                  }
 
-                        /* A click with a modifier opens the run in a new tab, as one on the ID's link does. */
-                        if (event.metaKey || event.ctrlKey || event.shiftKey) {
-                          window.open(runPath, "_blank", "noopener");
-                          return;
-                        }
+                  /* A click with a modifier opens the run in a new tab, as one on the ID's link does. */
+                  if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    window.open(runPath, "_blank", "noopener");
+                    return;
+                  }
 
-                        void router.push(runPath);
-                      }
-                    : undefined
-                }
+                  void router.push(runPath, undefined, { shallow: true });
+                }}
               >
                 <td>
                   <IdCell row={row} href={runPath} />
