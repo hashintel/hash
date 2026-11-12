@@ -8,6 +8,7 @@ import {
 } from "@flue/sdk";
 import {
   errors,
+  expect,
   type Page,
   type Response as BrowserResponse,
 } from "@playwright/test";
@@ -152,7 +153,16 @@ const fillDockedAnswers = async (page: Page, answers: readonly string[]) => {
         .getByRole("group")
         .getByRole("button", { name: text, exact: true });
       // eslint-disable-next-line no-await-in-loop -- The dock shows one question at a time.
-      if ((await option.count()) === 1) await option.click();
+      if ((await option.count()) === 1) {
+        // eslint-disable-next-line no-await-in-loop -- As above.
+        await option.click();
+        // A pick that wrote nothing would send an unanswered question.
+        // eslint-disable-next-line no-await-in-loop -- As above.
+        await expect(
+          composer,
+          `Picking "${text}" wrote no answer into the composer`,
+        ).not.toHaveValue("", { timeout: 5_000 });
+      }
       // eslint-disable-next-line no-await-in-loop -- As above.
       else await composer.fill(text);
     }

@@ -43,6 +43,12 @@ const noteStyle = css({
   lineHeight: "[1.45]",
 });
 
+const descriptionsStyle = css({
+  display: "grid",
+  "& > *": { gridArea: "[1 / 1]", visibility: "hidden" },
+  "& > [data-answer-description]": { visibility: "visible" },
+});
+
 /** What a question with nothing to click asks the person to type. */
 const typedHint = (question: OfferedQuestion) =>
   question.kind === "values"
@@ -98,10 +104,6 @@ const AnswerDock = ({
   const options = optionsFor(question);
   const picked = pickedOption(answer, options);
   const several = questions.length > 1;
-  // A description left over from another question's option says nothing here.
-  const description = options.includes(described as OfferedOption)
-    ? described?.value
-    : undefined;
 
   return (
     <section
@@ -162,10 +164,26 @@ const AnswerDock = ({
               </Button>
             ))}
           </div>
-          {description !== undefined && (
-            <p className={noteStyle} data-answer-description>
-              {description}
-            </p>
+          {options.some(({ value }) => value !== undefined) && (
+            // Every description is laid out in one cell, so the dock is as
+            // tall as the longest and showing one moves nothing: a button
+            // that shifted under the pointer would lose its click.
+            <div className={descriptionsStyle}>
+              {options.map(
+                (option) =>
+                  option.value !== undefined && (
+                    <p
+                      key={option.label}
+                      className={noteStyle}
+                      data-answer-description={
+                        option === described || undefined
+                      }
+                    >
+                      {option.value}
+                    </p>
+                  ),
+              )}
+            </div>
           )}
         </>
       )}
