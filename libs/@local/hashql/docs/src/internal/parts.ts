@@ -13,12 +13,13 @@ export type Source =
   | AST.CallSignature.CallSignature
   | AST.ConstructSignature.ConstructSignature
   | AST.Property.Property
+  | AST.CallableProperty.CallableProperty
   | AST.Getter.Getter
   | AST.Setter.Setter
   | AST.EnumMember.EnumMember
   | AST.IndexSignature.IndexSignature;
 
-/** One declaration a reader sees, with the calls it numbers. A function's overload numbers its own call, and a callable constant numbers every call of its type. */
+/** One declaration a reader sees, with the calls it numbers. An overload of a function or of a method numbers its own call, and a callable constant or property numbers every call of its type. */
 export interface Part {
   readonly source: Source;
   readonly calls: readonly AST.CallSignature.CallSignature[];
@@ -42,24 +43,25 @@ const call = (source: AST.CallSignature.CallSignature): Part => ({
   calls: [source],
 });
 
-/** A callable constant keeps its calls together under its own declaration, and a function declares each overload apart. */
+/** A callable constant or property keeps its calls together under its own declaration, and a function or a method declares each overload apart. */
+const callableParts = (
+  ast: AST.Store["Service"],
+  source: AST.FunctionDeclaration.FunctionDeclaration | AST.Method.Method,
+): readonly Part[] => {
+  const calls = pipe(source.overloads, Array.fromIterable, Array.map(ast.get));
+  if (source.flavour === "const" || source.flavour === "property") {
+    return [{ source, calls }];
+  }
+  return Array.map(calls, call);
+};
+
 const valueParts = (
   ast: AST.Store["Service"],
   value: AST.ValueDeclaration.ValueDeclaration,
 ): readonly Part[] =>
   Match.value(value).pipe(
     Match.tag("ConstantDeclaration", (source) => [plain(source)]),
-    Match.tag("FunctionDeclaration", (source) => {
-      const calls = pipe(
-        source.overloads,
-        Array.fromIterable,
-        Array.map(ast.get),
-      );
-      if (source.flavour === "const") {
-        return [{ source, calls }];
-      }
-      return Array.map(calls, call);
-    }),
+    Match.tag("FunctionDeclaration", (source) => callableParts(ast, source)),
     Match.exhaustive,
   );
 
@@ -103,9 +105,7 @@ const memberParts = (
   member: AST.Member.Member,
 ): readonly Part[] =>
   Match.value(member).pipe(
-    Match.tag("Method", ({ overloads }) =>
-      pipe(overloads, Array.fromIterable, Array.map(ast.get), Array.map(call)),
-    ),
+    Match.tag("Method", (source) => callableParts(ast, source)),
     Match.tag("Accessor", ({ get, set }) =>
       pipe(
         Array.appendAll(

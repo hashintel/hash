@@ -3,21 +3,16 @@ import * as Syntax from "typescript/ast";
 
 import * as AST from "../AST/index.js";
 import * as TypeScript from "../TypeScript/index.js";
+import * as Calls from "./ast-calls.js";
 import * as Comments from "./ast-comments.js";
 import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
 import type { Interned } from "../AST/Interned.js";
-import type * as Names from "./ast-names.js";
 import type { Failure } from "./ast-type-parser.js";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
-export type Requirements =
-  | AST.Store
-  | Types.TypeParser
-  | Names.Reach
-  | Comments.CommentParser
-  | TypeScript.Checker.Checker;
+export type Requirements = Calls.Requirements | Comments.CommentParser;
 
 type Parsed<A> = Effect.Effect<A, Failure, Requirements>;
 
@@ -81,10 +76,10 @@ const methodOf = (
   methods: Array.NonEmptyReadonlyArray<
     Syntax.MethodDeclaration | Syntax.MethodSignatureDeclaration
   >,
-): Parsed<AST.Method.Method> =>
+): Parsed<AST.MethodOverloads.MethodOverloads> =>
   Effect.forEach(methods, Types.call).pipe(
     Effect.map((overloads) =>
-      AST.Method.make({
+      AST.MethodOverloads.make({
         overloads: Chunk.make(...overloads),
         ...namedOf(methods[0]),
       }),
@@ -130,21 +125,69 @@ const accessorOf = (
   );
 };
 
-const propertyOf = (
-  node: Syntax.PropertyDeclaration | Syntax.PropertySignatureDeclaration,
-): Parsed<AST.Property.Property> =>
-  Effect.all({
-    node: Effect.succeed(node),
-    type: Types.optional(Option.fromUndefinedOr(node.type)),
-    documentation: Comments.documentation(node),
-  }).pipe(
-    Effect.map((fields) => AST.Property.make({ ...fields, ...namedOf(node) })),
+type PropertySource =
+  | Syntax.PropertyDeclaration
+  | Syntax.PropertySignatureDeclaration;
+
+/** The calls a property's annotation states. An optional property states those of the type it has when it is present. */
+const callsOf = Effect.fnUntraced(function* (
+  node: PropertySource,
+  symbol: CompilerSymbol,
+  annotation: AST.TypeNode.Interned,
+) {
+  const checker = yield* TypeScript.Checker.Checker;
+  let value = yield* checker.getTypeOfSymbol(symbol);
+  if (node.postfixToken?.kind === Syntax.SyntaxKind.QuestionToken) {
+    value = yield* checker.getNonNullableType(value);
+  }
+
+  return yield* Calls.stated({ name: symbol.name, value, annotation });
+});
+
+/** A property whose annotation states calls is a method written as a property, and keeps its declaration. */
+const propertyOf = Effect.fnUntraced(function* (
+  node: PropertySource,
+  symbol: Option.Option<CompilerSymbol>,
+): Effect.fn.Return<
+  AST.Property.Property | AST.CallableProperty.CallableProperty,
+  Failure,
+  Requirements
+> {
+  const store = yield* AST.Store;
+  const type = yield* Types.optional(Option.fromUndefinedOr(node.type));
+  const documentation = yield* Comments.documentation(node);
+  const stated = yield* Effect.transposeOption(
+    Option.zipWith(symbol, type, (named, annotation) =>
+      callsOf(node, named, annotation),
+    ),
   );
+  const overloads = Option.getOrElse(stated, () => []);
+  // A property's comment documents the calls its type states.
+  yield* Comments.checkParameters(
+    documentation,
+    Array.map(overloads, store.get),
+  );
+  if (Option.isNone(type) || !Array.isReadonlyArrayNonEmpty(overloads)) {
+    return AST.Property.make({ node, type, documentation, ...namedOf(node) });
+  }
+
+  return AST.CallableProperty.make({
+    node,
+    type: type.value,
+    overloads: Chunk.make(...overloads),
+    documentation,
+    ...namedOf(node),
+  });
+});
+
+/** Declarations sharing a symbol, which is the member's own. */
+interface Group {
+  readonly nodes: Array.NonEmptyArray<CommonSource>;
+  readonly symbol: Option.Option<CompilerSymbol>;
+}
 
 /** One member from the declarations that share its symbol. Overloaded methods and paired accessors merge, anything else must stand alone. */
-const commonMember = (
-  nodes: Array.NonEmptyReadonlyArray<CommonSource>,
-): Parsed<CommonMember> => {
+const commonMember = ({ nodes, symbol }: Group): Parsed<CommonMember> => {
   const [node] = nodes;
   const methods = Array.filter(nodes, isMethod);
 
@@ -180,7 +223,7 @@ const commonMember = (
     Syntax.isPropertyDeclaration(node) ||
     Syntax.isPropertySignatureDeclaration(node)
   ) {
-    return propertyOf(node);
+    return propertyOf(node, symbol);
   }
 
   return unsupported(node);
@@ -196,12 +239,6 @@ const symbolOf = (
 
   return Effect.asSome(TypeScript.Checker.getSymbolOfDeclaration(node));
 };
-
-/** Declarations sharing a symbol, which is the member's own. */
-interface Group {
-  readonly nodes: Array.NonEmptyArray<CommonSource>;
-  readonly symbol: Option.Option<CompilerSymbol>;
-}
 
 /** Declarations of one member share their symbol, and each index signature stays a member of its own. Members keep the order of their first declarations. */
 const groupsOf = (
@@ -234,12 +271,11 @@ const groupsOf = (
 };
 
 /** A member named by its symbol, or by none for an index signature. */
-const memberEntry = ({
-  nodes,
-  symbol,
-}: Group): AST.Entry<CommonMember, Failure, Requirements> => ({
-  symbols: Option.toArray(symbol),
-  build: () => commonMember(nodes),
+const memberEntry = (
+  group: Group,
+): AST.Entry<CommonMember, Failure, Requirements> => ({
+  symbols: Option.toArray(group.symbol),
+  build: () => commonMember(group),
 });
 
 /** The named members and index signatures of one body. The parse reserves every named member before it reads any, so a member's type can name one declared after it, as `a: typeof C.b` names the static `b` that follows it. */
