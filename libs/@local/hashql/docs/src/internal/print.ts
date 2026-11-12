@@ -202,7 +202,7 @@ const example = Effect.fnUntraced(function* (
       Option.match(info, {
         onNone: () => Effect.succeedNone,
         onSome: (value) =>
-          QuickInfo.display(value, name).pipe(
+          QuickInfo.display(value).pipe(
             Effect.map((text) =>
               Option.some({
                 offset: name.getStart(),
