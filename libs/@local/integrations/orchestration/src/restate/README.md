@@ -11,11 +11,11 @@ client ──start──▶ Restate ──HTTP/2 stream──▶ worker
                  (journal) ◀──step results──
 ```
 
-| Party | What it is | Code |
-| --- | --- | --- |
-| Client | Any process that starts, reads or cancels a run. It sends HTTP requests to Restate. | `runs.rs`, `status.rs` |
-| Restate | The server. It stores the runs and decides which worker executes which run. | Not ours |
-| Worker | A process that holds our run function. It serves HTTP, and Restate calls it. | `worker.rs`, `run.rs` |
+| Party   | What it is                                                                          | Code                   |
+| ------- | ----------------------------------------------------------------------------------- | ---------------------- |
+| Client  | Any process that starts, reads or cancels a run. It sends HTTP requests to Restate. | `runs.rs`, `status.rs` |
+| Restate | The server. It stores the runs and decides which worker executes which run.         | Not ours               |
+| Worker  | A process that holds our run function. It serves HTTP, and Restate calls it.        | `worker.rs`, `run.rs`  |
 
 A client and a worker never talk to each other. A worker has no ID, and Restate keeps no list of workers. It only knows URLs.
 
@@ -39,21 +39,22 @@ A client and a worker never talk to each other. A worker has no ID, and Restate 
 
 Each file implements one trait of the orchestrator.
 
-| File | Implements |
-| --- | --- |
-| `mod.rs` | `RestateConfig`, which a client needs, `WorkerConfig`, which only a worker needs, and the backend struct |
-| `worker.rs` | `Worker` on `RestateWorker`: serve the handlers and register the URL |
-| `run.rs` | The `IntegrationRun` handler, which calls the `RunFunction` and is its `StepContext` |
-| `runs.rs` | `Runs`: start and cancel a run, one request each |
-| `status.rs` | The status of a run, read from the tables of Restate's admin API |
-| `token_bucket.rs` | `CoordinationStore`: the token bucket object |
+| File              | Implements                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| `mod.rs`          | `RestateConfig`, which a client needs, `WorkerConfig`, which only a worker needs, and the backend struct |
+| `worker.rs`       | `Worker` on `RestateWorker`: serve the handlers and register the URL                                     |
+| `run.rs`          | The `IntegrationRun` handler, which calls the `RunFunction` and is its `StepContext`                     |
+| `runs.rs`         | `Runs`: start and cancel a run, one request each                                                         |
+| `status.rs`       | The status of a run, read from the tables of Restate's admin API                                         |
+| `token_bucket.rs` | `CoordinationStore`: the token bucket object                                                             |
 
 ## What to keep in mind
 
 - **A step can execute twice.** If a worker dies after a step wrote to an outside system and before Restate journaled the result, the step executes again. That write has to be safe to repeat.
 - **A retry starts the run function from the top.** Anything a later step needs is in an earlier step's result, or in durable storage that the result points to. Memory and local files of the previous attempt are gone.
 - **Status is read from admin tables.** Restate tells a client whether a call has finished, and nothing about its progress. So `status.rs` reads the phase and the step count with SQL from Restate's admin API.
-- **`start` leaves competing starts to Restate.** A run that is started again attaches to the existing run, and a run under a busy admission key waits for it. The backend returns neither `StartMismatch` nor `AlreadyActive`.
+- **`start` leaves competing starts to Restate.** A run that is started again attaches to the existing run and keeps its first input, even when the second start has another one. A run under a busy admission key waits for it. The backend returns neither `StartMismatch` nor `AlreadyActive`.
+- **A cancelled run needs a worker to end.** Restate records the cancel at once, but a run that no worker has begun stays pending until a worker picks it up. It then ends cancelled before its first step.
 - **A renamed step does not fail the run.** Restate notices that the journal no longer matches the code, retries the run and then pauses it.
 
 ## Try it

@@ -23,6 +23,7 @@ use core::{
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
     time::Duration,
 };
+use std::sync::Mutex;
 
 use error_stack::Report;
 use hash_integrations_orchestration::{
@@ -438,6 +439,143 @@ async fn start_without_worker() {
         None,
         "an unknown run should have no status"
     );
+}
+
+/// Records the input of every attempt of its one step.
+struct RecordsInput {
+    inputs: Mutex<Vec<u32>>,
+}
+
+impl RecordsInput {
+    fn new() -> Arc<Self> {
+        Arc::new(Self {
+            inputs: Mutex::new(Vec::new()),
+        })
+    }
+
+    fn inputs(&self) -> Vec<u32> {
+        self.inputs.lock().expect("should lock the inputs").clone()
+    }
+}
+
+impl RunFunction for RecordsInput {
+    type Input = u32;
+
+    const VERSION: FunctionVersion = FunctionVersion::new(1);
+
+    async fn run(
+        &self,
+        context: &mut impl StepContext,
+        input: u32,
+    ) -> Result<(), Report<RunError>> {
+        context
+            .run(step("record"), || async move {
+                self.inputs
+                    .lock()
+                    .expect("should lock the inputs")
+                    .push(input);
+                Ok(())
+            })
+            .await
+    }
+}
+
+/// A second start under a run's ID with another input attaches to the run, which keeps its
+/// first input.
+#[tokio::test]
+async fn start_again_with_other_input_attaches() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let worker_config = worker_config();
+    let function = RecordsInput::new();
+    // Registers the run object, so that both starts reach Restate before a worker runs the run.
+    TestWorker::spawn(&config, worker_config.clone(), Arc::clone(&function))
+        .await
+        .stop()
+        .await;
+    let (admission, run) = (admission_key(), run_id());
+
+    backend
+        .start(
+            run.clone(),
+            start(&admission, RecordsInput::VERSION, &1_u32),
+        )
+        .await
+        .expect("should start the run");
+    backend
+        .start(
+            run.clone(),
+            start(&admission, RecordsInput::VERSION, &2_u32),
+        )
+        .await
+        .expect("starting the run again with another input should attach to it");
+
+    let worker = TestWorker::spawn(&config, worker_config, Arc::clone(&function)).await;
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Completed,
+            steps_recorded: 1
+        }
+    );
+    assert_eq!(
+        function.inputs(),
+        [1],
+        "the run should execute once, with its first input"
+    );
+    worker.stop().await;
+}
+
+/// A run cancelled before any worker began it stays pending, then ends cancelled without running
+/// a step once a worker picks it up.
+#[tokio::test]
+async fn cancel_before_the_run_begins() {
+    let _server = lock_server();
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
+    let worker_config = worker_config();
+    let function = RecordsInput::new();
+    TestWorker::spawn(&config, worker_config.clone(), Arc::clone(&function))
+        .await
+        .stop()
+        .await;
+    let run = run_id();
+
+    backend
+        .start(
+            run.clone(),
+            start(&admission_key(), RecordsInput::VERSION, &1_u32),
+        )
+        .await
+        .expect("should start the run");
+    backend.cancel(&run).await.expect("should cancel the run");
+    assert_eq!(
+        backend.status(&run).await.expect("should read the status"),
+        Some(RunStatus {
+            phase: RunPhase::Pending,
+            steps_recorded: 0
+        }),
+        "a cancelled run should stay pending while no worker runs it"
+    );
+
+    let worker = TestWorker::spawn(&config, worker_config, Arc::clone(&function)).await;
+    let status = wait_until(&backend, &run, finished).await;
+
+    assert_eq!(
+        status,
+        RunStatus {
+            phase: RunPhase::Cancelled,
+            steps_recorded: 0
+        }
+    );
+    assert!(
+        function.inputs().is_empty(),
+        "the cancelled run should not execute its step"
+    );
+    worker.stop().await;
 }
 
 /// Three steps, of which the second waits until the test releases it.

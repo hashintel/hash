@@ -40,7 +40,8 @@ impl Runs for RestateBackend {
     }
 
     /// Restate raises the cancellation in the run at its next step, so a step that is executing
-    /// finishes and is recorded. A run that has not begun is removed.
+    /// finishes and is recorded. A run that no worker has begun keeps its pending status until a
+    /// worker picks it up, and then ends cancelled before its first step.
     async fn cancel(&self, run: &RunId) -> Result<(), Report<BackendError>> {
         let unfinished = self
             .invocation(run)

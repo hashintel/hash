@@ -58,16 +58,21 @@ impl<R: Runs> IntegrationService<R> {
 
     /// Starts the run of `request`, or attaches to it when the request is repeated.
     ///
-    /// A repeated request attaches only if it starts the same run: the same actor, definition and
-    /// invocation, under the same [`FUNCTION_VERSION`] and [`RETRY_POLICY`]. A retry after a
-    /// deploy that changes either fails with [`ServiceError::RequestMismatch`].
+    /// A backend that compares starts attaches a repeated request only if it starts the same run:
+    /// the same actor, definition and invocation, under the same [`FUNCTION_VERSION`] and
+    /// [`RETRY_POLICY`]. A retry after a deploy that changes either fails with
+    /// [`ServiceError::RequestMismatch`]. The Restate backend does not compare: a repeated request
+    /// attaches to its run, which keeps its first start. It also does not refuse a run while
+    /// another run of the integration is active; the new run waits for it.
     ///
     /// # Errors
     ///
     /// - [`ServiceError::WebMismatch`] if the request is for another web than this node's.
     /// - [`ServiceError::InvalidDefinition`] if the definition is not a valid definition.
-    /// - [`ServiceError::AlreadyActive`] if another run of the integration is active.
-    /// - [`ServiceError::RequestMismatch`] if the request ID was used before for a different run.
+    /// - [`ServiceError::AlreadyActive`] if another run of the integration is active and the
+    ///   backend refuses a second one.
+    /// - [`ServiceError::RequestMismatch`] if the request ID was used before for a different run
+    ///   and the backend compares starts.
     /// - [`ServiceError::Backend`] if the backend could not start the run.
     pub(crate) async fn submit(
         &self,
