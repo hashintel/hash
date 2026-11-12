@@ -1,4 +1,4 @@
-/* oxlint-disable no-magic-numbers -- The numbers are illustrative temporal data and SVG coordinates. */
+/* oxlint-disable hash/no-magic-numbers -- The numbers are illustrative temporal data and SVG coordinates. */
 import { useId } from "react";
 
 import styles from "./temporal-axes.module.css";

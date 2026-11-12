@@ -8,7 +8,6 @@ export function MdxCallout({
   ...props
 }: ComponentProps<typeof Callout>): ReactNode {
   return (
-    // oxlint-disable-next-line react/jsx-props-no-spreading -- forwards Fumadocs callout props while changing only the body colour
     <Callout {...props}>
       <div className="text-fd-foreground">{children}</div>
     </Callout>
