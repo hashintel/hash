@@ -1,4 +1,13 @@
-import { Array, Function, HashMap, Option, Result, String, pipe } from "effect";
+import {
+  Array,
+  Function,
+  HashMap,
+  MutableHashSet,
+  Option,
+  Result,
+  String,
+  pipe,
+} from "effect";
 
 import * as Content from "./Content.js";
 import * as Hierarchy from "./Hierarchy.js";
@@ -43,13 +52,13 @@ const shownBases = (
   hierarchy: Hierarchy.Hierarchy,
   index: number,
 ): readonly number[] => {
-  const seen = new Set([index]);
+  const seen = MutableHashSet.make(index);
   const pending = Array.copy(hierarchy.bases[index] ?? []);
   const shown: number[] = [];
 
   for (const base of pending) {
-    if (!seen.has(base)) {
-      seen.add(base);
+    if (!MutableHashSet.has(seen, base)) {
+      MutableHashSet.add(seen, base);
       if (Option.exists(vertexAt(hierarchy, base), isShown)) {
         shown.push(base);
       } else {
