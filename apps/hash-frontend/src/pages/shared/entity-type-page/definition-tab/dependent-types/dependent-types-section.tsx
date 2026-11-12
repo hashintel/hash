@@ -5,8 +5,6 @@ import {
   Skeleton,
   Stack,
   Switch,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -14,7 +12,9 @@ import { useId, useState } from "react";
 
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
+import { SegmentedControl } from "@hashintel/ds-components";
 
+import { DsComponentsScope } from "../../../ds-components-scope";
 import { getParentVersionRows } from "./dependent-type-rows";
 import { DependentTypesByTypeTable } from "./dependent-types-by-type-table";
 import { DependentTypesByVersionTable } from "./dependent-types-by-version-table";
@@ -107,20 +107,18 @@ export const DependentTypesSection = ({
           sx={{ flexWrap: "wrap", alignItems: "center", gap: 2, mb: 1.5 }}
         >
           <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
-            <ToggleButtonGroup
-              aria-label="Table layout"
-              exclusive
-              size="small"
-              value={layout}
-              onChange={(_event, value: Layout | null) => {
-                if (value) {
-                  setLayout(value);
-                }
-              }}
-            >
-              <ToggleButton value="byType">By type</ToggleButton>
-              <ToggleButton value="byVersion">By version</ToggleButton>
-            </ToggleButtonGroup>
+            <DsComponentsScope>
+              <SegmentedControl
+                size="sm"
+                aria-label="Table layout"
+                value={layout}
+                onChange={setLayout}
+                items={[
+                  { value: "byType", label: "By type" },
+                  { value: "byVersion", label: "By version" },
+                ]}
+              />
+            </DsComponentsScope>
             <InfoButton
               label="About the layouts"
               text={
