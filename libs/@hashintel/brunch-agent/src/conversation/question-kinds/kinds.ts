@@ -8,16 +8,19 @@ export type ValueField = { label: string; unit?: string };
 export type OfferedOption = { label: string; value?: string };
 
 /**
- * A question one reply asks, with the kind that decides which answers the
- * dock on the composer offers. The wire schema is checked against this type.
+ * A question a turn asks: a short name, the question as asked, and the kind
+ * that decides which answers the dock on the composer offers. The reply
+ * itself only leads into the questions, so `text` is the one place each is
+ * asked. The wire schema is checked against
+ * this type.
  */
 export type OfferedQuestion =
-  | { kind: "confirm"; label: string }
-  | { kind: "choose"; label: string; options: OfferedOption[] }
-  | { kind: "values"; label: string; fields: ValueField[] }
-  | { kind: "open"; label: string };
+  | { kind: "confirm"; label: string; text: string }
+  | { kind: "choose"; label: string; text: string; options: OfferedOption[] }
+  | { kind: "values"; label: string; text: string; fields: ValueField[] }
+  | { kind: "open"; label: string; text: string };
 
-/** Every question one reply asks, in the reply's order. */
+/** Every question one turn asks, in order. */
 export type OfferedQuestions = { questions: OfferedQuestion[] };
 
 export type QuestionKind = OfferedQuestion["kind"];
@@ -72,18 +75,29 @@ export const neverOffer = [
 /** What each part of an offer means, for whoever writes one. */
 export const offerText = {
   questions:
-    "Every question your reply asks, in the reply's order, including the open ones.",
+    "Every question this turn asks, in the order to answer them, including the open ones.",
   label:
-    'A short name for the question, such as "Quarantined shipment". It heads the question\'s answer on screen and in the sent text; for an open question, name what to write, such as "Recent order, start to finish".',
-  options: "The alternatives, one button each.",
+    'A short name for the question, such as "Quarantined shipment". It heads the question on screen and its answer in the sent text; for an open question, name what to write, such as "Recent order, start to finish".',
+  text: 'The question itself, in full, as you would ask it aloud, such as "When a shipment is quarantined, how is it counted until quality releases it?". The user reads it here and nowhere else. Don\'t list the options in it.',
+  options:
+    'The alternatives, one button each. The user can always type their own answer instead, so offer no "other" or "something else" option.',
   optionLabel:
     'A few words naming the alternative on its button, such as "Stays open".',
   optionValue:
-    'The alternative in full, worded as the user would answer, such as "It stays counted as an open purchase order". It shows when the user points at the button and becomes their answer. Leave it out when the label already is the answer.',
+    'The alternative in full, as a complete sentence the user could send as their answer, such as "It stays counted as an open purchase order". It shows when the user points at the button and becomes their answer. Leave it out when the label already is the answer.',
   fields: "The values the user supplies, one field each.",
   fieldLabel: 'What the value is, such as "Lower reorder point".',
   unit: 'The value\'s unit, such as "units" or "days".',
 };
+
+/**
+ * A question as it is said aloud, where no dock shows its options: the
+ * question, then each alternative in full.
+ */
+export const spokenQuestion = (question: OfferedQuestion) =>
+  question.kind === "choose"
+    ? `${question.text} ${question.options.map(optionText).join("; ")}.`
+    : question.text;
 
 /** The answers a question offers as buttons. */
 export const optionsFor = (
@@ -102,10 +116,6 @@ export const optionsFor = (
 
 /** The answer a click on an option gives. */
 export const optionText = ({ label, value }: OfferedOption) => value ?? label;
-
-/** Whether an offer offers anything: at least one question isn't open. */
-export const offersAnswers = ({ questions }: OfferedQuestions) =>
-  questions.some(({ kind }) => kind !== "open");
 
 /**
  * One turn's offers as the one set of questions the person answers. A

@@ -56,6 +56,7 @@ export type PersonaResponse = v.InferOutput<typeof personaResponseSchema>;
 const personaQuestionSchema = v.object({
   kind: v.string(),
   label: v.string(),
+  text: v.string(),
   options: v.optional(
     v.array(v.object({ label: v.string(), value: v.optional(v.string()) })),
   ),

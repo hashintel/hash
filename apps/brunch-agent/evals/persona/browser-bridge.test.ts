@@ -227,9 +227,10 @@ test("answer submits one answer per question, and the reply carries the question
     {
       kind: "choose",
       label: "Quarantined shipment",
+      text: "Quarantined shipment?",
       options: [{ label: "Stays open", value: "It stays counted as open" }],
     },
-    { kind: "open", label: "Recent order" },
+    { kind: "open", label: "Recent order", text: "Recent order?" },
   ];
   const prompt = vi.fn<PersonaBridgeHandlers["prompt"]>(
     async (_utterance, turn) => {

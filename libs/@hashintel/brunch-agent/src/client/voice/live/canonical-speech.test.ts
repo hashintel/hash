@@ -261,7 +261,7 @@ describe("canonical speech selection", () => {
     ).toBeUndefined();
   });
 
-  test("offered answers change nothing Voice says", () => {
+  test("Voice says the questions the offer asks, after the reply that leads into them", () => {
     const reply = {
       type: "text" as const,
       text: "Does a quarantined shipment stay counted as open?",
@@ -285,6 +285,7 @@ describe("canonical speech selection", () => {
           {
             kind: "choose",
             label: "Quarantined shipment",
+            text: "Quarantined shipment?",
             options: [
               { label: "Stays counted as open" },
               { label: "Drops out until released" },
@@ -300,10 +301,13 @@ describe("canonical speech selection", () => {
       ]);
 
     const withOffer = speechOf([reply, offer, commit]);
-    expect(withOffer).toEqual(speechOf([reply, commit]));
     expect(withOffer.segments.map((segment) => segment.text)).toEqual([
       reply.text,
+      "Quarantined shipment? Stays counted as open; Drops out until released.",
     ]);
+    expect(withOffer.questionSegment).toEqual(
+      speechOf([reply, commit]).questionSegment,
+    );
   });
 
   test("keeps finalized-turn identity stable across hydration", () => {

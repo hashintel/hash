@@ -12,21 +12,31 @@ import type { z } from "zod";
 const quarantine = {
   kind: "choose",
   label: "Quarantined shipment",
+  text: "Quarantined shipment?",
   options: [
     { label: "Stays counted as open" },
     { label: "Drops out until released" },
   ],
 } as const;
-const demand = { kind: "confirm", label: "Production demand" } as const;
+const demand = {
+  kind: "confirm",
+  label: "Production demand",
+  text: "Production demand?",
+} as const;
 /** Case 9 of the P0 set: the opening battery, with answers offered only for appetite. */
 const opening = {
   questions: [
-    { kind: "open", label: "Summer peak case" },
-    { kind: "open", label: "Model boundary" },
-    { kind: "open", label: "What else judges it" },
+    { kind: "open", label: "Summer peak case", text: "Summer peak case?" },
+    { kind: "open", label: "Model boundary", text: "Model boundary?" },
+    {
+      kind: "open",
+      label: "What else judges it",
+      text: "What else judges it?",
+    },
     {
       kind: "choose",
       label: "Time to spend",
+      text: "Time to spend?",
       options: [
         { label: "Quick" },
         { label: "Standard" },
@@ -65,10 +75,6 @@ describe("offer_answers input", () => {
   });
 
   test.each([
-    [
-      "only open questions",
-      { questions: [{ kind: "open", label: "Walk me through it" }] },
-    ],
     [
       "a choose with one option",
       {
@@ -110,13 +116,25 @@ describe("offer_answers input", () => {
     expect(zOfferAnswersInput.safeParse(input).success).toBe(false);
   });
 
-  test("tells a model that offers only open questions not to call the tool", () => {
-    const result = zOfferAnswersInput.safeParse({
-      questions: [{ kind: "open", label: "Walk me through it" }],
-    });
-    expect(result.error?.issues.map(({ message }) => message)).toEqual([
-      expect.stringContaining("don't call offer_answers"),
-    ]);
+  test("accepts a turn whose questions are all open, since the offer is where they are asked", () => {
+    const input = {
+      questions: [
+        {
+          kind: "open",
+          label: "Recent order",
+          text: "Can you walk me through one recent order?",
+        },
+      ],
+    };
+    expect(zOfferAnswersInput.parse(input)).toEqual(input);
+  });
+
+  test("rejects a question without its wording", () => {
+    expect(
+      zOfferAnswersInput.safeParse({
+        questions: [{ kind: "confirm", label: "Production demand" }],
+      }).success,
+    ).toBe(false);
   });
 
   test("exports a JSON Schema with every question kind", () => {
