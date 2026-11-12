@@ -7134,6 +7134,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "time",
+ "tokio-util",
 ]
 
 [[package]]

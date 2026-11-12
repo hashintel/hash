@@ -12,4 +12,6 @@ Step outputs and failures are stored with the run. A step resolves the secrets i
 
 A run records the `FunctionVersion` of the run function that started it, and an `AdmissionKey` that names the runs that must not be active at the same time. `RunState` takes every timestamp from its recorded events, so the same events always produce the same state. The caller of `decide` compares a step's `not_before` with its own clock.
 
+A backend implements three traits. `Runs` starts, reads and cancels runs without a worker. `Worker` executes runs, and resumes a run that a stopped process was executing. `CoordinationStore` holds token buckets shared by every process, for the Graph rate limit. A backend executes a `RunFunction`, which requests its steps through a `StepContext`.
+
 Each storage adapter maps these types to a versioned stored format of its own and pins that format with tests.
