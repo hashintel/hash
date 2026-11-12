@@ -1,7 +1,7 @@
 import type * as Components from "../../src/components.js";
 import type { ReactNode } from "react";
 
-/** An accessor's getter or setter, each its own line of code. */
+/** An accessor's getter or setter: its line of code over its own documentation. */
 export function ApiAccessorHalf({
   children,
 }: Components.ChildrenProps): ReactNode {

@@ -532,8 +532,9 @@
   left: 0;
 }
 
+/* A member's code has no padding of its own, so a numbered declaration makes room for its number itself. */
 .prose .api-member .api-signatures > .api-signature > figure.shiki {
-  --padding-left: 1.75rem;
+  padding-left: 1.75rem;
 }
 
 /* The variables are fumadocs' own, which pad every line of a `.shiki` code block. */
@@ -567,6 +568,117 @@
 
 .api-member .api-signature > figure button {
   display: none;
+}
+
+/* What a member's comments document about its calls sits under its line of code as rows: each list's label beside its items, in one column across the member's lists, with the items together and no line between them. A narrow page puts each label over its items instead. */
+
+.api-member .api-part[data-part="details"] {
+  margin-top: 0.75rem;
+}
+
+.api-member .api-part[data-part="details"] + .api-part[data-part="details"] {
+  margin-top: 0.5rem;
+}
+
+.api-member .api-list {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+}
+
+.prose .api-member .api-list > .api-section-title {
+  grid-column: 1;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.api-member .api-list > .api-item {
+  grid-column: 2;
+  row-gap: 0;
+}
+
+.api-member .api-list > .api-item + .api-item {
+  margin-top: 0;
+}
+
+.api-member .api-list > .api-item + .api-item::after {
+  content: none;
+}
+
+@container (max-width: 36rem) {
+  .api-member .api-list {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+
+  .api-member .api-list > .api-item {
+    grid-column: 1;
+  }
+}
+
+/* A throws list that says which overloads throw each error keeps those marks in a column of their own, as wide as the widest. Every error then starts at the same place, with its descriptions under its name. An error without a name has its description where the name would be. */
+
+.api-list:has(> .api-item > .api-overloads) {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 0.75rem;
+}
+
+.api-list:has(> .api-item > .api-overloads) > * {
+  grid-column: 1 / -1;
+}
+
+.api-list:has(> .api-item > .api-overloads) > .api-item {
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+.api-list > .api-item > .api-overloads {
+  grid-column: 1;
+}
+
+.api-list:has(> .api-item > .api-overloads) > .api-item > :not(.api-overloads) {
+  grid-column: 2;
+}
+
+.api-member .api-list:has(> .api-item > .api-overloads) {
+  grid-template-columns: 7.5rem max-content minmax(0, 1fr);
+  column-gap: 1rem;
+}
+
+.prose
+  .api-member
+  .api-list:has(> .api-item > .api-overloads)
+  > .api-section-title {
+  grid-column: 1;
+}
+
+.api-member .api-list:has(> .api-item > .api-overloads) > .api-item {
+  grid-column: 2 / -1;
+  column-gap: 0.75rem;
+}
+
+@container (max-width: 36rem) {
+  .api-member .api-list:has(> .api-item > .api-overloads) {
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+
+  .prose
+    .api-member
+    .api-list:has(> .api-item > .api-overloads)
+    > .api-section-title,
+  .api-member .api-list:has(> .api-item > .api-overloads) > .api-item {
+    grid-column: 1 / -1;
+  }
+}
+
+/* A getter and a setter are two declarations of one member, each over its own documentation. */
+
+.api-accessor-half + .api-accessor-half {
+  margin-top: 1.25rem;
 }
 
 /* An overload number: the same small square beside each signature and before each type or note that holds in that overload alone. */
