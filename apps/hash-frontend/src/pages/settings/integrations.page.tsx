@@ -1,39 +1,29 @@
-import { Box, Paper, Stack, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 import DOMPurify from "dompurify";
-import { useContext, useMemo } from "react";
+import { useMemo } from "react";
 
 import {
   allIntegrations,
   type Integration,
 } from "@hashintel/integrations-catalog";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
-import { useHashInstance } from "../../components/hooks/use-hash-instance";
-import { extractWebId } from "../../lib/user-and-org";
 import { Button } from "../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
-import { WorkspaceContext } from "../shared/workspace-context";
 import { IntegrationIconTile } from "./integrations.page/integration-icon-tile";
-import { UserConnectedIntegrations } from "./integrations/user-connected-integrations";
 import { SettingsPageContainer } from "./shared/settings-page-container";
 
-import type { EnabledIntegrations } from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { FunctionComponent, ReactNode } from "react";
 
 type IntegrationCardProps = {
-  href?: string;
   name: string;
   description: ReactNode;
-  isConnectable?: boolean;
 };
 
-const IntegrationCard = ({
-  href,
-  name,
-  description,
-  isConnectable,
-}: IntegrationCardProps) => {
+const contactHref =
+  "https://hash.ai/contact?topic=support&category=integrations";
+
+const IntegrationCard = ({ name, description }: IntegrationCardProps) => {
   return (
     <Paper
       sx={{
@@ -51,13 +41,8 @@ const IntegrationCard = ({
         mb={1}
       >
         <IntegrationIconTile name={name} />
-        <Button
-          openInNewTab={!isConnectable}
-          variant={isConnectable ? "primary" : "tertiary"}
-          size="xs"
-          href={href}
-        >
-          {isConnectable ? "Connect" : "Contact us"}
+        <Button openInNewTab variant="tertiary" size="xs" href={contactHref}>
+          Contact us
         </Button>
       </Box>
       <Typography>
@@ -68,12 +53,6 @@ const IntegrationCard = ({
   );
 };
 
-const enabledIntegrationKeyByName: Partial<
-  Record<Integration["name"], keyof Omit<EnabledIntegrations, "__typename">>
-> = {
-  Linear: "linear",
-};
-
 const availabilityRank: Record<Integration["availability"], number> = {
   Available: 0,
   "Coming soon": 1,
@@ -81,28 +60,8 @@ const availabilityRank: Record<Integration["availability"], number> = {
 };
 
 const AddNewIntegrations: FunctionComponent = () => {
-  const { activeWorkspace } = useContext(WorkspaceContext);
-  const { enabledIntegrations } = useHashInstance();
-
   const cards = useMemo(() => {
-    if (!activeWorkspace) {
-      return null;
-    }
-
-    const isConnectable = (integration: Integration) => {
-      const enabledKey = enabledIntegrationKeyByName[integration.name];
-      return enabledKey ? enabledIntegrations[enabledKey] : false;
-    };
-
     const sortedIntegrations = [...allIntegrations].sort((a, b) => {
-      // Integrations the user can connect right now always sit at the top.
-      const connectableDifference =
-        Number(isConnectable(b)) - Number(isConnectable(a));
-
-      if (connectableDifference !== 0) {
-        return connectableDifference;
-      }
-
       const rankDifference =
         availabilityRank[a.availability] - availabilityRank[b.availability];
 
@@ -113,45 +72,25 @@ const AddNewIntegrations: FunctionComponent = () => {
       return a.name.localeCompare(b.name);
     });
 
-    return sortedIntegrations.map((integration) => {
-      const isEnabledForUser = isConnectable(integration);
-
-      let href: string | undefined;
-
-      if (isEnabledForUser && integration.name === "Linear") {
-        href = `${apiOrigin}/oauth/linear?webId=${extractWebId(
-          activeWorkspace,
-        )}`;
-      } else {
-        href = "https://hash.ai/contact?topic=support&category=integrations";
-      }
-
-      return (
-        <IntegrationCard
-          key={integration.name}
-          href={href}
-          isConnectable={isEnabledForUser}
-          name={integration.name}
-          description={
-            <span
-              // The catalog stores short marketing descriptions as HTML so
-              // a few entries can include light formatting (e.g. <strong>).
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(integration.summaryHtml, {
-                  ALLOWED_TAGS: ["strong", "em", "br", "p", "div"],
-                }),
-              }}
-            />
-          }
-        />
-      );
-    });
-  }, [activeWorkspace, enabledIntegrations]);
-
-  if (!activeWorkspace) {
-    return <>Loading workspace...</>;
-  }
+    return sortedIntegrations.map((integration) => (
+      <IntegrationCard
+        key={integration.name}
+        name={integration.name}
+        description={
+          <span
+            // The catalog stores short marketing descriptions as HTML so
+            // a few entries can include light formatting (e.g. <strong>).
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(integration.summaryHtml, {
+                ALLOWED_TAGS: ["strong", "em", "br", "p", "div"],
+              }),
+            }}
+          />
+        }
+      />
+    ));
+  }, []);
 
   return (
     <Box>
@@ -178,10 +117,7 @@ const IntegrationsPage: NextPageWithLayout = () => {
       subHeading="Connect HASH with the apps and services you use"
       disableContentWrapper
     >
-      <Stack gap={6}>
-        <AddNewIntegrations />
-        <UserConnectedIntegrations />
-      </Stack>
+      <AddNewIntegrations />
     </SettingsPageContainer>
   );
 };

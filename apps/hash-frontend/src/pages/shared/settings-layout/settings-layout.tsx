@@ -38,11 +38,6 @@ const generateMenuLinks = (
         href: `/settings/organizations/${org.shortname}/members`,
         parentHref: `/settings/organizations/${org.shortname}`,
       },
-      {
-        label: "Integrations",
-        href: `/settings/organizations/${org.shortname}/integrations`,
-        parentHref: `/settings/organizations/${org.shortname}`,
-      },
     ])
     .flat();
 
