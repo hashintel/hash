@@ -5,11 +5,14 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 
 import {
   cellSx,
+  firstCellSx,
   formatVersions,
+  subgridRowSx,
+  tableGridClassName,
   toggleRowSx,
+  treeCellSx,
 } from "./dependent-types-table-layout";
 import {
-  ExpandChevron,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
@@ -24,9 +27,8 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-const gridTemplateColumns = "240px minmax(0, 1fr) 128px";
-
-const innerCellSx = { ...cellSx, pl: 1.5 } as const;
+const gridTemplateColumns =
+  "fit-content(240px) fit-content(600px) max-content minmax(0, 1fr)";
 
 const countLabel = (count: number) =>
   count === 1 ? "1 type" : `${count} types`;
@@ -52,7 +54,6 @@ const DependentTypeSubRow = ({
 
   return (
     <NestedRow
-      gridTemplateColumns={gridTemplateColumns}
       last={last}
       openButton={
         <OpenTypeButton
@@ -64,8 +65,8 @@ const DependentTypeSubRow = ({
         />
       }
     >
-      <Box sx={cellSx} />
-      <Box sx={{ ...innerCellSx, maxWidth: 1, display: "flex" }}>
+      <Box sx={firstCellSx} />
+      <Box sx={{ ...treeCellSx, maxWidth: 1, display: "flex" }}>
         <Tooltip
           title={description}
           open={hovered || focused}
@@ -82,7 +83,7 @@ const DependentTypeSubRow = ({
           </Box>
         </Tooltip>
       </Box>
-      <Box sx={innerCellSx}>
+      <Box sx={cellSx}>
         {ranges
           .map((range) => formatVersions(range.firstVersion, range.lastVersion))
           .join(", ")}
@@ -110,15 +111,14 @@ const ParentVersionTableRow = ({
   const titles = types.map(({ row }) => row.entityType.schema.title).join(", ");
 
   return (
-    <Box>
+    <Box sx={subgridRowSx}>
       <Box sx={toggleRowSx}>
         <RowToggle
-          gridTemplateColumns={gridTemplateColumns}
-          aria-expanded={expanded}
+          expanded={expanded}
           aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
           onClick={() => setExpanded(!expanded)}
         >
-          <Box sx={{ ...cellSx, maxWidth: 1 }}>
+          <Box sx={{ ...firstCellSx, maxWidth: 1 }}>
             <TypeLabel
               entityType={parent}
               former={false}
@@ -128,8 +128,7 @@ const ParentVersionTableRow = ({
           </Box>
           <Box
             sx={{
-              ...innerCellSx,
-              gridColumn: "2 / 4",
+              ...treeCellSx,
               maxWidth: 1,
               display: "flex",
               alignItems: "baseline",
@@ -163,10 +162,13 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        <ExpandChevron expanded={expanded} />
       </Box>
       {expanded ? (
-        <Box role="group" aria-label={`Types that extend ${parentLabel}`}>
+        <Box
+          sx={subgridRowSx}
+          role="group"
+          aria-label={`Types that extend ${parentLabel}`}
+        >
           {types.map((type, index) => (
             <DependentTypeSubRow
               key={type.row.entityType.schema.$id}
@@ -197,16 +199,28 @@ export const DependentTypesByVersionTable = ({
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
   <>
-    <TableCard>
-      <HeaderRow gridTemplateColumns={gridTemplateColumns}>
-        <Box sx={{ ...cellSx, overflow: "hidden", textOverflow: "ellipsis" }}>
+    <TableCard gridTemplateColumns={gridTemplateColumns}>
+      <HeaderRow>
+        <Box
+          sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
+        >
           <Box component="span" sx={{ fontWeight: 700 }}>
             {entityType.schema.title}
           </Box>{" "}
           version
         </Box>
-        <Box sx={innerCellSx}>Extended by</Box>
-        <Box sx={innerCellSx}>Versions</Box>
+        <Box sx={treeCellSx}>Extended by</Box>
+        <Box
+          sx={{
+            ...cellSx,
+            // Only an expanded row puts values in this column.
+            [`.${tableGridClassName}:not(:has([role="group"])) &`]: {
+              visibility: "hidden",
+            },
+          }}
+        >
+          Versions
+        </Box>
       </HeaderRow>
       {parentVersionRows.map((parentVersionRow) => (
         <ParentVersionTableRow

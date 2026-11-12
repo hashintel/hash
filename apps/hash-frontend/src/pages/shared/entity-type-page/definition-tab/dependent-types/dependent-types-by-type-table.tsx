@@ -3,13 +3,15 @@ import { useState } from "react";
 
 import {
   cellSx,
+  firstCellSx,
   formatVersionList,
   formatVersions,
+  subgridRowSx,
   toggleRowSx,
+  treeCellSx,
   visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
-  ExpandChevron,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
@@ -27,8 +29,13 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { Theme } from "@mui/material";
 
-const gridTemplateColumns = "minmax(0, 1fr) 128px 196px";
+const gridTemplateColumns =
+  "fit-content(320px) max-content max-content minmax(0, 1fr)";
+
+/** A nested row's text, lighter than its row's so that a range reads apart from the type's versions. */
+const nestedTextSx = ({ palette }: Theme) => ({ color: palette.gray[70] });
 
 const RangeRow = ({
   range,
@@ -47,7 +54,6 @@ const RangeRow = ({
 
   return (
     <NestedRow
-      gridTemplateColumns={gridTemplateColumns}
       last={last}
       openButton={
         <OpenTypeButton
@@ -56,9 +62,9 @@ const RangeRow = ({
         />
       }
     >
-      <Box sx={cellSx} />
-      <Box sx={cellSx}>{versions}</Box>
-      <Box sx={cellSx}>
+      <Box sx={firstCellSx} />
+      <Box sx={[treeCellSx, nestedTextSx]}>{versions}</Box>
+      <Box sx={[cellSx, nestedTextSx]}>
         <Box component="span" sx={visuallyHidden}>
           extends {parentTitle}{" "}
         </Box>
@@ -90,7 +96,7 @@ const DependentTypeTableRow = ({
   const parentVersions = formatVersionList(row.parentVersions);
 
   return (
-    <Box>
+    <Box sx={subgridRowSx}>
       <VersionGraphTooltip
         row={row}
         parentTitle={parentTitle}
@@ -100,8 +106,7 @@ const DependentTypeTableRow = ({
           <Box sx={toggleRowSx}>
             <RowToggle
               {...toggleProps}
-              gridTemplateColumns={gridTemplateColumns}
-              aria-expanded={expanded}
+              expanded={expanded}
               aria-label={
                 former
                   ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
@@ -112,7 +117,7 @@ const DependentTypeTableRow = ({
                 setExpanded(!expanded);
               }}
             >
-              <Box sx={{ ...cellSx, maxWidth: 1 }}>
+              <Box sx={{ ...firstCellSx, maxWidth: 1 }}>
                 <TypeLabel
                   entityType={entityType}
                   former={former}
@@ -120,10 +125,9 @@ const DependentTypeTableRow = ({
                   version={version}
                 />
               </Box>
-              <Box sx={cellSx}>{versions}</Box>
+              <Box sx={treeCellSx}>{versions}</Box>
               <Box sx={cellSx}>{parentVersions}</Box>
             </RowToggle>
-            <ExpandChevron expanded={expanded} />
             <OpenTypeButton
               label={
                 former
@@ -136,7 +140,11 @@ const DependentTypeTableRow = ({
         )}
       </VersionGraphTooltip>
       {expanded ? (
-        <Box role="group" aria-label={`Version ranges of ${title}`}>
+        <Box
+          sx={subgridRowSx}
+          role="group"
+          aria-label={`Version ranges of ${title}`}
+        >
           {row.ranges.map((range, index) => (
             <RangeRow
               key={`${range.firstVersion}-${range.parentVersion}`}
@@ -167,10 +175,10 @@ export const DependentTypesByTypeTable = ({
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
-  <TableCard>
-    <HeaderRow gridTemplateColumns={gridTemplateColumns}>
-      <Box sx={cellSx}>Type</Box>
-      <Box sx={cellSx}>Versions</Box>
+  <TableCard gridTemplateColumns={gridTemplateColumns}>
+    <HeaderRow>
+      <Box sx={firstCellSx}>Type</Box>
+      <Box sx={treeCellSx}>Versions</Box>
       <Box sx={cellSx}>
         Extends{" "}
         <Box component="span" sx={{ fontWeight: 700 }}>

@@ -9,6 +9,10 @@ import {
   openColumnWidth,
   rowHeight,
   rowToggleClassName,
+  subgridRowSx,
+  tableGridClassName,
+  treeGutterWidth,
+  treeLineOffset,
   visuallyHidden,
 } from "./dependent-types-table-layout";
 
@@ -16,23 +20,8 @@ import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { ButtonBaseProps, Theme } from "@mui/material";
 import type { ReactNode } from "react";
 
-/** The white card around a table, which scrolls sideways when the page is narrow. */
-export const TableCard = ({ children }: { children: ReactNode }) => (
-  <Box
-    sx={({ palette }) => ({
-      background: palette.common.white,
-      borderRadius: 1.5,
-      boxShadow: "0px 1px 5px rgba(27, 33, 40, 0.07)",
-      overflowX: "auto",
-    })}
-  >
-    <Box sx={{ minWidth: 560, p: 0.5, boxSizing: "border-box" }}>
-      {children}
-    </Box>
-  </Box>
-);
-
-export const HeaderRow = ({
+/** The white card around a table, which scrolls sideways when the page is narrow, and the grid its rows share, with the open column added on the right. */
+export const TableCard = ({
   gridTemplateColumns,
   children,
 }: {
@@ -41,11 +30,33 @@ export const HeaderRow = ({
 }) => (
   <Box
     sx={({ palette }) => ({
-      display: "grid",
-      gridTemplateColumns,
+      background: palette.common.white,
+      borderRadius: 1.5,
+      boxShadow: "0px 1px 5px rgba(27, 33, 40, 0.07)",
+      overflowX: "auto",
+    })}
+  >
+    <Box
+      className={tableGridClassName}
+      sx={{
+        display: "grid",
+        gridTemplateColumns: `${gridTemplateColumns} ${openColumnWidth}px`,
+        minWidth: 560,
+        p: 0.5,
+        boxSizing: "border-box",
+      }}
+    >
+      {children}
+    </Box>
+  </Box>
+);
+
+export const HeaderRow = ({ children }: { children: ReactNode }) => (
+  <Box
+    sx={({ palette }) => ({
+      ...subgridRowSx,
       alignItems: "center",
       height: 42,
-      pr: `${openColumnWidth}px`,
       borderBottom: `1px solid ${palette.gray[20]}`,
       fontSize: 14,
       lineHeight: "18px",
@@ -125,63 +136,29 @@ export const OpenTypeButton = ({
   );
 };
 
-/** A row's cells on the table's grid, with the open column left free on the right. */
-const rowGridSx =
-  (gridTemplateColumns: string) =>
-  ({ palette }: Theme) => ({
-    height: rowHeight,
-    pr: `${openColumnWidth}px`,
-    display: "grid",
-    gridTemplateColumns,
-    alignItems: "center",
-    fontSize: 14,
-    lineHeight: "18px",
-    color: palette.gray[80],
-  });
+/** A row's cells on the table's grid, in the first grid row of the box around them, so that the chevron or the tree lines can share its second column. */
+const rowGridSx = ({ palette }: Theme) => ({
+  ...subgridRowSx,
+  gridRow: 1,
+  height: rowHeight,
+  alignItems: "center",
+  fontSize: 14,
+  lineHeight: "18px",
+  color: palette.gray[80],
+});
 
-/** The button that spans an expandable row's cells and expands or collapses it. */
-export const RowToggle = ({
-  gridTemplateColumns,
-  ...props
-}: { gridTemplateColumns: string } & Omit<
-  ButtonBaseProps,
-  "className" | "disableRipple" | "sx"
->) => (
-  <ButtonBase
-    {...props}
-    className={rowToggleClassName}
-    disableRipple
-    sx={[
-      rowGridSx(gridTemplateColumns),
-      ({ palette }) => ({
-        width: 1,
-        borderRadius: 1,
-        justifyItems: "start",
-        textAlign: "left",
-        "&.Mui-focusVisible": {
-          outline: `2px solid ${palette.blue[70]}`,
-          outlineOffset: 2,
-        },
-      }),
-    ]}
-  />
-);
-
-/** The chevron at the left of an expandable row, turned down while the row is expanded. */
-export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
+/** The chevron at the start of an expandable row's second column, turned down while the row is expanded. */
+const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
   <Box
     aria-hidden
     sx={({ palette }) => ({
-      position: "absolute",
-      left: 0,
-      top: 0,
-      width: 28,
+      gridArea: "1 / 2",
+      width: treeLineOffset * 2,
       height: rowHeight,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       color: palette.gray[60],
-      pointerEvents: "none",
     })}
   >
     <FontAwesomeIcon
@@ -195,14 +172,49 @@ export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
   </Box>
 );
 
+/** The button that spans an expandable row's cells and expands or collapses it. */
+export const RowToggle = ({
+  expanded,
+  children,
+  ...props
+}: Omit<
+  ButtonBaseProps,
+  "aria-expanded" | "className" | "disableRipple" | "sx"
+> & { expanded: boolean }) => (
+  <ButtonBase
+    {...props}
+    aria-expanded={expanded}
+    className={rowToggleClassName}
+    disableRipple
+    sx={[
+      rowGridSx,
+      ({ palette }) => ({
+        borderRadius: 1,
+        justifyItems: "start",
+        textAlign: "left",
+        "&.Mui-focusVisible": {
+          outline: `2px solid ${palette.blue[70]}`,
+          outlineOffset: 2,
+        },
+      }),
+    ]}
+  >
+    {children}
+    <ExpandChevron expanded={expanded} />
+  </ButtonBase>
+);
+
 /** The vertical line and elbow that join a nested row to the row above it. */
 const TreeLines = ({ last }: { last: boolean }) => (
-  <>
+  <Box
+    aria-hidden
+    sx={{ gridColumn: 2, gridRow: 1, position: "relative", height: rowHeight }}
+  >
     <Box
       aria-hidden
       sx={({ palette }) => ({
         position: "absolute",
-        left: 14,
+        left: treeLineOffset,
         top: 0,
         width: "1px",
         height: last ? 21 : rowHeight,
@@ -214,25 +226,23 @@ const TreeLines = ({ last }: { last: boolean }) => (
       aria-hidden
       sx={({ palette }) => ({
         position: "absolute",
-        left: 14,
+        left: treeLineOffset,
         top: 20,
-        width: 11,
+        width: treeGutterWidth - treeLineOffset,
         height: "1px",
         background: palette.gray[40],
         pointerEvents: "none",
       })}
     />
-  </>
+  </Box>
 );
 
 /** A row inside an expanded row: its cells, its open button, and the tree lines that join it to the row above. */
 export const NestedRow = ({
-  gridTemplateColumns,
   last,
   openButton,
   children,
 }: {
-  gridTemplateColumns: string;
   /** Whether this is the expanded row's last nested row, where the tree line ends. */
   last: boolean;
   openButton: ReactNode;
@@ -240,13 +250,14 @@ export const NestedRow = ({
 }) => (
   <Box
     sx={({ palette }) => ({
+      ...subgridRowSx,
       position: "relative",
       height: rowHeight,
       borderRadius: 1,
       "&:hover": { background: palette.gray[10] },
     })}
   >
-    <Box sx={rowGridSx(gridTemplateColumns)}>{children}</Box>
+    <Box sx={rowGridSx}>{children}</Box>
     {openButton}
     <TreeLines last={last} />
   </Box>
