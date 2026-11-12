@@ -2,6 +2,7 @@ import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
 import {
   brunchTools,
+  hashEvidencedDescription,
   vLedgerAppendWith,
   vOriginWith,
 } from "@hashintel/brunch-agent";
@@ -21,10 +22,7 @@ import type {
   PetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 
-/** The `evidenced` origin here: what the agent reads from HASH counts too. */
-export const hashEvidencedDescription =
-  "It is in material the USER shared, such as a log or a document, or in records of the USER's own organisation that the agent read from HASH. What a tool computed, such as a run or an optimization, is not evidence for the account: record what it showed in a reflection.";
-
+/** HASH's Ledger entries: what the agent reads from HASH counts as evidenced too. */
 const ledgerAppend = vLedgerAppendWith(vOriginWith(hashEvidencedDescription));
 
 /**

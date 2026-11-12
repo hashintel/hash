@@ -20,9 +20,8 @@ import {
   petrinautContextualUserMessageBody,
   petrinautSubmissionContext,
   type VersionLoad,
+  versionLoadNote,
 } from "@hashintel/brunch-agent";
-
-import { versionLoadNote } from "./version-load-note.ts";
 
 // Only the Flue build packages skills; the note doesn't depend on their content.
 vi.mock("../skills/eliciting/SKILL.md", () => ({

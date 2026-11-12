@@ -8,6 +8,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
+  commitToolDescription,
   entityKindStages,
   foldCommits,
   type LedgerAppend,
@@ -32,7 +33,6 @@ import {
   selectChatThinking,
 } from "../../shared/chat-model.ts";
 import {
-  commitToolDescription,
   createLedgerCommitTool,
   createLedgerCompileTool,
 } from "./ledger-tools.ts";

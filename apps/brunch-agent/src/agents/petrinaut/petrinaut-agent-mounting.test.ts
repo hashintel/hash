@@ -5,16 +5,13 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
+  commitToolDescription,
+  compileToolDescription,
   petrinautContextualUserMessageBody,
+  queryBasisToolDescription,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
-
-import {
-  commitToolDescription,
-  compileToolDescription,
-} from "../shared/ledger-tools.ts";
-import { queryBasisToolDescription } from "../shared/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,

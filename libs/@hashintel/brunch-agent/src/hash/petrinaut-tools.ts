@@ -20,11 +20,20 @@ import {
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
 
+import { noNetViewRefusalNaming } from "../petrinaut/no-net-view-refusal";
+
 /**
  * The one editor HASH's process page shows. While a page shows one editor,
  * every Petrinaut tool names it; a call naming any other is not started.
  */
 export const hashProcessEditorId = "process-editor";
+
+/** Why a call naming another editor was not started. */
+export const unknownEditorRefusal = (editorId: string) =>
+  `Not started: editor_id ${JSON.stringify(editorId)} names no open editor; the open editor is ${JSON.stringify(hashProcessEditorId)}.`;
+
+/** Why a change with no current view of the net in context was not started, naming HASH's read. */
+export const hashNoNetViewRefusal = noNetViewRefusalNaming("petrinaut_get_net");
 
 const zEditorId = z.string().meta({
   description: "The editor to act on, as your instructions name it.",
