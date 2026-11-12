@@ -1,8 +1,11 @@
-import { Data, Effect, Function, Option, String } from "effect";
+import { Array, Data, Effect, Function, Option, String } from "effect";
 import {
   NodeFlags,
+  isClassDeclaration,
+  isInterfaceDeclaration,
   isParameterDeclaration,
   isSourceFile,
+  isTypeAliasDeclaration,
   isVariableDeclarationList,
 } from "typescript/ast";
 import { NodeBuilderFlags, SignatureKind, SymbolFlags } from "typescript/async";
@@ -19,13 +22,14 @@ import type {
   Identifier,
   Node as SyntaxNode,
   TypeNode,
+  TypeParameterDeclaration,
 } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 /**
- * What an editor shows on hover over a name in code, as the syntax the compiler builds for it.
+ * What an editor shows on hover over a name in code, as syntax.
  *
- * The name itself is the identifier the quick info belongs to. A display adds the keyword, the name and the printed syntax together.
+ * The compiler builds the types and signatures, and a type alias, an interface or a class keeps the type parameters of its declaration. The name itself is the identifier the quick info belongs to. A display adds the keyword, the name and the printed syntax together.
  */
 export type QuickInfo = Data.TaggedEnum<{
   /** A variable, a property or an accessor, with the type it has where the name mentions it. */
@@ -45,12 +49,15 @@ export type QuickInfo = Data.TaggedEnum<{
     readonly signature: Option.Option<CallSignatureDeclaration>;
     readonly others: number;
   };
-  /** A type alias, with the type it names. */
-  Alias: { readonly type: TypeNode };
+  /** A type alias, with its type parameters and the type it names. */
+  Alias: {
+    readonly typeParameters: readonly TypeParameterDeclaration[];
+    readonly type: TypeNode;
+  };
   /** An interface or a class, with its type parameters. */
   Declared: {
     readonly keyword: "interface" | "class";
-    readonly type: TypeNode;
+    readonly typeParameters: readonly TypeParameterDeclaration[];
   };
   /** A namespace, which quick info shows by its keyword and its name alone. */
   Named: { readonly keyword: "namespace" };
@@ -121,6 +128,28 @@ const keywordOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
   });
 });
 
+/**
+ * The type parameters of the declaration of a type alias, an interface or a class, with their constraints and defaults. The compiler writes a declared type as `Box<T>`, without either.
+ *
+ * Every declaration of a merged interface repeats the parameters, so the first that has any stands for the rest, and it misses a default that only a later declaration gives.
+ */
+const typeParametersOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
+  const program = yield* Program.Program;
+  const declarations = yield* program.declarations(symbol);
+
+  return Array.findFirst(declarations, (declaration) => {
+    if (
+      !isTypeAliasDeclaration(declaration) &&
+      !isInterfaceDeclaration(declaration) &&
+      !isClassDeclaration(declaration)
+    ) {
+      return Option.none();
+    }
+
+    return Option.fromUndefinedOr(declaration.typeParameters);
+  }).pipe(Option.getOrElse(() => []));
+});
+
 const describe = Effect.fnUntraced(function* (
   name: Identifier,
   symbol: CompilerSymbol,
@@ -168,23 +197,23 @@ const describe = Effect.fnUntraced(function* (
   if (Symbol.hasFlag(symbol, SymbolFlags.TypeAlias)) {
     const type = yield* checker.getDeclaredTypeOfSymbol(symbol);
     const node = yield* checker.typeToTypeNode(type, name, aliasFlags);
+    const typeParameters = yield* typeParametersOf(symbol);
 
-    return Option.map(node, (value) => Alias({ type: value }));
+    return Option.map(node, (value) => Alias({ typeParameters, type: value }));
   }
 
   if (
     Symbol.hasFlag(symbol, SymbolFlags.Interface) ||
     Symbol.hasFlag(symbol, SymbolFlags.Class)
   ) {
-    const type = yield* checker.getDeclaredTypeOfSymbol(symbol);
-    const node = yield* checker.typeToTypeNode(type, name, builderFlags);
+    const typeParameters = yield* typeParametersOf(symbol);
 
-    return Option.map(node, (value) =>
+    return Option.some(
       Declared({
         keyword: Symbol.hasFlag(symbol, SymbolFlags.Interface)
           ? "interface"
           : "class",
-        type: value,
+        typeParameters,
       }),
     );
   }
@@ -246,6 +275,20 @@ const overloadsOf = (others: number): string => {
   return others === 1 ? " (+1 overload)" : ` (+${others} overloads)`;
 };
 
+/** Type parameters as a declaration writes them after its name, or nothing when it declares none. */
+const typeParameterList = Effect.fnUntraced(function* (
+  typeParameters: readonly TypeParameterDeclaration[],
+) {
+  if (typeParameters.length === 0) {
+    return "";
+  }
+
+  const api = yield* Api.Api;
+  const texts = yield* Effect.forEach(typeParameters, api.print);
+
+  return `<${texts.join(", ")}>`;
+});
+
 /** Quick info as an editor shows it over `name`, such as `const query: ExpressionType`. */
 export const display: {
   (
@@ -278,12 +321,16 @@ export const display: {
               ),
             ),
         }),
-      Alias: ({ type }) =>
-        api
-          .print(type)
-          .pipe(Effect.map((text) => `type ${name.text} = ${text}`)),
-      Declared: ({ keyword, type }) =>
-        api.print(type).pipe(Effect.map((text) => `${keyword} ${text}`)),
+      Alias: ({ typeParameters, type }) =>
+        Effect.zipWith(
+          typeParameterList(typeParameters),
+          api.print(type),
+          (parameters, text) => `type ${name.text}${parameters} = ${text}`,
+        ),
+      Declared: ({ keyword, typeParameters }) =>
+        typeParameterList(typeParameters).pipe(
+          Effect.map((parameters) => `${keyword} ${name.text}${parameters}`),
+        ),
       Named: ({ keyword }) => Effect.succeed(`${keyword} ${name.text}`),
     });
   }),
