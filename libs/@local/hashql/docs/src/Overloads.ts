@@ -73,7 +73,7 @@ const accessed: (source: Parts.Source) => Option.Option<Tree.Callable.Call> =
   );
 
 /**
- * A callable constant's nested comment takes precedence over its enclosing declaration's comment.
+ * A nested comment on a call of a callable constant or property takes precedence over its enclosing declaration's comment.
  *
  * An overload with neither takes the first documented overload's comment, which authors write once for every overload.
  */

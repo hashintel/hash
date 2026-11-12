@@ -53,6 +53,7 @@ const sourceKind: (source: Parts.Source) => Tree.Export.Kind =
       CallSignature: () => "function" as const,
       ConstructSignature: () => "function" as const,
       Property: () => "const" as const,
+      Method: () => "function" as const,
       Getter: () => "const" as const,
       Setter: () => "const" as const,
       EnumMember: () => "const" as const,
