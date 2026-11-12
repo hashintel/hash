@@ -56,6 +56,7 @@ const declarationOf = (
     AST.TypeParameter.isTypeParameter(node) ||
     AST.Parameter.isParameter(node) ||
     AST.Property.isProperty(node) ||
+    AST.CallableProperty.isCallableProperty(node) ||
     AST.EnumMember.isEnumMember(node) ||
     AST.Getter.isGetter(node) ||
     AST.Setter.isSetter(node) ||
@@ -83,7 +84,7 @@ const declarationOf = (
 /** What `node` groups. A method or a function groups its overloads and an accessor its halves, while a declaration groups the declarations and the namespace it merges. */
 const partsOf = (node: AST.Node.Node): readonly AST.Node.Interned[] => {
   if (
-    AST.Method.isMethod(node) ||
+    AST.MethodOverloads.isMethodOverloads(node) ||
     AST.FunctionOverloads.isFunctionOverloads(node)
   ) {
     return Chunk.toReadonlyArray(node.overloads);
