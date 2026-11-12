@@ -612,7 +612,6 @@ __metadata:
     openai: "npm:6.6.0"
     rimraf: "npm:6.1.3"
     sanitize-html: "npm:2.18.1"
-    ts-json-schema-generator: "npm:1.5.1"
     tsx: "catalog:"
     typescript: "catalog:"
     vite: "catalog:"
