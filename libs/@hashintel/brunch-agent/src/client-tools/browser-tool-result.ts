@@ -5,19 +5,19 @@ import { z } from "zod";
  * `z.json()`, except that an object property may be `undefined`: what
  * `JSON.stringify` carries without loss, dropping only those properties.
  */
-const zJson: z.ZodType = z.lazy(() =>
+const zJsonLike: z.ZodType = z.lazy(() =>
   z.union([
     z.string(),
     z.number(),
     z.boolean(),
     z.null(),
-    z.array(zJson),
-    z.record(z.string(), zJson.optional()),
+    z.array(zJsonLike),
+    z.record(z.string(), zJsonLike.optional()),
   ]),
 );
 // Check without cloning or normalizing the result; typed as the JSON received.
 const vJson = v.custom<z.infer<ReturnType<typeof z.json>>>(
-  (value) => zJson.safeParse(value).success,
+  (value) => zJsonLike.safeParse(value).success,
   "Expected a JSON value",
 );
 

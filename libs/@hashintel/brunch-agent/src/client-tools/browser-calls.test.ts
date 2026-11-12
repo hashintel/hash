@@ -60,6 +60,8 @@ test("browser results reject non-JSON metadata", () => {
     v.safeParse(vBrowserCallResultBody, {
       ...correlation,
       output: null,
+      // An undefined property is dropped by serialization and accepted; NaN
+      // would arrive as null, so it is still rejected.
       metadata: { invalid: NaN },
     }).success,
   ).toBe(false);
