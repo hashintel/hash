@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -278,10 +278,103 @@ const StepSettings = ({
 /** Send email's Inputs (Figma, 3 Nov): 16 px between To, Subject and Body; 8 px from a label to its box. */
 const sendEmailGridStyle = css({ rowGap: "4" });
 
+/** `?textareaexpand=off`: no expand control on short text areas, and Subject on its own line (before 13 Nov). */
+const oldTextareaExpand =
+  new URLSearchParams(globalThis.location.search).get("textareaexpand") ===
+  "off";
+
+/** Short notes that get the expand control (textarea-placement 7). */
+const expandableInputs = new Set(["instructions"]);
+
+const expandWrapStyle = css({
+  position: "relative",
+  // A 28 px right column keeps text out from under the control.
+  "& [role=textbox]": { paddingRight: "[28px]" },
+  "& [data-expand]": {
+    display: "flex",
+    position: "absolute",
+    top: "[6px]",
+    right: "[5px]",
+    opacity: "0",
+    transition: "[opacity 0.1s ease]",
+  },
+  "&:hover [data-expand], &:focus-within [data-expand]": { opacity: "1" },
+});
+
+/** Expanded: at least 8 lines, like Body's room. */
+const expandedBoxStyle = css({ "& [role=textbox]": { minHeight: "[190px]" } });
+
+/**
+ * A short text area (Instructions) beside its label, with an expand control at its top-right on hover or focus.
+ * Expanded, it takes Body's layout: label on its own line, the box across the panel (inbox textarea-placement 7).
+ */
+const ExpandableTextRow = ({
+  label,
+  hover,
+  required,
+  invalid,
+  children,
+}: {
+  label: string;
+  hover: string;
+  required?: boolean;
+  invalid?: boolean;
+  children: React.ReactNode;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const control = (
+    <span data-expand>
+      <Button
+        size="xxs"
+        variant="ghost"
+        iconName={expanded ? "collapse" : "expand"}
+        aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+        tooltip={expanded ? "Collapse" : "Expand"}
+        onClick={() => setExpanded((current) => !current)}
+      />
+    </span>
+  );
+  if (!expanded) {
+    return (
+      <PropertyRow
+        label={label}
+        hover={hover}
+        required={required}
+        invalid={invalid}
+      >
+        <div className={expandWrapStyle}>
+          {children}
+          {control}
+        </div>
+      </PropertyRow>
+    );
+  }
+  return (
+    <div
+      data-row
+      className={css({
+        gridColumn: "1 / -1",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2.5",
+      })}
+    >
+      <Tooltip content={`${label} · ${hover}`} position="top">
+        <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
+      </Tooltip>
+      <div className={cx(expandWrapStyle, expandedBoxStyle)}>
+        {children}
+        {control}
+      </div>
+    </div>
+  );
+};
+
 /** Text areas for writing, which keep their own line; any other text area sits beside its label (D-v2). */
 const writingInputs = new Set([
   "body",
-  "subject",
+  // Subject is one line: a row beside its label with textarea-placement 7 (13 Nov); `?textareaexpand=off` stacks it.
+  ...(oldTextareaExpand ? ["subject"] : []),
   "prompt",
   "userGoal",
   "relevantEntitiesPrompt",
@@ -749,6 +842,23 @@ const ActionSections = ({
           </Tooltip>
           {fieldFor(document, step, input)}
         </div>
+      );
+    }
+    if (
+      isFreeText(input) &&
+      expandableInputs.has(input.name) &&
+      !oldTextareaExpand
+    ) {
+      return (
+        <ExpandableTextRow
+          key={input.name}
+          label={label}
+          hover={inputHover(input, kinds)}
+          required={input.required && !input.hasDefault}
+          invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
+        >
+          {fieldFor(document, step, input)}
+        </ExpandableTextRow>
       );
     }
     return (
