@@ -20,6 +20,8 @@
 
 import { defineRule } from "@oxlint/plugins";
 
+import { thisOwner } from "../lib/this-owner.js";
+
 import type { Context, ESTree, Fix, SourceCode, Token } from "@oxlint/plugins";
 
 type ClassProperty = ESTree.PropertyDefinition | ESTree.AccessorProperty;
@@ -28,16 +30,10 @@ type ClassMemberProperty = ClassProperty & {
   readonly parent: ESTree.ClassBody;
 };
 
-interface ThisOwner {
-  readonly body: ESTree.ClassBody;
-  /** A static method's `this` is whatever class its caller names, which may be a subclass without the class's static private names. */
-  readonly receiver: "instance" | "class" | "static method";
-}
-
 /** Nodes retained until traversal of the whole file finishes. */
 interface FileState {
   readonly classBodies: ESTree.ClassBody[];
-  /** `this` reached with a key only evaluation can tell, such as `this[key]`, which may name any property of its class. */
+  /** Where a key only evaluation can tell may reach `this`: the `this` of `this[key]`, or such a key in a destructuring pattern. The key may name any property of the class around it. */
   readonly dynamicKeys: ESTree.Node[];
   readonly memberExpressions: ESTree.StaticMemberExpression[];
   readonly patternKeys: ESTree.IdentifierName[];
@@ -90,72 +86,51 @@ const isThis = (node: ESTree.Node | undefined): node is ESTree.Node =>
     node?.type === "TSNonNullExpression") &&
     isThis(node.expression));
 
+/** The property a key names without evaluation: a literal's value, or the text of a template without expressions. */
+const literalKey = (key: ESTree.Node): string | null => {
+  if (key.type === "Literal") {
+    return String(key.value);
+  }
+
+  if (key.type === "TemplateLiteral" && key.expressions.length === 0) {
+    return key.quasis[0]?.value.cooked ?? "";
+  }
+
+  return null;
+};
+
 /** Records the key that accesses `object`. A literal names one property, and any other key on `this` may name each of its class's fields. */
 const addKey = (
   state: FileState,
   key: ESTree.Node,
   object?: ESTree.Node,
 ): void => {
-  if (key.type === "Literal") {
-    state.unrenameableNames.add(String(key.value));
-  } else if (key.type === "TemplateLiteral" && key.expressions.length === 0) {
-    state.unrenameableNames.add(key.quasis[0]?.value.cooked ?? "");
+  const name = literalKey(key);
+
+  if (name !== null) {
+    state.unrenameableNames.add(name);
   } else if (key.type !== "PrivateIdentifier" && isThis(object)) {
     state.dynamicKeys.push(object);
   }
 };
 
-const methodOwner = (method: ESTree.Function): ThisOwner | null => {
-  const { parent } = method;
-
-  if (
-    (parent.type === "MethodDefinition" ||
-      parent.type === "TSAbstractMethodDefinition") &&
-    parent.value === method &&
-    parent.parent.type === "ClassBody"
-  ) {
-    const receiver = parent.static ? "static method" : "instance";
-    return { body: parent.parent, receiver };
+/** Records a key of a destructuring pattern. The value a pattern takes apart is not followed, so every pattern inside a class counts as one of `this`. */
+const addPatternKey = (
+  state: FileState,
+  { key, computed }: Pick<ESTree.BindingProperty, "key" | "computed">,
+): void => {
+  if (!computed && key.type === "Identifier") {
+    state.patternKeys.push(key);
+    return;
   }
 
-  return null;
-};
+  const name = literalKey(key);
 
-/** The class and context (static or instance) that `this` refers to at `node`. */
-const thisOwner = (node: ESTree.ThisExpression): ThisOwner | null => {
-  let child: ESTree.Node = node;
-
-  for (
-    let current: ESTree.Node | null = node.parent;
-    current !== null;
-    current = current.parent
-  ) {
-    if (
-      current.type === "FunctionDeclaration" ||
-      current.type === "FunctionExpression"
-    ) {
-      return methodOwner(current);
-    }
-
-    if (current.type === "StaticBlock" && current.parent.type === "ClassBody") {
-      return { body: current.parent, receiver: "class" };
-    }
-
-    // Only initializers use the class's `this`. Computed keys use the enclosing context.
-    if (
-      (current.type === "PropertyDefinition" ||
-        current.type === "AccessorProperty") &&
-      current.value === child &&
-      current.parent.type === "ClassBody"
-    ) {
-      const receiver = current.static ? "class" : "instance";
-      return { body: current.parent, receiver };
-    }
-
-    child = current;
+  if (name === null) {
+    state.dynamicKeys.push(key);
+  } else {
+    state.unrenameableNames.add(name);
   }
-
-  return null;
 };
 
 const refersToClass = (
@@ -454,12 +429,8 @@ export const noPropertyModifiers = defineRule({
         }
       },
       Property: (node): void => {
-        if (
-          node.parent.type === "ObjectPattern" &&
-          !node.computed &&
-          node.key.type === "Identifier"
-        ) {
-          state.patternKeys.push(node.key);
+        if (node.parent.type === "ObjectPattern") {
+          addPatternKey(state, node);
         }
       },
       TSAbstractMethodDefinition: (node): void => {

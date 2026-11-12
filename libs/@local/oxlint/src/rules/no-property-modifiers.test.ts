@@ -78,6 +78,21 @@ tester.run("no-property-modifiers", noPropertyModifiers, {
       errors: [privateError],
       output: null,
     },
+    {
+      code: "class A { private foo = 1; m() { const { ['foo']: value } = this; return value; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m() { const { 'foo': value } = this; return value; } }",
+      errors: [privateError],
+      output: null,
+    },
+    {
+      code: "class A { private foo = 1; m(key: string) { const { [key as never]: value } = this; return value; } }",
+      errors: [privateError],
+      output: null,
+    },
     // A static method runs on whatever class its caller names, and a subclass does not inherit a static private name.
     {
       code: "class A { private static foo = 1; static read() { return this.foo; } } class B extends A {}",
