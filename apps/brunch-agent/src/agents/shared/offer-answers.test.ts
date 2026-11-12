@@ -18,7 +18,10 @@ const offer = {
     {
       kind: "choose" as const,
       label: "Quarantined shipment",
-      options: ["Stays counted as open", "Drops out until released"],
+      options: [
+        { label: "Stays counted as open" },
+        { label: "Drops out until released" },
+      ],
     },
   ],
 };
