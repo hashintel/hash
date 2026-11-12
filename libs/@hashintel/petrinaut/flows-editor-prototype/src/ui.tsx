@@ -119,13 +119,23 @@ export const oldLabelColumnStyle = css({
   },
 });
 
+/**
+ * `?panelrows=old`: 8 px between panel rows and every text area on its own line, as before the D-v2 pick (inbox
+ * panel-row-spacing, 12 Nov). Read from the URL only.
+ */
+export const oldPanelRows =
+  new URLSearchParams(globalThis.location.search).get("panelrows") === "old";
+
+const oldPanelRowsStyle = css({ "&[class]": { rowGap: "2" } });
+
 const sectionGridStyle = css({
   display: "grid",
   // One label column for the whole panel (Aakarsh, 21 Oct; ops/research/panel-label-layout): every value starts at
   // the same x in every section. Long labels truncate and show in full on hover.
   gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
   columnGap: "2",
-  rowGap: "2",
+  // 12 px between rows: figma-ds properties panel example 44333:21464 (D-v2, 12 Nov).
+  rowGap: "3",
   // Baselines line the label up with the first line of any value: a chip, a field or plain text.
   alignItems: "baseline",
   "& > :not([data-row])": { gridColumn: "1 / -1" },
@@ -168,6 +178,7 @@ export const Section = ({
       className={cx(
         sectionGridStyle,
         oldLabelColumn && oldLabelColumnStyle,
+        oldPanelRows && oldPanelRowsStyle,
         gridClassName,
       )}
     >

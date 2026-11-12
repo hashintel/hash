@@ -119,6 +119,7 @@ import {
   mutedTextStyle,
   OriginMark,
   oldLabelColumn,
+  oldPanelRows,
   oldLabelColumnStyle,
   oldPanelHeader,
   panelHeaderStyle,
@@ -276,6 +277,21 @@ const StepSettings = ({
 
 /** Send email's Inputs (Figma, 3 Nov): 16 px between To, Subject and Body; 8 px from a label to its box. */
 const sendEmailGridStyle = css({ rowGap: "4" });
+
+/** Text areas for writing, which keep their own line; any other text area sits beside its label (D-v2). */
+const writingInputs = new Set([
+  "body",
+  "subject",
+  "prompt",
+  "userGoal",
+  "relevantEntitiesPrompt",
+  "reportSpecification",
+  "context",
+  "query",
+  "question",
+  "description",
+  "displayName",
+]);
 
 /** Fields and sections the Figma panels leave out; `?full` brings them back. */
 const trimmedInputs: Record<string, string[]> = {
@@ -704,8 +720,9 @@ const ActionSections = ({
     }
     const label =
       inputLabels[`${step.actionDefinitionId}.${input.name}`] ?? input.label;
-    // Free text is a wide control: its label above, the field across the panel (J3 D1).
-    if (isFreeText(input)) {
+    // Free text for writing is a wide control: its label above, the field across the panel (J3 D1). A short note
+    // (Instructions) sits beside its label in the value column (D-v2, 12 Nov); `?panelrows=old` stacks it again.
+    if (isFreeText(input) && (oldPanelRows || writingInputs.has(input.name))) {
       return (
         <div
           key={input.name}
@@ -715,9 +732,13 @@ const ActionSections = ({
               gridColumn: "1 / -1",
               display: "flex",
               flexDirection: "column",
-              gap: "1.5",
+              // 10 px label to box: figma-ds FieldSet 44333:21444.
+              gap: "2.5",
             }),
-            step.actionDefinitionId === "sendEmail" && css({ gap: "2" }),
+            oldPanelRows && css({ gap: "1.5" }),
+            oldPanelRows &&
+              step.actionDefinitionId === "sendEmail" &&
+              css({ gap: "2" }),
           )}
         >
           <Tooltip
@@ -819,7 +840,7 @@ const ActionSections = ({
         <Section
           title="Inputs"
           gridClassName={
-            step.actionDefinitionId === "sendEmail"
+            step.actionDefinitionId === "sendEmail" && oldPanelRows
               ? sendEmailGridStyle
               : undefined
           }
