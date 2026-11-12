@@ -8,6 +8,7 @@ import {
   preventAutocompleteProps,
   resolveAutoFocusProps,
 } from "../../util/form-shared";
+import { isInteractiveTarget } from "../../util/interactive-target";
 import { hasCommandModifier } from "../../util/keyboard";
 import { renderAdornment } from "../../util/render-adornment";
 import { Chip } from "../Chip/chip";
@@ -324,32 +325,31 @@ export const TagsInput = ({
       <div
         className={multiClasses.frame}
         // A press anywhere on the frame — a chip, the padding — focuses the
-        // input, not just a press on the input itself. The exception is a
-        // chip's remove button, whose press only removes the value.
+        // input, not just a press on the input itself. The exception is an
+        // interactive element inside the field — a chip's remove or other
+        // buttons, an adornment button — whose press acts on its own and
+        // keeps focus where it is.
         onPointerDown={(event) => {
           if (disabled) {
             return;
           }
           const target = event.target;
           if (
-            target instanceof Element &&
-            (target.closest("[data-chip-segment='remove']") ||
-              target.closest("[data-part='adornment-button']"))
+            target === document.getElementById(inputId) ||
+            isInteractiveTarget(target, event.currentTarget)
           ) {
             return;
           }
-          if (target !== document.getElementById(inputId)) {
-            // Keep focus with the input instead of the pressed element
-            event.preventDefault();
-            focusInput();
-          }
+          event.preventDefault();
+          focusInput();
         }}
         onClick={(event) => {
           if (disabled) {
             return;
           }
-          // Focus happens on pointerdown above
-          focusInput();
+          if (!isInteractiveTarget(event.target, event.currentTarget)) {
+            focusInput();
+          }
           onClick?.(event);
         }}
         onFocus={() => setRowFocused(true)}

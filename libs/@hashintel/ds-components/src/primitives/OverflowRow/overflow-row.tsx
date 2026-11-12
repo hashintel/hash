@@ -8,6 +8,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { isInteractiveTarget } from "../../util/interactive-target";
 import { hasCaretModifier } from "../../util/keyboard";
 import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { styles } from "./overflow-row.recipe";
@@ -405,6 +406,13 @@ const OverflowRowBase = ({
             data-force-focus-visible={highlighted ? "" : undefined}
             className={classes.itemPreview}
             onPointerDown={(event) => {
+              // A press on an interactive element inside the item — a chip's
+              // remove or other buttons — is that element's own: focusing the
+              // input here would scroll the row and move the element from
+              // under the pointer before its click could land.
+              if (isInteractiveTarget(event.target, event.currentTarget)) {
+                return;
+              }
               // The press that gives the row focus only enters the field:
               // it focuses the input (revealed at the row's end) rather
               // than highlighting the pressed item. Highlighting takes a
@@ -577,6 +585,22 @@ const OverflowRowBase = ({
     )
   ) : null;
 
+  // The machine's root pointerdown focuses its input from idle. A press on
+  // an interactive element inside the row — a chip's remove or other buttons
+  // — is that element's own, so the machine must not react to it either.
+  const machineRootProps = tags?.getRootProps();
+  const rootProps = machineRootProps
+    ? {
+        ...machineRootProps,
+        onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
+          if (isInteractiveTarget(event.target, event.currentTarget)) {
+            return;
+          }
+          machineRootProps.onPointerDown?.(event);
+        },
+      }
+    : undefined;
+
   const focusProps =
     onFocusWithinChange === undefined
       ? undefined
@@ -596,7 +620,7 @@ const OverflowRowBase = ({
   if (overflow === "scroll") {
     return (
       <div
-        {...tags?.getRootProps()}
+        {...rootProps}
         {...focusProps}
         ref={rootRef}
         className={cx(classes.root, className)}
@@ -637,7 +661,7 @@ const OverflowRowBase = ({
 
     return (
       <div
-        {...tags?.getRootProps()}
+        {...rootProps}
         {...focusProps}
         ref={rootRef}
         className={cx(classes.root, className)}
@@ -666,7 +690,7 @@ const OverflowRowBase = ({
 
   return (
     <div
-      {...tags?.getRootProps()}
+      {...rootProps}
       {...focusProps}
       ref={rootRef}
       className={cx(classes.root, className)}
