@@ -398,7 +398,11 @@ export const AddNodePicker = ({
       ...(colour === null
         ? { text: group.name }
         : {
-            tint: groupHue(group),
+            // Coloured tiles and icons everywhere (ledger L455): the group's tile takes its steps' hue fill and icon.
+            tint:
+              colour === 1 || colour === 2
+                ? tileColor(groupSteps[0]?.icon ?? group.icon)
+                : groupHue(group),
             text:
               colour === 2 ? (
                 <span className={groupRowStyle} data-group-row={group.name}>
