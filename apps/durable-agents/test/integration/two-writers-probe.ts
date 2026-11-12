@@ -75,7 +75,9 @@ const open = async (
 const sessionState = async (harness: Harness) => {
   const ended = await Promise.race([
     harness.closed.then((end) => end),
-    new Promise<undefined>((resolve) => setTimeout(resolve, 50)),
+    new Promise<undefined>((resolve) =>
+      setTimeout(() => resolve(undefined), 50),
+    ),
   ]);
   if (ended === undefined) return "open";
   const error = (ended as { error?: unknown }).error;
