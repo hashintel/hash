@@ -161,6 +161,37 @@ const hoverOverride = (): Record<string, string> => {
     : {};
 };
 
+/**
+ * ?fills=gap|bar|hoverline gives menu rows a hover and a selected look that differ by more than one near-white step
+ * (Aakarsh, 12 Nov, inbox `interaction-fills`). gap: selected s35, two steps past hover s20. bar: selected s25 plus a
+ * 2 px bd.solid bar on the left. hoverline: hover is a 1 px bd.min inset line with no fill, selected s25. In all
+ * three a selected row keeps its look under the pointer. Without it, rows are as built.
+ */
+const fillLooks = ["gap", "bar", "hoverline"] as const;
+type FillLook = (typeof fillLooks)[number];
+const isFillLook = (value: string | null): value is FillLook =>
+  fillLooks.some((look) => look === value);
+
+const fillsCss = (): string => {
+  const look = new URLSearchParams(globalThis.location.search).get("fills");
+  if (!isFillLook(look)) {
+    return "";
+  }
+  const row = "[data-scope=menu][data-part=item]";
+  const hovered = `${row}:is([data-highlighted], :hover)`;
+  const selected = `${row}[data-selected=true]`;
+  const selectedHovered = `${selected}:is([data-highlighted], :hover)`;
+  if (look === "gap") {
+    return `${selected}, ${selectedHovered} { background: var(--colors-neutral-s35) !important; }`;
+  }
+  if (look === "bar") {
+    return `${selected}, ${selectedHovered} { background: var(--colors-neutral-s25) !important; position: relative; }
+      ${selected}::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--colors-neutral-bd-solid); }`;
+  }
+  return `${hovered} { background: transparent !important; box-shadow: inset 0 0 0 1px var(--colors-neutral-bd-min); }
+    ${selected}, ${selectedHovered} { background: var(--colors-neutral-s25) !important; }`;
+};
+
 export const applyDsColours = (mode: DsColours) => {
   const { document } = globalThis;
   let sheet = document.getElementById("flows-ds-colours");
@@ -179,7 +210,7 @@ export const applyDsColours = (mode: DsColours) => {
     .join(" ");
   sheet.textContent =
     mode === "figma"
-      ? `${selector} { ${declarations} } ${componentCss}`
+      ? `${selector} { ${declarations} } ${componentCss} ${fillsCss()}`
       : "";
   document.documentElement.dataset.dsColours = mode;
 };
