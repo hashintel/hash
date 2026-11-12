@@ -17,6 +17,7 @@ export type Sorter<SortKey> = {
   sortKey: SortKey;
   /** Which sort directions the sorter offers. Defaults to "both" */
   directionsAvailable?: SortDirectionsAvailable;
+  defaultDirection?: SortDirection;
   /** Glyph family for the direction icons. Defaults to "alphabetical" */
   sortIcon?: SortIcon;
 };
@@ -53,6 +54,15 @@ export const directionsOf = (
   sorter: Sorter<string>,
 ): readonly SortDirection[] =>
   directionsByAvailability[sorter.directionsAvailable ?? "both"];
+
+/** The direction a sorter starts in when picked: its `defaultDirection` where it offers that, else its first one. */
+export const defaultDirectionOf = (sorter: Sorter<string>): SortDirection => {
+  const directions = directionsOf(sorter);
+
+  return sorter.defaultDirection && directions.includes(sorter.defaultDirection)
+    ? sorter.defaultDirection
+    : (directions[0] ?? "ASCENDING");
+};
 
 export const flipped = (direction: SortDirection): SortDirection =>
   direction === "ASCENDING" ? "DESCENDING" : "ASCENDING";
