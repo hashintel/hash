@@ -9,7 +9,10 @@ use serde_json::json;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
-use super::{RestateBackend, RestateError, run::IntegrationRun, send, token_bucket::TokenBuckets};
+use super::{
+    RestateBackend, RestateError, WorkerConfig, run::IntegrationRun, send,
+    token_bucket::TokenBuckets,
+};
 use crate::{BackendError, RunFunction, Worker};
 
 /// How long Restate waits for a step that ran past its timeout to stop, before it aborts the
@@ -19,7 +22,25 @@ const ABORT_TIMEOUT: Duration = Duration::from_secs(5);
 /// The longest Restate waits between two attempts of a run, for example while no worker answers.
 const RETRY_INTERVAL: Duration = Duration::from_secs(5);
 
-impl Worker for RestateBackend {
+/// Serves run functions to the Restate server of the [`RestateBackend`] that made it, with the
+/// settings of its [`WorkerConfig`].
+pub struct RestateWorker {
+    backend: RestateBackend,
+    config: WorkerConfig,
+}
+
+impl RestateBackend {
+    /// A worker that registers with this backend's Restate server.
+    #[must_use]
+    pub fn worker(&self, config: WorkerConfig) -> RestateWorker {
+        RestateWorker {
+            backend: self.clone(),
+            config,
+        }
+    }
+}
+
+impl Worker for RestateWorker {
     /// Serves the run object and the token buckets at the configured address and registers its
     /// URL with Restate.
     #[tracing::instrument(skip_all, fields(version = %F::VERSION))]
@@ -49,9 +70,10 @@ impl Worker for RestateBackend {
 
         // Restate asks the worker for its services when the URL is registered as a deployment, so
         // the server is already serving by then. Registering a URL again changes nothing.
-        let deployments = format!("{}/deployments", self.config.admin_url);
+        let deployments = format!("{}/deployments", self.backend.config.admin_url);
         let register = send(
-            self.http
+            self.backend
+                .http
                 .post(deployments)
                 .json(&json!({ "uri": self.config.worker_url })),
         );

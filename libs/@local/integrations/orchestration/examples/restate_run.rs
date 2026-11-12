@@ -26,7 +26,7 @@ use error_stack::Report;
 use hash_integrations_orchestration::{
     FunctionVersion, Payload, RetryPolicy, RunError, RunFunction, RunId, RunPhase, RunStart,
     Runs as _, StepContext, StepName, Worker as _,
-    restate::{RestateBackend, RestateConfig},
+    restate::{RestateBackend, RestateConfig, WorkerConfig},
 };
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -82,17 +82,19 @@ async fn main() {
     let config = RestateConfig {
         ingress_url: "http://localhost:8080".to_owned(),
         admin_url: "http://localhost:9070".to_owned(),
+    };
+    let worker_config = WorkerConfig {
         listen: SocketAddr::from(([0, 0, 0, 0], port)),
         worker_url: format!("http://host.docker.internal:{port}"),
         step_timeout: Duration::from_mins(1),
     };
-    let backend = Arc::new(RestateBackend::new(config.clone()));
+    let backend = RestateBackend::new(config.clone());
 
     // The worker: it serves `Sync` and registers its URL with Restate.
     let shutdown = CancellationToken::new();
     let worker = tokio::spawn({
-        let (backend, shutdown) = (Arc::clone(&backend), shutdown.clone());
-        async move { backend.work(Arc::new(Sync), shutdown).await }
+        let (worker, shutdown) = (backend.worker(worker_config.clone()), shutdown.clone());
+        async move { worker.work(Arc::new(Sync), shutdown).await }
     });
     let deployments = format!("{}/deployments", config.admin_url);
     while !reqwest::get(&deployments)
@@ -101,7 +103,7 @@ async fn main() {
         .text()
         .await
         .expect("should read the deployments")
-        .contains(&config.worker_url)
+        .contains(&worker_config.worker_url)
     {
         sleep(Duration::from_millis(100)).await;
     }

@@ -28,7 +28,7 @@ use hash_integrations_orchestration::{
     AdmissionKey, BackendError, BucketScope, CoordinationStore as _, FailureKind, FunctionVersion,
     Payload, RetryPolicy, RunError, RunFailure, RunFunction, RunId, RunPhase, RunStart, RunStatus,
     Runs as _, StepContext, StepFailure, StepIndex, StepName, TokenBucket, Worker as _,
-    restate::{RestateBackend, RestateConfig},
+    restate::{RestateBackend, RestateConfig, WorkerConfig},
 };
 use time::UtcDateTime;
 use tokio::{
@@ -52,15 +52,21 @@ fn env(name: &str, default: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| default.to_owned())
 }
 
-/// A configuration whose worker listens on a free port.
+/// Where the tests' Restate server is.
 fn config() -> RestateConfig {
+    RestateConfig {
+        ingress_url: env("RESTATE_INGRESS_URL", "http://localhost:8080"),
+        admin_url: env("RESTATE_ADMIN_URL", "http://localhost:9070"),
+    }
+}
+
+/// A worker that listens on a free port.
+fn worker_config() -> WorkerConfig {
     let port = std::net::TcpListener::bind("0.0.0.0:0")
         .and_then(|listener| listener.local_addr())
         .expect("should find a free port")
         .port();
-    RestateConfig {
-        ingress_url: env("RESTATE_INGRESS_URL", "http://localhost:8080"),
-        admin_url: env("RESTATE_ADMIN_URL", "http://localhost:9070"),
+    WorkerConfig {
         listen: SocketAddr::from(([0, 0, 0, 0], port)),
         worker_url: format!(
             "http://{}:{port}",
@@ -80,12 +86,18 @@ struct TestWorker {
 
 impl TestWorker {
     /// Runs `function` on a worker and waits until Restate knows the worker's URL.
-    async fn spawn<F: RunFunction + 'static>(config: &RestateConfig, function: Arc<F>) -> Self {
+    async fn spawn<F: RunFunction + 'static>(
+        config: &RestateConfig,
+        worker: WorkerConfig,
+        function: Arc<F>,
+    ) -> Self {
         let runtime = Runtime::new().expect("should build the worker's runtime");
         let shutdown = CancellationToken::new();
+        let worker_url = worker.worker_url.clone();
         let task = runtime.spawn({
-            let (backend, shutdown) = (RestateBackend::new(config.clone()), shutdown.clone());
-            async move { backend.work(function, shutdown).await }
+            let worker = RestateBackend::new(config.clone()).worker(worker);
+            let shutdown = shutdown.clone();
+            async move { worker.work(function, shutdown).await }
         });
 
         let deployments = format!("{}/deployments", config.admin_url);
@@ -96,7 +108,7 @@ impl TestWorker {
                 .text()
                 .await
                 .expect("should read the deployments");
-            if registered.contains(&config.worker_url) {
+            if registered.contains(&worker_url) {
                 return Self {
                     runtime: Some(runtime),
                     shutdown,
@@ -204,7 +216,7 @@ async fn run_to_end<F: RunFunction + 'static>(
     let _server = lock_server();
     let config = config();
     let backend = RestateBackend::new(config.clone());
-    let worker = TestWorker::spawn(&config, function).await;
+    let worker = TestWorker::spawn(&config, worker_config(), function).await;
     let run = run_id();
 
     backend
@@ -385,7 +397,7 @@ async fn start_without_worker() {
     let _server = lock_server();
     let config = config();
     let backend = RestateBackend::new(config.clone());
-    TestWorker::spawn(&config, Arc::new(DoubleThenAddOne))
+    TestWorker::spawn(&config, worker_config(), Arc::new(DoubleThenAddOne))
         .await
         .stop()
         .await;
@@ -464,7 +476,7 @@ async fn cancel_stops_before_the_next_step() {
         release: Notify::new(),
         ran_last: AtomicBool::new(false),
     });
-    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let worker = TestWorker::spawn(&config, worker_config(), Arc::clone(&function)).await;
     let run = run_id();
 
     backend
@@ -540,13 +552,15 @@ impl<const V: u32> RunFunction for Resumable<V> {
     }
 }
 
-/// Starts a run of `function` and kills its worker while the run's second step is executing.
+/// Starts a run of `function` on a worker at `worker`'s URL and kills the worker while the run's
+/// second step is executing.
 async fn kill_worker_after_first_step(
     config: &RestateConfig,
+    worker: WorkerConfig,
     backend: &RestateBackend,
     function: Arc<Resumable<1>>,
 ) -> RunId {
-    let worker = TestWorker::spawn(config, function).await;
+    let worker = TestWorker::spawn(config, worker, function).await;
     let run = run_id();
     backend
         .start(
@@ -567,11 +581,18 @@ async fn killed_worker_resumes_on_another() {
     let _server = lock_server();
     let config = config();
     let backend = RestateBackend::new(config.clone());
+    let worker_config = worker_config();
     let function = Resumable::<1>::new();
-    let run = kill_worker_after_first_step(&config, &backend, Arc::clone(&function)).await;
+    let run = kill_worker_after_first_step(
+        &config,
+        worker_config.clone(),
+        &backend,
+        Arc::clone(&function),
+    )
+    .await;
 
     function.release.notify_one();
-    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let worker = TestWorker::spawn(&config, worker_config, Arc::clone(&function)).await;
     let status = wait_until(&backend, &run, finished).await;
 
     assert_eq!(
@@ -617,12 +638,19 @@ async fn renamed_step_does_not_complete() {
     let _server = lock_server();
     let config = config();
     let backend = RestateBackend::new(config.clone());
-    let run = kill_worker_after_first_step(&config, &backend, Resumable::<1>::new()).await;
+    let worker_config = worker_config();
+    let run = kill_worker_after_first_step(
+        &config,
+        worker_config.clone(),
+        &backend,
+        Resumable::<1>::new(),
+    )
+    .await;
 
     let renamed = Arc::new(Renamed {
         first_runs: AtomicU32::new(0),
     });
-    let _worker = TestWorker::spawn(&config, Arc::clone(&renamed)).await;
+    let _worker = TestWorker::spawn(&config, worker_config, Arc::clone(&renamed)).await;
     tokio::time::sleep(Duration::from_secs(3)).await;
 
     assert_eq!(
@@ -665,15 +693,16 @@ impl RunFunction for HangsOnce {
 #[tokio::test]
 async fn hung_step_is_retried() {
     let _server = lock_server();
-    let config = RestateConfig {
-        step_timeout: Duration::from_secs(2),
-        ..config()
-    };
+    let config = config();
     let backend = RestateBackend::new(config.clone());
     let function = Arc::new(HangsOnce {
         attempts: AtomicU32::new(0),
     });
-    let worker = TestWorker::spawn(&config, Arc::clone(&function)).await;
+    let worker_config = WorkerConfig {
+        step_timeout: Duration::from_secs(2),
+        ..worker_config()
+    };
+    let worker = TestWorker::spawn(&config, worker_config, Arc::clone(&function)).await;
     let run = run_id();
 
     backend
@@ -701,12 +730,12 @@ async fn hung_step_is_retried() {
 #[tokio::test]
 async fn run_stays_on_its_version() {
     let _server = lock_server();
-    let (config_one, config_two) = (config(), config());
-    let backend = RestateBackend::new(config_one.clone());
+    let config = config();
+    let backend = RestateBackend::new(config.clone());
     let (one, two) = (Resumable::<1>::new(), Resumable::<2>::new());
     let (run_one, run_two) = (run_id(), run_id());
 
-    let worker_one = TestWorker::spawn(&config_one, Arc::clone(&one)).await;
+    let worker_one = TestWorker::spawn(&config, worker_config(), Arc::clone(&one)).await;
     backend
         .start(
             run_one.clone(),
@@ -716,7 +745,7 @@ async fn run_stays_on_its_version() {
         .expect("should start the first run");
     wait_until(&backend, &run_one, |status| status.steps_recorded == 1).await;
 
-    let worker_two = TestWorker::spawn(&config_two, Arc::clone(&two)).await;
+    let worker_two = TestWorker::spawn(&config, worker_config(), Arc::clone(&two)).await;
     backend
         .start(
             run_two.clone(),
@@ -795,7 +824,7 @@ async fn token_bucket_refills_and_goes_into_debt() {
     let _server = lock_server();
     let config = config();
     let backend = RestateBackend::new(config.clone());
-    let worker = TestWorker::spawn(&config, Arc::new(DoubleThenAddOne)).await;
+    let worker = TestWorker::spawn(&config, worker_config(), Arc::new(DoubleThenAddOne)).await;
     let (first, second) = (scope(), scope());
 
     assert_eq!(
@@ -831,7 +860,7 @@ async fn token_bucket_serialises_concurrent_consumes() {
     let _server = lock_server();
     let config = config();
     let backend = Arc::new(RestateBackend::new(config.clone()));
-    let worker = TestWorker::spawn(&config, Arc::new(DoubleThenAddOne)).await;
+    let worker = TestWorker::spawn(&config, worker_config(), Arc::new(DoubleThenAddOne)).await;
     let scope = scope();
     consume(&backend, &scope, 200, 1000.0).await;
 

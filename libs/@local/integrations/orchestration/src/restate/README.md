@@ -41,8 +41,8 @@ Each file implements one trait of the orchestrator.
 
 | File | Implements |
 | --- | --- |
-| `mod.rs` | The configuration and the backend struct |
-| `worker.rs` | `Worker`: serve the handlers and register the URL |
+| `mod.rs` | `RestateConfig`, which a client needs, `WorkerConfig`, which only a worker needs, and the backend struct |
+| `worker.rs` | `Worker` on `RestateWorker`: serve the handlers and register the URL |
 | `run.rs` | The `IntegrationRun` handler, which calls the `RunFunction` and is its `StepContext` |
 | `runs.rs` | `Runs`: start and cancel a run, one request each |
 | `status.rs` | The status of a run, read from the tables of Restate's admin API |

@@ -3,10 +3,10 @@
 //! Restate is a server that journals every step of a run and calls a worker to execute the run.
 //! Each module implements one trait of the orchestrator on it:
 //!
-//! - `worker` implements [`Worker`](crate::Worker). A worker serves the run function over HTTP and
-//!   registers its URL with Restate. It has no identity: Restate retries a run whose worker died,
-//!   or whose step ran past [`RestateConfig::step_timeout`], on whichever worker answers at
-//!   [`RestateConfig::worker_url`].
+//! - `worker` implements [`Worker`](crate::Worker) on [`RestateWorker`]. A worker serves the run
+//!   function over HTTP and registers its URL with Restate. It has no identity: Restate retries a
+//!   run whose worker died, or whose step ran past [`WorkerConfig::step_timeout`], on whichever
+//!   worker answers at [`WorkerConfig::worker_url`].
 //! - `run` executes a [`RunFunction`](crate::RunFunction) and is its
 //!   [`StepContext`](crate::StepContext). A run is one call of the `IntegrationRun` object, whose
 //!   key is the run's admission key, so Restate executes one run per admission key at a time. A
@@ -29,6 +29,8 @@ mod status;
 mod token_bucket;
 mod worker;
 
+pub use self::worker::RestateWorker;
+
 /// What the backend was doing with Restate when a call failed.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum RestateError {
@@ -38,7 +40,7 @@ pub enum RestateError {
     Request,
 }
 
-/// Where the Restate backend finds Restate, and where Restate finds this process's worker.
+/// Where the Restate backend finds Restate.
 #[derive(Debug, Clone)]
 pub struct RestateConfig {
     /// Restate's ingress, through which runs start. Restate serves it on port 8080.
@@ -46,6 +48,11 @@ pub struct RestateConfig {
     /// Restate's admin API, through which runs are read and cancelled and workers registered.
     /// Restate serves it on port 9070.
     pub admin_url: String,
+}
+
+/// Where a worker listens, where Restate finds it, and how long a step may take.
+#[derive(Debug, Clone)]
+pub struct WorkerConfig {
     /// The address this process's worker listens on.
     pub listen: SocketAddr,
     /// The URL at which Restate reaches [`listen`](Self::listen). Every worker of one version of
@@ -57,6 +64,7 @@ pub struct RestateConfig {
 }
 
 /// The backend on Restate. It keeps no connection and no state of its own.
+#[derive(Clone)]
 pub struct RestateBackend {
     config: RestateConfig,
     http: reqwest::Client,
