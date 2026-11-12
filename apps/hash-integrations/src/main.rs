@@ -17,14 +17,15 @@ mod args;
 mod service;
 mod subcommand;
 
+use error_stack::Report;
 use hash_telemetry::traces::sentry::{init, release_name};
 
-use self::args::Args;
+use self::{args::Args, subcommand::SubcommandError};
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-fn main() {
+fn main() -> Result<(), Report<SubcommandError>> {
     let Args {
         subcommand,
         tracing_config,
@@ -32,5 +33,5 @@ fn main() {
 
     let _sentry_guard = init(&tracing_config.sentry, release_name!());
 
-    subcommand.execute();
+    subcommand.execute()
 }
