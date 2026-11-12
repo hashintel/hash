@@ -455,7 +455,7 @@ export const SourceSelectTrigger = ({
   source,
   stepId,
 }: {
-  children: string;
+  children: React.ReactNode;
   hover?: string;
   placeholder?: boolean;
   onClick: () => void;
@@ -465,7 +465,7 @@ export const SourceSelectTrigger = ({
 }) => {
   const hoverProps = useSourceHover(source, stepId ?? "");
   return (
-    <Tooltip content={hover ?? children}>
+    <Tooltip content={hover ?? (typeof children === "string" ? children : "")}>
       <button
         type="button"
         className={selectTriggerStyle}

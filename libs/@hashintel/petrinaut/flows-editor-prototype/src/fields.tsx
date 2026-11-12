@@ -5,6 +5,7 @@ import {
   Button,
   Chip,
   Icon,
+  type IconName,
   type ItemOrGroup,
   Menu,
   type MenuItem,
@@ -54,6 +55,7 @@ import {
   mockPeopleEmails,
 } from "./mock-graph";
 import { PropertyName, PropertyPath } from "./property-path";
+import { RefChipText, refLook, RefPath, refText } from "./ref-path";
 import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape, sourceOptions } from "./shapes";
 import { entityChoices, SearchHeader, SourceMenu } from "./source-menu";
@@ -129,6 +131,50 @@ const SourceHover = ({
   </span>
 );
 
+/** t2: a field's reference as its text, for the hover: `Step › Output`. */
+export const refHover = (
+  document: EditorDocument,
+  source: StepInputSource,
+  stepId: string,
+) => {
+  const look = refLook(document, source, stepId);
+  return look ? refText(look) : tokenPath(document, source, stepId).join(" › ");
+};
+
+/** t2: inside a select trigger, the source step's hue tile, then `Step › Output`, the step name cut first. */
+export const RefField = ({
+  source,
+  stepId,
+}: {
+  source: StepInputSource;
+  stepId: string;
+}) => {
+  const { document } = useEditor();
+  const look = refLook(document, source, stepId);
+  return look ? (
+    <RefPath look={look} />
+  ) : (
+    <>{collapsePath(tokenPath(document, source, stepId))}</>
+  );
+};
+
+const ListRefText = ({
+  document,
+  item,
+  stepId,
+}: {
+  document: EditorDocument;
+  item: StepInputSource;
+  stepId: string;
+}) => {
+  const look = refLook(document, item, stepId);
+  return look ? (
+    <RefChipText look={look} />
+  ) : (
+    <>{collapsePath(tokenPath(document, item, stepId))}</>
+  );
+};
+
 const TokenChip = ({
   source,
   stepId,
@@ -142,8 +188,9 @@ const TokenChip = ({
 }) => {
   const { document, ui } = useEditor();
   const parts = tokenPath(document, source, stepId);
+  const look = refLook(document, source, stepId);
   return (
-    <Tooltip content={parts.join(" › ")}>
+    <Tooltip content={look ? refText(look) : parts.join(" › ")}>
       <SourceHover source={source} stepId={stepId}>
         <Chip
           // Square md, as references inside text (26 Oct chip rule, L141; 11 Nov convergence A4).
@@ -161,7 +208,7 @@ const TokenChip = ({
               : { onRemove, "aria-label": "Clear" }
           }
         >
-          {collapsePath(parts)}
+          {look ? <RefChipText look={look} /> : collapsePath(parts)}
         </Chip>
       </SourceHover>
     </Tooltip>
@@ -269,10 +316,10 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         <SourceSelectTrigger
           source={source}
           stepId={step.stepId}
-          hover={tokenPath(document, source, step.stepId).join(" › ")}
+          hover={refHover(document, source, step.stepId)}
           onClick={() => setOpen(true)}
         >
-          {collapsePath(tokenPath(document, source, step.stepId))}
+          <RefField source={source} stepId={step.stepId} />
         </SourceSelectTrigger>
         <SourceLine source={source} />
         {menu}
@@ -375,10 +422,10 @@ const editorClass = css({
   },
 });
 
-/** Shape B, no icon, colour only when something is wrong (26 Oct sync; `inline-chips.tsx`). */
+/** Shape B with the source step's icon (t2, 12 Nov), colour only when something is wrong (26 Oct sync; `inline-chips.tsx`). */
 const makeChip = (
   part: Extract<TemplatePart, { kind: "ref" }>,
-  label: (source: RefSource) => string,
+  label: (source: RefSource) => ChipFace,
 ) => {
   const chip = globalThis.document.createElement("span");
   const status = refStatus(part);
@@ -395,15 +442,20 @@ const makeChip = (
     chip.dataset.fallback = JSON.stringify(part.fallback);
   }
   chip.innerHTML = renderToStaticMarkup(
-    <InlineChip status={status}>{label(part.source)}</InlineChip>,
+    <InlineChip status={status} icon={label(part.source).icon}>
+      {label(part.source).text}
+    </InlineChip>,
   );
   return chip;
 };
 
+/** What an inline chip shows: the step icon (grey, t2) and `Step › Output`. */
+type ChipFace = { icon?: IconName; text: React.ReactNode };
+
 const renderParts = (
   element: HTMLElement,
   parts: TemplatePart[],
-  label: (source: RefSource) => string,
+  label: (source: RefSource) => ChipFace,
 ) => {
   element.replaceChildren(
     ...parts.map((part) =>
@@ -478,10 +530,18 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
       : null,
   );
 
-  const label = (source: RefSource) =>
-    collapsePath(tokenPath(document, source, step.stepId));
-  const pathOf = (source: RefSource) =>
-    tokenPath(document, source, step.stepId);
+  const label = (source: RefSource): ChipFace => {
+    const look = refLook(document, source, step.stepId);
+    return look
+      ? { icon: look.icon, text: <RefChipText look={look} /> }
+      : { text: collapsePath(tokenPath(document, source, step.stepId)) };
+  };
+  const pathOf = (source: RefSource) => {
+    const look = refLook(document, source, step.stepId);
+    return look
+      ? [look.step, look.output]
+      : tokenPath(document, source, step.stepId);
+  };
 
   /* The chip under the pointer, its "…" menu, and the chip being changed or given a fallback, by its place among
    * the field's chips. */
@@ -838,6 +898,8 @@ const listFieldStyle = css({
   minWidth: "[0]",
   minHeight: "[32px]",
   "& > *": { minWidth: "[0]" },
+  // t2: a reference chip shrinks inside the field, its step name cut first (`ref-path.tsx`).
+  "& > * > div": { minWidth: "[0]", maxWidth: "[100%]" },
   "&[data-all]": { flexWrap: "wrap" },
   // Spec Error state: a red border with the one line under the field.
   "&[data-invalid]": { borderColor: "red.bd.strong" },
@@ -898,16 +960,14 @@ export const ListSourceField = ({ step, input, entry }: FieldProps) => {
         source={source}
         stepId={step.stepId}
         placeholder={!source}
-        hover={
-          source
-            ? tokenPath(document, source, step.stepId).join(" › ")
-            : undefined
-        }
+        hover={source ? refHover(document, source, step.stepId) : undefined}
         onClick={() => setOpen(true)}
       >
-        {source
-          ? collapsePath(tokenPath(document, source, step.stepId))
-          : "Choose a list"}
+        {source ? (
+          <RefField source={source} stepId={step.stepId} />
+        ) : (
+          "Choose a list"
+        )}
       </SourceSelectTrigger>
       {open ? (
         <SourceMenu
@@ -962,7 +1022,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         mockPeopleEmails.find((candidate) => candidate.email === value)?.label;
       return known ?? value.replace(uploadedPrefix, "");
     }
-    return collapsePath(tokenPath(document, item, step.stepId));
+    return refHover(document, item, step.stepId);
   };
 
   /** A typed email that fails the check stays, as a red chip (spec F7: never a silent drop). */
@@ -1027,7 +1087,11 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           "aria-label": `Remove ${itemLabel(item)}`,
         }}
       >
-        {itemLabel(item)}
+        {item.kind === "constant" ? (
+          itemLabel(item)
+        ) : (
+          <ListRefText document={document} item={item} stepId={step.stepId} />
+        )}
       </Chip>
     );
     return bad ? (
@@ -1369,9 +1433,6 @@ const EntityTypeField = ({
   const sourceLook = source
     ? describeSource(document, source, step.stepId)
     : null;
-  // A flow input is named after Start's "Flow inputs", as the steps list and Start's card call it.
-  const sourceOwner =
-    source?.kind === "flow-input" ? "Flow inputs" : sourceLook?.owner;
 
   const text = search.trim().toLowerCase();
   const matches = (label: string) =>
@@ -1472,8 +1533,11 @@ const EntityTypeField = ({
           })}
         >
           {!sourceLook && selected ? <Icon name="cube" size="xs" /> : null}
+          {source && sourceLook ? (
+            <RefField source={source} stepId={step.stepId} />
+          ) : null}
           {sourceLook
-            ? `${sourceOwner} › ${sourceLook.label}`
+            ? null
             : // J2.2: the type defaults to Any.
               (selected?.title ?? "Any")}
         </span>

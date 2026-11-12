@@ -21,7 +21,6 @@ import {
   Icon,
   type IconName,
   SegmentedControl,
-  Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -30,6 +29,9 @@ import { getCatalogEntry } from "./catalog";
 import { type DraftStep, findStep, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
 import { propertyPathOf } from "./property-path";
+import { RunRefValue } from "./ref-path";
+
+import type { StepInputSource } from "./engine";
 import {
   HeaderTitle,
   panelHeaderStyle,
@@ -111,7 +113,12 @@ const statusIn = (stepId: string, item: Item): Status => {
   return at < fails ? "done" : at === fails ? "failed" : "notReached";
 };
 
-type RunRow = { label: string; value: React.ReactNode; from?: string };
+/** `ref`: where an input's value came from, drawn under the value (t2, 12 Nov). */
+type RunRow = { label: string; value: React.ReactNode; ref?: StepInputSource };
+
+const itemRef = { kind: "item" } as StepInputSource;
+const outputRef = (stepId: string, outputName: string) =>
+  ({ kind: "step-output", stepId, outputName }) as StepInputSource;
 
 type StepRun = {
   status: Status;
@@ -135,7 +142,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         status,
         line: "0.1 s · 09:00:02",
         inputs: [
-          { label: "Entity", value: item.name, from: "supplier" },
+          { label: "Entity", value: item.name, ref: itemRef },
           { label: "Property", value: propertyPathOf("Supplier", "Name") },
         ],
         outputs: [{ label: "Value", value: item.name }],
@@ -145,7 +152,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         status,
         line: "0.1 s · 09:00:02",
         inputs: [
-          { label: "Entity", value: item.name, from: "supplier" },
+          { label: "Entity", value: item.name, ref: itemRef },
           { label: "Property", value: propertyPathOf("Supplier", "Contact email") },
         ],
         outputs: [{ label: "Value", value: item.email }],
@@ -155,7 +162,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         status,
         line: "0.1 s · 09:00:02",
         inputs: [
-          { label: "Entity", value: item.name, from: "supplier" },
+          { label: "Entity", value: item.name, ref: itemRef },
           { label: "Property", value: propertyPathOf("Supplier", "Certificate link") },
         ],
         outputs: [{ label: "Value", value: item.certificate }],
@@ -169,7 +176,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
               {
                 label: "URL",
                 value: item.certificate,
-                from: "Read certificate link › Value",
+                ref: outputRef("readCertificateLink", "value"),
               },
             ],
             outputs: [{ label: "File", value: "None" }],
@@ -186,7 +193,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
               {
                 label: "URL",
                 value: item.certificate,
-                from: "Read certificate link › Value",
+                ref: outputRef("readCertificateLink", "value"),
               },
             ],
             outputs: [{ label: "File", value: "2026-10.pdf · 212 KB" }],
@@ -202,7 +209,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
               {
                 label: "To",
                 value: item.email,
-                from: "Read contact email › Value",
+                ref: outputRef("readEmail", "value"),
               },
               { label: "From", value: "quality@acme.example" },
               { label: "Subject", value: `Monthly review: ${item.name}` },
@@ -218,7 +225,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         : {
             status,
             line: "0.2 s · 09:00:06",
-            inputs: [{ label: "Entity", value: item.name, from: "supplier" }],
+            inputs: [{ label: "Entity", value: item.name, ref: itemRef }],
             outputs: [{ label: "Entity", value: item.name }],
           };
     default:
@@ -327,12 +334,10 @@ const StatusSection = ({
   </Section>
 );
 
-const Value = ({ row }: { row: RunRow }) =>
-  row.from ? (
-    // Where the value came from, on hover only (Dei, T26).
-    <Tooltip content={`From ${row.from}`}>
-      <span className={valueStyle}>{row.value}</span>
-    </Tooltip>
+const Value = ({ row, stepId }: { row: RunRow; stepId: string }) =>
+  row.ref ? (
+    // t2 (12 Nov): the value, then the source step's tile and `Step › Output` under it.
+    <RunRefValue value={row.value} source={row.ref} stepId={stepId} />
   ) : (
     <span className={valueStyle}>{row.value}</span>
   );
@@ -634,7 +639,7 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
         <Section title="Inputs">
           {run.inputs.map((row) => (
             <PropertyRow key={row.label} label={row.label}>
-              <Value row={row} />
+              <Value row={row} stepId={step.stepId} />
             </PropertyRow>
           ))}
         </Section>
@@ -643,7 +648,7 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
         <Section title="Outputs">
           {run.outputs.map((row) => (
             <PropertyRow key={row.label} label={row.label}>
-              <Value row={row} />
+              <Value row={row} stepId={step.stepId} />
             </PropertyRow>
           ))}
         </Section>

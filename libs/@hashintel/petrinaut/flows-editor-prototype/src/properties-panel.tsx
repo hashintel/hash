@@ -59,6 +59,8 @@ import {
   PatchField,
   PropertyField,
   QueryField,
+  RefField,
+  refHover,
   ValueField,
 } from "./fields";
 import { ghostKindOf, TriggersPanel } from "./flow-triggers";
@@ -907,6 +909,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               source={step.over}
               stepId={step.stepId}
               placeholder={!(step.over && over)}
+              hover={
+                step.over && over
+                  ? refHover(document, step.over, step.stepId)
+                  : undefined
+              }
               onClick={() =>
                 setUi((current) => ({
                   ...current,
@@ -918,13 +925,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 }))
               }
             >
-              {step.over && over
-                ? step.over.kind === "item"
-                  ? `${over.owner} › ${over.label}`
-                  : step.over.kind === "flow-input"
-                    ? over.label
-                    : over.owner
-                : "Choose a list"}
+              {step.over && over ? (
+                <RefField source={step.over} stepId={step.stepId} />
+              ) : (
+                "Choose a list"
+              )}
             </SourceSelectTrigger>
           </div>
           {open ? (

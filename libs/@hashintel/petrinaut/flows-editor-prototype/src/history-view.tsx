@@ -25,6 +25,7 @@ import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side"
 import { runOutputs, StepOutputs } from "./run-outputs";
 import { ForEachItems, StepStatusLines } from "./run-step-status";
 import type { StepState } from "./run-history";
+import type { StepInputSource } from "./engine";
 import {
   anyTicking,
   clockPlus,
@@ -48,6 +49,7 @@ import {
 import { openTriggersPage } from "./flow-triggers";
 import { selectedLabel } from "./menu-rows";
 import { propertyPathOf } from "./property-path";
+import { RunRefValue } from "./ref-path";
 import { triggerFiredTake } from "./trigger-flags";
 import {
   HeaderTitle,
@@ -594,6 +596,13 @@ const chipsFor = (state: StepRun, done: string): Detail["chips"] => {
 const spanLine = (run: RunRecord, from: number, to: number, what: string) =>
   `${clockPlus(run.startClock, from)} – ${clockPlus(run.startClock, to)}${what ? ` · ${what}` : ""}`;
 
+/** Where a run's input came from, drawn under its value (t2, 12 Nov). */
+const outputRef = (stepId: string, outputName: string) =>
+  ({ kind: "step-output", stepId, outputName }) as StepInputSource;
+const flowInputRef = (inputName: string) =>
+  ({ kind: "flow-input", inputName }) as StepInputSource;
+const itemRef = { kind: "item" } as StepInputSource;
+
 const detailOf = (
   stepId: string,
   run: RunRecord,
@@ -649,7 +658,17 @@ const detailOf = (
       span: reached
         ? spanLine(run, findSpan.to, signOffAt(n), `${n} suppliers`)
         : undefined,
-      inputs: [["List", "Find active suppliers › Entities"]],
+      inputs: [
+        [
+          "List",
+          <RunRefValue
+            key="list"
+            value={`${n} suppliers`}
+            source={outputRef("findSuppliers", "entities")}
+            stepId={forEachId}
+          />,
+        ],
+      ],
     };
   }
   if (stepId === signOffId) {
@@ -690,14 +709,32 @@ const detailOf = (
         "Fetch file",
         "download",
         "fetched",
-        [["File URL", "Read certificate link › URL"]],
+        [
+          [
+            "File URL",
+            <RunRefValue
+              key="url"
+              value={`${n} links`}
+              source={outputRef("readCertificateLink", "value")}
+              stepId="fetchCertificate"
+            />,
+          ],
+        ],
       ],
       sendReviewEmail: [
         "Send email",
         "at",
         "sent",
         [
-          ["To", "Read contact email › Value"],
+          [
+            "To",
+            <RunRefValue
+              key="to"
+              value={`${n} addresses`}
+              source={outputRef("readEmail", "value")}
+              stepId="sendReviewEmail"
+            />,
+          ],
           ["Subject", "Your monthly quality review"],
         ],
       ],
@@ -705,7 +742,17 @@ const detailOf = (
         "Update entity",
         "pencil",
         "updated",
-        [["Last reviewed", "Start › Review month"]],
+        [
+          [
+            "Last reviewed",
+            <RunRefValue
+              key="month"
+              value="November 2026"
+              source={flowInputRef("reviewMonth")}
+              stepId="markReviewed"
+            />,
+          ],
+        ],
       ],
     };
   const [type, icon, verb, inputs] = titles[stepId] ?? [
@@ -746,7 +793,18 @@ const detailOf = (
           : spanLine(run, span.from, span.to, `${n} suppliers`)
         : undefined,
     inputs: stepId.startsWith("read")
-      ? [["Entity", "For each supplier › Item"], ...inputs]
+      ? [
+          [
+            "Entity",
+            <RunRefValue
+              key="entity"
+              value={`${n} suppliers`}
+              source={itemRef}
+              stepId={stepId}
+            />,
+          ],
+          ...inputs,
+        ]
       : inputs,
   };
 };

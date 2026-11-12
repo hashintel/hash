@@ -18,6 +18,7 @@ import {
   Button,
   Chip,
   Icon,
+  type IconName,
   Popover,
   RadioGroup,
   SegmentedControl,
@@ -77,13 +78,17 @@ const sampleOf = (source: RefSource, path: string[]) => {
 /** The chip as it sits in the text: the DS Chip, square, md, grey; yellow or red only when something is wrong. */
 export const InlineChip = ({
   status,
+  icon,
   children,
 }: {
   status: RefStatus;
+  /** t2 (12 Nov): the source step's icon, grey as the chip. */
+  icon?: IconName;
   children: React.ReactNode;
 }) => (
   <Chip
     size="md"
+    {...(icon ? { prefix: { iconName: icon, variant: "naked" as const } } : {})}
     color={
       status?.tone === "broken"
         ? "red"
