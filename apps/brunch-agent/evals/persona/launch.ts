@@ -31,6 +31,7 @@ import { writeRunPacket } from "../petrinaut/run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
+  offeredQuestionsOf,
   personaConversationClient,
   submitPersonaBrowserTurn,
 } from "./browser-turn.ts";
@@ -600,7 +601,7 @@ const launchPersona = async ({
     let repliedMessages = 0;
     bridge = await openPersonaBrowserBridge({
       opening: resume ? undefined : opening,
-      prompt: async (message, turn) => {
+      prompt: async (utterance, turn) => {
         if (lifecycle.held)
           throw new Error(
             "The operator has taken over this conversation. Send nothing more; run `persona end` and report.",
@@ -608,11 +609,11 @@ const launchPersona = async ({
         await verifyGuidanceResume(manifest, host.guidance);
         let logged = false;
         try {
-          const result = await submitPersonaBrowserTurn(personaPage, message, {
+          const result = await submitPersonaBrowserTurn(personaPage, utterance, {
             session,
             signal: AbortSignal.any([turn.signal, stop.signal]),
             onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
-            onAdmission: async (admitted, receipt) => {
+            onAdmission: async (admitted, receipt, sent) => {
               activeAdmission = { client: sessionClient(admitted), receipt };
               // Each submission carries the browser's current cookies.
               if (session !== undefined) session = admitted;
@@ -620,7 +621,7 @@ const launchPersona = async ({
               if (logged) return;
               logged = true;
               // Brunch has the utterance; a failed log write must not read as unadmitted.
-              turn.admitted();
+              turn.admitted(sent);
               if (turn.opening) {
                 session = admitted;
                 // Retained even if the reply fails; resume needs the identity.
@@ -632,7 +633,7 @@ const launchPersona = async ({
               }
               await appendAdmittedUtterance(run, {
                 source: turn.opening ? "opening" : "persona",
-                message,
+                message: sent,
                 submissionId: receipt.submissionId,
                 personaAgent: agentSettings,
               });
@@ -659,6 +660,10 @@ const launchPersona = async ({
           return {
             text: result.reply.text,
             submissionIds: result.submissionIds,
+            questions: offeredQuestionsOf(
+              result.snapshot,
+              result.submissionIds,
+            ),
           };
         } catch (error) {
           if (error instanceof PersonaBrowserTurnError)
