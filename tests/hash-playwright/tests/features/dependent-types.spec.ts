@@ -94,12 +94,11 @@ test("a type's page lists each type that extends any of its versions, with the v
     }
   }
 
-  await openTypePage(page, parentPath);
   await typesThatExtend(page, parentName)
     .getByRole("button", { name: `Open ${childName} v2`, exact: true })
     .click();
 
   // Slides render inside MUI's Backdrop, which is aria-hidden, so role queries cannot see them.
   await expect(page.locator("h1").filter({ hasText: childName })).toBeVisible();
-  await expect(page).toHaveURL((url) => url.pathname === parentPath);
+  await expect(page).toHaveURL((url) => url.pathname === `${parentPath}/v/1`);
 });
