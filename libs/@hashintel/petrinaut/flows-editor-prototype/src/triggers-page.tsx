@@ -1316,12 +1316,15 @@ const VersionCell = ({ page, trigger, flow }: { page: Page; trigger: PageTrigger
   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- keeps the dropdown's clicks off the row
   <span className={versionCellStyle} onClick={stopRowClick}>
     {/* The page's other dropdowns (All flows, All webs): the same Select at a fixed 96 px, so the arrow sits with v5. */}
-    <span className={css({ width: "[96px]", flexShrink: 0 })}>
+    <span
+      className={css({ flexShrink: 0 })}
+      style={query().get("versionwidth") === "fit" ? undefined : { width: 96 }}
+    >
       <Select
         required
         size="sm"
         variant={query().get("versionselect") === "subtle" ? "subtle" : "default"}
-        width="fullWidth"
+        width={query().get("versionwidth") === "fit" ? "fitContent" : "fullWidth"}
         aria-label={`${trigger.label} flow version`}
         items={items(versionsOf(flow))}
         value={trigger.version}
