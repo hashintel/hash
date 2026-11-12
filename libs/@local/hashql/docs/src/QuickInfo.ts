@@ -28,9 +28,15 @@ import type { Symbol as CompilerSymbol } from "typescript/async";
  * The name itself is the identifier the quick info belongs to. A display adds the keyword, the name and the printed syntax together.
  */
 export type QuickInfo = Data.TaggedEnum<{
-  /** A variable or a property, with the type it has where the name mentions it. */
+  /** A variable, a property or an accessor, with the type it has where the name mentions it. */
   Value: {
-    readonly keyword: "const" | "let" | "var" | "(parameter)" | "(property)";
+    readonly keyword:
+      | "const"
+      | "let"
+      | "var"
+      | "(parameter)"
+      | "(property)"
+      | "(accessor)";
     readonly type: TypeNode;
   };
   /** A function or a method, with its first call signature and how many others it has. */
@@ -92,10 +98,14 @@ const bindingOf = (
   return bindingOf(node.parent);
 };
 
-/** The keyword quick info shows before a variable or a property. A variable whose declaration the program does not hold is a `var`, as the standard library declares its globals. */
+/** The keyword quick info shows before a variable, a property or an accessor. A variable whose declaration the program does not hold is a `var`, as the standard library declares its globals. */
 const keywordOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
   if (Symbol.hasFlag(symbol, SymbolFlags.Property)) {
     return "(property)" as const;
+  }
+
+  if (Symbol.hasFlag(symbol, SymbolFlags.Accessor)) {
+    return "(accessor)" as const;
   }
 
   if (symbol.valueDeclaration === undefined) {
@@ -120,7 +130,7 @@ const describe = Effect.fnUntraced(function* (
   // A variable comes first, because a module's default export can be a namespace as well.
   if (
     Symbol.hasFlag(symbol, SymbolFlags.Variable) ||
-    Symbol.hasFlag(symbol, SymbolFlags.Property)
+    Symbol.hasFlag(symbol, SymbolFlags.PropertyOrAccessor)
   ) {
     const keyword = yield* keywordOf(symbol);
     const type = yield* checker.getTypeOfSymbolAtLocation(symbol, name);
