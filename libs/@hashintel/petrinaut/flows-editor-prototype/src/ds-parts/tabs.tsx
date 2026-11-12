@@ -8,13 +8,22 @@
  *
  * Takes for inbox audit-logs-tabs, `?logtabs=`: no param (or `keep`) is the look above; `revert` is the look before
  * 72af9f5d5 (muted count after the label, the selected tab on a fill); `figma`, `underlined` and `simple` are the
- * figma-ds variants with the badge before the label, blue on the selected tab; `quiet` is simple with every badge grey.
+ * figma-ds variants with the badge before the label, blue on the selected tab; `quiet` is simple with every badge grey;
+ * `salt` is code-ds Tabs (ds-components, origin/main) variant pill, size sm, with revert's muted count after the label.
  */
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-type Look = "keep" | "revert" | "figma" | "underlined" | "simple" | "quiet";
+type Look =
+  "keep" | "revert" | "figma" | "underlined" | "simple" | "quiet" | "salt";
 
-const looks: Look[] = ["revert", "figma", "underlined", "simple", "quiet"];
+const looks: Look[] = [
+  "revert",
+  "figma",
+  "underlined",
+  "simple",
+  "quiet",
+  "salt",
+];
 
 const lookParam = new URLSearchParams(globalThis.location.search).get(
   "logtabs",
@@ -86,6 +95,52 @@ const revertTabStyle = css({
 const revertCountStyle = css({
   color: "neutral.fg.subtle",
   fontVariantNumeric: "tabular-nums",
+});
+
+/**
+ * code-ds Tabs pill sm, copied from `tabs.recipe.ts` and `form-size.recipe.ts` on origin/main. Resolved values:
+ * gap spacing.1 = 4 px; inset spacing.2 = 8 px; padding-y spacing.0.5 = 2 px; height round(14 px × 1.6) + 2 × 2 = 26 px;
+ * radii.md = 6 px; fg.muted = s100 #838383, fg.muted.hover = s110 #646464, fg.heading = s120 #202020;
+ * hover neutral.a15 = #00000005; the selected indicator neutral.a30 = #0000000f, drawn here as the selected tab's fill.
+ * The two alpha steps are written as values: the Figma colour layer (`figma-colours.ts`) repoints neutral.a15 and
+ * neutral.a30 to black a15 and a30 (7.5% and 15%), which would no longer be Salt as built.
+ */
+const saltListStyle = css({ display: "flex", alignItems: "center", gap: "1" });
+
+const saltTabStyle = css({
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "1",
+  flexShrink: "0",
+  "--form-border-width": "1px",
+  "--form-padding-y": "spacing.0.5",
+  "--form-line-height": "1.6em",
+  textStyle: "sm",
+  paddingX: "2",
+  paddingY: "var(--form-padding-y)",
+  minHeight:
+    "[calc(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2)]",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+  textDecoration: "none",
+  color: "fg.muted",
+  borderRadius: "md",
+  cursor: "pointer",
+  transition: "[color 0.15s ease, background-color 0.15s ease]",
+  "&:hover:not([aria-selected=true])": {
+    color: "fg.muted.hover",
+    backgroundColor: "[#00000005]",
+  },
+  "&[aria-selected=true]": {
+    color: "fg.heading",
+    backgroundColor: "[#0000000f]",
+  },
+  "&:focus-visible": {
+    outline: "[2px solid {colors.black.a60}]",
+    outlineOffset: "[-2px]",
+  },
 });
 
 /** figma-ds Tabs row: rounded and simple 3 px apart; underlined 20 px apart over a 1 px line. */
@@ -204,6 +259,27 @@ export const Tabs = <Value extends string>({
             role="tab"
             aria-selected={value === item.value}
             className={revertTabStyle}
+            onClick={() => onChange(item.value)}
+          >
+            {item.label}
+            {item.count === undefined ? null : (
+              <span className={revertCountStyle}>{item.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+    );
+  }
+  if (look === "salt") {
+    return (
+      <div role="tablist" aria-label={label} className={saltListStyle}>
+        {items.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            role="tab"
+            aria-selected={value === item.value}
+            className={saltTabStyle}
             onClick={() => onChange(item.value)}
           >
             {item.label}

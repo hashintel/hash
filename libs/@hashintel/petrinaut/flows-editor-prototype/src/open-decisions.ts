@@ -218,6 +218,7 @@ export const openDecisions: OpenSwitch[] = [
       { label: "figma underlined", value: "underlined" },
       { label: "figma simple", value: "simple" },
       { label: "figma quiet", value: "quiet" },
+      { label: "salt pill", value: "salt" },
     ],
   },
   {
