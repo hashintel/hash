@@ -9,6 +9,7 @@
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
 import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
+import { nominalValue } from "../internal/draft-scribe.js";
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "../Program/AST/index.js";
@@ -18,60 +19,19 @@ import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as Query from "../Program/Query.js";
+import * as Structural from "../Program/Structural.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
 
+import type { NominalBinding } from "../internal/draft-scribe.js";
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
-import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
 
 type Wrap = (child: AST.Node.Any) => AST.Node.Any;
-
-/** A newtype's binding and the id of its constructor. */
-interface NominalBinding {
-  readonly binding: AST.Binding.Type;
-  readonly valueReference: Referential.ReferenceId<"value">;
-}
-
-/** Adds structural argument normalization without losing the nominal identity on relocation. */
-const nominalValue = <N extends string, T extends Type.Any>(
-  expression: Expression.Expression<
-    Type.Function<readonly [T], Type.Opaque<N, T>>,
-    Inputs.Empty
-  >,
-): Context.NominalValue<N, T> =>
-  Expression.adaptCallable(
-    expression,
-    (self): Context.NominalCall<N, T> =>
-      <const V extends Structural.Value<T> & Structural.Value.Any>(
-        value: Structural.Value.Exact<T, V>,
-      ): Expression.Expression<
-        Type.Opaque<N, T>,
-        Structural.Value.Requirements<V>
-      > =>
-        pipe(
-          {
-            callee: Expression.toNode(self),
-            argument: pipe(
-              value,
-              StructuralSyntax.valueNode,
-              Result.flatMap(AST.validate),
-            ),
-          },
-          Result.all,
-          Result.map(
-            ({ callee, argument }) => new AST.Call(callee, [argument]),
-          ),
-          Expression.fromResult<
-            Type.Opaque<N, T>,
-            Structural.Value.Requirements<V>
-          >,
-        ),
-  );
 
 const nominal = <N extends string, T extends Type.Any>(
   nominalBinding: Result.Result<NominalBinding, ProgramError.Construction>,
@@ -132,6 +92,10 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly literal = Expression.literal;
   readonly integer = Expression.integer;
   readonly number = Expression.number;
+  readonly struct = Structural.struct;
+  readonly tuple = Structural.tuple;
+  readonly list = Structural.list;
+  readonly dict = Structural.dict;
   readonly assume = Expression.assume;
   readonly input = Expression.input;
   readonly eq = Operators.eq;
@@ -485,6 +449,7 @@ export const evaluate = <
       if (Expression.isExpression(expression)) {
         return expression;
       }
+
       return Expression.fromResult<
         Expression.Value.Type<O>,
         Body.Requirements<I>
