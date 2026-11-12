@@ -1,4 +1,4 @@
-import { Array, HashMap, Option, Order, pipe } from "effect";
+import { Array, HashMap, Option, pipe } from "effect";
 
 import * as Anchor from "../Anchor.js";
 import * as AST from "../AST/index.js";
@@ -173,6 +173,12 @@ export const overloads = (
     () => !Tree.Callable.isEvery(applies),
   );
 
+/** Whether one of `values` holds in some overloads only. Such a list tells its reader where each value holds, and one that holds in every overload says so. */
+export const varies = (
+  values: readonly { readonly applies: Tree.Callable.Applies }[],
+): boolean =>
+  Array.some(values, ({ applies }) => !Tree.Callable.isEvery(applies));
+
 /** The facts a declaration's comment states, with the URL of where it is declared. */
 export interface Facts {
   readonly since: Option.Option<string>;
@@ -240,35 +246,13 @@ export const count = (
       ),
   });
 
-/** An accessor's getter and setter as its declarations, in source order. */
-const halves = (
-  value: Tree.Member.Accessor,
-): Option.Option<Tree.Declaration.Signatures> =>
-  pipe(
-    Array.appendAll(Option.toArray(value.get), Option.toArray(value.set)),
-    Array.sortBy(
-      Order.mapInput(
-        Order.Number,
-        ({ origin }: Tree.Declaration.Signature) => origin.node.pos,
-      ),
-    ),
-    Option.liftPredicate(
-      Array.isReadonlyArrayNonEmpty<Tree.Declaration.Signature>,
-    ),
-    Option.map((children): Tree.Declaration.Signatures => ({
-      type: "signatures",
-      children,
-      origin: Array.map(children, ({ origin }) => origin),
-    })),
-  );
-
-/** The signatures of a member, an accessor's halves included. */
-export const signaturesOf = (
+/** The declarations of a member in source order, which for an accessor are its getter's and its setter's. */
+export const declarationsOf = (
   value: Tree.Member.Member,
-): Option.Option<Tree.Declaration.Signatures> => {
+): readonly Tree.Declaration.Signature[] => {
   if (value.type === "accessor") {
-    return halves(value);
+    return Array.map(value.halves, ({ signature }) => signature);
   }
 
-  return Option.some(value.signatures);
+  return value.signatures.children;
 };

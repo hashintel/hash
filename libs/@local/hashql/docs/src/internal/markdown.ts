@@ -71,49 +71,56 @@ const comments =
       Result.map(Array.flatten),
     );
 
-/** One of several declarations names its overloads and its own facts on the line before its code. */
-const numbered =
-  (output: Output.Output) =>
-  (value: Tree.Declaration.Signature): RootContent => ({
-    type: "paragraph",
-    children: [
-      Content.text(
-        Content.note(Array.map(value.overloads, ({ index }) => index)),
-      ),
-      ...pipe(
-        Content.facts(Output.signatureFacts(output)(value)),
-        Option.toArray,
-        Array.flatMap(({ children }) => [Content.text(" · "), ...children]),
-      ),
-    ],
-  });
-
-/** Each declaration's code after its facts, which name its overloads when there are several. */
-const declarations =
+const signatures =
   (output: Output.Output) =>
   (
     values: Option.Option<Tree.Declaration.Signatures>,
-  ): Written<RootContent[]> => {
-    const children = Array.flatMap(Option.toArray(values), (value) =>
-      Array.copy(value.children),
+  ): Written<RootContent[]> =>
+    Content.declarations(output)(
+      Array.flatMap(Option.toArray(values), ({ children }) => children),
+    ).pipe(
+      Result.map(Content.section(Titles.signatures(Output.count(values)))),
     );
 
-    return pipe(
-      children,
-      Array.map((value) =>
-        output.printed.signature(value.syntax).pipe(
-          Result.map((printed): RootContent[] => {
-            if (children.length === 1) {
-              return [
-                ...Option.toArray(
-                  Content.facts(Output.signatureFacts(output)(value)),
-                ),
-                Content.code(printed),
-              ];
-            }
+/** Declarations of a member, then what documents them: the descriptions of their comments, their documented calls and the comments' other sections. */
+const documented =
+  (output: Output.Output) =>
+  (
+    declared: readonly Tree.Declaration.Signature[],
+    values: readonly Tree.Comment.Comment[],
+    calls: Tree.Callable.Callable,
+  ): Written<RootContent[]> => {
+    const each = comments(output);
 
-            return [numbered(output)(value), Content.code(printed)];
-          }),
+    return Result.all([
+      Content.declarations(output)(declared),
+      each(values, Content.description),
+      Callable.callable(output)(calls),
+      each(values, Content.details),
+      each(values, Content.examples),
+      each(values, Content.references),
+    ]).pipe(Result.map(Array.flatten));
+  };
+
+/** A member's declarations with their documentation. A getter and a setter each come with what their own comment documents. */
+const body =
+  (output: Output.Output) =>
+  (value: Tree.Member.Member): Written<RootContent[]> => {
+    if (value.type !== "accessor") {
+      return documented(output)(
+        value.signatures.children,
+        value.comments,
+        value,
+      );
+    }
+
+    return pipe(
+      value.halves,
+      Array.map((half) =>
+        documented(output)(
+          [half.signature],
+          Option.toArray(half.comment),
+          half,
         ),
       ),
       Result.all,
@@ -121,48 +128,31 @@ const declarations =
     );
   };
 
-const signatures =
-  (output: Output.Output) =>
-  (
-    values: Option.Option<Tree.Declaration.Signatures>,
-  ): Written<RootContent[]> =>
-    declarations(output)(values).pipe(
-      Result.map(Content.section(Titles.signatures(Output.count(values)))),
-    );
-
 const member =
   (output: Output.Output) =>
   (value: Tree.Member.Member): Written<RootContent[]> =>
-    Result.gen(function* () {
-      const anchor: Html = {
-        type: "html",
-        value: anchorOf(Output.memberId(output)(value)),
-      };
-      const each = comments(output);
-      let calls: RootContent[] = [];
-      if (value.type === "method") {
-        calls = yield* Callable.callable(output)(value);
-      }
+    body(output)(value).pipe(
+      Result.map((written): RootContent[] => {
+        const anchor: Html = {
+          type: "html",
+          value: anchorOf(Output.memberId(output)(value)),
+        };
 
-      return [
-        {
-          type: "paragraph",
-          children: [
-            anchor,
-            {
-              type: "strong",
-              children: [Content.inlineCode(value.name)],
-            },
-          ],
-        },
-        ...(yield* declarations(output)(Output.signaturesOf(value))),
-        ...(yield* each(value.comments, Content.description)),
-        ...calls,
-        ...(yield* each(value.comments, Content.details)),
-        ...(yield* each(value.comments, Content.examples)),
-        ...(yield* each(value.comments, Content.references)),
-      ];
-    });
+        return [
+          {
+            type: "paragraph",
+            children: [
+              anchor,
+              {
+                type: "strong",
+                children: [Content.inlineCode(value.name)],
+              },
+            ],
+          },
+          ...written,
+        ];
+      }),
+    );
 
 const related =
   (output: Output.Output) =>

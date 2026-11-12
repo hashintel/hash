@@ -220,8 +220,10 @@ const declarations = (
   "api-parameter": drawn.Parameter,
   "api-returns": drawn.Returns,
   "api-throws": drawn.Throws,
-  "api-throw": ({ overloads, children }) => (
-    <drawn.Throw overloads={overloadsOf(overloads)}>{children}</drawn.Throw>
+  "api-throw": ({ overloads, every, children }) => (
+    <drawn.Throw overloads={overloadsOf(overloads)} every={every}>
+      {children}
+    </drawn.Throw>
   ),
   "api-error": drawn.Error,
   "api-form": ({ overloads, children }) => (
