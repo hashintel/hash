@@ -51,7 +51,7 @@ test("a type's page lists each type that extends any of its versions, with the v
 
   await openTypePage(page, parentPath);
   await expect(typesThatExtend(page, parentName)).toContainText(
-    `No types extend ${parentName} yet.`,
+    `No types extend ${parentName}`,
   );
 
   const childName = randomTypeName();
