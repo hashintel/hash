@@ -8,11 +8,15 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
   type ConversationId,
+  type ConversationView,
   createRegistry,
   defineExtension,
   defineTool,
+  type EntryId,
+  type EntryRecord,
   Harness,
   MemoryStorage,
+  type SubmissionId,
 } from "@earendil-works/pi-durable";
 import { obj } from "@earendil-works/pi-schema";
 import { expect, test, vi } from "vitest";
@@ -36,7 +40,7 @@ import {
   createPetrinautBrowserToolsExtension,
   petrinautBrowserTools,
 } from "../../../browser-call/petrinaut-browser-tools";
-import { createViewProjector } from "./view-projector";
+import { createViewProjector, projectResponseEntries } from "./view-projector";
 
 import type { UIMessageChunk } from "ai";
 
@@ -219,4 +223,135 @@ test("the projector's tool output is the browser's real output from details, for
   } finally {
     await harness.close(context);
   }
+});
+
+// ─── The response's ID and its hand-edit notes ───────────────────────────────
+
+const conversationId = 1 as ConversationId;
+const entryId = (id: number) => id as EntryId;
+
+const entry = (
+  id: number,
+  fields: Omit<EntryRecord, "id" | "conversationId">,
+) => ({ id: entryId(id), conversationId, ...fields }) satisfies EntryRecord;
+
+const input = (id: number) =>
+  entry(id, {
+    kind: "brunch.user",
+    data: { body: "ordinary", userText: "Add a dryer." },
+    model: [{ role: "user", content: "Add a dryer.", timestamp: 0 }],
+  });
+
+const note = (id: number, revision: string) =>
+  entry(id, {
+    kind: "brunch.hand-edit",
+    data: { episode: "e", reportId: `e:${id}`, revision },
+    model: [{ role: "user", content: "<hand-edit/>", timestamp: 0 }],
+  });
+
+const assistant = (
+  id: number,
+  message: ReturnType<typeof fauxAssistantMessage>,
+) => entry(id, { kind: "pi.assistant", model: [message] });
+
+const toolResult = (id: number) =>
+  entry(id, {
+    kind: "pi.tool-result",
+    data: { diagnostics: [] },
+    model: [
+      {
+        role: "toolResult",
+        toolCallId: "json",
+        toolName: "server_json",
+        content: [{ type: "text", text: '{"a":1}' }],
+        isError: false,
+        timestamp: 0,
+      },
+    ],
+  });
+
+/** The chunks the live projector writes for a done submission over `entries`, in one view. */
+const liveChunks = (entries: readonly EntryRecord[], answer: number) => {
+  const chunks: UIMessageChunk[] = [];
+  const projector = createViewProjector(
+    { clientToolNames: new Set() },
+    (chunk) => chunks.push(chunk),
+  );
+  projector.accept({
+    submission: {
+      id: 7 as SubmissionId,
+      conversationId,
+      type: "input",
+      status: "done",
+      entry: entryId(1),
+      answer: entryId(answer),
+    },
+    view: { conversation: { id: conversationId }, entries, docs: {} },
+  } satisfies { view: ConversationView } & Parameters<
+    ReturnType<typeof createViewProjector>["accept"]
+  >[0]);
+  expect(projector.isFinished()).toBe(true);
+  return chunks;
+};
+
+test("the response is named by its input entry; a note inside it is a data part before the next output, and notes before its first output or after its last are not part of it", () => {
+  const entries = [
+    input(1),
+    note(2, "R0"),
+    assistant(
+      3,
+      fauxAssistantMessage(fauxToolCall("server_json", {}, { id: "json" }), {
+        stopReason: "toolUse",
+      }),
+    ),
+    toolResult(4),
+    note(5, "R1"),
+    // A prune write: no model, nothing shown.
+    entry(6, {
+      kind: "brunch.prune",
+      data: { assistant: entryId(3) },
+      edits: [],
+    }),
+    assistant(7, fauxAssistantMessage("Done.")),
+    note(8, "R2"),
+  ];
+  const live = liveChunks(entries, 7);
+  expect(live).toEqual([
+    { type: "start", messageId: "durable:1" },
+    { type: "start-step" },
+    {
+      type: "tool-input-available",
+      toolCallId: "json",
+      toolName: "server_json",
+      input: {},
+      providerExecuted: true,
+      dynamic: undefined,
+    },
+    { type: "finish-step" },
+    {
+      type: "tool-output-available",
+      toolCallId: "json",
+      output: { a: 1 },
+      providerExecuted: true,
+    },
+    {
+      type: "data-brunch-hand-edit",
+      id: "durable:note:5",
+      data: { episode: "e", reportId: "e:5", revision: "R1" },
+    },
+    { type: "start-step" },
+    { type: "text-start", id: "durable:1:text:1" },
+    { type: "text-delta", id: "durable:1:text:1", delta: "Done." },
+    { type: "text-end", id: "durable:1:text:1" },
+    { type: "finish-step" },
+    { type: "finish", finishReason: "stop" },
+  ]);
+
+  // History's projection of the same stored entries: the same chunks, and the notes outside.
+  const history = projectResponseEntries(entryId(1), entries.slice(1), {
+    clientToolNames: new Set(),
+  });
+  expect(history.chunks).toEqual(live.slice(0, -1));
+  expect(history.notesBefore.map(({ id }) => id)).toEqual([2]);
+  expect(history.notesAfter.map(({ id }) => id)).toEqual([8]);
 });
