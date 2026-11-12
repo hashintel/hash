@@ -80,11 +80,11 @@ const sectionStyle = css({
 });
 
 /**
- * `?runlogedge=24`: the summary's sections and lines start on the 24 px edge the run head and every step panel use,
- * not 16 px in.
+ * The summary's sections and lines start on the 24 px edge the run head and every step panel use (Aakarsh, 13 Nov).
+ * `?runlogedge=16` keeps them 16 px in, as before.
  */
 export const runLogEdge24 =
-  new URLSearchParams(globalThis.location.search).get("runlogedge") === "24";
+  new URLSearchParams(globalThis.location.search).get("runlogedge") !== "16";
 
 /**
  * The run head's one-line Status under the run's ID (mark · word · count), drawn as a step's Status reads (Aakarsh,
