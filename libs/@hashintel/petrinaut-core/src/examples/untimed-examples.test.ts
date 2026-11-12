@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../hir";
 import { lowerScenarioToHir } from "../hir/scenario";
+import { buildVisualizerContext } from "../hir/surface-context";
 import { isTimedNet } from "../net-timing";
+import { PETRINAUT_DEFAULT_SEED } from "../simulation/api";
 import { compileScenario } from "../simulation/authoring/scenario/compile-scenario";
 import { createStepStepper } from "../simulation/event-trace/worker/step-stepper";
 import { createTraceRecorder } from "../simulation/event-trace/worker/trace-recorder";
@@ -10,10 +12,13 @@ import {
   createEngineFrameLayout,
   readEngineFrame,
 } from "../simulation/frames/internal-frame";
+import { interpretViewHir, ViewElementValue } from "../view-hir/interpret-view";
+import { lowerVisualizerToHir } from "../view-hir/visualizer";
 import { bicycleAssembly } from "./bicycle-assembly";
 import { wheelTruing } from "./wheel-truing";
 
 import type { SDCPN } from "../types/sdcpn";
+import type { ViewValue } from "../view-hir/interpret-view";
 
 /** The token count of every place by name, after each step of a run. */
 type Run = {
@@ -172,6 +177,17 @@ describe("Wheel Truing", () => {
     }
   });
 
+  it("replays the same batch in a Quick simulation, which always takes the default seed", () => {
+    const batch = run(
+      petriNetDefinition,
+      "scenario__batch_of_six",
+      PETRINAUT_DEFAULT_SEED,
+    );
+
+    expect(batch.steps).toBe(22);
+    expect(batch.counts.at(-1)).toMatchObject({ Accepted: 3, Rejected: 3 });
+  });
+
   it("draws a different run for a different seed", () => {
     const runs = [1, 2, 3, 4, 5].map((seed) =>
       JSON.stringify(
@@ -190,5 +206,131 @@ describe("Wheel Truing", () => {
     expect(accepted("scenario__tight_tolerance")).toBeLessThan(
       accepted("scenario__batch_of_six"),
     );
+  });
+});
+
+describe("Wheel Truing visualizers", () => {
+  const { petriNetDefinition } = wheelTruing;
+  type Wheel = { runout: number; passes: number };
+
+  /** What the visualizer of a place draws for its tokens. */
+  const draw = (placeName: string, tokens: Wheel[]): ViewValue => {
+    const place = petriNetDefinition.places.find(
+      ({ name }) => name === placeName,
+    )!;
+    const lowered = lowerVisualizerToHir(
+      place.visualizerCode!,
+      buildVisualizerContext(petriNetDefinition, place),
+    );
+    if (!lowered.ok) {
+      throw new Error(lowered.diagnostics.map((item) => item.message).join());
+    }
+    return interpretViewHir(lowered.view, {
+      tokens,
+      width: 360,
+      height: 240,
+      parameters: {
+        tolerance: 0.5,
+        max_passes: 4,
+        correction: 0.45,
+        spread: 0.25,
+      },
+    });
+  };
+
+  /** Every element of a drawing, the root first. */
+  const elementsOf = (value: ViewValue): ViewElementValue[] =>
+    Array.isArray(value)
+      ? (value as readonly ViewValue[]).flatMap(elementsOf)
+      : value instanceof ViewElementValue
+        ? [value, ...value.children.flatMap(elementsOf)]
+        : [];
+
+  /** The words of a drawing, one string per text element. */
+  const wordsOf = (value: ViewValue): string[] => {
+    const read = (child: ViewValue): string =>
+      Array.isArray(child)
+        ? (child as readonly ViewValue[]).map(read).join("")
+        : child instanceof ViewElementValue
+          ? child.children.map(read).join("")
+          : typeof child === "string" || typeof child === "number"
+            ? String(child)
+            : "";
+    return elementsOf(value)
+      .filter((element) => element.tag === "text")
+      .map(read);
+  };
+
+  it("gives every place a visualizer", () => {
+    expect(
+      petriNetDefinition.places.map((place) => [
+        place.name,
+        place.visualizerCode !== undefined,
+      ]),
+    ).toEqual([
+      ["Laced", true],
+      ["Measured", true],
+      ["Accepted", true],
+      ["Rejected", true],
+    ]);
+  });
+
+  it("names on the gauge the transition whose predicate holds for the wheel", () => {
+    // Within tolerance, whatever the passes.
+    expect(wordsOf(draw("Measured", [{ runout: 0.38, passes: 4 }]))).toContain(
+      "Accept",
+    );
+    // Still out, with a pass left.
+    expect(wordsOf(draw("Measured", [{ runout: 1.62, passes: 1 }]))).toContain(
+      "Retrue",
+    );
+    // Still out after the last pass.
+    expect(wordsOf(draw("Measured", [{ runout: 0.92, passes: 4 }]))).toContain(
+      "Reject",
+    );
+    expect(wordsOf(draw("Measured", []))).toContain("Stand free");
+  });
+
+  it("puts a rim off its hub by the wheel's runout, and on it at none", () => {
+    /** The widest gap between the hub and the centre of a rim, per wheel. */
+    const offCentre = (wheel: Wheel): number => {
+      const circles = elementsOf(draw("Accepted", [wheel])).filter(
+        (element) => element.tag === "circle",
+      );
+      const [ring, rim] = circles.map((circle) => [
+        Number(circle.attributes.get("cx")),
+        Number(circle.attributes.get("cy")),
+      ]);
+      return Math.hypot(rim![0]! - ring![0]!, rim![1]! - ring![1]!);
+    };
+
+    expect(offCentre({ runout: 0, passes: 1 })).toBe(0);
+    expect(offCentre({ runout: 0.4, passes: 1 })).toBeGreaterThan(0);
+    expect(offCentre({ runout: 2, passes: 1 })).toBeCloseTo(
+      5 * offCentre({ runout: 0.4, passes: 1 }),
+    );
+  });
+
+  it("draws one wheel per token, and marks the head of the queue alone", () => {
+    const wheels = [
+      { runout: 3, passes: 0 },
+      { runout: 1.2, passes: 1 },
+      { runout: 0.7, passes: 2 },
+    ];
+    const millimetres = (placeName: string) =>
+      wordsOf(draw(placeName, wheels)).filter((words) => words.endsWith("mm"));
+
+    expect(millimetres("Laced")).toEqual(["3.00 mm", "1.20 mm", "0.70 mm"]);
+    expect(
+      wordsOf(draw("Laced", wheels)).filter((words) => words === "NEXT"),
+    ).toHaveLength(1);
+    expect(wordsOf(draw("Rejected", wheels))).not.toContain("NEXT");
+    expect(wordsOf(draw("Rejected", wheels))).toContain(
+      "3 rejected · worst 3.00 mm",
+    );
+    expect(wordsOf(draw("Accepted", wheels))).toContain(
+      "3 accepted · 1.0 passes each",
+    );
+    expect(wordsOf(draw("Laced", []))).toContain("No wheel is waiting");
   });
 });
