@@ -1,12 +1,7 @@
 import { type FlueLogger } from "@flue/runtime";
 import { expect, test, vi } from "vitest";
 
-import {
-  brunchTools,
-  type LedgerHistory,
-  neverOffer,
-  questionKinds,
-} from "@hashintel/brunch-agent";
+import { brunchTools, type LedgerHistory } from "@hashintel/brunch-agent";
 
 import {
   createOfferAnswersTool,
@@ -64,14 +59,11 @@ const runWith = async (...responses: (readonly unknown[])[]) => {
   return result;
 };
 
-test("the description gives the model every kind's use and every never rule", () => {
-  for (const [kind, { use }] of Object.entries(questionKinds)) {
-    expect(offerAnswersToolDescription).toContain(`${kind} ${use}`);
-  }
-  for (const rule of neverOffer) {
-    expect(offerAnswersToolDescription).toContain(rule);
-  }
+test("the description says what the tool does, and leaves conduct to the guidance", () => {
   expect(offerAnswersToolDescription).toContain(brunchTools.ledgerCommit);
+  expect(offerAnswersToolDescription).not.toMatch(
+    /\b(must|never|your reply)\b/iu,
+  );
 });
 
 test("ends the batch only beside a closing commit in its own response", async () => {
