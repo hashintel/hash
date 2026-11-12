@@ -38,7 +38,7 @@ const faux = fauxProvider({ provider: "openai" });
 installFauxProvider(faux.provider);
 const application = await loadBuiltBrunchApplication();
 const identity = {
-  ownerKey: "offer-answers-owner",
+  actorKey: "offer-answers-owner",
   conversationId: `offer-answers-${crypto.randomUUID()}`,
 };
 const client = createFlueClient({
