@@ -22,7 +22,8 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../../browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../../browser-call/petrinaut-browser-tools";
+import { createHostBinding } from "../host-binding";
 import {
   type BrowserCallResult,
   contextProjectionExtension,
@@ -219,6 +220,9 @@ describe("the context projection on a Harness", () => {
         return fauxAssistantMessage("Added the dryer.");
       },
     ]);
+    const host = createHostBinding();
+    const petrinautBrowserToolsExtension =
+      createPetrinautBrowserToolsExtension(host);
     const registry = createRegistry();
     for (const extension of [
       browserCallExtension,
@@ -231,6 +235,7 @@ describe("the context projection on a Harness", () => {
       { models, registry },
       context,
     );
+    host.bind(harness);
     try {
       const root = await harness.root(context, {
         agent: {
@@ -310,13 +315,16 @@ describe("the context projection on a Harness", () => {
       });
       // The read came before the change, so the change keeps its read-back.
       expect(texts(seen[2] ?? [])).toEqual([
-        readOutput,
+        { output: readOutput, netRevision: "r1" },
         { output, netAfterChanges: readBack },
       ]);
       const committed = (
         await root.entries({ order: "ascending" }, 100, undefined, context)
       ).items.flatMap(({ model: messages = [] }) => messages);
-      expect(texts(committed)).toEqual([readOutput, output]);
+      expect(texts(committed)).toEqual([
+        { output: readOutput, netRevision: "r1" },
+        { output, netAfterChanges: readBack, netRevision: "r2" },
+      ]);
       expect(JSON.stringify(committed)).toContain("RelayDesk");
     } finally {
       await harness.close(context);

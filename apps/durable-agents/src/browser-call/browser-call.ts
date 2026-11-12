@@ -37,10 +37,10 @@ import {
   defineExtension,
   defineTask,
   defineTool,
-  type EntryId,
   type Harness,
   type JsonObject,
   type TaskId,
+  type ToolExecutionApi,
   type ToolRegistration,
   type ToolTaskInput,
   type Tx,
@@ -58,7 +58,14 @@ import {
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
 
-import { expectedNetRevision, viewedCalls } from "../net-state/net-freshness";
+import {
+  netFreshnessAtIssue,
+  staleNetViewRefusal,
+} from "../net-state/net-freshness";
+import { mayShowNet } from "../net-state/net-view";
+import { renderBrowserResult } from "../net-state/visible-net-view";
+
+import type { HostBinding } from "../agent/host-binding";
 
 /** Long enough that walking away is not a failure; the doorbell ends an unanswered call then. */
 export const callTtlMs = 24 * 60 * 60_000;
@@ -68,8 +75,14 @@ export const browserCallUnstartedError =
   "Browser call was not started; no document operation was invoked.";
 
 /** Copied from `apps/brunch-agent/src/shared/conversation/browser-call-rendezvous.ts`. */
-export const browserCallStaleError =
-  "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
+export const browserCallStaleError = staleNetViewRefusal;
+
+/**
+ * The output bound of a tool that may show the net (H10): the largest example
+ * net's read-back and definition exceed Pi's default 50 KiB. A result still
+ * cut is not a view, so the earlier view stays.
+ */
+export const netToolOutputLimits = { maxBytes: 256 * 1024 } as const;
 
 export type BrowserCallStatus =
   /** Issued; no browser has claimed it. */
@@ -355,15 +368,45 @@ const issuePosition = async (
     : { issuedEntry: input.assistant, callIndex };
 };
 
-export type WaitingBrowserToolOptions = {
-  /**
-   * Whether a document change is refused without a current view of the net
-   * (`net-freshness.ts`), and otherwise issued against the revision of that
-   * view. Default `true`. Only test scaffolding turns it off: the proofs and
-   * probes call `setNetTitle` alone, with no net read before it.
-   */
-  readonly checksNetView?: boolean;
+/**
+ * Net freshness for a model-issued call: the view in the context that ends at
+ * the call's assistant entry. A nested call has no such entry.
+ */
+const freshnessAtIssue = async (
+  host: HostBinding,
+  api: Pick<
+    ToolExecutionApi,
+    "conversationId" | "taskId" | "callId" | "getTask"
+  >,
+  context: Context,
+) => {
+  const input = (await api.getTask(api.taskId, context))?.input as
+    | ToolTaskInput
+    | undefined;
+  if (input?.kind !== "model")
+    throw new Error(
+      `Conversation history does not contain browser call ${api.callId}.`,
+    );
+  return netFreshnessAtIssue(
+    host,
+    api.conversationId,
+    input.assistant,
+    context,
+  );
 };
+
+export type WaitingBrowserToolOptions =
+  /**
+   * A document change is refused without a current view of the net
+   * (`net-freshness.ts`), and otherwise issued against the revision of that
+   * view, read through `host` from the context the model had at the call.
+   */
+  | { readonly host: HostBinding }
+  /**
+   * Only test scaffolding: the proofs and probes call `setNetTitle` alone,
+   * with no net read before it.
+   */
+  | { readonly checksNetView: false };
 
 /**
  * A tool the bound browser runs, the tool call waiting for the browser's
@@ -372,21 +415,37 @@ export type WaitingBrowserToolOptions = {
  * browser's output becomes the tool's result. Its tasks are registered by
  * `browserCallExtension`, which must be installed wherever it runs.
  *
- * A document change is first checked for a current view of the net, in the
- * same commit that would issue it: refused, it records nothing and returns
- * Brunch's refusal as an error result.
+ * A document change is first checked for a current view of the net, before
+ * the commit that would issue it: refused, it records nothing and returns
+ * Brunch's refusal as an error result. An issued call's record wins, so a
+ * rerun keeps its first decision.
+ *
+ * A settled result reaches the model rendered (`renderBrowserResult`): a read
+ * with its `netRevision`, a change with `netAfterChanges` and `netRevision`.
+ * A tool that may show the net gets `netToolOutputLimits`.
  */
 export const defineWaitingBrowserTool = <TParameters extends object>(
   definition: BrowserToolDefinition<TParameters>,
-  { checksNetView = true }: WaitingBrowserToolOptions = {},
+  options: WaitingBrowserToolOptions,
 ): ToolRegistration<TParameters> =>
   defineTool<TParameters>({
     name: definition.name,
     description: definition.description,
     parameters: definition.parameters,
     replay: "safe",
+    ...(mayShowNet(definition.name)
+      ? { outputLimits: netToolOutputLimits }
+      : {}),
     execute: async (args, api, context) => {
       const { conversationId, callId } = api;
+      const freshness =
+        "host" in options &&
+        browserToolFacts(definition.name).requiresFreshView &&
+        (await api.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
+          callId
+        ] === undefined
+          ? await freshnessAtIssue(options.host, api, context)
+          : undefined;
       const issued = await api.commit(
         async (
           tx,
@@ -398,27 +457,10 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
           const existing = calls[callId];
           if (existing !== undefined)
             return { task: existing.task as TaskId<BrowserCallOutcome> };
+          if (freshness !== undefined && "refusal" in freshness)
+            return { refusal: freshness.refusal };
+          const expectedRevision = freshness?.revision;
           const position = await issuePosition(tx, api.taskId, callId);
-          let expectedRevision: string | undefined;
-          if (
-            checksNetView &&
-            browserToolFacts(definition.name).requiresFreshView
-          ) {
-            if (position === undefined)
-              throw new Error(
-                `Conversation history does not contain browser call ${callId}.`,
-              );
-            const expected = expectedNetRevision(
-              await viewedCalls(
-                tx,
-                conversationId,
-                position.issuedEntry as EntryId,
-              ),
-              calls,
-            );
-            if ("refusal" in expected) return { refusal: expected.refusal };
-            expectedRevision = expected.revision;
-          }
           const { binding } = await tx.doc(BrowserBindingDoc, conversationId);
           const task = await tx.createTask(
             BrowserCall,
@@ -478,9 +520,18 @@ export const defineWaitingBrowserTool = <TParameters extends object>(
           isError: true,
         };
       }
-      // The model sees the browser's output; the UI's details carry Brunch's envelope with its metadata.
+      // The model sees the browser's output, rendered with what it shows of the net; the UI's details carry Brunch's envelope with its metadata.
       return {
-        output: [{ type: "text", text: JSON.stringify(result.output) }],
+        output: [
+          {
+            type: "text",
+            text: renderBrowserResult(
+              definition.name,
+              result.output,
+              result.metadata,
+            ),
+          },
+        ],
         details: {
           brunchBrowserResult: true,
           output: result.output,

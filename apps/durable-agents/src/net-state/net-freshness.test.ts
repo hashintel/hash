@@ -1,8 +1,10 @@
 /**
  * Net freshness through the real tool path: a Petrinaut document change is
- * refused without a current view of the net in the model's context, admitted
- * against the revision of the latest read, and admitted after a restart, from
- * committed entries and records alone.
+ * issued only against the net view in the context the model had when it
+ * issued it, read through the host binding at the call's assistant entry. It
+ * is refused with no view, refused when a later hand-edit note made the view
+ * stale, admitted after a read or a change's complete read-back, and never
+ * credits `details`. The view survives a restart: it is stored history.
  */
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -28,6 +30,7 @@ import {
   fauxToolCall,
   scriptedModel,
 } from "../../test/scripted-model";
+import { createHostBinding, type HostBinding } from "../agent/host-binding";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -36,8 +39,9 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
-import { noNetViewRefusal } from "./net-freshness";
+import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
+import { noNetViewRefusal, staleNetViewRefusal } from "./net-freshness";
+import { handEditEntryKind, renderHandEditNote } from "./visible-net-view";
 
 import type { Message } from "@earendil-works/pi-ai";
 import type { Models } from "@earendil-works/pi-ai/models";
@@ -63,16 +67,28 @@ const call = (
     stopReason: "toolUse",
   });
 
-const openHarness = (storage: Storage, models: Models) => {
+/** A Harness with the Petrinaut browser tools over its own host binding; `bound: false` leaves it unbound. */
+const openHarness = async (
+  storage: Storage,
+  models: Models,
+  { bound = true }: { readonly bound?: boolean } = {},
+) => {
+  const host: HostBinding = createHostBinding();
+  const tools = createPetrinautBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(petrinautBrowserToolsExtension);
-  return Harness.open(storage, { models, registry }, context);
+  registry.install(tools);
+  const harness = await Harness.open(storage, { models, registry }, context);
+  if (bound) host.bind(harness);
+  return { harness, tools };
 };
 
-const openRoot = async (harness: Harness, model: ModelRef) => {
+const openRoot = async (
+  { harness, tools }: Awaited<ReturnType<typeof openHarness>>,
+  model: ModelRef,
+) => {
   const root = await harness.root(context, {
-    agent: { model, extensions: [petrinautBrowserToolsExtension] },
+    agent: { model, extensions: [tools] },
   });
   await harness.commit(
     (tx) =>
@@ -133,31 +149,76 @@ const toolResult = async (conversation: Conversation, toolCallId: string) => {
     );
 };
 
-const readMetadata = { documentRevision: { before: "revision-1" } };
+const recordOf = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  toolCallId: string,
+) =>
+  (await harness.snapshot(BrowserCallsDoc, conversationId, context))?.calls[
+    toolCallId
+  ];
 
-describe("net freshness", () => {
-  test("refuses a change without a net read in the model's context, and issues nothing", async () => {
+const readMetadata = (revision: string) => ({
+  documentRevision: { before: revision },
+});
+
+const changeMetadata = (before: string, after: string) => ({
+  documentRevision: { before, after },
+  readBack: { places: [{ id: place.id, name: place.name }], revision: after },
+});
+
+/** A hand-edit note, as the hand-edit route admits it (U3), written directly. */
+const writeNote = async (
+  root: Conversation,
+  reportId: string,
+  revision: string,
+) => {
+  const submission = await root.submit(
+    {
+      type: "write",
+      requestId: `${handEditEntryKind}:${reportId}`,
+      entry: {
+        kind: handEditEntryKind,
+        data: { episode: "episode-1", reportId, revision },
+        model: [
+          {
+            role: "user",
+            content: renderHandEditNote(revision),
+            timestamp: 0,
+          },
+        ],
+      },
+    },
+    context,
+  );
+  await submission.wait(context);
+};
+
+const go = async (
+  root: Conversation,
+  content: string,
+  browser: () => Promise<void> = async () => undefined,
+) => {
+  const submission = await root.submit({ type: "input", content }, context);
+  await browser();
+  expect((await submission.wait(context)).status).toBe("done");
+};
+
+describe("net freshness at issue", () => {
+  test("refuses a change without a net view in the model's context, and issues nothing", async () => {
     const { models, model } = scriptedModel([
       call("addPlace", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
-    const harness = await openHarness(new MemoryStorage(), models);
-    const root = await openRoot(harness, model);
-    const submission = await root.submit(
-      { type: "input", content: "Add a dryer." },
-      context,
-    );
-    expect((await submission.wait(context)).status).toBe("done");
+    const opened = await openHarness(new MemoryStorage(), models);
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer.");
     expect(await toolResult(root, "add-1")).toMatchObject({
       isError: true,
       content: [{ type: "text", text: noNetViewRefusal }],
     });
-    expect(
-      (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls[
-        "add-1"
-      ],
-    ).toBeUndefined();
-    await harness.close(context);
+    expect(await recordOf(opened.harness, root.id, "add-1")).toBeUndefined();
+    await opened.harness.close(context);
   });
 
   test("a read, then a change: the change is issued against the read's revision", async () => {
@@ -166,19 +227,100 @@ describe("net freshness", () => {
       call("addPlace", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
-    const harness = await openHarness(new MemoryStorage(), models);
-    const root = await openRoot(harness, model);
-    const submission = await root.submit(
-      { type: "input", content: "Add a dryer." },
-      context,
-    );
-    await answer(harness, root.id, "read-1", { title: "Net" }, readMetadata);
-    await answer(harness, root.id, "add-1", { applied: true });
-    expect((await submission.wait(context)).status).toBe("done");
-    const calls = (await harness.snapshot(BrowserCallsDoc, root.id, context))
-      ?.calls;
-    expect(calls?.["read-1"]?.expectedRevision).toBeUndefined();
-    expect(calls?.["add-1"]).toMatchObject({
+    const opened = await openHarness(new MemoryStorage(), models);
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer.", async () => {
+      await answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      );
+      await answer(harness, root.id, "add-1", { applied: true });
+    });
+    expect(
+      (await recordOf(harness, root.id, "read-1"))?.expectedRevision,
+    ).toBeUndefined();
+    expect(await recordOf(harness, root.id, "add-1")).toMatchObject({
+      status: "settled",
+      expectedRevision: "revision-1",
+    });
+    await harness.close(context);
+  });
+
+  test("a change after a change's complete read-back is issued against the read-back's revision", async () => {
+    const { models, model } = scriptedModel([
+      call("readNetOutline", "read-1"),
+      call("addPlace", "add-1", place),
+      call("addPlace", "add-2", { ...place, id: "place-washer" }),
+      fauxAssistantMessage("Added both."),
+    ]);
+    const opened = await openHarness(new MemoryStorage(), models);
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer and a washer.", async () => {
+      await answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      );
+      await answer(
+        harness,
+        root.id,
+        "add-1",
+        { applied: true },
+        changeMetadata("revision-1", "revision-2"),
+      );
+      await answer(harness, root.id, "add-2", { applied: true });
+    });
+    expect(await recordOf(harness, root.id, "add-2")).toMatchObject({
+      status: "settled",
+      expectedRevision: "revision-2",
+    });
+    await harness.close(context);
+  });
+
+  test("never credits details: a change whose revision is only in its details leaves the earlier view", async () => {
+    const { models, model } = scriptedModel([
+      call("readNetOutline", "read-1"),
+      call("addPlace", "add-1", place),
+      call("addPlace", "add-2", { ...place, id: "place-washer" }),
+      fauxAssistantMessage("Added both."),
+    ]);
+    const opened = await openHarness(new MemoryStorage(), models);
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer and a washer.", async () => {
+      await answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      );
+      // A revision after, but no read-back: the model is sent the bare output.
+      await answer(
+        harness,
+        root.id,
+        "add-1",
+        { applied: true },
+        { documentRevision: { before: "revision-1", after: "revision-2" } },
+      );
+      await answer(harness, root.id, "add-2", { applied: true });
+    });
+    const added = await toolResult(root, "add-1");
+    expect(added).toMatchObject({
+      isError: false,
+      content: [{ type: "text", text: JSON.stringify({ applied: true }) }],
+      details: {
+        metadata: { documentRevision: { after: "revision-2" } },
+      },
+    });
+    expect(await recordOf(harness, root.id, "add-2")).toMatchObject({
       status: "settled",
       expectedRevision: "revision-1",
     });
@@ -191,22 +333,104 @@ describe("net freshness", () => {
       call("addPlace", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
-    const harness = await openHarness(new MemoryStorage(), models);
-    const root = await openRoot(harness, model);
-    const submission = await root.submit(
-      { type: "input", content: "Add a dryer." },
-      context,
+    const opened = await openHarness(new MemoryStorage(), models);
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer.", () =>
+      answer(opened.harness, root.id, "read-1", { title: "Net" }),
     );
-    await answer(harness, root.id, "read-1", { title: "Net" });
-    expect((await submission.wait(context)).status).toBe("done");
     expect(await toolResult(root, "add-1")).toMatchObject({
       isError: true,
       content: [{ type: "text", text: noNetViewRefusal }],
     });
+    await opened.harness.close(context);
+  });
+
+  test("a hand-edit note after the read makes it stale: the change is refused in the panel's words, and issues nothing", async () => {
+    const { models, model } = scriptedModel([
+      call("readNetOutline", "read-1"),
+      fauxAssistantMessage("Read it."),
+      call("addPlace", "add-1", place),
+      fauxAssistantMessage("I could not add it."),
+    ]);
+    const opened = await openHarness(new MemoryStorage(), models);
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Read the net.", () =>
+      answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      ),
+    );
+    await writeNote(root, "episode-1:1", "revision-2");
+    await go(root, "Add a dryer.");
+    expect(await toolResult(root, "add-1")).toMatchObject({
+      isError: true,
+      content: [{ type: "text", text: staleNetViewRefusal }],
+    });
+    expect(await recordOf(harness, root.id, "add-1")).toBeUndefined();
     await harness.close(context);
   });
 
-  test("the view survives a restart: a change after reopening is admitted against the earlier read", async () => {
+  test("a note naming the read's own revision leaves the view current", async () => {
+    const { models, model } = scriptedModel([
+      call("readNetOutline", "read-1"),
+      fauxAssistantMessage("Read it."),
+      call("addPlace", "add-1", place),
+      fauxAssistantMessage("Added the dryer."),
+    ]);
+    const opened = await openHarness(new MemoryStorage(), models);
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Read the net.", () =>
+      answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      ),
+    );
+    await writeNote(root, "episode-1:1", "revision-1");
+    await go(root, "Add a dryer.", () =>
+      answer(harness, root.id, "add-1", { applied: true }),
+    );
+    expect(await recordOf(harness, root.id, "add-1")).toMatchObject({
+      expectedRevision: "revision-1",
+    });
+    await harness.close(context);
+  });
+
+  test("an unbound host fails the change as a tool error and records nothing", async () => {
+    const { models, model } = scriptedModel([
+      call("readNetOutline", "read-1"),
+      call("addPlace", "add-1", place),
+      fauxAssistantMessage("I could not add it."),
+    ]);
+    const opened = await openHarness(new MemoryStorage(), models, {
+      bound: false,
+    });
+    const { harness } = opened;
+    const root = await openRoot(opened, model);
+    await go(root, "Add a dryer.", () =>
+      answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        readMetadata("revision-1"),
+      ),
+    );
+    const result = await toolResult(root, "add-1");
+    expect(result?.role === "toolResult" && result.isError).toBe(true);
+    expect(JSON.stringify(result)).toContain("Host is not bound.");
+    expect(await recordOf(harness, root.id, "add-1")).toBeUndefined();
+    await harness.close(context);
+  });
+
+  test("the view survives a restart: a change after reopening, over a fresh binding, is admitted against the earlier read", async () => {
     const directory = await mkdtemp(
       join(tmpdir(), "durable-agents-freshness-"),
     );
@@ -217,31 +441,39 @@ describe("net freshness", () => {
       call("addPlace", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
-    const first = await openHarness(await openNodeSqliteStorage(file), models);
-    const before = await openRoot(first, model);
-    const read = await before.submit(
-      { type: "input", content: "What is in the net?" },
-      context,
-    );
-    await answer(first, before.id, "read-1", { title: "Net" }, readMetadata);
-    expect((await read.wait(context)).status).toBe("done");
-    await first.close(context);
+    try {
+      const first = await openHarness(
+        await openNodeSqliteStorage(file),
+        models,
+      );
+      const before = await openRoot(first, model);
+      await go(before, "What is in the net?", () =>
+        answer(
+          first.harness,
+          before.id,
+          "read-1",
+          { title: "Net" },
+          readMetadata("revision-1"),
+        ),
+      );
+      await first.harness.close(context);
 
-    // A new process: nothing of the first Harness but its storage.
-    const second = await openHarness(await openNodeSqliteStorage(file), models);
-    const root = await second.root(context);
-    const change = await root.submit(
-      { type: "input", content: "Add a dryer." },
-      context,
-    );
-    await answer(second, root.id, "add-1", { applied: true });
-    expect((await change.wait(context)).status).toBe("done");
-    expect(
-      (await second.snapshot(BrowserCallsDoc, root.id, context))?.calls[
-        "add-1"
-      ],
-    ).toMatchObject({ status: "settled", expectedRevision: "revision-1" });
-    await second.close(context);
-    await rm(directory, { recursive: true, force: true });
+      // A new process: nothing of the first Harness but its storage.
+      const second = await openHarness(
+        await openNodeSqliteStorage(file),
+        models,
+      );
+      const root = await second.harness.root(context);
+      await go(root, "Add a dryer.", () =>
+        answer(second.harness, root.id, "add-1", { applied: true }),
+      );
+      expect(await recordOf(second.harness, root.id, "add-1")).toMatchObject({
+        status: "settled",
+        expectedRevision: "revision-1",
+      });
+      await second.harness.close(context);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

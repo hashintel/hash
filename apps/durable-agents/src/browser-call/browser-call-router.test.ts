@@ -2,11 +2,17 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
   type Conversation,
   createRegistry,
+  defineExtension,
+  defineTool,
   type EntryRecord,
+  type Extension,
   Harness,
+  LiveDoc,
   MemoryStorage,
   type Submission,
+  type SubmissionId,
 } from "@earendil-works/pi-durable";
+import { obj } from "@earendil-works/pi-schema";
 import { Hono } from "hono";
 import { describe, expect, test, vi } from "vitest";
 
@@ -17,11 +23,27 @@ import {
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
+import { drain, openMemoryServer } from "../../test/platform/server";
+import {
+  allEntries,
+  call,
+  holdTool,
+  kindsOf,
+  recordingModel,
+  shapeOf,
+} from "../../test/platform/support";
 import {
   fauxAssistantMessage,
   fauxToolCall,
   scriptedModel,
 } from "../../test/scripted-model";
+import { createHostBinding } from "../agent/host-binding";
+import {
+  handEditEntryKind,
+  renderHandEditNote,
+  renderNetRead,
+  visibleNetView,
+} from "../net-state/visible-net-view";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -30,7 +52,10 @@ import {
   finishBrowserCall,
 } from "./browser-call";
 import { createBrowserCallRouter } from "./browser-call-router";
-import { petrinautBrowserToolsExtension } from "./petrinaut-browser-tools";
+import { handEditsRoute } from "./hand-edit";
+import { createPetrinautBrowserToolsExtension } from "./petrinaut-browser-tools";
+
+import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const context = BACKGROUND_CONTEXT;
 const routeConversationId = "conversation-1";
@@ -74,16 +99,19 @@ const openConversation = async ({
     }),
     fauxAssistantMessage(answer),
   ]);
+  const host = createHostBinding();
+  const browserTools = createPetrinautBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(petrinautBrowserToolsExtension);
+  registry.install(browserTools);
   const harness = await Harness.open(
     new MemoryStorage(),
     { models, registry },
     context,
   );
+  host.bind(harness);
   const root = await harness.root(context, {
-    agent: { model, extensions: [petrinautBrowserToolsExtension] },
+    agent: { model, extensions: [browserTools] },
   });
   await harness.commit(
     (tx) =>
@@ -413,6 +441,420 @@ describe("browser-call router: early claims and committed records", () => {
       ).status,
     ).toBe(404);
     await harness.close(context);
+  });
+});
+
+const routePrefix = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
+const handEditsUrl = (conversationId = routeConversationId) =>
+  `${routePrefix}/${conversationId}/${brunchRoutes.browserCalls}/${handEditsRoute}`;
+
+/** POST a hand-edit report to `app`; `body` is sent as is. */
+const postHandEdit = (
+  app: Hono,
+  body: unknown,
+  conversationId = routeConversationId,
+) =>
+  app.request(handEditsUrl(conversationId), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+
+const report = (episode: string, seq: number, revision: string) => ({
+  binding,
+  episode,
+  seq,
+  revision,
+});
+
+type Admitted = {
+  readonly reportId: string;
+  readonly submission: SubmissionId;
+  readonly placement: string;
+};
+
+const admittedOf = async (response: Response) => {
+  expect(response.status).toBe(200);
+  return (await response.json()) as Admitted;
+};
+
+/** The `brunch.hand-edit` entries of `conversation`, oldest first. */
+const notesOf = async (conversation: Conversation) =>
+  (await allEntries(conversation)).filter(
+    ({ kind }) => kind === handEditEntryKind,
+  );
+
+/**
+ * A conversation answering `responses` through a recording faux model, with
+ * `extensions` installed, bound to `binding` unless `bound` is false, and the
+ * router mounted as the server mounts it.
+ */
+const openNoteConversation = async ({
+  responses,
+  extensions = [],
+  bound = true,
+}: {
+  readonly responses: readonly FauxResponseStep[];
+  readonly extensions?: readonly Extension[];
+  readonly bound?: boolean;
+}) => {
+  const { models, model, requests } = recordingModel(responses);
+  const registry = createRegistry();
+  for (const extension of extensions) registry.install(extension);
+  const harness = await Harness.open(
+    new MemoryStorage(),
+    { models, registry },
+    context,
+  );
+  const root = await harness.root(context, { agent: { model } });
+  if (bound)
+    await harness.commit(
+      (tx) =>
+        bindBrowserDocument(tx, root.id, {
+          conversationId: routeConversationId,
+          documentId: "net-1",
+        }),
+      context,
+    );
+  const app = new Hono().route(
+    routePrefix,
+    createBrowserCallRouter({
+      resolveHarness: (conversationId) =>
+        conversationId === routeConversationId ? harness : undefined,
+    }),
+  );
+  return { harness, root, app, requests };
+};
+
+/** Answer one input and settle. */
+const converse = async (conversation: Conversation, text: string) =>
+  (
+    await (
+      await conversation.submit({ type: "input", content: text }, context)
+    ).wait(context)
+  ).status;
+
+describe("browser-call router: hand-edit reports", () => {
+  test("an idle report admits exactly one note, placed at once, and starts no run (P7)", async () => {
+    const { harness, root, app, requests } = await openNoteConversation({
+      responses: [fauxAssistantMessage("first answer")],
+    });
+    try {
+      expect(await converse(root, "hello")).toBe("done");
+      const admitted = await admittedOf(
+        await postHandEdit(app, report("episode-1", 0, "revision-2")),
+      );
+      expect(admitted).toMatchObject({
+        reportId: "episode-1:0",
+        placement: "done",
+      });
+
+      await root.waitForIdle(context);
+      expect(
+        (await harness.snapshot(LiveDoc, root.id, context))?.run,
+      ).toBeUndefined();
+      expect(requests).toHaveLength(1);
+      const entries = await allEntries(root);
+      expect(kindsOf(entries)).toEqual([
+        "pi.user",
+        "pi.assistant",
+        handEditEntryKind,
+      ]);
+      expect(entries.at(-1)).toMatchObject({
+        data: {
+          episode: "episode-1",
+          reportId: "episode-1:0",
+          revision: "revision-2",
+        },
+        model: [{ role: "user", content: renderHandEditNote("revision-2") }],
+      });
+      expect(
+        await (
+          await harness.submission(admitted.submission, context)
+        )?.status(context),
+      ).toMatchObject({
+        type: "write",
+        requestId: "brunch.hand-edit:episode-1:0",
+      });
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test("a retried report admits nothing more and returns the first submission", async () => {
+    const { harness, root, app } = await openNoteConversation({
+      responses: [],
+    });
+    try {
+      const first = await admittedOf(
+        await postHandEdit(app, report("episode-1", 0, "revision-2")),
+      );
+      const retried = await Promise.all(
+        [0, 1].map(async () =>
+          admittedOf(
+            await postHandEdit(app, report("episode-1", 0, "revision-2")),
+          ),
+        ),
+      );
+      expect(retried).toEqual([first, first]);
+      expect(await notesOf(root)).toHaveLength(1);
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test("a report under a new episode or seq admits a new note, even for a revision already reported", async () => {
+    const { harness, root, app } = await openNoteConversation({
+      responses: [],
+    });
+    try {
+      const reports = [
+        report("episode-1", 0, "revision-2"),
+        report("episode-1", 1, "revision-3"),
+        // The user edits back to revision-2 after a later view: a new episode.
+        report("episode-2", 0, "revision-2"),
+      ];
+      const admitted: Admitted[] = [];
+      for (const body of reports)
+        // eslint-disable-next-line no-await-in-loop -- Reports arrive in order.
+        admitted.push(await admittedOf(await postHandEdit(app, body)));
+      expect(new Set(admitted.map(({ submission }) => submission)).size).toBe(
+        3,
+      );
+      expect((await notesOf(root)).map(({ data }) => data as unknown)).toEqual([
+        {
+          episode: "episode-1",
+          reportId: "episode-1:0",
+          revision: "revision-2",
+        },
+        {
+          episode: "episode-1",
+          reportId: "episode-1:1",
+          revision: "revision-3",
+        },
+        {
+          episode: "episode-2",
+          reportId: "episode-2:0",
+          revision: "revision-2",
+        },
+      ]);
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test("a report during a tool round is queued, lands after the round's results, and starts no second run (P7)", async () => {
+    const hold = holdTool();
+    const { harness, root, app, requests } = await openNoteConversation({
+      responses: [call("hold", "h1"), fauxAssistantMessage("answer")],
+      extensions: [defineExtension({ name: "hold", tools: [hold.tool] })],
+    });
+    try {
+      const input = await root.submit(
+        { type: "input", content: "go" },
+        context,
+      );
+      await hold.started;
+      const admitted = await admittedOf(
+        await postHandEdit(app, report("episode-1", 0, "revision-2")),
+      );
+      expect(admitted.placement).toBe("queued");
+      expect(await notesOf(root)).toHaveLength(0);
+      hold.release();
+      expect((await input.wait(context)).status).toBe("done");
+      await root.waitForIdle(context);
+      expect(kindsOf(await allEntries(root))).toEqual([
+        "pi.user",
+        "pi.system",
+        "pi.assistant(h1)",
+        "pi.tool-result(h1)",
+        handEditEntryKind,
+        "pi.assistant",
+      ]);
+      expect(requests).toHaveLength(2);
+      expect(shapeOf(requests[1]!).at(-1)).toBe(
+        `user:${renderHandEditNote("revision-2")}`,
+      );
+    } finally {
+      await harness.close(context);
+    }
+  });
+
+  test("unknown conversations get 404, malformed bodies 400, and a wrong or missing binding 409, writing nothing", async () => {
+    const { harness, root, app } = await openNoteConversation({
+      responses: [],
+    });
+    const unbound = await openNoteConversation({
+      responses: [],
+      bound: false,
+    });
+    try {
+      const valid = report("episode-1", 0, "revision-2");
+      // As the claim route: the body parses first, then the conversation resolves.
+      expect((await postHandEdit(app, valid, "other")).status).toBe(404);
+      expect(
+        (
+          await app.request(
+            `${routePrefix}/other/${brunchRoutes.browserCalls}/${toolCallId}`,
+            {
+              method: "POST",
+              body: JSON.stringify({ claimant: "tab-a", binding }),
+            },
+          )
+        ).status,
+      ).toBe(404);
+      const malformed: unknown[] = [
+        "not json",
+        {},
+        { ...valid, binding: undefined },
+        { ...valid, episode: "" },
+        { ...valid, seq: -1 },
+        { ...valid, seq: 1.5 },
+        { ...valid, seq: "0" },
+        { ...valid, revision: "" },
+        { ...valid, revision: 2 },
+      ];
+      const statuses = await Promise.all(
+        malformed.map(async (body) => (await postHandEdit(app, body)).status),
+      );
+      expect(statuses).toEqual(malformed.map(() => 400));
+      expect(
+        await (await postHandEdit(app, "not json", "other")).json(),
+      ).toEqual({ error: "invalid-body" });
+
+      const wrong = await postHandEdit(app, {
+        ...valid,
+        binding: canonicalContent({
+          conversationId: routeConversationId,
+          documentId: "x",
+        }),
+      });
+      expect(wrong.status).toBe(409);
+      expect(await wrong.json()).toEqual({ error: "wrong-binding" });
+      expect((await postHandEdit(unbound.app, valid)).status).toBe(409);
+
+      expect(await notesOf(root)).toHaveLength(0);
+      expect(await notesOf(unbound.root)).toHaveLength(0);
+      expect(
+        (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ??
+          {},
+      ).toEqual({});
+    } finally {
+      await Promise.all([
+        harness.close(context),
+        unbound.harness.close(context),
+      ]);
+    }
+  });
+});
+
+/** A server-side stand-in for a browser net read rendered with its revision, as U4's rendering produces it. */
+const standInRead = (revision: string) =>
+  defineExtension({
+    name: "stand-in-read",
+    tools: [
+      defineTool({
+        name: "readNetOutline",
+        description: "Reads the net.",
+        parameters: obj({}),
+        execute: async () => ({
+          output: [
+            { type: "text", text: renderNetRead({ title: "Net" }, revision) },
+          ],
+        }),
+      }),
+    ],
+  });
+
+describe("browser-call router: hand-edit reports through the server", () => {
+  test("the model's next request carries the note, the view is stale after it, and the note is never streamed", async () => {
+    const { models, model, requests } = recordingModel([
+      call("readNetOutline", "read-1"),
+      fauxAssistantMessage("Read it."),
+      fauxAssistantMessage("I will read the net again first."),
+    ]);
+    const { server, send, conversation } = openMemoryServer({
+      models,
+      model,
+      extensions: [standInRead("revision-1")],
+    });
+    server.app.route(
+      "/conversations",
+      createBrowserCallRouter({
+        // As `startDurableAgentsServer`: ownership is the registry's acquire.
+        resolveHarness: async (conversationId) =>
+          (await server.conversations.acquire(conversationId))?.harness,
+      }),
+    );
+    const chatId = "chat-hand-edit";
+    try {
+      await drain(await send(chatId, "m1", "Read the net."));
+      const { harness, root } = await conversation(chatId);
+      await root.waitForIdle(context);
+      expect(visibleNetView(await root.context(context))).toMatchObject({
+        state: "current",
+        revision: "revision-1",
+      });
+      await harness.commit(
+        (tx) =>
+          bindBrowserDocument(tx, root.id, {
+            conversationId: chatId,
+            documentId: "net-1",
+          }),
+        context,
+      );
+      const chatBinding = canonicalContent({
+        conversationId: chatId,
+        documentId: "net-1",
+      });
+
+      const response = await server.app.request(
+        `/conversations/${chatId}/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ...report("episode-1", 0, "revision-2"),
+            binding: chatBinding,
+          }),
+        },
+      );
+      expect(response.headers.get("content-type")).toMatch(
+        /^application\/json/u,
+      );
+      expect(await admittedOf(response)).toMatchObject({ placement: "done" });
+      expect(
+        (
+          await server.app.request(
+            `/conversations/unknown/${brunchRoutes.browserCalls}/${handEditsRoute}`,
+            {
+              method: "POST",
+              body: JSON.stringify(report("episode-1", 0, "revision-2")),
+            },
+          )
+        ).status,
+      ).toBe(404);
+
+      expect(visibleNetView(await root.context(context))).toMatchObject({
+        state: "stale",
+        seen: "revision-1",
+        edited: "revision-2",
+      });
+      expect(requests).toHaveLength(2);
+
+      const chunks = await drain(await send(chatId, "m2", "Rename it."));
+      expect(requests).toHaveLength(3);
+      expect(shapeOf(requests[2]!).slice(-2)).toEqual([
+        `user:${renderHandEditNote("revision-2")}`,
+        "user:Rename it.",
+      ]);
+      expect(JSON.stringify(chunks)).not.toContain("hand-edit");
+      expect(JSON.stringify(chunks)).toContain(
+        "I will read the net again first.",
+      );
+    } finally {
+      await server.close();
+    }
   });
 });
 
