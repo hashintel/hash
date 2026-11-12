@@ -1721,6 +1721,64 @@ test("a turn carries the selection as speech stopped, and Live hears of it once 
   expect(notes()[1]?.content).toContain("cleared their selection");
 });
 
+test("Live hears of the selection when speech stopped before it was ready, or was never reported", async () => {
+  let selection: EditorSelection = {
+    items: [{ type: "place", id: "doctors" }],
+    labels: ["place: AvailableDoctors"],
+  };
+  const fixture = setup({ readSelection: () => selection });
+  await fixture.conversation.start();
+  // Only transcription is ready: the person finishes speaking before Live is.
+  fixture.emit(1, { type: "session.created" });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "early",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_stopped",
+    item_id: "early",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "early",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "early",
+    content_index: 0,
+    transcript: "Make this two",
+  });
+  const notes = () =>
+    fixture.sent[0]
+      .map((data) => JSON.parse(data) as { type: string; content?: string })
+      .filter(({ type }) => type === "session.thinking.append");
+  expect(notes()).toHaveLength(0);
+  fixture.emit(0, { type: "session.started" });
+  expect(fixture.onFinalizedInput.mock.lastCall?.[0].selection).toEqual(
+    selection.items,
+  );
+  expect(notes()).toHaveLength(1);
+  expect(notes()[0]?.content).toContain("place: AvailableDoctors");
+
+  // A turn whose speech-stopped never came still tells Live, once per change.
+  selection = { ...selection, labels: ["place: AvailableNurses"] };
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "unreported",
+    previous_item_id: "early",
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "unreported",
+    content_index: 0,
+    transcript: "And this one",
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledTimes(2);
+  expect(notes()).toHaveLength(2);
+  expect(notes()[1]?.content).toContain("place: AvailableNurses");
+});
+
 test("a failed pacing note is not retried and never interrupts speech", async () => {
   const fixture = setup();
   await connect(fixture);

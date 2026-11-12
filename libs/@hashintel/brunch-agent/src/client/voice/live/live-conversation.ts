@@ -444,6 +444,9 @@ export const createLiveConversation = (
         // Taken when speech stopped; read now only if that was never reported.
         const selection = selectionAtSpeechEnd.get(itemId) ?? readSelection?.();
         selectionAtSpeechEnd.delete(itemId);
+        // Speech may have stopped before both connections were ready, or
+        // never been reported; an unchanged selection sends nothing again.
+        if (selection) sendSelectionNote(selection.labels);
         onFinalizedInput({
           ...(selection ? { selection: selection.items } : {}),
           ...input,
