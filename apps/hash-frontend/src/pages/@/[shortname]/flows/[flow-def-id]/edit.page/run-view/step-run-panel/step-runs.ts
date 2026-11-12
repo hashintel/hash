@@ -119,8 +119,14 @@ export const getLastError = (
 ): { error: FlowRunEventError; context: string | null } | null => {
   const failures = runs.flatMap(({ itemIndex, stepRun }) => {
     const error = stepRun.errorStatus ?? stepRun.lastFailure;
-    /* An open run with a failure is retrying it: `attempt` is the attempt now running, after the one that failed. */
-    const retrying = !stepRun.errorStatus && !stepRun.closedAt;
+    /*
+     * An open run with a failure is retrying it, unless it's waiting on a person: `attempt` is the attempt now running,
+     * after the one that failed.
+     */
+    const retrying =
+      !stepRun.errorStatus &&
+      !stepRun.closedAt &&
+      stepRun.status !== FlowStepStatus.InformationRequired;
     const parts = [
       itemIndex === null ? null : `Item ${itemIndex + 1}`,
       retrying ? `attempt ${stepRun.attempt - 1} failed, retrying` : null,

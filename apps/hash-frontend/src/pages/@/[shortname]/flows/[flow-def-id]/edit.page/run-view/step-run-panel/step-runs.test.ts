@@ -230,6 +230,22 @@ describe("getLastError", () => {
     expect(getLastError(itemRuns(stepRun("fetch~0")))).toBeNull();
   });
 
+  it("doesn't say a run waiting on a person is retrying", () => {
+    expect(
+      getLastError([
+        {
+          itemIndex: null,
+          stepRun: stepRun("fetch", {
+            status: FlowStepStatus.InformationRequired,
+            closedAt: "",
+            attempt: 2,
+            lastFailure: { message: "Timed out" },
+          }),
+        },
+      ]),
+    ).toEqual({ error: { message: "Timed out" }, context: null });
+  });
+
   it("doesn't say a run that gave up after its attempts is retrying", () => {
     expect(
       getLastError([
