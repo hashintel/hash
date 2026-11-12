@@ -73,12 +73,16 @@ readonly text: string;
 
 **Accepted by**
 
+* [`Box.held`](#Box.held) Reads.
+* [`Model.value`](#Model.value) Getter.
 * [`callable`](#callable) Container docs.
 * [`choose`](#choose) First call.
 * [`partial`](#partial) Documented.
 
 **Returned by**
 
+* [`Box.held`](#Box.held) Reads.
+* [`Model.value`](#Model.value) Getter.
 * [`callable`](#callable) Container docs.
 * [`choose`](#choose) First call.
 
