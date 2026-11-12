@@ -2453,6 +2453,14 @@ export const systemDataTypes = {
     title: "Absorbed Dose",
     description: "The energy imparted by ionizing radiation per unit mass.",
   },
+  absorbedDoseMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/absorbed-dose-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/absorbed-dose-metric/" as BaseUrl,
+    title: "Absorbed Dose (Metric)",
+    description:
+      "Absorbed Dose expressed in metric units, including SI units and their accepted companions.",
+  },
   absorbedDoseRate: {
     dataTypeId: "https://hash.ai/@h/types/data-type/absorbed-dose-rate/v/1",
     dataTypeBaseUrl:
@@ -2460,12 +2468,44 @@ export const systemDataTypes = {
     title: "Absorbed Dose Rate",
     description: "Absorbed radiation dose per unit time.",
   },
+  absorbedDoseRateMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/absorbed-dose-rate-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/absorbed-dose-rate-metric/" as BaseUrl,
+    title: "Absorbed Dose Rate (Metric)",
+    description:
+      "Absorbed Dose Rate expressed in metric units, including SI units and their accepted companions.",
+  },
   acceleration: {
     dataTypeId: "https://hash.ai/@h/types/data-type/acceleration/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/acceleration/" as BaseUrl,
     title: "Acceleration",
     description: "The rate of change of velocity.",
+  },
+  accelerationImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/acceleration-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/acceleration-imperial/" as BaseUrl,
+    title: "Acceleration (Imperial)",
+    description:
+      "Acceleration expressed in imperial units, including units shared with US customary measurement.",
+  },
+  accelerationMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/acceleration-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/acceleration-metric/" as BaseUrl,
+    title: "Acceleration (Metric)",
+    description:
+      "Acceleration expressed in metric units, including SI units and their accepted companions.",
+  },
+  acres: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/acres/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/acres/" as BaseUrl,
+    title: "Acres",
+    description:
+      "A unit of area expressed in acres. Based on the international foot of exactly 0.3048 meters.",
   },
   actorType: {
     dataTypeId: "https://hash.ai/@h/types/data-type/actor-type/v/1",
@@ -2505,6 +2545,24 @@ export const systemDataTypes = {
     title: "Amount Concentration",
     description: "Amount of substance per unit volume.",
   },
+  amountConcentrationImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/amount-concentration-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amount-concentration-imperial/" as BaseUrl,
+    title: "Amount Concentration (Imperial)",
+    description:
+      "Amount Concentration expressed in imperial units, including units shared with US customary measurement.",
+  },
+  amountConcentrationMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/amount-concentration-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amount-concentration-metric/" as BaseUrl,
+    title: "Amount Concentration (Metric)",
+    description:
+      "Amount Concentration expressed in metric units, including SI units and their accepted companions.",
+  },
   amountOfSubstance: {
     dataTypeId: "https://hash.ai/@h/types/data-type/amount-of-substance/v/1",
     dataTypeBaseUrl:
@@ -2512,6 +2570,24 @@ export const systemDataTypes = {
     title: "Amount of Substance",
     description:
       "A measure of the number of specified elementary entities in a sample.",
+  },
+  amountOfSubstanceImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/amount-of-substance-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amount-of-substance-imperial/" as BaseUrl,
+    title: "Amount of Substance (Imperial)",
+    description:
+      "Amount of Substance expressed in imperial units, including units shared with US customary measurement.",
+  },
+  amountOfSubstanceMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/amount-of-substance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amount-of-substance-metric/" as BaseUrl,
+    title: "Amount of Substance (Metric)",
+    description:
+      "Amount of Substance expressed in metric units, including SI units and their accepted companions.",
   },
   ampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/ampere-hours/v/1",
@@ -2526,6 +2602,14 @@ export const systemDataTypes = {
     title: "Amperes",
     description: "The SI base unit of electric current.",
   },
+  amperesPerFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/amperes-per-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amperes-per-foot/" as BaseUrl,
+    title: "Amperes per Foot",
+    description:
+      "A unit of magnetic field strength expressed in amperes per foot.",
+  },
   amperesPerMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/amperes-per-meter/v/1",
     dataTypeBaseUrl:
@@ -2533,6 +2617,15 @@ export const systemDataTypes = {
     title: "Amperes per Meter",
     description:
       "The coherent SI unit used to express magnetic field strength.",
+  },
+  amperesPerSquareFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/amperes-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/amperes-per-square-foot/" as BaseUrl,
+    title: "Amperes per Square Foot",
+    description:
+      "A unit of electric current density expressed in amperes per square foot.",
   },
   amperesPerSquareMeter: {
     dataTypeId:
@@ -2557,12 +2650,29 @@ export const systemDataTypes = {
     description:
       "A measure of rotation or the space between two intersecting lines.",
   },
+  angleMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/angle-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/angle-metric/" as BaseUrl,
+    title: "Angle (Metric)",
+    description:
+      "Angle expressed in metric units, including SI units and their accepted companions.",
+  },
   angularAcceleration: {
     dataTypeId: "https://hash.ai/@h/types/data-type/angular-acceleration/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/angular-acceleration/" as BaseUrl,
     title: "Angular Acceleration",
     description: "The rate of change of angular velocity.",
+  },
+  angularAccelerationMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/angular-acceleration-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/angular-acceleration-metric/" as BaseUrl,
+    title: "Angular Acceleration (Metric)",
+    description:
+      "Angular Acceleration expressed in metric units, including SI units and their accepted companions.",
   },
   angularVelocity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/angular-velocity/v/1",
@@ -2571,6 +2681,15 @@ export const systemDataTypes = {
     title: "Angular Velocity",
     description:
       "The rate of change of angle, also used to express angular frequency.",
+  },
+  angularVelocityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/angular-velocity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/angular-velocity-metric/" as BaseUrl,
+    title: "Angular Velocity (Metric)",
+    description:
+      "Angular Velocity expressed in metric units, including SI units and their accepted companions.",
   },
   aoa: {
     dataTypeId: "https://hash.ai/@h/types/data-type/aoa/v/1",
@@ -2583,6 +2702,22 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/area/" as BaseUrl,
     title: "Area",
     description: "A measure of the extent of a two-dimensional surface.",
+  },
+  areaImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/area-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/area-imperial/" as BaseUrl,
+    title: "Area (Imperial)",
+    description:
+      "Area expressed in imperial units, including units shared with US customary measurement.",
+  },
+  areaMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/area-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/area-metric/" as BaseUrl,
+    title: "Area (Metric)",
+    description:
+      "Area expressed in metric units, including SI units and their accepted companions.",
   },
   ars: {
     dataTypeId: "https://hash.ai/@h/types/data-type/ars/v/1",
@@ -2891,6 +3026,114 @@ export const systemDataTypes = {
     title: "BOB",
     description: "An amount denominated in Boliviano (ISO 4217 BOB).",
   },
+  britishThermalUnitsIt: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it/" as BaseUrl,
+    title: "British Thermal Units (IT)",
+    description:
+      "A unit of energy expressed in british thermal units (it). Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerCubicFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-cubic-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-cubic-foot/" as BaseUrl,
+    title: "British Thermal Units (IT) per Cubic Foot",
+    description:
+      "A unit of energy density expressed in british thermal units (it) per cubic foot. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerDegreeRankine: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-degree-rankine/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-degree-rankine/" as BaseUrl,
+    title: "British Thermal Units (IT) per Degree Rankine",
+    description:
+      "A unit of heat capacity expressed in british thermal units (it) per degree rankine. Uses the International Table British thermal unit, equal to 1055.05585262 joules. Each degree Rankine in the denominator represents a temperature interval of 5/9 kelvin.",
+  },
+  britishThermalUnitsItPerHour: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-hour/" as BaseUrl,
+    title: "British Thermal Units (IT) per Hour",
+    description:
+      "A unit of power expressed in british thermal units (it) per hour. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerHourFootDegreeRankine: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-hour-foot-degree-rankine/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-hour-foot-degree-rankine/" as BaseUrl,
+    title: "British Thermal Units (IT) per Hour Foot Degree Rankine",
+    description:
+      "A unit of thermal conductivity expressed in british thermal units (it) per hour foot degree rankine. Uses the International Table British thermal unit, equal to 1055.05585262 joules. Each degree Rankine in the denominator represents a temperature interval of 5/9 kelvin.",
+  },
+  britishThermalUnitsItPerPound: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound/" as BaseUrl,
+    title: "British Thermal Units (IT) per Pound",
+    description:
+      "A unit of specific energy expressed in british thermal units (it) per pound. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerPoundDegreeRankine: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-degree-rankine/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-degree-rankine/" as BaseUrl,
+    title: "British Thermal Units (IT) per Pound Degree Rankine",
+    description:
+      "A unit of specific heat capacity expressed in british thermal units (it) per pound degree rankine. Uses the International Table British thermal unit, equal to 1055.05585262 joules. Each degree Rankine in the denominator represents a temperature interval of 5/9 kelvin.",
+  },
+  britishThermalUnitsItPerPoundMole: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-mole/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-mole/" as BaseUrl,
+    title: "British Thermal Units (IT) per Pound Mole",
+    description:
+      "A unit of molar energy expressed in british thermal units (it) per pound mole. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerPoundMoleDegreeRankine: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-mole-degree-rankine/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-pound-mole-degree-rankine/" as BaseUrl,
+    title: "British Thermal Units (IT) per Pound Mole Degree Rankine",
+    description:
+      "A unit of molar heat capacity expressed in british thermal units (it) per pound mole degree rankine. Uses the International Table British thermal unit, equal to 1055.05585262 joules. Each degree Rankine in the denominator represents a temperature interval of 5/9 kelvin.",
+  },
+  britishThermalUnitsItPerSecond: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-second/" as BaseUrl,
+    title: "British Thermal Units (IT) per Second",
+    description:
+      "A unit of power expressed in british thermal units (it) per second. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsItPerSquareFootHour: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-square-foot-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-it-per-square-foot-hour/" as BaseUrl,
+    title: "British Thermal Units (IT) per Square Foot Hour",
+    description:
+      "A unit of heat flux density expressed in british thermal units (it) per square foot hour. Uses the International Table British thermal unit, equal to 1055.05585262 joules.",
+  },
+  britishThermalUnitsThermochemical: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-thermochemical/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/british-thermal-units-thermochemical/" as BaseUrl,
+    title: "British Thermal Units (Thermochemical)",
+    description:
+      "A unit of energy expressed in british thermal units (thermochemical). Uses the thermochemical calorie of exactly 4.184 joules.",
+  },
   brl: {
     dataTypeId: "https://hash.ai/@h/types/data-type/brl/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/brl/" as BaseUrl,
@@ -2952,6 +3195,22 @@ export const systemDataTypes = {
     title: "Candelas",
     description: "The SI base unit of luminous intensity.",
   },
+  candelasPerSquareFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/candelas-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/candelas-per-square-foot/" as BaseUrl,
+    title: "Candelas per Square Foot",
+    description: "A unit of luminance expressed in candelas per square foot.",
+  },
+  candelasPerSquareInch: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/candelas-per-square-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/candelas-per-square-inch/" as BaseUrl,
+    title: "Candelas per Square Inch",
+    description: "A unit of luminance expressed in candelas per square inch.",
+  },
   candelasPerSquareMeter: {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/candelas-per-square-meter/v/1",
@@ -2968,6 +3227,14 @@ export const systemDataTypes = {
     description:
       "The electric charge stored per unit electric potential difference.",
   },
+  capacitanceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/capacitance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/capacitance-metric/" as BaseUrl,
+    title: "Capacitance (Metric)",
+    description:
+      "Capacitance expressed in metric units, including SI units and their accepted companions.",
+  },
   catalyticActivity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/catalytic-activity/v/1",
     dataTypeBaseUrl:
@@ -2983,6 +3250,33 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/catalytic-activity-concentration/" as BaseUrl,
     title: "Catalytic Activity Concentration",
     description: "Catalytic activity per unit volume.",
+  },
+  catalyticActivityConcentrationImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-concentration-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-concentration-imperial/" as BaseUrl,
+    title: "Catalytic Activity Concentration (Imperial)",
+    description:
+      "Catalytic Activity Concentration expressed in imperial units, including units shared with US customary measurement.",
+  },
+  catalyticActivityConcentrationMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-concentration-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-concentration-metric/" as BaseUrl,
+    title: "Catalytic Activity Concentration (Metric)",
+    description:
+      "Catalytic Activity Concentration expressed in metric units, including SI units and their accepted companions.",
+  },
+  catalyticActivityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/catalytic-activity-metric/" as BaseUrl,
+    title: "Catalytic Activity (Metric)",
+    description:
+      "Catalytic Activity expressed in metric units, including SI units and their accepted companions.",
   },
   cdf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cdf/v/1",
@@ -3102,7 +3396,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-2 lux.",
   },
   centimeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/centimeters/" as BaseUrl,
     title: "Centimeters",
@@ -3206,6 +3500,13 @@ export const systemDataTypes = {
     title: "Centiwebers",
     description: "A unit equal to 10^-2 webers.",
   },
+  chains: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/chains/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/chains/" as BaseUrl,
+    title: "Chains",
+    description:
+      "A unit of length expressed in chains. Based on the international yard of exactly 0.9144 meters.",
+  },
   chf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/chf/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/chf/" as BaseUrl,
@@ -3236,6 +3537,15 @@ export const systemDataTypes = {
     title: "Coulombs",
     description: "The SI unit of electric charge, equal to one ampere second.",
   },
+  coulombsPerCubicFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/coulombs-per-cubic-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/coulombs-per-cubic-foot/" as BaseUrl,
+    title: "Coulombs per Cubic Foot",
+    description:
+      "A unit of electric charge density expressed in coulombs per cubic foot.",
+  },
   coulombsPerCubicMeter: {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/coulombs-per-cubic-meter/v/1",
@@ -3251,6 +3561,23 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/coulombs-per-kilogram/" as BaseUrl,
     title: "Coulombs per Kilogram",
     description: "The coherent SI unit used to express radiation exposure.",
+  },
+  coulombsPerPound: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/coulombs-per-pound/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/coulombs-per-pound/" as BaseUrl,
+    title: "Coulombs per Pound",
+    description:
+      "A unit of radiation exposure expressed in coulombs per pound.",
+  },
+  coulombsPerSquareFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/coulombs-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/coulombs-per-square-foot/" as BaseUrl,
+    title: "Coulombs per Square Foot",
+    description:
+      "A unit of surface charge density expressed in coulombs per square foot.",
   },
   coulombsPerSquareMeter: {
     dataTypeId:
@@ -3302,12 +3629,18 @@ export const systemDataTypes = {
     description: "A unit equal to 10^54 cubic metres.",
   },
   cubicFeet: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/cubic-feet/" as BaseUrl,
     title: "Cubic Feet",
-    description:
-      "An imperial unit of volume equal to approximately 28.317 litres.",
+    description: "A unit of volume expressed in cubic feet.",
+  },
+  cubicFeetPerPound: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet-per-pound/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-feet-per-pound/" as BaseUrl,
+    title: "Cubic Feet per Pound",
+    description: "A unit of specific volume expressed in cubic feet per pound.",
   },
   cubicFemtometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-femtometres/v/1",
@@ -3329,6 +3662,13 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/cubic-hectometres/" as BaseUrl,
     title: "Cubic Hectometres",
     description: "A unit equal to 10^6 cubic metres.",
+  },
+  cubicInches: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-inches/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-inches/" as BaseUrl,
+    title: "Cubic Inches",
+    description: "A unit of volume expressed in cubic inches.",
   },
   cubicKilometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-kilometres/v/1",
@@ -3353,7 +3693,7 @@ export const systemDataTypes = {
     description: "The coherent SI unit used to express specific volume.",
   },
   cubicMetres: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-metres/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-metres/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/cubic-metres/" as BaseUrl,
     title: "Cubic Metres",
@@ -3429,6 +3769,13 @@ export const systemDataTypes = {
     title: "Cubic Terametres",
     description: "A unit equal to 10^36 cubic metres.",
   },
+  cubicYards: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/cubic-yards/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/cubic-yards/" as BaseUrl,
+    title: "Cubic Yards",
+    description: "A unit of volume expressed in cubic yards.",
+  },
   cubicYoctometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/cubic-yoctometres/v/1",
     dataTypeBaseUrl:
@@ -3497,14 +3844,13 @@ export const systemDataTypes = {
       "A reference to a particular date and time, formatted according to RFC 3339.",
   },
   day: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/day/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/day/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/day/" as BaseUrl,
     title: "Day",
-    description:
-      "A measure of the length of time, defined as the time period of a full rotation of the Earth with respect to the Sun. On average, this is 24 hours.",
+    description: "A duration of exactly 24 hours.",
   },
   days: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/days/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/days/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/days/" as BaseUrl,
     title: "Days",
     description: "A unit of time equal to 24 hours.",
@@ -3949,6 +4295,14 @@ export const systemDataTypes = {
     description:
       "A unit of Fahrenheit temperature. Absolute zero is −459.67 °F.",
   },
+  degreesRankine: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/degrees-rankine/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/degrees-rankine/" as BaseUrl,
+    title: "Degrees Rankine",
+    description:
+      "A unit of absolute temperature with the same scale interval as degrees Fahrenheit.",
+  },
   djf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/djf/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/djf/" as BaseUrl,
@@ -3982,11 +4336,27 @@ export const systemDataTypes = {
     description:
       "The absorbed radiation dose weighted for its biological effect.",
   },
+  doseEquivalentMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/dose-equivalent-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/dose-equivalent-metric/" as BaseUrl,
+    title: "Dose Equivalent (Metric)",
+    description:
+      "Dose Equivalent expressed in metric units, including SI units and their accepted companions.",
+  },
   duration: {
     dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/duration/" as BaseUrl,
     title: "Duration",
     description: "A measure of the length of time.",
+  },
+  durationMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/duration-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/duration-metric/" as BaseUrl,
+    title: "Duration (Metric)",
+    description:
+      "Duration expressed in metric units, including SI units and their accepted companions.",
   },
   dynamicViscosity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/dynamic-viscosity/v/1",
@@ -3995,6 +4365,24 @@ export const systemDataTypes = {
     title: "Dynamic Viscosity",
     description:
       "The ratio of shear stress to the velocity gradient in a fluid.",
+  },
+  dynamicViscosityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/dynamic-viscosity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/dynamic-viscosity-imperial/" as BaseUrl,
+    title: "Dynamic Viscosity (Imperial)",
+    description:
+      "Dynamic Viscosity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  dynamicViscosityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/dynamic-viscosity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/dynamic-viscosity-metric/" as BaseUrl,
+    title: "Dynamic Viscosity (Metric)",
+    description:
+      "Dynamic Viscosity expressed in metric units, including SI units and their accepted companions.",
   },
   dzd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/dzd/v/1",
@@ -4023,6 +4411,32 @@ export const systemDataTypes = {
     title: "Electric Charge Density",
     description: "Electric charge per unit volume.",
   },
+  electricChargeDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-charge-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-charge-density-imperial/" as BaseUrl,
+    title: "Electric Charge Density (Imperial)",
+    description:
+      "Electric Charge Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  electricChargeDensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-charge-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-charge-density-metric/" as BaseUrl,
+    title: "Electric Charge Density (Metric)",
+    description:
+      "Electric Charge Density expressed in metric units, including SI units and their accepted companions.",
+  },
+  electricChargeMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/electric-charge-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-charge-metric/" as BaseUrl,
+    title: "Electric Charge (Metric)",
+    description:
+      "Electric Charge expressed in metric units, including SI units and their accepted companions.",
+  },
   electricConductance: {
     dataTypeId: "https://hash.ai/@h/types/data-type/electric-conductance/v/1",
     dataTypeBaseUrl:
@@ -4030,6 +4444,15 @@ export const systemDataTypes = {
     title: "Electric Conductance",
     description:
       "The ratio of electric current to electric potential difference.",
+  },
+  electricConductanceMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-conductance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-conductance-metric/" as BaseUrl,
+    title: "Electric Conductance (Metric)",
+    description:
+      "Electric Conductance expressed in metric units, including SI units and their accepted companions.",
   },
   electricCurrent: {
     dataTypeId: "https://hash.ai/@h/types/data-type/electric-current/v/1",
@@ -4046,6 +4469,33 @@ export const systemDataTypes = {
     title: "Electric Current Density",
     description: "Electric current per unit area.",
   },
+  electricCurrentDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-current-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-current-density-imperial/" as BaseUrl,
+    title: "Electric Current Density (Imperial)",
+    description:
+      "Electric Current Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  electricCurrentDensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-current-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-current-density-metric/" as BaseUrl,
+    title: "Electric Current Density (Metric)",
+    description:
+      "Electric Current Density expressed in metric units, including SI units and their accepted companions.",
+  },
+  electricCurrentMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-current-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-current-metric/" as BaseUrl,
+    title: "Electric Current (Metric)",
+    description:
+      "Electric Current expressed in metric units, including SI units and their accepted companions.",
+  },
   electricFieldStrength: {
     dataTypeId:
       "https://hash.ai/@h/types/data-type/electric-field-strength/v/1",
@@ -4053,6 +4503,24 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/electric-field-strength/" as BaseUrl,
     title: "Electric Field Strength",
     description: "Force per unit electric charge.",
+  },
+  electricFieldStrengthImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-field-strength-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-field-strength-imperial/" as BaseUrl,
+    title: "Electric Field Strength (Imperial)",
+    description:
+      "Electric Field Strength expressed in imperial units, including units shared with US customary measurement.",
+  },
+  electricFieldStrengthMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-field-strength-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-field-strength-metric/" as BaseUrl,
+    title: "Electric Field Strength (Metric)",
+    description:
+      "Electric Field Strength expressed in metric units, including SI units and their accepted companions.",
   },
   electricPotentialDifference: {
     dataTypeId:
@@ -4063,6 +4531,15 @@ export const systemDataTypes = {
     description:
       "The energy transferred per unit electric charge between two points.",
   },
+  electricPotentialDifferenceMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-potential-difference-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-potential-difference-metric/" as BaseUrl,
+    title: "Electric Potential Difference (Metric)",
+    description:
+      "Electric Potential Difference expressed in metric units, including SI units and their accepted companions.",
+  },
   electricResistance: {
     dataTypeId: "https://hash.ai/@h/types/data-type/electric-resistance/v/1",
     dataTypeBaseUrl:
@@ -4070,6 +4547,15 @@ export const systemDataTypes = {
     title: "Electric Resistance",
     description:
       "The ratio of electric potential difference to electric current.",
+  },
+  electricResistanceMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/electric-resistance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/electric-resistance-metric/" as BaseUrl,
+    title: "Electric Resistance (Metric)",
+    description:
+      "Electric Resistance expressed in metric units, including SI units and their accepted companions.",
   },
   email: {
     dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1",
@@ -4090,6 +4576,39 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/energy-density/" as BaseUrl,
     title: "Energy Density",
     description: "Energy per unit volume.",
+  },
+  energyDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/energy-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-density-imperial/" as BaseUrl,
+    title: "Energy Density (Imperial)",
+    description:
+      "Energy Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  energyDensityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/energy-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-density-metric/" as BaseUrl,
+    title: "Energy Density (Metric)",
+    description:
+      "Energy Density expressed in metric units, including SI units and their accepted companions.",
+  },
+  energyImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/energy-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-imperial/" as BaseUrl,
+    title: "Energy (Imperial)",
+    description:
+      "Energy expressed in imperial units, including units shared with US customary measurement.",
+  },
+  energyMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/energy-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-metric/" as BaseUrl,
+    title: "Energy (Metric)",
+    description:
+      "Energy expressed in metric units, including SI units and their accepted companions.",
   },
   ern: {
     dataTypeId: "https://hash.ai/@h/types/data-type/ern/v/1",
@@ -4315,6 +4834,13 @@ export const systemDataTypes = {
     title: "Farads",
     description: "The SI unit of capacitance, equal to one coulomb per volt.",
   },
+  faradsPerFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/farads-per-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/farads-per-foot/" as BaseUrl,
+    title: "Farads per Foot",
+    description: "A unit of permittivity expressed in farads per foot.",
+  },
   faradsPerMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/farads-per-meter/v/1",
     dataTypeBaseUrl:
@@ -4322,20 +4848,41 @@ export const systemDataTypes = {
     title: "Farads per Meter",
     description: "The coherent SI unit used to express permittivity.",
   },
+  fathoms: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/fathoms/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/fathoms/" as BaseUrl,
+    title: "Fathoms",
+    description:
+      "A unit of length expressed in fathoms. Based on the international yard of exactly 0.9144 meters.",
+  },
   feet: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/feet/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/feet/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/feet/" as BaseUrl,
     title: "Feet",
     description:
-      "An imperial unit of length. 3 feet equals 1 yard. Equivalent to 0.3048 meters in the International System of Units (SI).",
+      "A unit of length expressed in feet. Based on the international yard of exactly 0.9144 meters.",
   },
   feetPerMinute: {
     dataTypeId: "https://hash.ai/@h/types/data-type/feet-per-minute/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/feet-per-minute/" as BaseUrl,
     title: "Feet per Minute",
-    description:
-      "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
+    description: "A unit of speed expressed in feet per minute.",
+  },
+  feetPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/feet-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/feet-per-second/" as BaseUrl,
+    title: "Feet per Second",
+    description: "A unit of speed expressed in feet per second.",
+  },
+  feetPerSecondSquared: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/feet-per-second-squared/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/feet-per-second-squared/" as BaseUrl,
+    title: "Feet per Second Squared",
+    description: "A unit of acceleration expressed in feet per second squared.",
   },
   femtoampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/femtoampere-hours/v/1",
@@ -4579,11 +5126,49 @@ export const systemDataTypes = {
     title: "Flow Type",
     description: "The type of a flow, determining which task queue it runs on.",
   },
+  footCandles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/foot-candles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/foot-candles/" as BaseUrl,
+    title: "Foot-Candles",
+    description: "Illuminance of one lumen per square international foot.",
+  },
+  footPoundsForce: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/foot-pounds-force/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/foot-pounds-force/" as BaseUrl,
+    title: "Foot Pounds-Force",
+    description: "A unit of energy expressed in foot pounds-force.",
+  },
+  footPoundsForcePerSecond: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/foot-pounds-force-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/foot-pounds-force-per-second/" as BaseUrl,
+    title: "Foot Pounds-Force per Second",
+    description: "A unit of power expressed in foot pounds-force per second.",
+  },
   force: {
     dataTypeId: "https://hash.ai/@h/types/data-type/force/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/force/" as BaseUrl,
     title: "Force",
     description: "A measure of an interaction that changes momentum.",
+  },
+  forceImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/force-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/force-imperial/" as BaseUrl,
+    title: "Force (Imperial)",
+    description:
+      "Force expressed in imperial units, including units shared with US customary measurement.",
+  },
+  forceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/force-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/force-metric/" as BaseUrl,
+    title: "Force (Metric)",
+    description:
+      "Force expressed in metric units, including SI units and their accepted companions.",
   },
   frequency: {
     dataTypeId: "https://hash.ai/@h/types/data-type/frequency/v/1",
@@ -4591,6 +5176,21 @@ export const systemDataTypes = {
     title: "Frequency",
     description:
       "The number of occurrences of a repeating event per unit of time (temporal frequency).",
+  },
+  frequencyMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/frequency-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/frequency-metric/" as BaseUrl,
+    title: "Frequency (Metric)",
+    description:
+      "Frequency expressed in metric units, including SI units and their accepted companions.",
+  },
+  furlongs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/furlongs/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/furlongs/" as BaseUrl,
+    title: "Furlongs",
+    description:
+      "A unit of length expressed in furlongs. Based on the international yard of exactly 0.9144 meters.",
   },
   gbp: {
     dataTypeId: "https://hash.ai/@h/types/data-type/gbp/v/1",
@@ -4678,7 +5278,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^9 henries.",
   },
   gigahertz: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigahertz/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigahertz/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigahertz/" as BaseUrl,
     title: "Gigahertz",
     description:
@@ -4814,7 +5414,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^9 watt hours.",
   },
   gigawatts: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/gigawatts/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/gigawatts/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/gigawatts/" as BaseUrl,
     title: "Gigawatts",
     description:
@@ -4845,8 +5445,14 @@ export const systemDataTypes = {
     title: "GNF",
     description: "An amount denominated in Guinean Franc (ISO 4217 GNF).",
   },
+  grains: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/grains/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/grains/" as BaseUrl,
+    title: "Grains",
+    description: "A unit of mass expressed in grains.",
+  },
   grams: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/grams/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/grams/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/grams/" as BaseUrl,
     title: "Grams",
     description: "A metric unit of mass equal to one thousandth of a kilogram.",
@@ -4886,6 +5492,13 @@ export const systemDataTypes = {
     title: "GYD",
     description: "An amount denominated in Guyana Dollar (ISO 4217 GYD).",
   },
+  hands: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/hands/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hands/" as BaseUrl,
+    title: "Hands",
+    description:
+      "A unit of length expressed in hands. Based on the international yard of exactly 0.9144 meters.",
+  },
   heatCapacity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/heat-capacity/v/1",
     dataTypeBaseUrl:
@@ -4894,6 +5507,22 @@ export const systemDataTypes = {
     description:
       "The heat transferred per unit temperature change; the same unit also expresses entropy.",
   },
+  heatCapacityImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/heat-capacity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/heat-capacity-imperial/" as BaseUrl,
+    title: "Heat Capacity (Imperial)",
+    description:
+      "Heat Capacity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  heatCapacityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/heat-capacity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/heat-capacity-metric/" as BaseUrl,
+    title: "Heat Capacity (Metric)",
+    description:
+      "Heat Capacity expressed in metric units, including SI units and their accepted companions.",
+  },
   heatFluxDensity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/heat-flux-density/v/1",
     dataTypeBaseUrl:
@@ -4901,6 +5530,24 @@ export const systemDataTypes = {
     title: "Heat Flux Density",
     description:
       "Power transferred per unit area, also used to express irradiance.",
+  },
+  heatFluxDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/heat-flux-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/heat-flux-density-imperial/" as BaseUrl,
+    title: "Heat Flux Density (Imperial)",
+    description:
+      "Heat Flux Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  heatFluxDensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/heat-flux-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/heat-flux-density-metric/" as BaseUrl,
+    title: "Heat Flux Density (Metric)",
+    description:
+      "Heat Flux Density expressed in metric units, including SI units and their accepted companions.",
   },
   hectoampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/hectoampere-hours/v/1",
@@ -5123,6 +5770,13 @@ export const systemDataTypes = {
     title: "Henries",
     description: "The SI unit of inductance, equal to one weber per ampere.",
   },
+  henriesPerFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/henries-per-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/henries-per-foot/" as BaseUrl,
+    title: "Henries per Foot",
+    description: "A unit of permeability expressed in henries per foot.",
+  },
   henriesPerMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/henries-per-meter/v/1",
     dataTypeBaseUrl:
@@ -5131,7 +5785,7 @@ export const systemDataTypes = {
     description: "The coherent SI unit used to express magnetic permeability.",
   },
   hertz: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/hertz/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/hertz/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hertz/" as BaseUrl,
     title: "Hertz",
     description:
@@ -5150,14 +5804,14 @@ export const systemDataTypes = {
     description: "An amount denominated in Lempira (ISO 4217 HNL).",
   },
   hour: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/hour/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/hour/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hour/" as BaseUrl,
     title: "Hour",
     description:
       "A measure of the length of time, defined as exactly 3,600 seconds.",
   },
   hours: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/hours/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/hours/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hours/" as BaseUrl,
     title: "Hours",
     description: "A unit of time equal to 60 minutes.",
@@ -5187,11 +5841,55 @@ export const systemDataTypes = {
     title: "Illuminance",
     description: "The luminous flux incident per unit area.",
   },
+  illuminanceImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/illuminance-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/illuminance-imperial/" as BaseUrl,
+    title: "Illuminance (Imperial)",
+    description:
+      "Illuminance expressed in imperial units, including units shared with US customary measurement.",
+  },
+  illuminanceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/illuminance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/illuminance-metric/" as BaseUrl,
+    title: "Illuminance (Metric)",
+    description:
+      "Illuminance expressed in metric units, including SI units and their accepted companions.",
+  },
   ils: {
     dataTypeId: "https://hash.ai/@h/types/data-type/ils/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ils/" as BaseUrl,
     title: "ILS",
     description: "An amount denominated in New Israeli Sheqel (ISO 4217 ILS).",
+  },
+  imperialBushels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-bushels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-bushels/" as BaseUrl,
+    title: "Imperial Bushels",
+    description: "A unit of volume expressed in imperial bushels.",
+  },
+  imperialFluidOunces: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-fluid-ounces/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-fluid-ounces/" as BaseUrl,
+    title: "Imperial Fluid Ounces",
+    description: "A unit of volume expressed in imperial fluid ounces.",
+  },
+  imperialGallons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-gallons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-gallons/" as BaseUrl,
+    title: "Imperial Gallons",
+    description: "A unit of volume expressed in imperial gallons.",
+  },
+  imperialGills: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-gills/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-gills/" as BaseUrl,
+    title: "Imperial Gills",
+    description: "A unit of volume expressed in imperial gills.",
   },
   "imperialLength(uk)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-uk/v/1",
@@ -5209,12 +5907,56 @@ export const systemDataTypes = {
     description:
       "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
   },
+  imperialPecks: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-pecks/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-pecks/" as BaseUrl,
+    title: "Imperial Pecks",
+    description: "A unit of volume expressed in imperial pecks.",
+  },
+  imperialPints: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-pints/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-pints/" as BaseUrl,
+    title: "Imperial Pints",
+    description: "A unit of volume expressed in imperial pints.",
+  },
+  imperialQuarts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-quarts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/imperial-quarts/" as BaseUrl,
+    title: "Imperial Quarts",
+    description: "A unit of volume expressed in imperial quarts.",
+  },
   inches: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/inches/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/inches/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/inches/" as BaseUrl,
     title: "Inches",
     description:
-      "An imperial unit of length. 12 inches equals 1 foot. Equivalent to 0.0254 meters in the International System of Units (SI).",
+      "A unit of length expressed in inches. Based on the international yard of exactly 0.9144 meters.",
+  },
+  inchesPerSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/inches-per-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/inches-per-second/" as BaseUrl,
+    title: "Inches per Second",
+    description: "A unit of speed expressed in inches per second.",
+  },
+  inchesPerSecondSquared: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/inches-per-second-squared/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/inches-per-second-squared/" as BaseUrl,
+    title: "Inches per Second Squared",
+    description:
+      "A unit of acceleration expressed in inches per second squared.",
+  },
+  inchPoundsForce: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/inch-pounds-force/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/inch-pounds-force/" as BaseUrl,
+    title: "Inch Pounds-Force",
+    description: "A unit of energy expressed in inch pounds-force.",
   },
   inductance: {
     dataTypeId: "https://hash.ai/@h/types/data-type/inductance/v/1",
@@ -5222,6 +5964,14 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/inductance/" as BaseUrl,
     title: "Inductance",
     description: "The magnetic flux linkage per unit electric current.",
+  },
+  inductanceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/inductance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/inductance-metric/" as BaseUrl,
+    title: "Inductance (Metric)",
+    description:
+      "Inductance expressed in metric units, including SI units and their accepted companions.",
   },
   information: {
     dataTypeId: "https://hash.ai/@h/types/data-type/information/v/1",
@@ -5350,6 +6100,14 @@ export const systemDataTypes = {
     description:
       "The SI unit of catalytic activity, equal to one mole per second.",
   },
+  katalsPerCubicFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/katals-per-cubic-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/katals-per-cubic-foot/" as BaseUrl,
+    title: "Katals per Cubic Foot",
+    description:
+      "A unit of catalytic activity concentration expressed in katals per cubic foot.",
+  },
   katalsPerCubicMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/katals-per-cubic-meter/v/1",
     dataTypeBaseUrl:
@@ -5432,7 +6190,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^3 farads.",
   },
   kilograms: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilograms/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilograms/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilograms/" as BaseUrl,
     title: "Kilograms",
     description: "The SI base unit of mass, equal to 1000 grams.",
@@ -5467,7 +6225,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^3 henries.",
   },
   kilohertz: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilohertz/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilohertz/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilohertz/" as BaseUrl,
     title: "Kilohertz",
     description:
@@ -5521,7 +6279,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^3 lux.",
   },
   kilometers: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilometers/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilometers/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/kilometers/" as BaseUrl,
     title: "Kilometers",
@@ -5612,7 +6370,7 @@ export const systemDataTypes = {
     description: "A unit of energy equal to 3600000 joules.",
   },
   kilowatts: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/kilowatts/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/kilowatts/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kilowatts/" as BaseUrl,
     title: "Kilowatts",
     description:
@@ -5624,6 +6382,19 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/kilowebers/" as BaseUrl,
     title: "Kilowebers",
     description: "A unit equal to 10^3 webers.",
+  },
+  kips: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kips/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/kips/" as BaseUrl,
+    title: "Kips",
+    description: "A unit of force expressed in kips.",
+  },
+  kipsPerSquareInch: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/kips-per-square-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/kips-per-square-inch/" as BaseUrl,
+    title: "Kips per Square Inch",
+    description: "A unit of pressure expressed in kips per square inch.",
   },
   kmf: {
     dataTypeId: "https://hash.ai/@h/types/data-type/kmf/v/1",
@@ -5694,8 +6465,31 @@ export const systemDataTypes = {
     title: "Length",
     description: "A measure of distance.",
   },
+  lengthImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/length-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/length-imperial/" as BaseUrl,
+    title: "Length (Imperial)",
+    description:
+      "Length expressed in imperial units, including units shared with US customary measurement.",
+  },
+  lengthMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/length-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/length-metric/" as BaseUrl,
+    title: "Length (Metric)",
+    description:
+      "Length expressed in metric units, including SI units and their accepted companions.",
+  },
+  links: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/links/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/links/" as BaseUrl,
+    title: "Links",
+    description:
+      "A unit of length expressed in links. Based on the international yard of exactly 0.9144 meters.",
+  },
   litres: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/litres/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/litres/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/litres/" as BaseUrl,
     title: "Litres",
     description: "A metric unit of volume equal to one cubic decimetre.",
@@ -5706,12 +6500,25 @@ export const systemDataTypes = {
     title: "LKR",
     description: "An amount denominated in Sri Lanka Rupee (ISO 4217 LKR).",
   },
+  longHundredweights: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/long-hundredweights/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/long-hundredweights/" as BaseUrl,
+    title: "Long Hundredweights",
+    description: "A unit of mass expressed in long hundredweights.",
+  },
   longitude: {
     dataTypeId: "https://hash.ai/@h/types/data-type/longitude/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/longitude/" as BaseUrl,
     title: "Longitude",
     description:
       "The angular distance of a position east or west of the prime meridian, ranging from -180° to +180°.",
+  },
+  longTons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/long-tons/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/long-tons/" as BaseUrl,
+    title: "Long Tons",
+    description: "A unit of mass expressed in long tons.",
   },
   lrd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/lrd/v/1",
@@ -5739,6 +6546,22 @@ export const systemDataTypes = {
     description:
       "Luminous intensity per unit projected area in a given direction.",
   },
+  luminanceImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/luminance-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/luminance-imperial/" as BaseUrl,
+    title: "Luminance (Imperial)",
+    description:
+      "Luminance expressed in imperial units, including units shared with US customary measurement.",
+  },
+  luminanceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/luminance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/luminance-metric/" as BaseUrl,
+    title: "Luminance (Metric)",
+    description:
+      "Luminance expressed in metric units, including SI units and their accepted companions.",
+  },
   luminousFlux: {
     dataTypeId: "https://hash.ai/@h/types/data-type/luminous-flux/v/1",
     dataTypeBaseUrl:
@@ -5747,6 +6570,14 @@ export const systemDataTypes = {
     description:
       "A measure of light output weighted by human visual sensitivity.",
   },
+  luminousFluxMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/luminous-flux-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/luminous-flux-metric/" as BaseUrl,
+    title: "Luminous Flux (Metric)",
+    description:
+      "Luminous Flux expressed in metric units, including SI units and their accepted companions.",
+  },
   luminousIntensity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/luminous-intensity/v/1",
     dataTypeBaseUrl:
@@ -5754,6 +6585,15 @@ export const systemDataTypes = {
     title: "Luminous Intensity",
     description:
       "The luminous flux emitted per unit solid angle in a given direction.",
+  },
+  luminousIntensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/luminous-intensity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/luminous-intensity-metric/" as BaseUrl,
+    title: "Luminous Intensity (Metric)",
+    description:
+      "Luminous Intensity expressed in metric units, including SI units and their accepted companions.",
   },
   lux: {
     dataTypeId: "https://hash.ai/@h/types/data-type/lux/v/1",
@@ -5783,6 +6623,24 @@ export const systemDataTypes = {
     description:
       "A measure of the magnetic field associated with electric currents and magnetization.",
   },
+  magneticFieldStrengthImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/magnetic-field-strength-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-field-strength-imperial/" as BaseUrl,
+    title: "Magnetic Field Strength (Imperial)",
+    description:
+      "Magnetic Field Strength expressed in imperial units, including units shared with US customary measurement.",
+  },
+  magneticFieldStrengthMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/magnetic-field-strength-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-field-strength-metric/" as BaseUrl,
+    title: "Magnetic Field Strength (Metric)",
+    description:
+      "Magnetic Field Strength expressed in metric units, including SI units and their accepted companions.",
+  },
   magneticFlux: {
     dataTypeId: "https://hash.ai/@h/types/data-type/magnetic-flux/v/1",
     dataTypeBaseUrl:
@@ -5796,6 +6654,23 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/magnetic-flux-density/" as BaseUrl,
     title: "Magnetic Flux Density",
     description: "A measure of magnetic flux per unit area.",
+  },
+  magneticFluxDensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/magnetic-flux-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-flux-density-metric/" as BaseUrl,
+    title: "Magnetic Flux Density (Metric)",
+    description:
+      "Magnetic Flux Density expressed in metric units, including SI units and their accepted companions.",
+  },
+  magneticFluxMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/magnetic-flux-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/magnetic-flux-metric/" as BaseUrl,
+    title: "Magnetic Flux (Metric)",
+    description:
+      "Magnetic Flux expressed in metric units, including SI units and their accepted companions.",
   },
   mass: {
     dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/1",
@@ -5811,11 +6686,65 @@ export const systemDataTypes = {
     description:
       "Mass per unit volume, also used to express mass concentration.",
   },
+  massDensityImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-density-imperial/" as BaseUrl,
+    title: "Mass Density (Imperial)",
+    description:
+      "Mass Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  massDensityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-density-metric/" as BaseUrl,
+    title: "Mass Density (Metric)",
+    description:
+      "Mass Density expressed in metric units, including SI units and their accepted companions.",
+  },
+  massDensityUsCustomary: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/mass-density-us-customary/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-density-us-customary/" as BaseUrl,
+    title: "Mass Density (US Customary)",
+    description: "Mass Density expressed in US customary units.",
+  },
+  massImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-imperial/" as BaseUrl,
+    title: "Mass (Imperial)",
+    description:
+      "Mass expressed in imperial units, including units shared with US customary measurement.",
+  },
+  massMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-metric/" as BaseUrl,
+    title: "Mass (Metric)",
+    description:
+      "Mass expressed in metric units, including SI units and their accepted companions.",
+  },
+  massUsCustomary: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass-us-customary/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mass-us-customary/" as BaseUrl,
+    title: "Mass (US Customary)",
+    description: "Mass expressed in US customary units.",
+  },
   mdl: {
     dataTypeId: "https://hash.ai/@h/types/data-type/mdl/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mdl/" as BaseUrl,
     title: "MDL",
     description: "An amount denominated in Moldovan Leu (ISO 4217 MDL).",
+  },
+  mechanicalHorsepower: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/mechanical-horsepower/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/mechanical-horsepower/" as BaseUrl,
+    title: "Mechanical Horsepower",
+    description: "A unit of power expressed in mechanical horsepower.",
   },
   megaampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/megaampere-hours/v/1",
@@ -5885,7 +6814,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^6 henries.",
   },
   megahertz: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megahertz/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/megahertz/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megahertz/" as BaseUrl,
     title: "Megahertz",
     description:
@@ -6015,7 +6944,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^6 watt hours.",
   },
   megawatts: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/megawatts/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/megawatts/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/megawatts/" as BaseUrl,
     title: "Megawatts",
     description:
@@ -6035,7 +6964,7 @@ export const systemDataTypes = {
     description: "A unit of electric resistance equal to 1000000 ohms.",
   },
   meters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/meters/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/meters/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/meters/" as BaseUrl,
     title: "Meters",
     description:
@@ -6066,7 +6995,7 @@ export const systemDataTypes = {
       "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
   },
   metricTonnes: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/metric-tonnes/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/metric-tonnes/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/metric-tonnes/" as BaseUrl,
     title: "Metric Tonnes",
@@ -6231,7 +7160,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-6 radians.",
   },
   microsecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/microsecond/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/microsecond/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/microsecond/" as BaseUrl,
     title: "Microsecond",
@@ -6295,11 +7224,18 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-6 webers.",
   },
   miles: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/miles/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/miles/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/miles/" as BaseUrl,
     title: "Miles",
     description:
-      "An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).",
+      "A unit of length expressed in miles. Based on the international yard of exactly 0.9144 meters.",
+  },
+  milesPerHour: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/miles-per-hour/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/miles-per-hour/" as BaseUrl,
+    title: "Miles per Hour",
+    description: "A unit of speed expressed in miles per hour.",
   },
   milliampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/milliampere-hours/v/1",
@@ -6393,7 +7329,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-3 kelvins.",
   },
   millilitres: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/millilitres/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/millilitres/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millilitres/" as BaseUrl,
     title: "Millilitres",
@@ -6413,7 +7349,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-3 lux.",
   },
   millimeters: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millimeters/" as BaseUrl,
     title: "Millimeters",
@@ -6462,7 +7398,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-3 radians.",
   },
   millisecond: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/millisecond/" as BaseUrl,
     title: "Millisecond",
@@ -6527,7 +7463,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-3 webers.",
   },
   minute: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/minute/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/minute/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/minute/" as BaseUrl,
     title: "Minute",
     description:
@@ -6558,6 +7494,22 @@ export const systemDataTypes = {
     title: "Molar Energy",
     description: "Energy per unit amount of substance.",
   },
+  molarEnergyImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/molar-energy-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/molar-energy-imperial/" as BaseUrl,
+    title: "Molar Energy (Imperial)",
+    description:
+      "Molar Energy expressed in imperial units, including units shared with US customary measurement.",
+  },
+  molarEnergyMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/molar-energy-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/molar-energy-metric/" as BaseUrl,
+    title: "Molar Energy (Metric)",
+    description:
+      "Molar Energy expressed in metric units, including SI units and their accepted companions.",
+  },
   molarHeatCapacity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/molar-heat-capacity/v/1",
     dataTypeBaseUrl:
@@ -6565,6 +7517,24 @@ export const systemDataTypes = {
     title: "Molar Heat Capacity",
     description:
       "Heat capacity per unit amount of substance; the same unit also expresses molar entropy.",
+  },
+  molarHeatCapacityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/molar-heat-capacity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/molar-heat-capacity-imperial/" as BaseUrl,
+    title: "Molar Heat Capacity (Imperial)",
+    description:
+      "Molar Heat Capacity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  molarHeatCapacityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/molar-heat-capacity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/molar-heat-capacity-metric/" as BaseUrl,
+    title: "Molar Heat Capacity (Metric)",
+    description:
+      "Molar Heat Capacity expressed in metric units, including SI units and their accepted companions.",
   },
   moles: {
     dataTypeId: "https://hash.ai/@h/types/data-type/moles/v/1",
@@ -6589,11 +7559,11 @@ export const systemDataTypes = {
       "A unit of amount concentration equal to 1000 moles per cubic meter.",
   },
   month: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/month/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/month/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/month/" as BaseUrl,
     title: "Month",
     description:
-      "A measure of the length of time. Months vary in length – there are 12 months in a Gregorian year.",
+      "A mean duration of 2,629,800 seconds, preserving the existing fixed month conversion. Calendar months vary in length.",
   },
   mop: {
     dataTypeId: "https://hash.ai/@h/types/data-type/mop/v/1",
@@ -6944,6 +7914,34 @@ export const systemDataTypes = {
     title: "Opportunity Status Category",
     description: "The category of a status update left against an opportunity.",
   },
+  ounceForceInches: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ounce-force-inches/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ounce-force-inches/" as BaseUrl,
+    title: "Ounce-Force Inches",
+    description: "A unit of torque expressed in ounce-force inches.",
+  },
+  ounces: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ounces/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/ounces/" as BaseUrl,
+    title: "Ounces",
+    description: "A unit of mass expressed in ounces. Uses avoirdupois mass.",
+  },
+  ouncesForce: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ounces-force/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ounces-force/" as BaseUrl,
+    title: "Ounces-Force",
+    description: "A unit of force expressed in ounces-force.",
+  },
+  ouncesPerSquareYard: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/ounces-per-square-yard/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/ounces-per-square-yard/" as BaseUrl,
+    title: "Ounces per Square Yard",
+    description:
+      "A unit of surface density expressed in ounces per square yard.",
+  },
   pab: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pab/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pab/" as BaseUrl,
@@ -6970,6 +7968,13 @@ export const systemDataTypes = {
     title: "PEN",
     description: "An amount denominated in Sol (ISO 4217 PEN).",
   },
+  pennyweights: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pennyweights/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pennyweights/" as BaseUrl,
+    title: "Pennyweights",
+    description: "A unit of mass expressed in pennyweights.",
+  },
   percentage: {
     dataTypeId: "https://hash.ai/@h/types/data-type/percentage/v/1",
     dataTypeBaseUrl:
@@ -6985,6 +7990,22 @@ export const systemDataTypes = {
     description:
       "The magnetic flux density per unit magnetic field strength in a material.",
   },
+  permeabilityImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/permeability-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/permeability-imperial/" as BaseUrl,
+    title: "Permeability (Imperial)",
+    description:
+      "Permeability expressed in imperial units, including units shared with US customary measurement.",
+  },
+  permeabilityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/permeability-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/permeability-metric/" as BaseUrl,
+    title: "Permeability (Metric)",
+    description:
+      "Permeability expressed in metric units, including SI units and their accepted companions.",
+  },
   permittivity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/permittivity/v/1",
     dataTypeBaseUrl:
@@ -6992,6 +8013,22 @@ export const systemDataTypes = {
     title: "Permittivity",
     description:
       "The electric displacement per unit electric field strength in a material.",
+  },
+  permittivityImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/permittivity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/permittivity-imperial/" as BaseUrl,
+    title: "Permittivity (Imperial)",
+    description:
+      "Permittivity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  permittivityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/permittivity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/permittivity-metric/" as BaseUrl,
+    title: "Permittivity (Metric)",
+    description:
+      "Permittivity expressed in metric units, including SI units and their accepted companions.",
   },
   petaampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/petaampere-hours/v/1",
@@ -7201,6 +8238,13 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/petawebers/" as BaseUrl,
     title: "Petawebers",
     description: "A unit equal to 10^15 webers.",
+  },
+  petroleumBarrels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/petroleum-barrels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/petroleum-barrels/" as BaseUrl,
+    title: "Petroleum Barrels",
+    description: "A petroleum barrel, equal to 42 US liquid gallons.",
   },
   pgk: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pgk/v/1",
@@ -7435,12 +8479,161 @@ export const systemDataTypes = {
     title: "PLN",
     description: "An amount denominated in Zloty (ISO 4217 PLN).",
   },
+  poundals: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/poundals/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/poundals/" as BaseUrl,
+    title: "Poundals",
+    description: "A unit of force expressed in poundals.",
+  },
+  poundForceFeet: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pound-force-feet/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pound-force-feet/" as BaseUrl,
+    title: "Pound-Force Feet",
+    description: "A unit of torque expressed in pound-force feet.",
+  },
+  poundForceInches: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pound-force-inches/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pound-force-inches/" as BaseUrl,
+    title: "Pound-Force Inches",
+    description: "A unit of torque expressed in pound-force inches.",
+  },
+  poundMoles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pound-moles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pound-moles/" as BaseUrl,
+    title: "Pound Moles",
+    description: "A unit of amount of substance expressed in pound moles.",
+  },
+  poundMolesPerCubicFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pound-moles-per-cubic-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pound-moles-per-cubic-foot/" as BaseUrl,
+    title: "Pound Moles per Cubic Foot",
+    description:
+      "A unit of amount concentration expressed in pound moles per cubic foot.",
+  },
   pounds: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/pounds/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pounds/" as BaseUrl,
     title: "Pounds",
+    description: "A unit of mass expressed in pounds. Uses avoirdupois mass.",
+  },
+  poundsForce: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-force/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force/" as BaseUrl,
+    title: "Pounds-Force",
+    description: "A unit of force expressed in pounds-force.",
+  },
+  poundsForcePerFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-force-per-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-foot/" as BaseUrl,
+    title: "Pounds-Force per Foot",
     description:
-      "An imperial unit of mass equal to exactly 0.45359237 kilograms.",
+      "A unit of surface tension expressed in pounds-force per foot.",
+  },
+  poundsForcePerInch: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-force-per-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-inch/" as BaseUrl,
+    title: "Pounds-Force per Inch",
+    description:
+      "A unit of surface tension expressed in pounds-force per inch.",
+  },
+  poundsForcePerSquareFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-square-foot/" as BaseUrl,
+    title: "Pounds-Force per Square Foot",
+    description:
+      "A unit of pressure expressed in pounds-force per square foot.",
+  },
+  poundsForcePerSquareInch: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-square-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-per-square-inch/" as BaseUrl,
+    title: "Pounds-Force per Square Inch",
+    description:
+      "A unit of pressure expressed in pounds-force per square inch.",
+  },
+  poundsForceSecondsPerSquareFoot: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-force-seconds-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-seconds-per-square-foot/" as BaseUrl,
+    title: "Pounds-Force Seconds per Square Foot",
+    description:
+      "A unit of dynamic viscosity expressed in pounds-force seconds per square foot.",
+  },
+  poundsForceSecondsPerSquareInch: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-force-seconds-per-square-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-force-seconds-per-square-inch/" as BaseUrl,
+    title: "Pounds-Force Seconds per Square Inch",
+    description:
+      "A unit of dynamic viscosity expressed in pounds-force seconds per square inch.",
+  },
+  poundsPerCubicFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-per-cubic-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-cubic-foot/" as BaseUrl,
+    title: "Pounds per Cubic Foot",
+    description: "A unit of mass density expressed in pounds per cubic foot.",
+  },
+  poundsPerCubicInch: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-per-cubic-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-cubic-inch/" as BaseUrl,
+    title: "Pounds per Cubic Inch",
+    description: "A unit of mass density expressed in pounds per cubic inch.",
+  },
+  poundsPerCubicYard: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-per-cubic-yard/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-cubic-yard/" as BaseUrl,
+    title: "Pounds per Cubic Yard",
+    description: "A unit of mass density expressed in pounds per cubic yard.",
+  },
+  poundsPerFootSecond: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-per-foot-second/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-foot-second/" as BaseUrl,
+    title: "Pounds per Foot Second",
+    description:
+      "A unit of dynamic viscosity expressed in pounds per foot second.",
+  },
+  poundsPerImperialGallon: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-per-imperial-gallon/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-imperial-gallon/" as BaseUrl,
+    title: "Pounds per Imperial Gallon",
+    description:
+      "A unit of mass density expressed in pounds per imperial gallon.",
+  },
+  poundsPerSquareFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pounds-per-square-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-square-foot/" as BaseUrl,
+    title: "Pounds per Square Foot",
+    description:
+      "A unit of surface density expressed in pounds per square foot.",
+  },
+  poundsPerUsLiquidGallon: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/pounds-per-us-liquid-gallon/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pounds-per-us-liquid-gallon/" as BaseUrl,
+    title: "Pounds per US Liquid Gallon",
+    description:
+      "A unit of mass density expressed in pounds per us liquid gallon.",
   },
   power: {
     dataTypeId: "https://hash.ai/@h/types/data-type/power/v/1",
@@ -7448,11 +8641,43 @@ export const systemDataTypes = {
     title: "Power",
     description: "The amount of energy transferred or converted per unit time.",
   },
+  powerImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/power-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/power-imperial/" as BaseUrl,
+    title: "Power (Imperial)",
+    description:
+      "Power expressed in imperial units, including units shared with US customary measurement.",
+  },
+  powerMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/power-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/power-metric/" as BaseUrl,
+    title: "Power (Metric)",
+    description:
+      "Power expressed in metric units, including SI units and their accepted companions.",
+  },
   pressure: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pressure/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/pressure/" as BaseUrl,
     title: "Pressure",
     description: "Force applied per unit area, also used to express stress.",
+  },
+  pressureImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pressure-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pressure-imperial/" as BaseUrl,
+    title: "Pressure (Imperial)",
+    description:
+      "Pressure expressed in imperial units, including units shared with US customary measurement.",
+  },
+  pressureMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/pressure-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/pressure-metric/" as BaseUrl,
+    title: "Pressure (Metric)",
+    description:
+      "Pressure expressed in metric units, including SI units and their accepted companions.",
   },
   pyg: {
     dataTypeId: "https://hash.ai/@h/types/data-type/pyg/v/1",
@@ -7904,6 +9129,22 @@ export const systemDataTypes = {
     title: "Radiance",
     description: "Radiant power per unit projected area per unit solid angle.",
   },
+  radianceImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/radiance-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radiance-imperial/" as BaseUrl,
+    title: "Radiance (Imperial)",
+    description:
+      "Radiance expressed in imperial units, including units shared with US customary measurement.",
+  },
+  radianceMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/radiance-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radiance-metric/" as BaseUrl,
+    title: "Radiance (Metric)",
+    description:
+      "Radiance expressed in metric units, including SI units and their accepted companions.",
+  },
   radians: {
     dataTypeId: "https://hash.ai/@h/types/data-type/radians/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/radians/" as BaseUrl,
@@ -7932,6 +9173,15 @@ export const systemDataTypes = {
     title: "Radiant Intensity",
     description: "Radiant power per unit solid angle.",
   },
+  radiantIntensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/radiant-intensity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radiant-intensity-metric/" as BaseUrl,
+    title: "Radiant Intensity (Metric)",
+    description:
+      "Radiant Intensity expressed in metric units, including SI units and their accepted companions.",
+  },
   radiationExposure: {
     dataTypeId: "https://hash.ai/@h/types/data-type/radiation-exposure/v/1",
     dataTypeBaseUrl:
@@ -7939,6 +9189,24 @@ export const systemDataTypes = {
     title: "Radiation Exposure",
     description:
       "Electric charge produced by ionizing radiation per unit mass of air.",
+  },
+  radiationExposureImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/radiation-exposure-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radiation-exposure-imperial/" as BaseUrl,
+    title: "Radiation Exposure (Imperial)",
+    description:
+      "Radiation Exposure expressed in imperial units, including units shared with US customary measurement.",
+  },
+  radiationExposureMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/radiation-exposure-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radiation-exposure-metric/" as BaseUrl,
+    title: "Radiation Exposure (Metric)",
+    description:
+      "Radiation Exposure expressed in metric units, including SI units and their accepted companions.",
   },
   radionuclideActivity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/radionuclide-activity/v/1",
@@ -7948,12 +9216,42 @@ export const systemDataTypes = {
     description:
       "The rate of spontaneous nuclear transformations in a radioactive sample.",
   },
+  radionuclideActivityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/radionuclide-activity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/radionuclide-activity-metric/" as BaseUrl,
+    title: "Radionuclide Activity (Metric)",
+    description:
+      "Radionuclide Activity expressed in metric units, including SI units and their accepted companions.",
+  },
+  reciprocalFeet: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-feet/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/reciprocal-feet/" as BaseUrl,
+    title: "Reciprocal Feet",
+    description: "A unit of wavenumber expressed in reciprocal feet.",
+  },
+  reciprocalInches: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-inches/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/reciprocal-inches/" as BaseUrl,
+    title: "Reciprocal Inches",
+    description: "A unit of wavenumber expressed in reciprocal inches.",
+  },
   reciprocalMeters: {
     dataTypeId: "https://hash.ai/@h/types/data-type/reciprocal-meters/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/reciprocal-meters/" as BaseUrl,
     title: "Reciprocal Meters",
     description: "The coherent SI unit used to express wavenumber.",
+  },
+  rods: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/rods/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rods/" as BaseUrl,
+    title: "Rods",
+    description:
+      "A unit of length expressed in rods. Based on the international yard of exactly 0.9144 meters.",
   },
   ron: {
     dataTypeId: "https://hash.ai/@h/types/data-type/ron/v/1",
@@ -8391,6 +9689,13 @@ export const systemDataTypes = {
     title: "Rontowebers",
     description: "A unit equal to 10^-27 webers.",
   },
+  roods: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/roods/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/roods/" as BaseUrl,
+    title: "Roods",
+    description:
+      "A unit of area expressed in roods. Based on the international foot of exactly 0.3048 meters.",
+  },
   rsd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/rsd/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/rsd/" as BaseUrl,
@@ -8452,7 +9757,7 @@ export const systemDataTypes = {
     description: "An amount denominated in Sudanese Pound (ISO 4217 SDG).",
   },
   second: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/second/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/second/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/second/" as BaseUrl,
     title: "Second",
     description:
@@ -8469,6 +9774,20 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/sgd/" as BaseUrl,
     title: "SGD",
     description: "An amount denominated in Singapore Dollar (ISO 4217 SGD).",
+  },
+  shortHundredweights: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/short-hundredweights/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/short-hundredweights/" as BaseUrl,
+    title: "Short Hundredweights",
+    description: "A unit of mass expressed in short hundredweights.",
+  },
+  shortTons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/short-tons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/short-tons/" as BaseUrl,
+    title: "Short Tons",
+    description: "A unit of mass expressed in short tons.",
   },
   shp: {
     dataTypeId: "https://hash.ai/@h/types/data-type/shp/v/1",
@@ -8496,6 +9815,12 @@ export const systemDataTypes = {
     title: "SLE",
     description: "An amount denominated in Leone (ISO 4217 SLE).",
   },
+  slugs: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/slugs/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/slugs/" as BaseUrl,
+    title: "Slugs",
+    description: "A unit of mass expressed in slugs.",
+  },
   solidAngle: {
     dataTypeId: "https://hash.ai/@h/types/data-type/solid-angle/v/1",
     dataTypeBaseUrl:
@@ -8503,6 +9828,14 @@ export const systemDataTypes = {
     title: "Solid Angle",
     description:
       "A measure of the angular extent of a surface as seen from a point.",
+  },
+  solidAngleMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/solid-angle-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/solid-angle-metric/" as BaseUrl,
+    title: "Solid Angle (Metric)",
+    description:
+      "Solid Angle expressed in metric units, including SI units and their accepted companions.",
   },
   sos: {
     dataTypeId: "https://hash.ai/@h/types/data-type/sos/v/1",
@@ -8517,6 +9850,23 @@ export const systemDataTypes = {
     title: "Specific Energy",
     description: "Energy per unit mass.",
   },
+  specificEnergyImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/specific-energy-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-energy-imperial/" as BaseUrl,
+    title: "Specific Energy (Imperial)",
+    description:
+      "Specific Energy expressed in imperial units, including units shared with US customary measurement.",
+  },
+  specificEnergyMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/specific-energy-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-energy-metric/" as BaseUrl,
+    title: "Specific Energy (Metric)",
+    description:
+      "Specific Energy expressed in metric units, including SI units and their accepted companions.",
+  },
   specificHeatCapacity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/specific-heat-capacity/v/1",
     dataTypeBaseUrl:
@@ -8525,6 +9875,24 @@ export const systemDataTypes = {
     description:
       "Heat capacity per unit mass; the same unit also expresses specific entropy.",
   },
+  specificHeatCapacityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/specific-heat-capacity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-heat-capacity-imperial/" as BaseUrl,
+    title: "Specific Heat Capacity (Imperial)",
+    description:
+      "Specific Heat Capacity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  specificHeatCapacityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/specific-heat-capacity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-heat-capacity-metric/" as BaseUrl,
+    title: "Specific Heat Capacity (Metric)",
+    description:
+      "Specific Heat Capacity expressed in metric units, including SI units and their accepted companions.",
+  },
   specificVolume: {
     dataTypeId: "https://hash.ai/@h/types/data-type/specific-volume/v/1",
     dataTypeBaseUrl:
@@ -8532,12 +9900,45 @@ export const systemDataTypes = {
     title: "Specific Volume",
     description: "Volume per unit mass.",
   },
+  specificVolumeImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/specific-volume-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-volume-imperial/" as BaseUrl,
+    title: "Specific Volume (Imperial)",
+    description:
+      "Specific Volume expressed in imperial units, including units shared with US customary measurement.",
+  },
+  specificVolumeMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/specific-volume-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/specific-volume-metric/" as BaseUrl,
+    title: "Specific Volume (Metric)",
+    description:
+      "Specific Volume expressed in metric units, including SI units and their accepted companions.",
+  },
   speed: {
     dataTypeId: "https://hash.ai/@h/types/data-type/speed/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/speed/" as BaseUrl,
     title: "Speed",
     description:
       "A measure of the rate of movement or change in position over time.",
+  },
+  speedImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/speed-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/speed-imperial/" as BaseUrl,
+    title: "Speed (Imperial)",
+    description:
+      "Speed expressed in imperial units, including units shared with US customary measurement.",
+  },
+  speedMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/speed-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/speed-metric/" as BaseUrl,
+    title: "Speed (Metric)",
+    description:
+      "Speed expressed in metric units, including SI units and their accepted companions.",
   },
   squareAttometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-attometres/v/1",
@@ -8547,7 +9948,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^-36 square metres.",
   },
   squareCentimetres: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/square-centimetres/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-centimetres/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/square-centimetres/" as BaseUrl,
     title: "Square Centimetres",
@@ -8576,12 +9977,12 @@ export const systemDataTypes = {
     description: "A unit equal to 10^36 square metres.",
   },
   squareFeet: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/square-feet/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-feet/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/square-feet/" as BaseUrl,
     title: "Square Feet",
     description:
-      "An imperial unit of area equal to a square one foot on each side.",
+      "A unit of area expressed in square feet. Based on the international foot of exactly 0.3048 meters.",
   },
   squareFemtometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-femtometres/v/1",
@@ -8604,6 +10005,14 @@ export const systemDataTypes = {
     title: "Square Hectometres",
     description: "A unit equal to 10^4 square metres.",
   },
+  squareInches: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-inches/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-inches/" as BaseUrl,
+    title: "Square Inches",
+    description:
+      "A unit of area expressed in square inches. Based on the international foot of exactly 0.3048 meters.",
+  },
   squareKilometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-kilometres/v/1",
     dataTypeBaseUrl:
@@ -8619,7 +10028,7 @@ export const systemDataTypes = {
     description: "A unit equal to 10^12 square metres.",
   },
   squareMetres: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/2",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/square-metres/" as BaseUrl,
     title: "Square Metres",
@@ -8632,6 +10041,14 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/square-micrometres/" as BaseUrl,
     title: "Square Micrometres",
     description: "A unit equal to 10^-12 square metres.",
+  },
+  squareMiles: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-miles/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-miles/" as BaseUrl,
+    title: "Square Miles",
+    description:
+      "A unit of area expressed in square miles. Based on the international foot of exactly 0.3048 meters.",
   },
   squareMillimetres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-millimetres/v/1",
@@ -8695,6 +10112,14 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/square-terametres/" as BaseUrl,
     title: "Square Terametres",
     description: "A unit equal to 10^24 square metres.",
+  },
+  squareYards: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/square-yards/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/square-yards/" as BaseUrl,
+    title: "Square Yards",
+    description:
+      "A unit of area expressed in square yards. Based on the international foot of exactly 0.3048 meters.",
   },
   squareYoctometres: {
     dataTypeId: "https://hash.ai/@h/types/data-type/square-yoctometres/v/1",
@@ -8765,6 +10190,12 @@ export const systemDataTypes = {
     title: "Stock Direction",
     description: "Whether stock is increased or decreased.",
   },
+  stones: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/stones/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/stones/" as BaseUrl,
+    title: "Stones",
+    description: "A unit of mass expressed in stones.",
+  },
   surfaceChargeDensity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/surface-charge-density/v/1",
     dataTypeBaseUrl:
@@ -8773,6 +10204,24 @@ export const systemDataTypes = {
     description:
       "Electric charge per unit area; the same unit also expresses electric flux density.",
   },
+  surfaceChargeDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/surface-charge-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-charge-density-imperial/" as BaseUrl,
+    title: "Surface Charge Density (Imperial)",
+    description:
+      "Surface Charge Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  surfaceChargeDensityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/surface-charge-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-charge-density-metric/" as BaseUrl,
+    title: "Surface Charge Density (Metric)",
+    description:
+      "Surface Charge Density expressed in metric units, including SI units and their accepted companions.",
+  },
   surfaceDensity: {
     dataTypeId: "https://hash.ai/@h/types/data-type/surface-density/v/1",
     dataTypeBaseUrl:
@@ -8780,12 +10229,46 @@ export const systemDataTypes = {
     title: "Surface Density",
     description: "Mass per unit area.",
   },
+  surfaceDensityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/surface-density-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-density-imperial/" as BaseUrl,
+    title: "Surface Density (Imperial)",
+    description:
+      "Surface Density expressed in imperial units, including units shared with US customary measurement.",
+  },
+  surfaceDensityMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/surface-density-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-density-metric/" as BaseUrl,
+    title: "Surface Density (Metric)",
+    description:
+      "Surface Density expressed in metric units, including SI units and their accepted companions.",
+  },
   surfaceTension: {
     dataTypeId: "https://hash.ai/@h/types/data-type/surface-tension/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/surface-tension/" as BaseUrl,
     title: "Surface Tension",
     description: "Force per unit length along a liquid interface.",
+  },
+  surfaceTensionImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/surface-tension-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-tension-imperial/" as BaseUrl,
+    title: "Surface Tension (Imperial)",
+    description:
+      "Surface Tension expressed in imperial units, including units shared with US customary measurement.",
+  },
+  surfaceTensionMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/surface-tension-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/surface-tension-metric/" as BaseUrl,
+    title: "Surface Tension (Metric)",
+    description:
+      "Surface Tension expressed in metric units, including SI units and their accepted companions.",
   },
   svc: {
     dataTypeId: "https://hash.ai/@h/types/data-type/svc/v/1",
@@ -8812,6 +10295,22 @@ export const systemDataTypes = {
     title: "Temperature",
     description:
       "A measure of temperature on an absolute or offset temperature scale.",
+  },
+  temperatureImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/temperature-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/temperature-imperial/" as BaseUrl,
+    title: "Temperature (Imperial)",
+    description:
+      "Temperature expressed in imperial units, including units shared with US customary measurement.",
+  },
+  temperatureMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/temperature-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/temperature-metric/" as BaseUrl,
+    title: "Temperature (Metric)",
+    description:
+      "Temperature expressed in metric units, including SI units and their accepted companions.",
   },
   teraampereHours: {
     dataTypeId: "https://hash.ai/@h/types/data-type/teraampere-hours/v/1",
@@ -9048,6 +10547,32 @@ export const systemDataTypes = {
     title: "Thermal Conductivity",
     description: "The heat flux density per unit temperature gradient.",
   },
+  thermalConductivityImperial: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/thermal-conductivity-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/thermal-conductivity-imperial/" as BaseUrl,
+    title: "Thermal Conductivity (Imperial)",
+    description:
+      "Thermal Conductivity expressed in imperial units, including units shared with US customary measurement.",
+  },
+  thermalConductivityMetric: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/thermal-conductivity-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/thermal-conductivity-metric/" as BaseUrl,
+    title: "Thermal Conductivity (Metric)",
+    description:
+      "Thermal Conductivity expressed in metric units, including SI units and their accepted companions.",
+  },
+  thousandthsOfAnInch: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/thousandths-of-an-inch/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/thousandths-of-an-inch/" as BaseUrl,
+    title: "Thousandths of an Inch",
+    description:
+      "A unit of length expressed in thousandths of an inch. Based on the international yard of exactly 0.9144 meters.",
+  },
   time: {
     dataTypeId: "https://hash.ai/@h/types/data-type/time/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/time/" as BaseUrl,
@@ -9086,6 +10611,22 @@ export const systemDataTypes = {
     title: "Torque",
     description: "The moment of a force about an axis.",
   },
+  torqueImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/torque-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/torque-imperial/" as BaseUrl,
+    title: "Torque (Imperial)",
+    description:
+      "Torque expressed in imperial units, including units shared with US customary measurement.",
+  },
+  torqueMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/torque-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/torque-metric/" as BaseUrl,
+    title: "Torque (Metric)",
+    description:
+      "Torque expressed in metric units, including SI units and their accepted companions.",
+  },
   trialPhase: {
     dataTypeId: "https://hash.ai/@h/types/data-type/trial-phase/v/1",
     dataTypeBaseUrl:
@@ -9093,6 +10634,20 @@ export const systemDataTypes = {
     title: "Trial Phase",
     description:
       "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
+  },
+  troyOunces: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/troy-ounces/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/troy-ounces/" as BaseUrl,
+    title: "Troy Ounces",
+    description: "A unit of mass expressed in troy ounces.",
+  },
+  troyPounds: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/troy-pounds/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/troy-pounds/" as BaseUrl,
+    title: "Troy Pounds",
+    description: "A unit of mass expressed in troy pounds.",
   },
   try: {
     dataTypeId: "https://hash.ai/@h/types/data-type/try/v/1",
@@ -9144,11 +10699,94 @@ export const systemDataTypes = {
     title: "URI",
     description: "A unique identifier for a resource (e.g. a URL, or URN).",
   },
+  usBushels: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-bushels/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-bushels/" as BaseUrl,
+    title: "US Bushels",
+    description: "A unit of volume expressed in us bushels.",
+  },
+  usCups: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-cups/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/us-cups/" as BaseUrl,
+    title: "US Cups",
+    description:
+      "A US customary cup, equal to 8 US fluid ounces or 236.5882365 millilitres.",
+  },
   usd: {
     dataTypeId: "https://hash.ai/@h/types/data-type/usd/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/usd/" as BaseUrl,
     title: "USD",
     description: "An amount denominated in US Dollar (ISO 4217 USD).",
+  },
+  usDryGallons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-dry-gallons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-dry-gallons/" as BaseUrl,
+    title: "US Dry Gallons",
+    description: "A unit of volume expressed in us dry gallons.",
+  },
+  usDryPints: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-dry-pints/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-dry-pints/" as BaseUrl,
+    title: "US Dry Pints",
+    description: "A unit of volume expressed in us dry pints.",
+  },
+  usDryQuarts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-dry-quarts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-dry-quarts/" as BaseUrl,
+    title: "US Dry Quarts",
+    description: "A unit of volume expressed in us dry quarts.",
+  },
+  usFluidOunces: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-fluid-ounces/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-fluid-ounces/" as BaseUrl,
+    title: "US Fluid Ounces",
+    description: "A unit of volume expressed in us fluid ounces.",
+  },
+  usLiquidGallons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-liquid-gallons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-liquid-gallons/" as BaseUrl,
+    title: "US Liquid Gallons",
+    description: "A unit of volume expressed in us liquid gallons.",
+  },
+  usLiquidPints: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-liquid-pints/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-liquid-pints/" as BaseUrl,
+    title: "US Liquid Pints",
+    description: "A unit of volume expressed in us liquid pints.",
+  },
+  usLiquidQuarts: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-liquid-quarts/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-liquid-quarts/" as BaseUrl,
+    title: "US Liquid Quarts",
+    description: "A unit of volume expressed in us liquid quarts.",
+  },
+  usPecks: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-pecks/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/us-pecks/" as BaseUrl,
+    title: "US Pecks",
+    description: "A unit of volume expressed in us pecks.",
+  },
+  usTablespoons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-tablespoons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-tablespoons/" as BaseUrl,
+    title: "US Tablespoons",
+    description: "A unit of volume expressed in us tablespoons.",
+  },
+  usTeaspoons: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/us-teaspoons/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/us-teaspoons/" as BaseUrl,
+    title: "US Teaspoons",
+    description: "A unit of volume expressed in us teaspoons.",
   },
   uyu: {
     dataTypeId: "https://hash.ai/@h/types/data-type/uyu/v/1",
@@ -9181,6 +10819,14 @@ export const systemDataTypes = {
     description:
       "The SI unit of electric potential difference and electromotive force, equal to one watt per ampere.",
   },
+  voltsPerFoot: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volts-per-foot/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/volts-per-foot/" as BaseUrl,
+    title: "Volts per Foot",
+    description:
+      "A unit of electric field strength expressed in volts per foot.",
+  },
   voltsPerMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/volts-per-meter/v/1",
     dataTypeBaseUrl:
@@ -9196,6 +10842,29 @@ export const systemDataTypes = {
     description:
       "A measure of the three-dimensional space occupied by something.",
   },
+  volumeImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volume-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/volume-imperial/" as BaseUrl,
+    title: "Volume (Imperial)",
+    description:
+      "Volume expressed in imperial units, including units shared with US customary measurement.",
+  },
+  volumeMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volume-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/volume-metric/" as BaseUrl,
+    title: "Volume (Metric)",
+    description:
+      "Volume expressed in metric units, including SI units and their accepted companions.",
+  },
+  volumeUsCustomary: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/volume-us-customary/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/volume-us-customary/" as BaseUrl,
+    title: "Volume (US Customary)",
+    description: "Volume expressed in US customary units.",
+  },
   vuv: {
     dataTypeId: "https://hash.ai/@h/types/data-type/vuv/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/vuv/" as BaseUrl,
@@ -9210,7 +10879,7 @@ export const systemDataTypes = {
     description: "A unit of energy equal to 3600 joules.",
   },
   watts: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/watts/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/watts/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/watts/" as BaseUrl,
     title: "Watts",
     description:
@@ -9222,6 +10891,15 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/watts-per-meter-kelvin/" as BaseUrl,
     title: "Watts per Meter Kelvin",
     description: "The coherent SI unit used to express thermal conductivity.",
+  },
+  wattsPerSquareFootSteradian: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/watts-per-square-foot-steradian/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/watts-per-square-foot-steradian/" as BaseUrl,
+    title: "Watts per Square Foot Steradian",
+    description:
+      "A unit of radiance expressed in watts per square foot steradian.",
   },
   wattsPerSquareMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/watts-per-square-meter/v/1",
@@ -9252,6 +10930,22 @@ export const systemDataTypes = {
     title: "Wavenumber",
     description: "The number of spatial cycles per unit length.",
   },
+  wavenumberImperial: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/wavenumber-imperial/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/wavenumber-imperial/" as BaseUrl,
+    title: "Wavenumber (Imperial)",
+    description:
+      "Wavenumber expressed in imperial units, including units shared with US customary measurement.",
+  },
+  wavenumberMetric: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/wavenumber-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/wavenumber-metric/" as BaseUrl,
+    title: "Wavenumber (Metric)",
+    description:
+      "Wavenumber expressed in metric units, including SI units and their accepted companions.",
+  },
   webers: {
     dataTypeId: "https://hash.ai/@h/types/data-type/webers/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/webers/" as BaseUrl,
@@ -9259,10 +10953,10 @@ export const systemDataTypes = {
     description: "The SI unit of magnetic flux, equal to one volt second.",
   },
   week: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/week/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/week/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/week/" as BaseUrl,
     title: "Week",
-    description: "A measure of the length of time, defined as 7 days.",
+    description: "A duration of exactly 7 days.",
   },
   wst: {
     dataTypeId: "https://hash.ai/@h/types/data-type/wst/v/1",
@@ -9302,18 +10996,18 @@ export const systemDataTypes = {
     description: "An amount denominated in CFP Franc (ISO 4217 XPF).",
   },
   yards: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/yards/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/yards/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/yards/" as BaseUrl,
     title: "Yards",
     description:
-      "An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).",
+      "A unit of length expressed in yards. Based on the international yard of exactly 0.9144 meters.",
   },
   year: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/year/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/year/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/year/" as BaseUrl,
     title: "Year",
     description:
-      "A measure of the length of time. In the Gregorian calendar, years vary in length – there are 365 days in a common year, and 366 days in a leap year.",
+      "A duration of 31,557,600 seconds (365.25 days), preserving the existing fixed year conversion. Calendar years vary in length.",
   },
   yer: {
     dataTypeId: "https://hash.ai/@h/types/data-type/yer/v/1",

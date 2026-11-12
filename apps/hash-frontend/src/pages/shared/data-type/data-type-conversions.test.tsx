@@ -5,8 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DataTypeConversions } from "./data-type-conversions";
 
+import type * as ApolloClient from "@apollo/client";
+
 vi.mock("@apollo/client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@apollo/client")>()),
+  ...(await importOriginal<typeof ApolloClient>()),
   useQuery: vi.fn(() => ({ data: undefined, loading: false })),
 }));
 vi.mock("react-hook-form", () => ({
