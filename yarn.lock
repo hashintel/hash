@@ -9701,6 +9701,9 @@ __metadata:
     react-dom: "npm:19.2.6"
     typescript: "catalog:beta"
     vitest: "catalog:"
+  peerDependencies:
+    fumadocs-core: ^16.17.8
+    react: ^19.0.0
   languageName: unknown
   linkType: soft
 

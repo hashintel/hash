@@ -28,7 +28,8 @@
     "@microsoft/tsdoc-config": "0.18.1",
     "effect": "4.0.3",
     "mdast-util-to-markdown": "2.1.2",
-    "oxfmt": "0.71.0"
+    "oxfmt": "0.71.0",
+    "typescript": "catalog:beta"
   },
   "devDependencies": {
     "@base-ui/react": "1.9.0",
@@ -51,7 +52,10 @@
     "oxlint": "catalog:",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "typescript": "catalog:beta",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "fumadocs-core": "^16.17.8",
+    "react": "^19.0.0"
   }
 }
