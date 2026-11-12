@@ -282,8 +282,13 @@ export const useAnswerDock = ({
       setStored({ ...state, answers, sent: true });
       onSend(message);
     },
-    /** Whether Send has something to send though the composer is empty. */
-    sendable: last && message !== undefined,
+    /**
+     * Whether Send acts though the composer is empty: it moves on from any
+     * question but the last, and sends once something is answered. Otherwise
+     * an empty composer offers Voice, which hides the dock and would leave
+     * the answers already given unsent.
+     */
+    sendable: !last || message !== undefined,
     submitLabel: last
       ? questions.length > 1
         ? "Send answers"

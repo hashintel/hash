@@ -152,13 +152,10 @@ const fillDockedAnswers = async (page: Page, answers: readonly string[]) => {
       else await composer.fill(text);
     }
     if (index < answers.length - 1)
-      // Send moves on once there is an answer; the arrow skips without one.
+      // Send moves on, whether or not this question was answered.
       // eslint-disable-next-line no-await-in-loop -- As above.
       await page
-        .getByRole("button", {
-          name: text ? "Continue to next question" : "Next question",
-          exact: true,
-        })
+        .getByRole("button", { name: "Continue to next question", exact: true })
         .click();
   }
 };
