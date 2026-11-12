@@ -3,6 +3,7 @@ import { type RefObject, useLayoutEffect, useMemo, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { offerIn } from "../../../../conversation/offer-answers";
 import {
   composeAnswers,
   type OfferedOption,
@@ -12,7 +13,6 @@ import {
   pickOption,
 } from "../../../../conversation/question-kinds";
 import { isSpokenLine } from "./brunch-transcript";
-import { offerOf } from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
 
@@ -37,6 +37,12 @@ const stepsStyle = css({ display: "flex", gap: "1" });
 
 const optionsStyle = css({ display: "flex", flexWrap: "wrap", gap: "1.5" });
 
+const questionStyle = css({
+  color: "neutral.s120",
+  fontSize: "sm",
+  lineHeight: "[1.45]",
+});
+
 const noteStyle = css({
   color: "neutral.s90",
   fontSize: "xs",
@@ -60,7 +66,7 @@ const typedHint = (question: OfferedQuestion) =>
     : "Type your answer in the message box.";
 
 /**
- * The questions the latest reply offers answers for, when it is the last
+ * The questions the latest reply asks, when it is the last
  * thing said: nothing has answered it and it wasn't stopped.
  */
 export const currentOffer = (messages: readonly PetrinautAiMessage[]) => {
@@ -70,7 +76,7 @@ export const currentOffer = (messages: readonly PetrinautAiMessage[]) => {
   );
   if (message?.role !== "assistant" || message.metadata?.stopped === true)
     return undefined;
-  const offer = offerOf(message);
+  const offer = offerIn(message.parts);
   return offer && { messageId: message.id, offer };
 };
 
@@ -139,6 +145,7 @@ const AnswerDock = ({
           </span>
         )}
       </div>
+      <p className={questionStyle}>{question.text}</p>
       {options.length === 0 ? (
         <p className={noteStyle}>{typedHint(question)}</p>
       ) : (

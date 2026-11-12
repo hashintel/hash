@@ -74,6 +74,7 @@ test("answer keeps each argument as one question's answer, and a reply lists the
           {
             kind: "choose",
             label: "Reorder timing",
+            text: "Reorder timing?",
             options: [
               { label: "At once", value: "We reorder as soon as it is found" },
               { label: "It varies" },
@@ -82,9 +83,10 @@ test("answer keeps each argument as one question's answer, and a reply lists the
           {
             kind: "values",
             label: "Reorder points",
+            text: "Reorder points?",
             fields: [{ label: "Lower", unit: "units" }, { label: "Higher" }],
           },
-          { kind: "open", label: "Recent order" },
+          { kind: "open", label: "Recent order", text: "Recent order?" },
         ],
       },
       { type: "turn_settled", outcome: "replied", submissionIds: ["sub_2"] },
@@ -93,12 +95,14 @@ test("answer keeps each argument as one question's answer, and a reply lists the
     [
       "Recorded. Two more things.",
       "",
-      'Brunch put 3 questions on its message box. Answer them together with `answer`, one quoted argument each in this order, "" to skip one:',
-      "1. Reorder timing: pick one by its label, or answer in your own words",
+      'Brunch asks 3 questions on its message box. Answer them together with `answer`, one quoted argument each in this order, "" to skip one:',
+      "1. Reorder timing: Reorder timing?",
+      "   Pick one by its label, or answer in your own words:",
       "   - At once: We reorder as soon as it is found",
       "   - It varies",
-      "2. Reorder points: Lower (units), Higher",
-      "3. Recent order: answer in your own words",
+      "2. Reorder points: Reorder points?",
+      "   Give: Lower (units), Higher",
+      "3. Recent order: Recent order?",
     ].join("\n"),
   );
 });
@@ -114,6 +118,7 @@ test("a reply with one docked question says that say still answers it", () => {
           {
             kind: "confirm",
             label: "Production demand",
+            text: "Production demand?",
             options: [{ label: "Yes" }],
           },
         ],

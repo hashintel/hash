@@ -15,17 +15,18 @@ const kindUses = Object.entries(questionKinds).map(
 );
 
 export const offerAnswersToolDescription = [
-  `Offer quick answers for the questions your reply asks, in the same response as the closing ${brunchTools.ledgerCommit} with endTurn.`,
-  "Your reply must still ask every question in full, naming its options; this only puts buttons for the answers on the user's message box, one question at a time.",
-  "List every question the reply asks, in order. Call it only when at least one of them is not open.",
+  `Ask the user this turn's questions, in the same response as the closing ${brunchTools.ledgerCommit} with endTurn.`,
+  "This is the only place the questions are asked: each shows on the user's message box, one at a time, with buttons for any answers you offer. Your reply only leads into them in a line, and states neither the questions nor their options.",
+  "List every question the turn asks, in order, including the open ones.",
   `Use ${kindUses.slice(0, -1).join(", ")}, and ${kindUses.at(-1)}.`,
   `Never offer choices on ${neverOffer.join(", nor on ")}.`,
   "The user can always answer in their own words.",
 ].join(" ");
 
 /**
- * Buttons on the composer for the questions the reply asks. Returns at once;
- * the person's answer arrives as their next ordinary message.
+ * The turn's questions, shown on the composer with buttons for the answers
+ * it offers. Returns at once; the person's answer arrives as their next
+ * ordinary message.
  */
 export const createOfferAnswersTool = (
   readHistory: () => Promise<LedgerHistory>,

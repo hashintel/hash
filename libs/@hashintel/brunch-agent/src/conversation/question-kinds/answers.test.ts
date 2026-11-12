@@ -16,15 +16,18 @@ const options: OfferedOption[] = [staysOpen, dropsOut];
 const quarantine = {
   kind: "choose",
   label: "Quarantined shipment",
+  text: "Quarantined shipment?",
   options,
 } satisfies OfferedQuestion;
 const demand = {
   kind: "confirm",
   label: "Production demand",
+  text: "Production demand?",
 } satisfies OfferedQuestion;
 const recentOrder = {
   kind: "open",
   label: "Recent order",
+  text: "Recent order?",
 } satisfies OfferedQuestion;
 
 describe("picking an option into an answer", () => {

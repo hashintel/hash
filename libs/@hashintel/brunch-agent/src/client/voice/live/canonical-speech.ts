@@ -1,3 +1,5 @@
+import { offerIn } from "../../../conversation/offer-answers";
+import { spokenQuestion } from "../../../conversation/question-kinds";
 import { hashCanonicalSpeechText } from "./canonical-speech/fingerprint";
 
 import type { PetrinautAiMessage } from "../../../ui/chat/ai-assistant-panel";
@@ -89,6 +91,21 @@ export const selectCanonicalSpeech = (
           ),
         );
       }
+    }
+
+    // The reply only leads into its questions; they are asked in the offer,
+    // which Voice has no dock to show.
+    for (const [index, question] of (
+      offerIn(message.parts)?.questions ?? []
+    ).entries()) {
+      segments.push(
+        createSegment(
+          message.id,
+          `question:${index}`,
+          "assistant-text",
+          spokenQuestion(question),
+        ),
+      );
     }
 
     const turnText = finalizedTurnText(message);

@@ -15,12 +15,11 @@ export {
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";
-export { zOfferAnswersInput } from "./conversation/offer-answers";
+export { offerIn, zOfferAnswersInput } from "./conversation/offer-answers";
 export {
-  mergeOffers,
   neverOffer,
-  offersAnswers,
   questionKinds,
+  spokenQuestion,
   type OfferedQuestion,
   type OfferedQuestions,
 } from "./conversation/question-kinds";
