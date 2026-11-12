@@ -169,6 +169,8 @@ export type EditorDocument = {
   wires: Wire[];
   /** MOCK: free-text fields, keyed `stepId.inputName`. */
   templates: Record<string, TemplatePart[]>;
+  /** MOCK: the names of deleted steps, so a value that still reads one can say which ("… no longer exists"). */
+  removedLabels?: Record<string, string>;
   /** MOCK: list fields holding several sources, keyed `stepId.inputName`. */
   lists: Record<string, StepInputSource[]>;
   /** Query builder state, keyed `stepId.inputName`; compiled into a constant `EntityQuery` or `FilterCondition`. */
@@ -596,6 +598,15 @@ export const removeStep = (
     wires: document.wires.filter(
       (wire) => !removedIds.has(wire.source) && !removedIds.has(wire.target),
     ),
+    removedLabels: {
+      ...document.removedLabels,
+      ...Object.fromEntries(
+        (removed ? flattenSteps([removed.step]) : []).map(({ step }) => [
+          step.stepId,
+          stepLabel(step),
+        ]),
+      ),
+    },
   };
 };
 

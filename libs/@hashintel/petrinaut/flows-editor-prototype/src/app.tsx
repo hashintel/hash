@@ -6,6 +6,7 @@ import {
   Menu,
   PortalContainerContext,
   SegmentedControl,
+  type IconName,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -57,7 +58,12 @@ import {
   VersionButton,
 } from "./versions";
 
-import type { EditorDocument } from "./document";
+import { type EditorDocument, findStep, stepLabel } from "./document";
+import { getCatalogEntry } from "./catalog";
+
+/** `?brokenrun=old`: Run starts even when the flow has something to fix (before missing-broken-run c, 13 Nov). */
+const brokenRunOld =
+  new URLSearchParams(globalThis.location.search).get("brokenrun") === "old";
 
 const rootStyle = css({
   position: "relative",
@@ -385,6 +391,56 @@ export const Editor = ({
     ]).size +
     validation.flowLevel.filter((diagnostic) => diagnostic.severity === "error")
       .length;
+  // The steps Run lists when it can't start (missing-broken-run c): each once, with its first error.
+  const toFix = [...validation.byStep.entries()].flatMap(([stepId, diagnostics]) => {
+    const error = diagnostics.find((diagnostic) => diagnostic.severity === "error");
+    const found = error ? findStep(document, stepId) : undefined;
+    if (!error || !found) {
+      return [];
+    }
+    const entry =
+      found.step.kind === "action"
+        ? getCatalogEntry(found.step.actionDefinitionId)
+        : undefined;
+    return [
+      {
+        stepId,
+        title: stepLabel(found.step),
+        icon: (found.step.kind === "for-each" ? "rotate" : (entry?.icon ?? "cube")) as IconName,
+        message: error.message,
+      },
+    ];
+  });
+  // A text field that still reads a deleted step's output: "Body: Read supplier name no longer exists".
+  for (const [key, parts] of Object.entries(document.templates)) {
+    const [stepId = "", inputName = ""] = key.split(".");
+    const found = findStep(document, stepId);
+    const gone = parts.find(
+      (part) =>
+        part.kind === "ref" &&
+        part.source.kind === "step-output" &&
+        !findStep(document, part.source.stepId),
+    );
+    if (!found || !gone || gone.kind !== "ref" || gone.source.kind !== "step-output") {
+      continue;
+    }
+    const goneLabel =
+      document.removedLabels?.[gone.source.stepId] ?? gone.source.stepId;
+    const message = `${inputName.charAt(0).toUpperCase()}${inputName.slice(1)}: ${goneLabel} no longer exists`;
+    const existing = toFix.find((item) => item.stepId === stepId);
+    if (!existing) {
+      const entry =
+        found.step.kind === "action"
+          ? getCatalogEntry(found.step.actionDefinitionId)
+          : undefined;
+      toFix.push({
+        stepId,
+        title: stepLabel(found.step),
+        icon: (entry?.icon ?? "cube") as IconName,
+        message,
+      });
+    }
+  }
   // J4.4: Run only when the flow can be started by hand: manual runs are on in its Triggers panel.
   const hasManualStart = flowTriggersOf(document, ui.triggerSwitches).manual;
   const toEditor = () => {
@@ -619,6 +675,44 @@ export const Editor = ({
                     T1 (4 Nov) always has Run. It starts a live run and opens it; it is off while manual runs are off
                     in the flow's Triggers panel (the 14 Oct rule was "Run only when a manual start is allowed").
                   */}
+                        {/* missing-broken-run c (13 Nov): with something to fix, Run opens the list of it; a pick
+                            selects the step. `?brokenrun=old` lets Run start anyway. */}
+                        {!brokenRunOld && hasManualStart && toFix.length > 0 ? (
+                          <Menu
+                            position="bottom-end"
+                            className={css({ minWidth: "[280px]" })}
+                            items={[
+                              {
+                                id: "to-fix",
+                                label: `${toFix.length} to fix`,
+                                items: toFix.map((item) => ({
+                                  id: item.stepId,
+                                  text: item.title,
+                                  icon: item.icon,
+                                  description: item.message,
+                                  onClick: () =>
+                                    setUiState((current) => ({
+                                      ...current,
+                                      selectedId: item.stepId,
+                                      selectedIds: [item.stepId],
+                                      triggerId: null,
+                                    })),
+                                })),
+                              },
+                            ]}
+                            trigger={
+                              <Button
+                                size="sm"
+                                variant="subtle"
+                                tone="neutral"
+                                className={simulateStyle}
+                                iconName="play"
+                              >
+                                Run
+                              </Button>
+                            }
+                          />
+                        ) : (
                         <Button
                           size="sm"
                           variant="subtle"
@@ -635,6 +729,7 @@ export const Editor = ({
                         >
                           Run
                         </Button>
+                        )}
                         {version ? (
                           <PublishButton
                             flowId={flowId}
