@@ -24,7 +24,7 @@ export const hashEntityReadMaxTraversalDepth = 3;
  * List length and id length are deliberately unbounded: the page reads as the
  * signed-in user, and the graph enforces its own limits.
  */
-const identifiers = (description: string) =>
+const identifiersSchemaWith = ({ description }: { description: string }) =>
   v.optional(
     v.pipe(
       v.array(v.pipe(v.string(), v.minLength(1))),
@@ -37,13 +37,15 @@ const webIdsDescription =
   "Web ids to read from. An entity belongs to the web of the user or organization that owns it.";
 
 export const hashEntityReadInputSchema = v.strictObject({
-  entityTypes: identifiers(
-    "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
-  ),
-  webIds: identifiers(webIdsDescription),
-  entityIds: identifiers(
-    "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
-  ),
+  entityTypes: identifiersSchemaWith({
+    description:
+      "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
+  }),
+  webIds: identifiersSchemaWith({ description: webIdsDescription }),
+  entityIds: identifiersSchemaWith({
+    description:
+      "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
+  }),
   traversalDepth: v.optional(
     v.pipe(
       v.number(),
@@ -63,9 +65,10 @@ export const hashEntityReadInputSchema = v.strictObject({
       ),
     ),
   ),
-  fullValuesFor: identifiers(
-    "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
-  ),
+  fullValuesFor: identifiersSchemaWith({
+    description:
+      "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
+  }),
 });
 
 export type HashEntityReadInput = v.InferOutput<
@@ -76,12 +79,13 @@ export const parseHashEntityReadInput = (input: unknown): HashEntityReadInput =>
   v.parse(hashEntityReadInputSchema, input);
 
 export const hashEntityTypeReadInputSchema = v.strictObject({
-  entityTypeIds: identifiers(
-    `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.hashQueryEntities}. Those exact versions are read.`,
-  ),
-  webIds: identifiers(
-    "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
-  ),
+  entityTypeIds: identifiersSchemaWith({
+    description: `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.hashQueryEntities}. Those exact versions are read.`,
+  }),
+  webIds: identifiersSchemaWith({
+    description:
+      "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
+  }),
 });
 
 export type HashEntityTypeReadInput = v.InferOutput<
