@@ -37,7 +37,7 @@ import { useEditor } from "./editor-context";
 import { useRunView } from "./history-view";
 import { HashShell } from "./hash-shell";
 import { navigate } from "./router";
-import { outcomeOf, type RunRecord } from "./run-history";
+import { outcomeOf, type RunRecord, signOffId } from "./run-history";
 import { RunGlyph } from "./run-glyph";
 import { statusColor } from "./status-colors";
 
@@ -221,11 +221,29 @@ export const useReview = () =>
 export const answerOf = (request: ReviewRequest, answers: Record<string, Answer>) =>
   request.answer ?? answers[request.id];
 
+/**
+ * Who is looking (parity-q3, 13 Nov): Ask a person's question goes only to the person who has to answer it, the
+ * named approver or a member of the role. `?viewer=approver` is that person: the question shows in their lists and
+ * the form in the right panel. The default, `other`, is anyone else: no form, no list row and no count for it; the
+ * step still reads Needs review, waiting on the approver.
+ */
+export const viewerIsApprover =
+  new URLSearchParams(globalThis.location.search).get("viewer") === "approver";
+
+/** Whether the viewer is asked this question: every step's but Ask a person's, which only its approver is. */
+export const askedOfViewer = (request: Pick<ReviewRequest, "stepId">) =>
+  viewerIsApprover || request.stepId !== signOffId;
+
+/** Every open request, whoever answers it: the steps that wait. */
 const openRequests = (answers: Record<string, Answer>) =>
   requests.filter((request) => !answerOf(request, answers));
 
+/** The open requests the viewer answers: their lists, counts and forms. */
+const openForViewer = (answers: Record<string, Answer>) =>
+  openRequests(answers).filter(askedOfViewer);
+
 const answeredRequests = (answers: Record<string, Answer>) =>
-  requests.filter((request) => answerOf(request, answers));
+  requests.filter((request) => answerOf(request, answers) && askedOfViewer(request));
 
 const rectOf = (element: Element): Anchor => {
   const { top, left, right, bottom } = element.getBoundingClientRect();
@@ -411,7 +429,7 @@ const RequestList = ({
 }) => {
   const { answers, showAnswered, openId: storeId } = useReview();
   const openId = currentId ?? storeId;
-  const open = openRequests(answers);
+  const open = openForViewer(answers);
   const answered = answeredRequests(answers);
   return (
     <>
@@ -709,7 +727,7 @@ const ReviewRequests = () => {
   if (!run) {
     return null;
   }
-  const open = openRequests(answers);
+  const open = openForViewer(answers);
   return (
     <div className={listStyle} data-review-list>
       <div className={listHeaderStyle}>
@@ -974,7 +992,7 @@ export const ReviewSide = ({ children }: { children: React.ReactNode }) => {
   const { openId, anchor, answers } = useReview();
   const selected = ui.selectedId;
   const stepRequest = selected
-    ? openRequests(answers).find((request) => request.stepId === selected)
+    ? openForViewer(answers).find((request) => request.stepId === selected)
     : undefined;
   const stepRequestId = stepRequest?.id;
 
@@ -1030,7 +1048,7 @@ export const ReviewSide = ({ children }: { children: React.ReactNode }) => {
     }
   };
   const shown =
-    requests.find((request) => request.id === openId) ??
+    requests.find((request) => request.id === openId && askedOfViewer(request)) ??
     (inPanel ? stepRequest : undefined);
   if (inPanel) {
     return shown ? (
@@ -1135,8 +1153,10 @@ const InboxDetail = ({ request }: { request: ReviewRequest }) => {
 
 export const ReviewInbox = () => {
   const { openId, answers } = useReview();
-  const open = openRequests(answers);
-  const shown = requests.find((request) => request.id === openId) ?? open[0];
+  const open = openForViewer(answers);
+  const shown =
+    requests.find((request) => request.id === openId && askedOfViewer(request)) ??
+    open[0];
   return (
     <HashShell>
       <div className={inboxStyle} data-review-inbox>

@@ -28,6 +28,7 @@ import { useEditor } from "./editor-context";
 import { RowTile } from "./menu-rows";
 import {
   answerOf,
+  askedOfViewer,
   type ReviewRequest,
   RequestForm,
   ReviewPings,
@@ -265,8 +266,11 @@ const splitPath = (request: ReviewRequest) => {
   return { step: step ?? request.path, item };
 };
 
+/** The requests the viewer is asked: Ask a person's only when they are its approver (`?viewer=`). */
+const viewerRequests = r2Requests.filter(askedOfViewer);
+
 const openOf = (answers: Record<string, unknown>) =>
-  r2Requests.filter(
+  viewerRequests.filter(
     (request) => !request.answer && !(request.id in answers),
   );
 
@@ -275,7 +279,7 @@ const useShown = () => {
   const { ui } = useEditor();
   const { openId, answers } = useReview();
   const open = openOf(answers);
-  const picked = r2Requests.find((request) => request.id === openId);
+  const picked = viewerRequests.find((request) => request.id === openId);
   const forStep = ui.selectedId
     ? open.find((request) => request.stepId === ui.selectedId)
     : undefined;
@@ -424,7 +428,7 @@ const QuestionList = ({
   const pick = usePick();
   const [showAnswered, setShowAnswered] = useState(false);
   const side = useStatusSide();
-  const answered = r2Requests.filter((request) =>
+  const answered = viewerRequests.filter((request) =>
     Boolean(answerOf(request, answers)),
   );
   if (direction === "row") {
@@ -1049,11 +1053,12 @@ export const ReviewR2Side = ({ children }: { children: React.ReactNode }) => {
     }
   }, [firstStep, setUi]);
   const [sheetOpen, setSheetOpen] = useState(true);
-  // A selected step with nothing to answer shows its own panel.
+  // A selected step with nothing for the viewer to answer shows its own panel: Ask a person's, for anyone but its
+  // approver, is its Status "Needs review · Asked 10:43" over "Waiting on …", with no form.
   const otherStep =
     ui.selectedId !== null &&
     ui.selectedId !== undefined &&
-    !r2Requests.some((request) => request.stepId === ui.selectedId);
+    !viewerRequests.some((request) => request.stepId === ui.selectedId);
   if (!run) {
     return children;
   }
