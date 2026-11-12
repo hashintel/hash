@@ -5,6 +5,8 @@ use duckdb::types::Value;
 use hash_graph_store::entity::{CreateEntityParams, PatchEntityParams};
 use hash_integrations_definition::{Action, Definition, EntitySink, LinkPipeline, StepKind};
 use pretty_assertions::assert_eq;
+use rstest::rstest;
+use serde_json::value::RawValue;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
@@ -19,7 +21,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{DuplicateWrite, FinishedPlan, GraphPlan, PlannedWrite, Planner};
+use super::{DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlannedWrite, Planner};
 use crate::{
     Archive, EntityUpsert, GraphOperation, OperationKind, SinkColumns, SinkRow, derive_entity_id,
     integration_provenance,
@@ -249,6 +251,21 @@ fn archive_payload() {
         ),
         "the archive request should be saved exactly"
     );
+}
+
+#[rstest]
+#[case::version(r#"{"version":2,"request":{"kind":"archive","archive":{}}}"#)]
+#[case::upsert_without_patch(
+    r#"{"version":1,"request":{"kind":"upsert","create":{},"archive":{}}}"#
+)]
+#[case::archive_with_create(
+    r#"{"version":1,"request":{"kind":"archive","create":{},"archive":{}}}"#
+)]
+fn unreadable_payload(#[case] json: &str) {
+    let payload = Payload(RawValue::from_string(json.to_owned()).expect("should be JSON"));
+    payload
+        .requests()
+        .expect_err("should only read deliveries this engine writes");
 }
 
 #[test]

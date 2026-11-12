@@ -4,7 +4,7 @@ mod postgres;
 mod rest;
 mod secrets;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use alloc::collections::BTreeMap;
 use core::num::NonZero;
