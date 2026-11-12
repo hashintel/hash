@@ -45,10 +45,14 @@ export const RunActions = ({
 }) => {
   const { triggerSnackbar } = useSnackbar();
 
-  const { data } = useQuery<GetFlowRunByIdQuery, GetFlowRunByIdQueryVariables>(
-    getFlowRunById,
-    { variables: { flowRunEntityId } },
-  );
+  /* A run cached as running may have ended since, so Stop waits for its status from the network. */
+  const { data, loading } = useQuery<
+    GetFlowRunByIdQuery,
+    GetFlowRunByIdQueryVariables
+  >(getFlowRunById, {
+    variables: { flowRunEntityId },
+    fetchPolicy: "cache-and-network",
+  });
   const run = data?.getFlowRunById;
 
   const [cancelFlow] = useMutation<
@@ -86,6 +90,7 @@ export const RunActions = ({
           variant="subtle"
           size="sm"
           iconName="stop"
+          disabled={loading}
           loading={stopping}
           onClick={() => setConfirmingStop(true)}
         >
