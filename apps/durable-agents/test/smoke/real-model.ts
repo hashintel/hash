@@ -1,31 +1,40 @@
 /**
  * A small real-model smoke run of the durable agents server: `yarn start`
  * with `DURABLE_AGENTS_MODEL` from `SMOKE_MODEL` (default
- * `anthropic/claude-sonnet-4-5`; `openrouter/anthropic/claude-sonnet-4.5` is
- * the same model through OpenRouter), driven over HTTP by
- * AI SDK's stock `DefaultChatTransport` and a scripted browser.
+ * `openai/gpt-6.1-sol`, production's model), driven over HTTP by AI SDK's
+ * stock `DefaultChatTransport` and a scripted browser.
  *
- * Usage, from `apps/durable-agents` with the compose Postgres up and
- * `ANTHROPIC_API_KEY` set: `yarn tsx test/smoke/real-model.ts`. It spends real
- * model requests, at most `budget` across every run that shares the ledger.
+ * Usage, from `apps/durable-agents` with the compose Postgres up and the
+ * provider's key set (`OPENAI_API_KEY`): `yarn tsx test/smoke/real-model.ts`.
+ * It spends real model requests, at most `budget` across every run that
+ * shares the ledger. Run `SMOKE_DRY_RUN=1` first: it checks the wiring at
+ * zero spend.
  *
- * - Turn 1 asks directly to build a place, a transition and an arc now; the
- *   browser claims, starts and applies each call to its net. When the model
- *   changes nothing, one firmer turn retries the request.
- * - Turn 2 asks a question the net answers; the browser answers net reads
- *   from what turn 1 built.
- * - Turn 3, when at least four requests remain, asks for one more change
- *   and a Ledger commit; no read is prompted, so the change rests on the
- *   view earlier turns left in context.
+ * - Turn 1 asks to build a place, a transition and an arc now, before any
+ *   read: the server should refuse the first change (no view of the net) and
+ *   the model read, then build. When it changes nothing, one firmer turn
+ *   retries the request.
+ * - Turn 2 asks for one more change and prompts no read: it must be admitted
+ *   on the view turn 1 left in context.
+ * - Then the scripted browser edits its net by hand (a new revision) and
+ *   reports it on the hand-edits route; turn 3 asks for a change, which the
+ *   model's now-stale view must not carry.
+ * - Then, budget allowing, the driver stops the server and compacts the
+ *   stored conversation itself, through a Harness of its own whose
+ *   `keepRecentTokens` is 1 (so the kept tail holds no net view), restarts
+ *   the server, and turn 4 asks for a change with no read: the `net_view`
+ *   section should restore the view the summary dropped.
  *
  * The browser reports Brunch's revision metadata and refuses a claimed
  * change whose `expectedRevision` the net has moved past by other means.
  *
  * Requests are counted by `count-provider-requests.ts`, preloaded into the
- * server process: one ledger line per HTTP request to the provider API (Anthropic, OpenAI or OpenRouter),
- * refusing any beyond the budget. The driver also aborts a turn the moment
- * the budget is spent. Afterwards it stops the server, reads the stored
- * conversation and drops the conversation's schema.
+ * server process and imported into this one (which sends the compaction's
+ * summary request): one ledger line per HTTP request to the provider API
+ * (Anthropic, OpenAI or OpenRouter), refusing any beyond the budget. The
+ * driver aborts a turn once the preload refuses a request. Afterwards it
+ * stops the server, reads the stored conversation, prints its observations
+ * per scenario and drops the conversation's schema.
  */
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -34,13 +43,15 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import {
   createRegistry,
   Harness,
+  type EntryId,
+  type HarnessOptions,
   ROOT_CONVERSATION_ID,
 } from "@earendil-works/pi-durable";
 import {
@@ -70,23 +81,34 @@ import { browserCallsPrefix } from "../../src/server/start-durable-agents-server
 import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
 import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 
-const model = process.env.SMOKE_MODEL ?? "anthropic/claude-sonnet-4-5";
+const model = process.env.SMOKE_MODEL ?? "openai/gpt-6.1-sol";
 /**
  * `SMOKE_DRY_RUN=1` checks the wiring without spending: the preload refuses
  * every request (budget 0, its own ledger) and only turn 1 runs, briefly.
  */
 const dryRun = process.env.SMOKE_DRY_RUN === "1";
-const budget = dryRun ? 0 : 29;
+/**
+ * `SMOKE_PROBE=no-read-change` runs only one turn that asks for a change
+ * and tells the model not to read, so a model that reads unprompted still
+ * meets the server's refusal of a change with no view in context.
+ */
+const noReadProbe = process.env.SMOKE_PROBE === "no-read-change";
+const budget = dryRun ? 0 : 20;
 const turnTimeoutMs = dryRun ? 20_000 : 4 * 60_000;
+/** One ledger per model, so a new model's round starts at 0. */
 const ledgerPath = join(
   tmpdir(),
   dryRun
     ? `durable-agents-smoke-dry-${randomUUID()}.jsonl`
-    : "durable-agents-smoke-requests.jsonl",
+    : `durable-agents-smoke-requests-${model.split("/").at(-1)}.jsonl`,
 );
 const preload = fileURLToPath(
   new URL("count-provider-requests.ts", import.meta.url),
 );
+// This process sends the compaction's summary request: count and bound it on the same ledger.
+process.env.SMOKE_REQUEST_LEDGER = ledgerPath;
+process.env.SMOKE_REQUEST_BUDGET = String(budget);
+await import(pathToFileURL(preload).href);
 const appDirectory = fileURLToPath(new URL("../..", import.meta.url));
 const context = BACKGROUND_CONTEXT;
 const poolConfig = postgresConfigFromEnvironment();
@@ -100,6 +122,10 @@ type LedgerLine = {
   n?: number;
   status?: number;
   error?: string;
+  tools?: number;
+  additionalTools?: number[];
+  promptCacheKey?: boolean;
+  pid?: number;
 };
 const ledgerLines = (): LedgerLine[] =>
   existsSync(ledgerPath)
@@ -110,6 +136,8 @@ const ledgerLines = (): LedgerLine[] =>
     : [];
 const requestsUsed = () =>
   ledgerLines().filter(({ event }) => event === "request").length;
+const requestsRefused = () =>
+  ledgerLines().filter(({ event }) => event === "refused").length;
 
 const freePort = () =>
   new Promise<number>((resolve, reject) => {
@@ -182,6 +210,18 @@ const netChangingTools = new Set([
   "addArc",
   "setNetTitle",
 ]);
+/** Net reads the scripted browser answers, each reporting the revision it saw. */
+const readTools = new Set([
+  "readNetOutline",
+  "readNetStructure",
+  "getLatestNetDefinition",
+]);
+const toolKind = (toolName: string): "read" | "change" | "other" =>
+  readTools.has(toolName)
+    ? "read"
+    : netChangingTools.has(toolName)
+      ? "change"
+      : "other";
 
 /**
  * A browser that applies place, transition and arc additions to a small net
@@ -340,11 +380,6 @@ const fakeBrowser = () => {
       .update(canonicalContent(read("full")))
       .digest("hex")
       .slice(0, 16);
-  const readTools = new Set([
-    "readNetOutline",
-    "readNetStructure",
-    "getLatestNetDefinition",
-  ]);
   const answerWithMetadata = (
     toolName: string,
     input: unknown,
@@ -387,7 +422,37 @@ const fakeBrowser = () => {
     acceptsRevision,
     revision,
     net: () => read("full"),
+    /**
+     * The user's hand edit in the editor: a place the model did not add, so
+     * a consequential change to a revision no settled change produced.
+     */
+    handEdit: () => {
+      places.push({ id: "overflow", name: "Overflow" });
+      return revision();
+    },
   };
+};
+
+/** One tool call of a turn, in the order the model made it, with what became of it. */
+type TimelineItem = {
+  toolName: string;
+  kind: "read" | "change" | "other";
+  server?: boolean;
+  /** The server's refusal (or other tool error) text. */
+  refused?: string;
+  expectedRevision?: string;
+  applied?: unknown;
+  browserRefusedStale?: number;
+};
+
+/** The fields of a turn's outcome the observations read. */
+type TurnOutcome = {
+  label: string;
+  finished: boolean;
+  netChanged: boolean;
+  requestsThisTurn: number;
+  timeline: TimelineItem[];
+  replyText: string;
 };
 
 type BrowserOutcome = {
@@ -433,11 +498,27 @@ const drive = async () => {
   print(`Conversation ${chatId}, schema ${conversationSchema(chatId)}`);
   if (startingUsed >= budget && !dryRun) throw new Error("No budget left.");
 
-  const server = await startServer();
-  const transport = new DefaultChatTransport<UIMessage>({
-    api: `${server.origin}/chat`,
-    body: { binding },
-  });
+  let server = await startServer();
+  const transportFor = (origin: string) =>
+    new DefaultChatTransport<UIMessage>({
+      api: `${origin}/chat`,
+      body: { binding },
+    });
+  let transport = transportFor(server.origin);
+  const stopServer = async () => {
+    server.signal("SIGTERM");
+    const stopped = await Promise.race([
+      server.exited,
+      new Promise<"timeout">((resolve) =>
+        setTimeout(() => resolve("timeout"), 15_000),
+      ),
+    ]);
+    if (stopped === "timeout") {
+      server.signal("SIGKILL");
+      await server.exited;
+    }
+    show("Server exit", stopped);
+  };
   const post = async (path: string, body: unknown) => {
     const response = await fetch(`${server.origin}${path}`, {
       method: "POST",
@@ -542,7 +623,7 @@ const drive = async () => {
     };
   };
 
-  const turns: unknown[] = [];
+  const turns: TurnOutcome[] = [];
   const runTurn = async (label: string, text: string) => {
     const before = requestsUsed();
     print(`\n== ${label}: "${text}" (${before} of ${budget} requests used)`);
@@ -562,6 +643,8 @@ const drive = async () => {
     const chunks: UIMessageChunk[] = [];
     const calls: Promise<BrowserOutcome>[] = [];
     const toolNames = new Map<string, string>();
+    const order: { toolCallId: string; toolName: string; server: boolean }[] =
+      [];
     const toolErrors: {
       toolCallId: string;
       toolName?: string;
@@ -578,8 +661,9 @@ const drive = async () => {
       print(`  aborting the turn: ${why}`);
       void post(`/chat/${encodeURIComponent(chatId)}/abort`, {});
     };
+    const refusedBefore = requestsRefused();
     const watchdog = setInterval(() => {
-      if (requestsUsed() >= budget && !dryRun) abort("budget spent");
+      if (requestsRefused() > refusedBefore) abort("budget spent");
     }, 250);
     const deadline = setTimeout(() => abort("turn timeout"), turnTimeoutMs);
     let ending = "done";
@@ -597,6 +681,11 @@ const drive = async () => {
           calls.push(playCall(chunk.toolCallId));
         if (chunk.type === "tool-input-available") {
           toolNames.set(chunk.toolCallId, chunk.toolName);
+          order.push({
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            server: chunk.providerExecuted === true,
+          });
           if (chunk.providerExecuted === true)
             serverCalls.set(chunk.toolCallId, {
               toolName: chunk.toolName,
@@ -633,6 +722,38 @@ const drive = async () => {
       ({ type }) => type !== "step-start",
     );
     const types = chunks.map(({ type }) => type);
+    /** Every tool call in the order the model made it, with what became of it. */
+    const timeline = order.map(
+      ({ toolCallId, toolName, server: onServer }): TimelineItem => {
+        const refusal = toolErrors.find(
+          (error) => error.toolCallId === toolCallId,
+        )?.error;
+        const call = browserCalls.find(
+          (each) => each.toolCallId === toolCallId,
+        );
+        return {
+          toolName,
+          kind: toolKind(toolName),
+          ...(onServer ? { server: true } : {}),
+          ...(refusal === undefined ? {} : { refused: refusal }),
+          ...(call === undefined || call.claim !== 200
+            ? {}
+            : {
+                expectedRevision: call.expectedRevision,
+                ...(call.stale === undefined
+                  ? {
+                      applied:
+                        (call.output as { applied?: unknown } | null)
+                          ?.applied ?? (call.result === 200 ? "read" : false),
+                    }
+                  : { browserRefusedStale: call.stale }),
+              }),
+        };
+      },
+    );
+    const replyText = parts
+      .flatMap((part) => (part.type === "text" ? [part.text] : []))
+      .join("\n");
     const outcome = {
       label,
       chunkTypes: [...new Set(types)],
@@ -672,62 +793,98 @@ const drive = async () => {
             : { type: part.type },
       ),
       requestsThisTurn: requestsUsed() - before,
+      timeline,
+      replyText,
     };
     show(`${label} outcome`, outcome);
     turns.push(outcome);
     return outcome;
   };
 
+  const remaining = () => budget - requestsUsed();
+  let running = true;
+  let handEdit: unknown;
+  let compaction: unknown;
   try {
-    let first = await runTurn(
-      "Turn 1",
-      "Please build it now in the editor, before asking me anything else: add a place called Queue and a transition called Serve, connected by an input arc from Queue to Serve.",
-    );
-    if (
-      first.finished &&
-      !first.netChanged &&
-      !dryRun &&
-      budget - requestsUsed() >= 6
-    )
-      first = await runTurn(
-        "Turn 1 retry",
-        "You haven't changed the net yet. Use the Petrinaut tools right now to add the place Queue, the transition Serve, and an input arc from Queue to Serve. Do not ask questions first; build, then reply.",
-      );
-    // A turn that ends in an error stops the run: later turns would spend requests on the same failure.
-    const second =
-      first.finished && requestsUsed() < budget && !dryRun
-        ? await runTurn(
-            "Turn 2",
-            "Read the current net and tell me which places and transitions it has.",
-          )
-        : undefined;
-    if (second?.finished === true && budget - requestsUsed() >= 4)
+    if (noReadProbe) {
+      // The refusal path of scenario 1, alone: a change asked for with no read, on the user's word that the net is empty.
       await runTurn(
-        "Turn 3",
-        "Also add a place called Done and an arc from Serve to Done, then record in your Ledger that the system I'm describing is a single-server queue: customers wait in Queue, are handled by Serve, and end up in Done.",
+        "Turn 1 (no-read probe)",
+        "The net is empty, so there is no need to read it: just add a place called Queue.",
       );
-    else
-      print(
-        "\nTurn 3 skipped: an earlier turn failed or fewer than four requests remain.",
+    } else {
+      let first = await runTurn(
+        "Turn 1",
+        "Please build it now in the editor, before asking me anything else: add a place called Queue and a transition called Serve, connected by an input arc from Queue to Serve.",
       );
-  } finally {
-    server.signal("SIGTERM");
-    const stopped = await Promise.race([
-      server.exited,
-      new Promise<"timeout">((resolve) =>
-        setTimeout(() => resolve("timeout"), 15_000),
-      ),
-    ]);
-    if (stopped === "timeout") {
-      server.signal("SIGKILL");
-      await server.exited;
+      if (first.finished && !first.netChanged && !dryRun && remaining() >= 8)
+        first = await runTurn(
+          "Turn 1 retry",
+          "You haven't changed the net yet. Use the Petrinaut tools right now to add the place Queue, the transition Serve, and an input arc from Queue to Serve. Do not ask questions first; build, then reply.",
+        );
+      // A turn that ends in an error stops the run: later turns would spend requests on the same failure.
+      const second =
+        first.finished && !dryRun && remaining() >= 3
+          ? await runTurn(
+              "Turn 2",
+              "Also add a place called Done and an output arc from Serve to Done.",
+            )
+          : undefined;
+      const third =
+        second?.finished === true && remaining() >= 4
+          ? await (async () => {
+              const revision = browser.handEdit();
+              const report = {
+                binding: claimBinding,
+                episode: `episode-${randomUUID()}`,
+                seq: 0,
+                revision,
+              };
+              const reported = await post(
+                `${browserCallsPrefix}/${encodeURIComponent(chatId)}/browser-calls/hand-edits`,
+                report,
+              );
+              handEdit = { report, response: reported };
+              show("Hand edit reported", handEdit);
+              return runTurn(
+                "Turn 3",
+                "Now add a transition called Abandon with an input arc from Queue.",
+              );
+            })()
+          : undefined;
+      if (third === undefined)
+        print(
+          "\nHand edit and turn 3 skipped: an earlier turn failed or fewer than four requests remain.",
+        );
+      if (third?.finished === true && remaining() >= 4) {
+        await stopServer();
+        running = false;
+        compaction = await compactStored(chatId);
+        show("Compaction", compaction);
+        server = await startServer();
+        running = true;
+        transport = transportFor(server.origin);
+        if (remaining() >= 2)
+          await runTurn(
+            "Turn 4 (after compaction)",
+            "Add a place called Archive.",
+          );
+      } else
+        print(
+          "\nCompaction and turn 4 skipped: an earlier turn failed or fewer than four requests remain.",
+        );
     }
-    show("Server exit", stopped);
+  } finally {
+    if (running) await stopServer();
   }
 
   show("Scripted browser net", browser.net());
   const stored = await readStored(chatId);
   show("Stored conversation", stored);
+  show(
+    "Scenario observations",
+    observe(turns, stored, ledgerLines(), handEdit, compaction),
+  );
   const admin = new Pool({ ...poolConfig, max: 1 });
   await admin.query(
     `DROP SCHEMA IF EXISTS "${conversationSchema(chatId)}" CASCADE`,
@@ -745,8 +902,40 @@ const drive = async () => {
   );
 };
 
-/** The conversation as stored, by a read-only Harness after the server is gone. */
-const readStored = async (chatId: string) => {
+/** The text parts of a stored message's content, joined. */
+const textOf = (content: unknown) =>
+  typeof content === "string"
+    ? content
+    : Array.isArray(content)
+      ? content
+          .flatMap((part: { type?: unknown; text?: unknown }) =>
+            part.type === "text" && typeof part.text === "string"
+              ? [part.text]
+              : [],
+          )
+          .join("")
+      : "";
+
+/** Which of the redesign's revision fields a tool result's rendered text carries. */
+const renderedFields = (text: string) => {
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown> | null;
+    return {
+      netRevision:
+        typeof parsed?.netRevision === "string" ? parsed.netRevision : false,
+      netAfterChanges: parsed !== null && "netAfterChanges" in parsed,
+    };
+  } catch {
+    return { netRevision: false, netAfterChanges: false, unparsed: true };
+  }
+};
+
+/** A Harness over the conversation's schema, read-only unless `settings` are given for work it should run. */
+const openHarness = async (
+  chatId: string,
+  settings?: HarnessOptions["settings"],
+) => {
+  const readOnly = settings === undefined;
   const registry = createRegistry();
   const host = createHostBinding();
   for (const extension of createPetrinautAgent().extensions(host))
@@ -755,54 +944,166 @@ const readStored = async (chatId: string) => {
     await openPostgresStorage({
       pool: poolConfig,
       schema: conversationSchema(chatId),
-      readOnly: true,
+      readOnly,
     }),
-    { models: builtinModels(), registry, readOnly: true },
+    readOnly
+      ? { models: builtinModels(), registry, readOnly }
+      : { models: builtinModels(), registry, settings },
     context,
   );
   host.bind(harness);
+  return harness;
+};
+
+/**
+ * A manual compaction of the stored conversation while no server holds it,
+ * run by this process's own Harness (its summary request is counted on the
+ * same ledger). `keepRecentTokens: 1` keeps only the newest message, so the
+ * kept tail holds no net view and the `net_view` section has to decide.
+ * Pi's default (20,000) would keep this whole short conversation and compact
+ * nothing.
+ */
+const compactStored = async (chatId: string) => {
+  const harness = await openHarness(chatId, {
+    compaction: { keepRecentTokens: 1 },
+  });
+  try {
+    const root = (await harness.conversation(ROOT_CONVERSATION_ID, context))!;
+    const before = requestsUsed();
+    const taskId = await root.compact(undefined, context);
+    const settled = await harness.waitForTask(taskId, context);
+    return { settled, summaryRequests: requestsUsed() - before };
+  } finally {
+    await harness.close(context);
+  }
+};
+
+/** The conversation as stored, by a read-only Harness after the server is gone. */
+const readStored = async (chatId: string) => {
+  const harness = await openHarness(chatId);
   try {
     const root = (await harness.conversation(ROOT_CONVERSATION_ID, context))!;
     const entries = (
-      await root.entries({ order: "ascending" }, 200, undefined, context)
-    ).items.filter(({ kind }) => kind !== "pi.system");
+      await root.entries({ order: "ascending" }, 500, undefined, context)
+    ).items;
     const calls =
       (await harness.snapshot(BrowserCallsDoc, root.id, context))?.calls ?? {};
     const ledger = await harness.snapshot(LedgerDoc, root.id, context);
+    // What the next request would see: edits applied, so pruned read-backs show their pruned form.
+    const view = await root.context(context);
+    let turn = 0;
+    const usage: {
+      turn: number;
+      entry: EntryId;
+      input: number;
+      cacheRead: number;
+      cacheWrite: number;
+      output: number;
+    }[] = [];
+    const transcript = entries.map((entry) => {
+      const message = entry.model?.[0];
+      if (entry.kind === "brunch.user") turn += 1;
+      if (entry.kind === "pi.system") {
+        const sections = (message as { sections?: unknown } | undefined)
+          ?.sections;
+        const netView =
+          typeof sections === "object" && sections !== null
+            ? (sections as Record<string, unknown>).net_view
+            : undefined;
+        return {
+          kind: entry.kind,
+          id: entry.id,
+          sectionKeys:
+            typeof sections === "object" && sections !== null
+              ? Object.keys(sections)
+              : [],
+          ...(netView === undefined ? {} : { netView }),
+        };
+      }
+      if (message?.role === "assistant") {
+        usage.push({
+          turn,
+          entry: entry.id,
+          input: message.usage.input,
+          cacheRead: message.usage.cacheRead,
+          cacheWrite: message.usage.cacheWrite,
+          output: message.usage.output,
+        });
+        return {
+          kind: entry.kind,
+          id: entry.id,
+          turn,
+          stopReason: message.stopReason,
+          errorMessage: message.errorMessage,
+          usage: {
+            input: message.usage.input,
+            output: message.usage.output,
+            cacheRead: message.usage.cacheRead,
+            cacheWrite: message.usage.cacheWrite,
+          },
+          content: message.content.map((part) =>
+            part.type === "text"
+              ? { text: part.text }
+              : part.type === "toolCall"
+                ? { toolCall: part.name, arguments: part.arguments }
+                : { type: part.type },
+          ),
+        };
+      }
+      if (message?.role === "toolResult") {
+        const text = textOf(message.content);
+        return {
+          kind: entry.kind,
+          id: entry.id,
+          toolName: message.toolName,
+          isError: message.isError,
+          ...renderedFields(text),
+          text: text.slice(0, 600),
+        };
+      }
+      return {
+        kind: entry.kind,
+        id: entry.id,
+        ...(entry.head === undefined ? {} : { head: entry.head }),
+        ...(entry.data === undefined ? {} : { data: entry.data }),
+        ...(entry.edits === undefined
+          ? {}
+          : {
+              edits: entry.edits.map((edit) => ({
+                target: edit.target,
+                action: edit.action,
+                text:
+                  "messages" in edit
+                    ? (edit.messages ?? [])
+                        .map((each) => textOf(each.content))
+                        .join("")
+                        .slice(0, 300)
+                    : undefined,
+              })),
+            }),
+        ...(message === undefined
+          ? {}
+          : {
+              role: message.role,
+              text: textOf(message.content).slice(0, 600),
+            }),
+      };
+    });
     return {
-      transcript: entries.map((entry) => {
-        const message = entry.model?.[0];
-        if (message?.role === "assistant")
-          return {
-            kind: entry.kind,
-            stopReason: message.stopReason,
-            errorMessage: message.errorMessage,
-            usage: {
-              input: message.usage.input,
-              output: message.usage.output,
-              cacheRead: message.usage.cacheRead,
-              cacheWrite: message.usage.cacheWrite,
-            },
-            content: message.content.map((part) =>
-              part.type === "text"
-                ? { text: part.text }
-                : part.type === "toolCall"
-                  ? { toolCall: part.name, arguments: part.arguments }
-                  : { type: part.type },
-            ),
-          };
-        if (message?.role === "toolResult")
-          return {
-            kind: entry.kind,
-            toolName: message.toolName,
-            isError: message.isError,
-            text: message.content
-              .flatMap((part) => (part.type === "text" ? [part.text] : []))
-              .join("")
-              .slice(0, 600),
-          };
-        return { kind: entry.kind };
-      }),
+      transcript,
+      usage,
+      effectiveToolResults: view.messages.flatMap((message) =>
+        message.role === "toolResult"
+          ? [
+              {
+                toolName: message.toolName,
+                isError: message.isError,
+                ...renderedFields(textOf(message.content)),
+                text: textOf(message.content).slice(0, 200),
+              },
+            ]
+          : [],
+      ),
       browserCalls: Object.values(calls).map(
         ({ toolCallId, toolName, status }) => ({
           toolCallId,
@@ -815,6 +1116,102 @@ const readStored = async (chatId: string) => {
   } finally {
     await harness.close(context);
   }
+};
+
+type Stored = Awaited<ReturnType<typeof readStored>>;
+
+/** What each scenario showed, from the turns, the stored conversation and the ledger. */
+const observe = (
+  turns: readonly TurnOutcome[],
+  stored: Stored,
+  ledger: readonly LedgerLine[],
+  handEdit: unknown,
+  compaction: unknown,
+) => {
+  const turn = (prefix: string) =>
+    turns.filter(({ label }) => label.startsWith(prefix));
+  const firstChange = (outcome: TurnOutcome | undefined) =>
+    outcome?.timeline.find(({ kind }) => kind === "change");
+  const requests = ledger.filter(({ event }) => event === "request");
+  const responses = ledger.filter(({ event }) => event === "response");
+  const kinds = stored.transcript.map(({ kind }) => kind);
+  const toolResults = stored.transcript.filter(
+    (entry): entry is Extract<typeof entry, { toolName: string }> =>
+      "toolName" in entry,
+  );
+  const [turn1] = turn("Turn 1");
+  const [turn2] = turn("Turn 2");
+  const [turn3] = turn("Turn 3");
+  const [turn4] = turn("Turn 4");
+  const beforeFirstChange = (outcome: TurnOutcome | undefined) => {
+    const index =
+      outcome?.timeline.findIndex(({ kind }) => kind === "change") ?? -1;
+    return index < 0 ? [] : outcome!.timeline.slice(0, index);
+  };
+  return {
+    "1 schemas and build": {
+      toolsPerRequest: requests.map(({ n, tools, additionalTools }) => ({
+        n,
+        tools,
+        additionalTools,
+      })),
+      responseStatuses: [...new Set(responses.map(({ status }) => status))],
+      providerErrors: responses.flatMap(({ error }) =>
+        error === undefined ? [] : [error.slice(0, 300)],
+      ),
+      readsWithNetRevision: toolResults.filter(
+        ({ toolName, netRevision }) =>
+          readTools.has(toolName) && netRevision !== false,
+      ).length,
+      changesWithNetAfterChanges: toolResults.filter(
+        ({ toolName, netAfterChanges, netRevision }) =>
+          netChangingTools.has(toolName) &&
+          netAfterChanges &&
+          netRevision !== false,
+      ).length,
+      pruneWrites: kinds.filter((kind) => kind === "brunch.prune").length,
+      userEntries: stored.transcript.filter(
+        ({ kind }) => kind === "brunch.user",
+      ),
+      firstChangeRefused: firstChange(turn1)?.refused,
+      readsBeforeFirstChange: beforeFirstChange(turn1).filter(
+        ({ kind }) => kind === "read",
+      ).length,
+      netChangedInTurn1: turn1?.netChanged,
+      retryTurnRun: turn("Turn 1 retry").length > 0,
+    },
+    "2 later change on the visible view": turn2 && {
+      readsBeforeFirstChange: beforeFirstChange(turn2).filter(
+        ({ kind }) => kind === "read",
+      ).length,
+      firstChange: firstChange(turn2),
+      refusals: turn2.timeline.filter(({ refused }) => refused !== undefined)
+        .length,
+      admittedWithoutRead:
+        beforeFirstChange(turn2).every(({ kind }) => kind !== "read") &&
+        firstChange(turn2)?.refused === undefined &&
+        firstChange(turn2)?.applied === true,
+    },
+    "3 hand edit": turn3 && {
+      handEdit,
+      notes: stored.transcript.filter(
+        ({ kind }) => kind === "brunch.hand-edit",
+      ),
+      timeline: turn3.timeline,
+      reply: turn3.replyText,
+    },
+    "4 prompt-cache prefix": stored.usage,
+    "5 compaction": compaction && {
+      compaction,
+      compactionEntries: stored.transcript.filter(
+        ({ kind }) => kind === "pi.compaction",
+      ),
+      netViewSections: stored.transcript.flatMap((entry) =>
+        "netView" in entry ? [entry.netView] : [],
+      ),
+      turn4: turn4 && { timeline: turn4.timeline, reply: turn4.replyText },
+    },
+  };
 };
 
 /**
