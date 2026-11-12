@@ -44,6 +44,61 @@ const accessor = nodeCase({
   ],
 });
 
+const callablePropertySource = factory.createPropertyDeclaration(
+  undefined,
+  name,
+  undefined,
+  syntaxType,
+);
+const callableProperty = nodeCase({
+  name: "CallableProperty",
+  make: Nodes.CallableProperty.make,
+  fields: {
+    node: callablePropertySource,
+    overloads: Chunk.of(firstHandle),
+    name: "Entry",
+    static: false,
+    type: firstHandle,
+    documentation: Option.none(),
+  },
+  changes: [
+    {
+      field: "node",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, {
+          node: getSynthesizedDeepClone(callablePropertySource),
+        }),
+    },
+    {
+      field: "overloads",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, { overloads: Chunk.of(secondHandle) }),
+    },
+    {
+      field: "name",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, { name: "other" }),
+    },
+    {
+      field: "static",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, { static: true }),
+    },
+    {
+      field: "type",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, { type: secondHandle }),
+    },
+    {
+      field: "documentation",
+      apply: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+        Struct.assign(fields, { documentation: Option.some(secondHandle) }),
+    },
+  ],
+  trapped: (fields): Nodes.CallableProperty.CallableProperty.Fields =>
+    Struct.assign(fields, { node: shield(callablePropertySource) }),
+});
+
 const constructor = nodeCase({
   name: "Constructor",
   make: Nodes.Constructor.make,
@@ -185,24 +240,24 @@ const indexSignature = nodeCase({
     Struct.assign(fields, { node: shield(indexSignatureSource) }),
 });
 
-const method = nodeCase({
-  name: "Method",
-  make: Nodes.Method.make,
+const methodOverloads = nodeCase({
+  name: "MethodOverloads",
+  make: Nodes.MethodOverloads.make,
   fields: { overloads: Chunk.of(firstHandle), name: "entry", static: false },
   changes: [
     {
       field: "name",
-      apply: (fields): Nodes.Method.Method.Fields =>
+      apply: (fields): Nodes.MethodOverloads.MethodOverloads.Fields =>
         Struct.assign(fields, { name: "other" }),
     },
     {
       field: "static",
-      apply: (fields): Nodes.Method.Method.Fields =>
+      apply: (fields): Nodes.MethodOverloads.MethodOverloads.Fields =>
         Struct.assign(fields, { static: true }),
     },
     {
       field: "overloads",
-      apply: (fields): Nodes.Method.Method.Fields =>
+      apply: (fields): Nodes.MethodOverloads.MethodOverloads.Fields =>
         Struct.assign(fields, { overloads: Chunk.of(secondHandle) }),
     },
   ],
@@ -409,11 +464,12 @@ const typeParameter = nodeCase({
 
 export const cases: readonly NodeCase[] = [
   accessor,
+  callableProperty,
   constructor,
   enumMember,
   getter,
   indexSignature,
-  method,
+  methodOverloads,
   parameter,
   property,
   setter,
