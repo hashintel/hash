@@ -6,7 +6,6 @@
 
 export {
   mergeOffers,
-  neverOffer,
   offerBounds,
   offerText,
   optionsFor,
