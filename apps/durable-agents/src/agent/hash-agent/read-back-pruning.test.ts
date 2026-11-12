@@ -1,5 +1,5 @@
 /**
- * The read-back pruning hook over the real Petrinaut browser tools, with the
+ * The read-back pruning hook over HASH's real browser tools, with the
  * browser scripted through the real `BrowserCall` path: after every tool
  * round, every read-back but the latest visible view's is pruned by one
  * stored `brunch.prune` write, decided from the round's actual outcomes.
@@ -28,6 +28,8 @@ import {
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { hashProcessEditorId } from "@hashintel/brunch-agent";
+
 import {
   allEntries,
   calls,
@@ -46,7 +48,7 @@ import {
   failBrowserCall,
   finishBrowserCall,
 } from "../../browser-call/browser-call";
-import { createPetrinautBrowserToolsExtension } from "../../browser-call/petrinaut-browser-tools";
+import { createHashBrowserToolsExtension } from "../../browser-call/hash-browser-tools";
 import { expectedNetRevision } from "../../net-state/net-freshness";
 import {
   parseNetResultText,
@@ -67,7 +69,10 @@ import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 // ─── The net, as the scripted browser reports it ─────────────────────────────
 
+const editor = { editor_id: hashProcessEditorId };
+
 const place = {
+  ...editor,
   id: "place-dryer",
   name: "Dryer",
   colorId: null,
@@ -153,7 +158,7 @@ type OpenOptions = {
 };
 
 /**
- * A Harness with the Petrinaut browser tools, the pruning hook and its two
+ * A Harness with HASH's browser tools, the pruning hook and its two
  * recording neighbours, over its own host binding, bound right after open.
  */
 const openPruningHarness = async (
@@ -166,7 +171,7 @@ const openPruningHarness = async (
   const hookRuns: EntryId[] = [];
   const afterPrune: EntryId[] = [];
   const extensions = [
-    createPetrinautBrowserToolsExtension(host),
+    createHashBrowserToolsExtension(host),
     stallExtension("test.before-prune", hookRuns, options.stallBefore),
     readBackPruningExtension(options.hookHost ?? host),
     stallExtension("test.after-prune", afterPrune, options.stallAfter),
@@ -254,8 +259,9 @@ const browse = async (
     await answer(harness, conversationId, toolCallId, browser);
 };
 
-const addPlace = (id: string) => ["addPlace", id, place] as const;
-const readNet = (id: string) => ["readNetOutline", id, {}] as const;
+const addPlace = (id: string) => ["petrinaut_create_place", id, place] as const;
+const readNet = (id: string) =>
+  ["petrinaut_get_net", id, { ...editor, detail: "outline" }] as const;
 
 /** Each tool result's model-facing text in `messages`, by call ID. */
 const resultTexts = (messages: readonly Message[]) =>

@@ -21,6 +21,8 @@ import {
 import { obj } from "@earendil-works/pi-schema";
 import { expect, test, vi } from "vitest";
 
+import { hashProcessEditorId } from "@hashintel/brunch-agent";
+
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -37,16 +39,19 @@ import {
   finishBrowserCall,
 } from "../../../browser-call/browser-call";
 import {
-  createPetrinautBrowserToolsExtension,
-  petrinautBrowserTools,
-} from "../../../browser-call/petrinaut-browser-tools";
+  createHashBrowserToolsExtension,
+  hashBrowserToolDefinitions,
+} from "../../../browser-call/hash-browser-tools";
 import { createViewProjector, projectResponseEntries } from "./view-projector";
 
 import type { UIMessageChunk } from "ai";
 
 const context = BACKGROUND_CONTEXT;
 
+const editor = { editor_id: hashProcessEditorId };
+
 const place = {
+  ...editor,
   id: "place-dryer",
   name: "Dryer",
   colorId: null,
@@ -115,7 +120,11 @@ test("the projector's tool output is the browser's real output from details, for
   const { models, model } = scriptedModel([
     fauxAssistantMessage(
       [
-        fauxToolCall("readNetOutline", {}, { id: "read" }),
+        fauxToolCall(
+          "petrinaut_get_net",
+          { ...editor, detail: "outline" },
+          { id: "read" },
+        ),
         fauxToolCall("server_json", {}, { id: "json" }),
         fauxToolCall("server_text", {}, { id: "text" }),
       ],
@@ -123,16 +132,20 @@ test("the projector's tool output is the browser's real output from details, for
     ),
     fauxAssistantMessage(
       [
-        fauxToolCall("addPlace", place, { id: "change" }),
-        fauxToolCall("getNetCompilationErrors", {}, { id: "plain" }),
-        fauxToolCall("addPlace", { ...place, id: "place-2" }, { id: "fail" }),
+        fauxToolCall("petrinaut_create_place", place, { id: "change" }),
+        fauxToolCall("petrinaut_get_diagnostics", editor, { id: "plain" }),
+        fauxToolCall(
+          "petrinaut_create_place",
+          { ...place, id: "place-2" },
+          { id: "fail" },
+        ),
       ],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage("Done."),
   ]);
   const host = createHostBinding();
-  const tools = createPetrinautBrowserToolsExtension(host);
+  const tools = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
   registry.install(tools);
@@ -189,7 +202,9 @@ test("the projector's tool output is the browser's real output from details, for
     const chunks: UIMessageChunk[] = [];
     const projector = createViewProjector(
       {
-        clientToolNames: new Set(petrinautBrowserTools.map(({ name }) => name)),
+        clientToolNames: new Set(
+          hashBrowserToolDefinitions().map(({ name }) => name),
+        ),
       },
       (chunk) => chunks.push(chunk),
     );

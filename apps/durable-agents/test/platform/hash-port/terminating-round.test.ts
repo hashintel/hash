@@ -26,7 +26,7 @@ import {
   pruneEntryKind,
   pruneRequestId,
   readBackPruningExtension,
-} from "../../../src/agent/petrinaut-agent/read-back-pruning";
+} from "../../../src/agent/hash-agent/read-back-pruning";
 import { bindBrowserDocument } from "../../../src/browser-call/browser-call";
 import { reportHandEdit } from "../../../src/browser-call/hand-edit";
 import { mayShowNet } from "../../../src/net-state/net-view";

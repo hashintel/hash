@@ -37,7 +37,11 @@ import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite
 import { obj } from "@earendil-works/pi-schema";
 import { describe, expect, test, vi } from "vitest";
 
-import { parseClientToolResultMetadata } from "@hashintel/brunch-agent";
+import {
+  hashNoNetViewRefusal,
+  hashProcessEditorId,
+  parseClientToolResultMetadata,
+} from "@hashintel/brunch-agent";
 
 import { createHostBinding } from "../../src/agent/host-binding";
 import {
@@ -48,11 +52,8 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
-import { createPetrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
-import {
-  expectedNetRevision,
-  noNetViewRefusal,
-} from "../../src/net-state/net-freshness";
+import { createHashBrowserToolsExtension } from "../../src/browser-call/hash-browser-tools";
+import { expectedNetRevision } from "../../src/net-state/net-freshness";
 import { renderNetRead } from "../../src/net-state/visible-net-view";
 import {
   allEntries,
@@ -67,7 +68,11 @@ import {
 import type { Models } from "@earendil-works/pi-ai/models";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
+const editor = { editor_id: hashProcessEditorId };
+const getNet = { ...editor, detail: "outline" };
+
 const place = {
+  ...editor,
   id: "place-dryer",
   name: "Dryer",
   colorId: null,
@@ -91,12 +96,12 @@ const summaryHook = defineExtension({
   ],
 });
 
-/** A Harness with the browser tools over its own host binding, bound right after open. */
+/** A Harness with HASH's browser tools over its own host binding, bound right after open. */
 const openHarness = async (storage: Storage, models: Models) => {
   const host = createHostBinding();
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(createPetrinautBrowserToolsExtension(host));
+  registry.install(createHashBrowserToolsExtension(host));
   registry.install(summaryHook);
   const harness = await Harness.open(
     storage,
@@ -113,7 +118,7 @@ const openRoot = async (harness: Harness, model: ModelRef) => {
       model,
       // Selected by name: the instance this Harness's registry installed runs.
       extensions: [
-        createPetrinautBrowserToolsExtension(createHostBinding()),
+        createHashBrowserToolsExtension(createHostBinding()),
         summaryHook,
       ],
     },
@@ -193,7 +198,7 @@ const compareAll = async (harness: Harness, conversation: Conversation) => {
     if (entry.kind !== "pi.assistant" || message?.role !== "assistant")
       return [];
     return message.content.flatMap((part) =>
-      part.type === "toolCall" && part.name === "addPlace"
+      part.type === "toolCall" && part.name === "petrinaut_create_place"
         ? [{ entry: entry.id, toolCallId: part.id }]
         : [],
     );
@@ -212,6 +217,7 @@ const compareAll = async (harness: Harness, conversation: Conversation) => {
         decided,
         inContext: expectedNetRevision(
           await conversation.context(context, { at: entry }),
+          hashNoNetViewRefusal,
         ),
       };
     }),
@@ -239,20 +245,20 @@ const lastExpected = (rows: Awaited<ReturnType<typeof compareAll>>) =>
 describe("P2: freshness at issue agrees with context({ at }) on the fold-1 cases", () => {
   test("a change with no read: both refuse", async () => {
     const { harness, root } = await scenario([
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     await turn(root, "Add a dryer.");
     const rows = await compareAll(harness, root);
     expectAgreement(rows);
-    expect(lastExpected(rows)).toEqual({ refusal: noNetViewRefusal });
+    expect(lastExpected(rows)).toEqual({ refusal: hashNoNetViewRefusal });
     await harness.close(context);
   });
 
   test("a read, then a change: both give the read's revision, which the model was sent in the read's content", async () => {
     const { harness, root } = await scenario([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
     await turn(root, "Add a dryer.", async () => {
@@ -284,8 +290,8 @@ describe("P2: freshness at issue agrees with context({ at }) on the fold-1 cases
 
   test("a read whose browser reported no revision: both refuse", async () => {
     const { harness, root } = await scenario([
-      call("readNetOutline", "read-1"),
-      call("addPlace", "add-1", place),
+      call("petrinaut_get_net", "read-1", getNet),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("I could not add it."),
     ]);
     await turn(root, "Add a dryer.", () =>
@@ -293,7 +299,7 @@ describe("P2: freshness at issue agrees with context({ at }) on the fold-1 cases
     );
     const rows = await compareAll(harness, root);
     expectAgreement(rows);
-    expect(lastExpected(rows)).toEqual({ refusal: noNetViewRefusal });
+    expect(lastExpected(rows)).toEqual({ refusal: hashNoNetViewRefusal });
     await harness.close(context);
   });
 
@@ -301,9 +307,9 @@ describe("P2: freshness at issue agrees with context({ at }) on the fold-1 cases
     const directory = await mkdtemp(join(tmpdir(), "durable-platform-p2-"));
     const file = join(directory, "session.sqlite");
     const { models, model } = recordingModel([
-      call("readNetOutline", "read-1"),
+      call("petrinaut_get_net", "read-1", getNet),
       fauxAssistantMessage("The net is empty."),
-      call("addPlace", "add-1", place),
+      call("petrinaut_create_place", "add-1", place),
       fauxAssistantMessage("Added the dryer."),
     ]);
     try {
@@ -345,9 +351,9 @@ describe("P2: agreement beyond the fold-1 cases", () => {
     (between: (harness: Harness, root: Conversation) => Promise<void>) =>
     async () => {
       const { harness, root } = await scenario([
-        call("readNetOutline", "read-1"),
+        call("petrinaut_get_net", "read-1", getNet),
         fauxAssistantMessage("Read it."),
-        call("addPlace", "add-1", place),
+        call("petrinaut_create_place", "add-1", place),
         fauxAssistantMessage("Done or refused."),
       ]);
       await turn(root, "Read the net.", () =>
@@ -393,14 +399,14 @@ describe("P2: agreement beyond the fold-1 cases", () => {
         context,
       );
     })();
-    expect(expected).toEqual({ refusal: noNetViewRefusal });
+    expect(expected).toEqual({ refusal: hashNoNetViewRefusal });
   });
 
   test("a reset after the read: both refuse", async () => {
     const expected = await readThenChange((_harness, root) =>
       root.reset(undefined, context),
     )();
-    expect(expected).toEqual({ refusal: noNetViewRefusal });
+    expect(expected).toEqual({ refusal: hashNoNetViewRefusal });
   });
 
   test("a compaction that cuts the read away: both refuse", async () => {
@@ -411,7 +417,7 @@ describe("P2: agreement beyond the fold-1 cases", () => {
       const head = (await root.context(context)).head;
       expect(head?.kind).toBe("pi.compaction");
     })();
-    expect(expected).toEqual({ refusal: noNetViewRefusal });
+    expect(expected).toEqual({ refusal: hashNoNetViewRefusal });
   });
 });
 
@@ -509,7 +515,7 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
                 {
                   type: "toolCall",
                   id,
-                  name: "readNetOutline",
+                  name: "petrinaut_get_net",
                   arguments: {} as JsonObject,
                 },
               ],
@@ -528,7 +534,7 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
             {
               role: "toolResult",
               toolCallId: id,
-              toolName: "readNetOutline",
+              toolName: "petrinaut_get_net",
               content: [
                 {
                   type: "text",

@@ -19,6 +19,9 @@
  * - `POST /chat/:id/abort` stops the conversation; AI SDK's `stop()` only
  *   drops the client's fetch, so a client calls it itself. 404 for an unknown
  *   conversation.
+ * - `GET /chat/:id/messages` answers the conversation's history as AI SDK
+ *   `UIMessage[]` (`historyHandler`), projected with the live stream's own
+ *   options; 404 for an unknown conversation.
  *
  * Each conversation is its own Harness on its own storage (see
  * `createConversationRegistry`), checked to still own that storage before
@@ -39,6 +42,7 @@ import {
   createConversationRegistry,
   type OpenConversation,
 } from "./durable-agents-server/conversation-registry";
+import { historyHandler } from "./durable-agents-server/history";
 import { createRequestSlots } from "./durable-agents-server/request-slots";
 import { followSubmission } from "./durable-agents-server/submission-stream";
 import { brunchUserInput } from "./durable-agents-server/user-input";
@@ -70,7 +74,8 @@ export type DurableAgentsServerLimits = {
 };
 
 export const defaultServerLimits: DurableAgentsServerLimits = {
-  maxTurns: 25,
+  // HA-3: the model issues one tool call per response, so a realistic HASH net build takes about one round per element.
+  maxTurns: 100,
   maxConcurrentRequests: 16,
   abandonedTurnMs: 10 * 60_000,
   crashLoopRestarts: 5,
@@ -79,6 +84,8 @@ export const defaultServerLimits: DurableAgentsServerLimits = {
 export type DurableAgentsServerOptions = ConversationRegistryOptions & {
   /** Tools the browser runs; their calls stream for the client's `onToolCall`. */
   readonly clientToolNames: ReadonlySet<string>;
+  /** Of those, the ones streamed as dynamic tools; the live stream and the history route agree. */
+  readonly dynamicClientToolNames?: ReadonlySet<string>;
   /**
    * Runs on a `POST /chat` that names a conversation that does not exist,
    * before anything is created, with the request's whole body. A refusal
@@ -179,7 +186,10 @@ export const createDurableAgentsServer = (
   );
   /** Per conversation, the input its crash-loop guard ended on open here, until a reconnect follows it. */
   const crashLoopEnded = new Map<string, SubmissionId>();
-  const projection = { clientToolNames: options.clientToolNames };
+  const projection = {
+    clientToolNames: options.clientToolNames,
+    dynamicClientToolNames: options.dynamicClientToolNames,
+  };
   const app = new Hono();
 
   // Hono's own handler, but a request the server could not serve for now is a 503 the client may retry.
@@ -288,6 +298,12 @@ export const createDurableAgentsServer = (
     await conversation.root.abort(context);
     return ctx.body(null, 204);
   });
+
+  /** The conversation's history, as the live stream projects it. */
+  app.get(
+    "/chat/:id/messages",
+    historyHandler({ conversations, context, ...projection }),
+  );
 
   return {
     app,

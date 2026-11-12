@@ -21,6 +21,8 @@ import {
   browserToolFacts,
   brunchRoutes,
   canonicalContent,
+  hashPetrinautTools,
+  hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 
 import { drain, openMemoryServer } from "../../test/platform/server";
@@ -53,15 +55,17 @@ import {
 } from "./browser-call";
 import { createBrowserCallRouter } from "./browser-call-router";
 import { handEditsRoute } from "./hand-edit";
-import { createPetrinautBrowserToolsExtension } from "./petrinaut-browser-tools";
+import { createHashBrowserToolsExtension } from "./hash-browser-tools";
 
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
 const context = BACKGROUND_CONTEXT;
 const routeConversationId = "conversation-1";
 const toolCallId = "call-1";
-const toolName = "addPlace";
-const input = {
+const toolName = "petrinaut_create_place";
+const getNet = { editor_id: hashProcessEditorId, detail: "outline" };
+const modelInput = {
+  editor_id: hashProcessEditorId,
   id: "place-dryer",
   name: "Dryer",
   colorId: null,
@@ -69,6 +73,10 @@ const input = {
   x: 0,
   y: 0,
 };
+/** As the call is issued: the schema turns the model's name for the place into its ID. */
+const input = hashPetrinautTools.petrinaut_create_place.zInput.parse(
+  modelInput,
+) as typeof modelInput;
 const binding = canonicalContent({
   conversationId: routeConversationId,
   documentId: "net-1",
@@ -79,7 +87,7 @@ const readCallId = "read-1";
 
 /**
  * A conversation bound to `binding` whose model reads the net, calls
- * `addPlace`, then answers; the router mounted as the server would. Net
+ * `petrinaut_create_place`, then answers; the router mounted as the server would. Net
  * freshness admits the change against the read, which `answerRead` answers.
  * Unless `issued` is false, the read is answered and the change issued.
  */
@@ -89,18 +97,21 @@ const openConversation = async ({
 }: { readonly issueWaitMs?: number; readonly issued?: boolean } = {}) => {
   const { models, model } = scriptedModel([
     fauxAssistantMessage(
-      fauxToolCall("readNetOutline", {}, { id: readCallId }),
+      fauxToolCall("petrinaut_get_net", getNet, { id: readCallId }),
       {
         stopReason: "toolUse",
       },
     ),
-    fauxAssistantMessage(fauxToolCall(toolName, input, { id: toolCallId }), {
-      stopReason: "toolUse",
-    }),
+    fauxAssistantMessage(
+      fauxToolCall(toolName, modelInput, { id: toolCallId }),
+      {
+        stopReason: "toolUse",
+      },
+    ),
     fauxAssistantMessage(answer),
   ]);
   const host = createHostBinding();
-  const browserTools = createPetrinautBrowserToolsExtension(host);
+  const browserTools = createHashBrowserToolsExtension(host);
   const registry = createRegistry();
   registry.install(browserCallExtension);
   registry.install(browserTools);
@@ -406,7 +417,7 @@ describe("browser-call router: early claims and committed records", () => {
       calls: Record<string, Record<string, unknown>>;
     };
     expect(calls[readCallId]).toMatchObject({
-      toolName: "readNetOutline",
+      toolName: "petrinaut_get_net",
       status: "settled",
       output: { title: "Net" },
       metadata: readMetadata,
@@ -754,7 +765,7 @@ const standInRead = (revision: string) =>
     name: "stand-in-read",
     tools: [
       defineTool({
-        name: "readNetOutline",
+        name: "petrinaut_get_net",
         description: "Reads the net.",
         parameters: obj({}),
         execute: async () => ({
@@ -769,7 +780,7 @@ const standInRead = (revision: string) =>
 describe("browser-call router: hand-edit reports through the server", () => {
   test("the model's next request carries the note, the view is stale after it, and the note is never streamed", async () => {
     const { models, model, requests } = recordingModel([
-      call("readNetOutline", "read-1"),
+      call("petrinaut_get_net", "read-1"),
       fauxAssistantMessage("Read it."),
       fauxAssistantMessage("I will read the net again first."),
     ]);

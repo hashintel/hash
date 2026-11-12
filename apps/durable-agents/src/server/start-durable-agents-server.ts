@@ -1,11 +1,13 @@
 /**
  * The durable agents server as one process serves it: the chat surface
- * (`createDurableAgentsServer`) with the minimal Petrinaut agent, every
- * conversation in its own Postgres schema on the process's shared pool, and
- * the browser-call routes beside it, served on Node's `http`.
+ * (`createDurableAgentsServer`) with Brunch's HASH agent (`createHashAgent`),
+ * every conversation in its own Postgres schema on the process's shared pool,
+ * and the browser-call routes beside it, served on Node's `http`.
  *
  * - `POST /chat`, `GET /chat/:id/stream`, `POST /chat/:id/abort`: the chat
  *   surface, whose client is AI SDK's stock `DefaultChatTransport`.
+ * - `GET /chat/:id/messages`: the conversation's history for a panel that
+ *   opens it.
  * - `POST /conversations/:id/browser-calls/:callId` (claim) and its `/start`,
  *   `/lease`, `/result` and `/fail`: the browser half of a waiting call.
  * - `POST /conversations/:id/browser-calls/hand-edits`: the panel's report of
@@ -17,7 +19,9 @@
  * before the submission, so the calls its turn issues are claimable by that
  * binding; a malformed binding is refused with 400, a different binding
  * later with 409, and a request without one leaves its conversation as it
- * is (and creates none: 404).
+ * is (and creates none: 404). Save's description names the bound document:
+ * the agent's bound Save is installed on every open, before scheduling
+ * resumes, and right after the binding's commit, before the submission.
  *
  * Limits come from the environment (`limitsFromEnvironment`) unless given.
  * A request that cannot get a pool connection within the pool's
@@ -29,6 +33,7 @@ import {
   type HarnessOptions,
   type ModelRef,
 } from "@earendil-works/pi-durable";
+import { Hono } from "hono";
 import * as v from "valibot";
 
 import {
@@ -37,13 +42,12 @@ import {
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 
-import { createPetrinautAgent } from "../agent/petrinaut-agent";
+import { createHashAgent, type HashAgent } from "../agent/hash-agent";
 import {
   BrowserBindingDoc,
   bindBrowserDocument,
 } from "../browser-call/browser-call";
 import { createBrowserCallRouter } from "../browser-call/browser-call-router";
-import { petrinautBrowserTools } from "../browser-call/petrinaut-browser-tools";
 import { isPoolConnectTimeout } from "../storage/postgres/postgres-config";
 import {
   postgresConversationStorage,
@@ -112,11 +116,16 @@ const admitNewConversation = (
   return undefined;
 };
 
-/** Bind an unbound conversation to the request's binding; refuse a different one. */
+/**
+ * Bind an unbound conversation to the request's binding, then install the
+ * bound Save before the submission; refuse a different binding.
+ */
 const admitBinding = async (
-  { harness, root }: OpenConversation,
+  conversation: OpenConversation,
   body: Readonly<Record<string, unknown>>,
+  installBoundSave: HashAgent["installBoundSave"],
 ): Promise<ChatRefusal | undefined> => {
+  const { harness, root } = conversation;
   const binding = bindingOf(body);
   if (binding === undefined) return undefined;
   if (binding === "invalid") return malformedBinding;
@@ -128,18 +137,20 @@ const admitBinding = async (
     }
     return current === canonicalContent(binding);
   }, BACKGROUND_CONTEXT);
-  return bound
-    ? undefined
-    : {
-        status: 409,
-        error: "The conversation is bound to a different document.",
-      };
+  if (!bound)
+    return {
+      status: 409,
+      error: "The conversation is bound to a different document.",
+    };
+  await installBoundSave(conversation, BACKGROUND_CONTEXT);
+  return undefined;
 };
 
 export const startDurableAgentsServer = async (
   options: StartDurableAgentsServerOptions,
 ) => {
-  const { agent, extensions } = createPetrinautAgent();
+  const { agent, extensions, clientToolNames, installBoundSave } =
+    createHashAgent();
   const server = createDurableAgentsServer({
     openStorage: postgresConversationStorage(options.pool),
     storageExists: postgresConversationExists(options.pool),
@@ -152,9 +163,12 @@ export const startDurableAgentsServer = async (
     models: options.models,
     agent: { ...agent, model: options.model },
     settings: options.settings,
-    clientToolNames: new Set(petrinautBrowserTools.map(({ name }) => name)),
+    // Before scheduling resumes, so no request after a reopen offers the placeholder Save.
+    afterBind: installBoundSave,
+    clientToolNames,
     admitNewConversation,
-    admitChat: admitBinding,
+    admitChat: (conversation, body) =>
+      admitBinding(conversation, body, installBoundSave),
     limits: { ...limitsFromEnvironment(process.env), ...options.limits },
     onCrashLoop: options.onCrashLoop,
     isUnavailable: isPoolConnectTimeout,
@@ -166,7 +180,16 @@ export const startDurableAgentsServer = async (
         (await server.conversations.acquire(conversationId))?.harness,
     }),
   );
-  const listener = await serveNode(server.app.fetch, {
+  /**
+   * The H7 seam: HASH's entry (credentialed CORS, the body limit, the session
+   * actor, ownership by instance ID, the turn limit on `POST /chat`) mounts
+   * here, as `app.use` before the `route` below, so it runs in front of every
+   * route the process serves: the chat, browser-call and history routes. The
+   * inner app keeps its `onError`, so a storage timeout is still a 503.
+   */
+  const app = new Hono();
+  app.route("/", server.app);
+  const listener = await serveNode(app.fetch, {
     port: options.port,
     hostname: options.hostname,
   });
