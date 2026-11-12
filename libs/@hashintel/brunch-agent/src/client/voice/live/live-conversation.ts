@@ -1,6 +1,7 @@
 import {
   interviewBudgetHeader,
   liveInterviewBudgetUpdate,
+  type EditorSelection,
   type InterviewBudgetLevel,
 } from "@hashintel/brunch-agent";
 
@@ -61,12 +62,6 @@ export interface FinalizedInput {
   readonly selection?: readonly SelectionItem[];
 }
 
-/** The editor's selection, with a label naming each item. */
-export interface LiveEditorSelection {
-  readonly items: readonly SelectionItem[];
-  readonly labels: readonly string[];
-}
-
 /**
  * The quiet note Live receives when the editor's selection has changed since
  * it last heard one, so it doesn't ask which element "this" means.
@@ -106,7 +101,7 @@ export const createLiveConversation = (
   },
   initialBudgetLevel: InterviewBudgetLevel = "off",
   readWords?: () => readonly VoiceWord[],
-  readSelection?: () => LiveEditorSelection,
+  readSelection?: () => EditorSelection,
 ) => {
   let wordsHeader: string | undefined;
   let transcriptionPrompt: string | undefined;
@@ -157,6 +152,8 @@ export const createLiveConversation = (
   let sendInterviewBudgetNote: () => void;
   /** The selection Live last heard about; it starts knowing of none. */
   let sentSelection = "";
+  /** Each utterance's selection, taken when its speech stopped. */
+  const selectionAtSpeechEnd = new Map<string, EditorSelection>();
   let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
@@ -442,11 +439,11 @@ export const createLiveConversation = (
         echoTrace.forget(itemId);
         utteranceLevels.forget(itemId);
         const minLogprob = inputConfidence?.minLogprob;
-        // The person's turn has ended: Live hears the level and the selection
-        // before it replies, and the turn carries the selection as it was.
+        // The person's turn has ended: Live hears the level before it replies.
         sendInterviewBudgetNote();
-        const selection = readSelection?.();
-        if (selection) sendSelectionNote(selection.labels);
+        // Taken when speech stopped; read now only if that was never reported.
+        const selection = selectionAtSpeechEnd.get(itemId) ?? readSelection?.();
+        selectionAtSpeechEnd.delete(itemId);
         onFinalizedInput({
           ...(selection ? { selection: selection.items } : {}),
           ...input,
@@ -507,6 +504,13 @@ export const createLiveConversation = (
     if (data.type === "input_audio_buffer.speech_stopped") {
       outputOverlap.speechStopped(data.item_id, Date.now());
       utteranceLevels.speechStopped(data.item_id);
+      // The selection as the person stopped speaking: the turn carries it,
+      // and Live hears of it before it replies.
+      const selection = readSelection?.();
+      if (selection && typeof data.item_id === "string") {
+        selectionAtSpeechEnd.set(data.item_id, selection);
+        sendSelectionNote(selection.labels);
+      }
       return;
     }
     if (data.type === "input_audio_buffer.committed") {

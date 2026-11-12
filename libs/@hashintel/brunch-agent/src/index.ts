@@ -71,8 +71,9 @@ export {
 } from "./petrinaut/contextual-user-message";
 export { type InterviewBudget } from "./petrinaut/interview-budget";
 export {
+  type EditorSelection,
+  mergeSelections,
   parseSelection,
-  petrinautSelectionLimits,
   selectionContextKey,
 } from "./petrinaut/selection";
 export {

@@ -4,7 +4,7 @@ import type {
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
 } from "./voice-session/types";
-import type { BrunchInputMode } from "@hashintel/brunch-agent";
+import type { BrunchInputMode, EditorSelection } from "@hashintel/brunch-agent";
 import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 import type { ReactNode } from "react";
 
@@ -50,12 +50,6 @@ export type PetrinautAiComposerSubmitText = (params: {
   selection?: readonly SelectionItem[];
   text: string;
 }) => Promise<PetrinautAiComposerSubmitTextResult>;
-
-/** The editor's selection, with a label naming each item for speech. */
-export type PetrinautAiEditorSelection = {
-  readonly items: readonly SelectionItem[];
-  readonly labels: readonly string[];
-};
 
 /**
  * Stable controls and current conversation state supplied to a host control.
@@ -149,7 +143,7 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   inputMode: PetrinautAiInputMode;
   isAiAssistantOpen: boolean;
   /** Reads the editor's selection now; call it when the person finishes speaking. */
-  readSelection: () => PetrinautAiEditorSelection;
+  readSelection: () => EditorSelection;
   /**
    * Registers the controls Petrinaut uses to coordinate panel closure and
    * typed-message handoff with the host-owned Voice lifecycle.

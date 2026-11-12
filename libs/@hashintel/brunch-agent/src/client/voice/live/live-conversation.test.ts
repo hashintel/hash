@@ -2,12 +2,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { VoiceAudioSettings } from "../session/voice-audio-settings";
-import {
-  createLiveConversation,
-  type LiveEditorSelection,
-} from "./live-conversation";
+import { createLiveConversation } from "./live-conversation";
 import { createOutputEchoTrace } from "./live-conversation/echo-diagnostics";
 import { createUtteranceLevels } from "./live-conversation/utterance-levels";
+
+import type { EditorSelection } from "@hashintel/brunch-agent";
 
 beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
@@ -1659,18 +1658,27 @@ test("sends the startup level once, then one quiet note per turn with the final 
   expect(fixture.sent[0][3]).toContain("now Off");
 });
 
-test("a finished turn carries the selection, and Live hears of it once per change", async () => {
-  let selection: LiveEditorSelection = {
+test("a turn carries the selection as speech stopped, and Live hears of it once per change", async () => {
+  let selection: EditorSelection = {
     items: [{ type: "place", id: "doctors" }],
     labels: ["place: AvailableDoctors"],
   };
   const fixture = setup({ readSelection: () => selection });
   await connect(fixture);
-  const speak = (itemId: string, previous: string | null) => {
+  const speak = (
+    itemId: string,
+    previous: string | null,
+    beforeTranscript = () => {},
+  ) => {
     fixture.emit(1, {
       type: "input_audio_buffer.speech_started",
       item_id: itemId,
     });
+    fixture.emit(1, {
+      type: "input_audio_buffer.speech_stopped",
+      item_id: itemId,
+    });
+    beforeTranscript();
     fixture.emit(1, {
       type: "input_audio_buffer.committed",
       item_id: itemId,
@@ -1695,9 +1703,16 @@ test("a finished turn carries the selection, and Live hears of it once per chang
   expect(notes()).toHaveLength(1);
   expect(notes()[0]?.content).toContain("place: AvailableDoctors");
 
-  // The same selection on the next turn sends no second note.
-  speak("second", "first");
+  // The same selection on the next turn sends no second note. A selection
+  // made while the words are transcribed belongs to the next turn.
+  const atSpeechEnd = selection;
+  speak("second", "first", () => {
+    selection = { items: [{ type: "place", id: "nurses" }], labels: ["x"] };
+  });
   expect(notes()).toHaveLength(1);
+  expect(fixture.onFinalizedInput.mock.lastCall?.[0].selection).toEqual(
+    atSpeechEnd.items,
+  );
 
   selection = { items: [], labels: [] };
   speak("third", "second");
