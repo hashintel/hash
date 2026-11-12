@@ -5,8 +5,9 @@
  *
  * - `POST /chat` takes `DefaultChatTransport`'s body (`id`, `messages`,
  *   `trigger`, `messageId`), submits the last user message once per message id
- *   as a `brunch.user` input (`brunchUserInput`), and answers with that
- *   submission's UI message stream. It is the only
+ *   as a `brunch.user` or `brunch.ledger-comments` input (`brunchUserInput`),
+ *   with the version-load note when it carries a new load, and answers with
+ *   that submission's UI message stream. It is the only
  *   route that creates a conversation, and only when `admitNewConversation`
  *   lets the request.
  * - `GET /chat/:id/stream` (the transport's `reconnectToStream`) answers 204
@@ -41,6 +42,7 @@ import {
 import { createRequestSlots } from "./durable-agents-server/request-slots";
 import { followSubmission } from "./durable-agents-server/submission-stream";
 import { brunchUserInput } from "./durable-agents-server/user-input";
+import { contentWithVersionLoadNote } from "./durable-agents-server/version-load";
 
 import type { Context } from "@earendil-works/chord";
 
@@ -131,7 +133,7 @@ const isChatRequestBody = (body: unknown): body is ChatRequestBody => {
   );
 };
 
-/** The user message a submit-message request sends: the last message, its text parts joined, as a `brunch.user` input. */
+/** The user message a submit-message request sends: the last message, its text parts joined, as an input. */
 const userInput = (messages: readonly UIMessage[]) => {
   const message = messages.at(-1);
   if (message?.role !== "user") return undefined;
@@ -236,17 +238,23 @@ export const createDurableAgentsServer = (
     }
     const refusal = await options.admitChat?.(conversation, body);
     if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
-    // A repeated message id finds the submission it made the first time, and its entry.
-    const submission = await conversation.root.submit(
-      {
+    const { harness, root } = conversation;
+    // A repeated message id finds the submission it made the first time and writes nothing, so a late retry
+    // cannot move the version-load document back.
+    const submissionId = await root.commit(async (tx) => {
+      const existing = await tx.submissionByRequest(root.id, input.requestId);
+      if (existing !== undefined) return existing.id;
+      return root.submit(tx, {
         type: "input",
-        content: input.content,
+        content: await contentWithVersionLoadNote(tx, root.id, input),
         entry: input.entry,
         requestId: input.requestId,
         whenBusy: "followUp",
-      },
-      context,
-    );
+      });
+    }, context);
+    const submission = await harness.submission(submissionId, context);
+    if (submission === undefined)
+      throw new Error(`Submission ${submissionId} is missing.`);
     return follow(body.id, conversation, submission);
   });
 

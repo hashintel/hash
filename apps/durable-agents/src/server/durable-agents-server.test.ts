@@ -24,7 +24,10 @@ import {
 } from "ai";
 import { afterEach, describe, expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  petrinautContextualUserMessageBody,
+  versionLoadNote,
+} from "@hashintel/brunch-agent";
 
 import { fauxAssistantMessage, fauxToolCall } from "../../test/scripted-model";
 import {
@@ -39,6 +42,7 @@ import {
   type DurableAgentsServerLimits,
 } from "./durable-agents-server";
 import { brunchUserInput } from "./durable-agents-server/user-input";
+import { VersionLoadDoc } from "./durable-agents-server/version-load";
 
 import type { OwnedStorage } from "./conversation-storage";
 import type { Message } from "@earendil-works/pi-ai";
@@ -689,6 +693,137 @@ describe("POST /chat admits a brunch.user input", () => {
       texts: [panelBodies["v2 context"], newText],
       kinds: ["pi.user", "brunch.user"],
     });
+  });
+});
+
+describe("POST /chat admits Ledger comments", () => {
+  test("a body of comments is a brunch.ledger-comments input the model reads as Flue's signal", async () => {
+    const { requests, responses } = recordedAnswers(1);
+    const { server, transport } = openChat({ responses });
+    const comments = [
+      { id: "n1", records: ["e1"], text: "People, not a place." },
+    ];
+    const text = JSON.stringify({ comments });
+    await recorder(
+      await send(transport, {
+        message: {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text }],
+        },
+      }),
+    ).drain();
+
+    const expected = brunchUserInput(text).content;
+    expect(expected).toMatch(/^<brunch\.ledger-comments /);
+    expect(userTexts(requests)).toEqual([[expected]]);
+    const { root } = await openConversation(server);
+    const entries = await root.entries(
+      { order: "ascending" },
+      100,
+      undefined,
+      context,
+    );
+    expect(
+      entries.items.filter(({ model }) => model?.[0]?.role === "user"),
+    ).toMatchObject([
+      {
+        kind: "brunch.ledger-comments",
+        data: { comments },
+        model: [{ role: "user", content: expected }],
+      },
+    ]);
+  });
+});
+
+describe("POST /chat announces a version load once (fold 2c)", () => {
+  const load1 = { id: "version-1", decisionTime: "2026-11-12T09:30:00.000Z" };
+  const load2 = { id: "version-2", decisionTime: "2026-11-12T10:45:00.000Z" };
+  const loadMessage = (
+    id: string,
+    words: string,
+    versionLoad: typeof load1,
+  ): UIMessage => ({
+    id,
+    role: "user",
+    parts: [
+      {
+        type: "text",
+        text: petrinautContextualUserMessageBody({
+          userText: words,
+          diagnosticsContext: "",
+          submissionContext: { versionLoad },
+        }),
+      },
+    ],
+  });
+
+  test("the first input with a load carries the note, the next with it none, a new load the note; a late retry writes nothing", async () => {
+    const { requests, responses } = recordedAnswers(3);
+    const { server, transport } = openChat({ responses });
+    const first = loadMessage("user-1", "Add a dryer.", load1);
+    const firstStream = recorder(await send(transport, { message: first }));
+    await firstStream.drain();
+    await recorder(
+      await send(transport, {
+        message: loadMessage("user-2", "And a washer.", load1),
+      }),
+    ).drain();
+    await recorder(
+      await send(transport, {
+        message: loadMessage("user-3", "Now a press.", load2),
+      }),
+    ).drain();
+
+    const note1 = `${versionLoadNote(load1)}\n\nAdd a dryer.`;
+    const note2 = `${versionLoadNote(load2)}\n\nNow a press.`;
+    expect(versionLoadNote(load1)).toBe(
+      "Host note: The user loaded the version saved at 2026-11-12T09:30:00.000Z; later saves build on it.",
+    );
+    expect(userTexts(requests)).toEqual([
+      [note1],
+      [note1, "And a washer."],
+      [note1, "And a washer.", note2],
+    ]);
+    const { harness, root } = await openConversation(server);
+    expect(await harness.snapshot(VersionLoadDoc, root.id, context)).toEqual({
+      announced: load2.id,
+    });
+
+    // A late retry of the first message, after the newer load: its first submission, and no write.
+    const late = recorder(await send(transport, { message: first }));
+    await late.drain();
+    expect(startMessageId(late.chunks)).toBe(
+      startMessageId(firstStream.chunks),
+    );
+    expect(requests).toHaveLength(3);
+    expect(await harness.snapshot(VersionLoadDoc, root.id, context)).toEqual({
+      announced: load2.id,
+    });
+    const entries = await root.entries(
+      { order: "ascending" },
+      100,
+      undefined,
+      context,
+    );
+    const inputs = entries.items.filter(({ kind }) => kind === "brunch.user");
+    expect(inputs.map(({ data }) => data)).toEqual([
+      {
+        body: "contextual",
+        userText: "Add a dryer.",
+        submissionContext: { versionLoad: load1 },
+      },
+      {
+        body: "contextual",
+        userText: "And a washer.",
+        submissionContext: { versionLoad: load1 },
+      },
+      {
+        body: "contextual",
+        userText: "Now a press.",
+        submissionContext: { versionLoad: load2 },
+      },
+    ]);
   });
 });
 
