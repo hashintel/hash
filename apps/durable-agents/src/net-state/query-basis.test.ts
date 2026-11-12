@@ -6,6 +6,7 @@
  */
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import {
+  type Conversation,
   type ConversationId,
   createRegistry,
   type EntryRecord,
@@ -19,6 +20,7 @@ import {
   brunchTools,
   foldCommits,
   type LedgerHistoryMessage,
+  petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -29,6 +31,7 @@ import {
 import { createHostBinding } from "../agent/host-binding";
 import {
   bindBrowserDocument,
+  BrowserBindingDoc,
   browserCallExtension,
   type BrowserCallRecord,
   type BrowserCallResult,
@@ -36,11 +39,14 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
+import { reportHandEdit } from "../browser-call/hand-edit";
 import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
+import { brunchUserInput } from "../server/durable-agents-server/user-input";
 import { netCalls } from "./net-changes";
 import { queryBasis, queryBasisExtension, type Selector } from "./query-basis";
 
+import type { VisibleNetView } from "./visible-net-view";
 import type { JsonValue } from "@earendil-works/chord";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
@@ -178,7 +184,11 @@ const queueReflection = committed(
  * `steps` in transcript order, one entry each: the records and Ledger history
  * they leave, and the Ledger as of each call's entry, as `snapshotAsOf` reads it.
  */
-const query = (steps: readonly Step[], selector: Selector) => {
+const query = (
+  steps: readonly Step[],
+  selector: Selector,
+  netView: VisibleNetView["state"] = "current",
+) => {
   const calls: Record<string, BrowserCallRecord> = {};
   const ledger: { entry: number; message: LedgerHistoryMessage }[] = [];
   for (const [entry, step] of steps.entries()) {
@@ -202,6 +212,7 @@ const query = (steps: readonly Step[], selector: Selector) => {
       };
   }
   return queryBasis({
+    netView,
     calls: netCalls(calls),
     ledger: { messages: ledger.map(({ message }) => message) },
     binding,
@@ -499,6 +510,22 @@ describe("query_basis", () => {
       }),
     ).toMatchObject({ disposition: "basis-absent" });
   });
+
+  test("reports a stale read when the model's view is stale, as freshness decides it (H8)", async () => {
+    const queue = { kind: "place", name: "Queue" } as const;
+    expect(
+      await query([user, commit, add, read], queue, "stale"),
+    ).toMatchObject({
+      disposition: "stale-read",
+      target: undefined,
+      readToolCallId: "read-queue",
+      basis: undefined,
+      changes: [],
+    });
+    expect(
+      await query([user, commit, add, read], queue, "current"),
+    ).toMatchObject({ disposition: "basis-absent" });
+  });
 });
 
 describe("the query_basis tool", () => {
@@ -553,62 +580,17 @@ describe("the query_basis tool", () => {
     );
   };
 
-  test("reads the records, rewinds the Ledger to each change's issue, and quotes the USER's words", async () => {
-    const place = {
-      id: "queue",
-      name: "Queue",
-      colorId: null,
-      dynamicsEnabled: false,
-      x: 0,
-      y: 0,
-    };
-    const { models, model } = scriptedModel([
-      ledgerCall("ledger-1", [
-        [
-          "entity/create",
-          {
-            name: "The queue",
-            kind: "location",
-            origin: "stated",
-            status: "confirmed",
-          },
-        ],
-        [
-          "claim/create",
-          {
-            text: "Cases wait in a queue.",
-            entities: ["$0"],
-            origin: "stated",
-            status: "confirmed",
-          },
-        ],
-      ]),
-      browserCall("read-1", "readNetOutline"),
-      browserCall("add-queue", "addPlace", place),
-      browserCall("read-queue", "getLatestNetDefinition"),
-      ledgerCall("ledger-2", [
-        [
-          "reflection/create",
-          {
-            text: "The Queue place holds waiting cases.",
-            netElements: [{ kind: "place", id: "queue" }],
-            claims: ["c1"],
-          },
-        ],
-      ]),
-      browserCall("query-1", brunchTools.queryBasis, {
-        selector: { kind: "place", name: "Queue" },
-      }),
-      fauxAssistantMessage("The queue rests on what you said."),
-    ]);
+  /** The Ledger, the browser tools and `query_basis` on one Harness over its host binding, bound to the editor. */
+  const openAgent = async (responses: FauxResponseStep[]) => {
+    const { models, model } = scriptedModel(responses);
     const host = createHostBinding();
-    const petrinautBrowserToolsExtension =
-      createPetrinautBrowserToolsExtension(host);
+    const browserTools = createPetrinautBrowserToolsExtension(host);
+    const queryBasisTools = queryBasisExtension(host);
     const registry = createRegistry();
     registry.install(ledgerExtension);
     registry.install(browserCallExtension);
-    registry.install(petrinautBrowserToolsExtension);
-    registry.install(queryBasisExtension);
+    registry.install(browserTools);
+    registry.install(queryBasisTools);
     const harness = await Harness.open(
       new MemoryStorage(),
       { models, registry },
@@ -618,82 +600,266 @@ describe("the query_basis tool", () => {
     const root = await harness.root(context, {
       agent: {
         model,
-        extensions: [
-          ledgerExtension,
-          petrinautBrowserToolsExtension,
-          queryBasisExtension,
-        ],
+        extensions: [ledgerExtension, browserTools, queryBasisTools],
       },
     });
     await harness.commit(
       (tx) => bindBrowserDocument(tx, root.id, binding),
       context,
     );
-    const submission = await root.submit(
-      { type: "input", content: "Cases wait in a queue." },
-      context,
-    );
-    await answer(
-      harness,
-      root.id,
-      "read-1",
-      { title: "Net" },
-      { documentRevision: { before: "revision-1" } },
-    );
-    await answer(
-      harness,
-      root.id,
-      "add-queue",
-      { title: "Added place Queue", applied: true },
-      { documentRevision: { before: "revision-1", after: "revision-2" } },
-    );
-    await answer(
-      harness,
-      root.id,
-      "read-queue",
-      { title: "Queue", definition: { ...definition, places: [place] } },
-      { documentRevision: { before: "revision-2" } },
-    );
-    expect((await submission.wait(context)).status).toBe("done");
+    return { harness, root };
+  };
 
-    const entries: readonly EntryRecord[] = (
-      await root.entries({ order: "ascending" }, 100, undefined, context)
-    ).items;
+  /** The tool result of `toolCallId`, its text parsed. */
+  const resultOf = (entries: readonly EntryRecord[], toolCallId: string) => {
     const result = entries
       .flatMap(({ model: messages }) => messages ?? [])
       .find(
         (message) =>
-          message.role === "toolResult" && message.toolCallId === "query-1",
+          message.role === "toolResult" && message.toolCallId === toolCallId,
       );
     if (result?.role !== "toolResult")
-      throw new Error("No query_basis result.");
-    expect(result.isError).toBe(false);
+      throw new Error(`No result for ${toolCallId}.`);
     const text = result.content.flatMap((part) =>
       part.type === "text" ? [part.text] : [],
     )[0];
-    const userEntry = entries.find(({ kind }) => kind === "pi.user");
-    expect(JSON.parse(text ?? "null")).toMatchObject({
-      binding,
-      disposition: "basis-declared",
-      target: { id: "queue" },
-      readToolCallId: "read-queue",
-      // Revision 2 (the reflection) committed after the change was issued.
-      changes: [
-        {
-          toolCallId: "add-queue",
-          operation: "addPlace",
-          petrinautRevisionId: "revision-2",
-          ledgerRevision: 1,
-        },
-      ],
-      basis: {
-        reflections: [{ id: "r1" }],
-        claims: [{ id: "c1" }],
-        turns: [
-          { id: String(userEntry?.id), excerpt: "Cases wait in a queue." },
-        ],
+    return {
+      isError: result.isError,
+      output: JSON.parse(text ?? "null") as unknown,
+    };
+  };
+
+  const allEntriesOf = async (root: Conversation) =>
+    (await root.entries({ order: "ascending" }, 100, undefined, context)).items;
+
+  const words = "Cases wait in a queue.";
+
+  test.each([
+    [
+      "a brunch.user entry's userText",
+      "brunch.user",
+      {
+        type: "input",
+        ...brunchUserInput(
+          petrinautContextualUserMessageBody({
+            userText: words,
+            diagnosticsContext: "Net check: 2 warnings.",
+            submissionContext: { interviewBudget: { questions: 3 } },
+          }),
+        ),
       },
+    ],
+    [
+      "an old pi.user entry's text",
+      "pi.user",
+      { type: "input", content: words },
+    ],
+  ] as const)(
+    "reads the records, rewinds the Ledger to each change's issue, and quotes the USER's words from %s",
+    async (_, userKind, input) => {
+      const place = {
+        id: "queue",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      };
+      const { harness, root } = await openAgent([
+        ledgerCall("ledger-1", [
+          [
+            "entity/create",
+            {
+              name: "The queue",
+              kind: "location",
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
+          [
+            "claim/create",
+            {
+              text: "Cases wait in a queue.",
+              entities: ["$0"],
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
+        ]),
+        browserCall("read-1", "readNetOutline"),
+        browserCall("add-queue", "addPlace", place),
+        browserCall("read-queue", "getLatestNetDefinition"),
+        ledgerCall("ledger-2", [
+          [
+            "reflection/create",
+            {
+              text: "The Queue place holds waiting cases.",
+              netElements: [{ kind: "place", id: "queue" }],
+              claims: ["c1"],
+            },
+          ],
+        ]),
+        browserCall("query-1", brunchTools.queryBasis, {
+          selector: { kind: "place", name: "Queue" },
+        }),
+        fauxAssistantMessage("The queue rests on what you said."),
+      ]);
+      const submission = await root.submit(input, context);
+      await answer(
+        harness,
+        root.id,
+        "read-1",
+        { title: "Net" },
+        { documentRevision: { before: "revision-1" } },
+      );
+      await answer(
+        harness,
+        root.id,
+        "add-queue",
+        { title: "Added place Queue", applied: true },
+        { documentRevision: { before: "revision-1", after: "revision-2" } },
+      );
+      await answer(
+        harness,
+        root.id,
+        "read-queue",
+        { title: "Queue", definition: { ...definition, places: [place] } },
+        { documentRevision: { before: "revision-2" } },
+      );
+      expect((await submission.wait(context)).status).toBe("done");
+
+      const entries = await allEntriesOf(root);
+      const result = resultOf(entries, "query-1");
+      expect(result.isError).toBe(false);
+      const userEntry = entries.find(({ kind }) => kind === userKind);
+      expect(userEntry).toBeDefined();
+      expect(result.output).toMatchObject({
+        binding,
+        disposition: "basis-declared",
+        target: { id: "queue" },
+        readToolCallId: "read-queue",
+        // Revision 2 (the reflection) committed after the change was issued.
+        changes: [
+          {
+            toolCallId: "add-queue",
+            operation: "addPlace",
+            petrinautRevisionId: "revision-2",
+            ledgerRevision: 1,
+          },
+        ],
+        basis: {
+          reflections: [{ id: "r1" }],
+          claims: [{ id: "c1" }],
+          turns: [{ id: String(userEntry?.id), excerpt: words }],
+        },
+      });
+      await harness.close(context);
+    },
+  );
+
+  const queue = { kind: "place", name: "Queue" } as const;
+  const queueDefinition = { title: "Queue", definition };
+
+  describe("runs sequentially: one round answers from the reads issued before it (fold 3b)", () => {
+    test.each([
+      ["[read, query_basis]", ["read-1", "query-1"], "basis-absent"],
+      ["[query_basis, read]", ["query-1", "read-1"], "not-found"],
+    ] as const)("%s answers %s", async (_, order, disposition) => {
+      const call = {
+        "read-1": fauxToolCall("getLatestNetDefinition", {}, { id: "read-1" }),
+        "query-1": fauxToolCall(
+          brunchTools.queryBasis,
+          { selector: queue },
+          { id: "query-1" },
+        ),
+      };
+      const { harness, root } = await openAgent([
+        fauxAssistantMessage(
+          order.map((id) => call[id]),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage("Done."),
+      ]);
+      const submission = await root.submit(
+        { type: "input", content: "Why the queue?" },
+        context,
+      );
+      await answer(harness, root.id, "read-1", queueDefinition, {
+        documentRevision: { before: "revision-2" },
+      });
+      expect((await submission.wait(context)).status).toBe("done");
+      const entries = await allEntriesOf(root);
+      expect(resultOf(entries, "query-1")).toMatchObject({
+        isError: false,
+        output: { disposition },
+      });
+      expect(JSON.stringify(entries)).not.toContain("Dependent call refused");
+      await harness.close(context);
     });
-    await harness.close(context);
+  });
+
+  describe("a hand edit after the model's view answers stale-read (H8)", () => {
+    test.each([
+      [
+        "view revision-2, then a note naming revision-3",
+        "revision-3",
+        "stale-read",
+      ],
+      [
+        "view revision-2, then a note naming revision-2",
+        "revision-2",
+        "basis-absent",
+      ],
+    ] as const)("%s: %s", async (_, edited, disposition) => {
+      const { harness, root } = await openAgent([
+        browserCall("read-1", "getLatestNetDefinition"),
+        browserCall("query-1", brunchTools.queryBasis, { selector: queue }),
+        fauxAssistantMessage("Done."),
+      ]);
+      const submission = await root.submit(
+        { type: "input", content: "Why the queue?" },
+        context,
+      );
+      await vi.waitFor(async () => {
+        const calls = (
+          await harness.snapshot(BrowserCallsDoc, root.id, context)
+        )?.calls;
+        expect(calls?.["read-1"]?.status).toBe("pending");
+      });
+      // The panel reports while the read waits: queued, placed after the round's results.
+      const bound = await harness.snapshot(BrowserBindingDoc, root.id, context);
+      expect(
+        await reportHandEdit(
+          harness,
+          root.id,
+          {
+            binding: bound?.binding ?? "",
+            episode: "episode-1",
+            seq: 0,
+            revision: edited,
+          },
+          context,
+        ),
+      ).toMatchObject({ status: "admitted" });
+      await answer(harness, root.id, "read-1", queueDefinition, {
+        documentRevision: { before: "revision-2" },
+      });
+      expect((await submission.wait(context)).status).toBe("done");
+      const entries = await allEntriesOf(root);
+      const kinds = entries.map(({ kind }) => kind);
+      // The note sits between the read's result and the query's request.
+      expect(kinds.indexOf("brunch.hand-edit")).toBeGreaterThan(
+        entries.findIndex(
+          ({ model: messages }) =>
+            messages?.[0]?.role === "toolResult" &&
+            messages[0].toolCallId === "read-1",
+        ),
+      );
+      expect(resultOf(entries, "query-1")).toMatchObject({
+        isError: false,
+        output: { disposition, readToolCallId: "read-1" },
+      });
+      await harness.close(context);
+    });
   });
 });

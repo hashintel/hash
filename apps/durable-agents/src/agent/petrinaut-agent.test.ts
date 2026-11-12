@@ -4,7 +4,6 @@ import {
   GenerationTask,
   Harness,
   MemoryStorage,
-  ToolTask,
 } from "@earendil-works/pi-durable";
 import { describe, expect, test } from "vitest";
 
@@ -17,6 +16,7 @@ import {
 import { fauxAssistantMessage, scriptedModel } from "../../test/scripted-model";
 import { browserCallExtension } from "../browser-call/browser-call";
 import { ledgerExtension } from "../ledger";
+import { netViewSectionKey } from "../net-state/visible-net-view";
 import { createHostBinding } from "./host-binding";
 import { createPetrinautAgent } from "./petrinaut-agent";
 
@@ -40,17 +40,25 @@ describe("the minimal Petrinaut agent", () => {
     expect(systemPrompt).not.toMatch(/ledger_compile|ledger-comments|Load `/);
   });
 
-  test("selects the context projection and the tool admission hooks", () => {
+  test("selects the read-back pruning hook and the net_view section; no hook rewrites a request or refuses a call", () => {
     const { agent } = createPetrinautAgent();
     const hooks = agent.extensions.flatMap(({ hooks: registered = [] }) =>
       registered.map(({ task, handlers }) => [task, Object.keys(handlers)]),
     );
-    expect(hooks).toEqual(
-      expect.arrayContaining([
-        [GenerationTask.definition.name, ["beforeRequest"]],
-        [ToolTask.definition.name, ["beforeTool"]],
-      ]),
+    expect(hooks).toEqual([[GenerationTask.definition.name, ["afterTools"]]]);
+    const sections = agent.extensions.flatMap(({ sections: offered = [] }) =>
+      offered.map(({ key }) => key),
     );
+    expect(sections).toEqual(["brunch-petrinaut-system", netViewSectionKey]);
+    const tools = agent.extensions.flatMap(
+      ({ tools: offered = [] }) => offered,
+    );
+    expect(
+      tools
+        .filter(({ executionMode }) => executionMode === "sequential")
+        .map(({ name }) => name)
+        .toSorted(),
+    ).toEqual([brunchTools.ledgerCommit, brunchTools.queryBasis].toSorted());
   });
 
   test("installs per host binding the extensions its agent selects by name, and the browser-call tasks", () => {

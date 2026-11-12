@@ -349,6 +349,54 @@ describe("visibleNetView: what counts as a view", () => {
     expect(stateOf(viewOf(baseline(null)))).toBe("none");
     expect(stateOf(viewOf(baseline(restored.slice(0, -5))))).toBe("none");
   });
+
+  test("section patches replay in order, as Pi's replaySections: a later null or replacing patch removes the section's view", () => {
+    const restoredAt = (revision: string) =>
+      renderNetViewSection(revision, JSON.stringify(structureAt(revision)));
+    const otherSection: Item = {
+      kind: "pi.system",
+      message: {
+        role: "system",
+        content: "",
+        sections: { other: "Unrelated." },
+        timestamp: 0,
+      },
+    };
+    // The section threw and rendered nothing: Pi wrote a `null` patch.
+    expect(stateOf(viewOf(baseline(restoredAt("R1")), baseline(null)))).toBe(
+      "none",
+    );
+    expect(
+      stateOf(
+        viewOf(tool(read("R0")), baseline(restoredAt("R1")), baseline(null)),
+      ),
+    ).toBe("current read R0");
+    expect(
+      stateOf(
+        viewOf(
+          tool(read("R0")),
+          baseline(restoredAt("R1")),
+          note("R2"),
+          baseline(null),
+        ),
+      ),
+    ).toBe("stale R0→R2");
+    expect(
+      stateOf(
+        viewOf(
+          baseline(restoredAt("R1")),
+          baseline(restoredAt("R1").slice(0, -5)),
+        ),
+      ),
+    ).toBe("none");
+    expect(
+      stateOf(viewOf(baseline(restoredAt("R1")), baseline(restoredAt("R2")))),
+    ).toBe("current section R2");
+    // A patch that leaves the section alone keeps its view.
+    expect(stateOf(viewOf(baseline(restoredAt("R1")), otherSection))).toBe(
+      "current section R1",
+    );
+  });
 });
 
 describe("visibleNetView: the latest hand-edit note after the view decides (E4)", () => {

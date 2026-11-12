@@ -6,7 +6,9 @@
  * entry's kind; `details`, browser-call records, summaries and model or user
  * text count for nothing.
  *
- * - A `net_view` section holding a complete `<net-view>` block is a view.
+ * - A `net_view` section holding a complete `<net-view>` block is a view,
+ *   while Pi's in-order replay of section patches still shows it: a later
+ *   patch that replaces or deletes (`null`) the section removes its view.
  *   Pi leads with the post-compaction baseline, so it sits at the head and
  *   later events override it.
  * - A successful net-showing tool result with complete net content is a
@@ -166,16 +168,38 @@ const entriesByMessage = (
   return entries;
 };
 
+/**
+ * The one system message whose `net_view` patch is in effect after Pi
+ * replays every patch in order (`replaySections`: a string sets the section,
+ * `null` deletes it), or undefined when none sets it or the last deletes it.
+ * Only that message's section can be a view: an earlier rendering the section
+ * replaced or deleted is no longer shown.
+ */
+const shownSectionMessage = (
+  messages: readonly Message[],
+): Message | undefined => {
+  let shown: Message | undefined;
+  for (const message of messages) {
+    if (message.role !== "system" || message.sections === undefined) continue;
+    const value = message.sections[netViewSectionKey];
+    if (value === null) shown = undefined;
+    else if (value !== undefined) shown = message;
+  }
+  return shown;
+};
+
 /** The net view the model last saw in `view`'s effective messages. */
 export const visibleNetView = (
   view: Pick<ContextView, "entries" | "contributions" | "messages">,
 ): VisibleNetView => {
   const entries = entriesByMessage(view);
+  const section = shownSectionMessage(view.messages);
   let latest:
     | (Extract<NetEvent, { type: "view" }> & { readonly message: Message })
     | undefined;
   let note: string | undefined;
   for (const message of view.messages) {
+    if (message.role === "system" && message !== section) continue;
     const event = netEventOf(message, entries.get(message)?.kind);
     if (event === undefined) continue;
     if (event.type === "view") {
