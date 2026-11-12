@@ -26,6 +26,7 @@ import {
   fauxToolCall,
   scriptedModel,
 } from "../../test/scripted-model";
+import { createHostBinding } from "../agent/host-binding";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -35,7 +36,7 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
 import { netCalls } from "./net-changes";
 import { queryBasis, queryBasisExtension, type Selector } from "./query-basis";
@@ -600,6 +601,9 @@ describe("the query_basis tool", () => {
       }),
       fauxAssistantMessage("The queue rests on what you said."),
     ]);
+    const host = createHostBinding();
+    const petrinautBrowserToolsExtension =
+      createPetrinautBrowserToolsExtension(host);
     const registry = createRegistry();
     registry.install(ledgerExtension);
     registry.install(browserCallExtension);
@@ -610,6 +614,7 @@ describe("the query_basis tool", () => {
       { models, registry },
       context,
     );
+    host.bind(harness);
     const root = await harness.root(context, {
       agent: {
         model,

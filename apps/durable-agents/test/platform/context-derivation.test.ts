@@ -1,15 +1,17 @@
 /**
- * P2: `Conversation.context({ at })` as the model's view at tool time.
+ * P2: `Conversation.context({ at })` as the model's view at tool time, now
+ * the one source of net freshness.
  *
  * - Agreement: on transcripts the real Petrinaut browser tools write (the
  *   fold-1 cases of `src/net-state/net-freshness.test.ts`, and edits, a reset
- *   and a compaction besides), a derivation over `context({ at })` gives the
- *   same viewed calls and the same expected revision as `viewedCalls`
- *   (`model-context.ts`) with `expectedNetRevision`, at every assistant entry
- *   that issued calls.
+ *   and a compaction besides), every change's decision at issue (its record's
+ *   `expectedRevision`, or its refusal) equals `expectedNetRevision` over
+ *   `context({ at: <its assistant entry> })`: an independent read of what the
+ *   model was sent, content only.
  * - Reach: a tool has no `context()` on its API in 1.5.0; it reaches it
  *   through the Harness it closes over, outside `api.commit`.
- * - Cost: timings of both derivations over a long transcript.
+ * - Cost: timings of `context({ at })` and the derivation over a long
+ *   transcript.
  */
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -37,6 +39,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { parseClientToolResultMetadata } from "@hashintel/brunch-agent";
 
+import { createHostBinding } from "../../src/agent/host-binding";
 import {
   bindBrowserDocument,
   browserCallExtension,
@@ -45,13 +48,12 @@ import {
   claimBrowserCall,
   finishBrowserCall,
 } from "../../src/browser-call/browser-call";
-import { petrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
+import { createPetrinautBrowserToolsExtension } from "../../src/browser-call/petrinaut-browser-tools";
 import {
   expectedNetRevision,
   noNetViewRefusal,
-  viewedCalls,
 } from "../../src/net-state/net-freshness";
-import { netResultView } from "../../src/net-state/net-view";
+import { renderNetRead } from "../../src/net-state/visible-net-view";
 import {
   allEntries,
   call,
@@ -59,10 +61,9 @@ import {
   fauxAssistantMessage,
   recordingModel,
   resultEntry,
+  textOf,
 } from "./support";
 
-import type { ViewedCall } from "../../src/net-state/net-freshness/model-context";
-import type { Message } from "@earendil-works/pi-ai";
 import type { Models } from "@earendil-works/pi-ai/models";
 import type { FauxResponseStep } from "@earendil-works/pi-ai/providers/faux";
 
@@ -79,51 +80,6 @@ const readMetadata = (revision: string) => ({
   documentRevision: { before: revision },
 });
 
-// ─── The derivation over context({ at }) ─────────────────────────────────────
-
-/** The calls whose successful results are in `messages`, in issue order: `viewedCalls` over a derived context. */
-const viewedCallsInContext = (messages: readonly Message[]): ViewedCall[] => {
-  const rounds: { calls: ViewedCall[]; succeeded: Set<string> }[] = [];
-  for (const message of messages) {
-    if (message.role === "assistant")
-      rounds.push({
-        calls: message.content.flatMap((part) =>
-          part.type === "toolCall"
-            ? [{ toolCallId: part.id, toolName: part.name }]
-            : [],
-        ),
-        succeeded: new Set(),
-      });
-    else if (message.role === "toolResult" && !message.isError)
-      rounds.at(-1)?.succeeded.add(message.toolCallId);
-  }
-  return rounds.flatMap(({ calls, succeeded }) =>
-    calls.filter(({ toolCallId }) => succeeded.has(toolCallId)),
-  );
-};
-
-/**
- * The expected revision from the context alone: a browser result's message
- * carries the tool's `details`, Brunch's envelope with the browser's
- * metadata, so no browser-call record is read.
- */
-const expectedRevisionInContext = (
-  messages: readonly Message[],
-): { readonly revision: string } | { readonly refusal: string } => {
-  const viewed = new Set(
-    viewedCallsInContext(messages).map(({ toolCallId }) => toolCallId),
-  );
-  let revision: string | undefined;
-  for (const message of messages) {
-    if (message.role !== "toolResult" || !viewed.has(message.toolCallId))
-      continue;
-    const details = message.details as { metadata?: unknown } | undefined;
-    revision =
-      netResultView(message.toolName, details?.metadata)?.revision ?? revision;
-  }
-  return revision === undefined ? { refusal: noNetViewRefusal } : { revision };
-};
-
 // ─── Scenarios through the real browser tools ────────────────────────────────
 
 const summaryHook = defineExtension({
@@ -135,23 +91,31 @@ const summaryHook = defineExtension({
   ],
 });
 
-const openHarness = (storage: Storage, models: Models) => {
+/** A Harness with the browser tools over its own host binding, bound right after open. */
+const openHarness = async (storage: Storage, models: Models) => {
+  const host = createHostBinding();
   const registry = createRegistry();
   registry.install(browserCallExtension);
-  registry.install(petrinautBrowserToolsExtension);
+  registry.install(createPetrinautBrowserToolsExtension(host));
   registry.install(summaryHook);
-  return Harness.open(
+  const harness = await Harness.open(
     storage,
     { models, registry, settings: { compaction: { keepRecentTokens: 1 } } },
     context,
   );
+  host.bind(harness);
+  return harness;
 };
 
 const openRoot = async (harness: Harness, model: ModelRef) => {
   const root = await harness.root(context, {
     agent: {
       model,
-      extensions: [petrinautBrowserToolsExtension, summaryHook],
+      // Selected by name: the instance this Harness's registry installed runs.
+      extensions: [
+        createPetrinautBrowserToolsExtension(createHostBinding()),
+        summaryHook,
+      ],
     },
   });
   await harness.commit(
@@ -214,32 +178,41 @@ const turn = async (
   expect((await submission.wait(context)).status).toBe("done");
 };
 
-/** Both derivations at every assistant entry that issued calls. */
+/**
+ * At every change the model issued: what the tool decided at issue, from its
+ * record or its refusal, beside `expectedNetRevision` over the context the
+ * model had at that call's assistant entry.
+ */
 const compareAll = async (harness: Harness, conversation: Conversation) => {
   const calls =
     (await harness.snapshot(BrowserCallsDoc, conversation.id, context))
       ?.calls ?? {};
-  const issuing = (await allEntries(conversation)).filter(
-    (entry) =>
-      entry.kind === "pi.assistant" &&
-      entry.model?.[0]?.role === "assistant" &&
-      entry.model[0].content.some((part) => part.type === "toolCall"),
-  );
+  const entries = await allEntries(conversation);
+  const changes = entries.flatMap((entry) => {
+    const message = entry.model?.[0];
+    if (entry.kind !== "pi.assistant" || message?.role !== "assistant")
+      return [];
+    return message.content.flatMap((part) =>
+      part.type === "toolCall" && part.name === "addPlace"
+        ? [{ entry: entry.id, toolCallId: part.id }]
+        : [],
+    );
+  });
   return Promise.all(
-    issuing.map(async (entry) => {
-      const viewed = await harness.commit(
-        (tx) => viewedCalls(tx, conversation.id, entry.id),
-        context,
-      );
-      const { messages } = await conversation.context(context, {
-        at: entry.id,
-      });
+    changes.map(async ({ entry, toolCallId }) => {
+      const record = calls[toolCallId];
+      const decided =
+        record === undefined
+          ? {
+              refusal: textOf(resultEntry(entries, toolCallId)?.model?.[0]),
+            }
+          : { revision: record.expectedRevision };
       return {
-        entry: entry.id,
-        viewed,
-        inContext: viewedCallsInContext(messages),
-        expected: expectedNetRevision(viewed, calls),
-        expectedInContext: expectedRevisionInContext(messages),
+        toolCallId,
+        decided,
+        inContext: expectedNetRevision(
+          await conversation.context(context, { at: entry }),
+        ),
       };
     }),
   );
@@ -249,10 +222,7 @@ const expectAgreement = (
   rows: Awaited<ReturnType<typeof compareAll>>,
 ): void => {
   expect(rows.length).toBeGreaterThan(0);
-  for (const row of rows) {
-    expect(row.inContext).toEqual(row.viewed);
-    expect(row.expectedInContext).toEqual(row.expected);
-  }
+  for (const row of rows) expect(row.decided).toEqual(row.inContext);
 };
 
 /** A harness, its root, and its responses, over memory. */
@@ -264,9 +234,9 @@ const scenario = async (responses: FauxResponseStep[]) => {
 };
 
 const lastExpected = (rows: Awaited<ReturnType<typeof compareAll>>) =>
-  rows.at(-1)!.expectedInContext;
+  rows.at(-1)!.inContext;
 
-describe("P2: context({ at }) agrees with model-context.ts on the fold-1 cases", () => {
+describe("P2: freshness at issue agrees with context({ at }) on the fold-1 cases", () => {
   test("a change with no read: both refuse", async () => {
     const { harness, root } = await scenario([
       call("addPlace", "add-1", place),
@@ -279,7 +249,7 @@ describe("P2: context({ at }) agrees with model-context.ts on the fold-1 cases",
     await harness.close(context);
   });
 
-  test("a read, then a change: both give the read's revision, the context from the result's details alone", async () => {
+  test("a read, then a change: both give the read's revision, which the model was sent in the read's content", async () => {
     const { harness, root } = await scenario([
       call("readNetOutline", "read-1"),
       call("addPlace", "add-1", place),
@@ -298,8 +268,9 @@ describe("P2: context({ at }) agrees with model-context.ts on the fold-1 cases",
     const rows = await compareAll(harness, root);
     expectAgreement(rows);
     expect(lastExpected(rows)).toEqual({ revision: "revision-1" });
-    // The browser's metadata is on the model message, as `details`.
+    // The revision is in the content the model was sent; `details` still carry the browser's metadata for the UI.
     const read = resultEntry(await allEntries(root), "read-1")?.model?.[0];
+    expect(textOf(read)).toBe(renderNetRead({ title: "Net" }, "revision-1"));
     expect(
       parseClientToolResultMetadata(
         (read?.role === "toolResult"
@@ -447,9 +418,9 @@ describe("P2: agreement beyond the fold-1 cases", () => {
 // ─── Reach and cost ─────────────────────────────────────────────────────────
 
 describe("P2: reaching context() from tool code, and what it costs", () => {
-  test("a tool reads context({ at: its assistant entry }) through the Harness it closes over, and it matches viewedCalls in its own commit", async () => {
+  test("a tool reads context({ at: its assistant entry }) through the Harness it closes over: the earlier round's results, not its own", async () => {
     const harnessRef: { current?: Harness } = {};
-    const observed: { viewed: unknown; inContext: unknown }[] = [];
+    const observed: { results: unknown }[] = [];
     const probe = defineTool({
       name: "probe_view",
       description: "Reports the model's view at its call.",
@@ -466,11 +437,13 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
         const { messages } = await conversation!.context(toolContext, {
           at: input.assistant,
         });
-        const viewed = await api.commit(
-          (tx) => viewedCalls(tx, api.conversationId, input.assistant),
-          toolContext,
-        );
-        observed.push({ viewed, inContext: viewedCallsInContext(messages) });
+        observed.push({
+          results: messages.flatMap((message) =>
+            message.role === "toolResult" && !message.isError
+              ? [[message.toolCallId, textOf(message)]]
+              : [],
+          ),
+        });
         return { output: [{ type: "text", text: "ok" }] };
       },
     });
@@ -495,16 +468,11 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
     harnessRef.current = harness;
     const root = await harness.root(context, { agent: { model } });
     await turn(root, "go");
-    expect(observed).toEqual([
-      {
-        viewed: [{ toolCallId: "e1", toolName: "echo" }],
-        inContext: [{ toolCallId: "e1", toolName: "echo" }],
-      },
-    ]);
+    expect(observed).toEqual([{ results: [["e1", "echo"]] }]);
     await harness.close(context);
   });
 
-  test("cost over a long transcript: context({ at }) and viewedCalls, timed", async () => {
+  test("cost over a long transcript: context({ at }) and expectedNetRevision over it, timed", async () => {
     const harness = await Harness.open(
       new MemoryStorage(),
       { models: recordingModel([]).models, registry: createRegistry() },
@@ -561,7 +529,12 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
               role: "toolResult",
               toolCallId: id,
               toolName: "readNetOutline",
-              content: [{ type: "text", text: "{}" }],
+              content: [
+                {
+                  type: "text",
+                  text: renderNetRead({}, `revision-${round}`),
+                },
+              ],
               details: { metadata: readMetadata(`revision-${round}`) },
               isError: false,
               timestamp: 0,
@@ -579,15 +552,11 @@ describe("P2: reaching context() from tool code, and what it costs", () => {
     const cold = await time(() => conversation.context(context, { at: last }));
     const warm = await time(() => conversation.context(context, { at: last }));
     const current = await time(() => conversation.context(context));
-    const scanned = await time(() =>
-      harness.commit((tx) => viewedCalls(tx, conversation.id, last!), context),
-    );
-    expect(viewedCallsInContext(warm.value.messages)).toEqual(scanned.value);
-    expect(expectedRevisionInContext(warm.value.messages)).toEqual({
-      revision: `revision-${rounds - 2}`,
-    });
+    const derived = await time(async () => expectedNetRevision(warm.value));
+    // At the last assistant entry its own result is not yet in the context.
+    expect(derived.value).toEqual({ revision: `revision-${rounds - 2}` });
     process.stdout.write(
-      `P2 cost, ${rounds * 3} entries: context({at}) cold ${cold.ms.toFixed(1)} ms, again ${warm.ms.toFixed(1)} ms, context() current ${current.ms.toFixed(1)} ms; viewedCalls in a commit ${scanned.ms.toFixed(1)} ms\n`,
+      `P2 cost, ${rounds * 3} entries: context({at}) cold ${cold.ms.toFixed(1)} ms, again ${warm.ms.toFixed(1)} ms, context() current ${current.ms.toFixed(1)} ms; expectedNetRevision ${derived.ms.toFixed(1)} ms\n`,
     );
     await harness.close(context);
   });
