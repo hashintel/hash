@@ -96,6 +96,48 @@ const runTurn = async (conversation: Conversation, content: string) =>
     context,
   );
 
+/** A turn as `POST /chat` admits it: a `brunch.user` input. */
+const runBrunchUserTurn = async (conversation: Conversation, text: string) =>
+  (
+    await conversation.submit(
+      {
+        type: "input",
+        content: text,
+        entry: {
+          kind: "brunch.user",
+          data: { body: "ordinary", userText: text },
+        },
+      },
+      context,
+    )
+  ).wait(context);
+
+/** A host write that places a user-role message, as a hand-edit note does, or none, as a prune write does. */
+const hostWrite = async (conversation: Conversation, kind: string) =>
+  (
+    await conversation.submit(
+      {
+        type: "write",
+        entry: {
+          kind,
+          data: { note: kind },
+          ...(kind === "brunch.hand-edit"
+            ? {
+                model: [
+                  {
+                    role: "user" as const,
+                    content: '<hand-edit revision="R2">Edited.</hand-edit>',
+                    timestamp: 0,
+                  },
+                ],
+              }
+            : {}),
+        },
+      },
+      context,
+    )
+  ).wait(context);
+
 const transcript = async (conversation: Conversation) =>
   (await conversation.entries({ order: "ascending" }, 200, undefined, context))
     .items;
@@ -410,6 +452,42 @@ describe("the Ledger as a rewindable document (proof 2)", () => {
       );
     } finally {
       await reopened.close(context);
+    }
+  });
+
+  test("turns open on brunch.user and old pi.user inputs, never on host notes or prune writes (proof 14)", async () => {
+    const { models, model } = scriptedModel([
+      ...commitTurn("call-1"),
+      ...commitTurn("call-2"),
+    ]);
+    const harness = await openHarness(new MemoryStorage(), { models }, context);
+    try {
+      const root = await harness.root(context, { agent: { model } });
+      // A conversation admitted before `brunch.user`, continued after it.
+      expect((await runTurn(root, "We have a dryer.")).status).toBe("done");
+      await hostWrite(root, "brunch.hand-edit");
+      await hostWrite(root, "brunch.prune");
+      expect((await runBrunchUserTurn(root, "One dryer.")).status).toBe("done");
+
+      const entries = await transcript(root);
+      const idsOf = (kind: string) =>
+        entries
+          .filter((entry) => entry.kind === kind)
+          .map(({ id }) => String(id));
+      expect(idsOf("brunch.hand-edit")).toHaveLength(1);
+      expect(idsOf("brunch.prune")).toHaveLength(1);
+      const stored = await harness.snapshot(LedgerDoc, root.id, context);
+      expect(
+        stored?.messages.flatMap(({ id, role }) =>
+          role === "user" ? [id] : [],
+        ),
+      ).toEqual([...idsOf("pi.user"), ...idsOf("brunch.user")]);
+      const ledger = foldLedger(stored);
+      expect(ledger.state.entities[0]?.turn).toBe(idsOf("pi.user")[0]);
+      expect(ledger.state.claims[0]?.turn).toBe(idsOf("brunch.user")[0]);
+      expectAgreement(entries, ledger);
+    } finally {
+      await harness.close(context);
     }
   });
 
