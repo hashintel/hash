@@ -30,7 +30,7 @@ export interface Page {
   readonly output: Output.Output;
 }
 
-/** A directory of the reference and the order of the pages and directories in it, by name, as a host's navigation lists them. */
+/** A directory of the reference and the order of the pages and directories in it, by name, as a host's navigation lists them. The reference's own folder names each entrypoint by its path below it, such as `hashql/Draft`. */
 export interface Folder {
   readonly directory: string;
   readonly pages: readonly string[];
