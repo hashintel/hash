@@ -5,7 +5,6 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 
 import { useAiAssistantEditorApi } from "../editor-api";
-import { AnswerOfferCard } from "./answer-offer-card";
 import {
   BrunchWorkFold,
   BrunchWorkPending,
@@ -136,7 +135,7 @@ const spokenLinePartTypes = new Set([
  * message. It is never Brunch's response, so it must not take over the
  * Activity fold or the waiting row.
  */
-const isSpokenLine = (message: PetrinautAiMessage) =>
+export const isSpokenLine = (message: PetrinautAiMessage) =>
   message.role === "assistant" &&
   message.parts.length > 0 &&
   message.parts.every((part) => spokenLinePartTypes.has(part.type));
@@ -170,8 +169,6 @@ type BrunchMessageProps = Omit<TranscriptProps, "messages"> & {
   active: boolean;
   canRetry: boolean;
   latestAnswer: boolean;
-  /** The latest response, settled, in Chat: the only place an offer shows. */
-  answerOffersShown: boolean;
 };
 
 /**
@@ -200,7 +197,6 @@ const BrunchMessage = memo(
     stopped,
     canRetry,
     latestAnswer,
-    answerOffersShown,
   }: BrunchMessageProps) => {
     const { notifications } = useAiAssistantEditorApi();
 
@@ -362,17 +358,7 @@ const BrunchMessage = memo(
         )}
         {role === "assistant" && !voice && writtenAnswer}
         {cards.map((item) =>
-          item.type === "answers" ? (
-            answerOffersShown &&
-            !wasStopped && (
-              <AnswerOfferCard
-                key={item.key}
-                offer={item.offer}
-                onSend={(text) => handlersRef.current.onSendAnswer?.(text)}
-                onDraft={(fill) => handlersRef.current.onDraftAnswer?.(fill)}
-              />
-            )
-          ) : item.type === "experiment" ? (
+          item.type === "experiment" ? (
             <ExperimentCard
               key={item.key}
               part={item.part}
@@ -512,7 +498,6 @@ export const BrunchTranscript = ({
             busy && index === responseIndex && message.role === "assistant"
           }
           stopped={stopped && index === responseIndex}
-          answerOffersShown={!busy && !voice && index === responseIndex}
         />
       ))}
       {busy && responseRole !== "assistant" && (

@@ -6,7 +6,7 @@ import {
   type OfferedQuestion,
   offersAnswers,
   optionsFor,
-  questionKinds,
+  optionText,
 } from "./kinds";
 
 /** Questions from the P0 contrast set, as the reply that asked them offers them. */
@@ -14,7 +14,10 @@ const p0 = {
   readingOfTheirWords: {
     kind: "choose",
     label: "Quarantined shipment",
-    options: ["Stays counted as open", "Drops out until released"],
+    options: [
+      { label: "Stays open", value: "It stays counted as an open order" },
+      { label: "Drops out", value: "It drops out until quality releases it" },
+    ],
   },
   confirmation: { kind: "confirm", label: "Production demand" },
   values: {
@@ -30,33 +33,36 @@ const p0 = {
   appetite: {
     kind: "choose",
     label: "Time to spend",
-    options: ["Quick", "Standard", "Thorough", "Deep"],
+    options: ["Quick", "Standard", "Thorough", "Deep"].map((label) => ({
+      label,
+    })),
   },
 } satisfies Record<string, OfferedQuestion>;
 
-describe("each kind's affordance and own-words path", () => {
+describe("the answers each kind offers as buttons", () => {
   test.each([
     [
       "a reading of the person's words",
       p0.readingOfTheirWords,
-      ["Stays counted as open", "Drops out until released"],
-      { path: "field", label: "Something else…" },
+      ["Stays open", "Drops out"],
     ],
-    [
-      "a confirmation",
-      p0.confirmation,
-      ["Yes"],
-      { path: "field", label: "Not quite…" },
-    ],
-    ["values", p0.values, [], { path: "unknown", label: "I don't know" }],
-    ["a narrative", p0.narrative, [], { path: "composer" }],
-  ] satisfies [string, OfferedQuestion, string[], object][])(
+    ["a confirmation", p0.confirmation, ["Yes"]],
+    ["values", p0.values, []],
+    ["a narrative", p0.narrative, []],
+  ] satisfies [string, OfferedQuestion, string[]][])(
     "%s",
-    (_name, question, options, ownWords) => {
-      expect(optionsFor(question)).toEqual(options);
-      expect(questionKinds[question.kind].ownWords).toMatchObject(ownWords);
+    (_name, question, labels) => {
+      expect(optionsFor(question).map(({ label }) => label)).toEqual(labels);
     },
   );
+
+  test("a click answers with the option's value, or its label when that is the answer", () => {
+    expect(p0.readingOfTheirWords.options.map(optionText)).toEqual([
+      "It stays counted as an open order",
+      "It drops out until quality releases it",
+    ]);
+    expect(optionsFor(p0.confirmation).map(optionText)).toEqual(["Yes"]);
+  });
 });
 
 describe("what an offer must offer", () => {
@@ -85,7 +91,11 @@ describe("several offers in one turn", () => {
   const reworded = {
     ...p0.readingOfTheirWords,
     label: "quarantined shipment ",
-    options: ["Counted as open", "Out until released", "Counted as reserved"],
+    options: [
+      { label: "Counted as open" },
+      { label: "Out until released" },
+      { label: "Counted as reserved" },
+    ],
   } satisfies OfferedQuestion;
 
   test("are one set of questions, in the order first offered", () => {

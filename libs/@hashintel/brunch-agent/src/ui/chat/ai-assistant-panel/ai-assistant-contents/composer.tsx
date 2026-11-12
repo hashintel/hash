@@ -132,6 +132,8 @@ export const AiAssistantComposer = ({
   onInputModeChange,
   onStop,
   onSubmit,
+  sendable = false,
+  submitLabel = "Send message",
   textEntry,
   voiceModeAvailable,
 }: {
@@ -147,12 +149,16 @@ export const AiAssistantComposer = ({
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onStop: () => void;
   onSubmit: () => void;
+  /** Whether Send has something to send though the textarea is empty. */
+  sendable?: boolean;
+  /** What Send does, when that isn't sending the textarea's text. */
+  submitLabel?: string;
   /** Whether this surface composes messages; false while a review tab shows. */
   textEntry: boolean;
   voiceModeAvailable: boolean;
 }) => {
   const hasInput = input.trim().length > 0;
-  const canSubmit = hasInput && !busy && !disabled;
+  const canSubmit = (hasInput || sendable) && !busy && !disabled;
 
   const action: ComposerAction = busy
     ? {
@@ -170,7 +176,7 @@ export const AiAssistantComposer = ({
           disabled: false,
           glyph: "arrowUp",
           isSubmit: true,
-          label: "Send message",
+          label: submitLabel,
           tone: "brand",
           type: "submit",
           variant: "solid",

@@ -2,12 +2,18 @@
 export type ValueField = { label: string; unit?: string };
 
 /**
+ * An answer offered as a button: `label` names it there, and `value` is the
+ * answer in full where the label is only its name.
+ */
+export type OfferedOption = { label: string; value?: string };
+
+/**
  * A question one reply asks, with the kind that decides which answers the
- * card beneath it offers. The wire schema is checked against this type.
+ * dock on the composer offers. The wire schema is checked against this type.
  */
 export type OfferedQuestion =
   | { kind: "confirm"; label: string }
-  | { kind: "choose"; label: string; options: string[] }
+  | { kind: "choose"; label: string; options: OfferedOption[] }
   | { kind: "values"; label: string; fields: ValueField[] }
   | { kind: "open"; label: string };
 
@@ -16,48 +22,35 @@ export type OfferedQuestions = { questions: OfferedQuestion[] };
 
 export type QuestionKind = OfferedQuestion["kind"];
 
-/**
- * How the person answers in their own words instead: a field in place, whose
- * text follows `prefix`; a fixed reply for not knowing; or the composer.
- */
-export type OwnWordsPath =
-  | { path: "field"; label: string; prefix: string }
-  | { path: "unknown"; label: string; text: string }
-  | { path: "composer" };
-
-const optionBounds = { min: 2, max: 4, maxLength: 80 };
+const optionBounds = { min: 2, max: 4, maxLabelLength: 32 };
 
 /**
- * What makes a question each kind, its bounds, and the own-words path it
- * always keeps. `use` completes "Use <kind> …" in the model's instructions.
+ * What makes a question each kind, and its bounds. `use` completes
+ * "Use <kind> …" in the model's instructions. Whatever the kind, the person
+ * can answer in their own words in the composer.
  */
 export const questionKinds = {
   confirm: {
     use: "when you restate something for the user to confirm",
-    answers: ["Yes"],
-    ownWords: { path: "field", label: "Not quite…", prefix: "Not quite — " },
+    answers: [{ label: "Yes" }],
   },
   choose: {
     use: `for ${optionBounds.min} to ${optionBounds.max} named alternatives such as readings of the user's own words`,
     bounds: optionBounds,
-    ownWords: { path: "field", label: "Something else…", prefix: "" },
   },
   values: {
     use: "for numbers the user supplies",
     bounds: { min: 1, max: 3, maxLabelLength: 32, maxUnitLength: 16 },
-    ownWords: { path: "unknown", label: "I don't know", text: "I don't know." },
   },
   open: {
     use: "for every other question",
-    ownWords: { path: "composer" },
   },
 } as const satisfies Record<
   QuestionKind,
   {
     use: string;
-    answers?: readonly string[];
+    answers?: readonly OfferedOption[];
     bounds?: Readonly<Record<string, number>>;
-    ownWords: OwnWordsPath;
   }
 >;
 
@@ -82,14 +75,20 @@ export const offerText = {
     "Every question your reply asks, in the reply's order, including the open ones.",
   label:
     'A short name for the question, such as "Quarantined shipment". It heads the question\'s answer on screen and in the sent text; for an open question, name what to write, such as "Recent order, start to finish".',
-  options: "The alternatives, each worded as the user would answer.",
+  options: "The alternatives, one button each.",
+  optionLabel:
+    'A few words naming the alternative on its button, such as "Stays open".',
+  optionValue:
+    'The alternative in full, worded as the user would answer, such as "It stays counted as an open purchase order". It shows when the user points at the button and becomes their answer. Leave it out when the label already is the answer.',
   fields: "The values the user supplies, one field each.",
   fieldLabel: 'What the value is, such as "Lower reorder point".',
   unit: 'The value\'s unit, such as "units" or "days".',
 };
 
 /** The answers a question offers as buttons. */
-export const optionsFor = (question: OfferedQuestion): readonly string[] => {
+export const optionsFor = (
+  question: OfferedQuestion,
+): readonly OfferedOption[] => {
   switch (question.kind) {
     case "confirm":
       return questionKinds.confirm.answers;
@@ -100,6 +99,9 @@ export const optionsFor = (question: OfferedQuestion): readonly string[] => {
       return [];
   }
 };
+
+/** The answer a click on an option gives. */
+export const optionText = ({ label, value }: OfferedOption) => value ?? label;
 
 /** Whether an offer offers anything: at least one question isn't open. */
 export const offersAnswers = ({ questions }: OfferedQuestions) =>
