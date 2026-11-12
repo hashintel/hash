@@ -27,7 +27,7 @@ type VersionGraphTooltipTriggerProps = {
     onBlur: () => void;
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   };
-  /** Hides the tooltip until the pointer next enters the row, for example when the row is toggled. */
+  /** Hides the tooltip, for example when the row is toggled. */
   hide: () => void;
 };
 
@@ -235,26 +235,29 @@ const VersionGraphCard = ({
 
 /**
  * Shows a graph of a dependent type's versions against the parent's versions
- * while its row is hovered or its toggle has keyboard focus.
+ * while its row is collapsed and hovered, or its toggle has keyboard focus.
  */
 export const VersionGraphTooltip = ({
   row,
   parentTitle,
   parentLatestVersion,
+  expanded,
   children,
 }: {
   row: DependentTypeRow;
   parentTitle: string;
   parentLatestVersion: number;
+  /** Whether the row is expanded, which already shows its versions, so the tooltip stays closed. */
+  expanded: boolean;
   /** Renders the row; hovering it shows the tooltip. */
   children: (props: VersionGraphTooltipTriggerProps) => ReactElement;
 }) => {
   const id = useId();
-  const [open, setOpen] = useState(false);
+  const [openRequested, setOpen] = useState(false);
+  const open = openRequested && !expanded;
   const [maxWidth, setMaxWidth] = useState(0);
   const rowElement = useRef<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
-  const hiddenUntilPointerEnters = useRef(false);
 
   const show = () => {
     setMaxWidth(
@@ -265,10 +268,6 @@ export const VersionGraphTooltip = ({
     setOpen(true);
   };
   const hide = () => setOpen(false);
-  const hideUntilPointerEnters = () => {
-    hiddenUntilPointerEnters.current = true;
-    hide();
-  };
 
   const scrollWithArrowKeys = (event: KeyboardEvent<HTMLElement>) => {
     if (
@@ -289,15 +288,8 @@ export const VersionGraphTooltip = ({
     <Tooltip
       id={id}
       open={open}
-      onOpen={() => {
-        if (!hiddenUntilPointerEnters.current) {
-          show();
-        }
-      }}
+      onOpen={show}
       onClose={hide}
-      onMouseEnter={() => {
-        hiddenUntilPointerEnters.current = false;
-      }}
       enterDelay={showDelay}
       enterNextDelay={showDelay}
       leaveDelay={hideDelay}
@@ -336,7 +328,7 @@ export const VersionGraphTooltip = ({
           onBlur: hide,
           onKeyDown: scrollWithArrowKeys,
         },
-        hide: hideUntilPointerEnters,
+        hide,
       })}
     </Tooltip>
   );
