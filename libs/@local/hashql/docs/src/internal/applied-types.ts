@@ -95,7 +95,7 @@ const boundBy = (
 /**
  * How `type`, written in one of the calls of `part`, reads for `part`.
  *
- * A callable constant can take its calls from the generic declaration its annotation names, as `program: Draft<Prelude.Builtin>` takes them from `Draft<S>`. There the calls write `S`, and to the constant `S` means `Prelude.Builtin`. Each type parameter of the declaration therefore reads as the type the annotation gives it. Every other part reads its types as written.
+ * A callable constant or property can take its calls from the generic declaration its annotation names, as `program: Draft<Prelude.Builtin>` takes them from `Draft<S>`. There the calls write `S`, and to the constant `S` means `Prelude.Builtin`. Each type parameter of the declaration therefore reads as the type the annotation gives it. Every other part reads its types as written.
  */
 export const of =
   ({
@@ -107,7 +107,10 @@ export const of =
   }) =>
   (part: Parts.Part, type: AST.TypeNode.Interned): TypeNode => {
     const { node } = ast.get(type);
-    if (!AST.CallableConstant.isCallableConstant(part.source)) {
+    if (
+      !AST.CallableConstant.isCallableConstant(part.source) &&
+      !AST.CallableProperty.isCallableProperty(part.source)
+    ) {
       return node;
     }
 
