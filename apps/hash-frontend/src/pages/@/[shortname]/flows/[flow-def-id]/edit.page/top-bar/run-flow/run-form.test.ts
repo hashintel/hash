@@ -9,6 +9,7 @@ import {
   getRunBlocker,
 } from "./run-form";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowDefinition,
   FlowInputDefinition,
@@ -66,19 +67,40 @@ describe("getRunBlocker", () => {
   });
 
   it("stops a flow with a required input the form can't take, but not an optional one", () => {
-    const entitiesInput: FlowInputDefinition = {
-      name: "entities",
-      label: "Customers",
-      payloadKind: "EntityId",
-      array: true,
+    const durationInput: FlowInputDefinition = {
+      name: "window",
+      label: "Window",
+      payloadKind: "Duration",
+      array: false,
       required: true,
     };
 
-    expect(blockerOf(draftFlow([entitiesInput]))).toBe(
-      "“Customers” takes an entity list, which can't be given here yet",
+    expect(blockerOf(draftFlow([durationInput]))).toBe(
+      "“Window” takes a duration, which can't be given here yet",
     );
     expect(
-      blockerOf(draftFlow([{ ...entitiesInput, required: false }])),
+      blockerOf(draftFlow([{ ...durationInput, required: false }])),
+    ).toBeNull();
+  });
+
+  it("lets a flow with a required entity or entity list run", () => {
+    expect(
+      blockerOf(
+        draftFlow([
+          {
+            name: "customer",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "customers",
+            payloadKind: "EntityId",
+            array: true,
+            required: true,
+          },
+        ]),
+      ),
     ).toBeNull();
   });
 
@@ -101,7 +123,14 @@ describe("getFlowInputValues", () => {
     { name: "note", payloadKind: "Text", array: false, required: false },
     { name: "due", payloadKind: "Date", array: false, required: false },
     { name: "entity", payloadKind: "EntityId", array: false, required: false },
+    { name: "entities", payloadKind: "EntityId", array: true, required: false },
+    { name: "tags", payloadKind: "Text", array: true, required: false },
   ];
+
+  const acme =
+    "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
+  const globex =
+    "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~9a8b7c6d-5e4f-4321-8765-4321fedcba98" as EntityId;
 
   it("starts with a value for each input the form takes", () => {
     expect(getInitialFormValues(inputs)).toEqual({
@@ -110,6 +139,8 @@ describe("getFlowInputValues", () => {
       subject: { kind: "Text", value: "" },
       note: { kind: "Text", value: "" },
       due: { kind: "Date", value: "" },
+      entity: { kind: "EntityId", array: false, value: null },
+      entities: { kind: "EntityId", array: true, value: [] },
     });
   });
 
@@ -132,10 +163,40 @@ describe("getFlowInputValues", () => {
     });
   });
 
+  it("gives an entity's ID, and a list's IDs in the order they were picked", () => {
+    expect(
+      getFlowInputValues(inputs, {
+        ...getInitialFormValues(inputs),
+        entity: { kind: "EntityId", array: false, value: acme },
+        entities: { kind: "EntityId", array: true, value: [globex, acme] },
+      }).flowInputs,
+    ).toEqual({
+      notify: { kind: "Boolean", value: false },
+      entity: { kind: "EntityId", value: acme },
+      entities: { kind: "EntityId", value: [globex, acme] },
+    });
+  });
+
   it("names the required inputs left blank", () => {
     expect(getFlowInputValues(inputs, getInitialFormValues(inputs))).toEqual({
       flowInputs: { notify: { kind: "Boolean", value: false } },
       missingInputNames: ["count", "subject"],
     });
+  });
+
+  it("names a required entity, or a required entity list, left empty", () => {
+    const entityInputs: FlowInputDefinition[] = [
+      { name: "entity", payloadKind: "EntityId", array: false, required: true },
+      {
+        name: "entities",
+        payloadKind: "EntityId",
+        array: true,
+        required: true,
+      },
+    ];
+
+    expect(
+      getFlowInputValues(entityInputs, getInitialFormValues(entityInputs)),
+    ).toEqual({ flowInputs: {}, missingInputNames: ["entity", "entities"] });
   });
 });

@@ -268,6 +268,9 @@ const FlowEditor = ({
       return next;
     });
 
+  /* The web the flow is in, which the editor's path names. */
+  const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
+
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
   const runFlow = async (flowInputs: FlowInputValues) => {
     if (!(await flush())) {
@@ -278,8 +281,7 @@ const FlowEditor = ({
       variables: {
         flowDefinitionEntityId,
         flowInputs,
-        /* The web the flow is in, which the editor's path names. */
-        webId: extractWebIdFromEntityId(flowDefinitionEntityId),
+        webId,
         dataSources: editorRunDataSources,
       },
     });
@@ -331,6 +333,7 @@ const FlowEditor = ({
     >
       <TopBar
         editorKey={session.key}
+        webId={webId}
         editorState={editorState}
         onRename={editor.setName}
         saveStatus={status}

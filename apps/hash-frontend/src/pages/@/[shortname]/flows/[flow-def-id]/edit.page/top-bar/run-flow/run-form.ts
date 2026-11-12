@@ -4,6 +4,7 @@ import {
   withArticle,
 } from "../../shared/value-display";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowInputDefinition,
@@ -12,19 +13,22 @@ import type {
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-/** A value given to a flow input in the run form. A number not typed yet is `null`, and text or a date `""`. */
+/**
+ * A value given to a flow input in the run form. A number or an entity not given yet is `null`, text or a date `""`,
+ * and a list of entities `[]`.
+ */
 export type RunFormValue =
   | { kind: "Text"; value: string }
   | { kind: "Number"; value: number | null }
   | { kind: "Boolean"; value: boolean }
-  | { kind: "Date"; value: string };
+  | { kind: "Date"; value: string }
+  | { kind: "EntityId"; array: false; value: EntityId | null }
+  | { kind: "EntityId"; array: true; value: EntityId[] };
 
 /** The form's values, by the name of the input each is for. Inputs the form can't take have none. */
 export type RunFormValues = Record<string, RunFormValue>;
 
-/**
- * The value each kind starts with in the form, or `null` for a kind it can't take yet, e.g. an entity (FE-2184).
- */
+/** The value each kind starts with in the form, or `null` for a kind it can't take yet, e.g. a duration. */
 const emptyValues = {
   Text: { kind: "Text", value: "" },
   Number: { kind: "Number", value: null },
@@ -34,7 +38,7 @@ const emptyValues = {
   Aggregation: null,
   DateTime: null,
   Duration: null,
-  EntityId: null,
+  EntityId: { kind: "EntityId", array: false, value: null },
   EntityQuery: null,
   FailedEntityProposal: null,
   FilterCondition: null,
@@ -52,12 +56,19 @@ const emptyValues = {
   WebSearchResult: null,
 } satisfies Record<PayloadKind, RunFormValue | null>;
 
-/** The value an input starts with in the form, or `null` if the form can't take it, e.g. a list. */
+/** The value an input starts with in the form, or `null` if the form can't take it, e.g. a list of text. */
 const getEmptyValue = ({
   payloadKind,
   array,
-}: FlowInputDefinition): RunFormValue | null =>
-  array ? null : emptyValues[payloadKind];
+}: FlowInputDefinition): RunFormValue | null => {
+  if (!array) {
+    return emptyValues[payloadKind];
+  }
+
+  return payloadKind === "EntityId"
+    ? { kind: "EntityId", array: true, value: [] }
+    : null;
+};
 
 export const getInitialFormValues = (
   inputs: FlowInputDefinition[],
@@ -121,6 +132,16 @@ const toPayload = (formValue: RunFormValue): Payload | null => {
     case "Text":
     case "Date":
       return formValue.value === "" ? null : formValue;
+    case "EntityId":
+      if (formValue.array) {
+        return formValue.value.length === 0
+          ? null
+          : { kind: "EntityId", value: formValue.value };
+      }
+
+      return formValue.value === null
+        ? null
+        : { kind: "EntityId", value: formValue.value };
   }
 };
 
