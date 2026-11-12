@@ -3,12 +3,12 @@
 extern crate alloc;
 
 mod database;
+mod fixtures;
 
 use alloc::collections::BTreeMap;
 use std::collections::{HashMap, HashSet};
 
 use hash_crypto::Secret;
-use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_postgres_store::store::{PooledConnection, PostgresStore};
 use hash_graph_store::{
     entity::{EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
@@ -16,7 +16,6 @@ use hash_graph_store::{
     pool::StorePool as _,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_test_data::{data_type, entity_type, fixtures};
 use hash_integrations_definition::{Definition, SourceKind};
 use hash_integrations_engine::{
     Applied, FinishedPlan, GraphClient, GraphPlan, Planner, SinkColumns, SinkRow, TableAssertions,
@@ -29,7 +28,7 @@ use tempfile::TempDir;
 use type_system::{
     knowledge::entity::{Entity, Link, provenance::ProvidedEntityEditionProvenance},
     ontology::VersionedUrl,
-    principal::{actor::ActorId, actor_group::WebId, role::RoleName},
+    principal::{actor::ActorId, actor_group::WebId},
     provenance::{Location, SourceProvenance, SourceType},
 };
 
@@ -55,54 +54,6 @@ fn provenance() -> ProvidedEntityEditionProvenance {
         last_updated: None,
         loaded_at: None,
     })
-}
-
-async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorId, WebId) {
-    let user = fixtures::seed_account(store, None)
-        .await
-        .expect("the aviation account should be seeded");
-    let actor = ActorId::from(user.machine_id);
-    let web_id = WebId::from(user.user_id);
-    store
-        .unassign_role(
-            user.user_id.into(),
-            actor.into(),
-            web_id.into(),
-            RoleName::Member,
-        )
-        .await
-        .expect("the machine's member role should be removed before assigning administrator");
-    store
-        .assign_role(
-            user.user_id.into(),
-            actor.into(),
-            web_id.into(),
-            RoleName::Administrator,
-        )
-        .await
-        .expect("the machine should administer the aviation web");
-    seed_ontology(store, actor, web_id).await;
-    (actor, web_id)
-}
-
-async fn seed_ontology(store: &mut PostgresStore<PooledConnection>, actor: ActorId, web_id: WebId) {
-    let mut ontology: fixtures::OntologyFixture =
-        serde_json::from_str(include_str!("ontology.json"))
-            .expect("the aviation ontology should be valid");
-    ontology.data.extend(
-        [
-            data_type::VALUE_V1,
-            data_type::TEXT_V1,
-            data_type::NUMBER_V1,
-        ]
-        .map(|schema| serde_json::from_str(schema).expect("the primitive schema should be valid")),
-    );
-    ontology
-        .entities
-        .push(serde_json::from_str(entity_type::LINK_V1).expect("the link schema should be valid"));
-    fixtures::seed_ontology(store, actor, web_id, ontology)
-        .await
-        .expect("the aviation ontology should be seeded");
 }
 
 fn namespace(web_id: WebId) -> String {
@@ -326,7 +277,7 @@ async fn delivery_replay() {
         .acquire(None)
         .await
         .expect("the aviation database connection should open");
-    let (actor, web_id) = seed(&mut store).await;
+    let (actor, web_id) = fixtures::seed(&mut store).await;
     let directory = TempDir::new().expect("the workspace directory should be created");
     let workspace = Workspace::open(
         directory.path().join("aviation.duckdb"),

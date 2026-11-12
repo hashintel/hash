@@ -28,9 +28,9 @@ mod transaction;
 
 use std::collections::{HashMap, HashSet};
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use hash_graph_authorization::policies::store::PrincipalStore as _;
+use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -39,7 +39,9 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    account::{AccountStore as _, CreateAiActorParams, CreateMachineActorParams},
+    account::{
+        AccountStore as _, CreateAiActorParams, CreateMachineActorParams, CreateUserActorParams,
+    },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -74,23 +76,27 @@ use hash_graph_store::{
         QueryPropertyTypeSubgraphResponse, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
+    query::ConflictBehavior,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_graph_test_data::fixtures;
 use hash_telemetry::logging::env_filter;
 use tokio_postgres::Transaction;
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
-        OntologyTemporalMetadata, VersionedUrl, data_type::DataTypeMetadata,
-        entity_type::EntityTypeMetadata, property_type::PropertyTypeMetadata,
+        OntologyTemporalMetadata, VersionedUrl,
+        data_type::{DataType, DataTypeMetadata},
+        entity_type::{EntityType, EntityTypeMetadata},
+        property_type::{PropertyType, PropertyTypeMetadata},
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorId, AiId, MachineId},
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
         actor_group::WebId,
         role::RoleName,
     },
+    provenance::{OriginProvenance, OriginType},
 };
 
 pub struct DatabaseTestWrapper {
@@ -217,37 +223,95 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not start test transaction");
 
-        let user_id = fixtures::seed_account(&mut store, Some("bench-user".to_owned()))
-            .await?
+        store
+            .seed_system_policies()
+            .await
+            .expect("Should be able to seed system policies");
+
+        let system_account_id = store
+            .get_or_create_system_machine("h")
+            .await
+            .change_context(InsertionError)?;
+        let user_id = store
+            .create_user_actor(
+                system_account_id.into(),
+                CreateUserActorParams {
+                    user_id: None,
+                    shortname: Some("bench-user".to_owned()),
+                    registration_complete: true,
+                },
+            )
+            .await
+            .change_context(InsertionError)?
             .user_id;
-        fixtures::seed_ontology(
-            &mut store,
-            user_id.into(),
-            user_id.into(),
-            fixtures::OntologyFixture {
-                data: data_types
-                    .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema).expect("the data type fixture should be valid")
-                    })
-                    .collect(),
-                properties: property_types
-                    .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema)
-                            .expect("the property type fixture should be valid")
-                    })
-                    .collect(),
-                entities: entity_types
-                    .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema)
-                            .expect("the entity type fixture should be valid")
-                    })
-                    .collect(),
-            },
-        )
-        .await?;
+
+        store
+            .create_data_types(
+                user_id.into(),
+                data_types.into_iter().map(|data_type_str| {
+                    let schema: DataType = serde_json::from_str(data_type_str)
+                        .expect("could not parse data type representation");
+                    CreateDataTypeParams {
+                        schema,
+                        ownership: OntologyOwnership::Local {
+                            web_id: user_id.into(),
+                        },
+                        conflict_behavior: ConflictBehavior::Skip,
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::User,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
+                        conversions: HashMap::new(),
+                    }
+                }),
+            )
+            .await?;
+
+        store
+            .create_property_types(
+                user_id.into(),
+                property_types.into_iter().map(|property_type_str| {
+                    let schema: PropertyType = serde_json::from_str(property_type_str)
+                        .expect("could not property data type representation");
+                    CreatePropertyTypeParams {
+                        schema,
+                        ownership: OntologyOwnership::Local {
+                            web_id: user_id.into(),
+                        },
+                        conflict_behavior: ConflictBehavior::Skip,
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::User,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
+                    }
+                }),
+            )
+            .await?;
+
+        store
+            .create_entity_types(
+                user_id.into(),
+                entity_types.into_iter().map(|entity_type_str| {
+                    let schema: EntityType = serde_json::from_str(entity_type_str)
+                        .expect("could not entity data type representation");
+                    CreateEntityTypeParams {
+                        schema,
+                        ownership: OntologyOwnership::Local {
+                            web_id: user_id.into(),
+                        },
+                        conflict_behavior: ConflictBehavior::Skip,
+                        provenance: ProvidedOntologyEditionProvenance {
+                            actor_type: ActorType::User,
+                            origin: OriginProvenance::from_empty_type(OriginType::Api),
+                            sources: Vec::new(),
+                        },
+                        fetched_from_origin: false,
+                    }
+                }),
+            )
+            .await?;
 
         Ok(DatabaseApi {
             store,

@@ -11,21 +11,25 @@ mod links;
 mod purge;
 mod validation;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use error_stack::Report;
-use hash_graph_authorization::policies::store::PrincipalStore as _;
+use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::store::{AsClient as _, InTransaction, PostgresStore};
 use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
+    data_type::{CreateDataTypeParams, DataTypeStore as _},
     entity::{CreateEntityParams, EntityStore as _, SummarizeEntitiesParams},
+    entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     error::InsertionError,
     filter::Filter,
+    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _},
+    query::ConflictBehavior,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use hash_graph_test_data::{data_type, entity, entity_type, fixtures, property_type};
+use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tokio_postgres::Transaction;
 use type_system::{
     knowledge::{
@@ -37,7 +41,13 @@ use type_system::{
         },
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
-    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
+    ontology::{
+        data_type::DataType,
+        entity_type::EntityType,
+        id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
+        property_type::PropertyType,
+        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+    },
     principal::{
         actor::{ActorEntityUuid, ActorId, ActorType, UserId},
         actor_group::WebId,
@@ -70,37 +80,82 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not start test transaction");
 
-        let user_id = fixtures::seed_account(&mut store, Some("test-user".to_owned()))
-            .await?
+        store
+            .seed_system_policies()
+            .await
+            .expect("could not seed system policies");
+
+        let system_account_id = store
+            .get_or_create_system_machine("h")
+            .await
+            .change_context(InsertionError)?;
+        let user_id = store
+            .create_user_actor(
+                system_account_id.into(),
+                CreateUserActorParams {
+                    user_id: None,
+                    shortname: Some("test-user".to_owned()),
+                    registration_complete: true,
+                },
+            )
+            .await
+            .change_context(InsertionError)?
             .user_id;
-        fixtures::seed_ontology(
-            &mut store,
-            user_id.into(),
-            user_id.into(),
-            fixtures::OntologyFixture {
-                data: data_types
+
+        let ontology_provenance = ProvidedOntologyEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        };
+
+        store
+            .create_data_types(
+                user_id.into(),
+                data_types.into_iter().map(|json| CreateDataTypeParams {
+                    schema: serde_json::from_str::<DataType>(json)
+                        .expect("could not parse data type"),
+                    ownership: OntologyOwnership::Local {
+                        web_id: user_id.into(),
+                    },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: ontology_provenance.clone(),
+                    conversions: HashMap::new(),
+                }),
+            )
+            .await?;
+
+        store
+            .create_property_types(
+                user_id.into(),
+                property_types
                     .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema).expect("the data type fixture should be valid")
-                    })
-                    .collect(),
-                properties: property_types
-                    .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema)
-                            .expect("the property type fixture should be valid")
-                    })
-                    .collect(),
-                entities: entity_types
-                    .into_iter()
-                    .map(|schema| {
-                        serde_json::from_str(schema)
-                            .expect("the entity type fixture should be valid")
-                    })
-                    .collect(),
-            },
-        )
-        .await?;
+                    .map(|json| CreatePropertyTypeParams {
+                        schema: serde_json::from_str::<PropertyType>(json)
+                            .expect("could not parse property type"),
+                        ownership: OntologyOwnership::Local {
+                            web_id: user_id.into(),
+                        },
+                        conflict_behavior: ConflictBehavior::Skip,
+                        provenance: ontology_provenance.clone(),
+                    }),
+            )
+            .await?;
+
+        store
+            .create_entity_types(
+                user_id.into(),
+                entity_types.into_iter().map(|json| CreateEntityTypeParams {
+                    schema: serde_json::from_str::<EntityType>(json)
+                        .expect("could not parse entity type"),
+                    ownership: OntologyOwnership::Local {
+                        web_id: user_id.into(),
+                    },
+                    conflict_behavior: ConflictBehavior::Skip,
+                    provenance: ontology_provenance.clone(),
+                    fetched_from_origin: false,
+                }),
+            )
+            .await?;
 
         Ok(DatabaseApi {
             store,

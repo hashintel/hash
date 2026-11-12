@@ -3,7 +3,6 @@
   "dependencies": [
     "error-stack",
     "hash-codec",
-    "hash-graph-authorization",
     "hash-graph-store",
     "type-system"
   ],
