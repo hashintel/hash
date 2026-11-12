@@ -30,7 +30,7 @@ import {
 } from "./run-history";
 import { oldStatusWords } from "./status-grammar";
 import { type LogRow, logRows } from "./run-log";
-import { BusinessRunLog, runLogTake } from "./run-log-business";
+import { BusinessRunLog, runLogEdge24, runLogTake } from "./run-log-business";
 import {
   ErrorDetails,
   ErrorList,
@@ -529,7 +529,12 @@ export const RunLogPanel = ({ history }: { history: HistoryValue }) => {
   const businessTake = runLogTake();
   if (businessTake) {
     return (
-      <aside className={panelStyle} aria-label="Run log" data-run-log-panel>
+      <aside
+        className={panelStyle}
+        aria-label="Run log"
+        data-run-log-panel
+        data-run-log-edge={runLogEdge24 || undefined}
+      >
         <BusinessRunLog
           take={businessTake}
           run={run}

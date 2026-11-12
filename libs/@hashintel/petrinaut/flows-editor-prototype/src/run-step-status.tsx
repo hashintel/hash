@@ -8,10 +8,11 @@
  */
 import { useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
+import { ShowAllRow } from "./show-all-row";
 import { statusWord } from "./status-grammar";
 import { RunGlyph } from "./run-glyph";
 import { clockText } from "./run-time";
@@ -32,6 +33,22 @@ import {
   suppliers,
   runWhen,
 } from "./run-history";
+
+/**
+ * `?approver=person`: Ask a person waits on the person the editor names (People · Maya Patel), not the role (Head of
+ * quality), and its run inputs take the editor's labels (People, Instructions).
+ */
+export const approverPerson =
+  new URLSearchParams(globalThis.location.search).get("approver") === "person";
+
+export const approverName = approverPerson ? "Maya Patel" : "Head of quality";
+
+/**
+ * `?notreached=skipped`: in a run that has ended, a step it never reached reads Skipped, not Waiting (nothing waits
+ * once the run is over).
+ */
+export const notReachedSkipped =
+  new URLSearchParams(globalThis.location.search).get("notreached") === "skipped";
 
 const strongLineStyle = css({ textStyle: "sm", color: "neutral.fg.heading" });
 const quietLineStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
@@ -57,7 +74,12 @@ const stepTiming = (
     return { from: 0, to: 0.1 };
   }
   if (stepId === "findSuppliers") {
-    return facts.find === "running" ? { from: 0 } : findSpan;
+    // A failed find ran until the run ended ("took over 5 min" in the run's summary).
+    return facts.find === "running"
+      ? { from: 0 }
+      : facts.find === "failed" && total !== undefined
+        ? { from: 0, to: total }
+        : findSpan;
   }
   if (stepId === forEachId) {
     return { from: findSpan.to, to: signOffAt(n) };
@@ -125,7 +147,7 @@ export const StepStatusLines = ({
           .map((failure) => `${suppliers[failure.item] ?? "An item"}: 3 attempts`)
           .join(" · ")
       : stepId === signOffId && facts.signOff === "waiting"
-        ? "Waiting on Head of quality"
+        ? `Waiting on ${approverName}`
         : undefined;
   return (
     <>
@@ -173,6 +195,12 @@ const noteStyle = css({
   overflowWrap: "anywhere",
 });
 
+/**
+ * `?statuslook=<name>`: a hook for restyling the Status line once its layout is picked (inbox "Step status line:
+ * layout", reopened 12 Nov). Its value lands on `data-status-look`; today's look draws for every value.
+ */
+const statusLook = new URLSearchParams(globalThis.location.search).get("statuslook");
+
 /** One Status: the mark and its word, then the facts after it, then a quiet line per reason or person. */
 export const StatusLine = ({
   state,
@@ -185,7 +213,7 @@ export const StatusLine = ({
   facts: (string | undefined)[];
   notes?: React.ReactNode[];
 }) => (
-  <div className={statusLineStyle} data-status-line>
+  <div className={statusLineStyle} data-status-line data-status-look={statusLook ?? undefined}>
     <span className={firstLineStyle}>
       <RunGlyph state={state} size={16} />
       <span className={firstLineTextStyle}>
@@ -241,24 +269,24 @@ const statusParts = (
     case "needsReview":
       return {
         word: "Needs review",
-        notes: stepId === signOffId ? ["Waiting on Head of quality"] : [],
+        notes: stepId === signOffId ? [`Waiting on ${approverName}`] : [],
       };
     default:
   }
   if (stepId === runTriggerId) {
-    return { word: "Started the run", notes: [] };
+    return { word: statusWord("Started the run", "Done"), notes: [] };
   }
   if (stepId === "findSuppliers") {
     return state.state === "failed"
       ? { word: "Failed", notes: ["Timed out"] }
       : state.state === "running"
         ? { word: "Running", notes: [] }
-        : { word: `${n} found`, notes: [] };
+        : { word: statusWord(`${n} found`, "Done"), notes: [] };
   }
   if (stepId === signOffId) {
     return state.state === "failed"
       ? { word: "Failed", notes: ["Timed out after 48 h"] }
-      : { word: "Approved", notes: [] };
+      : { word: statusWord("Approved", "Done"), notes: [] };
   }
   const failed = state.bar?.find((segment) => segment.state === "failed")?.count ?? 0;
   const skipped = state.bar?.find((segment) => segment.state === "skipped")?.count ?? 0;
@@ -309,6 +337,10 @@ export const StepStatusLine = ({
   state: StepRun;
   now: number;
 }) => {
+  const ended = run.kind === "past" || run.stopped !== undefined;
+  if (notReachedSkipped && ended && state.state === "notReached") {
+    return <StatusLine state="skipped" word="Skipped" facts={[]} />;
+  }
   const when = stepWhen(stepId, run, facts, state, now);
   const { word, count, notes } = statusParts(stepId, facts, state);
   const timeFacts =
@@ -434,7 +466,83 @@ const Branch = ({ facts, item }: { facts: RunFacts; item: number }) => {
   );
 };
 
+/** `?foreachitems=all`: the For each panel lists every item in place, as before the overflow rule. */
+const allItemsInPanel =
+  new URLSearchParams(globalThis.location.search).get("foreachitems") === "all";
+
+/** Rows the panel shows before "Show all N", as the other panel lists (outputs, needs review) show four. */
+const panelItemRows = 4;
+
+/**
+ * The For each's items in a run (11 Nov, inbox conv-overflow): the first rows, failures first, then "Show all N
+ * suppliers", which opens every item in the 640 px sheet.
+ */
 export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  if (allItemsInPanel) {
+    return <ItemList facts={facts} />;
+  }
+  const limit = Math.max(panelItemRows, facts.failures.length);
+  return (
+    <>
+      <ItemList facts={facts} limit={limit} />
+      {facts.n > limit ? (
+        <div className={css({ gridColumn: "1 / -1" })}>
+          <ShowAllRow total={facts.n} noun="suppliers" onClick={() => setSheetOpen(true)} />
+        </div>
+      ) : null}
+      {sheetOpen ? (
+        <Drawer
+          size="md"
+          position="right"
+          variant="plain"
+          showBackdrop={false}
+          shouldCloseOn="none"
+          onClose={() => setSheetOpen(false)}
+          aria-label={`For each supplier · ${facts.n}`}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              setSheetOpen(false);
+            }
+          }}
+        >
+          <Drawer.Header
+            title={`For each supplier · ${facts.n}`}
+            actions={
+              <Button
+                size="sm"
+                variant="subtle"
+                tone="neutral"
+                iconName="collapse"
+                aria-label="Back to the panel"
+                tooltip="Back to the panel · Esc"
+                onClick={() => setSheetOpen(false)}
+              />
+            }
+          />
+          <Drawer.Body>
+            <div data-foreach-items-sheet>
+              <ItemList facts={facts} walk={false} />
+            </div>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+
+const ItemList = ({
+  facts,
+  limit,
+  walk = true,
+}: {
+  facts: RunFacts;
+  limit?: number;
+  /** "Next failed" beside the Items heading; the sheet has no such heading. */
+  walk?: boolean;
+}) => {
   const failedItems = facts.failures.map((failure) => failure.item);
   const order = [
     ...failedItems,
@@ -459,14 +567,14 @@ export const ForEachItems = ({ facts }: { facts: RunFacts }) => {
         flexDirection: "column",
       })}
     >
-      {failedItems.length > 0 ? (
+      {walk && failedItems.length > 0 ? (
         <div className={css({ display: "flex", justifyContent: "flex-end", marginTop: "[-31px]", marginBottom: "1" })}>
           <Button size="xs" variant="ghost" tone="neutral" onClick={nextFailed}>
             Next failed
           </Button>
         </div>
       ) : null}
-      {order.map((item) => {
+      {(limit === undefined ? order : order.slice(0, limit)).map((item) => {
         const state = itemState(facts, item);
         const failure = facts.failures.find((entry) => entry.item === item);
         return (

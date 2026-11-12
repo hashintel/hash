@@ -971,8 +971,9 @@ const tileColorOf = (icon: string, ghost = false): CSSProperties =>
 export const tileColor = (icon: string, ghost = false): CSSProperties =>
   shaped(tileColorOf(icon, ghost));
 
-export const panelTileColor = (icon: string): CSSProperties => {
-  const group = groupHues.find((entry) => entry.icons.includes(icon))?.group;
+/** A panel header's tile: the step's group hue, or neutral for what is not a step (a trigger). */
+export const panelTileColor = (icon: string, neutral = false): CSSProperties => {
+  const group = neutral ? undefined : groupHues.find((entry) => entry.icons.includes(icon))?.group;
   const steps = (group ? paletteSwatch(group) : null) ?? equalSteps.neutral!;
   return shaped({ backgroundColor: tokenVar(steps.tile), color: tokenVar(steps.icon) });
 };

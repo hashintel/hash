@@ -809,13 +809,21 @@ const Block = ({
   </section>
 );
 
-const LinkOut = ({ label, tooltip }: { label: string; tooltip: string }) => (
-  <span className={linkOutStyle}>
-    <TextLink leaves tooltip={tooltip}>
-      {label}
-    </TextLink>
-  </span>
-);
+/**
+ * `?linkout=old`: "Open all in Files" and "Open in Mail". HASH has no Files or Mail product, so by default an output
+ * list links nowhere outside the run.
+ */
+const oldLinkOut =
+  new URLSearchParams(globalThis.location.search).get("linkout") === "old";
+
+const LinkOut = ({ label, tooltip }: { label: string; tooltip: string }) =>
+  oldLinkOut ? (
+    <span className={linkOutStyle}>
+      <TextLink leaves tooltip={tooltip}>
+        {label}
+      </TextLink>
+    </span>
+  ) : null;
 
 const rowButtonStyle = css({
   display: "grid",
@@ -1583,7 +1591,7 @@ const FileNav = ({
   );
 };
 
-/** Download and Open in Files / Mail. */
+/** Download (and, with `?linkout=old`, Open in Files / Mail). */
 const FileActions = ({ file }: { file: OutputFile }) => (
   <>
     <Button
@@ -1594,16 +1602,18 @@ const FileActions = ({ file }: { file: OutputFile }) => (
     >
       Download
     </Button>
-    <TextLink
-      leaves
-      tooltip={
-        file.kind === "certificate"
-          ? "Opens the File entity in HASH (not in the prototype)"
-          : "Opens the sent email (not in the prototype)"
-      }
-    >
-      {file.kind === "certificate" ? "Open in Files" : "Open in Mail"}
-    </TextLink>
+    {oldLinkOut ? (
+      <TextLink
+        leaves
+        tooltip={
+          file.kind === "certificate"
+            ? "Opens the File entity in HASH (not in the prototype)"
+            : "Opens the sent email (not in the prototype)"
+        }
+      >
+        {file.kind === "certificate" ? "Open in Files" : "Open in Mail"}
+      </TextLink>
+    ) : null}
   </>
 );
 

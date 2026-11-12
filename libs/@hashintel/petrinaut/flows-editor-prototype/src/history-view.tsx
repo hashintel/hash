@@ -24,6 +24,8 @@ import { RunGlyph } from "./run-glyph";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { runOutputs, StepOutputs } from "./run-outputs";
 import {
+  approverName,
+  approverPerson,
   ForEachItems,
   oldStatusLine,
   StepStatusLine,
@@ -689,10 +691,15 @@ const detailOf = (
       span: reached
         ? `From ${clockPlus(run.startClock, signOffAt(n))}`
         : undefined,
-      inputs: [
-        ["Person", "Head of quality"],
-        ["Question", "Sign off this month's supplier review?"],
-      ],
+      inputs: approverPerson
+        ? [
+            ["People", approverName],
+            ["Instructions", "Sign off this month's supplier review?"],
+          ]
+        : [
+            ["Person", approverName],
+            ["Question", "Sign off this month's supplier review?"],
+          ],
     };
   }
   const titles: Record<string, [string, IconName, string, [string, React.ReactNode][]]> =
@@ -848,12 +855,15 @@ const RunHeader = ({
   group,
   description,
   today,
+  neutral = false,
 }: {
   icon: IconName;
   kind: string;
   group?: string;
   description: string;
   today: string;
+  /** A trigger: not a step, so a neutral grey tile (ledger 11 Nov ~20:00). */
+  neutral?: boolean;
 }) => {
   const described = description.trim() ? description : "";
   const second =
@@ -869,6 +879,7 @@ const RunHeader = ({
   return (
     <HueHeader
       icon={icon}
+      neutral={neutral}
       title={
         <span>{panelKindTake === "k4" && described ? described : kind}</span>
       }
@@ -935,6 +946,7 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
       ) : (
         <RunHeader
           icon={entry?.icon ?? detail.icon}
+          neutral={stepId === runTriggerId}
           kind={entry?.title ?? detail.type}
           group={
             stepId === runTriggerId

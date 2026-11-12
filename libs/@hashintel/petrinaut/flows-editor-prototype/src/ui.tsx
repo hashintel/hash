@@ -605,15 +605,18 @@ export const HueHeader = ({
   icon,
   title,
   children,
+  neutral = false,
 }: {
   icon: IconName;
   title: React.ReactNode;
   children?: React.ReactNode;
+  /** A neutral grey tile: triggers are not steps, so they take no group hue. */
+  neutral?: boolean;
 }) => (
   <div className={hueHeaderStyle}>
     <span
       className={hueTileStyle}
-      style={panelTileColor(icon)}
+      style={panelTileColor(icon, neutral)}
       aria-hidden="true"
     >
       <Icon name={icon} size="sm" />

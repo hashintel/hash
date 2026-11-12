@@ -37,7 +37,7 @@ import {
   useWaitingRun,
 } from "./needs-review";
 import { RunGlyph } from "./run-glyph";
-import { oldStatusLine, StatusLine } from "./run-step-status";
+import { approverName, oldStatusLine, StatusLine } from "./run-step-status";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
 import { type Certificate, Page } from "./run-outputs";
@@ -166,7 +166,7 @@ const r2Requests: R2Request[] = [
   },
   {
     id: "sign-off",
-    why: "Waiting on Head of quality",
+    why: `Waiting on ${approverName}`,
     stepId: "qualitySignOff",
     path: "Quality sign-off",
     question: "Sign off the October supplier review?",
@@ -1035,8 +1035,10 @@ const Sheet = ({ request, onClose }: { request: R2Request; onClose: () => void }
 export const ReviewR2Side = ({ children }: { children: React.ReactNode }) => {
   const { ui, setUi } = useEditor();
   const { shown } = useShown();
-  // The first open question's step starts selected, so the canvas marks the step it is about.
-  const firstStep = shown?.stepId;
+  const run = useWaitingRun();
+  // In the run that waits, the first open question's step starts selected, so the canvas marks the step it is
+  // about. Other runs open on their summary.
+  const firstStep = run ? shown?.stepId : undefined;
   useEffect(() => {
     if (firstStep && take !== "r2-3") {
       setUi((current) =>
@@ -1047,7 +1049,6 @@ export const ReviewR2Side = ({ children }: { children: React.ReactNode }) => {
     }
   }, [firstStep, setUi]);
   const [sheetOpen, setSheetOpen] = useState(true);
-  const run = useWaitingRun();
   // A selected step with nothing to answer shows its own panel.
   const otherStep =
     ui.selectedId !== null &&

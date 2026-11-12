@@ -20,13 +20,16 @@ import { RunGlyph } from "./run-glyph";
 import { STATUS_MARK_SIZE, useStatusSide } from "./status-side";
 import {
   factsOf,
+  outcomeLabel,
   outcomeOf,
+  outcomeState,
   pastRuns,
   type RunRecord,
   type StepState,
   runWhen,
 } from "./run-history";
 import { type RunOutputs, runOutputs } from "./run-outputs";
+import { StatusLine } from "./run-step-status";
 
 export type RunLogTake = "b1" | "b2" | "b3" | "b4";
 
@@ -76,11 +79,26 @@ const sectionStyle = css({
   },
 });
 
+/**
+ * `?runlogedge=24`: the summary's sections and lines start on the 24 px edge the run head and every step panel use,
+ * not 16 px in.
+ */
+export const runLogEdge24 =
+  new URLSearchParams(globalThis.location.search).get("runlogedge") === "24";
+
+/**
+ * `?runsumstatus=line`: the run head adds the one-line Status under the run's ID (mark · word · count), as a step's
+ * Status reads.
+ */
+const runSummaryStatusLine =
+  new URLSearchParams(globalThis.location.search).get("runsumstatus") === "line";
+
 const sectionHeadStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   paddingX: "4",
+  "[data-run-log-edge] &": { paddingX: "6" },
   paddingBottom: "1",
   textStyle: "sm",
   color: "neutral.fg.subtle",
@@ -93,6 +111,7 @@ const lineStyle = css({
   alignItems: "start",
   minHeight: "[32px]",
   paddingX: "4",
+  "[data-run-log-edge] &": { paddingX: "6" },
   paddingY: "[7px]",
   textStyle: "sm",
   color: "neutral.fg.body",
@@ -345,12 +364,28 @@ const Line = ({
   );
 };
 
+/** The run's Status on one line: its mark and word, then how many items failed. */
+const RunStatusLine = ({ run, now }: { run: RunRecord; now: number }) => {
+  const outcome = outcomeOf(run, now);
+  const facts = factsOf(run, now);
+  const failed = facts.failures.length;
+  return (
+    <StatusLine
+      state={outcomeState[outcome]}
+      word={outcomeLabel[outcome]}
+      facts={[failed > 0 && facts.n > 0 ? `${failed} of ${facts.n} failed` : undefined]}
+    />
+  );
+};
+
 const Head = ({
   run,
+  now,
   sentence,
   usual,
 }: {
   run: RunRecord;
+  now: number;
   sentence: string;
   usual: boolean;
 }) => {
@@ -376,6 +411,7 @@ const Head = ({
           {[duration, runWhen(run)].filter(Boolean).join(" · ")}
         </span>
       </div>
+      {runSummaryStatusLine ? <RunStatusLine run={run} now={now} /> : null}
       <span className={sentenceStyle}>{sentence}</span>
       <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
         {[
@@ -393,7 +429,12 @@ const TechnicalLog = ({ lines }: { lines: ReactNode }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className={sectionStyle}>
-      <div className={css({ paddingX: "2" })}>
+      <div
+        className={css({
+          paddingX: "2",
+          "[data-run-log-edge] &": { paddingX: "4" },
+        })}
+      >
         <Button
           size="sm"
           variant="ghost"
@@ -680,6 +721,7 @@ export const BusinessRunLog = ({
     <>
       <Head
         run={run}
+        now={now}
         sentence={
           live
             ? `Running: ${outputs.updated.length} of ${factsOf(run, now).n} suppliers reviewed so far.`
