@@ -361,6 +361,7 @@ const FlowEditor = ({
         editorKey={session.key}
         webId={webId}
         editorState={editorState}
+        flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}
         flowRunEntityId={flowRunEntityId}
         onViewChange={showView}

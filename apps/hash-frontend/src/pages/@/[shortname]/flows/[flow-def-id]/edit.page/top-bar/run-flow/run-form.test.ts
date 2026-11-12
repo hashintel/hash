@@ -5,6 +5,7 @@ import { createFlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor
 import { actionStep, flowWith } from "../../shared/step-fixtures";
 import {
   getFlowInputValues,
+  getFormValuesFromRun,
   getInitialFormValues,
   getRunBlocker,
 } from "./run-form";
@@ -198,5 +199,95 @@ describe("getFlowInputValues", () => {
     expect(
       getFlowInputValues(entityInputs, getInitialFormValues(entityInputs)),
     ).toEqual({ flowInputs: {}, missingInputNames: ["entity", "entities"] });
+  });
+});
+
+describe("getFormValuesFromRun", () => {
+  it("fills in the run's values for the inputs that still take them, and names the ones that changed", () => {
+    expect(
+      getFormValuesFromRun(
+        [
+          {
+            name: "count",
+            payloadKind: "Number",
+            array: false,
+            required: true,
+          },
+          /* Took a number when the flow ran. */
+          { name: "limit", payloadKind: "Text", array: false, required: false },
+          /* Took one topic when the flow ran. */
+          { name: "topics", payloadKind: "Text", array: true, required: false },
+          /* Unchanged, but the form can't take it. */
+          {
+            name: "when",
+            payloadKind: "DateTime",
+            array: false,
+            required: false,
+          },
+          /* Added since the run. */
+          { name: "due", payloadKind: "Date", array: false, required: false },
+        ],
+        {
+          count: { kind: "Number", value: 0 },
+          /* Removed since the run. */
+          region: { kind: "Text", value: "EU" },
+          limit: { kind: "Number", value: 5 },
+          topics: { kind: "Text", value: "AI" },
+          when: { kind: "DateTime", value: "2026-11-01T10:00:00Z" },
+        },
+      ),
+    ).toEqual({
+      values: {
+        count: { kind: "Number", value: 0 },
+        limit: { kind: "Text", value: "" },
+        due: { kind: "Date", value: "" },
+      },
+      changedInputLabels: ["Region", "Limit", "Topics"],
+    });
+  });
+
+  it("fills in the run's entity and list of entities, and names an entity input that changed between one and a list", () => {
+    const acme =
+      "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~1d4c8e2a-7b3f-4a61-8c9d-0e5f6a7b8c9d" as EntityId;
+    const globex =
+      "f3c9a1d2-0b7e-4c55-9f0e-6a1b2c3d4e5f~9a8b7c6d-5e4f-4321-8765-4321fedcba98" as EntityId;
+
+    expect(
+      getFormValuesFromRun(
+        [
+          {
+            name: "entity",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "entities",
+            payloadKind: "EntityId",
+            array: true,
+            required: false,
+          },
+          /* Took one entity when the flow ran. */
+          {
+            name: "owners",
+            payloadKind: "EntityId",
+            array: true,
+            required: false,
+          },
+        ],
+        {
+          entity: { kind: "EntityId", value: acme },
+          entities: { kind: "EntityId", value: [globex, acme] },
+          owners: { kind: "EntityId", value: globex },
+        },
+      ),
+    ).toEqual({
+      values: {
+        entity: { kind: "EntityId", array: false, value: acme },
+        entities: { kind: "EntityId", array: true, value: [globex, acme] },
+        owners: { kind: "EntityId", array: true, value: [] },
+      },
+      changedInputLabels: ["Owners"],
+    });
   });
 });

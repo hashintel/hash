@@ -86,6 +86,79 @@ export const getInitialFormValues = (
   return values;
 };
 
+/** A run's value as the form's value for its input, given the value the input starts with, or `null` if it isn't one. */
+const getRanFormValue = (
+  emptyValue: RunFormValue,
+  payload: Payload,
+): RunFormValue | null => {
+  const { value } = payload;
+
+  switch (emptyValue.kind) {
+    case "Text":
+    case "Date":
+      return typeof value === "string"
+        ? { kind: emptyValue.kind, value }
+        : null;
+    case "Number":
+      return typeof value === "number" ? { kind: "Number", value } : null;
+    case "Boolean":
+      return typeof value === "boolean" ? { kind: "Boolean", value } : null;
+    case "EntityId":
+      if (payload.kind !== "EntityId") {
+        return null;
+      }
+
+      if (emptyValue.array) {
+        return Array.isArray(payload.value) &&
+          payload.value.every(
+            (item): item is EntityId => typeof item === "string",
+          )
+          ? { kind: "EntityId", array: true, value: payload.value }
+          : null;
+      }
+
+      return typeof payload.value === "string"
+        ? { kind: "EntityId", array: false, value: payload.value }
+        : null;
+  }
+};
+
+/**
+ * The form's values to run the flow again with a run's inputs: each of the run's values fills in the input of the same
+ * name. `changedInputLabels` names the run's inputs whose values are left out, as the flow no longer has them or they
+ * now take another kind of value.
+ */
+export const getFormValuesFromRun = (
+  inputs: FlowInputDefinition[],
+  ranInputs: FlowInputValues,
+): { values: RunFormValues; changedInputLabels: string[] } => {
+  const values = getInitialFormValues(inputs);
+  const inputsByName = new Map(inputs.map((input) => [input.name, input]));
+  const changedInputLabels: string[] = [];
+
+  for (const [name, payload] of Object.entries(ranInputs)) {
+    const input = inputsByName.get(name);
+
+    if (
+      !input ||
+      input.payloadKind !== payload.kind ||
+      input.array !== Array.isArray(payload.value)
+    ) {
+      changedInputLabels.push(getFlowInputLabel(input ?? { name }));
+      continue;
+    }
+
+    const emptyValue = values[name];
+    const ranValue = emptyValue ? getRanFormValue(emptyValue, payload) : null;
+
+    if (ranValue) {
+      values[name] = ranValue;
+    }
+  }
+
+  return { values, changedInputLabels };
+};
+
 /**
  * Why the flow can't be run from the editor, or `null` if it can: the first of its errors, no steps, or a required
  * input the form can't take.
