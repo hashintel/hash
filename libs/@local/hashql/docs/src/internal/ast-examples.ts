@@ -68,7 +68,9 @@ const compile = Effect.fnUntraced(function* ({ example, file }: Compiled) {
 
   for (const [name, found] of Array.zip(names, symbols)) {
     if (Option.isSome(found)) {
-      const symbol = yield* TypeScript.Checker.resolveAlias(found.value);
+      const symbol = yield* TypeScript.Checker.resolveAlias(found.value).pipe(
+        Effect.flatMap(Names.declared),
+      );
 
       // A name that resolves to nothing, such as an import the program cannot find, has no meaning to show.
       const isUnknown = yield* checker.isUnknownSymbol(symbol);

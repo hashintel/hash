@@ -45,7 +45,7 @@ export interface Entry {
 /**
  * The public declarations reachable from the AST's entrypoints.
  *
- * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The first path to a declaration is its canonical name, with entrypoint roots taking precedence over re-exports of those roots.
+ * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The shortest path to a declaration is its canonical name, and among paths of one length the first in that order. An entrypoint's root keeps its entrypoint as its name, whatever re-exports it.
  */
 export interface Catalogue {
   readonly ast: AST.Store["Service"];
@@ -106,6 +106,13 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
         name,
         nameTypeOnlyExport: typeOnlyExport,
         typeOnlyExport,
+      });
+    } else if (name.path.length < previous.value.name.path.length) {
+      MutableHashMap.set(byId, id, {
+        id,
+        name,
+        nameTypeOnlyExport: typeOnlyExport,
+        typeOnlyExport: previous.value.typeOnlyExport && typeOnlyExport,
       });
     } else if (previous.value.typeOnlyExport && !typeOnlyExport) {
       MutableHashMap.set(byId, id, {

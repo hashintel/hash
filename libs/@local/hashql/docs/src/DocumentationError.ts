@@ -14,6 +14,7 @@ const Reason = Schema.TaggedUnion({
   },
   InvalidExample: { start: Schema.Finite },
   StrayModuleComment: { start: Schema.Finite },
+  ReexportComment: { start: Schema.Finite },
   UnresolvedLink: { destination: Schema.String, start: Schema.Finite },
   UnsupportedReference: { destination: Schema.String, start: Schema.Finite },
   UnknownParameter: { name: Schema.String, start: Schema.Finite },
@@ -40,6 +41,8 @@ export class DocumentationError extends Schema.TaggedError<DocumentationError>()
         `Expected one fenced code block with an optional caption at ${start}`,
       StrayModuleComment: ({ start }) =>
         `The @module comment at ${start} does not lead its file, so it documents nothing`,
+      ReexportComment: ({ start }) =>
+        `The comment at ${start} is on a re-export, which shows the documentation of what it exports, so it documents nothing`,
       UnresolvedLink: ({ destination, start }) =>
         `No declaration for the link to ${destination} at ${start}`,
       UnknownParameter: ({ name, start }) =>

@@ -116,6 +116,13 @@ const parseNamespace = (
     ),
     documentation: Comments.documentation(node),
   }).pipe(
+    Effect.tap(() =>
+      Effect.forEach(
+        Array.filter(statementsOf(node), Syntax.isExportDeclaration),
+        Comments.checkReexport,
+        { discard: true },
+      ),
+    ),
     Effect.map(AST.NamespaceDeclaration.make),
     Effect.flatMap(AST.intern),
   );

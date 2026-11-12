@@ -301,12 +301,16 @@ const isClassMember = (node: Syntax.ClassElement): boolean =>
   Syntax.isConstructorDeclaration(node) ||
   Syntax.isSemicolonClassElement(node);
 
-/** The members of a class: named members first, then its constructors as one member. Any other class element fails the class. */
+/** The members of a class that code outside it can use: named members first, then its constructors as one member. Any other class element fails the class. */
 export const classMembers = (
   nodes: readonly Syntax.ClassElement[],
 ): Parsed<Chunk.Chunk<AST.Member.InternedClass>> =>
   Effect.all({
-    common: commonMembers(Array.filter(nodes, isCommon)),
+    common: pipe(
+      Array.filter(nodes, isCommon),
+      Array.filter((node) => !TypeScript.Node.isPrivate(node)),
+      commonMembers,
+    ),
     constructors: Array.match(
       Array.filter(nodes, Syntax.isConstructorDeclaration),
       {
