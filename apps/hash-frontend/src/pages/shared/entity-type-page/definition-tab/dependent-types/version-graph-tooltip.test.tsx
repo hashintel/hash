@@ -258,6 +258,54 @@ describe("VersionGraphTooltip", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
+  it("keeps the graph closed when the row is toggled within the hover delay", () => {
+    renderRows([shellCompany]);
+
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
+    wait(200);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Shell Company, former" }),
+    );
+    wait(1000);
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("keeps the graph closed while the pointer moves inside a toggled row, and shows it again once the pointer leaves and comes back", () => {
+    renderRows([shellCompany]);
+
+    const row = screen.getByTestId("Shell Company");
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
+    fireEvent.mouseOver(row);
+    wait(300);
+    fireEvent.click(toggle);
+    waitForFadeOut();
+    fireEvent.mouseOver(toggle, { relatedTarget: row });
+    wait(1000);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+
+    fireEvent.mouseLeave(row);
+    wait(1000);
+    fireEvent.mouseOver(row);
+    wait(300);
+    screen.getByRole("tooltip");
+  });
+
+  it("still shows the graph when the toggle gets keyboard focus after the row is toggled", () => {
+    renderRows([shellCompany]);
+
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
+    fireEvent.click(toggle);
+    focusWithKeyboard(toggle);
+
+    screen.getByRole("tooltip");
+  });
+
   it("draws the parent's versions, only the type's versions that extend one, and a line for each extension", () => {
     renderRows([shellCompany]);
 
