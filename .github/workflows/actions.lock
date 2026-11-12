@@ -203,7 +203,7 @@ dependencies:
         repo_id: 209846629
     'hashintel/actions@main':
         ref: 'main'
-        commit: 'sha1-12218f636ffc50085953865e21b360b3ac580f9d'
+        commit: 'sha1-716db7f330dd96fcac4b2219c1583f767beee925'
         owner_id: 22116112
         repo_id: 1389230708
         uses:
