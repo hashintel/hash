@@ -117,7 +117,7 @@
     "@local/tsconfig": "workspace:*",
     "@mantine/hooks": "8.3.5",
     "@mdx-js/mdx": "^3.1.1",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.65.0",
     "@radix-ui/colors": "3.0.0",
     "@storybook/addon-docs": "10.4.6",
     "@storybook/icons": "^2.1.0",
