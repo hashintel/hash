@@ -92,7 +92,7 @@ describe("DependentTypesSection", () => {
     const { section } = renderSection({ rows: [] });
 
     expect(section.getAttribute("aria-busy")).toBe("false");
-    expect(section.textContent).toContain("No types extend Actor yet.");
+    within(section).getByText("No types extend Actor");
     expect(within(section).queryByRole("switch")).toBeNull();
   });
 
@@ -203,7 +203,7 @@ describe("DependentTypesSection", () => {
   it("says no type extends the type when only former types do, and keeps the switch", () => {
     const { section } = renderSection({ rows: [shellCompany] });
 
-    expect(section.textContent).toContain("No types extend Actor yet.");
+    within(section).getByText("No types extend Actor");
     within(section).getByRole("switch", { name: "Include former types" });
   });
 

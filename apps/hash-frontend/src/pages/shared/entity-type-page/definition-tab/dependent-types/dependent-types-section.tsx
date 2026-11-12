@@ -10,9 +10,14 @@ import {
 } from "@mui/material";
 import { useId, useState } from "react";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  IconDiagramNestedLight,
+} from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { SegmentedControl } from "@hashintel/ds-components";
+import { EmptyListCard } from "@hashintel/type-editor";
 
 import { DsComponentsScope } from "../../../ds-components-scope";
 import { getParentVersionRows } from "./dependent-type-rows";
@@ -165,9 +170,20 @@ export const DependentTypesSection = ({
         </Typography>
       ) : null}
       {shownRows?.length === 0 ? (
-        <Typography sx={secondaryTextSx}>
-          No types extend {boldTitle} yet.
-        </Typography>
+        <EmptyListCard
+          icon={<IconDiagramNestedLight />}
+          headline={<>No types extend {entityTypeTitle}</>}
+          description={
+            <>Types that extend another type inherit its properties and links</>
+          }
+          subDescription={
+            <>
+              e.g. an <strong>employee</strong> type might extend{" "}
+              <strong>person</strong> and add a <strong>job title</strong>{" "}
+              property
+            </>
+          }
+        />
       ) : null}
       {shownRows && shownRows.length > 0 ? (
         layout === "byType" ? (
