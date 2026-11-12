@@ -23,7 +23,7 @@ jobs:
       security-events: write
 
     # Change this in the event of future self-hosting of Action runner:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     container:
       image: returntocorp/semgrep:1.151.0@sha256:d3d1be3a3770514d16a6a57b9761575d7536d70f45a5220274f4ec7d55c442b9

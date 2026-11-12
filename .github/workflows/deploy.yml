@@ -445,7 +445,7 @@ jobs:
 
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [setup, build]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
     # Serialize the `:latest` multi-arch manifest per service so a newer push's
@@ -549,7 +549,7 @@ jobs:
     name: Deployments passed
     needs: [setup, sccache-credentials, sourcemaps, build, manifest, promote]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check setup
         run: |
