@@ -344,6 +344,10 @@ const singular = (word: string) =>
       : word;
 
 /** `?itemrow=on` brings back the Item row with its hover rename (the look before the 13 Nov ledger line). */
+/** `?foreachsub=old`: an empty For each description stays empty ("Flow control · Add a description…"). */
+export const oldForEachSubtitle =
+  new URLSearchParams(globalThis.location.search).get("foreachsub") === "old";
+
 export const itemRowOn =
   new URLSearchParams(globalThis.location.search).get("itemrow") === "on";
 

@@ -17,7 +17,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { runIdMono, runIdStyled, RunIdText, runLabel } from "./run-id";
 import { runsOf, startRun, stopRun, useAppState } from "./app-store";
 import { getCatalogEntry } from "./catalog";
-import { flattenSteps, START_ID, stepLabel } from "./document";
+import {
+  flattenSteps,
+  itemName,
+  oldForEachSubtitle,
+  START_ID,
+  stepLabel,
+} from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
 import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
@@ -977,7 +983,12 @@ export const RunStepPanel = ({
               ? (document.triggers.find(
                   (trigger) => trigger.kind === run.trigger.kind,
                 )?.description ?? "")
-              : (step?.description ?? "")
+              : step?.kind === "for-each" &&
+                  !step.description.trim() &&
+                  step.over &&
+                  !oldForEachSubtitle
+                ? `For each ${itemName(document, step.stepId)}`
+                : (step?.description ?? "")
           }
           today={
             step?.kind === "action" && step.description.trim()

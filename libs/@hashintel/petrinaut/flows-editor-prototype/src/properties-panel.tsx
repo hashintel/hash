@@ -36,6 +36,7 @@ import {
   entityTypeOf,
   findStep,
   itemName,
+  oldForEachSubtitle,
   itemRowOn,
   stepLabel,
   findTrigger,
@@ -335,6 +336,11 @@ const DescriptionInput = ({
   />
 );
 
+/** A derived default reads as the value, not as a hint. */
+const derivedPlaceholderStyle = css({
+  "&::placeholder": { color: "neutral.fg.muted.hover" },
+});
+
 /** Delete sits top right and shows on hover or focus, so the header reads as in Figma at rest. */
 const headerActionStyle = css({
   position: "absolute",
@@ -381,6 +387,7 @@ const KindTakeHeader = ({
   field: {
     label: string;
     value: string;
+    placeholder?: string;
     onChange: (next: string) => void;
   } | null;
 }) => {
@@ -416,7 +423,13 @@ const KindTakeHeader = ({
       </HueHeader>
     );
   }
-  const input = field ? <DescriptionInput {...field} /> : null;
+  const input = field ? (
+    <DescriptionInput
+      {...field}
+      placeholder={field.placeholder ?? "Add a description…"}
+      className={field.placeholder ? derivedPlaceholderStyle : undefined}
+    />
+  ) : null;
   return (
     <HueHeader
       icon={icon}
@@ -449,6 +462,7 @@ const PanelHeader = ({
   subtitle,
   kind,
   group,
+  defaultDescription,
 }: {
   icon: IconName;
   type: string;
@@ -463,6 +477,8 @@ const PanelHeader = ({
   kind?: string;
   /** `?panelkind=k3`: the kind word, when the icon's P-a group isn't it (triggers). */
   group?: string;
+  /** Shown in the description's place, in the same ink, while the description is empty. */
+  defaultDescription?: string;
 }) => {
   const { setDocument, setUi } = useEditor();
   const onDelete = trigger
@@ -585,6 +601,7 @@ const PanelHeader = ({
                 ? {
                     label: "Step description",
                     value: description,
+                    placeholder: defaultDescription,
                     onChange: (next) =>
                       setDocument((document) =>
                         updateStep(document, stepId, (step) => ({
@@ -981,6 +998,12 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         type={step.description || "For each"}
         kind="For each"
         description={step.description}
+        defaultDescription={
+          // With no description, the derived item name reads in its place: "For each supplier".
+          !oldForEachSubtitle && step.over
+            ? `For each ${itemName(document, step.stepId)}`
+            : undefined
+        }
         subtitle={
           step.description.startsWith("For each ")
             ? `Runs its steps once per ${step.description.slice("For each ".length)}`
