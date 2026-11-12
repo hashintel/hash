@@ -5806,6 +5806,29 @@ describe("questions docked on the composer", () => {
     );
   });
 
+  test("Send moves past a question left empty, rather than offering Voice and losing the answers given", () => {
+    const onInputModeChange = vi.fn();
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+      onInputModeChange,
+      voiceModeAvailable: true,
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    expect(composer().value).toBe("");
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    send("Send answers");
+    expect(onInputModeChange).not.toHaveBeenCalled();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "1. Quarantined shipment: It stays counted as an open order\n\nNot answered yet: Recent order, Production demand.",
+    );
+  });
+
   test("the arrows step between questions, each keeping its answer", () => {
     const { onSendAnswer } = renderDock({
       messages: [opening, asking(three)],
