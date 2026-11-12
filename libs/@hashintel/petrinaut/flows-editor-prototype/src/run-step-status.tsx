@@ -247,7 +247,7 @@ export const StatusLine = ({
   const reasonTooltip = !reasonOnLine && notes.length > 0;
   const line = (
     <span className={firstLineStyle} data-status-line-row>
-      <RunGlyph state={state} size={16} tooltip={!reasonTooltip} />
+      <RunGlyph state={state} size={16} tooltip={!reasonTooltip} flush />
       <span className={firstLineTextStyle}>
         <span className={builtStatusLine ? builtWordStyle : wordStyle}>{word}</span>
         {facts

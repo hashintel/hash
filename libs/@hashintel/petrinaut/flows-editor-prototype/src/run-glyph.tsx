@@ -443,6 +443,38 @@ const tooltipTriggerStyle = css({
 });
 
 /**
+ * Where each F3 mark's ink starts in its 16-unit box, stroke included: the ring (r 4, 1.25 stroke) at 3.375, the
+ * backlog ring (1 px) at 3.5, the tick at 4.5, the cross at 4.25, the slash and dash at 4.625, the ! (its 1.6 px dot) at
+ * 7.2.
+ */
+const bareInkLeft = (state: StepState, progress: GlyphProgress) => {
+  switch (state) {
+    case "notReached":
+      return dottedWaitMark ? 3.375 : 3.5;
+    case "done":
+      return 4.5;
+    case "failed":
+      return 4.25;
+    case "needsReview":
+      return 7.2;
+    case "skipped":
+    case "abandoned":
+      return 4.625;
+    case "doneWithFailures":
+      return progress.done >= progress.total ? 4.5 : 3.375;
+    default:
+      return 3.375;
+  }
+};
+
+/**
+ * `?markalign=center`: marks beside text keep their ink centred in the 16 px box, as before. By default a `flush`
+ * mark's ink starts at the box's left edge, the text edge (Aakarsh, 13 Nov ~01:45: "ensure the exclamation mark is
+ * fully left aligned").
+ */
+const centredMarks = new URLSearchParams(globalThis.location.search).get("markalign") === "center";
+
+/**
  * One state's glyph, 12 px by default, with a hover tooltip naming the state and its detail ("Done · 18 of 18",
  * "Failed · Timed out after 48 h"). `progress` draws partly done and running from real counts and fills the detail;
  * `detail` overrides it. `tooltip={false}` only where the glyph sits inside something that already says its state.
@@ -455,6 +487,7 @@ export const RunGlyph = ({
   tooltip = true,
   warnings = false,
   run = false,
+  flush = false,
 }: {
   state: StepState;
   size?: number;
@@ -465,8 +498,16 @@ export const RunGlyph = ({
   run?: boolean;
   /** A run that completed with warnings: its done mark takes the warnings colour (amber under ?done=neutral). */
   warnings?: boolean;
+  /** The mark sits beside text on its left edge: its ink starts at the box's left edge (the box keeps its width). */
+  flush?: boolean;
 }) => {
   const label = glyphTooltip(state, progress, detail, run);
+  const markWidth = glyphSet === "bare" ? Math.max(size, bareMinSize) : size;
+  // Shift the drawing, not the box, so the text after it stays put and a spinner still turns on its own centre.
+  const inkShift =
+    flush && !centredMarks && glyphSet === "bare"
+      ? (bareInkLeft(state, progress ?? sampleProgress) * markWidth) / 16
+      : 0;
   const mark =
     glyphSet === "old" ? (
       <OldRunGlyph state={state} size={size} label={label} />
@@ -489,6 +530,7 @@ export const RunGlyph = ({
             warnings && state === "done"
               ? statusColor.warnings
               : glyphColor[state],
+          ...(inkShift ? { marginLeft: -inkShift, marginRight: inkShift } : {}),
         }}
         className={`${css({ flexShrink: 0, overflow: "visible" })}${
           state === "running" && !showsProgress(state, progress)

@@ -343,7 +343,7 @@ const Line = ({
       data-status-slot={side ?? undefined}
       style={markRight ? { gridColumn: 3, gridRow: 1 } : undefined}
     >
-      {glyph ? <RunGlyph state={glyph} size={side ? STATUS_MARK_SIZE : 12} /> : null}
+      {glyph ? <RunGlyph state={glyph} size={side ? STATUS_MARK_SIZE : 12} flush={!markRight} /> : null}
     </span>
     <span className={lineTextStyle} style={markRight ? { gridColumn: 1, gridRow: 1 } : undefined}>
       {children}
