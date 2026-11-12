@@ -37,6 +37,11 @@ export interface Store {
   readonly intern: <T extends AST.Node.Node>(
     node: T,
   ) => Effect.Effect<AST.Interned.Interned<T>>;
+  /**
+   * Reserves an identity and builds its node with it.
+   *
+   * The graph holds one identity for equal nodes. When the build returns a node equal to one it already holds, `reserve` returns the identity of that node and abandons the reserved one, so a caller records again, under the returned identity, whatever its build recorded under the reserved one. A failed build abandons its identity as well, and an abandoned identity names no node.
+   */
   readonly reserve: ReserveFn;
   readonly entrypoint: (name: string, id: AST.Declaration.Interned) => void;
   /** Records what a name resolves to: an identifier in code, or a `{@link}` in a comment. */
@@ -118,11 +123,6 @@ const reserveImpl =
       const abandon = (): void => {
         pending.count -= 1;
         slots[id] = { _tag: "Abandoned" };
-
-        // trim all the abandoned slots
-        while (slots.at(-1)?._tag === "Abandoned") {
-          slots.pop();
-        }
       };
 
       return build(id).pipe(

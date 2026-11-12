@@ -47,21 +47,15 @@ const inspectTarget = (target: Reference.Target): Traits.Traits.Inspection => {
 
 /** `info` as a reference holds it, with the syntax the compiler built for it compared by identity. */
 const identify = (info: QuickInfo.QuickInfo): QuickInfo.QuickInfo => {
-  if (info._tag === "Callable") {
-    if (Option.isSome(info.signature)) {
-      Equal.byReferenceUnsafe(info.signature.value);
+  for (const { parts, signature } of info) {
+    for (const part of parts) {
+      if (!Predicate.isString(part)) {
+        Equal.byReferenceUnsafe(part);
+      }
     }
-  } else if (info._tag === "Value") {
-    Equal.byReferenceUnsafe(info.type);
-  } else if (info._tag === "Alias") {
-    Equal.byReferenceUnsafe(info.type);
 
-    for (const parameter of info.typeParameters) {
-      Equal.byReferenceUnsafe(parameter);
-    }
-  } else if (info._tag === "Declared") {
-    for (const parameter of info.typeParameters) {
-      Equal.byReferenceUnsafe(parameter);
+    if (Option.isSome(signature)) {
+      Equal.byReferenceUnsafe(signature.value);
     }
   }
 
