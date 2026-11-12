@@ -19,17 +19,25 @@ import {
   findStep,
   flattenSteps,
   setInputSource,
+  stepLabel,
   stepTitle,
   updateStep,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
 import { type TiledItem, tileMenu, tiledRowsStyle } from "./menu-rows";
 import { OpenMenu } from "./open-menu";
-import { PickerRowCard, clampRowsStyle, pickerRowTake } from "./picker-row";
+import {
+  type Fit,
+  PickerFitCard,
+  PickerRowCard,
+  clampRowsStyle,
+  pickerHoverOld,
+  pickerRowTake,
+} from "./picker-row";
 import { PlusOpenFrame, plusOpenTake } from "./plus-open";
 import { getSourceShape, sourceOptions } from "./shapes";
 import { SearchHeader } from "./source-menu";
-import { groupSwatch, tileColor } from "./status-colors";
+import { groupSwatch, tileColor, treeTileColor } from "./status-colors";
 import {
   FloatingStepPicker,
   stepLine,
@@ -378,7 +386,9 @@ export const AddNodePicker = ({
     icon: entry.icon,
     suffix: originSuffix(entry) ?? side,
     tooltip:
-      oldStepTooltip || pickerRowTake ? undefined : stepTooltip(entry),
+      oldStepTooltip || pickerRowTake || !pickerHoverOld
+        ? undefined
+        : stepTooltip(entry),
     // `?pickercolour=` only: 1 and 2 tint the tile and its icon (T1), 3 tints the icon on the grey tile.
     tint:
       colour === 1 || colour === 2
@@ -625,11 +635,76 @@ export const AddNodePicker = ({
     tiledRowsStyle,
     pickerRowTake === "clamp" && clampRowsStyle,
   );
+  // H2 (hover-fit, 13 Nov): what comes before the hovered step here, and where its list can go. MOCK copy: the lines
+  // are from the hover-fit mock and are to be discussed before they are final.
+  const anchorId = picker.after?.stepId ?? picker.parentId ?? null;
+  const anchorStep = anchorId ? findStep(document, anchorId)?.step : undefined;
+  const fitOf = (entry: CatalogEntry): Fit | null => {
+    const before =
+      anchorId === START_ID
+        ? {
+            icon: "play" as const,
+            tile: {
+              background: "var(--colors-neutral-bg-solid-surface-active)",
+              color: "var(--colors-neutral-fg-muted)",
+            },
+            name: "Start",
+            line:
+              document.inputs.length === 0
+                ? `No flow inputs yet${entry.id === "queryEntities" ? ", so you set the type and conditions here" : ""}`
+                : `Flow inputs: ${document.inputs.map((input) => input.label).join(", ")}`,
+          }
+        : anchorStep
+          ? (() => {
+              const anchorEntry =
+                anchorStep.kind === "action"
+                  ? getCatalogEntry(anchorStep.actionDefinitionId)
+                  : undefined;
+              const icon = anchorStep.kind === "for-each" ? "rotate" : (anchorEntry?.icon ?? "cube");
+              return {
+                icon,
+                tile: treeTileColor(icon),
+                name: stepLabel(anchorStep),
+                line: anchorEntry
+                  ? `Gives ${anchorEntry.outputs.map((output) => output.label).join(", ") || "nothing"}`
+                  : "Runs its steps once per item",
+              };
+            })()
+          : undefined;
+    const givesList = entry.outputs.some((output) => output.array);
+    const entities = entry.id === "queryEntities";
+    const next = givesList
+      ? (["forEach", "filterList"] as const)
+          .filter((id) => !(inGroup && id === "forEach"))
+          .flatMap((id) => {
+            const target = catalog.find((candidate) => candidate.id === id);
+            return target
+              ? [
+                  {
+                    icon: target.icon,
+                    tile: treeTileColor(target.icon),
+                    name: target.title,
+                    line:
+                      id === "forEach" && entities
+                        ? "Run steps for every entity it finds"
+                        : (stepLine(target) ?? ""),
+                  },
+                ]
+              : [];
+          })
+      : [];
+    return before || next.length > 0
+      ? { before, next, nextLabel: "Its list can go to" }
+      : null;
+  };
+
   // `?pickerrow=clamp|card`: the highlighted row's card beside the menu (picker-row.tsx).
   const rowCard =
     pickerRowTake === "clamp" || pickerRowTake === "card" ? (
       <PickerRowCard ports={pickerRowTake === "card"} />
-    ) : null;
+    ) : pickerHoverOld || oldStepTooltip ? null : (
+      <PickerFitCard fitOf={fitOf} />
+    );
 
   // `?plusopen=a|b|c` (c by default): the picker from a port's + opens tied to the + (plus-open.tsx).
   if (plusOpenTake && picker.anchor === "port" && picker.after) {
