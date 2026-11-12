@@ -13,7 +13,7 @@ use hash_graph_postgres_store::store::error::{BaseUrlAlreadyExists, LinkToLinkCo
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status as HashStatus, StatusCode};
 use serde::{Deserialize, Serialize};
-use type_system::ontology::id::OntologyTypeMajorVersionError;
+use type_system::ontology::{data_type::ConversionError, id::OntologyTypeMajorVersionError};
 
 /// Generalized information about an error, covering its cause, its origin and a collection of
 /// weakly-typed metadata.
@@ -109,6 +109,7 @@ where
                 StatusCode::AlreadyExists
             } else if report.contains::<OntologyTypeMajorVersionError>()
                 || report.contains::<LinkToLinkConstraint>()
+                || report.contains::<ConversionError>()
             {
                 StatusCode::InvalidArgument
             } else {
@@ -205,6 +206,40 @@ mod tests {
                 .as_array()
                 .is_some_and(|contents| !contents.is_empty()),
             "the response should include the structured error report"
+        );
+    }
+
+    #[tokio::test]
+    async fn report_conversion_zero_denominator() {
+        let expression: type_system::ontology::data_type::ConversionExpression =
+            serde_json::from_value(serde_json::json!(
+                ["/", {"const": 100, "type": "number"}, "self"]
+            ))
+            .expect("the expression should deserialize");
+        let report = expression
+            .evaluate(0_i32.into())
+            .expect_err("a zero denominator should return an error")
+            .change_context(hash_graph_store::error::QueryError);
+        let response = report_to_response(report).into_response();
+        assert_eq!(
+            response.status(),
+            axum::http::StatusCode::BAD_REQUEST,
+            "a query conversion domain error should be a client error"
+        );
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("the response should be readable");
+        let status: serde_json::Value =
+            serde_json::from_slice(&body).expect("the response should contain JSON");
+        assert_eq!(
+            status["code"], "INVALID_ARGUMENT",
+            "the response should report invalid input"
+        );
+        assert!(
+            status["contents"]
+                .to_string()
+                .contains("Conversion denominator evaluated to zero"),
+            "the response should retain the conversion error through its query context"
         );
     }
 }

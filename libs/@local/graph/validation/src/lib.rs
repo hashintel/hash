@@ -503,4 +503,151 @@ mod tests {
         .await?;
         Ok(PropertyValueWithMetadata { value, metadata })
     }
+
+    #[tokio::test]
+    async fn canonical_zero_denominator() {
+        use hash_graph_types::knowledge::property::visitor::DataTypeCanonicalCalculation;
+        use serde_json::json;
+        use type_system::ontology::{
+            data_type::{ConversionDefinition, ConversionError, Conversions},
+            property_type::schema::PropertyValues,
+        };
+
+        let schema: DataType = serde_json::from_value(json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://example.com/types/data-type/fuel-economy/v/1",
+            "title": "Fuel Economy",
+            "description": "A positive value with a reciprocal conversion.",
+            "type": "number",
+            "exclusiveMinimum": 0
+        }))
+        .expect("the test data type should deserialize");
+        let reference = DataTypeReference {
+            url: schema.id.clone(),
+        };
+        let target =
+            BaseUrl::new("https://example.com/types/data-type/fuel-consumption/".to_owned())
+                .expect("the conversion target should parse");
+        let conversion: ConversionDefinition = serde_json::from_value(json!({
+            "expression": ["/", {"const": 100, "type": "number"}, "self"]
+        }))
+        .expect("the conversion should deserialize");
+        let mut data_type = generate_data_type_metadata(schema);
+        data_type.metadata.conversions.insert(
+            target.clone(),
+            Conversions {
+                from: conversion.clone(),
+                to: conversion,
+            },
+        );
+        let mut provider = Provider::new([], [], [], []);
+        provider
+            .data_types
+            .insert(DataTypeUuid::from_url(&reference.url), Arc::new(data_type));
+        let mut property = PropertyValueWithMetadata {
+            value: type_system::knowledge::PropertyValue::Number(0_i32.into()),
+            metadata: ValueMetadata {
+                provenance: ValueProvenance::default(),
+                confidence: None,
+                data_type_id: Some(reference.url.clone()),
+                original_data_type_id: None,
+                canonical: HashMap::default(),
+            },
+        };
+        let mut preprocessor = EntityPreprocessor {
+            components: ValidateEntityComponents::full(),
+            convert_values: true,
+        };
+        let report = preprocessor
+            .visit_one_of_property(
+                &[PropertyValues::Value(reference.clone())],
+                &mut property,
+                &provider,
+            )
+            .await
+            .expect_err("zero should produce a validation report");
+        let [DataTypeCanonicalCalculation::Evaluation { error }] =
+            report.canonical_value.as_slice()
+        else {
+            panic!("the report should contain the canonical evaluation error");
+        };
+        assert_eq!(
+            *error.current_context(),
+            ConversionError::DivisionByZero,
+            "the report should identify division by zero"
+        );
+        assert!(
+            report.validations.is_some(),
+            "the report should also retain the positive-value constraint error"
+        );
+        assert!(
+            !property.metadata.canonical.contains_key(&target),
+            "failed evaluation should not store a canonical value"
+        );
+
+        property.value = type_system::knowledge::PropertyValue::Number(4_i32.into());
+        preprocessor
+            .visit_one_of_property(
+                &[PropertyValues::Value(reference)],
+                &mut property,
+                &provider,
+            )
+            .await
+            .expect("a nonzero value should validate");
+        assert_eq!(
+            property.metadata.canonical.get(&target),
+            Some(&type_system::knowledge::PropertyValue::Number(
+                25_i32.into()
+            )),
+            "a nonzero value should store its reciprocal canonical value"
+        );
+    }
+
+    #[tokio::test]
+    async fn filter_conversion_zero_denominator() {
+        use hash_graph_store::filter::{FilterExpression, Parameter, ParameterConversionError};
+        use serde_json::json;
+        use type_system::ontology::data_type::ConversionError;
+
+        let source: VersionedUrl = "https://example.com/types/data-type/source/v/1"
+            .parse()
+            .expect("the source ID should parse");
+        let target: VersionedUrl = "https://example.com/types/data-type/target/v/1"
+            .parse()
+            .expect("the target ID should parse");
+        let expression: ConversionExpression = serde_json::from_value(json!(
+            ["/", {"const": 100, "type": "number"}, "self"]
+        ))
+        .expect("the expression should deserialize");
+        let mut provider = Provider::new([], [], [], []);
+        provider
+            .conversions
+            .insert((source.clone(), target.clone()), vec![expression]);
+        let input = json!({
+            "parameter": 0,
+            "convert": {"from": source, "to": target}
+        });
+        let mut filter: FilterExpression<'_, Entity> =
+            FilterExpression::deserialize(&input).expect("the filter should deserialize");
+        let error = filter
+            .apply_parameter_conversion(&provider)
+            .await
+            .expect_err("a zero denominator should return a filter error");
+        assert!(
+            matches!(
+                error.current_context(),
+                ParameterConversionError::ConversionError { .. }
+            ),
+            "the error should identify parameter conversion"
+        );
+        assert!(
+            error.contains::<ConversionError>(),
+            "the report should retain the evaluation error"
+        );
+        assert!(
+            matches!(filter, FilterExpression::Parameter { parameter, .. } if parameter == Parameter::Decimal(0_i32.into())),
+            "a failed conversion should leave the parameter value unchanged"
+        );
+    }
 }

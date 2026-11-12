@@ -4,6 +4,7 @@ use core::fmt::{self, Write as _};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use error_stack::Report;
 use hash_codec::numeric::Real;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
@@ -80,10 +81,10 @@ pub enum ConversionValue {
 }
 
 impl ConversionValue {
-    fn evaluate(&self, value: Real) -> Real {
+    fn evaluate(&self, value: Real) -> Result<Real, Report<ConversionError>> {
         match self {
-            Self::Variable(Variable::This) => value,
-            Self::Constant(constant) => constant.clone(),
+            Self::Variable(Variable::This) => Ok(value),
+            Self::Constant(constant) => Ok(constant.clone()),
             Self::Expression(expression) => expression.evaluate(value),
         }
     }
@@ -131,18 +132,35 @@ pub struct ConversionExpression {
     pub rhs: ConversionValue,
 }
 
-impl ConversionExpression {
-    #[must_use]
-    pub fn evaluate(&self, value: Real) -> Real {
-        let lhs = self.lhs.evaluate(value.clone());
-        let rhs = self.rhs.evaluate(value);
+/// An error evaluating a data type conversion expression.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum ConversionError {
+    /// A denominator evaluates to zero for the supplied input.
+    #[display("Conversion denominator evaluated to zero")]
+    DivisionByZero,
+}
 
-        match self.operator {
+impl ConversionExpression {
+    /// Evaluates the expression for a numeric input.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ConversionError::DivisionByZero`] if any denominator evaluates to zero.
+    pub fn evaluate(&self, value: Real) -> Result<Real, Report<ConversionError>> {
+        let lhs = self.lhs.evaluate(value.clone())?;
+        let rhs = self.rhs.evaluate(value)?;
+
+        Ok(match self.operator {
             Operator::Add => lhs + rhs,
             Operator::Subtract => lhs - rhs,
             Operator::Multiply => lhs * rhs,
-            Operator::Divide => lhs / rhs,
-        }
+            Operator::Divide => {
+                if rhs == Real::from(0) {
+                    return Err(Report::new(ConversionError::DivisionByZero));
+                }
+                lhs / rhs
+            }
+        })
     }
 }
 
@@ -317,8 +335,18 @@ mod tests {
             "self * 100",
         );
 
-        assert_eq!(expression.evaluate(Real::from(1)), Real::from(100));
-        assert_eq!(expression.evaluate(Real::from(10)), Real::from(1000));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(1))
+                .expect("conversion should succeed"),
+            Real::from(100)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(10))
+                .expect("conversion should succeed"),
+            Real::from(1000)
+        );
     }
 
     #[test]
@@ -339,8 +367,18 @@ mod tests {
             "self / 100",
         );
 
-        assert_eq!(expression.evaluate(Real::from(100)), Real::from(1));
-        assert_eq!(expression.evaluate(Real::from(1000)), Real::from(10));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(100))
+                .expect("conversion should succeed"),
+            Real::from(1)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(1000))
+                .expect("conversion should succeed"),
+            Real::from(10)
+        );
     }
 
     #[test]
@@ -377,8 +415,18 @@ mod tests {
             "self * 9 / 5 + 32",
         );
 
-        assert_eq!(expression.evaluate(Real::from(0)), Real::from(32));
-        assert_eq!(expression.evaluate(Real::from(100)), Real::from(212));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(0))
+                .expect("conversion should succeed"),
+            Real::from(32)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(100))
+                .expect("conversion should succeed"),
+            Real::from(212)
+        );
     }
 
     #[test]
@@ -414,8 +462,18 @@ mod tests {
             "self * (9 / 5) + 32",
         );
 
-        assert_eq!(expression.evaluate(Real::from(0)), Real::from(32));
-        assert_eq!(expression.evaluate(Real::from(100)), Real::from(212));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(0))
+                .expect("conversion should succeed"),
+            Real::from(32)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(100))
+                .expect("conversion should succeed"),
+            Real::from(212)
+        );
     }
 
     #[test]
@@ -452,8 +510,18 @@ mod tests {
             "(self - 32) * 5 / 9",
         );
 
-        assert_eq!(expression.evaluate(Real::from(32)), Real::from(0));
-        assert_eq!(expression.evaluate(Real::from(212)), Real::from(100));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(32))
+                .expect("conversion should succeed"),
+            Real::from(0)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(212))
+                .expect("conversion should succeed"),
+            Real::from(100)
+        );
     }
 
     #[test]
@@ -490,7 +558,61 @@ mod tests {
             "(self - 32) * (5 / 9)",
         );
 
-        assert_eq!(expression.evaluate(Real::from(32)), Real::from(0));
-        assert_eq!(expression.evaluate(Real::from(212)), Real::from(100));
+        assert_eq!(
+            expression
+                .evaluate(Real::from(32))
+                .expect("conversion should succeed"),
+            Real::from(0)
+        );
+        assert_eq!(
+            expression
+                .evaluate(Real::from(212))
+                .expect("conversion should succeed"),
+            Real::from(100)
+        );
+    }
+
+    #[test]
+    fn evaluate_zero_denominators() {
+        for (expression, input) in [
+            (json!(["/", {"const": 100, "type": "number"}, "self"]), 0),
+            (json!(["/", "self", {"const": 0, "type": "number"}]), 4),
+            (
+                json!(["/", {"const": 1, "type": "number"}, ["-", "self", "self"]]),
+                4,
+            ),
+            (
+                json!(["+", ["/", {"const": 100, "type": "number"}, "self"], {"const": 1, "type": "number"}]),
+                0,
+            ),
+        ] {
+            let expression: ConversionExpression =
+                serde_json::from_value(expression).expect("expression should deserialize");
+            let error = expression
+                .evaluate(Real::from(input))
+                .expect_err("a zero denominator should return an error");
+            assert_eq!(
+                *error.current_context(),
+                super::ConversionError::DivisionByZero,
+                "the error should identify division by zero"
+            );
+        }
+    }
+
+    #[test]
+    fn evaluate_reciprocal_values() {
+        let expression: ConversionExpression = serde_json::from_value(json!(
+            ["/", {"const": 100, "type": "number"}, "self"]
+        ))
+        .expect("expression should deserialize");
+        for (input, expected) in [(4, 25), (-4, -25)] {
+            assert_eq!(
+                expression
+                    .evaluate(Real::from(input))
+                    .expect("nonzero input should convert"),
+                Real::from(expected),
+                "reciprocal evaluation should retain the input sign"
+            );
+        }
     }
 }

@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 pub use self::{
     conversion::{
-        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
-        Variable,
+        ConversionDefinition, ConversionError, ConversionExpression, ConversionValue, Conversions,
+        Operator, Variable,
     },
     metadata::{DataTypeMetadata, DataTypeWithMetadata},
     schema::{ClosedDataType, DataType},

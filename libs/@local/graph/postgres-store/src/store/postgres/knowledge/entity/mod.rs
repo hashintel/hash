@@ -80,8 +80,8 @@ use type_system::{
             provenance::EntityEditionProvenance,
         },
         property::{
-            PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
-            PropertyValueWithMetadata, PropertyWithMetadata, metadata::PropertyObjectMetadata,
+            PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyValueWithMetadata,
+            PropertyWithMetadata, metadata::PropertyObjectMetadata,
         },
     },
     ontology::{
@@ -493,17 +493,17 @@ where
         entity: &mut PropertyWithMetadata,
         path: &PropertyPath<'_>,
         target_data_type_id: &VersionedUrl,
-    ) {
+    ) -> Result<(), Report<QueryError>> {
         let Ok(PropertyWithMetadata::Value(PropertyValueWithMetadata { value, metadata })) =
             entity.get_mut(path.as_ref())
         else {
             // If the property does not exist or is not a value, we can ignore it.
-            return;
+            return Ok(());
         };
 
         let Some(source_data_type_id) = &mut metadata.data_type_id else {
             // If the property does not have a data type, we can ignore it.
-            return;
+            return Ok(());
         };
 
         let Ok(conversions) = provider
@@ -514,23 +514,27 @@ where
             .await
         else {
             // If no conversion is found, we can ignore the property.
-            return;
+            return Ok(());
         };
 
         let &mut PropertyValue::Number(ref mut value_number) = value else {
             // If the value is not a number, we can ignore the property.
-            return;
+            return Ok(());
         };
 
         let mut real = value_number.clone();
         for conversion in conversions.borrow() {
-            real = conversion.evaluate(real);
+            real = conversion
+                .evaluate(real)
+                .change_context(QueryError)
+                .attach_opaque(StatusCode::InvalidArgument)?;
         }
         drop(conversions);
 
         *value = PropertyValue::Number(real);
 
         metadata.data_type_id = Some(target_data_type_id.clone());
+        Ok(())
     }
 
     /// Applies the `conversions` to a property object and its metadata in
@@ -542,11 +546,14 @@ where
         properties: &mut PropertyObject,
         metadata: &mut PropertyObjectMetadata,
         conversions: &[QueryConversion<'_>],
-    ) -> Result<(), Report<PropertyPathError>> {
-        let mut property = PropertyWithMetadata::Object(PropertyObjectWithMetadata::from_parts(
-            mem::take(properties),
-            Some(mem::take(metadata)),
-        )?);
+    ) -> Result<(), Report<QueryError>> {
+        let mut property = PropertyWithMetadata::Object(
+            PropertyObjectWithMetadata::from_parts(
+                mem::take(properties),
+                Some(mem::take(metadata)),
+            )
+            .change_context(QueryError)?,
+        );
         for conversion in conversions {
             self.convert_entity_properties(
                 provider,
@@ -554,7 +561,7 @@ where
                 &conversion.path,
                 &conversion.data_type_id,
             )
-            .await;
+            .await?;
         }
         let PropertyWithMetadata::Object(property) = property else {
             unreachable!("The property was just converted to an object");
@@ -571,7 +578,7 @@ where
         provider: &P,
         entity: &mut Entity,
         conversions: &[QueryConversion<'_>],
-    ) -> Result<(), Report<PropertyPathError>> {
+    ) -> Result<(), Report<QueryError>> {
         self.convert_properties(
             provider,
             &mut entity.properties,

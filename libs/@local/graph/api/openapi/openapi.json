@@ -4590,6 +4590,24 @@
               "type": {
                 "type": "string",
                 "enum": [
+                  "evaluation"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
                   "retrieval"
                 ]
               }
@@ -4620,6 +4638,24 @@
       },
       "DataTypeConversionError": {
         "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "error",
+              "type"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "evaluation"
+                ]
+              }
+            }
+          },
           {
             "type": "object",
             "required": [

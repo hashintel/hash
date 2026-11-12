@@ -505,11 +505,18 @@ impl EntityVisitor for EntityPreprocessor {
                             });
                     }
                     Ok(conversions) => {
-                        if let PropertyValue::Number(mut value) = property.value.clone() {
-                            for conversion in conversions.borrow() {
-                                value = conversion.evaluate(value);
+                        if let PropertyValue::Number(value) = property.value.clone() {
+                            match conversions
+                                .borrow()
+                                .iter()
+                                .try_fold(value, |value, conversion| conversion.evaluate(value))
+                            {
+                                Ok(value) => property.value = PropertyValue::Number(value),
+                                Err(error) => {
+                                    property_validation.value_conversion =
+                                        Some(DataTypeConversionError::Evaluation { error });
+                                }
                             }
-                            property.value = PropertyValue::Number(value);
                         } else {
                             property_validation.value_conversion =
                                 Some(DataTypeConversionError::WrongType {
@@ -527,7 +534,9 @@ impl EntityVisitor for EntityPreprocessor {
         }
 
         property.metadata.canonical.clear();
-        if let Some(data_type_id) = &property.metadata.data_type_id {
+        if property_validation.value_conversion.is_none()
+            && let Some(data_type_id) = &property.metadata.data_type_id
+        {
             property
                 .metadata
                 .canonical
@@ -552,17 +561,25 @@ impl EntityVisitor for EntityPreprocessor {
                     if !data_type.borrow().metadata.conversions.is_empty() {
                         // We only support conversion of numbers for now
                         if let PropertyValue::Number(value) = &property.value {
-                            property.metadata.canonical = data_type
+                            match data_type
                                 .borrow()
                                 .metadata
                                 .conversions
                                 .iter()
                                 .map(|(target, conversion)| {
-                                    let converted_value =
-                                        conversion.to.expression.evaluate(value.clone());
-                                    (target.clone(), PropertyValue::Number(converted_value))
+                                    conversion
+                                        .to
+                                        .expression
+                                        .evaluate(value.clone())
+                                        .map(|value| (target.clone(), PropertyValue::Number(value)))
                                 })
-                                .collect();
+                                .collect::<Result<_, _>>()
+                            {
+                                Ok(canonical) => property.metadata.canonical = canonical,
+                                Err(error) => property_validation
+                                    .canonical_value
+                                    .push(DataTypeCanonicalCalculation::Evaluation { error }),
+                            }
                         } else {
                             property_validation.canonical_value.push(
                                 DataTypeCanonicalCalculation::WrongType {

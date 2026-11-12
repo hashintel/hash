@@ -14,7 +14,7 @@ use type_system::{
     },
     ontology::{
         BaseUrl, VersionedUrl,
-        data_type::schema::DataTypeReference,
+        data_type::{ConversionError, schema::DataTypeReference},
         json_schema::{ConstraintError, JsonSchemaValueType},
         property_type::{
             PropertyType,
@@ -88,6 +88,7 @@ pub enum DataTypeInferenceError {
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
 pub enum DataTypeConversionError {
+    Evaluation { error: Report<ConversionError> },
     Retrieval { error: Report<ConversionRetrieval> },
     WrongType { data: JsonSchemaValueTypeMismatch },
 }
@@ -97,6 +98,7 @@ pub enum DataTypeConversionError {
 #[serde(tag = "type", rename_all = "camelCase")]
 #[must_use]
 pub enum DataTypeCanonicalCalculation {
+    Evaluation { error: Report<ConversionError> },
     Retrieval { error: Report<DataTypeRetrieval> },
     WrongType { data: JsonSchemaValueTypeMismatch },
 }

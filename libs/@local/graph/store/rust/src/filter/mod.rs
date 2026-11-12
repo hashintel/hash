@@ -1483,9 +1483,11 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     ///
     /// - [`InvalidParameterType`] if the parameter type is not compatible with the conversion.
     /// - [`NoConversionFound`] if no conversion is found.
+    /// - [`ConversionError`] if a conversion denominator evaluates to zero.
     ///
     /// [`InvalidParameterType`]: ParameterConversionError::InvalidParameterType
     /// [`NoConversionFound`]: ParameterConversionError::NoConversionFound
+    /// [`ConversionError`]: ParameterConversionError::ConversionError
     pub async fn apply_parameter_conversion<D>(
         &mut self,
         provider: &D,
@@ -1515,7 +1517,12 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
                 })?;
             let mut number = number.clone();
             for conversion in conversions.borrow() {
-                number = conversion.evaluate(number);
+                number = conversion.evaluate(number).change_context(
+                    ParameterConversionError::ConversionError {
+                        from: ParameterType::Decimal,
+                        to: ParameterType::Decimal,
+                    },
+                )?;
             }
 
             *parameter = Parameter::Decimal(number);

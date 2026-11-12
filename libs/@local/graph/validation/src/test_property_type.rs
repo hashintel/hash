@@ -141,6 +141,57 @@ async fn age_original_data_type_conversion() {
 }
 
 #[tokio::test]
+async fn original_conversion_zero_denominator() {
+    let number: VersionedUrl =
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+            .parse()
+            .expect("the number type ID should parse");
+    let source: VersionedUrl = "https://example.com/types/data-type/source/v/1"
+        .parse()
+        .expect("the source type ID should parse");
+    let metadata = PropertyMetadata::Value(PropertyValueMetadata {
+        metadata: ValueMetadata {
+            provenance: ValueProvenance::default(),
+            confidence: None,
+            data_type_id: Some(number.clone()),
+            original_data_type_id: Some(source.clone()),
+            canonical: HashMap::default(),
+        },
+    });
+    let conversions = [(
+        (source, number),
+        vec![
+            serde_json::from_value(json!(
+                ["/", {"const": 100, "type": "number"}, "self"]
+            ))
+            .expect("the expression should deserialize"),
+        ],
+    )];
+    let report = validate_property_with(
+        EntityPreprocessor {
+            components: ValidateEntityComponents::full(),
+            convert_values: true,
+        },
+        conversions,
+        json!(0),
+        Some(metadata),
+        hash_graph_test_data::property_type::AGE_V1,
+        [],
+        [
+            hash_graph_test_data::data_type::VALUE_V1,
+            hash_graph_test_data::data_type::NUMBER_V1,
+        ],
+    )
+    .await
+    .expect_err("a zero denominator should produce a validation report");
+    let serialized = serde_json::to_value(report).expect("the report should serialize");
+    assert_eq!(
+        serialized["valueConversion"]["type"], "evaluation",
+        "the report should expose the conversion evaluation error"
+    );
+}
+
+#[tokio::test]
 async fn blurb() {
     let property_types = [];
     let data_types = [
