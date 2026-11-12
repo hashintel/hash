@@ -269,17 +269,15 @@ declare module "react" {
       "api-namespace": NamespaceProps;
       "api-trait": TraitProps;
       "api-explanation": ExplanationProps;
-      "api-hierarchy": {
+      "api-hierarchy": ChildrenProps & {
         name: string;
         slot: "title" | "header";
-        children?: ReactNode;
       };
       "api-hierarchy-node": HierarchyNode & { index: number };
       "api-hierarchy-edge": { base: number; derived: number };
-      "api-code": {
+      "api-code": ChildrenProps & {
         lang?: string;
         context?: CodeProps["context"];
-        children?: ReactNode;
       };
     }
   }
