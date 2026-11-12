@@ -59,6 +59,17 @@ export const styles = sva({
     },
   },
   variants: {
+    handleAlign: {
+      center: {},
+      start: {
+        handle: {
+          alignItems: "flex-start",
+          // Centres the grip against a standard small-control first row,
+          // for items whose content stacks extra rows beneath it
+          paddingTop: "2.5",
+        },
+      },
+    },
     variant: {
       card: {
         root: {
@@ -97,5 +108,6 @@ export const styles = sva({
   },
   defaultVariants: {
     variant: "card",
+    handleAlign: "center",
   },
 });

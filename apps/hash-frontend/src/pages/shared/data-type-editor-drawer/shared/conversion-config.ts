@@ -54,9 +54,12 @@ export const conversionsFromFactor = (factor: number): Conversions => {
     type: "number" as const,
   });
 
-  // A whole-number divisor reads better (and is exact) as a division
-  const divisor = 1 / factor;
-  const useDivision = factor < 1 && Number.isInteger(divisor);
+  // The reciprocal reads better — and stores the value the user typed
+  // exactly — when it is the shorter number: `["/", "self", 30.48]` for a
+  // 1-foot-is-30.48-of-these conversion rather than a long multiply
+  const divisor = Number((1 / factor).toPrecision(12));
+  const useDivision =
+    factor < 1 && String(divisor).length < String(factor).length;
 
   return {
     to: {
@@ -75,8 +78,7 @@ export const conversionsFromFactor = (factor: number): Conversions => {
 export type ConversionRowState = {
   key: string;
   targetBaseUrl: BaseUrl | null;
-  /** How the factor is displayed: 1 unit × value, or 1 unit ÷ value */
-  operator: "multiply" | "divide";
+  /** Viewed units per one target unit: "1 target = `value` × 1 viewed" */
   value: number | null;
   /** The type whose metadata stores this pairing; null for new rows */
   storedOnBaseUrl: BaseUrl | null;
@@ -86,36 +88,21 @@ export type ConversionRowState = {
   formula: boolean;
 };
 
-/** 1 viewed unit = `factor` target units, per the row's operator and value */
+/** 1 viewed unit = `factor` target units — the row value's reciprocal */
 export const rowEffectiveFactor = (row: ConversionRowState): number | null => {
   if (row.value === null || row.value === 0) {
     return null;
   }
-  return row.operator === "multiply" ? row.value : 1 / row.value;
+  return 1 / row.value;
 };
 
 /**
- * How a factor reads best: a recurring decimal like 1/60 displays as
- * "÷ 60", while short decimals like 0.01 stay as "× 0.01".
+ * The stored factor reversed into the row's display value, snapped so a
+ * reciprocal round-trip shows the number the user typed (30.48, not
+ * 30.480000000000004).
  */
-const presentFactor = (
-  factor: number | null,
-): Pick<ConversionRowState, "operator" | "value"> => {
-  if (factor !== null && factor > 0 && factor < 1) {
-    const inverse = 1 / factor;
-    const snapped = Math.round(inverse);
-
-    if (
-      snapped !== 0 &&
-      Math.abs(inverse - snapped) / inverse < 1e-9 &&
-      String(factor).length > 8
-    ) {
-      return { operator: "divide", value: snapped };
-    }
-  }
-
-  return { operator: "multiply", value: factor };
-};
+const reversedValue = (factor: number | null): number | null =>
+  factor === null || factor === 0 ? null : Number((1 / factor).toPrecision(12));
 
 export const conversionRowStatesFromRows = (
   rows: ConversionRow[],
@@ -123,7 +110,7 @@ export const conversionRowStatesFromRows = (
   rows.map((row) => ({
     key: row.targetBaseUrl,
     targetBaseUrl: row.targetBaseUrl,
-    ...presentFactor(row.factor),
+    value: reversedValue(row.factor),
     storedOnBaseUrl: row.storedOnBaseUrl,
     viaCanonical: row.viaCanonical,
     formula: row.factor === null,
@@ -139,7 +126,6 @@ export const newConversionRowState = (
     return match ? Math.max(next, Number(match[1]) + 1) : next;
   }, 0)}`,
   targetBaseUrl: null,
-  operator: "multiply",
   value: null,
   storedOnBaseUrl: null,
   viaCanonical: false,
@@ -352,35 +338,53 @@ export const conversionRowsForViewer = ({
   );
 };
 
-export type ConversionUpdatePlan = Array<{
-  baseUrl: BaseUrl;
-  conversions: Record<BaseUrl, Conversions>;
-}>;
+export type ConversionUpdatePlan = {
+  updates: Array<{
+    baseUrl: BaseUrl;
+    conversions: Record<BaseUrl, Conversions>;
+  }>;
+  /** Pairings no reachable type has a free slot to store — see the doc above */
+  unplacedTargets: BaseUrl[];
+};
 
 /**
  * Where and what to write so the edited type's desired pairings hold.
  *
- * Direct pairings are rewritten where they are stored (reversed when the
- * other member stores them). New pairings follow the hub model: they land on
- * the edited type's group canonical, or on the edited type itself when it
- * has no group (making it the canonical of a new one). When a type that
- * anchors a group pairs into another group, that group is merged: its
- * canonical's entries move onto the surviving canonical, re-composed, and
- * the absorbed canonical is cleared. A groupless type instead joins the
- * target's group as a spoke, leaving the established hub untouched.
+ * The store keeps at most ONE conversion entry per data type, and the app
+ * (frontend and the graph's conversion resolution alike) only composes
+ * pairings through a single shared hub — so every group must stay a pure
+ * star: each member stores its one entry aimed at the group's canonical,
+ * which itself stores none. A new pairing therefore does exactly one of:
+ *
+ * - start a new group: both types ungrouped — the viewed type stores the
+ *   entry, making the target the pair's canonical;
+ * - join a group: one side ungrouped — it stores an entry aimed at the other
+ *   side's canonical, with the factor composed through it;
+ * - merge two groups: both sides grouped — every member of one group is
+ *   republished to aim at the other group's canonical, which needs write
+ *   permission on all of that group's members.
+ *
+ * Existing direct pairings are rewritten or removed where they are stored
+ * (reversed when the other member stores them). Pairings none of these moves
+ * can satisfy are returned as `unplacedTargets` for the caller to surface.
  */
 export const planConversionUpdates = ({
   viewedBaseUrl,
   desiredRows,
   initialRows,
-  groups,
   latestDataTypes,
+  canWriteTo,
 }: {
   viewedBaseUrl: BaseUrl;
   desiredRows: Array<{ targetBaseUrl: BaseUrl; factor: number }>;
   initialRows: ConversionRow[];
-  groups: Map<BaseUrl, ConversionGroup>;
   latestDataTypes: Record<BaseUrl, DataTypeWithMetadata>;
+  /**
+   * Whether a conversion entry may be stored on this type — storing one
+   * republishes it, so this is an edit-permission check (the viewed type
+   * itself should return true: the save already writes it)
+   */
+  canWriteTo: (baseUrl: BaseUrl) => boolean;
 }): ConversionUpdatePlan => {
   /** staged next conversions per type, seeded lazily from current metadata */
   const staged = new Map<BaseUrl, Record<BaseUrl, Conversions>>();
@@ -396,7 +400,6 @@ export const planConversionUpdates = ({
     return current;
   };
 
-  const viewedGroup = groups.get(viewedBaseUrl);
   const desiredByTarget = new Map(
     desiredRows.map((row) => [row.targetBaseUrl, row]),
   );
@@ -424,86 +427,177 @@ export const planConversionUpdates = ({
     }
   }
 
-  // New pairings land on the canonical (hub model)
-  const survivingCanonical = viewedGroup?.canonicalBaseUrl ?? viewedBaseUrl;
-  const viewedToCanonical =
-    viewedGroup?.factorsToCanonical.get(viewedBaseUrl) ?? 1;
+  /**
+   * Groups over the staged state, so each placement sees the ones before it
+   * — a type absent from the stored data (the create flow's new type) gets a
+   * synthetic stand-in carrying its staged entries
+   */
+  const groupsFromStaged = () => {
+    const view: Record<BaseUrl, DataTypeWithMetadata> = { ...latestDataTypes };
+    for (const [baseUrl, conversions] of staged) {
+      const existing = latestDataTypes[baseUrl];
+      view[baseUrl] = (
+        existing
+          ? {
+              ...existing,
+              metadata: { ...existing.metadata, conversions },
+            }
+          : {
+              schema: { title: baseUrl },
+              metadata: { recordId: { baseUrl, version: 1 }, conversions },
+            }
+      ) as DataTypeWithMetadata;
+    }
+    return buildConversionGroups(view);
+  };
+
+  /** Every base URL the group's stored entries touch, hub included */
+  const membersOf = (group: ConversionGroup): Set<BaseUrl> => {
+    const members = new Set<BaseUrl>(group.factorsToCanonical.keys());
+    for (const edge of group.edges) {
+      members.add(edge.sourceBaseUrl);
+      members.add(edge.targetBaseUrl);
+    }
+    return members;
+  };
+
+  /**
+   * A group can be absorbed when every member can be republished to aim at
+   * the new canonical: all writable, and all on composable numeric factors
+   * (a formula-linked member can't be re-expressed against a new hub)
+   */
+  const absorbable = (group: ConversionGroup): boolean =>
+    [...membersOf(group)].every(
+      (member) =>
+        canWriteTo(member) &&
+        group.factorsToCanonical.get(member) !== undefined,
+    );
+
+  /** Point every member of `group` at `newHub`: 1 member = `factor(m)` hubs */
+  const absorb = (
+    group: ConversionGroup,
+    newHubBaseUrl: BaseUrl,
+    /** multiplies a member's factor-to-its-old-hub into new-hub units */
+    oldHubToNewHub: number,
+  ) => {
+    for (const member of membersOf(group)) {
+      const toOldHub = group.factorsToCanonical.get(member);
+      if (toOldHub === undefined || member === newHubBaseUrl) {
+        continue;
+      }
+      const entries = touch(member);
+      for (const key of Object.keys(entries)) {
+        delete entries[key as BaseUrl];
+      }
+      entries[newHubBaseUrl] = conversionsFromFactor(toOldHub * oldHubToNewHub);
+    }
+  };
+
+  const unplacedTargets: BaseUrl[] = [];
 
   for (const added of desiredByTarget.values()) {
+    const groups = groupsFromStaged();
+    const viewedGroup = groups.get(viewedBaseUrl);
     const targetGroup = groups.get(added.targetBaseUrl);
 
-    // factor converting a canonical-unit value into target units
-    const canonicalToTarget = added.factor / viewedToCanonical;
+    // 1 viewed = `added.factor` targets throughout; factorsToCanonical maps
+    // a member's value into its hub's units
+    const viewedToHub = viewedGroup?.factorsToCanonical.get(viewedBaseUrl);
+    const targetToHub = targetGroup?.factorsToCanonical.get(
+      added.targetBaseUrl,
+    );
 
-    if (survivingCanonical === added.targetBaseUrl) {
-      // the viewed type pairs straight with its canonical: store the
-      // reverse factor there, keyed by the viewed type
-      touch(survivingCanonical)[viewedBaseUrl] = conversionsFromFactor(
-        1 / added.factor,
+    if (!viewedGroup && !targetGroup) {
+      // A new group of two: the viewed type stores the entry, the target
+      // becomes the pair's canonical
+      touch(viewedBaseUrl)[added.targetBaseUrl] = conversionsFromFactor(
+        added.factor,
       );
       continue;
     }
 
-    if (survivingCanonical === viewedBaseUrl) {
-      touch(viewedBaseUrl)[added.targetBaseUrl] = conversionsFromFactor(
-        added.factor,
-      );
-    } else {
-      touch(survivingCanonical)[added.targetBaseUrl] =
-        conversionsFromFactor(canonicalToTarget);
+    if (viewedGroup && targetGroup && viewedGroup === targetGroup) {
+      // An earlier placement already connected the pair: composition covers
+      // it when the factors agree, and nothing can honour a disagreement
+      if (
+        viewedToHub !== undefined &&
+        targetToHub !== undefined &&
+        Math.abs(viewedToHub / targetToHub / added.factor - 1) < 1e-9
+      ) {
+        continue;
+      }
+      unplacedTargets.push(added.targetBaseUrl);
+      continue;
     }
 
-    // Connecting a second group when the viewed type anchors one of its own:
-    // absorb its canonical's entries, re-composed against the surviving
-    // canonical, and clear the absorbed canonical. A groupless viewed type
-    // joins the target's group as a spoke instead — absorbing would wipe
-    // conversions off a hub the user never edited.
+    if (!viewedGroup && targetGroup) {
+      // The viewed type joins the target's group, aimed at its canonical
+      if (targetToHub === undefined) {
+        // The target hangs off its group by a formula — nothing to compose
+        unplacedTargets.push(added.targetBaseUrl);
+        continue;
+      }
+      touch(viewedBaseUrl)[targetGroup.canonicalBaseUrl] =
+        conversionsFromFactor(added.factor * targetToHub);
+      continue;
+    }
+
+    if (viewedGroup && !targetGroup) {
+      // The target joins the viewed type's group — republishing the target
+      if (viewedToHub === undefined || !canWriteTo(added.targetBaseUrl)) {
+        unplacedTargets.push(added.targetBaseUrl);
+        continue;
+      }
+      // 1 target = (1/factor) viewed = viewedToHub/factor hub units
+      touch(added.targetBaseUrl)[viewedGroup.canonicalBaseUrl] =
+        conversionsFromFactor(viewedToHub / added.factor);
+      continue;
+    }
+
     if (
       viewedGroup &&
       targetGroup &&
-      targetGroup.canonicalBaseUrl !== survivingCanonical
+      viewedToHub !== undefined &&
+      targetToHub !== undefined
     ) {
-      const absorbed = targetGroup.canonicalBaseUrl;
-      const targetToAbsorbed =
-        targetGroup.factorsToCanonical.get(added.targetBaseUrl) ?? 1;
-      // canonical units → absorbed-canonical units
-      const canonicalToAbsorbed = canonicalToTarget * targetToAbsorbed;
+      // Two groups: merge by absorbing whichever the caller may fully
+      // rewrite, preferring the smaller rewrite
+      const hubVToHubT = (added.factor * targetToHub) / viewedToHub;
 
-      if (absorbed !== added.targetBaseUrl) {
-        touch(survivingCanonical)[absorbed] =
-          conversionsFromFactor(canonicalToAbsorbed);
-      }
+      const candidates = [
+        {
+          group: targetGroup,
+          newHub: viewedGroup.canonicalBaseUrl,
+          oldHubToNewHub: 1 / hubVToHubT,
+        },
+        {
+          group: viewedGroup,
+          newHub: targetGroup.canonicalBaseUrl,
+          oldHubToNewHub: hubVToHubT,
+        },
+      ]
+        .filter(({ group }) => absorbable(group))
+        .sort((a, b) => membersOf(a.group).size - membersOf(b.group).size);
 
-      const absorbedEntries =
-        latestDataTypes[absorbed]?.metadata.conversions ?? {};
-      for (const [entryTarget, conversions] of Object.entries(
-        absorbedEntries,
-      )) {
-        const factor = parseConversionFactor(conversions);
-        if (
-          factor === null ||
-          entryTarget === survivingCanonical ||
-          entryTarget === viewedBaseUrl
-        ) {
-          continue;
-        }
-        // absorbed.to converts absorbed units → entry-target units
-        touch(survivingCanonical)[entryTarget as BaseUrl] =
-          conversionsFromFactor(canonicalToAbsorbed * factor);
-      }
-
-      if (Object.keys(absorbedEntries).length > 0) {
-        staged.set(absorbed, {});
+      const chosen = candidates[0];
+      if (chosen) {
+        absorb(chosen.group, chosen.newHub, chosen.oldHubToNewHub);
+        continue;
       }
     }
+
+    unplacedTargets.push(added.targetBaseUrl);
   }
 
-  return [...staged.entries()]
-    .filter(([baseUrl, conversions]) => {
-      const current = latestDataTypes[baseUrl]?.metadata.conversions ?? {};
-      return JSON.stringify(conversions) !== JSON.stringify(current);
-    })
-    .map(([baseUrl, conversions]) => ({ baseUrl, conversions }));
+  return {
+    updates: [...staged.entries()]
+      .filter(([baseUrl, conversions]) => {
+        const current = latestDataTypes[baseUrl]?.metadata.conversions ?? {};
+        return JSON.stringify(conversions) !== JSON.stringify(current);
+      })
+      .map(([baseUrl, conversions]) => ({ baseUrl, conversions })),
+    unplacedTargets,
+  };
 };
 
 /** The drawer-facing view: the viewed type's rows, or none without a group */

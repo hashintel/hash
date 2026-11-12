@@ -139,7 +139,6 @@ const UrlChip = ({ url }: { url: VersionedUrl }) => {
 };
 
 export const EditableHeader = ({
-  webShortname,
   dataTypeUrl,
   title,
   description,
@@ -148,8 +147,8 @@ export const EditableHeader = ({
   titleError,
   descriptionError,
   readonly,
+  urlActions,
 }: {
-  webShortname?: string;
   dataTypeUrl: VersionedUrl;
   title: string;
   description: string;
@@ -158,27 +157,11 @@ export const EditableHeader = ({
   titleError?: string;
   descriptionError?: string;
   readonly?: boolean;
+  /** Rendered on the URL row, after the type's URL chip */
+  urlActions?: React.ReactNode;
 }) => (
   <Box sx={{ padding: "2px 0 5px" }}>
-    {webShortname ? (
-      <Typography
-        sx={{
-          fontSize: "13px !important",
-          lineHeight: "18px !important",
-          fontWeight: "500 !important",
-          color: "#737373 !important",
-          marginTop: "4px",
-          marginBottom: "2px",
-        }}
-      >
-        @{webShortname}
-      </Typography>
-    ) : null}
-
-    <Box
-      component="label"
-      sx={{ ...rowSx, marginTop: webShortname ? 0 : "14px" }}
-    >
+    <Box component="label" sx={{ ...rowSx, marginTop: "14px" }}>
       <Box sx={cellSx}>
         <Box
           component="span"
@@ -248,8 +231,20 @@ export const EditableHeader = ({
       <Typography sx={fieldErrorSx}>{descriptionError}</Typography>
     ) : null}
 
-    <Box sx={{ marginTop: "12px" }}>
+    <Box
+      sx={{
+        marginTop: "12px",
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+      }}
+    >
       <UrlChip url={dataTypeUrl} />
+      {urlActions ? (
+        <Box sx={{ display: "inline-flex", flexShrink: 0, marginLeft: "auto" }}>
+          {urlActions}
+        </Box>
+      ) : null}
     </Box>
   </Box>
 );

@@ -251,7 +251,7 @@ export const DataType = ({
           ]}
           onItemUnarchived={() => {
             void refetchRemoteType();
-            refetchAllDataTypes();
+            void refetchAllDataTypes();
           }}
           scrollToTop={() => {}}
           sx={{ bgcolor: "white" }}

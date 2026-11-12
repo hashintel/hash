@@ -246,6 +246,7 @@ const DrawerRoot = ({
   swapKey,
   loading,
   onClose,
+  onCloseRequest,
   initialFocusRef,
   returnFocusRef,
   onKeyDown,
@@ -292,6 +293,12 @@ const DrawerRoot = ({
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
+  /**
+   * Called when a dismissal is requested (close button, Escape, swipe, or
+   * backdrop), before the exit animation plays. Return `false` to keep the
+   * drawer open and handle the request yourself.
+   */
+  onCloseRequest?: () => boolean | void;
   /** Focused when the drawer opens, instead of the default initial focus. */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   /** Receives focus when the drawer closes, instead of the element focused before it opened. */
@@ -353,6 +360,9 @@ const DrawerRoot = ({
   const allowSwipe = shouldCloseOn !== "none";
 
   const requestClose = () => {
+    if (onCloseRequest?.() === false) {
+      return;
+    }
     setOpen(false);
   };
 

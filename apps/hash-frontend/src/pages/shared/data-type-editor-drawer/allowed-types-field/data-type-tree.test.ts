@@ -7,7 +7,7 @@ import {
 } from "@blockprotocol/type-system";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { buildDataTypeTree } from "./data-type-tree";
+import { buildDataTypeTree, scopeTreeToRoot } from "./data-type-tree";
 
 import type {
   ActorEntityUuid,
@@ -18,14 +18,8 @@ import type {
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
-const primitiveRootOrder = [
-  "Text",
-  "Number",
-  "Boolean",
-  "List",
-  "Object",
-  "Null",
-];
+// Null is not offered: absence is modelled on the property, not a data type
+const primitiveRootOrder = ["Text", "Number", "Boolean", "List", "Object"];
 
 const makeDataTypeFixture = (
   schema: DistributiveOmit<DataType, "$schema" | "kind">,
@@ -121,6 +115,33 @@ describe("buildDataTypeTree", () => {
     });
 
     expect(tree.roots.map((root) => root.title)).not.toContain("Number");
+  });
+
+  it("scopes to a root's subtree, dropping the root layer", () => {
+    const tree = buildDataTypeTree({
+      latestDataTypes: {
+        [numberFromGraph.metadata.recordId.baseUrl]: numberFromGraph,
+        [metresFromGraph.metadata.recordId.baseUrl]: metresFromGraph,
+        [centimetresFromGraph.metadata.recordId.baseUrl]: centimetresFromGraph,
+      },
+    });
+
+    const scoped = scopeTreeToRoot(
+      tree,
+      blockProtocolDataTypes.number.dataTypeBaseUrl,
+    );
+
+    expect(scoped.roots.map((root) => root.title)).toEqual(["Metres"]);
+    expect(scoped.nodeById.has(centimetresFromGraph.schema.$id)).toBe(true);
+    expect(scoped.selectableCount).toBe(2);
+  });
+
+  it("keeps the full tree when the scoped root has nothing beneath it", () => {
+    const tree = buildDataTypeTree({ latestDataTypes: {} });
+
+    expect(
+      scopeTreeToRoot(tree, blockProtocolDataTypes.number.dataTypeBaseUrl),
+    ).toBe(tree);
   });
 
   it("keeps the edited type's descendants reachable, hoisted past its node", () => {

@@ -92,6 +92,15 @@ describe("parseConversionFactor", () => {
     expect(parseConversionFactor(conversionsFromFactor(60))).toBe(60);
     expect(parseConversionFactor(conversionsFromFactor(0.01))).toBe(0.01);
   });
+
+  it("stores a typed reversed value exactly, as a division", () => {
+    // "1 foot = 30.48 centimetres" typed as 30.48 → factor 1/30.48
+    expect(conversionsFromFactor(1 / 30.48).to.expression).toEqual([
+      "/",
+      "self",
+      { const: 30.48, type: "number" },
+    ]);
+  });
 });
 
 describe("buildConversionGroups", () => {
@@ -164,6 +173,23 @@ describe("conversionRowsForViewer", () => {
 describe("planConversionUpdates", () => {
   const groups = buildConversionGroups(lengthTypes);
 
+  /** Spoke-stored time group: minute and hour each aim at the second hub */
+  const timeTypes = {
+    [baseUrl("second")]: makeDataType("Second"),
+    [baseUrl("minute")]: makeDataType("Minute", {
+      [baseUrl("second")]: multiply(60),
+    }),
+    [baseUrl("hour")]: makeDataType("Hour", {
+      [baseUrl("second")]: multiply(3600),
+    }),
+  };
+
+  const directRowsFor = (viewedBaseUrl: BaseUrl) =>
+    conversionRowsForViewer({
+      viewedBaseUrl,
+      group: groups.get(viewedBaseUrl)!,
+    }).filter((row) => !row.viaCanonical);
+
   it("rewrites a changed pairing where it is stored, reversed as needed", () => {
     // Viewing Metre, changing the Kilometre pairing (stored on Kilometre)
     const initialRows = conversionRowsForViewer({
@@ -179,15 +205,15 @@ describe("planConversionUpdates", () => {
           : { targetBaseUrl: row.targetBaseUrl, factor: row.factor! },
       ),
       initialRows,
-      groups,
       latestDataTypes: lengthTypes,
+      canWriteTo: () => true,
     });
 
-    expect(plan).toHaveLength(1);
-    expect(plan[0]!.baseUrl).toBe(baseUrl("kilometre"));
-    expect(parseConversionFactor(plan[0]!.conversions[baseUrl("metre")]!)).toBe(
-      2000,
-    );
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]!.baseUrl).toBe(baseUrl("kilometre"));
+    expect(
+      parseConversionFactor(plan.updates[0]!.conversions[baseUrl("metre")]!),
+    ).toBe(2000);
   });
 
   it("removes a deleted pairing from its storing type", () => {
@@ -200,16 +226,16 @@ describe("planConversionUpdates", () => {
       viewedBaseUrl: baseUrl("centimetre"),
       desiredRows: [],
       initialRows,
-      groups,
       latestDataTypes: lengthTypes,
+      canWriteTo: () => true,
     });
 
-    expect(plan).toHaveLength(1);
-    expect(plan[0]!.baseUrl).toBe(baseUrl("centimetre"));
-    expect(plan[0]!.conversions).toEqual({});
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]!.baseUrl).toBe(baseUrl("centimetre"));
+    expect(plan.updates[0]!.conversions).toEqual({});
   });
 
-  it("stores a first conversion on the type itself as a new canonical", () => {
+  it("starts a new group stored on the viewed type when neither side has one", () => {
     const standalone = {
       [baseUrl("day")]: makeDataType("Day"),
       [baseUrl("week")]: makeDataType("Week"),
@@ -219,26 +245,23 @@ describe("planConversionUpdates", () => {
       viewedBaseUrl: baseUrl("week"),
       desiredRows: [{ targetBaseUrl: baseUrl("day"), factor: 7 }],
       initialRows: [],
-      groups: buildConversionGroups(standalone),
       latestDataTypes: standalone,
+      canWriteTo: () => true,
     });
 
-    expect(plan).toHaveLength(1);
-    expect(plan[0]!.baseUrl).toBe(baseUrl("week"));
-    expect(parseConversionFactor(plan[0]!.conversions[baseUrl("day")]!)).toBe(
-      7,
-    );
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]!.baseUrl).toBe(baseUrl("week"));
+    expect(
+      parseConversionFactor(plan.updates[0]!.conversions[baseUrl("day")]!),
+    ).toBe(7);
   });
 
-  it("joins an existing group as a spoke without absorbing its hub", () => {
-    // Second holds minute + hour (hub-stored); fortnight has no conversions
+  it("joins the viewed type to the target's group, aimed at its canonical", () => {
+    // Pairing fortnight with minute must store fortnight → second: an entry
+    // aimed at the spoke itself would take two hops to reach the other
+    // members, which nothing resolves
     const types = {
-      [baseUrl("second")]: makeDataType("Second", {
-        [baseUrl("minute")]: multiply(1 / 60),
-        [baseUrl("hour")]: multiply(1 / 3600),
-      }),
-      [baseUrl("minute")]: makeDataType("Minute"),
-      [baseUrl("hour")]: makeDataType("Hour"),
+      ...timeTypes,
       [baseUrl("fortnight")]: makeDataType("Fortnight"),
     };
 
@@ -246,74 +269,180 @@ describe("planConversionUpdates", () => {
       viewedBaseUrl: baseUrl("fortnight"),
       desiredRows: [{ targetBaseUrl: baseUrl("minute"), factor: 20160 }],
       initialRows: [],
-      groups: buildConversionGroups(types),
       latestDataTypes: types,
+      canWriteTo: () => true,
     });
 
-    // Only the new type is written — the established hub keeps its entries
-    expect(plan).toHaveLength(1);
-    expect(plan[0]!.baseUrl).toBe(baseUrl("fortnight"));
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]!.baseUrl).toBe(baseUrl("fortnight"));
     expect(
-      parseConversionFactor(plan[0]!.conversions[baseUrl("minute")]!),
-    ).toBe(20160);
+      parseConversionFactor(plan.updates[0]!.conversions[baseUrl("second")]!),
+    ).toBe(1209600);
   });
 
-  it("merges a second group into the surviving canonical and clears the absorbed one", () => {
-    // Group A: metre hub (spoke-stored); group B: second holds minute + hour
-    const twoGroups = {
+  it("joins an ungrouped target to the viewed type's group via its canonical", () => {
+    // Centimetre's slot holds its metre entry, so the new pairing is stored
+    // on the (ungrouped) target — aimed at the canonical, factor composed:
+    // 1 centimetre = 0.5 inches, so 1 inch = 2 centimetres = 0.02 metres
+    const types = {
       ...lengthTypes,
-      [baseUrl("second")]: makeDataType("Second", {
-        [baseUrl("minute")]: multiply(1 / 60),
-        [baseUrl("hour")]: multiply(1 / 3600),
-      }),
-      [baseUrl("minute")]: makeDataType("Minute"),
-      [baseUrl("hour")]: makeDataType("Hour"),
+      [baseUrl("inch")]: makeDataType("Inch"),
     };
-    const allGroups = buildConversionGroups(twoGroups);
-    const metreGroup = allGroups.get(baseUrl("metre"))!;
+    const directRows = directRowsFor(baseUrl("centimetre"));
 
-    const initialRows = conversionRowsForViewer({
-      viewedBaseUrl: baseUrl("metre"),
-      group: metreGroup,
-    });
-
-    // "1 metre = 2 minutes" — nonsense physically, fine structurally
     const plan = planConversionUpdates({
-      viewedBaseUrl: baseUrl("metre"),
+      viewedBaseUrl: baseUrl("centimetre"),
       desiredRows: [
-        ...initialRows.map((row) => ({
+        ...directRows.map((row) => ({
           targetBaseUrl: row.targetBaseUrl,
           factor: row.factor!,
         })),
-        { targetBaseUrl: baseUrl("minute"), factor: 2 },
+        { targetBaseUrl: baseUrl("inch"), factor: 0.5 },
       ],
-      initialRows,
-      groups: allGroups,
+      initialRows: directRows,
+      latestDataTypes: types,
+      canWriteTo: () => true,
+    });
+
+    expect(plan.unplacedTargets).toEqual([]);
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]!.baseUrl).toBe(baseUrl("inch"));
+    expect(
+      parseConversionFactor(plan.updates[0]!.conversions[baseUrl("metre")]!),
+    ).toBe(0.02);
+  });
+
+  it("merges two groups instead of bridging them through chained hops", () => {
+    // "1 centimetre = 2 seconds" — nonsense physically, fine structurally.
+    // Every member of the absorbed time group is re-aimed at metre, so the
+    // combined group stays a single-hub star.
+    const twoGroups = { ...lengthTypes, ...timeTypes };
+    const directRows = directRowsFor(baseUrl("centimetre"));
+
+    const plan = planConversionUpdates({
+      viewedBaseUrl: baseUrl("centimetre"),
+      desiredRows: [
+        ...directRows.map((row) => ({
+          targetBaseUrl: row.targetBaseUrl,
+          factor: row.factor!,
+        })),
+        { targetBaseUrl: baseUrl("second"), factor: 2 },
+      ],
+      initialRows: directRows,
+      latestDataTypes: twoGroups,
+      canWriteTo: () => true,
+    });
+
+    expect(plan.unplacedTargets).toEqual([]);
+    expect(plan.updates.map((update) => update.baseUrl).sort()).toEqual(
+      [baseUrl("hour"), baseUrl("minute"), baseUrl("second")].sort(),
+    );
+
+    const factorTo = (sourceName: string) =>
+      parseConversionFactor(
+        plan.updates.find((update) => update.baseUrl === baseUrl(sourceName))!
+          .conversions[baseUrl("metre")]!,
+      );
+    // 1 cm = 2 s ⇒ 1 s = 0.5 cm = 0.005 m
+    expect(factorTo("second")).toBeCloseTo(0.005);
+    expect(factorTo("minute")).toBeCloseTo(0.3);
+    expect(factorTo("hour")).toBeCloseTo(18);
+  });
+
+  it("absorbs the writable group when the other can't be rewritten", () => {
+    const twoGroups = { ...lengthTypes, ...timeTypes };
+    const timeMembers = new Set([
+      baseUrl("second"),
+      baseUrl("minute"),
+      baseUrl("hour"),
+    ]);
+    const directRows = directRowsFor(baseUrl("centimetre"));
+
+    const plan = planConversionUpdates({
+      viewedBaseUrl: baseUrl("centimetre"),
+      desiredRows: [
+        ...directRows.map((row) => ({
+          targetBaseUrl: row.targetBaseUrl,
+          factor: row.factor!,
+        })),
+        { targetBaseUrl: baseUrl("second"), factor: 2 },
+      ],
+      initialRows: directRows,
+      latestDataTypes: twoGroups,
+      canWriteTo: (writeBaseUrl) => !timeMembers.has(writeBaseUrl),
+    });
+
+    // The length group is re-aimed at second instead
+    expect(plan.unplacedTargets).toEqual([]);
+    expect(plan.updates.map((update) => update.baseUrl).sort()).toEqual(
+      [baseUrl("centimetre"), baseUrl("kilometre"), baseUrl("metre")].sort(),
+    );
+
+    const factorTo = (sourceName: string) =>
+      parseConversionFactor(
+        plan.updates.find((update) => update.baseUrl === baseUrl(sourceName))!
+          .conversions[baseUrl("second")]!,
+      );
+    expect(factorTo("centimetre")).toBeCloseTo(2);
+    expect(factorTo("metre")).toBeCloseTo(200);
+    expect(factorTo("kilometre")).toBeCloseTo(200000);
+  });
+
+  it("skips joining through a target the caller can't write", () => {
+    // The pairing could only be stored on the ungrouped target — joining the
+    // viewed type's group republishes it, which the caller may not do
+    const types = {
+      ...lengthTypes,
+      [baseUrl("inch")]: makeDataType("Inch"),
+    };
+    const directRows = directRowsFor(baseUrl("centimetre"));
+
+    const plan = planConversionUpdates({
+      viewedBaseUrl: baseUrl("centimetre"),
+      desiredRows: [
+        ...directRows.map((row) => ({
+          targetBaseUrl: row.targetBaseUrl,
+          factor: row.factor!,
+        })),
+        { targetBaseUrl: baseUrl("inch"), factor: 0.5 },
+      ],
+      initialRows: directRows,
+      latestDataTypes: types,
+      canWriteTo: (writeBaseUrl) => writeBaseUrl !== baseUrl("inch"),
+    });
+
+    expect(plan.unplacedTargets).toEqual([baseUrl("inch")]);
+    expect(plan.updates).toEqual([]);
+  });
+
+  it("reports a merge neither side has permission to rewrite", () => {
+    const twoGroups = { ...lengthTypes, ...timeTypes };
+    const directRows = directRowsFor(baseUrl("centimetre"));
+
+    const plan = planConversionUpdates({
+      viewedBaseUrl: baseUrl("centimetre"),
+      desiredRows: [
+        ...directRows.map((row) => ({
+          targetBaseUrl: row.targetBaseUrl,
+          factor: row.factor!,
+        })),
+        { targetBaseUrl: baseUrl("second"), factor: 2 },
+      ],
+      initialRows: directRows,
+      // Only the viewed type itself is writable: neither group can be
+      // wholly re-aimed
+      canWriteTo: (writeBaseUrl) => writeBaseUrl === baseUrl("centimetre"),
       latestDataTypes: twoGroups,
     });
 
-    const survivor = plan.find((entry) => entry.baseUrl === baseUrl("metre"));
-    const absorbed = plan.find((entry) => entry.baseUrl === baseUrl("second"));
-
-    // Metre (surviving canonical) gains the new pairing plus the absorbed
-    // group's members, re-composed; Second is cleared
-    expect(
-      parseConversionFactor(survivor!.conversions[baseUrl("minute")]!),
-    ).toBe(2);
-    // 1 metre = 2 minutes = 120 seconds
-    expect(
-      parseConversionFactor(survivor!.conversions[baseUrl("second")]!),
-    ).toBeCloseTo(120);
-    expect(
-      parseConversionFactor(survivor!.conversions[baseUrl("hour")]!),
-    ).toBeCloseTo(2 / 60);
-    expect(absorbed!.conversions).toEqual({});
+    expect(plan.unplacedTargets).toEqual([baseUrl("second")]);
+    expect(plan.updates).toEqual([]);
   });
 });
 
 describe("conversionRowStatesFromRows", () => {
-  it("presents recurring reciprocals as divisions and short decimals as multiplications", () => {
-    const [recurring, short] = conversionRowStatesFromRows([
+  it("reverses stored factors into viewed-units-per-target values", () => {
+    const [hour, metre] = conversionRowStatesFromRows([
       {
         targetBaseUrl: baseUrl("hour"),
         factor: 1 / 60,
@@ -328,8 +457,9 @@ describe("conversionRowStatesFromRows", () => {
       },
     ]);
 
-    expect(recurring).toMatchObject({ operator: "divide", value: 60 });
-    expect(short).toMatchObject({ operator: "multiply", value: 0.01 });
+    // "1 hour = 60 × 1 of these" / "1 metre = 100 × 1 of these"
+    expect(hour).toMatchObject({ value: 60 });
+    expect(metre).toMatchObject({ value: 100 });
   });
 });
 

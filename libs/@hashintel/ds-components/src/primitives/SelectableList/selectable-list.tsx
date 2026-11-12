@@ -209,8 +209,9 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const containsSelection =
     collapsible && !expanded && hasSelectedDescendant(item, ctx.selectedSet);
   // The chevron follows the subtree, not the row's own `disabled` — see
-  // `hasEnabledDescendant`.
-  const collapseDisabled = collapsible && !hasEnabledDescendant(item);
+  // `hasEnabledDescendant`. It stays clickable either way, so disabled items
+  // remain browsable; it only reads as inert.
+  const collapseDimmed = collapsible && !hasEnabledDescendant(item);
 
   const classes = itemStyles({
     // A Combobox list is styled like a Select list.
@@ -235,7 +236,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
       onToggleExpansion={
         collapsible ? () => ctx.expansion.onToggle(itemId) : undefined
       }
-      collapseDisabled={collapseDisabled}
+      collapseDimmed={collapseDimmed}
       reserveChevron={ctx.hasCollapsibleRows}
     />
   );

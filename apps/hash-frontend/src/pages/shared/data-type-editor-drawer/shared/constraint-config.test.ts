@@ -10,6 +10,7 @@ import {
   primitiveArmOfUnion,
   schemaConstraintsFromValues,
   sharedParentPrimitive,
+  summarizeTypeTitles,
   visibleConstraintKinds,
 } from "./constraint-config";
 
@@ -222,6 +223,27 @@ describe("formatConstraintValue", () => {
     );
     expect(formatConstraintValue("items", { items: "string" })).toBe("Text");
     expect(formatConstraintValue("maxLength", { maxLength: 10 })).toBe("10");
+  });
+
+  it("caps enums at five values and truncates long ones", () => {
+    expect(formatConstraintValue("enum", { enum: [1, 2, 3, 4, 5, 6, 7] })).toBe(
+      "1, 2, 3, 4, 5 and 2 more",
+    );
+    expect(
+      formatConstraintValue("enum", { enum: [`${"x".repeat(40)}y`] }),
+    ).toBe(`${"x".repeat(40)}…`);
+  });
+});
+
+describe("summarizeTypeTitles", () => {
+  it("summarizes beyond two titles and truncates long ones", () => {
+    expect(summarizeTypeTitles(["Metre", "Foot"])).toBe("Metre and Foot");
+    expect(summarizeTypeTitles(["Metre", "Foot", "Inch", "Mile"])).toBe(
+      "Metre, Foot and 2 more",
+    );
+    expect(summarizeTypeTitles([`${"A".repeat(39)} tail`])).toBe(
+      `${"A".repeat(39)}…`,
+    );
   });
 });
 

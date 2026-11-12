@@ -1,141 +1,58 @@
 import { Box } from "@mui/material";
 import { useState } from "react";
 
-import { Chip } from "@hashintel/ds-components";
+import { TagsInput } from "@hashintel/ds-components";
 
 /**
- * A free-text pill input styled to match the multi Combobox at size `sm`:
- * same ds frame tokens (resting/hover border, hover fill, focus outline,
- * radius, paddings) and the same chip size the Combobox uses in an `sm`
- * input.
+ * The permitted-values input: the ds TagsInput, with values parsed as numbers
+ * when the constrained primitive is numeric — a commit that doesn't parse or
+ * fails `isValueAllowed` is rejected and flags the field invalid until the
+ * next successful change.
  */
 export const ValuePillsInput = ({
   values,
   numeric,
   onChange,
   readonly,
+  isValueAllowed,
 }: {
   values: (string | number)[];
   numeric: boolean;
   onChange: (values: (string | number)[]) => void;
   readonly?: boolean;
+  /** Rejects values the inherited constraints would drop on save */
+  isValueAllowed?: (value: string | number) => boolean;
 }) => {
-  const [draft, setDraft] = useState("");
   const [invalid, setInvalid] = useState(false);
 
-  const commitDraft = () => {
-    const text = draft.trim();
-
-    if (!text) {
-      return;
-    }
-
-    const value: string | number = numeric ? Number(text) : text;
-
-    if (typeof value === "number" && !Number.isFinite(value)) {
-      setInvalid(true);
-      return;
-    }
-
-    if (!values.includes(value)) {
-      onChange([...values, value]);
-    }
-    setDraft("");
-  };
-
   return (
-    <Box
-      component="label"
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 0.5,
-        flex: 1,
-        maxWidth: 420,
-        padding: "2px 10px",
-        background: "var(--colors-white)",
-        border: "1px solid var(--colors-neutral-s40)",
-        borderRadius: "var(--radii-lg)",
-        cursor: "text",
-        transition: "background 0.15s ease, border 0.15s ease",
-        "&:hover": {
-          borderColor: "var(--colors-neutral-s80)",
-          background: "var(--colors-neutral-s10)",
-        },
-        "&:focus-within": {
-          outline: "1px solid var(--colors-neutral-s40)",
-        },
-      }}
-    >
-      {values.map((value) => (
-        <Chip
-          key={String(value)}
-          size="md"
-          removeable={
-            readonly
-              ? false
-              : {
-                  onRemove: () =>
-                    onChange(values.filter((existing) => existing !== value)),
-                  "aria-label": `Remove ${String(value)}`,
-                }
-          }
-        >
-          {String(value)}
-        </Chip>
-      ))}
-      <Box
-        component="input"
-        readOnly={readonly}
-        value={draft}
-        onChange={(event) => {
-          setDraft(event.target.value);
-          setInvalid(false);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            commitDraft();
-          } else if (
-            event.key === "Backspace" &&
-            !readonly &&
-            draft === "" &&
-            values.length > 0
+    <Box sx={{ flex: 1, maxWidth: 420 }}>
+      <TagsInput
+        value={values.map(String)}
+        onChange={(next) => {
+          const parsed = numeric ? next.map(Number) : next;
+
+          if (
+            parsed.some(
+              (value) => typeof value === "number" && !Number.isFinite(value),
+            ) ||
+            (isValueAllowed && !parsed.every(isValueAllowed))
           ) {
-            onChange(values.slice(0, -1));
+            setInvalid(true);
+            return;
           }
+
+          setInvalid(false);
+          onChange(parsed.length > 0 ? parsed : []);
         }}
-        onBlur={commitDraft}
+        readonly={readonly}
+        invalid={invalid || undefined}
         placeholder={
-          values.length > 0 || readonly
-            ? ""
-            : numeric
-              ? "Type a number, press Enter"
-              : "Type a value, press Enter"
+          numeric ? "Type a number, press Enter" : "Type a value, press Enter"
         }
         aria-label="Add a permitted value"
-        aria-invalid={invalid || undefined}
-        // Inline style: the ds layer polyfill's specificity boost beats an
-        // sx class, but not an inline declaration
-        style={{
-          color: invalid ? "var(--colors-status-error-s90)" : undefined,
-        }}
-        sx={{
-          flex: 1,
-          minWidth: 100,
-          border: "none",
-          outline: "none",
-          background: "transparent",
-          fontFamily: "inherit",
-          fontSize: 14,
-          lineHeight: 1.6,
-          padding: "2px 0",
-          color: "var(--colors-fg-body)",
-          "&::placeholder": {
-            color: "var(--colors-neutral-s80)",
-          },
-        }}
+        size="sm"
+        width="fullWidth"
       />
     </Box>
   );

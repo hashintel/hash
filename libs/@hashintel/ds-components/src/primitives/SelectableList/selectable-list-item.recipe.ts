@@ -104,8 +104,9 @@ export const styles = sva({
       paddingTop: "[var(--selectable-list-item-padding-y)]",
       paddingBottom: "[var(--selectable-list-item-padding-y)]",
       paddingLeft: "[var(--selectable-list-item-padding-x)]",
-      "&:disabled": {
-        cursor: "default",
+      // Nothing enabled beneath the row: the toggle reads as inert but stays
+      // clickable, so the disabled subtree can still be browsed
+      "&[data-subtree-disabled]": {
         opacity: "[0.5]",
       },
     },

@@ -26,6 +26,24 @@ export type DataTypeTree = {
   selectableCount: number;
 };
 
+const indexTreeNodes = (
+  roots: DataTypeTreeNode[],
+): Map<VersionedUrl, DataTypeTreeNode> => {
+  const nodeById = new Map<VersionedUrl, DataTypeTreeNode>();
+  const collect = (node: DataTypeTreeNode) => {
+    if (!nodeById.has(node.$id)) {
+      nodeById.set(node.$id, node);
+    }
+    for (const child of node.children) {
+      collect(child);
+    }
+  };
+  for (const root of roots) {
+    collect(root);
+  }
+  return nodeById;
+};
+
 export const buildDataTypeTree = ({
   latestDataTypes,
   excludedBaseUrl,
@@ -65,13 +83,18 @@ export const buildDataTypeTree = ({
         : [{ ...node, children: hoistExcluded(node.children) }],
     );
 
-  const roots = excludedBaseUrl ? hoistExcluded(builtRoots) : builtRoots;
+  // Null isn't a pickable value type — a nullable property models absence
+  // through the property, not a data type
+  const roots = (
+    excludedBaseUrl ? hoistExcluded(builtRoots) : builtRoots
+  ).filter((root) => root.type !== "null");
 
   // The primitive types are served on demand by the type fetcher, so until
   // something references one the graph may have no copy of it to put in the
   // tree — offer the statically-known identity instead
   for (const rootType of primitiveRootTypes) {
     if (
+      rootType.type === "null" ||
       rootType.baseUrl === excludedBaseUrl ||
       roots.some((root) => root.baseUrl === rootType.baseUrl)
     ) {
@@ -104,20 +127,30 @@ export const buildDataTypeTree = ({
       rootRank(a.title) - rootRank(b.title) || a.title.localeCompare(b.title),
   );
 
-  const nodeById = new Map<VersionedUrl, DataTypeTreeNode>();
-  const collect = (node: DataTypeTreeNode) => {
-    if (!nodeById.has(node.$id)) {
-      nodeById.set(node.$id, node);
-    }
-    for (const child of node.children) {
-      collect(child);
-    }
-  };
-  for (const root of roots) {
-    collect(root);
-  }
+  const nodeById = indexTreeNodes(roots);
 
   return { roots, nodeById, selectableCount: nodeById.size };
+};
+
+/**
+ * The tree scoped to one root's subtree: its children become the top-level
+ * options, so a picker locked to that root's value category offers only
+ * in-category types. Falls back to the full tree when the root is absent or
+ * has nothing beneath it — the full list's disabled reasons then explain why
+ * nothing is pickable.
+ */
+export const scopeTreeToRoot = (
+  tree: DataTypeTree,
+  rootBaseUrl: BaseUrl,
+): DataTypeTree => {
+  const root = tree.roots.find((node) => node.baseUrl === rootBaseUrl);
+  if (!root || root.children.length === 0) {
+    return tree;
+  }
+
+  const nodeById = indexTreeNodes(root.children);
+
+  return { roots: root.children, nodeById, selectableCount: nodeById.size };
 };
 
 export const getDataTypeIconName = ({

@@ -188,11 +188,26 @@ export const collectDescendantTypeTitles = ({
   return titles;
 };
 
+/**
+ * Titles and values are user-authored with no length limit — composed copy
+ * (tooltips, card descriptions, picker disabled reasons) truncates each to
+ * this many characters. Generous enough for real names: the tightest layout,
+ * the picker's nowrap disabled reason, still fits two truncated titles.
+ */
+const maxSummarizedItemLength = 40;
+
+const truncateSummarizedItem = (item: string): string =>
+  item.length > maxSummarizedItemLength
+    ? `${item.slice(0, maxSummarizedItemLength).trimEnd()}…`
+    : item;
+
 /** "A and B", or "A, B and 2 more" beyond two titles. */
-export const summarizeTypeTitles = (titles: string[]): string =>
-  titles.length <= 2
-    ? titles.join(" and ")
-    : `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`;
+export const summarizeTypeTitles = (titles: string[]): string => {
+  const shown = titles.map(truncateSummarizedItem);
+  return titles.length <= 2
+    ? shown.join(" and ")
+    : `${shown[0]}, ${shown[1]} and ${titles.length - 2} more`;
+};
 
 /** A human-readable rendering of a kind's value, e.g. for tooltips. */
 export const formatConstraintValue = (
@@ -207,8 +222,14 @@ export const formatConstraintValue = (
         ? `${bound.value}${bound.exclusive ? " (exclusive)" : ""}`
         : "";
     }
-    case "enum":
-      return (values.enum ?? []).map(String).join(", ");
+    case "enum": {
+      const enumValues = (values.enum ?? []).map(String);
+      const shown = enumValues.slice(0, 5).map(truncateSummarizedItem);
+      const hiddenCount = enumValues.length - shown.length;
+      return hiddenCount > 0
+        ? `${shown.join(", ")} and ${hiddenCount} more`
+        : shown.join(", ");
+    }
     case "format":
       return values.format ? stringFormatLabels[values.format] : "";
     case "items":

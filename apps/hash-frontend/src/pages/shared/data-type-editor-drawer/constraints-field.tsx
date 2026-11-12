@@ -46,7 +46,11 @@ export const AddConstraintMenu = ({
   state,
   onChange,
   readonly,
-}: ConstraintsFieldProps) => {
+  trigger,
+}: ConstraintsFieldProps & {
+  /** Replaces the default labelled button as the menu trigger */
+  trigger?: React.ReactElement;
+}) => {
   const availableKinds = constraintKindsByPrimitive[primitive];
   const { activeKinds } = state;
 
@@ -89,9 +93,11 @@ export const AddConstraintMenu = ({
       <Menu
         items={menuItems}
         trigger={
-          <Button variant="subtle" size="sm" iconName="plus">
-            Add constraint
-          </Button>
+          trigger ?? (
+            <Button variant="subtle" size="sm" iconName="plus">
+              Add constraint
+            </Button>
+          )
         }
       />
     </Box>
@@ -162,6 +168,7 @@ export const ConstraintsField = ({
             kind={kind}
             primitive={primitive}
             values={isOwn ? values : inherited.values}
+            inheritedValues={inherited.values}
             inheritedFromTitle={source?.title ?? null}
             inheritedValueLabel={
               source ? formatConstraintValue(kind, inherited.values) : null

@@ -12,7 +12,13 @@ import {
   componentsFromVersionedUrl,
   extractBaseUrl,
 } from "@blockprotocol/type-system";
-import { Button, Combobox, Icon } from "@hashintel/ds-components";
+import {
+  Button,
+  Chip,
+  Combobox,
+  Icon,
+  Tooltip,
+} from "@hashintel/ds-components";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { useDataTypesContext } from "../data-types-context";
@@ -20,6 +26,7 @@ import { useSlideStack } from "../slide-stack/context";
 import {
   buildDataTypeTree,
   getDataTypeIconName,
+  scopeTreeToRoot,
 } from "./allowed-types-field/data-type-tree";
 import { ListEntryEditor } from "./allowed-types-field/list-entry-editor";
 import {
@@ -32,7 +39,10 @@ import {
   listDataTypeId,
   listDataTypeTitle,
 } from "./shared/list-config";
-import { primitiveRootTypeByBaseUrl } from "./shared/primitive-root-types";
+import {
+  primitiveRootTypeByBaseUrl,
+  primitiveRootTypes,
+} from "./shared/primitive-root-types";
 
 import type {
   DataTypeTree,
@@ -53,7 +63,49 @@ export type AllowedTypesFieldHandle = {
 
 export type AllowedTypeEntry =
   | { relation: AllowedTypeRelation; dataTypeId: VersionedUrl }
-  | { relation: "list"; config: ListConfig };
+  | { relation: "list"; config: ListConfig }
+  | { relation: "group" };
+
+/**
+ * The picker's synthetic Group option: not a data type, but the explicit way
+ * to make the edited type an abstract group of other data types. Never saved
+ * — the save path reads the staged member entries instead.
+ */
+const groupPseudoDataTypeId =
+  "https://hash.ai/pseudo-data-type/group/v/1" as VersionedUrl;
+
+const groupPseudoNode: DataTypeTreeNode = {
+  $id: groupPseudoDataTypeId,
+  abstract: false,
+  baseUrl: extractBaseUrl(groupPseudoDataTypeId),
+  children: [],
+  description: "A group of data types that a value can choose from",
+  directParents: [],
+  label: {},
+  title: "Group",
+  type: "string",
+  version: componentsFromVersionedUrl(groupPseudoDataTypeId).version,
+};
+
+/**
+ * The add picker's synthetic "create a new type" action: picking it hands off
+ * to the caller's create flow instead of staging an entry.
+ */
+const createNewPseudoDataTypeId =
+  "https://hash.ai/pseudo-data-type/create-new/v/1" as VersionedUrl;
+
+const createNewPseudoNode: DataTypeTreeNode = {
+  $id: createNewPseudoDataTypeId,
+  abstract: false,
+  baseUrl: extractBaseUrl(createNewPseudoDataTypeId),
+  children: [],
+  description: "Define a new data type extending this one",
+  directParents: [],
+  label: {},
+  title: "Create a new type",
+  type: "string",
+  version: componentsFromVersionedUrl(createNewPseudoDataTypeId).version,
+};
 
 type DisabledReason = string;
 
@@ -95,7 +147,16 @@ const DataTypeOptionContent = ({
         flexShrink: 0,
       }}
     >
-      <Icon name={getDataTypeIconName(node)} size="sm" />
+      <Icon
+        name={
+          node.$id === groupPseudoDataTypeId
+            ? "layer"
+            : node.$id === createNewPseudoDataTypeId
+              ? "plus"
+              : getDataTypeIconName(node)
+        }
+        size="sm"
+      />
     </Box>
     {onOpen ? (
       <Typography
@@ -283,9 +344,12 @@ export const AllowedTypesField = ({
   readonly,
   visibleRelations,
   handle,
-  addDisabledReason,
   addRelation,
+  offerGroup,
   childCompatibility,
+  groupRootRef,
+  onCreateNewType,
+  draftNodesById,
 }: {
   value: AllowedTypeEntry[];
   onChange: (value: AllowedTypeEntry[]) => void;
@@ -298,15 +362,16 @@ export const AllowedTypesField = ({
   /** Lets the parent's own add button open the in-body type picker */
   handle?: Ref<AllowedTypesFieldHandle>;
   /**
-   * Disables every data-type pick in the add picker with this reason — list
-   * picks stay available, as they reference no other type
-   */
-  addDisabledReason?: string;
-  /**
    * The relation added entries take. Defaults to the first pick becoming the
    * parent and later picks children.
    */
   addRelation?: AllowedTypeRelation;
+  /**
+   * Offer the synthetic Group option in this field's pickers — only the
+   * drawer's Extends card takes it; everywhere else a pick must reference a
+   * real data type
+   */
+  offerGroup?: boolean;
   /**
    * The primitive a child pick must share with the edited type — a child's
    * constraints must compose with the type it implements, so picks of any
@@ -317,6 +382,22 @@ export const AllowedTypesField = ({
     primitive: ConstraintPrimitive;
     title: string;
   } | null;
+  /**
+   * The base type the group's allOf will reference — its members' lowest
+   * common ancestor, recomputed as membership changes. Shown on the Group row
+   * as a read-only annotation.
+   */
+  groupRootRef?: VersionedUrl | null;
+  /**
+   * Offer a "Create a new type" action closing the add picker's options,
+   * calling this instead of staging an entry when picked
+   */
+  onCreateNewType?: () => void;
+  /**
+   * Display nodes for staged drafts of types not yet in the graph — their
+   * entry rows render from these, without a link, marked as new
+   */
+  draftNodesById?: ReadonlyMap<VersionedUrl, DataTypeTreeNode>;
 }) => {
   const { dataTypes, latestDataTypes } = useDataTypesContext();
   const { pushToSlideStack } = useSlideStack();
@@ -378,11 +459,35 @@ export const AllowedTypesField = ({
     [latestDataTypes, excludedBaseUrl],
   );
 
-  if (!tree) {
+  const pickerTree = useMemo(
+    () =>
+      tree && offerGroup
+        ? {
+            roots: [...tree.roots, groupPseudoNode],
+            nodeById: new Map(tree.nodeById).set(
+              groupPseudoDataTypeId,
+              groupPseudoNode,
+            ),
+            selectableCount: tree.selectableCount + 1,
+          }
+        : tree,
+    [tree, offerGroup],
+  );
+
+  if (!tree || !pickerTree) {
     return null;
   }
 
   const resolveNode = (dataTypeId: VersionedUrl): DataTypeTreeNode | null => {
+    if (dataTypeId === groupPseudoDataTypeId) {
+      return groupPseudoNode;
+    }
+
+    const draftNode = draftNodesById?.get(dataTypeId);
+    if (draftNode) {
+      return draftNode;
+    }
+
     const node = tree.nodeById.get(dataTypeId);
     if (node) {
       return node;
@@ -416,7 +521,11 @@ export const AllowedTypesField = ({
   };
 
   const entryDataTypeId = (entry: AllowedTypeEntry): VersionedUrl =>
-    entry.relation === "list" ? listDataTypeId : entry.dataTypeId;
+    entry.relation === "list"
+      ? listDataTypeId
+      : entry.relation === "group"
+        ? groupPseudoDataTypeId
+        : entry.dataTypeId;
 
   /** `null` for anyOf-typed (union) and unknown types */
   const resolvePrimitive = (
@@ -434,6 +543,59 @@ export const AllowedTypesField = ({
       primitiveRootTypeByBaseUrl.get(extractBaseUrl(dataTypeId))?.type ?? null
     );
   };
+
+  /**
+   * The tree a member ("child") pick chooses from: once other members fix the
+   * value category, only that primitive root's subtree is offered — the root
+   * layer drops away. With no other members (the first pick, or replacing the
+   * sole member) the category is still open, so the full tree stays.
+   */
+  const pickerTreeFor = ({
+    pickRelation,
+    editedIndex,
+  }: {
+    pickRelation: AllowedTypeRelation;
+    editedIndex?: number;
+  }): DataTypeTree => {
+    if (pickRelation !== "child") {
+      return pickerTree;
+    }
+
+    const otherMembers = value.filter(
+      (entry, index): entry is ReferenceEntry =>
+        index !== editedIndex && entry.relation === "child",
+    );
+    if (otherMembers.length === 0) {
+      return pickerTree;
+    }
+
+    const primitive = sharedParentPrimitive({
+      parentDataTypeIds: otherMembers.map((entry) => entry.dataTypeId),
+      resolvePrimitive,
+    });
+    const rootBaseUrl = primitiveRootTypes.find(
+      (rootType) => rootType.type === primitive,
+    )?.baseUrl;
+
+    return rootBaseUrl ? scopeTreeToRoot(pickerTree, rootBaseUrl) : pickerTree;
+  };
+
+  /**
+   * The create-new action closes the add picker's options. Applied after any
+   * scoping, which would drop a node injected into the unscoped tree. Not
+   * counted as selectable: the placeholder counts searchable data types.
+   */
+  const withCreateNewOption = (baseTree: DataTypeTree): DataTypeTree =>
+    onCreateNewType
+      ? {
+          roots: [...baseTree.roots, createNewPseudoNode],
+          nodeById: new Map(baseTree.nodeById).set(
+            createNewPseudoDataTypeId,
+            createNewPseudoNode,
+          ),
+          selectableCount: baseTree.selectableCount,
+        }
+      : baseTree;
 
   /** Every base URL reachable upward through stored `allOf` chains */
   const ancestorBaseUrls = (startBaseUrls: BaseUrl[]): Set<BaseUrl> => {
@@ -573,6 +735,21 @@ export const AllowedTypesField = ({
           ]);
 
     return (node: DataTypeTreeNode): DisabledReason | null => {
+      // An action, not a type reference — never disabled by combination rules
+      if (node.$id === createNewPseudoDataTypeId) {
+        return null;
+      }
+
+      // A group stands alone: it extends nothing, and its members live in
+      // their own field — so it only combines with staged member entries
+      if (node.$id === groupPseudoDataTypeId) {
+        return value.some(
+          (entry, index) => index !== editedIndex && entry.relation !== "child",
+        )
+          ? "Can't combine with other types"
+          : null;
+      }
+
       if (
         requiredPrimitive !== null &&
         combinedWithTitles.length > 0 &&
@@ -603,7 +780,7 @@ export const AllowedTypesField = ({
       const alreadySelected = value.some(
         (entry, index) =>
           index !== editedIndex &&
-          entry.relation !== "list" &&
+          "dataTypeId" in entry &&
           extractBaseUrl(entry.dataTypeId) === node.baseUrl,
       );
 
@@ -633,10 +810,18 @@ export const AllowedTypesField = ({
     addRelation ?? (hasParentEntry() ? "child" : "parent");
 
   const handleAdd = (dataTypeId: VersionedUrl) => {
+    if (dataTypeId === createNewPseudoDataTypeId) {
+      setActivePicker(null);
+      onCreateNewType?.();
+      return;
+    }
+
     const entry: AllowedTypeEntry =
-      extractBaseUrl(dataTypeId) === listDataTypeBaseUrl
-        ? { relation: "list", config: defaultListConfig() }
-        : { dataTypeId, relation: addPickRelation };
+      dataTypeId === groupPseudoDataTypeId
+        ? { relation: "group" }
+        : extractBaseUrl(dataTypeId) === listDataTypeBaseUrl
+          ? { relation: "list", config: defaultListConfig() }
+          : { dataTypeId, relation: addPickRelation };
 
     onChange([...value, entry]);
     setActivePicker(null);
@@ -649,6 +834,10 @@ export const AllowedTypesField = ({
           return entry;
         }
 
+        if (dataTypeId === groupPseudoDataTypeId) {
+          return entry.relation === "group" ? entry : { relation: "group" };
+        }
+
         if (extractBaseUrl(dataTypeId) === listDataTypeBaseUrl) {
           return entry.relation === "list"
             ? entry
@@ -658,7 +847,7 @@ export const AllowedTypesField = ({
         return {
           dataTypeId,
           relation:
-            entry.relation === "list"
+            entry.relation === "list" || entry.relation === "group"
               ? hasParentEntry(index)
                 ? "child"
                 : "parent"
@@ -677,7 +866,9 @@ export const AllowedTypesField = ({
     return (
       <Box data-allowed-types-picker ref={containerRef}>
         <DataTypePicker
-          tree={tree}
+          tree={withCreateNewOption(
+            pickerTreeFor({ pickRelation: addPickRelation }),
+          )}
           value={null}
           onPick={handleAdd}
           getDisabledReason={makeGetDisabledReason({
@@ -755,7 +946,7 @@ export const AllowedTypesField = ({
     });
 
   const anyEntryExpandable = visibleEntries.some(({ entry }) => {
-    if (entry.relation === "list") {
+    if (!("dataTypeId" in entry)) {
       return false;
     }
     const node = resolveNode(entry.dataTypeId);
@@ -781,7 +972,12 @@ export const AllowedTypesField = ({
         >
           {visibleEntries.map(({ entry, index }, ordinal) => {
             const isList = entry.relation === "list";
-            const entryKey = isList ? `list-${index}` : entry.dataTypeId;
+            const isGroup = entry.relation === "group";
+            const entryKey = isList
+              ? `list-${index}`
+              : isGroup
+                ? "group"
+                : entry.dataTypeId;
             const node = resolveNode(entryDataTypeId(entry));
             const isEditing =
               activePicker?.kind === "edit" && activePicker.index === index;
@@ -795,18 +991,37 @@ export const AllowedTypesField = ({
               entry.relation !== "child" || canEditDataType(entry.dataTypeId);
 
             if (isEditing) {
+              const isFirstRow = ordinal === 0;
+              const isLastRow = ordinal === visibleEntries.length - 1;
+
               return (
                 <Box
                   key={entryKey}
                   data-allowed-types-picker
                   sx={{
-                    padding: "6px 8px",
                     borderTop:
                       ordinal > 0 ? `1px solid ${rowBorderColor}` : "none",
+                    // The picker fills the row cell: the display row's exact
+                    // height (border 2 + padding 7 + 24px line), its frame's
+                    // focus outline drawn on the container border itself —
+                    // no whitespace between the two borders. The ds layer
+                    // polyfill boosts the frame rules, hence the !important.
+                    "& > div": {
+                      "--form-padding-y": "3.5px !important",
+                    },
+                    "& > div > div": {
+                      borderTopLeftRadius: `${isFirstRow ? "9px" : "0"} !important`,
+                      borderTopRightRadius: `${isFirstRow ? "9px" : "0"} !important`,
+                      borderBottomLeftRadius: `${isLastRow ? "9px" : "0"} !important`,
+                      borderBottomRightRadius: `${isLastRow ? "9px" : "0"} !important`,
+                    },
                   }}
                 >
                   <DataTypePicker
-                    tree={tree}
+                    tree={pickerTreeFor({
+                      pickRelation: wouldBeChild ? "child" : "parent",
+                      editedIndex: index,
+                    })}
                     value={node?.$id ?? null}
                     onPick={(dataTypeId) => handleReplace(index, dataTypeId)}
                     getDisabledReason={makeGetDisabledReason({
@@ -824,6 +1039,11 @@ export const AllowedTypesField = ({
             const expandable =
               !isList && !!node && node.abstract && node.children.length > 0;
             const isExpanded = expandable && expandedPaths.has(entryPath);
+
+            const groupRootNode =
+              isGroup && groupRootRef ? resolveNode(groupRootRef) : null;
+
+            const isDraft = !!node && !!draftNodesById?.has(node.$id);
 
             return (
               <Fragment key={entryKey}>
@@ -855,9 +1075,11 @@ export const AllowedTypesField = ({
                   {node ? (
                     <DataTypeOptionContent
                       node={node}
-                      // A list row is inline configuration, not a type reference
+                      reason={isDraft ? "New — created on save" : undefined}
+                      // List and group rows are inline configuration, not
+                      // type references; a draft has no page to open yet
                       onOpen={
-                        isList
+                        isList || isGroup || isDraft
                           ? undefined
                           : () =>
                               pushToSlideStack({
@@ -868,9 +1090,50 @@ export const AllowedTypesField = ({
                     />
                   ) : (
                     <Typography component="span" sx={{ fontSize: 14, flex: 1 }}>
-                      {isList ? "List" : entry.dataTypeId}
+                      {isList ? "List" : isGroup ? "Group" : entry.dataTypeId}
                     </Typography>
                   )}
+                  {groupRootNode ? (
+                    // Capped at half the row; the width constraint must pass
+                    // through the tooltip's trigger span to reach the chip
+                    <Box
+                      sx={{
+                        display: "flex",
+                        maxWidth: "50%",
+                        flexShrink: 0,
+                        "& > span": {
+                          display: "flex",
+                          minWidth: 0,
+                          maxWidth: "100%",
+                        },
+                        "& > span > *": { minWidth: 0 },
+                      }}
+                    >
+                      <Tooltip content="The closest type every member shares — updated automatically as members change">
+                        <Chip size="xs" variant="soft" color="grey">
+                          extends{" "}
+                          {/* Line-box-sized flex wrapper centres the icon in
+                              the pill; the icon's own baseline-relative
+                              vertical-align sits it visibly low */}
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              height: "1lh",
+                              verticalAlign: "top",
+                            }}
+                          >
+                            <Icon
+                              name={getDataTypeIconName(groupRootNode)}
+                              size="xxs"
+                            />
+                          </Box>{" "}
+                          {groupRootNode.title}
+                        </Chip>
+                      </Tooltip>
+                    </Box>
+                  ) : null}
                   {readonly ? null : (
                     <Box sx={{ display: "flex", gap: 0.25, flexShrink: 0 }}>
                       <Button
@@ -934,19 +1197,16 @@ export const AllowedTypesField = ({
           data-allowed-types-picker
         >
           <DataTypePicker
-            tree={tree}
+            tree={withCreateNewOption(
+              pickerTreeFor({ pickRelation: addPickRelation }),
+            )}
             value={null}
             onPick={handleAdd}
-            getDisabledReason={(node) =>
-              addDisabledReason && node.baseUrl !== listDataTypeBaseUrl
-                ? addDisabledReason
-                : makeGetDisabledReason({
-                    // Extending a type doesn't modify it; becoming its parent
-                    // does
-                    requireEditable: addPickRelation === "child",
-                    pickRelation: addPickRelation,
-                  })(node)
-            }
+            getDisabledReason={makeGetDisabledReason({
+              // Extending a type doesn't modify it; becoming its parent does
+              requireEditable: addPickRelation === "child",
+              pickRelation: addPickRelation,
+            })}
             autoFocus
           />
         </Box>
