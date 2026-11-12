@@ -13,7 +13,6 @@ import {
   treeCellSx,
 } from "./dependent-types-table-layout";
 import {
-  ExpandChevron,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
@@ -115,7 +114,7 @@ const ParentVersionTableRow = ({
     <Box sx={subgridRowSx}>
       <Box sx={toggleRowSx}>
         <RowToggle
-          aria-expanded={expanded}
+          expanded={expanded}
           aria-label={`${parentLabel}, extended by ${count}: ${titles}`}
           onClick={() => setExpanded(!expanded)}
         >
@@ -163,7 +162,6 @@ const ParentVersionTableRow = ({
             )
           }
         />
-        <ExpandChevron expanded={expanded} />
       </Box>
       {expanded ? (
         <Box

@@ -12,7 +12,6 @@ import {
   visuallyHidden,
 } from "./dependent-types-table-layout";
 import {
-  ExpandChevron,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
@@ -107,7 +106,7 @@ const DependentTypeTableRow = ({
           <Box sx={toggleRowSx}>
             <RowToggle
               {...toggleProps}
-              aria-expanded={expanded}
+              expanded={expanded}
               aria-label={
                 former
                   ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
@@ -129,7 +128,6 @@ const DependentTypeTableRow = ({
               <Box sx={treeCellSx}>{versions}</Box>
               <Box sx={cellSx}>{parentVersions}</Box>
             </RowToggle>
-            <ExpandChevron expanded={expanded} />
             <OpenTypeButton
               label={
                 former

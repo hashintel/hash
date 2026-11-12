@@ -33,6 +33,7 @@ export const treeLineOffset = 12;
 /** A second column's cell, whose text starts a spacing step after the tree gutter, so that the elbow stops short of it. */
 export const treeCellSx = {
   ...cellSx,
+  gridArea: "1 / 2",
   pl: `${treeGutterWidth + 8}px`,
 } as const;
 

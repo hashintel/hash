@@ -147,12 +147,43 @@ const rowGridSx = ({ palette }: Theme) => ({
   color: palette.gray[80],
 });
 
+/** The chevron at the start of an expandable row's second column, turned down while the row is expanded. */
+const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
+  <Box
+    aria-hidden
+    sx={({ palette }) => ({
+      gridArea: "1 / 2",
+      width: treeLineOffset * 2,
+      height: rowHeight,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: palette.gray[60],
+    })}
+  >
+    <FontAwesomeIcon
+      icon={faChevronRight}
+      sx={({ transitions }) => ({
+        fontSize: 10,
+        transform: expanded ? "rotate(90deg)" : "none",
+        transition: transitions.create("transform", { duration: 300 }),
+      })}
+    />
+  </Box>
+);
+
 /** The button that spans an expandable row's cells and expands or collapses it. */
-export const RowToggle = (
-  props: Omit<ButtonBaseProps, "className" | "disableRipple" | "sx">,
-) => (
+export const RowToggle = ({
+  expanded,
+  children,
+  ...props
+}: Omit<
+  ButtonBaseProps,
+  "aria-expanded" | "className" | "disableRipple" | "sx"
+> & { expanded: boolean }) => (
   <ButtonBase
     {...props}
+    aria-expanded={expanded}
     className={rowToggleClassName}
     disableRipple
     sx={[
@@ -167,34 +198,10 @@ export const RowToggle = (
         },
       }),
     ]}
-  />
-);
-
-/** The chevron at the start of an expandable row's second column, turned down while the row is expanded. */
-export const ExpandChevron = ({ expanded }: { expanded: boolean }) => (
-  <Box
-    aria-hidden
-    sx={({ palette }) => ({
-      gridColumn: 2,
-      gridRow: 1,
-      width: treeLineOffset * 2,
-      height: rowHeight,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: palette.gray[60],
-      pointerEvents: "none",
-    })}
   >
-    <FontAwesomeIcon
-      icon={faChevronRight}
-      sx={({ transitions }) => ({
-        fontSize: 10,
-        transform: expanded ? "rotate(90deg)" : "none",
-        transition: transitions.create("transform", { duration: 300 }),
-      })}
-    />
-  </Box>
+    {children}
+    <ExpandChevron expanded={expanded} />
+  </ButtonBase>
 );
 
 /** The vertical line and elbow that join a nested row to the row above it. */
