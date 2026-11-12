@@ -213,6 +213,7 @@ export interface Context<S extends Scope.Scope.Any>
 
   /** References a program input, optionally with a default. This is {@link Expression.input}. */
   readonly input: typeof Expression.input;
+  readonly as: typeof Expression.as;
 
   /** Constructs a struct from a record of values, where each field is an expression or structural shorthand. This is {@link Structural.struct}. */
   readonly struct: typeof Structural.struct;
