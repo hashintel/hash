@@ -44,11 +44,11 @@ export const approverPerson =
 export const approverName = approverPerson ? "Maya Patel" : "Head of quality";
 
 /**
- * `?notreached=skipped`: in a run that has ended, a step it never reached reads Skipped, not Waiting (nothing waits
- * once the run is over).
+ * In a run that has ended, a step it never reached reads Skipped, not Waiting: nothing waits once the run is over
+ * (inbox not-reached-word, 12 Nov). `?notreached=waiting` keeps Waiting.
  */
 export const notReachedSkipped =
-  new URLSearchParams(globalThis.location.search).get("notreached") === "skipped";
+  new URLSearchParams(globalThis.location.search).get("notreached") !== "waiting";
 
 const strongLineStyle = css({ textStyle: "sm", color: "neutral.fg.heading" });
 const quietLineStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
