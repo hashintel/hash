@@ -103,6 +103,26 @@ Space.value; overloaded("value"); single("value");`);
   );
 
   it.effect(
+    "accessors",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const names = yield* inspect(`class Box {
+  get current(): number { return 1; }
+  set current(value: number) {}
+  get fixed(): string { return "text"; }
+}
+let box: Box;
+box.current = box.current + 1; box.fixed;`);
+      expect(names).toStrictEqual(
+        expect.arrayContaining([
+          ["current", "(accessor) current: number"],
+          ["fixed", "(accessor) fixed: string"],
+        ]),
+      );
+    }),
+  );
+
+  it.effect(
     "type_parameters",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
