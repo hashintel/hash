@@ -449,16 +449,19 @@ const PublishDialog = ({
             Your draft becomes {versionName(next, labelCase)} and goes live. Runs that start after
             this use {versionName(next, labelCase)}.
           </span>
-          {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
-          <label className={fieldStyle}>
-            Name (optional)
-            <TextInput
-              value={name}
-              onChange={setName}
-              size="sm"
-              placeholder={`v${next}`}
-            />
-          </label>
+          {/* `?publishname=off`: number-only versions, no name field (open on inbox audit-triggers-version). */}
+          {new URLSearchParams(globalThis.location.search).get("publishname") === "off" ? null : (
+            // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside
+            <label className={fieldStyle}>
+              Name (optional)
+              <TextInput
+                value={name}
+                onChange={setName}
+                size="sm"
+                placeholder={`v${next}`}
+              />
+            </label>
+          )}
           {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- the DS input is inside */}
           <label className={fieldStyle}>
             Notes (optional)
