@@ -2,8 +2,8 @@ import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
 import {
   brunchTools,
-  vLedgerAppendWith,
-  vOriginWith,
+  ledgerAppendSchemaWith,
+  originSchemaWith,
 } from "@hashintel/brunch-agent";
 
 import { interviewBudgetInstruction } from "../shared/interview-budget-instruction.ts";
@@ -25,7 +25,9 @@ import type {
 export const hashEvidencedDescription =
   "It is in material the USER shared, such as a log or a document, or in records of the USER's own organisation that the agent read from HASH. What a tool computed, such as a run or an optimization, is not evidence for the account: record what it showed in a reflection.";
 
-const ledgerAppend = vLedgerAppendWith(vOriginWith(hashEvidencedDescription));
+const hashLedgerAppendSchema = ledgerAppendSchemaWith({
+  origin: originSchemaWith({ evidencedDescription: hashEvidencedDescription }),
+});
 
 /**
  * Everything the model reads, and every tool that writes or reads the Ledger.
@@ -56,7 +58,7 @@ export const useGuidance = (
   useSkill(hashGraph);
   for (const tool of createLedgerTools(
     readHistory,
-    ledgerAppend,
+    hashLedgerAppendSchema,
     brunchTools.ledgerQuery,
   ))
     useTool(tool);

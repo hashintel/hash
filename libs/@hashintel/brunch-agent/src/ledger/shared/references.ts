@@ -2,21 +2,21 @@ import * as v from "valibot";
 
 export const entityIdGrammar = String.raw`e(?:0|[1-9]\d*)`;
 
-export const vEntityId = v.pipe(
+export const entityIdSchema = v.pipe(
   v.string(),
   v.regex(new RegExp(`^${entityIdGrammar}$`)),
   v.brand("EntityId"),
   v.description("An existing entity ID issued by the system, such as e23."),
 );
 
-export const vClaimId = v.pipe(
+export const claimIdSchema = v.pipe(
   v.string(),
   v.regex(/^c(?:0|[1-9]\d*)$/),
   v.brand("ClaimId"),
   v.description("An existing claim ID issued by the system, such as c45."),
 );
 
-const vLocalReference = v.pipe(
+const localReferenceSchema = v.pipe(
   v.string(),
   v.regex(/^\$(?:0|[1-9]\d*)$/),
   v.brand("LocalReference"),
@@ -25,21 +25,21 @@ const vLocalReference = v.pipe(
   ),
 );
 
-export const vEntityReference = v.pipe(
-  v.union([vEntityId, vLocalReference]),
+export const entityReferenceSchema = v.pipe(
+  v.union([entityIdSchema, localReferenceSchema]),
   v.description(
     "An existing entity ID (e23), or a same-call queue reference ($0) whose target is an entity entry.",
   ),
 );
 
-export const vClaimReference = v.pipe(
-  v.union([vClaimId, vLocalReference]),
+export const claimReferenceSchema = v.pipe(
+  v.union([claimIdSchema, localReferenceSchema]),
   v.description(
     "An existing claim ID (c45), or a same-call queue reference ($1) whose target is a claim entry.",
   ),
 );
 
-export const vObligationId = v.pipe(
+export const obligationIdSchema = v.pipe(
   v.string(),
   v.regex(/^o(?:0|[1-9]\d*)$/),
   v.brand("ObligationId"),
@@ -61,8 +61,8 @@ export const resolvesField = {
   ),
 };
 
-export const vObligationReference = v.pipe(
-  v.union([vObligationId, vLocalReference]),
+export const obligationReferenceSchema = v.pipe(
+  v.union([obligationIdSchema, localReferenceSchema]),
   v.description(
     "An existing obligation ID (o7), or a same-call queue reference ($2) whose target is an obligation entry.",
   ),

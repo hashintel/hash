@@ -6,8 +6,8 @@
  */
 
 export {
-  vLedgerAppendWith,
-  vLedgerAppend,
+  ledgerAppendSchemaWith,
+  ledgerAppendSchema,
   type LedgerAppend,
 } from "./ledger/append";
 export {
@@ -19,7 +19,7 @@ export {
   foldCommits,
   isRefusedLedgerCommit,
   latestLedgerTurnId,
-  vLedgerAppendOutput,
+  ledgerAppendOutputSchema,
   prepareAppend,
   type FoldedLedger,
   type LedgerHistory,
@@ -29,16 +29,20 @@ export {
   latestTurnChanges,
   type LedgerChange,
 } from "./ledger/latest-turn-changes";
-export { vClaim } from "./ledger/elicitation/claims";
+export { claimSchema } from "./ledger/elicitation/claims";
 export {
   entityKindStages,
-  vEntity,
-  vEntityKind,
+  entitySchema,
+  entityKindSchema,
 } from "./ledger/elicitation/entities";
 export {
-  vReflection,
+  reflectionSchema,
   type NetElementAddress,
 } from "./ledger/construction/reflections";
-export { vOriginWith, vOrigin, vStatus } from "./ledger/shared/epistemics";
+export {
+  originSchemaWith,
+  originSchema,
+  statusSchema,
+} from "./ledger/shared/epistemics";
 export { traceLedger, type LedgerTrace } from "./ledger/trace";
 export * from "./ledger/projection";

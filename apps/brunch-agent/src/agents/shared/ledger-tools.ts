@@ -4,12 +4,12 @@ import * as v from "valibot";
 import {
   brunchTools,
   foldCommits,
-  vLedgerAppendOutput,
+  ledgerAppendOutputSchema,
   type LedgerHistory,
   prepareAppend,
   projectLedger,
   renderLedgerMarkdown,
-  vLedgerAppend,
+  ledgerAppendSchema,
 } from "@hashintel/brunch-agent";
 
 export const commitToolDescription =
@@ -38,17 +38,17 @@ const repliesWith = (history: LedgerHistory, toolCallId: string) =>
 
 /**
  * The durable `ledger_commit` over this agent's Ledger. An agent may describe
- * its entries with its own `vLedgerAppendWith` schema.
+ * its entries with its own `ledgerAppendSchemaWith` schema.
  */
 export const createLedgerCommitTool = (
   readHistory: () => Promise<LedgerHistory>,
-  input: typeof vLedgerAppend = vLedgerAppend,
+  input: typeof ledgerAppendSchema = ledgerAppendSchema,
 ) =>
   defineTool({
     name: brunchTools.ledgerCommit,
     description: commitToolDescription,
     input,
-    output: vLedgerAppendOutput,
+    output: ledgerAppendOutputSchema,
     durable: true,
     async run({ data, toolCallId, signal }) {
       const history = await readHistory();
@@ -103,7 +103,7 @@ export const createLedgerCompileTool = (
 /** `ledger_commit` and the Ledger map over this agent's Ledger, the map under `queryName`. */
 export const createLedgerTools = (
   readHistory: () => Promise<LedgerHistory>,
-  input?: typeof vLedgerAppend,
+  input?: typeof ledgerAppendSchema,
   queryName?: string,
 ) => [
   createLedgerCommitTool(readHistory, input),
