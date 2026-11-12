@@ -45,6 +45,8 @@ export type DraftForEachStep = {
   over?: StepInputSource;
   steps: DraftStep[];
   collect?: { stepId: string; outputName: string; as: string };
+  /** What one item is called, renamed in place; unset, the list's entity type in the singular ("supplier"). */
+  itemLabel?: string;
 };
 
 export type DraftStep = DraftActionStep | DraftForEachStep;
@@ -341,6 +343,9 @@ export const itemName = (document: EditorDocument, forEachId: string) => {
     forEach?.kind === "for-each"
       ? entityTypeOf(document, forEach.over, forEachId)
       : undefined;
+  if (forEach?.kind === "for-each" && forEach.itemLabel?.trim()) {
+    return forEach.itemLabel.trim();
+  }
   return findEntityType(typeBaseUrl)?.title.toLowerCase() ?? "item";
 };
 

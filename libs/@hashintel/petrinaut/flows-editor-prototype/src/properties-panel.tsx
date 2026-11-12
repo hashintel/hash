@@ -85,6 +85,16 @@ import {
   weekdays,
 } from "./mock-triggers";
 import { OutputRows } from "./outputs";
+import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
+import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
+import { RefPath, refLook } from "./ref-path";
+
+/**
+ * Panel parity (inbox panel-parity, apply-all, 13 Nov): For each's Collect reads as one select with the step's tile and
+ * `Step › Output` (t2). `?collect=old` keeps the output's name in the select and the step as a chip under it.
+ */
+const collectOld =
+  new URLSearchParams(globalThis.location.search).get("collect") === "old";
 import { RunPanel } from "./run-view";
 import { UsedInList, usesMatching } from "./used-in";
 import {
@@ -922,6 +932,17 @@ const overInput: InputView = {
   kinds: null,
 };
 
+/** The item's name renamed in place sits where plain text would: the field's 8 px inset is pulled back out. */
+const itemRenameStyle = css({
+  "&[class]": {
+    marginLeft: "[-8px]",
+    marginRight: "[-8px]",
+    fontWeight: "normal",
+    color: "neutral.fg.heading",
+  },
+  "&[data-rename-input]": { minWidth: "[96px]" },
+});
+
 const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
   const { document, setDocument, ui, setUi } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -931,6 +952,12 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
   const over = step.over
     ? describeSource(document, step.over, step.stepId)
     : null;
+
+  const openList = () =>
+    setUi((current) => ({
+      ...current,
+      openField: { stepId: step.stepId, inputName: "over", mode: "menu" },
+    }));
 
   // Any list fits: For each takes an array of any kind.
   const anyListInput: InputView = { ...overInput, kinds: allPayloadKinds };
@@ -976,6 +1003,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               gap: "1.5",
             })}
           >
+            {itemSourceOld ? (
             <SourceSelectTrigger
               source={step.over}
               stepId={step.stepId}
@@ -1002,6 +1030,13 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 "Choose a list"
               )}
             </SourceSelectTrigger>
+            ) : (
+              <ListSourceBlock
+                look={step.over && over ? refLook(document, step.over, step.stepId) : null}
+                count={lastRunCount(step.over)}
+                onClick={openList}
+              />
+            )}
           </div>
           {open ? (
             <SourceMenu
@@ -1026,7 +1061,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             />
           ) : null}
         </PropertyRow>
-        {showFull ? (
+        {showFull || !itemSourceOld ? (
           <PropertyRow
             label="Item"
             hover={
@@ -1035,6 +1070,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 : "Set the list first"
             }
           >
+            {itemSourceOld ? (
             <span
               className={css({
                 textStyle: "sm",
@@ -1043,6 +1079,24 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             >
               {itemName(document, step.stepId)}
             </span>
+            ) : step.over && over ? (
+              <ToggleableTextInput
+                value={itemName(document, step.stepId)}
+                label="Item name"
+                className={itemRenameStyle}
+                onSave={(next) =>
+                  setDocument((current) =>
+                    updateStep(current, step.stepId, (candidate) =>
+                      candidate.kind === "for-each"
+                        ? { ...candidate, itemLabel: next }
+                        : candidate,
+                    ),
+                  )
+                }
+              />
+            ) : (
+              <span className={emptyValueStyle}>Set the list first</span>
+            )}
           </PropertyRow>
         ) : null}
       </Section>
@@ -1068,6 +1122,19 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 ? "Add a step inside first"
                 : "Choose an output"
             }
+            renderSelectedItem={
+              collectOld
+                ? undefined
+                : (value) => {
+                    const [childId = "", outputName = ""] = value.split(".");
+                    const look = refLook(
+                      document,
+                      { kind: "step-output", stepId: childId, outputName },
+                      step.stepId,
+                    );
+                    return look ? <RefPath look={look} /> : value;
+                  }
+            }
             onChange={(value) => {
               const [childId, outputName] = (value ?? "").split(".");
               setDocument((current) =>
@@ -1085,7 +1152,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               );
             }}
           />
-          {step.collect ? (
+          {step.collect && collectOld ? (
             <div>
               <SourceChip
                 icon={nodeLook(document, step.collect.stepId).icon}
