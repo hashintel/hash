@@ -141,6 +141,11 @@ export const useEntityTypesTake = (): EntityTypesTake =>
  * MOCK outputs, from the seed suppliers
  * ------------------------------------------------------------------------------------------------------------- */
 
+/** `?outputheading=old`: Fetch file's run Outputs heading reads "Certificates · 18 PDFs" (before 13 Nov). */
+const outputHeadingOld =
+  new URLSearchParams(globalThis.location.search).get("outputheading") ===
+  "old";
+
 const issuers = [
   { name: "Bureau Veritas Certification", short: "Bureau Veritas" },
   { name: "SGS United Kingdom Ltd", short: "SGS" },
@@ -4035,7 +4040,10 @@ export const StepOutputs = ({
             take={take}
             files={files}
             title={
-              repeatsTrim
+              // output-group-heading (13 Nov): the saved entity type and the count, "File entity · 18".
+              !outputHeadingOld && take !== "d"
+                ? `File entity · ${files.length}`
+                : repeatsTrim
                 ? take === "d"
                   ? "Files"
                   : "Certificates"
