@@ -49,6 +49,7 @@ import {
   sectionTitleStyle,
 } from "./ui";
 import { useEscapeCloses } from "./use-escape-closes";
+import { repeatsTrim } from "./repeats-flag";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK requests, each with what the step shows for it
@@ -560,7 +561,9 @@ const ContextView = ({
   const { context } = request;
   if (context.kind === "entity") {
     return (
-      <Section title={`${context.type} · ${context.name}`}>
+      <Section
+        title={repeatsTrim ? context.type : `${context.type} · ${context.name}`}
+      >
         {context.rows.map((row) => (
           <PropertyRow key={row.label} label={row.label}>
             <span className={valueStyle}>
@@ -637,7 +640,9 @@ const ContextView = ({
             color: "neutral.fg.muted",
           })}
         >
-          Showing {context.rows.length} of {context.total} · Show all
+          {repeatsTrim
+            ? `Show all ${context.total}`
+            : `Showing ${context.rows.length} of ${context.total} · Show all`}
         </span>
       </div>
     </Section>
@@ -652,7 +657,13 @@ const AnswerForm = ({ request }: { request: R2Request }) => {
       <RequestForm key={request.id} request={request} />
       {run ? (
         <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-          Asked {request.asked} · <RunIdText run={run} prefix />
+          Asked {request.asked}
+          {repeatsTrim ? null : (
+            <>
+              {" · "}
+              <RunIdText run={run} prefix />
+            </>
+          )}
         </span>
       ) : null}
     </div>

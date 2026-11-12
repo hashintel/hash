@@ -185,6 +185,16 @@ export const openDecisions: OpenSwitch[] = [
       { label: "all right", value: "right" },
     ],
   },
+  {
+    card: "repeats-trim",
+    title: "Repeated facts · trim",
+    flag: "repeats",
+    defaultValue: null,
+    options: [
+      { label: "today", value: null },
+      { label: "trim", value: "trim" },
+    ],
+  },
 ];
 
 /** Every flag above, so a page change keeps them and Reset all clears them. */

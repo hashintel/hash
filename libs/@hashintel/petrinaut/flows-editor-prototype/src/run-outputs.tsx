@@ -64,6 +64,7 @@ import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { Table } from "./ds-parts/table";
 import { RunIdsIn, runLabel } from "./run-id";
 import { ShowAllRow } from "./show-all-row";
+import { repeatsTrim } from "./repeats-flag";
 import { TextLink } from "./text-link";
 import {
   clockPlus,
@@ -1154,7 +1155,7 @@ const failureRowStyle = css({
 
 const Failures = ({ failures }: { failures: Failure[] }) =>
   failures.length > 0 ? (
-    <Block title={`Failed · ${failures.length}`}>
+    <Block title={repeatsTrim ? "Failed" : `Failed · ${failures.length}`}>
       <div
         className={css({ display: "flex", flexDirection: "column", gap: "2" })}
       >
@@ -3855,7 +3856,11 @@ export const StepOutputs = ({
           <EntityOutput
             label="Entities"
             icon="cubes"
-            count={`${entityCount(outputs.updated, typesTake)} updated`}
+            count={
+              repeatsTrim
+                ? entityCount(outputs.updated, typesTake)
+                : `${entityCount(outputs.updated, typesTake)} updated`
+            }
             names={names(outputs.updated)}
             flagged={flagged("entityId")}
             onOpen={() => open(views.reviewed)}
@@ -3869,7 +3874,11 @@ export const StepOutputs = ({
             take={take}
             files={files}
             title={
-              take === "d"
+              repeatsTrim
+                ? take === "d"
+                  ? "Files"
+                  : "Certificates"
+                : take === "d"
                 ? `Files · ${plural(files.length, "PDF")}`
                 : attrib
                   ? `Certificates · ${files.length}`
@@ -3886,7 +3895,9 @@ export const StepOutputs = ({
               attrib
                 ? "Saved to @acme"
                 : take === "a"
-                ? `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · Used in Send review email`
+                ? repeatsTrim
+                  ? "Saved as File entities in @acme · Used in Send review email"
+                  : `Saved as ${plural(files.length, "File entity", "File entities")} in @acme · Used in Send review email`
                 : undefined
             }
             noun="certificates"
@@ -3977,7 +3988,7 @@ export const StepOutputs = ({
             <FileList
               take={take}
               files={files}
-              title={`Emails · ${files.length} sent`}
+              title={repeatsTrim ? "Emails" : `Emails · ${files.length} sent`}
               flagged={flagged("messageId")}
               linkOut={
                 <LinkOut
@@ -3987,7 +3998,9 @@ export const StepOutputs = ({
               }
               footer={
                 skipped > 0
-                  ? `${plural(skipped, "supplier")} skipped: no certificate to send`
+                  ? repeatsTrim
+                    ? "Skipped: no certificate to send"
+                    : `${plural(skipped, "supplier")} skipped: no certificate to send`
                   : undefined
               }
               noun="emails"
@@ -4210,7 +4223,7 @@ export const RunOutputsCell = ({
   if (outputs.findFailed) {
     return (
       <span className={css({ color: "neutral.fg.subtle" })}>
-        Nothing · stopped at Find active suppliers
+        {repeatsTrim ? "Nothing" : "Nothing · stopped at Find active suppliers"}
       </span>
     );
   }
