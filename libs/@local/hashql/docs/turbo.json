@@ -5,6 +5,10 @@
       "dependsOn": ["codegen"],
       "outputs": ["dist/**"]
     },
+    "generate": {
+      "cache": false,
+      "dependsOn": ["build"]
+    },
     "lint:tsc": {
       "dependsOn": ["build"]
     },
