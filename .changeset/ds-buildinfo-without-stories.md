@@ -1,5 +1,5 @@
 ---
-"@hashintel/ds-components": patch
+"@hashintel/ds-components": minor
 "@hashintel/ds-helpers": minor
 ---
 
