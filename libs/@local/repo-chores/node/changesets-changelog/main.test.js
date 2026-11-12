@@ -26,14 +26,11 @@ const pullRequest = ({ number, author, assignees = [], mergedAt = null }) => ({
  * Answers the batched GraphQL query the loader sends, keying commits and pull
  * requests by the aliases it builds for them.
  */
-const respondWith = ({ commits = {}, pulls = {} }) => {
+const respondWith = ({ commits = {} }) => {
   const repository = {};
 
   for (const [commit, value] of Object.entries(commits)) {
     repository[`a${commit}`] = value;
-  }
-  for (const [pull, value] of Object.entries(pulls)) {
-    repository[`pr__${pull}`] = value;
   }
 
   return vi.fn(async () => ({
@@ -63,7 +60,7 @@ const releaseLine = async (summary, commit) =>
   getReleaseLine({ summary, commit, releases: [] }, "patch", options);
 
 describe("getReleaseLine", () => {
-  it("attributes the entry to the pull request's assignee", async () => {
+  it("links the pull request without crediting its assignee or author", async () => {
     fetchMock.mockImplementation(
       respondWith({
         commits: {
@@ -85,80 +82,15 @@ describe("getReleaseLine", () => {
     await expect(
       releaseLine("add arrow-right-arrow-left icon", "aaaaaa1"),
     ).resolves.toBe(
-      "\n\n- add arrow-right-arrow-left icon ([@CiaranMn](https://github.com/CiaranMn), [#8750](https://github.com/hashintel/hash/pull/8750))\n",
+      "\n\n- add arrow-right-arrow-left icon ([#8750](https://github.com/hashintel/hash/pull/8750))\n",
     );
+    const [{ body }] = fetchMock.mock.calls.map(([, request]) => request);
+    const { query } = JSON.parse(body);
+    expect(query).toContain("associatedPullRequests");
+    expect(query).not.toMatch(/\b(?:author|assignees|login)\b/);
   });
 
-  it("falls back to the pull request author when there is no assignee", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        commits: {
-          aaaaaa2: commitOf({
-            pulls: [
-              pullRequest({
-                number: 8751,
-                author: "CiaranMn",
-                mergedAt: "2026-08-01T00:00:00Z",
-              }),
-            ],
-          }),
-        },
-      }),
-    );
-
-    await expect(releaseLine("tidy up types", "aaaaaa2")).resolves.toBe(
-      "\n\n- tidy up types ([@CiaranMn](https://github.com/CiaranMn), [#8751](https://github.com/hashintel/hash/pull/8751))\n",
-    );
-  });
-
-  it("prefers a human assignee over a bot author", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        commits: {
-          aaaaaa3: commitOf({
-            pulls: [
-              pullRequest({
-                number: 8752,
-                author: "renovate[bot]",
-                assignees: ["indietyp"],
-                mergedAt: "2026-08-01T00:00:00Z",
-              }),
-            ],
-            author: "renovate[bot]",
-          }),
-        },
-      }),
-    );
-
-    await expect(releaseLine("bump a dependency", "aaaaaa3")).resolves.toBe(
-      "\n\n- bump a dependency ([@indietyp](https://github.com/indietyp), [#8752](https://github.com/hashintel/hash/pull/8752))\n",
-    );
-  });
-
-  it("uses the first of several assignees", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        commits: {
-          aaaaaa4: commitOf({
-            pulls: [
-              pullRequest({
-                number: 8753,
-                author: "some-bot",
-                assignees: ["CiaranMn", "indietyp"],
-                mergedAt: "2026-08-01T00:00:00Z",
-              }),
-            ],
-          }),
-        },
-      }),
-    );
-
-    await expect(releaseLine("rework the sidebar", "aaaaaa4")).resolves.toBe(
-      "\n\n- rework the sidebar ([@CiaranMn](https://github.com/CiaranMn), [#8753](https://github.com/hashintel/hash/pull/8753))\n",
-    );
-  });
-
-  it("attributes the commit author when no pull request is associated", async () => {
+  it("emits no credit when only the commit author is known", async () => {
     fetchMock.mockImplementation(
       respondWith({
         commits: { aaaaaa5: commitOf({ pulls: [], author: "CiaranMn" }) },
@@ -166,11 +98,11 @@ describe("getReleaseLine", () => {
     );
 
     await expect(releaseLine("hotfix the build", "aaaaaa5")).resolves.toBe(
-      "\n\n- hotfix the build ([@CiaranMn](https://github.com/CiaranMn))\n",
+      "\n\n- hotfix the build\n",
     );
   });
 
-  it("emits the description alone when neither person nor pull request is known", async () => {
+  it("emits the description alone when no pull request is known", async () => {
     fetchMock.mockImplementation(
       respondWith({ commits: { aaaaaa6: commitOf({}) } }),
     );
@@ -180,57 +112,7 @@ describe("getReleaseLine", () => {
     );
   });
 
-  it("links an app author to the URL the payload carries", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        commits: {
-          aaaaab1: commitOf({
-            pulls: [
-              pullRequest({
-                number: 8568,
-                author: {
-                  login: "hash-worker",
-                  url: "https://github.com/apps/hash-worker",
-                },
-                mergedAt: "2026-08-01T00:00:00Z",
-              }),
-            ],
-          }),
-        },
-      }),
-    );
-
-    await expect(releaseLine("update dependencies", "aaaaab1")).resolves.toBe(
-      "\n\n- update dependencies ([@hash-worker](https://github.com/apps/hash-worker), [#8568](https://github.com/hashintel/hash/pull/8568))\n",
-    );
-  });
-
-  it("reads a person's URL from the payload rather than rebuilding it", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        commits: {
-          aaaaab2: commitOf({
-            pulls: [
-              pullRequest({
-                number: 8569,
-                author: {
-                  login: "CiaranMn",
-                  url: "https://github.example.com/CiaranMn",
-                },
-                mergedAt: "2026-08-01T00:00:00Z",
-              }),
-            ],
-          }),
-        },
-      }),
-    );
-
-    await expect(releaseLine("tighten a return type", "aaaaab2")).resolves.toBe(
-      "\n\n- tighten a return type ([@CiaranMn](https://github.example.com/CiaranMn), [#8569](https://github.com/hashintel/hash/pull/8569))\n",
-    );
-  });
-
-  it("builds a profile URL for the author key, which carries none", async () => {
+  it("strips legacy author and user keys without adding credits", async () => {
     fetchMock.mockImplementation(
       respondWith({
         commits: {
@@ -251,9 +133,12 @@ describe("getReleaseLine", () => {
     );
 
     await expect(
-      releaseLine("author: @nonbinaryunicorn\n\nrename a field", "aaaaab3"),
+      releaseLine(
+        "author: @nonbinaryunicorn\nuser: @another-person\n\nrename a field",
+        "aaaaab3",
+      ),
     ).resolves.toBe(
-      "\n\n- rename a field ([@nonbinaryunicorn](https://github.com/nonbinaryunicorn), [#8570](https://github.com/hashintel/hash/pull/8570))\n",
+      "\n\n- rename a field ([#8570](https://github.com/hashintel/hash/pull/8570))\n",
     );
   });
 
@@ -292,7 +177,7 @@ describe("getReleaseLine", () => {
         "",
         "",
         "- rework entity editing",
-        "  across both panes ([@CiaranMn](https://github.com/CiaranMn), [#8754](https://github.com/hashintel/hash/pull/8754))",
+        "  across both panes ([#8754](https://github.com/hashintel/hash/pull/8754))",
         "",
         "  Migrations run automatically.",
         "",
@@ -302,38 +187,24 @@ describe("getReleaseLine", () => {
     );
   });
 
-  it("honours the pr and author keys in the changeset frontmatter", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        pulls: {
-          9001: pullRequest({ number: 9001, author: "ignored-author" }),
-        },
-      }),
-    );
-
+  it("honours the pr override while ignoring legacy author keys", async () => {
     await expect(
-      releaseLine("pr: 9001\nauthor: @nonbinaryunicorn\n\nrename a field"),
+      releaseLine(
+        "pr: 9001\nauthor: @nonbinaryunicorn\nuser: @another-person\n\nrename a field",
+      ),
     ).resolves.toBe(
-      "\n\n- rename a field ([@nonbinaryunicorn](https://github.com/nonbinaryunicorn), [#9001](https://github.com/hashintel/hash/pull/9001))\n",
+      "\n\n- rename a field ([#9001](https://github.com/hashintel/hash/pull/9001))\n",
     );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("resolves the pr key against the pull request's assignee", async () => {
-    fetchMock.mockImplementation(
-      respondWith({
-        pulls: {
-          9002: pullRequest({
-            number: 9002,
-            author: "some-bot",
-            assignees: ["CiaranMn"],
-          }),
-        },
-      }),
-    );
+  it("uses an explicit pr without a GitHub token or request", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "");
 
     await expect(releaseLine("pr: 9002\n\nrename a field")).resolves.toBe(
-      "\n\n- rename a field ([@CiaranMn](https://github.com/CiaranMn), [#9002](https://github.com/hashintel/hash/pull/9002))\n",
+      "\n\n- rename a field ([#9002](https://github.com/hashintel/hash/pull/9002))\n",
     );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("looks the commit key up in place of the changeset's own commit", async () => {
@@ -357,7 +228,7 @@ describe("getReleaseLine", () => {
     await expect(
       releaseLine("commit: bbbbbb1\n\nreplace the icon set", "aaaaaa9"),
     ).resolves.toBe(
-      "\n\n- replace the icon set ([@CiaranMn](https://github.com/CiaranMn), [#8760](https://github.com/hashintel/hash/pull/8760))\n",
+      "\n\n- replace the icon set ([#8760](https://github.com/hashintel/hash/pull/8760))\n",
     );
   });
 
@@ -365,6 +236,62 @@ describe("getReleaseLine", () => {
     await expect(
       getReleaseLine({ summary: "a change", releases: [] }, "patch", {}),
     ).rejects.toThrow("The `repo` option is unset");
+  });
+
+  it("batches different commits and reuses the lookup across packages", async () => {
+    fetchMock.mockImplementation(
+      respondWith({
+        commits: {
+          dddddd1: commitOf({
+            pulls: [pullRequest({ number: 9003, author: null })],
+          }),
+          dddddd2: commitOf({
+            pulls: [pullRequest({ number: 9004, author: null })],
+          }),
+        },
+      }),
+    );
+
+    await expect(
+      Promise.all([
+        releaseLine("first package", "dddddd1"),
+        releaseLine("second package", "dddddd2"),
+        releaseLine("third package", "dddddd1"),
+      ]),
+    ).resolves.toEqual([
+      "\n\n- first package ([#9003](https://github.com/hashintel/hash/pull/9003))\n",
+      "\n\n- second package ([#9004](https://github.com/hashintel/hash/pull/9004))\n",
+      "\n\n- third package ([#9003](https://github.com/hashintel/hash/pull/9003))\n",
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the earliest merged pull request when a commit has several", async () => {
+    fetchMock.mockImplementation(
+      respondWith({
+        commits: {
+          eeeeee1: commitOf({
+            pulls: [
+              pullRequest({ number: 9005, author: null }),
+              pullRequest({
+                number: 9006,
+                author: null,
+                mergedAt: "2026-08-02T00:00:00Z",
+              }),
+              pullRequest({
+                number: 9007,
+                author: null,
+                mergedAt: "2026-08-01T00:00:00Z",
+              }),
+            ],
+          }),
+        },
+      }),
+    );
+
+    await expect(releaseLine("a shared commit", "eeeeee1")).resolves.toBe(
+      "\n\n- a shared commit ([#9007](https://github.com/hashintel/hash/pull/9007))\n",
+    );
   });
 
   it("rejects when GITHUB_TOKEN is unset", async () => {
