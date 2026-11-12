@@ -15,7 +15,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { fieldKey } from "./document";
 import { useEditor } from "./editor-context";
 import { InlineChip } from "./inline-chips";
-import { lastRunCount, ListSourceBlock } from "./list-source";
+import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
 import { RunOutputRow } from "./outputs";
 import { propertyPathOf } from "./property-path";
 import { RefChipText, RefPath, refLook, RunRefValue } from "./ref-path";
@@ -250,13 +250,18 @@ export const ParitySections = ({
       <>
         <Section title="Inputs">
           <PropertyRow label="List">
-            <ListSourceBlock
-              look={look}
-              count={lastRunCount(step("findSuppliers", "entities")) ?? n}
-              failed={facts.failures.length}
-              readOnly
-            />
+            {itemSourceOld ? (
+              <RunRefValue value={`${n} suppliers`} source={step("findSuppliers", "entities")} stepId={forEachId} />
+            ) : (
+              <ListSourceBlock
+                look={look}
+                count={lastRunCount(step("findSuppliers", "entities")) ?? n}
+                failed={facts.failures.length}
+                readOnly
+              />
+            )}
           </PropertyRow>
+          {itemSourceOld ? null : (
           <PropertyRow label="Item">
             <span className={css({ display: "flex", alignItems: "center", gap: "1.5", textStyle: "sm" })}>
               <span className={css({ color: "neutral.fg.heading" })}>supplier</span>
@@ -269,6 +274,7 @@ export const ParitySections = ({
               ) : null}
             </span>
           </PropertyRow>
+          )}
         </Section>
         <Section title="Settings">
           <span className={emptyStyle}>None</span>
