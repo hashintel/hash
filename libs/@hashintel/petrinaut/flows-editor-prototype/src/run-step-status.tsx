@@ -95,6 +95,14 @@ const stepTiming = (
 export const oldStatusLine =
   new URLSearchParams(globalThis.location.search).get("statusline") === "old";
 
+/**
+ * `?statusline=built`: the one-line Status as first built, with the word in medium and the quiet line flush with the
+ * mark. The default draws the word in regular and indents the quiet line to the word (inbox step-status-line,
+ * h-regular-word, 12 Nov).
+ */
+const builtStatusLine =
+  new URLSearchParams(globalThis.location.search).get("statusline") === "built";
+
 /** When the step started and ended, as text: its duration (when it has ended or is running) and its start. */
 const stepWhen = (
   stepId: string,
@@ -187,9 +195,19 @@ const firstLineTextStyle = css({
   textOverflow: "ellipsis",
 });
 
-const wordStyle = css({ fontWeight: "medium", color: "neutral.fg.heading" });
+const wordStyle = css({ color: "neutral.fg.heading" });
+
+const builtWordStyle = css({ fontWeight: "medium", color: "neutral.fg.heading" });
 
 const noteStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+  overflowWrap: "anywhere",
+  // The mark's 16 px box and the 4 px gap: the quiet line starts under the word.
+  paddingLeft: "5",
+});
+
+const builtNoteStyle = css({
   textStyle: "sm",
   color: "neutral.fg.subtle",
   overflowWrap: "anywhere",
@@ -217,7 +235,7 @@ export const StatusLine = ({
     <span className={firstLineStyle}>
       <RunGlyph state={state} size={16} />
       <span className={firstLineTextStyle}>
-        <span className={wordStyle}>{word}</span>
+        <span className={builtStatusLine ? builtWordStyle : wordStyle}>{word}</span>
         {facts
           .filter(Boolean)
           .map((fact) => ` · ${fact}`)
@@ -225,7 +243,7 @@ export const StatusLine = ({
       </span>
     </span>
     {notes.map((note, index) => (
-      <span key={index} className={noteStyle}>
+      <span key={index} className={builtStatusLine ? builtNoteStyle : noteStyle}>
         {note}
       </span>
     ))}
