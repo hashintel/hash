@@ -5,8 +5,9 @@
  * data: submissionContext } })`: the model sees only `content`; the
  * submission context stays host data on the entry. This probe checks the
  * model's request, the server's AI SDK stream and reconnect over such an
- * entry, which folds still key on `pi.user`, and how a prompt section can
- * read the submission context written beside the admission.
+ * entry, which `POST /chat` now admits, that the Ledger opens a turn on it,
+ * and how a prompt section can read the submission context written beside
+ * the admission.
  */
 import {
   createRegistry,
@@ -19,10 +20,12 @@ import {
 } from "@earendil-works/pi-durable";
 import { describe, expect, test } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
 import { ledgerExtension, LedgerDoc } from "../../src/ledger";
-import { responseMessageId } from "../../src/server/durable-agents-server/submission-stream";
 import { drain, openMemoryServer, streamedText } from "./server";
 import {
   allEntries,
@@ -83,7 +86,7 @@ describe("P3: a custom input entry kind", () => {
       await gate;
       return fauxAssistantMessage("Second answer.");
     };
-    const { models, model } = recordingModel([
+    const { models, model, requests } = recordingModel([
       fauxAssistantMessage("First answer."),
       slow,
     ]);
@@ -92,43 +95,59 @@ describe("P3: a custom input entry kind", () => {
       model,
     });
     try {
-      // The conversation exists after an ordinary POST /chat.
+      // The conversation exists after an ordinary POST /chat, which admits a brunch.user input.
       const first = await drain(await send("chat-1", "user-1", "Hello."));
       expect(streamedText(first)).toBe("First answer.");
       const { root } = await conversation("chat-1");
-      // What POST /chat would submit if it split the panel's body: the user's text and the context as data.
-      const submission = await root.submit(
-        { ...brunchUser("Add a dryer."), requestId: "user-2" },
-        context,
-      );
+      // The panel's body: the user's text with its submission context.
+      const posted = (
+        await send(
+          "chat-1",
+          "user-2",
+          petrinautContextualUserMessageBody({
+            userText: "Add a dryer.",
+            diagnosticsContext: "",
+            submissionContext,
+          }),
+        )
+      ).getReader();
       const reconnected = await transport.reconnectToStream({
         chatId: "chat-1",
       });
       expect(reconnected).not.toBeNull();
       open();
       const chunks = await drain(reconnected!);
-      const record = await submission.status(context);
-      expect(chunks[0]).toEqual({
-        type: "start",
-        messageId: responseMessageId(record),
-      });
+      const postedStart = (await posted.read()).value;
+      await posted.cancel();
+      expect(chunks[0]).toEqual(postedStart);
+      const start = chunks[0];
+      expect(start?.type === "start" ? start.messageId : undefined).toMatch(
+        /^durable:\d+$/,
+      );
       expect(streamedText(chunks)).toBe("Second answer.");
       expect(chunks.at(-1)).toEqual({ type: "finish", finishReason: "stop" });
       // No user message is streamed: AI SDK's client keeps its own.
       expect(JSON.stringify(chunks)).not.toContain("Add a dryer.");
-      expect(kindsOf(await allEntries(root))).toEqual([
-        "pi.user",
+      expect(shapeOf(requests[1]!).at(-1)).toBe("user:Add a dryer.");
+      const entries = await allEntries(root);
+      expect(kindsOf(entries)).toEqual([
+        "brunch.user",
         "pi.system",
         "pi.assistant",
         "brunch.user",
         "pi.assistant",
       ]);
+      expect(entries[3]?.data).toEqual({
+        body: "contextual",
+        userText: "Add a dryer.",
+        submissionContext,
+      });
     } finally {
       await server.close();
     }
   });
 
-  test("the Ledger's turn counting keys on pi.user: a brunch.user turn is not counted", async () => {
+  test("the Ledger's turn counting opens a turn on pi.user and brunch.user alike", async () => {
     const turns = async (kind: "pi.user" | "brunch.user") => {
       const { models, model } = recordingModel([
         call(brunchTools.ledgerCommit, "commit-1", {
@@ -164,7 +183,7 @@ describe("P3: a custom input entry kind", () => {
       return ledger?.messages.filter(({ role }) => role === "user").length;
     };
     expect(await turns("pi.user")).toBe(1);
-    expect(await turns("brunch.user")).toBe(0);
+    expect(await turns("brunch.user")).toBe(1);
   });
 });
 

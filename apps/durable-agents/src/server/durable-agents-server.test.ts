@@ -22,9 +22,18 @@ import {
   type UIMessage,
   type UIMessageChunk,
 } from "ai";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
+
+import {
+  petrinautContextualUserMessageBody,
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+} from "@hashintel/brunch-agent";
 
 import { fauxAssistantMessage, fauxToolCall } from "../../test/scripted-model";
+import {
+  contextProjectionExtension,
+  projectContext,
+} from "../agent/petrinaut-agent/context-projection";
 import {
   browserCallExtension,
   BrowserCallsDoc,
@@ -36,8 +45,10 @@ import {
   createDurableAgentsServer,
   type DurableAgentsServerLimits,
 } from "./durable-agents-server";
+import { brunchUserInput } from "./durable-agents-server/user-input";
 
 import type { OwnedStorage } from "./conversation-storage";
+import type { Message } from "@earendil-works/pi-ai";
 
 const context = BACKGROUND_CONTEXT;
 const origin = "http://durable.test";
@@ -475,6 +486,231 @@ test("re-sending a user message follows its first run instead of starting anothe
   expect(
     entries.items.filter((entry) => entry.model?.[0]?.role === "user"),
   ).toHaveLength(1);
+  expect(
+    entries.items.filter(({ kind }) => kind === "brunch.user"),
+  ).toHaveLength(1);
+});
+
+/** The model's user messages, by what they read, in each request it was sent. */
+const userTexts = (requests: readonly Message[][]) =>
+  requests.map((messages) =>
+    messages.flatMap((message) =>
+      message.role !== "user"
+        ? []
+        : typeof message.content === "string"
+          ? [message.content]
+          : [
+              message.content
+                .flatMap((part) => (part.type === "text" ? [part.text] : []))
+                .join(""),
+            ],
+    ),
+  );
+
+/** `count` answers, each recording the messages of the request it answers. */
+const recordedAnswers = (count: number) => {
+  const requests: Message[][] = [];
+  const responses = Array.from(
+    { length: count },
+    (_, index): FauxResponseStep =>
+      (requestContext) => {
+        requests.push(structuredClone(requestContext.messages));
+        return fauxAssistantMessage(`Answer ${index + 1}.`);
+      },
+  );
+  return { requests, responses };
+};
+
+const userText = "Add a dryer.";
+const diagnosticsContext = "Net check: 2 warnings.";
+const submissionContext = { interviewBudget: { questions: 3 } };
+
+/** What the panel sends today, by its envelope. */
+const panelBodies = {
+  ordinary: userText,
+  "v1 diagnostics": petrinautContextualUserMessageBody({
+    userText,
+    diagnosticsContext,
+  }),
+  "v2 context": petrinautContextualUserMessageBody({
+    userText,
+    diagnosticsContext: "",
+    submissionContext,
+  }),
+  "v2 context and diagnostics": petrinautContextualUserMessageBody({
+    userText,
+    diagnosticsContext,
+    submissionContext,
+  }),
+  malformed: `petrinaut-contextual-user-message:v2\n{not json`,
+};
+
+/**
+ * Today's model-only projection of one stored user body: the oracle the
+ * admitted content must equal. Goes with `context-projection.ts` (U6).
+ */
+const projectedToday = (body: string) =>
+  userTexts([
+    projectContext(
+      [{ role: "user", content: body, timestamp: 0 }],
+      () => undefined,
+    ),
+  ])[0]?.[0];
+
+describe("POST /chat admits a brunch.user input", () => {
+  // Until U6 deletes it, the old projection still runs over admitted content: it must change nothing.
+  describe.each([
+    ["alone", []],
+    ["under the old projection", [contextProjectionExtension]],
+  ])("%s", (_, extensions) => {
+    test.each(Object.entries(panelBodies))(
+      "%s: the model reads what today's projection gives; the entry keeps the parse",
+      async (_kind, body) => {
+        const { requests, responses } = recordedAnswers(1);
+        const { server, transport } = openChat({ responses, extensions });
+        const message: UIMessage = {
+          id: "user-1",
+          role: "user",
+          // Split as a client may; the server joins text parts.
+          parts: [
+            { type: "text", text: body.slice(0, 7) },
+            { type: "text", text: body.slice(7) },
+          ],
+        };
+        const stream = recorder(await send(transport, { message }));
+        await stream.drain();
+        expect(stream.chunks.at(-1)).toEqual({
+          type: "finish",
+          finishReason: "stop",
+        });
+
+        const expected = projectedToday(body);
+        expect(userTexts(requests)).toEqual([[expected]]);
+        const { root } = await openConversation(server);
+        const entries = await root.entries(
+          { order: "ascending" },
+          100,
+          undefined,
+          context,
+        );
+        const input = entries.items.find(({ kind }) => kind === "brunch.user");
+        expect(input).toMatchObject({
+          kind: "brunch.user",
+          data: brunchUserInput(body).entry.data,
+          model: [{ role: "user", content: expected }],
+        });
+      },
+    );
+  });
+
+  test("the parse and the projection agree on what the model reads", () => {
+    expect(
+      Object.values(panelBodies).map((body) => brunchUserInput(body).content),
+    ).toEqual(Object.values(panelBodies).map(projectedToday));
+    expect(projectedToday(panelBodies["v2 context and diagnostics"])).toBe(
+      `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify({ userText, diagnosticsContext })}`,
+    );
+  });
+
+  test("a retry with the message id, even after a newer message, finds the first entry unchanged", async () => {
+    const { requests, responses } = recordedAnswers(2);
+    const { server, transport } = openChat({ responses });
+    const first: UIMessage = {
+      id: "user-1",
+      role: "user",
+      parts: [{ type: "text", text: panelBodies["v2 context"] }],
+    };
+    const firstStream = recorder(await send(transport, { message: first }));
+    await firstStream.drain();
+    await recorder(
+      await send(transport, {
+        message: {
+          id: "user-2",
+          role: "user",
+          parts: [{ type: "text", text: "And a washer." }],
+        },
+      }),
+    ).drain();
+    // A late retry of the first message, its body since changed.
+    const late = recorder(
+      await send(transport, {
+        message: {
+          ...first,
+          parts: [{ type: "text", text: "Something else." }],
+        },
+      }),
+    );
+    await late.drain();
+
+    expect(startMessageId(late.chunks)).toBe(
+      startMessageId(firstStream.chunks),
+    );
+    expect(requests).toHaveLength(2);
+    const { harness, root } = await openConversation(server);
+    // The client's message id is still `durable:<submission ID>` of the first admission.
+    const firstSubmission = await harness.commit(
+      async (tx) => tx.submissionByRequest(root.id, "user-1"),
+      context,
+    );
+    expect(startMessageId(late.chunks)).toBe(`durable:${firstSubmission?.id}`);
+    const entries = await root.entries(
+      { order: "ascending" },
+      100,
+      undefined,
+      context,
+    );
+    expect(
+      entries.items
+        .filter(({ kind }) => kind === "brunch.user")
+        .map(({ data }) => data),
+    ).toEqual([
+      { body: "contextual", userText, submissionContext },
+      { body: "ordinary", userText: "And a washer." },
+    ]);
+  });
+
+  test("an old pi.user envelope in the conversation is kept; the old projection still strips it", async () => {
+    const ask = async (extensions: readonly Extension[]) => {
+      const { requests, responses } = recordedAnswers(2);
+      const { server, transport } = openChat({ responses, extensions });
+      // As `POST /chat` admitted before `brunch.user`: the panel's body as a plain input.
+      const conversation = await server.conversations.create(chatId);
+      const old = await conversation.root.submit(
+        {
+          type: "input",
+          content: panelBodies["v2 context"],
+          requestId: "user-old",
+        },
+        context,
+      );
+      await old.wait(context);
+      await recorder(await send(transport)).drain();
+      const { root } = await openConversation(server);
+      const entries = await root.entries(
+        { order: "ascending" },
+        100,
+        undefined,
+        context,
+      );
+      return {
+        texts: userTexts(requests).at(-1),
+        kinds: entries.items
+          .filter(({ kind }) => kind.endsWith(".user"))
+          .map(({ kind }) => kind),
+      };
+    };
+    const newText =
+      userMessage.parts[0]?.type === "text" ? userMessage.parts[0].text : "";
+    expect(await ask([contextProjectionExtension])).toEqual({
+      texts: [userText, newText],
+      kinds: ["pi.user", "brunch.user"],
+    });
+    // Without it (after U6), the old envelope reaches the model as stored (H11).
+    expect(await ask([])).toEqual({
+      texts: [panelBodies["v2 context"], newText],
+      kinds: ["pi.user", "brunch.user"],
+    });
+  });
 });
 
 /** Poll `probe` until it returns a value other than `undefined`, or fail after `timeoutMs`. */
