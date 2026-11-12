@@ -521,3 +521,80 @@ layer(Reference.layer({ source, configuration: "render-tsdoc.json" }), {
     }),
   );
 });
+
+const appliedSource = `
+export interface Value { value: string; }
+export interface Box<T> { held: T; }
+/** An alias. */
+export type Fn<S, T = Value> = (first: Box<S>, second: T) => S;
+/** Applies.
+ * @param first - The first.
+ * @param second - The second.
+ * @returns The result.
+ */
+export declare const applied: Fn<Value>;
+export type Shadow<S> = <S>(first: S) => void;
+/** Shadows.
+ * @param first - The first.
+ */
+export declare const shadowing: Shadow<Value>;
+`;
+
+/** The names a form's type spells, with whether each resolves to a type parameter. */
+const spelled = <Origin>(
+  reference: Reference.Reference,
+  { forms }: { readonly forms: readonly Tree.Callable.Form<Origin>[] },
+): readonly (readonly [string, boolean])[] => {
+  const { ast } = reference.document.catalogue;
+  const { names } = Entry.contextOf(ast);
+
+  return Array.flatMap(forms, ({ type }) =>
+    Array.map(TypeScript.Node.identifiers(type), (name) => [
+      name.text,
+      Option.exists(names(name), (target) =>
+        AST.TypeParameter.isTypeParameter(ast.get(target)),
+      ),
+    ]),
+  );
+};
+
+layer(
+  Reference.layer({
+    source: appliedSource,
+    configuration: "render-tsdoc.json",
+  }),
+  { excludeTestServices: true },
+)("applied declarations", (it) => {
+  it.effect(
+    "applied_arguments",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const model = collect(reference, "applied");
+      expect([
+        spelled(reference, at(model.parameters, 0)),
+        spelled(reference, at(model.parameters, 1)),
+        spelled(reference, Option.getOrThrow(model.returns)),
+      ]).toStrictEqual([
+        [
+          ["Box", false],
+          ["Value", false],
+        ],
+        [["Value", false]],
+        [["Value", false]],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "shadowed_parameter",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const model = collect(reference, "shadowing");
+      expect(spelled(reference, at(model.parameters, 0))).toStrictEqual([
+        ["S", true],
+      ]);
+    }),
+  );
+});

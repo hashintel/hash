@@ -1,5 +1,6 @@
 import { Array, Function, Option, Result, Struct, pipe } from "effect";
 
+import * as AppliedTypes from "./internal/applied-types.js";
 import * as Parts from "./internal/parts.js";
 import * as References from "./internal/references.js";
 import * as Prose from "./Prose.js";
@@ -254,18 +255,20 @@ const parametersOf = (
   entries: readonly Overload[],
   documented: readonly Documented[],
   { ast, names }: Context,
-): Tree.Callable.Parameter[] =>
-  Array.map(
+): Tree.Callable.Parameter[] => {
+  const read = AppliedTypes.of({ ast, names });
+
+  return Array.map(
     named(documented, ({ parameters }) => parameters),
     ([name, blocks]) => {
-      const declared = Array.flatMap(entries, ({ index, call }) =>
+      const declared = Array.flatMap(entries, ({ index, call, part }) =>
         pipe(
           call,
           Option.toArray,
           Array.flatMap(({ parameters }) => Array.fromIterable(parameters)),
           Array.map((id) => ast.get(id)),
           Array.filter((parameter) => parameter.name === name),
-          Array.map((parameter) => [index, parameter] as const),
+          Array.map((parameter) => [index, parameter, part] as const),
         ),
       );
       const declarations = Array.map(declared, ([, parameter]) => parameter);
@@ -280,11 +283,11 @@ const parametersOf = (
         rest: Array.some(declarations, (parameter) => parameter.rest),
         forms: formsOf(
           group(
-            Array.flatMap(declared, ([index, parameter]) =>
+            Array.flatMap(declared, ([index, parameter, part]) =>
               pipe(
                 parameter.type,
                 Option.map(
-                  (type) => [index, ast.get(type).node, parameter] as const,
+                  (type) => [index, read(part, type), parameter] as const,
                 ),
                 Option.toArray,
               ),
@@ -307,6 +310,7 @@ const parametersOf = (
       };
     },
   );
+};
 
 const typeParametersOf = (
   entries: readonly Overload[],
@@ -336,6 +340,7 @@ const returnsOf = (
   documented: readonly Documented[],
   { ast, names }: Context,
 ): Option.Option<Tree.Callable.Returns> => {
+  const read = AppliedTypes.of({ ast, names });
   const blocks = Array.flatMap(documented, ({ index, returns }) =>
     Array.map(Option.toArray(returns), (block) => [index, block] as const),
   );
@@ -347,13 +352,13 @@ const returnsOf = (
     type: "returns",
     forms: formsOf(
       group(
-        Array.flatMap(entries, ({ index, call }) =>
+        Array.flatMap(entries, ({ index, call, part }) =>
           pipe(
             call,
             Option.flatMap((value) =>
               Option.map(
                 value.returns,
-                (type) => [index, ast.get(type).node, value] as const,
+                (type) => [index, read(part, type), value] as const,
               ),
             ),
             Option.toArray,
