@@ -14,10 +14,10 @@ import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
-import { brunchTools, foldCommits } from "@hashintel/brunch-agent";
 import {
   brunchTools,
   canonicalContent,
+  foldCommits,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 import {
