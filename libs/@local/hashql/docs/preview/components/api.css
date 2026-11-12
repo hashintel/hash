@@ -495,7 +495,7 @@
   margin-top: 0;
 }
 
-/* A member's line of code is its declaration, and the facts about it sit at the line's end. */
+/* A member's line of code is its declaration, and the facts about it sit at the line's end. Only a declaration's code leaves the facts their column, and everything else has the member's whole width. */
 
 .api-member {
   display: grid;
@@ -504,12 +504,46 @@
 }
 
 .api-member > * {
-  grid-column: 1;
+  grid-column: 1 / -1;
 }
 
-.api-member > .api-facts {
+/* The facts are as tall as one line of the member's code, so they stay on the first line of a declaration that takes more. */
+.api-member > .api-facts,
+.api-member .api-signature > .api-facts {
   grid-column: 2;
   grid-row: 1;
+  align-self: start;
+  height: 1.3rem;
+  line-height: 1.3rem;
+}
+
+/* The member's first declaration shares the facts' row. */
+.api-member > .api-facts + * {
+  grid-row: 1;
+}
+
+/* Each box between the member and a declaration's code keeps the member's two columns, so a later declaration's own facts sit under the member's. */
+.api-member > :is(.api-part[data-part="declaration"], .api-accessor-half),
+.api-member > .api-part[data-part="declaration"] > .api-section,
+.api-member .api-signatures,
+.api-member .api-signature {
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.api-member
+  :is(
+    .api-part[data-part="declaration"],
+    .api-part[data-part="declaration"] > .api-section,
+    .api-accessor-half,
+    .api-signatures
+  )
+  > * {
+  grid-column: 1 / -1;
+}
+
+.api-member .api-signature > figure {
+  grid-column: 1;
 }
 
 /* A member's declarations need no title, and its overloads no panel. */
@@ -1144,11 +1178,11 @@
   overflow-wrap: anywhere;
 }
 
-/* Overloads: one panel with a rule between declarations, each numbered in its margin. A single declaration is its code block alone. */
+/* Overloads: one panel with a rule between declarations, each numbered in its margin. A single declaration is its code block alone. The panel's last column holds the declarations' own facts, so no code runs under them, and it takes no room when no declaration has any. */
 
 .api-signatures {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   border: 1px solid var(--color-fd-border);
   border-radius: 0.75rem;
   overflow: hidden;
@@ -1157,6 +1191,13 @@
 
 .api-signatures > .api-signature {
   position: relative;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.api-signatures > .api-signature > figure {
+  grid-column: 1;
 }
 
 .api-signatures > .api-signature + .api-signature {
@@ -1169,6 +1210,40 @@
   left: 1rem;
   z-index: 1;
   flex-direction: column;
+}
+
+/* A declaration's own facts are level with its first line. */
+.api-signatures > .api-signature > .api-facts {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  height: 1.25rem;
+  margin: 0.875rem 1rem 0 0;
+  line-height: 1.25rem;
+}
+
+/* A narrow page gives the code the panel's whole width, and puts the facts under it. */
+@container (max-width: 36rem) {
+  .api-signatures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .api-signatures > .api-signature > .api-facts {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+    margin: 0 1rem 0.75rem 0;
+  }
+}
+
+/* A member's declarations have no panel, and their facts keep the member's column at every width. */
+.api-member .api-signatures > .api-signature > .api-facts {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: stretch;
+  height: 1.3rem;
+  margin: 0;
+  line-height: 1.3rem;
 }
 
 /* The variable is fumadocs' own, which it sets on every `.shiki` code block. */
