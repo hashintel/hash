@@ -4,8 +4,7 @@ import * as AST from "../AST/index.js";
 import * as Catalogue from "../Catalogue.js";
 import * as Entry from "../Entry.js";
 import * as Placement from "../Placement.js";
-
-import type * as Tree from "../Tree/index.js";
+import * as Tree from "../Tree/index.js";
 
 type Row = Tree.Row.Row;
 type Local = AST.Interned.Interned<AST.Target.Local>;
@@ -115,7 +114,7 @@ const memberRow = (
     kind: member.type,
     label: labelOf(place, Array.append(place.names, member.name), context),
     depth: 0,
-    summary: summary(Array.head(member.comments)),
+    summary: summary(Array.head(Tree.Member.comments(member))),
     deprecated: member.deprecated,
     origin: { _tag: "Reference", target: member.id },
   };
@@ -171,7 +170,7 @@ export const listing =
         kind: member.type,
         label: [member.name],
         depth: depth + 1,
-        summary: summary(Array.head(member.comments)),
+        summary: summary(Array.head(Tree.Member.comments(member))),
         deprecated: member.deprecated,
         origin: { _tag: "Reference", target: member.id },
       }));
