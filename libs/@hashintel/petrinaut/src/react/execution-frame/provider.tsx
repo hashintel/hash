@@ -14,7 +14,6 @@ import {
 import { ActualModeContext } from "../actual-mode-context";
 import { EventPlaybackContext } from "../event-playback/context";
 import { useEventPlaybackFrame } from "../event-playback/use-event-playback-frame";
-import { PlaybackContext } from "../playback/context";
 import { SimulationContext } from "../simulation/context";
 import { EditorContext } from "../state/editor-context";
 import { SDCPNContext } from "../state/sdcpn-context";
@@ -28,40 +27,14 @@ import {
 import type { SimulationFrameReader } from "@hashintel/petrinaut-core";
 
 /**
- * Adapter exposing local simulation playback as an {@link ExecutionFrameSource}.
- */
-export const useSimulationExecutionFrameSource = (): ExecutionFrameSource => {
-  const { dt, getFramesInRange, totalFramesStore } = use(SimulationContext);
-  const totalFrames = useStore(totalFramesStore);
-  const {
-    currentFrameIndex,
-    currentFrameReader,
-    currentViewedFrame,
-    setCurrentViewedFrame,
-  } = use(PlaybackContext);
-
-  return {
-    // dt participates in the identity because a dt change rescales the time
-    // axis of everything derived from frame indices.
-    sourceId: `simulation:${dt}`,
-    totalFrames,
-    currentFrameIndex,
-    currentFrameReader,
-    currentViewedFrame,
-    scrubToFrame: setCurrentViewedFrame,
-    getFramesInRange,
-  };
-};
-
-/**
- * Adapter exposing event-driven playback as an {@link ExecutionFrameSource}.
+ * Adapter exposing a run's playback as an {@link ExecutionFrameSource}.
  *
  * A "frame" here is a recorded event, so consumers that walk frames by index
  * see the events; the viewed frame is the state at the viewed time, which
  * falls between events as often as on one. Scrubbing to a frame views that
  * event's time.
  */
-export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
+const useEventExecutionFrameSource = (): ExecutionFrameSource => {
   const { eventSimulation, getFramesInRange, totalFramesStore } =
     use(SimulationContext);
   const totalFrames = useStore(totalFramesStore);
@@ -194,15 +167,12 @@ export const useActualExecutionFrameSource = (params: {
 /**
  * Routes {@link ExecutionFrameSourceContext} to the adapter matching the
  * editor's global mode: the host-provided Actual mode stream in Actual mode,
- * local playback otherwise, over events or frames as the simulation engine
- * setting says. A single element provides the context so switching modes
+ * the run's playback otherwise. A single element provides the context so switching modes
  * swaps the value without remounting the subtree.
  */
 export const ExecutionFrameProvider: FC<PropsWithChildren> = ({ children }) => {
   const { globalMode } = use(EditorContext);
-  const { engine } = use(SimulationContext);
   const isActualMode = globalMode === "actual";
-  const simulationSource = useSimulationExecutionFrameSource();
   const eventSource = useEventExecutionFrameSource();
   const actualSource = useActualExecutionFrameSource({
     enabled: isActualMode,
@@ -210,13 +180,7 @@ export const ExecutionFrameProvider: FC<PropsWithChildren> = ({ children }) => {
 
   return (
     <ExecutionFrameSourceContext
-      value={
-        isActualMode
-          ? actualSource
-          : engine === "event-driven"
-            ? eventSource
-            : simulationSource
-      }
+      value={isActualMode ? actualSource : eventSource}
     >
       {children}
     </ExecutionFrameSourceContext>

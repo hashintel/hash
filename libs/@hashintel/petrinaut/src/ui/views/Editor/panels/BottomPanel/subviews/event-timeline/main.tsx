@@ -3,11 +3,11 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
 import {
   TimelineChartTypeSelector,
   TimelineViewPicker,
 } from "../simulation-timeline/header";
+import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { EventTimeline } from "./content";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -19,7 +19,7 @@ const headerActionsStyle = css({
 });
 
 const EventTimelineHeaderActions: React.FC = () => {
-  const { timelineView } = use(EditorContext);
+  const timelineView = useRunTimelineView();
   const { mode } = use(SimulationContext);
   // A Stochastic simulation draws one thing, the count of every place
   // across runs, so it has no view to pick.
@@ -44,15 +44,12 @@ const EventTimelineHeaderActions: React.FC = () => {
   );
 };
 
-/**
- * The Timeline tab while the event-driven engine is selected. It shares the
- * fixed-step timeline's id so the panel treats the two as one tab.
- */
+/** The Timeline tab of a run or a Stochastic simulation. */
 export const eventTimelineSubView: SubView = {
   id: "simulation-timeline",
   title: "Timeline",
   tooltip:
-    "View the run's events over time. Scroll to zoom, drag to pan, click to view a time.",
+    "View the simulation over time. Drag to scrub, scroll sideways to pan, pinch or scroll to zoom.",
   component: EventTimeline,
   renderHeaderAction: () => <EventTimelineHeaderActions />,
   noPadding: true,

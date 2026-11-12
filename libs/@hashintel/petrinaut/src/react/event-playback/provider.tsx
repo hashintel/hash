@@ -1,9 +1,9 @@
 /**
  * @layerRoot react.event-playback
- * @role Drives the viewed time over an event-driven run and asks the worker to compute ahead of it
+ * @role Drives the viewed time over a run or an experiment and asks the worker to compute ahead of it
  */
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   createEventPlayback,
@@ -13,14 +13,13 @@ import {
   type EventTraceSummary,
   type PlaybackSpeed,
   type PlayMode,
-  type ReadableStore,
   type SimulationState as CoreSimulationState,
 } from "@hashintel/petrinaut-core";
 
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { SimulationContext } from "../simulation/context";
-import { useStore, useStoreSelector } from "../use-store";
+import { constantStore, useStore, useStoreSelector } from "../use-store";
 import {
   EventPlaybackContext,
   type EventPlaybackContextValue,
@@ -36,41 +35,29 @@ const EMPTY_TRACE: EventTraceSummary = {
   latest: null,
 };
 
-const EMPTY_TRACE_STORE: ReadableStore<EventTraceSummary> = {
-  get: () => EMPTY_TRACE,
-  subscribe: () => () => {},
-};
-
-const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
-  get: () => "Initializing",
-  subscribe: () => () => {},
-};
+const EMPTY_TRACE_STORE = constantStore(EMPTY_TRACE);
+const EMPTY_STATUS_STORE = constantStore<CoreSimulationState>("Initializing");
 
 type EventPlaybackProviderProps = React.PropsWithChildren<{
   initialSpeed?: PlaybackSpeed;
 }>;
 
 /**
- * Mirrors `PlaybackProvider` for the event-driven engine. It is mounted
- * beside it and only does work while the simulation context's engine is
- * event-driven; otherwise it publishes an inert value.
+ * Plays what the simulation context holds: moves the viewed time by the
+ * wall clock, and names to the run the time it should compute up to.
  */
 export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   children,
   initialSpeed,
 }) => {
   const {
-    engine,
     eventSimulation,
     playbackSource,
-    dt,
     state: simulationState,
     initialize,
     run: runSimulation,
     pause: pauseSimulation,
   } = use(SimulationContext);
-  const isActive = engine === "event-driven";
-
   const [playback] = useState<EventPlayback>(() =>
     createEventPlayback(
       initialSpeed === undefined ? {} : { speed: initialSpeed },
@@ -115,7 +102,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
   // worth a message. A change of mode demands afresh, which is what takes
   // the worker's target back down from the max mode's.
   useEffect(() => {
-    if (!isActive || !playbackSource || mode === "viewOnly") {
+    if (!playbackSource || mode === "viewOnly") {
       return;
     }
     const lead = EVENT_PLAY_MODE_LEAD[mode];
@@ -129,7 +116,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     };
     demand(playback.state.get());
     return playback.state.subscribe(demand);
-  }, [isActive, mode, playback, playbackSource]);
+  }, [mode, playback, playbackSource]);
 
   // Discarding the run returns playback to the start. A run is only ever
   // replaced through a discard, so this also covers a new run; starting one
@@ -142,7 +129,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
 
   // The rAF loop while playing: advance the viewed time by wall-clock time.
   useEffect(() => {
-    if (!isActive || playState !== "Playing") {
+    if (playState !== "Playing") {
       return;
     }
     let frame: number | null = null;
@@ -163,7 +150,7 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
         cancelAnimationFrame(frame);
       }
     };
-  }, [coveredTimeRef, isActive, playState, playback, simulationDoneRef]);
+  }, [coveredTimeRef, playState, playback, simulationDoneRef]);
 
   const setTime = (next: number) => {
     playback.setTime(next, coveredTimeRef.current);
@@ -186,11 +173,43 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     }
   };
 
-  const play = async () => {
-    if (simulationState === "NotRun") {
-      await initialize({ seed: PETRINAUT_DEFAULT_SEED, dt });
+  /** The start under way, resolving to whether it started a run. */
+  const startingRef = useRef<Promise<boolean> | null>(null);
+
+  const startRun = async (): Promise<boolean> => {
+    // A change of configuration can overtake the start: there is then no
+    // run to play.
+    if (await initialize({ seed: PETRINAUT_DEFAULT_SEED })) {
       runSimulation();
       playback.play();
+      return true;
+    }
+    return false;
+  };
+
+  const play = async () => {
+    if (simulationState === "NotRun") {
+      // Play pressed again while a start is under way joins it: a second
+      // start would supersede the first and compile the net again. A start
+      // that was overtaken started nothing, so the press then starts the
+      // run itself, unless another press already has. One that failed has
+      // reported why.
+      let joined = startingRef.current;
+      while (joined) {
+        if (await joined.catch(() => true)) {
+          return;
+        }
+        joined = startingRef.current;
+      }
+      const starting = startRun();
+      startingRef.current = starting;
+      // `.finally` rather than `try`/`finally`, which React Compiler does
+      // not compile without a `catch`.
+      await starting.finally(() => {
+        if (startingRef.current === starting) {
+          startingRef.current = null;
+        }
+      });
       return;
     }
     if (modeRef.current !== "viewOnly") {

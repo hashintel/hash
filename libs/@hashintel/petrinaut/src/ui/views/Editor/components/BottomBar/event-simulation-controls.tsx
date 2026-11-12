@@ -17,7 +17,7 @@ import { StochasticRunStatus } from "./stochastic-run-status";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
-import type { PlaybackSpeed } from "../../../../../react/playback/context";
+import type { PlaybackSpeed } from "@hashintel/petrinaut-core";
 
 export interface EventSimulationControlsProps {
   disabled?: boolean;
@@ -26,9 +26,8 @@ export interface EventSimulationControlsProps {
 }
 
 /**
- * The bottom bar's playback controls over an event-driven run: the frame
- * controls' counterpart, scrubbing a continuous time and stepping between
- * events rather than frames. The viewed time itself is shown by
+ * The bottom bar's playback controls over a run: scrubbing a continuous
+ * time and stepping between events. The viewed time itself is shown by
  * `EventTimeControls`; this shell renders once per change of play state.
  */
 export const EventSimulationControls: React.FC<
@@ -41,8 +40,8 @@ export const EventSimulationControls: React.FC<
     mode,
     stochasticRun,
   } = use(SimulationContext);
-  const playback = use(EventPlaybackContext);
-  const { coveredTime, playbackState, playbackStore, play, pause } = playback;
+  const { coveredTime, playbackState, playbackStore, play, pause } =
+    use(EventPlaybackContext);
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
 
   const hasSimulation = simulationState !== "NotRun";
@@ -121,10 +120,7 @@ export const EventSimulationControls: React.FC<
           />
         )}
         {stochasticRun ? <StochasticRunStatus run={stochasticRun} /> : null}
-        <PlaybackSettingsMenu
-          allowedSpeeds={allowedPlaybackSpeeds}
-          playback={playback}
-        />
+        <PlaybackSettingsMenu allowedSpeeds={allowedPlaybackSpeeds} />
       </CollapsibleGroup>
     </>
   );

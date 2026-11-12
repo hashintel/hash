@@ -118,6 +118,7 @@ const makeSimulator = ({
   startExperiment?: SimulatorOffer["startExperiment"];
 }) => {
   const assessed = vi.fn<(request: SimulationRequest) => void>();
+  const disposed = vi.fn();
   const registration = defineSimulator(
     {
       id,
@@ -139,6 +140,7 @@ const makeSimulator = ({
       load: () =>
         Promise.resolve({
           needsHirTrees,
+          dispose: disposed,
           assess: (request) => {
             assessed(request);
             return Promise.resolve({
@@ -151,7 +153,11 @@ const makeSimulator = ({
         }),
     },
   );
-  return { assessed, registration: registration as SimulatorRegistration };
+  return {
+    assessed,
+    disposed,
+    registration: registration as SimulatorRegistration,
+  };
 };
 
 const renderProvider = (
@@ -186,7 +192,7 @@ const renderProvider = (
         >
           <SimulationProvider
             compiler={compiler}
-            initialConfiguration={{ engine: "event-driven", maxTime: 12 }}
+            initialConfiguration={{ maxTime: 12 }}
           >
             <Capture />
           </SimulationProvider>
@@ -214,7 +220,7 @@ describe("SimulationProvider on a registered simulator", () => {
       parameters: { step: 0.5 },
     });
 
-    await act(() => getValue().initialize({ seed: 7, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 7 }));
 
     expect(plain.assessed).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -226,7 +232,8 @@ describe("SimulationProvider on a registered simulator", () => {
     );
     // A simulator that does not read the HIR trees is not sent them.
     expect(requestHirArtifacts.mock.calls[0]![2]).toBeUndefined();
-    expect(getValue().eventSimulation).toBe(handle);
+    // The context holds the run with its simulator's release attached.
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
   });
 
   it("asks for the HIR trees when the simulator reads them", async () => {
@@ -239,7 +246,7 @@ describe("SimulationProvider on a registered simulator", () => {
       reader.registration,
     ]);
 
-    await act(() => getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 1 }));
 
     expect(requestHirArtifacts.mock.calls[0]![2]).toEqual({ includeHir: true });
   });
@@ -262,11 +269,12 @@ describe("SimulationProvider on a registered simulator", () => {
     ]);
 
     act(() => getValue().setSimulatorParameter("step", 0.25));
-    await act(() => getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 1 }));
     expect(first.assessed).toHaveBeenCalledWith(
       expect.objectContaining({ simulatorParameters: { step: 0.25 } }),
     );
-    expect(getValue().eventSimulation).toBe(handle);
+    // The context holds the run with its simulator's release attached.
+    expect(getValue().eventSimulation?.status).toBe(handle.status);
 
     act(() => getValue().selectSimulator("test.second"));
     expect(handle.dispose).toHaveBeenCalled();
@@ -304,7 +312,7 @@ describe("SimulationProvider on a registered simulator", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });
@@ -315,6 +323,30 @@ describe("SimulationProvider on a registered simulator", () => {
       "Place Queue has no tokens to start from",
     );
     expect(getValue().error).toBe("Place Queue has no tokens to start from");
+    expect(getValue().eventSimulation).toBeNull();
+  });
+
+  it("releases the simulator when its start throws instead of returning a promise", async () => {
+    const throwing = makeSimulator({
+      id: "test.throwing",
+      needsHirTrees: false,
+      start: () => {
+        throw new Error("No worker could be built");
+      },
+    });
+    const { getValue } = renderProvider([throwing.registration]);
+
+    let failure: unknown = null;
+    await act(async () => {
+      await getValue()
+        .initialize({ seed: 1 })
+        .catch((caught: unknown) => {
+          failure = caught;
+        });
+    });
+
+    expect((failure as Error).message).toBe("No worker could be built");
+    expect(throwing.disposed).toHaveBeenCalledTimes(1);
     expect(getValue().eventSimulation).toBeNull();
   });
 
@@ -329,7 +361,7 @@ describe("SimulationProvider on a registered simulator", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });
@@ -377,7 +409,7 @@ describe("SimulationProvider in Stochastic mode", () => {
 
     act(() => getValue().setMode("stochastic"));
     act(() => getValue().setRuns(250));
-    await act(() => getValue().initialize({ seed: 3, dt: 0.01 }));
+    await act(() => getValue().initialize({ seed: 3 }));
 
     expect(requested).toHaveBeenCalledWith({
       runCount: 250,
@@ -389,12 +421,19 @@ describe("SimulationProvider in Stochastic mode", () => {
           runOutput: { type: "distribution", binning: "exact" },
         }),
       ],
+      // The simulator names no step to sample at, so it is told the period
+      // the run is then read back at.
+      samplePeriod: 0.1,
     });
+    // The context holds the experiment with its simulator's release attached.
+    expect(getValue().stochasticRun?.experiment.metrics).toBe(
+      experiment.metrics,
+    );
     expect(getValue().stochasticRun).toMatchObject({
-      experiment,
       runCount: 250,
       seed: 3,
       maxTime: 12,
+      samplePeriod: 0.1,
       kept: false,
     });
     expect(getValue().eventSimulation).toBeNull();
@@ -421,7 +460,7 @@ describe("SimulationProvider in Stochastic mode", () => {
   it("ends the experiment on reset, unless something took it over", async () => {
     const first = stochastic();
     act(() => first.getValue().setMode("stochastic"));
-    await act(() => first.getValue().initialize({ seed: 1, dt: 0.01 }));
+    await act(() => first.getValue().initialize({ seed: 1 }));
     act(() => first.getValue().reset());
     expect(first.experiment.dispose).toHaveBeenCalledTimes(1);
     expect(first.getValue().stochasticRun).toBeNull();
@@ -429,8 +468,10 @@ describe("SimulationProvider in Stochastic mode", () => {
 
     const second = stochastic();
     act(() => second.getValue().setMode("stochastic"));
-    await act(() => second.getValue().initialize({ seed: 1, dt: 0.01 }));
-    act(() => second.getValue().keepStochasticRun());
+    await act(() => second.getValue().initialize({ seed: 1 }));
+    act(() => {
+      second.getValue().keepStochasticRun();
+    });
     expect(second.getValue().stochasticRun?.kept).toBe(true);
     act(() => second.getValue().reset());
     expect(second.experiment.dispose).not.toHaveBeenCalled();
@@ -461,7 +502,7 @@ describe("SimulationProvider in Stochastic mode", () => {
     let failure: unknown = null;
     await act(async () => {
       await getValue()
-        .initialize({ seed: 1, dt: 0.01 })
+        .initialize({ seed: 1 })
         .catch((caught: unknown) => {
           failure = caught;
         });

@@ -26,15 +26,6 @@ const progressStyle = css({
   whiteSpace: "nowrap",
 });
 
-/** The spacing of an experiment's samples, read off its first two. */
-const samplePeriodOf = (run: StochasticRun): number => {
-  const [firstSpec] = run.metricSpecs;
-  const frames = firstSpec ? run.reader.metricFrames(firstSpec.id) : [];
-  const first = frames[0];
-  const second = frames[1];
-  return first && second ? second.time - first.time : 0;
-};
-
 /**
  * How far a Stochastic simulation's runs have come, and the action that
  * lists it under Experiments so that it outlives a reset.
@@ -56,23 +47,26 @@ export const StochasticRunStatus: React.FC<{ run: StochasticRun }> = ({
     )?.name ?? null;
 
   const keep = () => {
+    const handle = keepStochasticRun();
+    if (!handle) {
+      return;
+    }
     const name = `${scenarioName ?? "No scenario"}, ${run.runCount} runs`;
     adoptExperiment({
       name,
-      handle: run.experiment,
+      handle,
       definition: petriNetDefinition,
       scenarioId: scenarioName === null ? null : selectedScenarioId,
       scenarioName,
       runCount: run.runCount,
       seed: run.seed,
-      dt: samplePeriodOf(run),
+      dt: run.samplePeriod,
       maxTime: run.maxTime,
       metricSpecs: run.metricSpecs,
       computeBackend: computeBackendOf(run.simulator.simulatorId),
       simulatorLabel: findSimulator(registrations, run.simulator.simulatorId)
         ?.label,
     });
-    keepStochasticRun();
     addNotification({
       message: `Kept as the experiment "${name}"`,
       tone: "success",

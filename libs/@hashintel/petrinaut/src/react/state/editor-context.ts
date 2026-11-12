@@ -61,8 +61,8 @@ export type EditorNavigationTarget = {
  *   firing count over time.
  * - `metric`: a single series computed by a user-authored metric function.
  * - `solver-error`: a series per place with dynamics, the error the adaptive
- *   solver has accumulated for it, recorded at the events of an event-driven
- *   run. Offered only while such a run can produce it.
+ *   solver has accumulated for it, recorded at the events of a run. Offered
+ *   only while the selected simulator can produce it.
  */
 export type TimelineView =
   | { kind: "per-place" }

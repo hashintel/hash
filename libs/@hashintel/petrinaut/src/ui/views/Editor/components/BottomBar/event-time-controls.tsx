@@ -10,8 +10,7 @@ import { formatEventPlaybackTimes } from "./event-playback-time";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
-// The same readout and scrubber as the frame controls, with a wider readout:
-// three decimals of seconds take more room than a step's worth.
+// The readout is wide enough for three decimals of seconds.
 const timeReadoutStyle = cva({
   base: {
     display: "flex",

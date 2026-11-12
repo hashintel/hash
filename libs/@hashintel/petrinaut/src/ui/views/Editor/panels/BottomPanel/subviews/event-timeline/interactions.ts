@@ -129,3 +129,18 @@ export const hitTest = ({
   }
   return y < plot.top ? "ruler" : "plot";
 };
+
+/**
+ * Whether playback a scrub paused starts again when the scrub is released.
+ * It does, except at the end of a run that is over: Play there starts the
+ * run again from the beginning, which a release should not.
+ */
+export const resumesAfterScrub = ({
+  time,
+  coveredTime,
+  runIsOver,
+}: {
+  time: number;
+  coveredTime: number;
+  runIsOver: boolean;
+}): boolean => !runIsOver || time < coveredTime;

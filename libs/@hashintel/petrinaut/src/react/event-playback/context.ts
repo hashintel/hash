@@ -1,5 +1,7 @@
 import { createContext } from "react";
 
+import { constantStore } from "../use-store";
+
 import type {
   EventPlaybackSnapshot,
   PlaybackSpeed,
@@ -9,9 +11,8 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /**
- * Playback over an event-driven run. The counterpart of `PlaybackContext`
- * with time in place of frame indices: the viewed position is a simulation
- * time, and any time the trace covers can be viewed.
+ * Playback over a run. The viewed position is a simulation time, and any
+ * time the trace covers can be viewed.
  *
  * Nothing in this value changes at frame rate. The viewed time lives in
  * `playbackStore`; a component that shows it reads it through
@@ -60,7 +61,7 @@ const STOPPED_SNAPSHOT: EventPlaybackSnapshot = {
 const DEFAULT_CONTEXT_VALUE: EventPlaybackContextValue = {
   coveredTime: 0,
   eventCount: 0,
-  playbackStore: { get: () => STOPPED_SNAPSHOT, subscribe: () => () => {} },
+  playbackStore: constantStore(STOPPED_SNAPSHOT),
   playbackState: "Stopped",
   playbackSpeed: 1,
   playMode: "computeBuffer",

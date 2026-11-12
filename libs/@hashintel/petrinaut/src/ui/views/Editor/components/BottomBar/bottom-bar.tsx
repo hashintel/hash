@@ -5,7 +5,6 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { SimulationContext } from "../../../../../react/simulation/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
   type CursorMode,
@@ -21,7 +20,6 @@ import { CursorModeDropdown } from "./cursor-mode-dropdown";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { EditionTools } from "./edition-tools";
 import { EventSimulationControls } from "./event-simulation-controls";
-import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
@@ -120,7 +118,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const { engine } = use(SimulationContext);
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
   const isReadOnly = useIsReadOnly();
@@ -254,17 +251,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     isExpanded={isBottomPanelOpen}
                   />
                   <ToolbarDivider />
-                  {engine === "event-driven" ? (
-                    <EventSimulationControls
-                      disabled={hasDiagnostics}
-                      inSubnet={isInSubnet}
-                    />
-                  ) : (
-                    <SimulationControls
-                      disabled={hasDiagnostics}
-                      inSubnet={isInSubnet}
-                    />
-                  )}
+                  <EventSimulationControls
+                    disabled={hasDiagnostics}
+                    inSubnet={isInSubnet}
+                  />
                 </>
               )}
             </div>

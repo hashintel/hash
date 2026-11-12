@@ -17,8 +17,8 @@ export type PetrinautPreviewQuickSimulation = {
   /** Pre-lowered HIR for every named scenario exposed by the definition. */
   scenarioHirById: Readonly<Record<string, ScenarioHir>>;
   /**
-   * Simulation step size, in seconds. Preview does not expose this; when
-   * omitted, the simulation provider's default applies.
+   * The fixed-step simulator's time step, in seconds. Preview does not
+   * expose this; when omitted, the simulator's default applies.
    */
   dt?: number;
   /**
@@ -26,7 +26,11 @@ export type PetrinautPreviewQuickSimulation = {
    * omitted, the simulation runs until paused.
    */
   maxTime?: number;
-  /** Optional host-specific simulation worker constructor. */
+  /**
+   * Optional host-specific constructor of the worker a run is stepped in:
+   * the event simulation worker of
+   * `@hashintel/petrinaut-core/workers/event-simulation`.
+   */
   workerFactory?: WorkerFactory;
   /** Speeds offered by Preview's compact playback menu. */
   allowedPlaybackSpeeds?: readonly PlaybackSpeed[];

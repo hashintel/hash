@@ -3,9 +3,9 @@ import { use, useEffect, useState, useSyncExternalStore } from "react";
 import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "../simulation-timeline/series-config";
+import { useRunTimelineView } from "../simulation-timeline/use-run-timeline-view";
 import { useTimelineMetric } from "../simulation-timeline/use-streaming-data";
 import {
   createTimelineSeriesStore,
@@ -111,11 +111,17 @@ export function useEventTimelineData({
   viewMin,
   viewMax,
   sampleCount,
+  paused,
 }: {
   /** The visible range as two numbers, so a resample follows a change of value, not of object. */
   viewMin: number;
   viewMax: number;
   sampleCount: number;
+  /**
+   * True while nobody can see the timeline: the store then stops following
+   * the trace and the range, and catches up when this turns false.
+   */
+  paused: boolean;
 }): {
   data: EventTimelineData | null;
   firings: readonly FiringMark[];
@@ -124,7 +130,7 @@ export function useEventTimelineData({
   metricError: string | null;
 } {
   const { eventSimulation } = use(SimulationContext);
-  const { timelineView } = use(EditorContext);
+  const timelineView = useRunTimelineView();
   const {
     extensions,
     petriNetDefinition: { places, types, transitions, metrics },
@@ -184,10 +190,12 @@ export function useEventTimelineData({
             };
 
   const store = useTimelineSeriesStore(eventSimulation, view);
-  useEffect(() => store?.attach(), [store]);
+  useEffect(() => (paused ? undefined : store?.attach()), [store, paused]);
   useEffect(() => {
-    store?.setViewRange(viewMin, viewMax);
-  }, [store, viewMin, viewMax]);
+    if (!paused) {
+      store?.setViewRange(viewMin, viewMax);
+    }
+  }, [store, viewMin, viewMax, paused]);
   const snapshot = useSyncExternalStore(
     store?.subscribe ?? subscribeToNothing,
     store?.getSnapshot ?? getEmptySnapshot,

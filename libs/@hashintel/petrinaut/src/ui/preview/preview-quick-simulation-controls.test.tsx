@@ -14,19 +14,6 @@ import {
 } from "../../react/simulation/context";
 import { PreviewSimulationPlaybackControls } from "./preview-quick-simulation-controls";
 
-vi.mock("../views/Editor/components/BottomBar/simulation-controls", () => ({
-  SimulationControls: () => <div>Simulation controls</div>,
-}));
-
-vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content",
-  () => ({
-    SimulationTimeline: ({ showLegend }: { showLegend?: boolean }) => (
-      <div data-show-legend={showLegend}>Compact simulation timeline</div>
-    ),
-  }),
-);
-
 vi.mock(
   "../views/Editor/components/BottomBar/event-simulation-controls",
   () => ({
@@ -62,7 +49,7 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
-    const timeline = screen.getByText("Compact simulation timeline");
+    const timeline = screen.getByText("Compact event timeline");
 
     rerender(
       <ExecutionFrameSourceContext
@@ -74,10 +61,10 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("expanded");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("false");
-    expect(screen.getByText("Compact simulation timeline")).toBe(timeline);
+    expect(screen.getByText("Compact event timeline")).toBe(timeline);
     expect(
       screen
-        .getByText("Compact simulation timeline")
+        .getByText("Compact event timeline")
         .getAttribute("data-show-legend"),
     ).toBe("false");
 
@@ -91,15 +78,14 @@ describe("PreviewSimulationPlaybackControls", () => {
 
     expect(panel.getAttribute("data-state")).toBe("collapsed");
     expect(timelineReveal.getAttribute("aria-hidden")).toBe("true");
-    expect(screen.getByText("Compact simulation timeline")).toBe(timeline);
+    expect(screen.getByText("Compact event timeline")).toBe(timeline);
   });
 
-  it("plays an event-driven run with the controls and timeline that address time", () => {
+  it("plays the run with the controls and timeline that address time", () => {
     const { container } = render(
       <SimulationContext
         value={
           {
-            engine: "event-driven",
             scenarioCompilationErrors: null,
           } as SimulationContextValue
         }
@@ -119,7 +105,5 @@ describe("PreviewSimulationPlaybackControls", () => {
         .getByText("Compact event timeline")
         .getAttribute("data-show-legend"),
     ).toBe("false");
-    expect(rendered.queryByText("Simulation controls")).toBeNull();
-    expect(rendered.queryByText("Compact simulation timeline")).toBeNull();
   });
 });

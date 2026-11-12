@@ -1,13 +1,13 @@
 import { useState } from "react";
 
+import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import {
-  PlaybackContext,
-  type PlaybackSpeed,
-  type PlayMode,
-} from "../../../../../react/playback/context";
-import { SimulationContext } from "../../../../../react/simulation/context";
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 
+import type { PlaybackSpeed, PlayMode } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -47,65 +47,37 @@ const PlaybackSettingsMenuStory = ({
   return (
     <SimulationContext
       value={{
+        ...DEFAULT_SIMULATION_CONTEXT,
         state: simulationState,
-        error: null,
-        errorItemId: null,
-        parameterValues: {},
-        initialMarking: {},
-        selectedScenarioId: null,
-        scenarioParameterValues: {},
-        compiledScenarioResult: null,
-        scenarioCompilationErrors: null,
-        adHocScenario: null,
-        adHocNetParameters: [],
-        setAdHocScenario: () => {},
-        dt: 0.01,
         maxTime,
+        setMaxTime,
         totalFramesStore: {
           get: () => (simulationState === "NotRun" ? 0 : 100),
           subscribe: () => () => {},
         },
-        getFrame: () => Promise.resolve(null),
-        getAllFrames: () => Promise.resolve([]),
-        getFramesInRange: () => Promise.resolve([]),
-        setSelectedScenarioId: () => {},
-        setScenarioParameterValue: () => {},
-        setInitialMarking: () => {},
-        setParameterValue: () => {},
-        setDt: () => {},
-        setMaxTime,
-        engine: "fixed-step",
         simulatorSelection: { simulatorId: "js-fixed-step", parameters: {} },
-        eventSimulation: null,
-        mode: "quick",
-        runs: 100,
-        stochasticRun: null,
-        playbackSource: null,
-        selectSimulator: () => {},
-        setSimulatorParameter: () => {},
-        setMode: () => {},
-        setRuns: () => {},
-        keepStochasticRun: () => {},
-        initialize: () => Promise.resolve(),
-        run: () => {},
-        pause: () => {},
-        reset: () => {},
-        setBackpressure: () => {},
-        ack: () => {},
       }}
     >
-      <PlaybackContext
+      <EventPlaybackContext
         value={{
-          currentFrameReader: null,
-          currentViewedFrame: null,
+          coveredTime: 0,
+          eventCount: 0,
+          playbackStore: {
+            get: () => ({
+              playState: "Stopped",
+              time: 0,
+              speed,
+              mode: playMode,
+            }),
+            subscribe: () => () => {},
+          },
           playbackState: "Stopped",
-          currentFrameIndex: 0,
-          totalFrames: 0,
           playbackSpeed: speed,
           playMode,
           isViewOnlyAvailable,
           isComputeAvailable,
-          setCurrentViewedFrame: () => {},
+          setTime: () => {},
+          stepToEvent: () => {},
           play: () => Promise.resolve(),
           pause: () => {},
           stop: () => {},
@@ -114,7 +86,7 @@ const PlaybackSettingsMenuStory = ({
         }}
       >
         <PlaybackSettingsMenu />
-      </PlaybackContext>
+      </EventPlaybackContext>
     </SimulationContext>
   );
 };

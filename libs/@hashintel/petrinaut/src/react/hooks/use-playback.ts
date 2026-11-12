@@ -1,9 +1,14 @@
 import { use } from "react";
 
 import {
-  PlaybackContext,
-  type PlaybackContextValue,
-} from "../playback/context";
+  EventPlaybackContext,
+  type EventPlaybackContextValue,
+} from "../event-playback/context";
+import {
+  ExecutionFrameSourceContext,
+  type ExecutionFrameSource,
+} from "../execution-frame/context";
+import { useStoreSelector } from "../use-store";
 
 import type {
   PlaybackSpeed,
@@ -12,63 +17,89 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export function usePlaybackState(): PlaybackState {
-  return use(PlaybackContext).playbackState;
+  return use(EventPlaybackContext).playbackState;
 }
 
+/**
+ * The viewed simulation time, in seconds. Re-renders the caller on every
+ * animation frame while playing.
+ */
+export function usePlaybackTime(): number {
+  return useStoreSelector(
+    use(EventPlaybackContext).playbackStore,
+    (snapshot) => snapshot.time,
+  );
+}
+
+/**
+ * Index of the frame in view: the last event the run recorded at or before
+ * the viewed time.
+ */
 export function usePlaybackFrameIndex(): number {
-  return use(PlaybackContext).currentFrameIndex;
+  return use(ExecutionFrameSourceContext).currentFrameIndex;
 }
 
 export function usePlaybackSpeed(): PlaybackSpeed {
-  return use(PlaybackContext).playbackSpeed;
+  return use(EventPlaybackContext).playbackSpeed;
 }
 
 export function usePlaybackMode(): PlayMode {
-  return use(PlaybackContext).playMode;
+  return use(EventPlaybackContext).playMode;
 }
 
-/** Reader for the currently displayed frame, or `null` if no simulation is running. */
-export function useCurrentFrameReader(): PlaybackContextValue["currentFrameReader"] {
-  return use(PlaybackContext).currentFrameReader;
+/**
+ * Reader for the state at the viewed time, or `null` if no simulation is
+ * running.
+ */
+export function useCurrentFrameReader(): ExecutionFrameSource["currentFrameReader"] {
+  return use(ExecutionFrameSourceContext).currentFrameReader;
 }
 
 export const useCurrentFrame = useCurrentFrameReader;
 
-/** Simplified, UI-shaped view of the current frame. */
-export function useCurrentViewedFrame(): PlaybackContextValue["currentViewedFrame"] {
-  return use(PlaybackContext).currentViewedFrame;
+/** Simplified, UI-shaped view of the state at the viewed time. */
+export function useCurrentViewedFrame(): ExecutionFrameSource["currentViewedFrame"] {
+  return use(ExecutionFrameSourceContext).currentViewedFrame;
 }
 
 export type PlaybackActionsBundle = {
-  play: PlaybackContextValue["play"];
-  pause: PlaybackContextValue["pause"];
-  stop: PlaybackContextValue["stop"];
-  setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"];
-  setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"];
-  setPlayMode: PlaybackContextValue["setPlayMode"];
+  play: EventPlaybackContextValue["play"];
+  pause: EventPlaybackContextValue["pause"];
+  stop: EventPlaybackContextValue["stop"];
+  /** Views a simulation time, clamped to what the run has computed. */
+  setTime: EventPlaybackContextValue["setTime"];
+  /** Views the previous or next firing's time. */
+  stepToEvent: EventPlaybackContextValue["stepToEvent"];
+  /** Views the time of the frame at an index. */
+  setCurrentViewedFrame: ExecutionFrameSource["scrubToFrame"];
+  setPlaybackSpeed: EventPlaybackContextValue["setPlaybackSpeed"];
+  setPlayMode: EventPlaybackContextValue["setPlayMode"];
 };
 
 /** Bundle of playback control actions. */
 export function usePlaybackActions(): PlaybackActionsBundle {
-  const ctx = use(PlaybackContext);
+  const playback = use(EventPlaybackContext);
+  const { scrubToFrame } = use(ExecutionFrameSourceContext);
   return {
-    play: ctx.play,
-    pause: ctx.pause,
-    stop: ctx.stop,
-    setCurrentViewedFrame: ctx.setCurrentViewedFrame,
-    setPlaybackSpeed: ctx.setPlaybackSpeed,
-    setPlayMode: ctx.setPlayMode,
+    play: playback.play,
+    pause: playback.pause,
+    stop: playback.stop,
+    setTime: playback.setTime,
+    stepToEvent: playback.stepToEvent,
+    setCurrentViewedFrame: scrubToFrame,
+    setPlaybackSpeed: playback.setPlaybackSpeed,
+    setPlayMode: playback.setPlayMode,
   };
 }
 
 /** Whether the user can currently switch to viewOnly mode. */
 export function useIsViewOnlyAvailable(): boolean {
-  return use(PlaybackContext).isViewOnlyAvailable;
+  return use(EventPlaybackContext).isViewOnlyAvailable;
 }
 
-/** Whether compute modes are available (simulation can still produce frames). */
+/** Whether compute modes are available (the run can still compute). */
 export function useIsComputeAvailable(): boolean {
-  return use(PlaybackContext).isComputeAvailable;
+  return use(EventPlaybackContext).isComputeAvailable;
 }
 
 export type { PlayMode, PlaybackSpeed, PlaybackState };

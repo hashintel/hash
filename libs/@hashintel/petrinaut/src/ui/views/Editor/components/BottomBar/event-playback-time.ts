@@ -1,5 +1,5 @@
 /**
- * The playback readout over an event-driven run: the viewed time and the time
+ * The playback readout over a run: the viewed time and the time
  * the trace covers. Times are not multiples of a step, so both print at a
  * fixed precision.
  */
