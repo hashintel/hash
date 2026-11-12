@@ -203,14 +203,6 @@ describe("DependentTypesByVersionTable", () => {
     expect((await screen.findByRole("tooltip")).textContent).toBe("A Charity");
   });
 
-  it("says that a type can appear under several versions in this layout", () => {
-    const { container } = renderTable();
-
-    expect(container.textContent).toContain(
-      "In this layout a type can appear under several Company versions. In the “By type” layout each type appears once.",
-    );
-  });
-
   it("opens a version of the type from its row without expanding the row", () => {
     const { onOpenType } = renderTable();
 

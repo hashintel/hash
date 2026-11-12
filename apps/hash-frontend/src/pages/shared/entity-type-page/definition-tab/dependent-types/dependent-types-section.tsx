@@ -95,11 +95,8 @@ export const DependentTypesSection = ({
       aria-labelledby={headingId}
       className={fluidFontClassName}
     >
-      <Typography id={headingId} variant="h5">
+      <Typography id={headingId} variant="h5" sx={{ mb: 2 }}>
         Types that extend {boldTitle}
-      </Typography>
-      <Typography sx={[secondaryTextSx, { mt: 0.5, mb: 2 }]}>
-        Across all versions of {boldTitle}
       </Typography>
       {rows && rows.length > 0 ? (
         <Stack
@@ -146,6 +143,7 @@ export const DependentTypesSection = ({
                 />
               }
               label="Include former types"
+              slotProps={{ typography: { variant: "smallTextLabels" } }}
               sx={{ m: 0, gap: 1 }}
             />
             <InfoButton
