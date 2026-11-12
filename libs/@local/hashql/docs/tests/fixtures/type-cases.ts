@@ -229,6 +229,10 @@ const objectType = nodeCase({
 });
 
 const referenceSource = factory.createIdentifier("reference");
+const typeParameterSource = factory.createTypeParameterDeclaration(
+  undefined,
+  name,
+);
 const reference = nodeCase({
   name: "Reference",
   make: Nodes.Reference.make,
@@ -271,7 +275,12 @@ const reference = nodeCase({
   trapped: (fields): Nodes.Reference.Reference.Fields =>
     Struct.assign(fields, {
       node: shield(referenceSource),
-      quickInfo: Option.some(QuickInfo.Alias({ type: shield(syntaxType) })),
+      quickInfo: Option.some(
+        QuickInfo.Alias({
+          typeParameters: [shield(typeParameterSource)],
+          type: shield(syntaxType),
+        }),
+      ),
     }),
 });
 

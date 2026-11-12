@@ -51,8 +51,18 @@ const identify = (info: QuickInfo.QuickInfo): QuickInfo.QuickInfo => {
     if (Option.isSome(info.signature)) {
       Equal.byReferenceUnsafe(info.signature.value);
     }
-  } else if (info._tag !== "Named") {
+  } else if (info._tag === "Value") {
     Equal.byReferenceUnsafe(info.type);
+  } else if (info._tag === "Alias") {
+    Equal.byReferenceUnsafe(info.type);
+
+    for (const parameter of info.typeParameters) {
+      Equal.byReferenceUnsafe(parameter);
+    }
+  } else if (info._tag === "Declared") {
+    for (const parameter of info.typeParameters) {
+      Equal.byReferenceUnsafe(parameter);
+    }
   }
 
   return info;
