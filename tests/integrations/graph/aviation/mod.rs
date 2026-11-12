@@ -8,20 +8,15 @@ use alloc::collections::BTreeMap;
 use std::collections::{HashMap, HashSet};
 
 use hash_crypto::Secret;
-use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
+use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_postgres_store::store::{PooledConnection, PostgresStore};
 use hash_graph_store::{
-    account::{AccountStore as _, CreateUserActorParams},
-    data_type::{CreateDataTypeParams, DataTypeStore as _},
     entity::{EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
-    entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     filter::{Filter, FilterExpression, Parameter},
     pool::StorePool as _,
-    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _},
-    query::ConflictBehavior,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_test_data::{data_type, entity_type};
+use hash_graph_test_data::{data_type, entity_type, fixtures};
 use hash_integrations_definition::{Definition, SourceKind};
 use hash_integrations_engine::{
     Applied, FinishedPlan, GraphClient, GraphPlan, Planner, SinkColumns, SinkRow, TableAssertions,
@@ -29,33 +24,16 @@ use hash_integrations_engine::{
 };
 use pretty_assertions::assert_eq;
 use reqwest::Url;
-use serde::Deserialize;
 use serde_json::json;
 use tempfile::TempDir;
 use type_system::{
     knowledge::entity::{Entity, Link, provenance::ProvidedEntityEditionProvenance},
-    ontology::{
-        VersionedUrl,
-        data_type::DataType,
-        entity_type::EntityType,
-        property_type::PropertyType,
-        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
-    },
+    ontology::VersionedUrl,
     principal::{actor::ActorId, actor_group::WebId, role::RoleName},
     provenance::{Location, SourceProvenance, SourceType},
 };
 
 const TYPES: &str = "https://example.com/@demo/types";
-
-#[derive(Deserialize)]
-struct OntologyFixture {
-    #[serde(rename = "dataTypes")]
-    data: Vec<DataType>,
-    #[serde(rename = "propertyTypes")]
-    properties: Vec<PropertyType>,
-    #[serde(rename = "entityTypes")]
-    entities: Vec<EntityType>,
-}
 
 fn url(kind: &str, name: &str) -> VersionedUrl {
     format!("{TYPES}/{kind}/{name}/v/1")
@@ -80,25 +58,9 @@ fn provenance() -> ProvidedEntityEditionProvenance {
 }
 
 async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorId, WebId) {
-    store
-        .seed_system_policies()
+    let user = fixtures::seed_account(store, None)
         .await
-        .expect("the Graph policies should be seeded");
-    let system = store
-        .get_or_create_system_machine("h")
-        .await
-        .expect("the system actor should exist");
-    let user = store
-        .create_user_actor(
-            system.into(),
-            CreateUserActorParams {
-                user_id: None,
-                shortname: None,
-                registration_complete: true,
-            },
-        )
-        .await
-        .expect("the aviation web should be created");
+        .expect("the aviation account should be seeded");
     let actor = ActorId::from(user.machine_id);
     let web_id = WebId::from(user.user_id);
     store
@@ -124,8 +86,9 @@ async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorId, WebId) {
 }
 
 async fn seed_ontology(store: &mut PostgresStore<PooledConnection>, actor: ActorId, web_id: WebId) {
-    let mut ontology: OntologyFixture = serde_json::from_str(include_str!("ontology.json"))
-        .expect("the aviation ontology should be valid");
+    let mut ontology: fixtures::OntologyFixture =
+        serde_json::from_str(include_str!("ontology.json"))
+            .expect("the aviation ontology should be valid");
     ontology.data.extend(
         [
             data_type::VALUE_V1,
@@ -137,58 +100,9 @@ async fn seed_ontology(store: &mut PostgresStore<PooledConnection>, actor: Actor
     ontology
         .entities
         .push(serde_json::from_str(entity_type::LINK_V1).expect("the link schema should be valid"));
-    let provenance = ProvidedOntologyEditionProvenance {
-        actor_type: actor.actor_type(),
-        origin: provenance().origin,
-        sources: Vec::new(),
-    };
-    store
-        .create_data_types(
-            actor,
-            ontology
-                .data
-                .into_iter()
-                .map(|schema| CreateDataTypeParams {
-                    schema,
-                    ownership: OntologyOwnership::Local { web_id },
-                    conflict_behavior: ConflictBehavior::Skip,
-                    provenance: provenance.clone(),
-                    conversions: HashMap::new(),
-                }),
-        )
+    fixtures::seed_ontology(store, actor, web_id, ontology)
         .await
-        .expect("the aviation data types should be seeded");
-    store
-        .create_property_types(
-            actor,
-            ontology
-                .properties
-                .into_iter()
-                .map(|schema| CreatePropertyTypeParams {
-                    schema,
-                    ownership: OntologyOwnership::Local { web_id },
-                    conflict_behavior: ConflictBehavior::Skip,
-                    provenance: provenance.clone(),
-                }),
-        )
-        .await
-        .expect("the aviation property types should be seeded");
-    store
-        .create_entity_types(
-            actor,
-            ontology
-                .entities
-                .into_iter()
-                .map(|schema| CreateEntityTypeParams {
-                    schema,
-                    ownership: OntologyOwnership::Local { web_id },
-                    conflict_behavior: ConflictBehavior::Skip,
-                    provenance: provenance.clone(),
-                    fetched_from_origin: false,
-                }),
-        )
-        .await
-        .expect("the aviation entity types should be seeded");
+        .expect("the aviation ontology should be seeded");
 }
 
 fn namespace(web_id: WebId) -> String {

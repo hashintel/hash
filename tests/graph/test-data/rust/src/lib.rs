@@ -8,5 +8,6 @@ extern crate alloc;
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
+pub mod fixtures;
 pub mod property_type;
 pub mod seeding;
