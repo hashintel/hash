@@ -4,9 +4,7 @@ import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { offerIn } from "../../../../conversation/offer-answers";
 import { definePetrinautAiInteractiveTool } from "../../ai-interactive-tool";
-import {
-  getMessageRenderItems,
-} from "./get-message-render-items";
+import { getMessageRenderItems } from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
 
@@ -261,6 +259,27 @@ describe("conversation turn structure", () => {
           offerPart("offer-2", [reworded]),
         ]),
       ).toEqual({ questions: [reworded, demand] });
+    });
+
+    test("only a call whose input is complete and that did not fail asks anything", () => {
+      const inState = (
+        state: string,
+        toolCallId: string,
+        questions: unknown[],
+      ) =>
+        ({
+          ...offerPart(toolCallId, questions),
+          state,
+          output: undefined,
+          ...(state === "output-error" ? { errorText: "Failed." } : {}),
+        }) as unknown as PetrinautAiMessage["parts"][number];
+      expect(
+        offerIn([
+          inState("input-streaming", "offer-1", [quarantine]),
+          inState("output-error", "offer-2", [quarantine]),
+          inState("input-available", "offer-3", [demand]),
+        ]),
+      ).toEqual({ questions: [demand] });
     });
 
     test("a turn that calls no offer asks nothing", () => {
