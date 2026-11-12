@@ -40,8 +40,8 @@ export const treeCellSx = {
 /** Hides text on screen while screen readers still read it. */
 export const visuallyHidden = {
   position: "absolute",
-  width: 1,
-  height: 1,
+  width: "1px",
+  height: "1px",
   m: "-1px",
   p: 0,
   overflow: "hidden",
