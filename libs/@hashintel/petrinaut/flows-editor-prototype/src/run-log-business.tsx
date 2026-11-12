@@ -87,11 +87,11 @@ export const runLogEdge24 =
   new URLSearchParams(globalThis.location.search).get("runlogedge") === "24";
 
 /**
- * `?runsumstatus=line`: the run head adds the one-line Status under the run's ID (mark · word · count), as a step's
- * Status reads.
+ * The run head's one-line Status under the run's ID (mark · word · count), drawn as a step's Status reads (Aakarsh,
+ * 13 Nov). `?runsumstatus=off` drops it, as before.
  */
 const runSummaryStatusLine =
-  new URLSearchParams(globalThis.location.search).get("runsumstatus") === "line";
+  new URLSearchParams(globalThis.location.search).get("runsumstatus") !== "off";
 
 const sectionHeadStyle = css({
   display: "flex",
