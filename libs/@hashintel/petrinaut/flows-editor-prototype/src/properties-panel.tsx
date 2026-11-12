@@ -10,6 +10,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { Tile as StepsListTile } from "./left-panel";
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { Select } from "./fill-select";
 import { BranchRows, DecisionRow, PathsSection } from "./branches";
@@ -38,6 +39,7 @@ import {
   entityTypeOf,
   findStep,
   itemName,
+  multiSelectOld,
   oldForEachSubtitle,
   itemRowOn,
   stepLabel,
@@ -2203,6 +2205,107 @@ const Checklist = ({
   );
 };
 
+const multiRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  height: "[32px]",
+  textStyle: "sm",
+  color: "neutral.fg.muted.hover",
+  fontWeight: "medium",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+
+/**
+ * Several steps selected (inbox missing-multiselect, b, 13 Nov): "3 steps selected" over the kind and the loop they
+ * sit in, the steps as the Steps list draws them, then Disconnect all and Delete 3 steps.
+ */
+const MultiSelectPanel = ({ ids }: { ids: string[] }) => {
+  const { document, setDocument, setUi } = useEditor();
+  const found = ids
+    .map((id) => findStep(document, id))
+    .filter((entry) => entry !== undefined);
+  if (found.length < 2) {
+    return null;
+  }
+  const looks = found.map((entry) => nodeLook(document, entry.step.stepId));
+  const groups = new Set(looks.map((look) => kindGroupOf(look.icon)));
+  const parents = new Set(found.map((entry) => entry.parentId ?? null));
+  const parentId = parents.size === 1 ? [...parents][0] : null;
+  const parent = parentId ? findStep(document, parentId)?.step : undefined;
+  const subtitle = [
+    groups.size === 1 ? [...groups][0] : null,
+    parent ? stepLabel(parent) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const selected = new Set(found.map((entry) => entry.step.stepId));
+  const count = found.length;
+  return (
+    <>
+      <HueHeader
+        icon={groups.size === 1 ? looks[0]!.icon : "cube"}
+        title={<span>{`${count} steps selected`}</span>}
+      >
+        {subtitle ? <span className={kindWordStyle}>{subtitle}</span> : null}
+      </HueHeader>
+      <Section title="Steps">
+        <div className={css({ display: "flex", flexDirection: "column" })}>
+        {found.map((entry, index) => (
+          <span
+            key={entry.step.stepId}
+            className={multiRowStyle}
+            data-multi-row
+          >
+            <StepsListTile icon={looks[index]!.icon} tone={looks[index]!.tone} />
+            {stepLabel(entry.step)}
+          </span>
+        ))}
+        </div>
+      </Section>
+      <div className={css({ display: "flex", gap: "2" })}>
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() =>
+            setDocument((current) => ({
+              ...current,
+              wires: current.wires.filter(
+                (wire) =>
+                  !selected.has(wire.source) && !selected.has(wire.target),
+              ),
+            }))
+          }
+        >
+          Disconnect all
+        </Button>
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() => {
+            setDocument((current) =>
+              [...selected].reduce(
+                (next, stepId) => removeStep(next, stepId),
+                current,
+              ),
+            );
+            setUi((current) => ({
+              ...current,
+              selectedId: null,
+              selectedIds: [],
+            }));
+          }}
+        >
+          {`Delete ${count} steps`}
+        </Button>
+      </div>
+    </>
+  );
+};
+
 export const PropertiesPanel = () => {
   const { document, ui, validation } = useEditor();
   // A trigger opens from Start's "Started by" list: Start stays selected, the panel shows the trigger (J4 A2).
@@ -2270,6 +2373,8 @@ export const PropertiesPanel = () => {
         <div className={panelBodyStyle}>
           {ui.run ? (
             <RunPanel />
+          ) : !multiSelectOld && (ui.selectedIds?.length ?? 0) > 1 ? (
+            <MultiSelectPanel ids={ui.selectedIds!} />
           ) : ghost ? (
             <TriggersPanel key={ghost} kind={ghost} />
           ) : trigger ? (

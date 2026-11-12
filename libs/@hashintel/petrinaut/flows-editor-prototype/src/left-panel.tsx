@@ -45,6 +45,7 @@ import {
   flattenSteps,
   stepLabel,
   stepTitle,
+  multiSelectOld,
 } from "./document";
 import { FLOW_OUTPUTS_ID } from "./flow-outputs";
 import { useFlowOutputTake, useRunStars, useStarCopy } from "./outputs";
@@ -185,7 +186,7 @@ const onRowHoverStyle = css({
   "button[aria-current=true] &": { display: "inline" },
 });
 
-const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
+export const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
   <span className={tileStyle({ tone })} style={treeTileColor(icon)}>
     <Icon name={icon} size="sm" />
   </span>
@@ -363,6 +364,12 @@ const FlowList = ({
       collapsed:
         typeof next === "function" ? next(current.collapsed ?? []) : next,
     }));
+  // missing-multiselect b: every box-selected step's row is filled, not only the panel's.
+  const isCurrent = (id: string) =>
+    ui.selectedId === id ||
+    (!multiSelectOld &&
+      (ui.selectedIds?.length ?? 0) > 1 &&
+      ui.selectedIds!.includes(id));
   const select = (id: string) =>
     setUi((current) => ({
       ...current,
@@ -398,7 +405,7 @@ const FlowList = ({
             type="button"
             className={rowStyle}
             style={pad}
-            aria-current={ui.selectedId === step.stepId || undefined}
+            aria-current={isCurrent(step.stepId) || undefined}
             aria-expanded={open}
             data-flow-row={step.stepId}
             onClick={() => select(step.stepId)}
@@ -435,7 +442,7 @@ const FlowList = ({
           type="button"
           className={rowStyle}
           style={pad}
-          aria-current={ui.selectedId === step.stepId || undefined}
+          aria-current={isCurrent(step.stepId) || undefined}
           data-flow-row={step.stepId}
           title={`${stepTitle(step)} · ${stepLabel(step)}`}
           onClick={() => select(step.stepId)}

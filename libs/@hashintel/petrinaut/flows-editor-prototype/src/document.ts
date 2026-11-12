@@ -348,6 +348,13 @@ const singular = (word: string) =>
 export const oldForEachSubtitle =
   new URLSearchParams(globalThis.location.search).get("foreachsub") === "old";
 
+/**
+ * `?multiselect=old`: several selected steps show a plain box on the canvas, and the panel and Steps list show one
+ * step (before the missing-multiselect pick b, 13 Nov).
+ */
+export const multiSelectOld =
+  new URLSearchParams(globalThis.location.search).get("multiselect") === "old";
+
 export const itemRowOn =
   new URLSearchParams(globalThis.location.search).get("itemrow") === "on";
 
