@@ -278,6 +278,25 @@ describe("visibleNetView: what counts as a view", () => {
     ).toBe("none");
   });
 
+  test("a HASH graph read is never a view, whatever its text and whether or not Pi's bound cut it", () => {
+    const graphReads = [
+      "hash_query_entities",
+      "hash_query_entity_types",
+      "hash_query_webs",
+    ].flatMap((toolName) => [
+      tool(toolResult(toolName, renderNetRead({ entities: [] }, "X"))),
+      tool(
+        toolResult(toolName, renderNetChange("x", structureAt("Y"), "Y"), {
+          extra: [truncation],
+        }),
+      ),
+    ]);
+    expect(stateOf(viewOf(...graphReads))).toBe("none");
+    const view = viewOf(tool(read("R1")), ...graphReads);
+    expect(stateOf(view)).toBe("current read R1");
+    expect(pruneEdits(view)).toEqual([]);
+  });
+
   test("a cut result is not a view and the earlier view stays", () => {
     const cutCompleteHead = toolResult(
       changeTool,

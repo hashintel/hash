@@ -11,6 +11,7 @@
  * browser-call records. A context read at a fixed cutoff is stable against
  * later writes, so a rerun after a restart decides the same.
  */
+import { noNetViewRefusalNaming } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { visibleNetView } from "./visible-net-view";
@@ -23,8 +24,10 @@ import type {
   EntryId,
 } from "@earendil-works/pi-durable";
 
-/** Copied from Brunch's `net-freshness.ts`. */
-export const noNetViewRefusal = `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}), then make the change.`;
+/** The website's refusal for a change with no current view of the net, naming its three net reads; the default of every waiting tool. */
+export const noNetViewRefusal = noNetViewRefusalNaming(
+  `readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}`,
+);
 
 /** Copied from `apps/brunch-agent/src/shared/conversation/browser-call-rendezvous.ts`: the panel's own wording. */
 export const staleNetViewRefusal =
@@ -36,14 +39,16 @@ export type NetFreshness =
 
 /**
  * The revision a change may be issued against, from the net view the model
- * last saw in `view`: none refuses, a view a later hand-edit note made stale
- * refuses with the panel's wording, and a current view gives its revision.
+ * last saw in `view`: none refuses with `noViewRefusal`, a view a later
+ * hand-edit note made stale refuses with the panel's wording, and a current
+ * view gives its revision.
  */
 export const expectedNetRevision = (
   view: Pick<ContextView, "entries" | "contributions" | "messages">,
+  noViewRefusal: string = noNetViewRefusal,
 ): NetFreshness => {
   const latest = visibleNetView(view);
-  if (latest.state === "none") return { refusal: noNetViewRefusal };
+  if (latest.state === "none") return { refusal: noViewRefusal };
   if (latest.state === "stale") return { refusal: staleNetViewRefusal };
   return { revision: latest.revision };
 };
@@ -59,9 +64,11 @@ export const netFreshnessAtIssue = async (
   conversationId: ConversationId,
   assistant: EntryId,
   context: Context,
+  noViewRefusal: string = noNetViewRefusal,
 ): Promise<NetFreshness> => {
   const conversation = await host.conversation(conversationId, context);
   return expectedNetRevision(
     await conversation.context(context, { at: assistant }),
+    noViewRefusal,
   );
 };
