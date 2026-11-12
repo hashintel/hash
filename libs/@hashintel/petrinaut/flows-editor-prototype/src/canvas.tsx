@@ -96,7 +96,7 @@ import {
   runTriggerId,
   triggerLabel,
 } from "./run-history";
-import { plusOpenTake } from "./plus-open";
+import { plusGhostLook, plusOpenTake } from "./plus-open";
 import { pickerTake } from "./step-picker";
 import { describeSource } from "./shapes";
 import {
@@ -2069,21 +2069,48 @@ const GhostTriggerView = ({ id, selected }: NodeProps<StepNode>) => {
   );
 };
 
-/** `?plusopen=c`: the dashed card where the step picked from a port's + will go, at the ghost triggers' 50%. */
-const plusGhostStyle = css({
-  width: "[200px]",
-  height: "[59px]",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "dashed",
-  borderColor: "[var(--flows-ghost-border)]",
-  borderRadius: "lg",
-  opacity: "[0.5]",
-  pointerEvents: "none",
+/** `?plusopen=c`: the card where the step picked from a port's + will go; `?ghost=` picks its look (plus-open.tsx). */
+const plusGhostStyle = cva({
+  base: {
+    width: "[200px]",
+    height: "[59px]",
+    backgroundColor: "neutral.bgSolid.min",
+    borderWidth: "thin",
+    borderRadius: "lg",
+    pointerEvents: "none",
+  },
+  variants: {
+    look: {
+      today: {
+        borderStyle: "dashed",
+        borderColor: "[var(--flows-ghost-border)]",
+        opacity: "[0.5]",
+      },
+      // The ghost triggers' g70 (C-007): the step card, solid border, 70%.
+      g70: {
+        borderStyle: "solid",
+        borderColor: "neutral.bd.subtle",
+        opacity: "[0.7]",
+      },
+      // figma-ds _DropzoneFileUpload (21276:17716): bg/subtle/default #fdfdfd fill (21275:17648), dashed border at
+      // the hover variant's border-emphasis #00000033 (21276:17833), the code DS's neutral.bd.solid.hover.
+      dashed: {
+        backgroundColor: "neutral.s05",
+        borderStyle: "dashed",
+        borderColor: "neutral.bd.solid.hover",
+      },
+    },
+  },
 });
 
 const PlusGhostView = () => (
-  <div className={plusGhostStyle} data-plus-ghost>
+  <div className={plusGhostStyle({ look: plusGhostLook })} data-plus-ghost>
+    {plusGhostLook === "g70" ? (
+      <div className={cardHeadStyle}>
+        <CardTile icon="plus" tone="neutral" ghost />
+        <CardText title="New step" />
+      </div>
+    ) : null}
     <Handle
       id="in"
       type="target"
@@ -2094,6 +2121,18 @@ const PlusGhostView = () => (
     />
   </div>
 );
+
+/** The wire from the + to the ghost, per `?ghost=`: g70 is the ghost triggers' solid wire. */
+const plusGhostWireStyle = (): React.CSSProperties =>
+  plusGhostLook === "g70"
+    ? { stroke: "var(--colors-neutral-bd-strong)", strokeWidth: 1, opacity: 0.7 }
+    : plusGhostLook === "dashed"
+      ? {
+          stroke: "var(--colors-neutral-bd-strong)",
+          strokeWidth: 1,
+          strokeDasharray: "3 2",
+        }
+      : { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1, strokeDasharray: "3 2" };
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Trigger takes (`trigger-flags.ts`): the ghost layouts, the number-based nodes and the no-trigger warning
@@ -3501,11 +3540,7 @@ export const FlowCanvas = ({
             targetHandle: "in",
             selectable: false,
             focusable: false,
-            style: {
-              stroke: "rgba(0, 0, 0, 0.2)",
-              strokeWidth: 1,
-              strokeDasharray: "3 2",
-            },
+            style: plusGhostWireStyle(),
           },
         ]
       : []),

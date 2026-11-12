@@ -196,6 +196,17 @@ export const openDecisions: OpenSwitch[] = [
     ],
   },
   {
+    card: "add-ghost-look",
+    title: "+ on a step · ghost look",
+    flag: "ghost",
+    defaultValue: null,
+    options: [
+      { label: "today", value: null },
+      { label: "g70", value: "g70" },
+      { label: "dashed", value: "dashed" },
+    ],
+  },
+  {
     card: "repeats-trim",
     title: "Repeated facts · trim",
     flag: "repeats",

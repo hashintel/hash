@@ -26,6 +26,18 @@ const take = new URLSearchParams(globalThis.location.search).get("plusopen");
 export const plusOpenTake: "a" | "b" | "c" | null =
   take === "a" || take === "b" ? take : take === "old" ? null : "c";
 
+/**
+ * `?ghost=today|g70|dashed`: how take c's ghost step looks (inbox `add-ghost-look`, 12 Nov). `today` is the default.
+ * - `today`: dashed outline in the ghost border colour at 50%, faint dashed wire.
+ * - `g70`: the ghost triggers' look (C-007): a step card at 70% titled "New step", solid faint wire.
+ * - `dashed`: figma-ds dropzone (_DropzoneFileUpload 21276:17716): neutral/bg/subtle/default fill, a 1 px dashed
+ *   border at its hover's border-emphasis (neutral.bd.solid.hover), full strength; dashed wire at neutral.bd.strong.
+ */
+const ghostParam = new URLSearchParams(globalThis.location.search).get("ghost");
+
+export const plusGhostLook: "today" | "g70" | "dashed" =
+  ghostParam === "g70" || ghostParam === "dashed" ? ghostParam : "today";
+
 /** The picker's width with step rows (`add-node-picker.tsx`), the DS Menu's gap, and the room kept at the canvas edge. */
 const pickerWidth = 288;
 const menuGap = 8;
