@@ -1,13 +1,13 @@
 import { Array, Match, Option, Result, pipe } from "effect";
 
 import * as Import from "../Import.js";
+import * as Tree from "../Tree/index.js";
 import * as Callable from "./hast-callable.js";
 import * as Content from "./hast-content.js";
 import * as Relations from "./hast-relations.js";
 import * as Output from "./output.js";
 import * as Titles from "./titles.js";
 
-import type * as Tree from "../Tree/index.js";
 import type { Element, ElementContent, Root } from "hast";
 
 type Written<A> = Result.Result<A, Output.Failure>;
@@ -86,33 +86,50 @@ const signatures =
     );
   };
 
-/** A getter or a setter. Each is a call of its own and names no overloads. */
-const half =
-  (output: Output.Output, name: "getter" | "setter") =>
-  (value: Tree.Declaration.Signature): Written<Element> =>
-    signature(
-      output,
-      Option.some("member"),
-      value.overloads.length,
-    )(value).pipe(
-      Result.map((written) => Content.element(name)({}, [written])),
-    );
+/** What documents a member's declarations, in reading order. The documented calls come between the comments' descriptions and their other sections. */
+const documented =
+  (output: Output.Output) =>
+  (
+    values: readonly Tree.Comment.Comment[],
+    calls: Tree.Callable.Callable,
+  ): Written<Element[]> =>
+    Result.gen(function* () {
+      const each = comments(output);
 
+      return [
+        ...(yield* each(values, Content.description)),
+        ...(yield* Callable.callable(output)(calls)),
+        ...(yield* each(values, Content.details)),
+        ...(yield* each(values, Content.examples)),
+        ...(yield* each(values, Content.references)),
+      ];
+    });
+
+/** A getter or a setter: its declaration, as the one overload it is, then what its own comment documents. */
+const half =
+  (output: Output.Output) =>
+  (value: Tree.Member.Getter | Tree.Member.Setter): Written<Element> =>
+    Result.gen(function* () {
+      return Content.element(value.type)({}, [
+        yield* signature(output, Option.some("member"), 1)(value.signature),
+        ...(yield* documented(output)(Option.toArray(value.comment), value)),
+      ]);
+    });
+
+/** A member's declarations with their documentation. An accessor's are its halves, each with its own. */
 const declared =
   (output: Output.Output) =>
   (value: Tree.Member.Member): Written<Element[]> => {
     if (value.type === "accessor") {
-      return Result.all([
-        optional(half(output, "getter"))(value.get),
-        optional(half(output, "setter"))(value.set),
-      ]).pipe(Result.map(Array.flatten));
+      return Result.all(Array.map(value.halves, half(output)));
     }
 
-    return signatures(
-      output,
-      Option.some("member"),
-      [],
-    )(value.signatures).pipe(Result.map(Array.of));
+    return Result.gen(function* () {
+      return [
+        yield* signatures(output, Option.some("member"), [])(value.signatures),
+        ...(yield* documented(output)(value.comments, value)),
+      ];
+    });
   };
 
 const memberNames = {
@@ -125,40 +142,25 @@ const memberNames = {
 const member =
   (output: Output.Output) =>
   (value: Tree.Member.Member): Written<Element> =>
-    Result.gen(function* () {
-      const each = comments(output);
-      const parts = Array.flatMap(
-        Option.toArray(Output.signaturesOf(value)),
-        ({ children }) => children,
-      );
-      let calls: Element[] = [];
-      if (value.type === "method") {
-        calls = yield* Callable.callable(output)(value);
-      }
-
-      return Content.element(memberNames[value.type])(
-        {
-          name: Output.memberId(output)(value),
-          title: value.name,
-          static: Content.flag(value.static),
-          ...Content.facts(
-            Output.leading(output)({
-              comments: value.comments,
-              signatures: parts,
-            }),
-          ),
-          deprecated: Content.flag(value.deprecated),
-        },
-        [
-          ...(yield* declared(output)(value)),
-          ...(yield* each(value.comments, Content.description)),
-          ...calls,
-          ...(yield* each(value.comments, Content.details)),
-          ...(yield* each(value.comments, Content.examples)),
-          ...(yield* each(value.comments, Content.references)),
-        ],
-      );
-    });
+    declared(output)(value).pipe(
+      Result.map((children) =>
+        Content.element(memberNames[value.type])(
+          {
+            name: Output.memberId(output)(value),
+            title: value.name,
+            static: Content.flag(value.static),
+            ...Content.facts(
+              Output.leading(output)({
+                comments: Tree.Member.comments(value),
+                signatures: Output.declarationsOf(value),
+              }),
+            ),
+            deprecated: Content.flag(value.deprecated),
+          },
+          children,
+        ),
+      ),
+    );
 
 /**
  * An export's parts in the order of its Markdown body. The descriptions of its comments come first, and their other sections follow its members and calls.

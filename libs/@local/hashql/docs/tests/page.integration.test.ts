@@ -33,6 +33,17 @@ interface Trait { readonly trait: true; }
 export function identity<T>(value: T): T;
 /** Namespace with \`rich\` content. */
 export namespace Empty { export { choose as Alias }; }
+/** Box. */ export class Box {
+  /** Reads.
+   * @returns The held value.
+   * @throws \`RangeError\` When empty.
+   */
+  get held(): Value;
+  /** Writes. @param next - The value to hold. */
+  set held(next: Value | number);
+  /** Ready. @throws \`Error\` When unset. */
+  readonly ready: boolean;
+}
 `;
 
 /** Every element below `node`, depth first. */
@@ -138,18 +149,29 @@ const signatureOverloads = (
     Array.map((element) => propertyOf(element, "overloads")),
   );
 
-/** The parts of the export `name` in the order the page writes them, a comment's by its sections. */
+/** The parts of `element` in the order the page writes them, a comment's by its sections. */
+const partsIn = (element: Element): readonly string[] =>
+  Array.flatMap(elementChildren(element), (child) => {
+    if (child.tagName !== "api-comment") {
+      return [child.tagName];
+    }
+
+    return Array.map(elementChildren(child), ({ tagName }) => tagName);
+  });
+
+/** The parts of the export `name` in the order the page writes them. */
 const partsOf = (
   reference: Reference.Reference,
   name: string,
-): readonly string[] =>
-  Array.flatMap(elementChildren(exportOf(reference, name)), (element) => {
-    if (element.tagName !== "api-comment") {
-      return [element.tagName];
-    }
+): readonly string[] => partsIn(exportOf(reference, name));
 
-    return Array.map(elementChildren(element), ({ tagName }) => tagName);
-  });
+/** The element of the member whose anchor is `name` on the module page. */
+const memberOf = (reference: Reference.Reference, name: string): Element =>
+  pipe(
+    hastOf(reference, "pkg/index.html"),
+    Array.findFirst((element) => propertyOf(element, "name") === name),
+    Option.getOrThrow,
+  );
 
 /** The text and the kind of each link on `page` to Effect's documentation. */
 const effectLinks = (
@@ -169,7 +191,58 @@ const effectLinks = (
     Array.map((element) => [textOf(element), propertyOf(element, "dataKind")]),
   );
 
-/** The one page of the reference the `names` tests share. */
+/** What a page's HAST states about one error. `descriptions` holds the overloads each of its descriptions names. */
+interface Thrown {
+  readonly error: readonly string[];
+  readonly overloads: Properties[string];
+  readonly every: Properties[string];
+  readonly descriptions: readonly Properties[string][];
+}
+
+/** Each error of the export `name` on `page`. */
+const throwsOf = (page: Reference.Written, name: string): readonly Thrown[] =>
+  pipe(
+    Page.toHast(page),
+    Result.getOrThrow,
+    elementsOf,
+    Array.findFirst(
+      (element) =>
+        element.tagName === "api-export" &&
+        propertyOf(element, "name") === name,
+    ),
+    Option.getOrThrow,
+    elementsOf,
+    Array.filter(({ tagName }) => tagName === "api-throw"),
+    Array.map((thrown) => ({
+      error: pipe(
+        elementChildren(thrown),
+        Array.filter(({ tagName }) => tagName === "api-error"),
+        Array.map(textOf),
+      ),
+      overloads: propertyOf(thrown, "overloads"),
+      every: propertyOf(thrown, "every"),
+      descriptions: pipe(
+        elementChildren(thrown),
+        Array.filter(({ tagName }) => tagName === "api-described"),
+        Array.map((described) => propertyOf(described, "overloads")),
+      ),
+    })),
+  );
+
+/** The paragraphs under each "Throws" label of a Markdown page, up to the next heading. */
+const thrownSections = (markdown: string): readonly (readonly string[])[] =>
+  pipe(
+    markdown.split("**Throws**\n\n"),
+    Array.drop(1),
+    Array.map((rest) =>
+      Array.filter(
+        Array.takeWhile(rest.split("\n"), (line) => !line.startsWith("#")),
+        (line) => line.length > 0,
+      ),
+    ),
+  );
+
+/** The one page of the reference the tests of one source share. */
 const namesPage = (reference: Reference.Reference): Reference.Written =>
   Reference.page(reference, "pkg.html");
 
@@ -396,6 +469,38 @@ export declare const value: Option.Option.Value<Option.Option<string>>;`,
   );
 
   it.effect(
+    "member_calls",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const held = memberOf(reference, "Box.held");
+      expect(
+        Array.map(elementChildren(held), (half) => [
+          half.tagName,
+          partsIn(half),
+        ]),
+      ).toStrictEqual([
+        [
+          "api-getter",
+          ["api-signature", "api-description", "api-returns", "api-throws"],
+        ],
+        ["api-setter", ["api-signature", "api-description", "api-parameters"]],
+      ]);
+      expect(
+        Array.filter(
+          elementsOf(held),
+          (element) => propertyOf(element, "overloads") !== undefined,
+        ),
+      ).toStrictEqual([]);
+      expect(partsIn(memberOf(reference, "Box.ready"))).toStrictEqual([
+        "api-signatures",
+        "api-description",
+        "api-throws",
+      ]);
+    }),
+  );
+
+  it.effect(
     "export_order",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
@@ -500,6 +605,87 @@ export declare function run(input: \`x\${string}\`): void;`,
         expect([propertyOf(fence, "lang"), textOf(fence)]).toStrictEqual([
           "ts",
           'run("x1");\n',
+        ]);
+      }),
+    );
+  });
+
+  it.layer(
+    Reference.layer({
+      source: `/** First.
+ * @throws \`RangeError\` When released.
+ */
+export function rewrap(value: string): void;
+/** Second.
+ * @throws \`RangeError\` When released.
+ * @throws \`TypeError\` When not an error.
+ * @throws Without a name.
+ */
+export function rewrap(value: number): void;
+export function rewrap(): void;
+/** Plain.
+ * @throws \`RangeError\` When released.
+ */
+export function plain(value: string): void;
+export function plain(): void;`,
+    }),
+  )("throws", (it) => {
+    it.effect(
+      "every_overload_flag",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const page = namesPage(reference);
+        expect([
+          throwsOf(page, "rewrap"),
+          throwsOf(page, "plain"),
+        ]).toStrictEqual([
+          [
+            {
+              error: ["RangeError"],
+              overloads: undefined,
+              every: true,
+              descriptions: [undefined],
+            },
+            {
+              error: ["TypeError"],
+              overloads: [2],
+              every: undefined,
+              descriptions: [undefined],
+            },
+            {
+              error: [],
+              overloads: [2],
+              every: undefined,
+              descriptions: [undefined],
+            },
+          ],
+          [
+            {
+              error: ["RangeError"],
+              overloads: undefined,
+              every: undefined,
+              descriptions: [undefined],
+            },
+          ],
+        ]);
+      }),
+    );
+
+    it.effect(
+      "every_overload_note",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        expect(thrownSections(namesPage(reference).markdown)).toStrictEqual([
+          [
+            "`RangeError` (all)",
+            "When released.",
+            "`TypeError` (2)",
+            "When not an error.",
+            "(2) Without a name.",
+          ],
+          ["`RangeError`", "When released."],
         ]);
       }),
     );

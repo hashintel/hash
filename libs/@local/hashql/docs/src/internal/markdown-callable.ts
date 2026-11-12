@@ -64,8 +64,9 @@ const line = (
   return [Content.inlineCode(name.value), Content.text(": "), ...listed(types)];
 };
 
-const described =
-  (output: Output.Output) =>
+/** Each description after the overloads it holds in. One that holds in every overload of its owner comes after `otherwise`. */
+const describedAfter =
+  (output: Output.Output, otherwise: Option.Option<string>) =>
   <Origin>(
     descriptions: readonly Tree.Callable.Described<Origin>[],
   ): Written<RootContent[]> =>
@@ -73,12 +74,27 @@ const described =
       descriptions,
       Array.map(({ applies, children }) =>
         Content.blocks(output)(children).pipe(
-          Result.map(Content.noted(applies)),
+          Result.map(
+            Content.after(
+              pipe(
+                Output.overloads(applies),
+                Option.map(Content.note),
+                Option.orElse(() => otherwise),
+              ),
+            ),
+          ),
         ),
       ),
       Result.all,
       Result.map(Array.flatten),
     );
+
+const described =
+  (output: Output.Output) =>
+  <Origin>(
+    descriptions: readonly Tree.Callable.Described<Origin>[],
+  ): Written<RootContent[]> =>
+    describedAfter(output, Option.none())(descriptions);
 
 const item = (
   head: readonly PhrasingContent[],
@@ -122,25 +138,33 @@ const returns =
       return item(line(Option.none(), types), body);
     });
 
+/** An error after its name and the overloads that throw it. In a list that `varies`, an error every overload throws says so. An error without a name has no line of its own, so its descriptions say which overloads throw it. */
 const thrown =
-  (output: Output.Output) =>
+  (output: Output.Output, varies: boolean) =>
   (value: Tree.Callable.Throw): Written<RootContent[]> =>
     Result.gen(function* () {
+      const note = pipe(
+        Output.overloads(value.applies),
+        Option.map(Content.note),
+        Option.orElse(() =>
+          Option.liftPredicate(Content.everyNote, () => varies),
+        ),
+      );
       const error = yield* pipe(
         value.error,
         Option.map(Content.phrasing(output)),
         Result.transposeOption,
       );
-      const head = Option.match(error, {
-        onNone: (): PhrasingContent[] => [],
-        onSome: (nodes) => [
-          ...nodes,
-          ...Array.map(
-            Option.toArray(Output.overloads(value.applies)),
-            (values) => Content.text(` ${Content.note(values)}`),
-          ),
-        ],
-      });
+      if (Option.isNone(error)) {
+        return yield* describedAfter(output, note)(value.descriptions);
+      }
+
+      const head = [
+        ...error.value,
+        ...Array.map(Option.toArray(note), (written) =>
+          Content.text(` ${written}`),
+        ),
+      ];
       const body = yield* described(output)(value.descriptions);
 
       return item(head, body);
@@ -182,6 +206,6 @@ export const callable =
       }),
       list(value.throws, {
         title: Titles.sections.throws,
-        write: thrown(output),
+        write: thrown(output, Output.varies(value.throws)),
       }),
     ]).pipe(Result.map(Array.flatten));

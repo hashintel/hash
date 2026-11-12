@@ -75,24 +75,20 @@ const callable = (found: Found, value: Tree.Callable.Callable): void => {
 };
 
 const member = (found: Found, value: Tree.Member.Member): void => {
-  for (const each of value.comments) {
+  for (const each of Tree.Member.comments(value)) {
     comment(found, each);
   }
   if (value.type === "accessor") {
-    for (const half of Array.appendAll(
-      Option.toArray(value.get),
-      Option.toArray(value.set),
-    )) {
-      found.syntax.push(half.syntax);
-      found.declarations.push(half.origin.node);
+    for (const half of value.halves) {
+      found.syntax.push(half.signature.syntax);
+      found.declarations.push(half.signature.origin.node);
+      callable(found, half);
     }
     return;
   }
 
   signatures(found, Option.some(value.signatures));
-  if (value.type === "method") {
-    callable(found, value);
-  }
+  callable(found, value);
 };
 
 const exported = (found: Found, value: Tree.Export.Export): void => {
