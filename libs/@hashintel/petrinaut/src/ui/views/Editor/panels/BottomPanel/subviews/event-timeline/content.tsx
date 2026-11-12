@@ -14,9 +14,14 @@ import { useTimelineViewRange } from "./use-view-range";
 /** Samples a continuous series is read at across the visible range. */
 const SAMPLE_COUNT = 400;
 
+const NO_REFERENCES: readonly number[] = [];
+
 /**
  * The timeline of a run: token counts step at the events, metrics follow the
- * interpolated state, and every firing is marked on the ruler.
+ * interpolated state, and every firing is marked on the ruler. So are the
+ * reference frames of a continuous run. A discrete run has nothing to
+ * interpolate, so the frames a simulator kept between its firings mark
+ * nothing and are left out.
  */
 const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   showLegend = true,
@@ -25,6 +30,7 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
   const {
     petriNetDefinition: { transitions },
   } = use(SDCPNContext);
+  const { continuity } = use(SimulationContext);
   const { eventCount, stepToEvent } = use(EventPlaybackContext);
   const timelineView = useRunTimelineView();
   const view = useTimelineViewRange();
@@ -51,7 +57,7 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
       stacked={chartType === "stacked" && timelineView.kind !== "solver-error"}
       error={metricError}
       firings={firings}
-      references={references}
+      references={continuity === "discrete" ? NO_REFERENCES : references}
       transitionNames={transitionNames}
       onStep={stepToEvent}
       showLegend={showLegend}

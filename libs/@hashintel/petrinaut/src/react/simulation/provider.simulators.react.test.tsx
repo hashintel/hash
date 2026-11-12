@@ -292,6 +292,26 @@ describe("SimulationProvider on a registered simulator", () => {
     expect(getValue().clock).toBe("time");
   });
 
+  it("says whether a run evolves between its events, from the net and then from the run", async () => {
+    const simulator = makeSimulator({
+      id: "test.plain",
+      needsHirTrees: false,
+      start: () =>
+        Promise.resolve({
+          ok: true,
+          handle: { ...makeHandle(), continuity: "continuous" },
+        }),
+    });
+    // A rate takes time, and nothing moves between two of its firings.
+    const { getValue } = renderProvider([simulator.registration], timedSdcpn);
+    expect(getValue().clock).toBe("time");
+    expect(getValue().continuity).toBe("discrete");
+
+    await act(() => getValue().initialize({ seed: 1 }));
+
+    expect(getValue().continuity).toBe("continuous");
+  });
+
   it("asks for the HIR trees when the simulator reads them", async () => {
     const reader = makeSimulator({
       id: "test.reader",

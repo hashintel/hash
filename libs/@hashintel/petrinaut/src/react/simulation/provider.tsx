@@ -11,6 +11,7 @@ import {
   DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
   placeCountMetricSpecs,
   runClockOf,
+  runContinuityOf,
   experimentSamplePeriod,
   compileScenario,
   synthesizeAdHocScenario,
@@ -1288,6 +1289,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     eventSimulation?.clock ??
     stochastic?.run.clock ??
     runClockOf(petriNetDefinition, extensions);
+  const continuity =
+    eventSimulation?.continuity ??
+    runContinuityOf(petriNetDefinition, extensions);
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
@@ -1305,6 +1309,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     totalFramesStore,
     mode,
     clock,
+    continuity,
     simulatorSelection,
     runs: stateValues.runs,
     stochasticRun: stochastic?.run ?? null,

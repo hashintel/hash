@@ -12,6 +12,7 @@ import {
   type InitialMarking,
   type InitialPlaceMarking,
   type RunClock,
+  type RunContinuity,
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
@@ -127,6 +128,12 @@ export type SimulationContextValue = {
    * experiment while one exists, and from the net before.
    */
   clock: RunClock;
+  /**
+   * What lies between two events of a run: the continuous evolution of a
+   * net with dynamics, or nothing. Read from the run while one exists, and
+   * from the net before.
+   */
+  continuity: RunContinuity;
   /**
    * The simulator the next run is computed by in the current mode, with its
    * parameter values. Each mode keeps its own. Changing either discards the
@@ -256,6 +263,7 @@ export const DEFAULT_SIMULATION_CONTEXT: SimulationContextValue = {
   totalFramesStore: constantStore(0),
   mode: "quick",
   clock: "time",
+  continuity: "continuous",
   simulatorSelection: { simulatorId: "", parameters: {} },
   runs: 100,
   stochasticRun: null,

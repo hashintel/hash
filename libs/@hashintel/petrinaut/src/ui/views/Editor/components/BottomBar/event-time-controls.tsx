@@ -7,6 +7,7 @@ import { EventPlaybackContext } from "../../../../../react/event-playback/contex
 import { useEventPlaybackFrame } from "../../../../../react/event-playback/use-event-playback-frame";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
+import { stepAt } from "../../shared/run-position";
 import { formatEventPlaybackTimes } from "./event-playback-time";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -112,10 +113,20 @@ const sliderStyle = cva({
   },
 });
 
+/** The event an arrow key on the scrubber moves towards, or null for another key. */
+const arrowDirection = (key: string): -1 | 1 | null =>
+  key === "ArrowRight" || key === "ArrowUp"
+    ? 1
+    : key === "ArrowLeft" || key === "ArrowDown"
+      ? -1
+      : null;
+
 /**
  * The part of the event controls that shows the viewed position: the
  * readout, the scrubber and the event steppers. A timed run reads in
  * seconds; an untimed one in steps, and its scrubber moves a step at a time.
+ * The scrubber of a discrete run lands on its events, and its arrow keys
+ * move from one to the next.
  * It re-renders on every animation frame while playing, which is why it is
  * its own component: the rest of the bar stays put.
  */
@@ -125,7 +136,7 @@ export const EventTimeControls: React.FC<{
   showEventSteppers?: boolean;
 }> = ({ disabled, showEventSteppers = true }) => {
   const presentation = usePetrinautPresentation();
-  const { clock } = use(SimulationContext);
+  const { clock, continuity } = use(SimulationContext);
   const { coveredTime, setTime, stepToEvent } = use(EventPlaybackContext);
   const { time, hasPreviousEvent, hasNextEvent } = useEventPlaybackFrame();
   const times = formatEventPlaybackTimes({ clock, time, coveredTime });
@@ -189,9 +200,24 @@ export const EventTimeControls: React.FC<{
         min="0"
         max={coveredTime}
         step={clock === "steps" ? 1 : "any"}
-        value={time}
+        // Between two steps the thumb stays on the one reached, as the
+        // readout does.
+        value={clock === "steps" ? stepAt(time) : time}
         disabled={disabled || coveredTime === 0}
         onChange={(event) => setTime(Number(event.target.value))}
+        onKeyDown={(event) => {
+          // An arrow key moves a range by a share of its span, which in a
+          // discrete run may reach no event. It moves to the next one.
+          const direction = arrowDirection(event.key);
+          if (
+            direction !== null &&
+            showEventSteppers &&
+            continuity === "discrete"
+          ) {
+            event.preventDefault();
+            stepToEvent(direction);
+          }
+        }}
         aria-label={wording.slider}
         className={sliderStyle({ compact: presentation.compactControls })}
       />

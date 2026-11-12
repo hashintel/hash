@@ -7,7 +7,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   EVENT_PLAY_MODE_LEAD,
+  type EventSimulation,
   type EventTraceSummary,
+  type RunContinuity,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -32,6 +34,39 @@ const runningSource = () => ({
   status: constantStore("Running" as const),
   demand: vi.fn<(time: number) => void>(),
 });
+
+/**
+ * The run behind `runningSource`: the initial state, a firing at 1.5 s and
+ * another at 3 s, then a reference frame where its coverage ends.
+ */
+const runOf = (continuity: RunContinuity): EventSimulation => {
+  const events = [
+    { time: 0, discrete: true },
+    { time: 1.5, discrete: true },
+    { time: 3, discrete: true },
+    { time: 5, discrete: false },
+  ];
+  const run: Pick<
+    EventSimulation,
+    | "continuity"
+    | "findEventIndexAt"
+    | "getEvent"
+    | "findDiscreteEventAtOrBefore"
+  > = {
+    continuity,
+    findEventIndexAt: (time) =>
+      events.findLastIndex((event) => event.time <= time),
+    getEvent: (index) =>
+      (events[index] ?? null) as ReturnType<EventSimulation["getEvent"]>,
+    findDiscreteEventAtOrBefore: (index) => {
+      const found = events.findLastIndex(
+        (event, at) => at <= index && event.discrete,
+      );
+      return found === -1 ? null : found;
+    },
+  };
+  return run as EventSimulation;
+};
 
 const mount = (simulation: Partial<SimulationContextValue>) => {
   const read: { value: EventPlaybackContextValue | null } = { value: null };
@@ -165,6 +200,58 @@ describe("EventPlaybackProvider", () => {
     const demandsSoFar = source.demand.mock.calls.length;
     act(() => playback().setTime(4));
     expect(source.demand).toHaveBeenCalledTimes(demandsSoFar);
+  });
+
+  it("views a continuous run at any time it covers", () => {
+    const { playback } = mount({
+      state: "Paused",
+      playbackSource: runningSource(),
+      eventSimulation: runOf("continuous"),
+    });
+
+    act(() => playback().setTime(2));
+    expect(playback().playbackStore.get().time).toBe(2);
+    act(() => playback().setTime(9));
+    expect(playback().playbackStore.get().time).toBe(5);
+  });
+
+  it("views a discrete run at the event at or before the time it is put at", () => {
+    const { playback } = mount({
+      state: "Paused",
+      playbackSource: runningSource(),
+      eventSimulation: runOf("discrete"),
+    });
+
+    act(() => playback().setTime(2));
+    expect(playback().playbackStore.get().time).toBe(1.5);
+    act(() => playback().setTime(3));
+    expect(playback().playbackStore.get().time).toBe(3);
+    // The end of what the run covers is no event: the last firing is.
+    act(() => playback().setTime(9));
+    expect(playback().playbackStore.get().time).toBe(3);
+    act(() => playback().setTime(0.2));
+    expect(playback().playbackStore.get().time).toBe(0);
+  });
+
+  it("rests a discrete run on the event it last passed when paused", () => {
+    const source = runningSource();
+    const { playback, update } = mount({
+      state: "Paused",
+      playbackSource: source,
+      eventSimulation: runOf("continuous"),
+    });
+    // Playing leaves the viewed time between two events. Put there here by
+    // a run that lets it.
+    act(() => playback().setTime(2.4));
+    update({
+      state: "Paused",
+      playbackSource: source,
+      eventSimulation: runOf("discrete"),
+    });
+    expect(playback().playbackStore.get().time).toBe(2.4);
+
+    act(() => playback().pause());
+    expect(playback().playbackStore.get().time).toBe(1.5);
   });
 
   it("returns to the start when the run is discarded", () => {

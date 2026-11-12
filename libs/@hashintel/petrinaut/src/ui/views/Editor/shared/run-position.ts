@@ -10,7 +10,7 @@ import type { RunClock } from "@hashintel/petrinaut-core";
  */
 
 /** The step a position has reached. A position a rounding short of a step is on it. */
-const stepAt = (position: number): number => Math.floor(position + 1e-9);
+export const stepAt = (position: number): number => Math.floor(position + 1e-9);
 
 /** The position as a bare number: seconds to the millisecond, or the step reached. */
 export const formatRunPosition = (clock: RunClock, position: number): string =>
