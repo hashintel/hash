@@ -46,7 +46,7 @@ export const ensureUnitDataType: typeof createSystemDataTypeIfNotExists =
     const { dataTypeDefinition, conversions, migrationState, webShortname } =
       parameters;
 
-    while (true) {
+    for (;;) {
       const expectedSchema = generateSystemDataTypeSchema({
         ...dataTypeDefinition,
         abstract: dataTypeDefinition.abstract ?? false,
