@@ -11,6 +11,7 @@ import { getCatalogEntry, humanize, stepOutputs } from "./catalog";
 import {
   type EditorDocument,
   findStep,
+  itemName,
   itemPropertyOf,
   stepLabel,
 } from "./document";
@@ -59,9 +60,7 @@ export const refLook = (
     const loop = parentId ? findStep(document, parentId)?.step : undefined;
     const property = itemPropertyOf(source);
     const name =
-      loop?.kind === "for-each" && loop.description.startsWith("For each ")
-        ? loop.description.slice("For each ".length)
-        : "item";
+      loop?.kind === "for-each" ? itemName(document, loop.stepId) : "item";
     return {
       icon: "rotate",
       step: loop ? stepLabel(loop) : "For each",

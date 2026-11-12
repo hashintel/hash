@@ -2,7 +2,7 @@
  * The editor's document: a flow definition in the engine's own shape, plus what the editor needs that the engine
  * has no place for. Each extra is named for the hole it fills (see the holes log).
  */
-import { getCatalogEntry } from "./catalog";
+import { getCatalogEntry, stepOutputs } from "./catalog";
 import { findEntityType, findPropertyType } from "./mock-graph";
 import {
   type TriggerKind,
@@ -336,17 +336,72 @@ export const itemPropertyOf = (source: StepInputSource) =>
     ? findPropertyType(String(source.propertyBaseUrl))
     : undefined;
 
-/** What a for-each calls the thing it loops over: the entity type's name ("supplier"), or "item" when it is unknown. */
+const singular = (word: string) =>
+  word.endsWith("ies")
+    ? `${word.slice(0, -3)}y`
+    : word.endsWith("s") && !word.endsWith("ss")
+      ? word.slice(0, -1)
+      : word;
+
+/** `?itemrow=on` brings back the Item row with its hover rename (the look before the 13 Nov ledger line). */
+export const itemRowOn =
+  new URLSearchParams(globalThis.location.search).get("itemrow") === "on";
+
+/** The for-each's own name for one item when nothing is renamed: derived from its list, never typed. */
+const autoItemName = (
+  document: EditorDocument,
+  forEach: DraftForEachStep,
+): string => {
+  const typeName = findEntityType(
+    entityTypeOf(document, forEach.over, forEach.stepId),
+  )?.title.toLowerCase();
+  const source = forEach.over;
+  let base = typeName ?? "item";
+  if (!typeName && source?.kind === "step-output") {
+    const producer = findStep(document, source.stepId)?.step;
+    const output =
+      producer?.kind === "action"
+        ? stepOutputs(producer).find(({ name }) => name === source.outputName)
+        : undefined;
+    if (
+      output?.payloadKind === "EntityId" ||
+      /entit/i.test(source.outputName)
+    ) {
+      base = "entity";
+    } else if (output?.payloadKind !== undefined && output.label) {
+      const label = output.label.toLowerCase();
+      base = /^(items?|values?|list)$/.test(label) ? "item" : singular(label);
+    }
+  }
+  // A loop inside a loop with the same name counts up: "supplier 2".
+  let depth = 1;
+  let parentId = findStep(document, forEach.stepId)?.parentId;
+  while (parentId) {
+    const parent = findStep(document, parentId)?.step;
+    if (parent?.kind === "for-each") {
+      const outer = autoItemName(document, parent);
+      if (outer.replace(/ \d+$/, "") === base) {
+        depth += 1;
+      }
+    }
+    parentId = findStep(document, parentId)?.parentId;
+  }
+  return depth > 1 ? `${base} ${depth}` : base;
+};
+
+/**
+ * What a for-each calls one item, worked out from its list: "supplier", "certificate", "entity", "item", "supplier 2".
+ * A stored rename shows only behind `?itemrow=on`.
+ */
 export const itemName = (document: EditorDocument, forEachId: string) => {
   const forEach = findStep(document, forEachId)?.step;
-  const typeBaseUrl =
-    forEach?.kind === "for-each"
-      ? entityTypeOf(document, forEach.over, forEachId)
-      : undefined;
-  if (forEach?.kind === "for-each" && forEach.itemLabel?.trim()) {
+  if (forEach?.kind !== "for-each") {
+    return "item";
+  }
+  if (itemRowOn && forEach.itemLabel?.trim()) {
     return forEach.itemLabel.trim();
   }
-  return findEntityType(typeBaseUrl)?.title.toLowerCase() ?? "item";
+  return autoItemName(document, forEach);
 };
 
 export const mapSteps = (

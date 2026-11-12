@@ -36,6 +36,7 @@ import {
   entityTypeOf,
   findStep,
   itemName,
+  itemRowOn,
   stepLabel,
   findTrigger,
   removeStep,
@@ -981,8 +982,8 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         kind="For each"
         description={step.description}
         subtitle={
-          step.description.startsWith("For each ")
-            ? `Runs its steps once per ${step.description.slice("For each ".length)}`
+          step.over
+            ? `Runs its steps once per ${itemName(document, step.stepId)}`
             : "Runs its steps once per item of a list"
         }
         stepId={step.stepId}
@@ -1056,7 +1057,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             />
           ) : null}
         </PropertyRow>
-        {showFull || !itemSourceOld ? (
+        {showFull || (itemRowOn && !itemSourceOld) ? (
           <PropertyRow
             label="Item"
             hover={

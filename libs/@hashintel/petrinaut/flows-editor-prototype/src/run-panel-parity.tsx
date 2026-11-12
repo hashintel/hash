@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { fieldKey } from "./document";
+import { fieldKey, itemRowOn } from "./document";
 import { useEditor } from "./editor-context";
 import { InlineChip } from "./inline-chips";
 import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
@@ -261,7 +261,7 @@ export const ParitySections = ({
               />
             )}
           </PropertyRow>
-          {itemSourceOld ? null : (
+          {itemSourceOld || !itemRowOn ? null : (
           <PropertyRow label="Item">
             <span className={css({ display: "flex", alignItems: "center", gap: "1.5", textStyle: "sm" })}>
               <span className={css({ color: "neutral.fg.heading" })}>supplier</span>
