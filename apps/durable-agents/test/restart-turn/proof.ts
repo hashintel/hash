@@ -52,6 +52,7 @@ import {
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
+import { createHostBinding } from "../../src/agent/host-binding";
 import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
 import {
   type BrowserCallRecord,
@@ -148,7 +149,8 @@ const textOf = (entry: EntryRecord) =>
 /** The conversation as stored, read by a read-only Harness after both servers are gone. */
 const readStored = async (chatId: string) => {
   const registry = createRegistry();
-  for (const extension of createPetrinautAgent().extensions)
+  const host = createHostBinding();
+  for (const extension of createPetrinautAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({
@@ -159,6 +161,7 @@ const readStored = async (chatId: string) => {
     { models: scriptedModel([]).models, registry, readOnly: true },
     context,
   );
+  host.bind(harness);
   try {
     const root = (await harness.conversation(ROOT_CONVERSATION_ID, context))!;
     const entries = (

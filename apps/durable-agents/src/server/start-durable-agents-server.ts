@@ -141,9 +141,10 @@ export const startDurableAgentsServer = async (
   const server = createDurableAgentsServer({
     openStorage: postgresConversationStorage(options.pool),
     storageExists: postgresConversationExists(options.pool),
-    createRegistry: () => {
+    // Each conversation's Harness gets the agent's extensions over its own host binding.
+    createRegistry: (host) => {
       const registry = createRegistry();
-      for (const extension of extensions) registry.install(extension);
+      for (const extension of extensions(host)) registry.install(extension);
       return registry;
     },
     models: options.models,

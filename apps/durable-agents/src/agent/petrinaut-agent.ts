@@ -3,9 +3,10 @@
  * Petrinaut browser tools, `query_basis` and Brunch's system prompt. No
  * Voice, interview budget, skills or Ledger comments.
  *
- * A server installs `extensions` in its registry, creates a conversation's
- * root with `agent` (adding its model), and binds the conversation to the
- * browser's editor with `bindBrowserDocument` so claims can prove the binding.
+ * A server installs `extensions(host)` in each Harness's registry, over that
+ * Harness's host binding, creates a conversation's root with `agent` (adding
+ * its model), and binds the conversation to the browser's editor with
+ * `bindBrowserDocument` so claims can prove the binding.
  */
 import { readFileSync } from "node:fs";
 
@@ -20,6 +21,7 @@ import { browserCallExtension } from "../browser-call/browser-call";
 import { petrinautBrowserToolsExtension } from "../browser-call/petrinaut-browser-tools";
 import { ledgerExtension } from "../ledger";
 import { queryBasisExtension } from "../net-state/query-basis";
+import { createHostBinding, type HostBinding } from "./host-binding";
 import { contextProjectionExtension } from "./petrinaut-agent/context-projection";
 import { toolAdmissionExtension } from "./petrinaut-agent/tool-admission";
 
@@ -46,26 +48,33 @@ export type PetrinautAgent = {
   /** Brunch's prompt, as the agent's first section renders it. */
   readonly systemPrompt: string;
   /**
-   * Everything to install in the registry. `browserCallExtension` is
-   * installed for the browser-call tasks, not selected.
+   * Everything to install in one Harness's registry, built over that
+   * Harness's host binding. `browserCallExtension` is installed for the
+   * browser-call tasks, not selected.
    */
-  readonly extensions: readonly Extension[];
-  /** A conversation root's agent: the selected extensions. The server adds the model. */
+  readonly extensions: (host: HostBinding) => readonly Extension[];
+  /**
+   * A conversation root's agent: the selected extensions. Pi stores only
+   * their names and resolves them from each Harness's registry, so the
+   * instances installed over that Harness's binding are the ones that run.
+   * The server adds the model.
+   */
   readonly agent: AgentChange & { readonly extensions: readonly Extension[] };
 };
 
-export const createPetrinautAgent = (): PetrinautAgent => {
-  const selected = [
-    petrinautPromptExtension,
-    ledgerExtension,
-    petrinautBrowserToolsExtension,
-    contextProjectionExtension,
-    toolAdmissionExtension,
-    queryBasisExtension,
-  ];
-  return {
-    systemPrompt: petrinautSystemPrompt,
-    extensions: [...selected, browserCallExtension],
-    agent: { extensions: selected },
-  };
-};
+/** The extensions a conversation selects, over its Harness's host binding. */
+const selectedExtensions = (_host: HostBinding): readonly Extension[] => [
+  petrinautPromptExtension,
+  ledgerExtension,
+  petrinautBrowserToolsExtension,
+  contextProjectionExtension,
+  toolAdmissionExtension,
+  queryBasisExtension,
+];
+
+export const createPetrinautAgent = (): PetrinautAgent => ({
+  systemPrompt: petrinautSystemPrompt,
+  extensions: (host) => [...selectedExtensions(host), browserCallExtension],
+  // Never bound: only the names of these instances are stored.
+  agent: { extensions: selectedExtensions(createHostBinding()) },
+});
