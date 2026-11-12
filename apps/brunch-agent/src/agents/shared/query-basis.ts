@@ -2,13 +2,14 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import {
-  arcDirections,
+  basisQueryReasons,
   brunchTools,
   foldCommits,
   generatedArcId,
   namesId,
-  netElementKinds,
+  queryBasisToolDescription,
   traceLedger,
+  vBasisQueryInput,
 } from "@hashintel/brunch-agent";
 import { migrateLegacyComponentKeys } from "@hashintel/petrinaut-core";
 
@@ -24,47 +25,12 @@ import {
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {
   ArcElement,
+  BasisQuerySelector,
   BrowserContext,
   LedgerTrace,
   NetElementAddress,
   NetStructure,
 } from "@hashintel/brunch-agent";
-
-export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
-
-const elementSchema = v.object({
-  selector: v.pipe(
-    v.object({
-      kind: v.picklist(netElementKinds),
-      name: v.optional(
-        v.pipe(
-          v.string(),
-          v.description("The element's recorded name, unique within its kind."),
-        ),
-      ),
-      id: v.optional(v.pipe(v.string(), v.description("The element's ID."))),
-      transitionId: v.optional(
-        v.pipe(v.string(), v.description("For an arc: its transition's ID.")),
-      ),
-      arcDirection: v.optional(
-        v.pipe(
-          v.picklist(arcDirections),
-          v.description(
-            "For an arc: its direction relative to the transition.",
-          ),
-        ),
-      ),
-      placeId: v.optional(
-        v.pipe(v.string(), v.description("For an arc: its place's ID.")),
-      ),
-    }),
-    v.description(
-      "One element by kind and its name or ID; an arc by transitionId, arcDirection and placeId.",
-    ),
-  ),
-});
-type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
 /** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
 type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
@@ -77,7 +43,7 @@ const netsOf = (definition: NetStructure) => [
 
 const elements = (
   definition: NetStructure,
-  kind: Selector["kind"],
+  kind: BasisQuerySelector["kind"],
 ): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
@@ -87,7 +53,7 @@ const elements = (
 
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
-  kind: Exclude<Selector["kind"], "scenario" | "metric" | "component">,
+  kind: Exclude<BasisQuerySelector["kind"], "scenario" | "metric" | "component">,
 ): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
@@ -150,7 +116,7 @@ const basisContent = (trace: LedgerTrace) => ({
 
 /** Whether a reflection's net element address names the target, as the document or the model wrote it. */
 const namesTarget =
-  (kind: Selector["kind"], target: Omit<NetElement, "kind">) =>
+  (kind: BasisQuerySelector["kind"], target: Omit<NetElement, "kind">) =>
   (address: NetElementAddress) =>
     address.kind === kind && namesId(address.id, target.id);
 
@@ -172,7 +138,7 @@ const ledgerRevisionAt = (
 export const queryBasis = (input: {
   snapshot: FlueConversationSnapshot;
   browser: BrowserContext;
-  query: Selector;
+  query: BasisQuerySelector;
 }) => {
   // The latest read, or the latest change carrying its read-back; a change
   // after it carried none.
@@ -191,8 +157,7 @@ export const queryBasis = (input: {
     return {
       binding: input.browser.binding,
       disposition: "stale-read" as const,
-      reason:
-        "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
+      reason: basisQueryReasons["stale-read"],
       target: undefined,
       readToolCallId: view.toolCallId,
       basis: undefined,
@@ -221,8 +186,7 @@ export const queryBasis = (input: {
     return {
       binding: input.browser.binding,
       disposition: "not-found" as const,
-      reason:
-        "The named element is absent or ambiguous in the latest net view.",
+      reason: basisQueryReasons["not-found"],
       target,
       readToolCallId: latest?.call.toolCallId,
       basis: undefined,
@@ -248,8 +212,8 @@ export const queryBasis = (input: {
       ? ("basis-declared" as const)
       : ("basis-absent" as const),
     reason: declared
-      ? "Reflections name this element; the basis is what they rest on."
-      : "No reflection names this element, so its basis was not recorded.",
+      ? basisQueryReasons["basis-declared"]
+      : basisQueryReasons["basis-absent"],
     target,
     readToolCallId: latest?.call.toolCallId,
     basis: declared ? basisContent(trace) : undefined,
@@ -270,7 +234,7 @@ export const createQueryBasisTool = (options: {
   defineTool({
     name: options.name ?? brunchTools.queryBasis,
     description: queryBasisToolDescription,
-    input: elementSchema,
+    input: vBasisQueryInput,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {
       return {
