@@ -49,6 +49,7 @@ const renderSection = (
     <ThemeProvider theme={theme}>
       <DependentTypesSection
         entityType={actor}
+        knownParentLatestVersion={2}
         rows={undefined}
         incomplete={false}
         error={undefined}
