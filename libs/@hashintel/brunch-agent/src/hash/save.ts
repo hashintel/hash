@@ -6,7 +6,7 @@
 
 import * as v from "valibot";
 
-export const vHashSaveInput = v.strictObject({
+export const hashSaveInputSchema = v.strictObject({
   documentId: v.pipe(
     v.string(),
     v.minLength(1),
@@ -16,12 +16,12 @@ export const vHashSaveInput = v.strictObject({
   ),
 });
 
-export type HashSaveInput = v.InferOutput<typeof vHashSaveInput>;
+export type HashSaveInput = v.InferOutput<typeof hashSaveInputSchema>;
 
 export const parseHashSaveInput = (input: unknown): HashSaveInput =>
-  v.parse(vHashSaveInput, input);
+  v.parse(hashSaveInputSchema, input);
 
-const vHashSaveOutcome = v.variant("status", [
+const hashSaveOutcomeSchema = v.variant("status", [
   v.object({
     status: v.literal("saved"),
     /** The saved version's time, as the editor's save result gives it. */
@@ -37,8 +37,8 @@ const vHashSaveOutcome = v.variant("status", [
 ]);
 
 /** What a save settles with in the page. */
-export type HashSaveOutcome = v.InferOutput<typeof vHashSaveOutcome>;
+export type HashSaveOutcome = v.InferOutput<typeof hashSaveOutcomeSchema>;
 
 /** Throws on anything but a save's outcome. */
 export const parseHashSaveOutcome = (value: unknown): HashSaveOutcome =>
-  v.parse(vHashSaveOutcome, value);
+  v.parse(hashSaveOutcomeSchema, value);

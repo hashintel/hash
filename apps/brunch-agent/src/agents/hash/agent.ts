@@ -24,7 +24,7 @@ import {
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -168,4 +168,4 @@ export const HashAgent = ({ id }: AgentProps): string => {
  * the Petrinaut agent's, so the two never share a conversation.
  */
 HashAgent.agentName = "brunch-hash-agent";
-HashAgent.initialData = vSdcpnInitialData;
+HashAgent.initialData = sdcpnInitialDataSchema;

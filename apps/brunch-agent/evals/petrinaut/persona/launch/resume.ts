@@ -9,7 +9,7 @@ import * as v from "valibot";
 import {
   agentOwnershipHeaders,
   brunchActorKeyStorageKey,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
@@ -65,7 +65,7 @@ const sessionSchema = v.pipe(
     ownerKey: text,
     conversationId: text,
     uid: text,
-    initialData: v.nonOptional(vSdcpnInitialData),
+    initialData: v.nonOptional(sdcpnInitialDataSchema),
   }),
   v.transform(({ ownerKey, ...session }) => ({
     ...session,
@@ -128,7 +128,7 @@ export const openRetainedPersonaBrowser = async (
     }),
     brunchActorKeyStorageKey,
   );
-  const data = v.parse(vSdcpnInitialData, session.initialData);
+  const data = v.parse(sdcpnInitialDataSchema, session.initialData);
   assert(data);
   const binding = data.binding;
   assert.equal(
