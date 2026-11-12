@@ -13,17 +13,17 @@ import {
   pipe,
 } from "effect";
 import * as Syntax from "typescript/ast";
-import { SignatureKind } from "typescript/async";
 
 import * as AST from "../AST/index.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Comments from "./ast-comments.js";
+import * as Constants from "./ast-constants.js";
 import * as Types from "./ast-type-parser.js";
 import * as Source from "./ast/source.js";
 
 import type * as Names from "./ast-names.js";
 import type { Failure } from "./ast-type-parser.js";
-import type { Symbol as CompilerSymbol, Signature } from "typescript/async";
+import type { Symbol as CompilerSymbol } from "typescript/async";
 
 type ValueSource = Data.TaggedEnum<{
   Function: {
@@ -189,91 +189,6 @@ const typeParametersOf = (
     Effect.map(Chunk.fromIterable),
   );
 
-const isCallSource = (
-  node: Syntax.Node,
-): node is AST.CallSignature.CallSignature["node"] =>
-  Syntax.isCallSignatureDeclaration(node) ||
-  Syntax.isFunctionDeclaration(node) ||
-  Syntax.isFunctionTypeNode(node) ||
-  Syntax.isMethodDeclaration(node) ||
-  Syntax.isMethodSignatureDeclaration(node);
-
-/** The syntax that declares one of a constant's calls. A call the program cannot trace to such syntax fails the constant. */
-const callSourceOf =
-  (symbol: CompilerSymbol) =>
-  (signature: Signature): Parsed<AST.CallSignature.CallSignature["node"]> =>
-    pipe(
-      Option.fromUndefinedOr(signature.declaration),
-      Option.map(TypeScript.Program.resolve),
-      Effect.transposeOption,
-      Effect.map((resolved) =>
-        Option.filter(Option.flatten(resolved), isCallSource),
-      ),
-      Effect.flatMap(
-        Option.match({
-          onNone: () =>
-            Effect.fail(
-              AST.ParseError.missingDeclaration({ name: symbol.name }),
-            ),
-          onSome: Effect.succeed,
-        }),
-      ),
-    );
-
-/** A constant is callable when its annotation states calls, each traced to the syntax that declares it. */
-const variable = (
-  symbol: CompilerSymbol,
-  node: Syntax.VariableDeclaration,
-): Parsed<AST.ValueDeclaration.ValueDeclaration> =>
-  Effect.all({
-    type: Types.optional(Option.fromUndefinedOr(node.type)),
-    documentation: Comments.documentation(node),
-    calls: pipe(
-      TypeScript.Checker.getTypeOfSymbol(symbol),
-      Effect.flatMap(
-        TypeScript.Checker.getSignaturesOfType(SignatureKind.Call),
-      ),
-    ),
-  }).pipe(
-    Effect.flatMap(
-      ({
-        type,
-        documentation,
-        calls,
-      }): Parsed<AST.ValueDeclaration.ValueDeclaration> => {
-        if (Option.isNone(type) || !Array.isReadonlyArrayNonEmpty(calls)) {
-          return Effect.succeed(
-            AST.ConstantDeclaration.make({ node, type, documentation }),
-          );
-        }
-
-        return pipe(
-          Effect.forEach(calls, callSourceOf(symbol)),
-          Effect.flatMap((declarations) =>
-            Effect.forEach(declarations, Types.call),
-          ),
-          // A constant's comment documents the calls its type states.
-          Effect.tap((overloads) =>
-            Effect.flatMap(AST.Store, (store) =>
-              Comments.checkParameters(
-                documentation,
-                Array.map(overloads, (id) => store.get(id)),
-              ),
-            ),
-          ),
-          Effect.map((overloads) =>
-            AST.CallableConstant.make({
-              node,
-              type: type.value,
-              overloads: Chunk.make(...overloads),
-              documentation,
-            }),
-          ),
-        );
-      },
-    ),
-  );
-
 const classDeclaration = (
   node: Syntax.ClassDeclaration,
 ): Parsed<AST.ClassDeclaration.Interned> =>
@@ -366,7 +281,7 @@ const valueDeclaration = (
         Effect.flatMap(AST.intern),
       ),
     Variable: ({ node }) =>
-      variable(symbol, node).pipe(Effect.flatMap(AST.intern)),
+      Constants.variable(symbol, node).pipe(Effect.flatMap(AST.intern)),
   });
 
 /** A class or an enum gives a symbol both meanings through one declaration. */
