@@ -10,7 +10,7 @@ import type { Locator, Page } from "../shared/runtime";
 const checkIfCellContainsNonWhitePixels = async (canvasLocator: Locator) => {
   const hasNonWhitePixels = await (
     await canvasLocator.elementHandle()
-  )?.evaluate((canvas, rowHeight) => {
+  ).evaluate((canvas, rowHeight) => {
     /**
      * The return of evaluate is JSON.stringified, and therefore functions cannot be serialized.
      * We must do all work that requires functions inside the callback.
