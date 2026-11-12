@@ -114,6 +114,10 @@ const readGlyphSet = (): GlyphSet => {
 
 export const glyphSet: GlyphSet = readGlyphSet();
 
+/** `?waitmark=dots`: a step that hasn't run yet keeps the dotted ring, before the figma-ds backlog ring. */
+const dottedWaitMark =
+  new URLSearchParams(globalThis.location.search).get("waitmark") === "dots";
+
 // The outline set's geometry, from icons/status/src/gen_glyphs.py.
 const R = 6.5;
 const SW = 1.25;
@@ -321,12 +325,25 @@ const BareGlyph = ({
   const track = <circle cx="8" cy="8" r={bareR} opacity="0.25" />;
   switch (state) {
     case "notReached":
-      return (
+      return dottedWaitMark ? (
         <circle
           cx="8"
           cy="8"
           r={bareR}
           strokeDasharray="0.01 3.13"
+          transform="rotate(-90 8 8)"
+        />
+      ) : (
+        // figma-ds Progress · Circular, backlog (46563:19632): a dashed ring, 1 px, black 15 % (neutral.a30). Twelve
+        // dashes and twelve gaps of 2π·4/24 close evenly round the ring.
+        <circle
+          cx="8"
+          cy="8"
+          r={bareR}
+          stroke="var(--colors-neutral-a30)"
+          strokeWidth={1}
+          strokeDasharray="2.094 2.094"
+          strokeLinecap="butt"
           transform="rotate(-90 8 8)"
         />
       );
