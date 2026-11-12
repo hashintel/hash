@@ -4,8 +4,9 @@
  * `api` at this app's `/chat`) is its client.
  *
  * - `POST /chat` takes `DefaultChatTransport`'s body (`id`, `messages`,
- *   `trigger`, `messageId`), submits the last user message once per message id,
- *   and answers with that submission's UI message stream. It is the only
+ *   `trigger`, `messageId`), submits the last user message once per message id
+ *   as a `brunch.user` input (`brunchUserInput`), and answers with that
+ *   submission's UI message stream. It is the only
  *   route that creates a conversation, and only when `admitNewConversation`
  *   lets the request.
  * - `GET /chat/:id/stream` (the transport's `reconnectToStream`) answers 204
@@ -39,6 +40,7 @@ import {
 } from "./durable-agents-server/conversation-registry";
 import { createRequestSlots } from "./durable-agents-server/request-slots";
 import { followSubmission } from "./durable-agents-server/submission-stream";
+import { brunchUserInput } from "./durable-agents-server/user-input";
 
 import type { Context } from "@earendil-works/chord";
 
@@ -129,14 +131,14 @@ const isChatRequestBody = (body: unknown): body is ChatRequestBody => {
   );
 };
 
-/** The user message a submit-message request sends: the last message, with its text parts joined. */
+/** The user message a submit-message request sends: the last message, its text parts joined, as a `brunch.user` input. */
 const userInput = (messages: readonly UIMessage[]) => {
   const message = messages.at(-1);
   if (message?.role !== "user") return undefined;
-  const content = message.parts
+  const text = message.parts
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("");
-  return { requestId: message.id, content };
+  return { requestId: message.id, ...brunchUserInput(text) };
 };
 
 const unknownConversation = "Unknown conversation.";
@@ -234,11 +236,12 @@ export const createDurableAgentsServer = (
     }
     const refusal = await options.admitChat?.(conversation, body);
     if (refusal !== undefined) return ctx.text(refusal.error, refusal.status);
-    // A repeated message id finds the submission it made the first time.
+    // A repeated message id finds the submission it made the first time, and its entry.
     const submission = await conversation.root.submit(
       {
         type: "input",
         content: input.content,
+        entry: input.entry,
         requestId: input.requestId,
         whenBusy: "followUp",
       },

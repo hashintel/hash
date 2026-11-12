@@ -28,7 +28,14 @@ import {
 /** `ledger_commit`'s result: recorded or refused. The lib exports the schema, not the type. */
 export type LedgerAppendOutput = v.InferOutput<typeof vLedgerAppendOutput>;
 
-/** A USER message the Ledger's turns anchor to, by its `pi.user` entry ID. */
+/**
+ * The input entry kinds that open a USER turn: `brunch.user`, as `POST /chat`
+ * admits a message, and `pi.user`, as conversations admitted before it hold.
+ * Host notes and edits (`brunch.hand-edit`, `brunch.prune`) open none.
+ */
+const userTurnKinds: ReadonlySet<string> = new Set(["brunch.user", "pi.user"]);
+
+/** A USER message the Ledger's turns anchor to, by its user input entry ID. */
 type LedgerTurn = { id: string; role: "user"; parts: [] };
 
 /** An accepted call, shaped as the settled tool part Brunch folds. */
@@ -104,7 +111,7 @@ const turnsBefore = async (
     const page = await tx.scanEntries(query, 100, cursor);
     for (const entry of page.items) {
       if (issuesCall(entry, callId)) return turns;
-      if (entry.kind === "pi.user" && String(entry.id) !== after)
+      if (userTurnKinds.has(entry.kind) && String(entry.id) !== after)
         turns.push({ id: String(entry.id), role: "user", parts: [] });
     }
     cursor = page.next;
