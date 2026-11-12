@@ -56,6 +56,15 @@
         "railroad-plugin"
       ]
     },
+    "generate": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
     "lint:oxlint": {
       "dependsOn": [
         "@local/oxlint#build",

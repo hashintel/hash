@@ -29,6 +29,7 @@
     "codegen:dev": "cd preview && next typegen",
     "dev": "cd preview && next dev --hostname 127.0.0.1 --port ${PORT:-4323}",
     "dev:reference": "cd reference && typst watch --root ../../../../.. --features html,bundle --format bundle --no-serve main.typ dist",
+    "generate": "node scripts/generate.ts",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build --filter=@local/hashql-docs",
