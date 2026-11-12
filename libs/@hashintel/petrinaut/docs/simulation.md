@@ -64,13 +64,13 @@ A simulator that cannot compute what the mode shows is greyed in the list, with 
 - **Time step** -- the simulated seconds one step covers. A smaller step is a finer approximation and slower to compute; a larger one is faster and less accurate for continuous dynamics. Default: `0.01` seconds in Quick simulation and `0.1` in Stochastic, where every run pays for it.
 - **Max error** -- the largest error the adaptive solver may make in one step, as a fraction of an attribute's value and in absolute terms near zero. A place whose equation reads only the token's own attributes integrates each token on its own; one whose derivatives are linear in those attributes with constant coefficients advances exactly. Every recorded state carries the error accumulated so far per place.
 
-Whichever simulator runs, it records the state at every transition firing, with the time it happened, and further states in between so that long stretches without a firing stay accurate. Where those further states go is the simulator's own decision. The continuous evolution of token attributes between two recorded states is interpolated from the values and derivatives stored in them, so playback moves through time and any instant can be viewed.
+Whichever simulator runs, it records the state at every transition firing, with the time it happened, and further states in between so that long stretches without a firing stay accurate. Where those further states go is the simulator's own decision. The continuous evolution of token attributes between two recorded states is interpolated from the values and derivatives stored in them, so playback moves through time and any instant of a [continuous](#continuous-and-discrete-nets) run can be viewed.
 
 ## Timed and untimed nets
 
 Petrinaut works out from the net whether time passes in it. Nothing is stored in the file and there is no switch.
 
-- A net is **timed** when at least one transition has a **Stochastic rate**, or at least one place has [dynamics](petri-net-extensions.md#differential-equations-dynamics) switched on with an equation listed. A run of a timed net is read against simulated time, in seconds.
+- A net is **timed** when at least one transition has a **Stochastic rate**, or at least one place has [dynamics](petri-net-extensions.md#differential-equations-dynamics) switched on with an equation listed, for tokens with a **Real** attribute. A run of a timed net is read against simulated time, in seconds.
 - A net with neither is **untimed**. Every transition is a **Predicate**, which fires as soon as it holds, so nothing separates one firing from the next but their order. A run of an untimed net is a sequence of **steps** and has no clock, in a Quick simulation, a Stochastic simulation and an [experiment](experiments.md) alike.
 
 An extension that is switched off counts as absent: with stochasticity off, a transition set to Stochastic rate does not make the net timed.
@@ -94,6 +94,30 @@ An [experiment](experiments.md) of an untimed net counts steps in the same way.
 ### Predicates in a timed net
 
 In a timed net a Predicate takes no time: it fires at the instant its input places enable it, so it fires as often as tokens arrive in them. A Predicate with no input place is always enabled and would fire without end at one instant. Petrinaut reports it as an error on the transition, and Play is blocked until the transition has an input place or a stochastic rate. In an untimed net the same transition is allowed: it fires once per step.
+
+## Continuous and discrete nets
+
+Petrinaut also works out from the net whether anything changes between two firings. Like the property above it is not stored, and there is no switch.
+
+- A net is **continuous** when at least one place has [dynamics](petri-net-extensions.md#differential-equations-dynamics) switched on with an equation listed, for tokens with a **Real** attribute. Those attributes move all the time, so a run can be viewed at any time it covers.
+- A net with no such place is **discrete**, timed or untimed. Its state changes only when a transition fires, so a run has nothing to show between two firings.
+
+A continuous net is always timed, which leaves three kinds of net:
+
+| Net               | Example                                                                                    | A run is read              |
+| ----------------- | ------------------------------------------------------------------------------------------ | -------------------------- |
+| Untimed           | [Bicycle Assembly](examples.md#bicycle-assembly), [Wheel Truing](examples.md#wheel-truing) | Step by step               |
+| Timed, discrete   | [Café Queue](examples.md#café-queue), [SIR](examples.md#sir-epidemic-model)                | In seconds, at its firings |
+| Timed, continuous | [Drone Patrol](examples.md#drone-patrol)                                                   | In seconds, at any time    |
+
+The view of a discrete run rests on a firing, or on the initial state:
+
+- dragging the scrubber, or clicking or dragging on the Timeline, lands on the last firing at or before the pointer;
+- with the scrubber focused, the left and right arrow keys move to the previous and the next firing;
+- **Pause** rests on the last firing played;
+- the Timeline draws no ticks between the firings.
+
+A timed discrete run still takes its time to play. The readout and the playhead move through the seconds between two firings, and playback that reaches the end of the run stops at its end time.
 
 ## Running a simulation
 
@@ -170,11 +194,11 @@ A transition blocked only because its output place is at [capacity](drawing-a-ne
 
 The bottom toolbar provides playback controls:
 
-| Control          | Description                               |
-| ---------------- | ----------------------------------------- |
-| **Play**         | Start or resume playback.                 |
-| **Pause**        | Pause at the current point in the run.    |
-| **Stop / Reset** | Stop playback and reset to the run start. |
+| Control          | Description                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Play**         | Start or resume playback.                                                                                               |
+| **Pause**        | Pause at the current point in the run. A [discrete](#continuous-and-discrete-nets) run rests on the last firing played. |
+| **Stop / Reset** | Stop playback and reset to the run start.                                                                               |
 
 The time readout shows the viewed simulation time and the time the run is
 computed up to, to the millisecond. Both values include
@@ -221,9 +245,9 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 <img width="1444" height="471" alt="timeline" src="https://github.com/user-attachments/assets/11e4070b-5b5e-44e9-9f30-2e4e8ae2a1cb" />
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
-- **Scrub** -- click the chart to view that time, or drag across it. A playhead indicator shows the viewed time. For a run in [steps](#steps) the axis counts steps and the tooltip names the step under the pointer.
+- **Scrub** -- click the chart to view that time, or drag across it. A playhead indicator shows the viewed time. For a run in [steps](#steps) the axis counts steps and the tooltip names the step under the pointer. In a [discrete](#continuous-and-discrete-nets) run the playhead lands on the last firing at or before the pointer.
 - **Closing the panel** -- a closed timeline stops reading the run and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
-  The timeline shows the run's events. Token counts per place or per type are drawn as steps that change at the events, and **Transition firings** shows one lane per transition with a mark at every firing. The Metric picker groups user metrics by what their code reads: a **discrete** metric reads only token counts and attributes that change at events, so it is drawn as steps read at the events; a **continuous** metric reads an attribute that follows a differential equation, so it is drawn as a curve read from the interpolated state between events. With the **Adaptive** solver the picker also offers **Solver › Accumulated error**: one series per place with dynamics, the error the solver has accumulated for that place's attributes since the start of the run, stepped at the events it was recorded on, in the attributes' own units. A place advanced exactly stays at zero. Every firing is also marked on the ruler above the chart, and pointing at one names the transitions that fired; fainter ticks mark the frames recorded between firings. Click anywhere in the chart to view that exact time and drag to scrub; a drag that starts on the playhead keeps it under the pointer. Scroll sideways to pan, and pinch or scroll up and down to zoom around the pointer; **Fit to run** returns to the whole run. With the chart focused, the arrow keys step between firings, and Home and End jump to the start and to the end of what is computed. The playback bar gains **Previous event** and **Next event** buttons that move between firings and the initial state, and its scrubber moves through time rather than frames. **Stacked** adds the traces up as bands, for token counts and for a metric; the chart type control is not offered for **Transition firings** or **Accumulated error**, which have no stacked form.
+  The timeline shows the run's events. Token counts per place or per type are drawn as steps that change at the events, and **Transition firings** shows one lane per transition with a mark at every firing. The Metric picker groups user metrics by what their code reads: a **discrete** metric reads only token counts and attributes that change at events, so it is drawn as steps read at the events; a **continuous** metric reads an attribute that follows a differential equation, so it is drawn as a curve read from the interpolated state between events. With the **Adaptive** solver the picker also offers **Solver › Accumulated error**: one series per place with dynamics, the error the solver has accumulated for that place's attributes since the start of the run, stepped at the events it was recorded on, in the attributes' own units. A place advanced exactly stays at zero. Every firing is also marked on the ruler above the chart, and pointing at one names the transitions that fired; in a continuous run, fainter ticks mark the frames recorded between firings. Click anywhere in the chart to view that exact time and drag to scrub; a drag that starts on the playhead keeps it under the pointer. Scroll sideways to pan, and pinch or scroll up and down to zoom around the pointer; **Fit to run** returns to the whole run. With the chart focused, the arrow keys step between firings, and Home and End jump to the start and to the end of what is computed. The playback bar gains **Previous event** and **Next event** buttons that move between firings and the initial state, and its scrubber moves through time rather than frames. **Stacked** adds the traces up as bands, for token counts and for a metric; the chart type control is not offered for **Transition firings** or **Accumulated error**, which have no stacked form.
 
 - **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: click the **N/M shown** badge (or anywhere else in the selector) to open the full list for searching, which is also where traces that don't fit in the strip live. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
