@@ -3,6 +3,11 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "HashQL documentation",
+  "files": [
+    ".generated",
+    "content",
+    "src"
+  ],
   "type": "module",
   "scripts": {
     "build:reference": "cd reference && typst compile --root ../../../../.. --features html,bundle --format bundle main.typ dist",
