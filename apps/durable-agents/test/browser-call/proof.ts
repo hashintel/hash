@@ -29,7 +29,7 @@ import {
 } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 
-import { browserToolMutatesDocument } from "@hashintel/brunch-agent";
+import { browserToolFacts } from "@hashintel/brunch-agent";
 
 import {
   BrowserCallsDoc,
@@ -254,7 +254,7 @@ const drive = async () => {
   };
   try {
     print(
-      `Tool ${browserToolName}: browserToolMutatesDocument = ${browserToolMutatesDocument(browserToolName)}`,
+      `Tool ${browserToolName}: documentRevision = ${browserToolFacts(browserToolName).documentRevision}`,
     );
     print(`SQLite storage: ${file}\n`);
 

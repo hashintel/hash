@@ -38,7 +38,7 @@ import {
 import { obj, str } from "@earendil-works/pi-schema";
 
 import {
-  browserToolMutatesDocument,
+  browserToolFacts,
   type CANONICAL_PETRINAUT_TOOL_NAMES,
   type ClientToolResult,
 } from "@hashintel/brunch-agent";
@@ -132,7 +132,7 @@ type BrowserCallState = { phase: "arm" } | { phase: "collect" };
 /** The model-facing error for a call that ended without a result, as Brunch words it. */
 export const unfinishedError = (record: BrowserCallRecord, cause: string) => {
   if (!record.claimed) return browserCallUnstartedError;
-  return browserToolMutatesDocument(record.toolName)
+  return browserToolFacts(record.toolName).effectUnknownOnFailure
     ? `Browser call ${cause}; an attempted document effect is unknown.`
     : `Browser call ${cause}; the document is unchanged.`;
 };
@@ -211,7 +211,7 @@ const BrowserCall = defineTask<
     }, context),
 });
 
-/** A canonical Petrinaut net mutation, so `browserToolMutatesDocument` is true for it. */
+/** A canonical Petrinaut net mutation, so its `documentRevision` is `"change"`. */
 export const browserToolName =
   "setNetTitle" satisfies (typeof CANONICAL_PETRINAUT_TOOL_NAMES)[number];
 

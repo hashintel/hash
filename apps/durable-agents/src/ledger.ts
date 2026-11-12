@@ -11,8 +11,8 @@ import * as v from "valibot";
 import {
   brunchTools,
   type LedgerAppend,
-  ledgerAppendOutputSchema,
   vLedgerAppend,
+  vLedgerAppendOutput,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -40,9 +40,8 @@ export const ledgerCommitTool = defineTool({
   name: brunchTools.ledgerCommit,
   description: commitToolDescription,
   parameters: typedJsonSchema<LedgerAppend>(vLedgerAppend),
-  structuredOutputSchema: typedJsonSchema<LedgerAppendOutput>(
-    ledgerAppendOutputSchema,
-  ),
+  structuredOutputSchema:
+    typedJsonSchema<LedgerAppendOutput>(vLedgerAppendOutput),
   // Idempotent per call: a rerun after a crash finds its commit in the Ledger and returns the same receipt.
   replay: "safe",
   // Each call folds onto the Ledger its predecessors in the round left.
