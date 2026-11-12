@@ -556,6 +556,18 @@ export const assume =
   <E extends Value.Any>(expression: E): Expression<T, Value.Inputs<E>> =>
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
+// TODO: pipeable overload
+export const as = <T extends Type.Any, E extends Value.Any>(
+  expression: E,
+  type: TypeExpression.TypeExpression<T>,
+): Expression<T, Value.Inputs<E>> =>
+  pipe(
+    { value: toNode(expression), type: type.syntax },
+    Result.all,
+    Result.map(({ value, type }) => new AST.As(value, type)),
+    fromResult<T, Value.Inputs<E>>,
+  );
+
 /**
  * Constructs a typed host literal with no input requirements.
  *
