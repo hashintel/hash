@@ -15,6 +15,7 @@ import {
   personaRecordSchema,
   type PersonaCommand,
   type PersonaEvent,
+  type PersonaQuestion,
   type PersonaRecord,
   type PersonaResponse,
   type PersonaTranscriptEntry,
@@ -23,7 +24,12 @@ import {
 export type PersonaBrowserReply = {
   readonly text: string;
   readonly submissionIds: readonly string[];
+  /** The questions the reply docked on the composer. */
+  readonly questions?: readonly PersonaQuestion[];
 };
+
+/** One typed message, or one answer for each docked question, in order. */
+export type PersonaUtterance = string | readonly string[];
 
 export type PersonaBridgeHandlers = {
   /**
@@ -31,12 +37,15 @@ export type PersonaBridgeHandlers = {
    * undefined when the conversation already exists, as on resume.
    */
   opening: string | undefined;
-  /** Submit through the real composer; call `admitted` once Brunch accepts it. */
+  /**
+   * Submit through the real composer; call `admitted` once Brunch accepts it,
+   * with the text it received when that isn't the utterance as given.
+   */
   prompt(
-    message: string,
+    utterance: PersonaUtterance,
     turn: {
       readonly signal: AbortSignal;
-      readonly admitted: () => void;
+      readonly admitted: (sent?: string) => void;
       readonly opening: boolean;
     },
   ): Promise<PersonaBrowserReply>;
@@ -90,22 +99,24 @@ export const openPersonaBrowserBridge = async (
 
   const prompt = async (
     socket: Socket,
-    command: Extract<PersonaCommand, { type: "open" | "prompt" }>,
+    command: Extract<PersonaCommand, { type: "open" | "prompt" | "answer" }>,
   ) => {
     if (active) {
       send(socket, fail(command, "A persona turn is already active"));
       return;
     }
     const opening = command.type === "open";
-    // `open` only before the conversation exists, `prompt` only after.
-    const message = opening
+    // `open` only before the conversation exists, the others only after.
+    const utterance: PersonaUtterance | undefined = opening
       ? opened
         ? undefined
         : handlers.opening
       : opened
-        ? command.message
+        ? command.type === "answer"
+          ? command.answers
+          : command.message
         : undefined;
-    if (message === undefined) {
+    if (utterance === undefined) {
       send(
         socket,
         fail(
@@ -123,22 +134,33 @@ export const openPersonaBrowserBridge = async (
     socket.once("close", abortOnClose);
     const turn = { admitted: false };
     try {
-      const reply = await handlers.prompt(message, {
+      const reply = await handlers.prompt(utterance, {
         signal: controller.signal,
         opening,
-        admitted: () => {
+        admitted: (sent) => {
           if (turn.admitted) return;
           turn.admitted = true;
           opened = true;
           send(socket, succeed(command));
-          broadcast({ type: "turn_start", message });
+          broadcast({
+            type: "turn_start",
+            message:
+              sent ??
+              (typeof utterance === "string"
+                ? utterance
+                : utterance.join("\n")),
+          });
         },
       });
       // The sender waits for the admission response before reading events.
       if (!turn.admitted)
         throw new Error("The persona turn replied without being admitted");
       completedTurns += 1;
-      broadcast({ type: "assistant_message", text: reply.text });
+      broadcast({
+        type: "assistant_message",
+        text: reply.text,
+        ...(reply.questions?.length ? { questions: [...reply.questions] } : {}),
+      });
       broadcast({
         type: "turn_settled",
         outcome: "replied",
@@ -164,6 +186,7 @@ export const openPersonaBrowserBridge = async (
     switch (command.type) {
       case "open":
       case "prompt":
+      case "answer":
         return prompt(socket, command);
       case "get_state":
         return send(
@@ -280,7 +303,9 @@ export const sendPersonaCommand = (
         records.push(record);
         if (
           !record.success ||
-          (command.type !== "prompt" && command.type !== "open")
+          (command.type !== "prompt" &&
+            command.type !== "open" &&
+            command.type !== "answer")
         )
           finish();
         else accepted = true;
