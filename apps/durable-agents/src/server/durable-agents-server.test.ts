@@ -334,7 +334,8 @@ test("the server speaks AI SDK's UI message stream protocol", async () => {
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toBe("text/event-stream");
   expect(response.headers.get("x-vercel-ai-ui-message-stream")).toBe("v1");
-  const reader = response.body!.getReader();
+  const reader: ReadableStreamDefaultReader<Uint8Array> =
+    response.body!.getReader();
   const { value } = await reader.read();
   expect(new TextDecoder().decode(value)).toMatch(
     /^data: \{"type":"start","messageId":"durable:\d+"\}\n\n/,
