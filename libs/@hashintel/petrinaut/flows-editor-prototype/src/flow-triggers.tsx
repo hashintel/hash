@@ -207,6 +207,10 @@ export const ghostSummary = (
   };
 };
 
+/** `?ghostline=old`: a ghost reads "Schedule · 2" over what starts it, and Manual "Run button" (g70, 11 Nov). */
+const ghostLineOld =
+  new URLSearchParams(globalThis.location.search).get("ghostline") === "old";
+
 const kindTitle: Record<GhostKind, string> = {
   manual: "Manual",
   schedule: "Schedule",
@@ -302,7 +306,7 @@ export const ghostTakeSummary = (
   }
   if (kind === "manual") {
     const line =
-      ghostLayout === "column"
+      ghostLayout === "column" && ghostLineOld
         ? triggers.manual
           ? "Run button"
           : "Off"
@@ -330,6 +334,24 @@ export const ghostTakeSummary = (
         on,
       };
     default:
+      // u-ghost-muted-line (13 Nov): the kind as the title, then the count split, at every count ("2 on · 1 paused").
+      if (!ghostLineOld) {
+        const pausedCount = items.length - onCount;
+        return {
+          title: kindTitle[kind],
+          line:
+            items.length === 0
+              ? "None"
+              : [
+                  onCount > 0 ? `${formatCount(onCount)} on` : "",
+                  pausedCount > 0 ? `${formatCount(pausedCount)} paused` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+          icon,
+          on,
+        };
+      }
       return {
         title: `${kindTitle[kind]} · ${items.length}`,
         line:
