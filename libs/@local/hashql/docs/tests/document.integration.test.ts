@@ -307,6 +307,32 @@ layer(
   );
 
   it.effect(
+    "reexported_entrypoint_category",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `export * as Other from "./other.js";
+/** Inner. @category Tools */ export namespace Inner { export interface Deep {} }
+/** Kept. @category Tools */ export interface Kept {}`,
+        other:
+          "/** Other. @category Tools @module */\nexport interface Item {}",
+      });
+      expect(
+        Array.map(
+          moduleAt(reference, "@scope/pkg").groups,
+          ({ grouping, rows }) => [
+            Tree.Page.slugOf(grouping),
+            Array.map(rows, ({ label }) => label.join(".")),
+          ],
+        ),
+      ).toStrictEqual([
+        ["modules", ["Other", "Inner"]],
+        ["tools", ["Kept"]],
+      ]);
+    }),
+  );
+
+  it.effect(
     "deprecated_entrypoint",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

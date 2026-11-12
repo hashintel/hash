@@ -10,7 +10,7 @@ import type * as Catalogue from "./Catalogue.js";
 /** A public declaration or member whose calls mention another declaration. */
 type User = AST.Interned.Interned<AST.Target.Local>;
 
-/** Public functions and methods that mention a declaration in each part of their calls. */
+/** Public functions, methods and accessors that mention a declaration in each part of their calls. */
 export interface Usage {
   readonly returnedBy: readonly User[];
   readonly acceptedBy: readonly User[];
@@ -56,6 +56,13 @@ const usersOf = (
   return HashMap.fromIterable(users);
 };
 
+/** What states the parameters and the result of each call a part makes. Reading a member calls its getter, and writing it calls its setter. */
+const signaturesOf = ({
+  source,
+  calls,
+}: Parts.Part): readonly AST.Signature.Signature[] =>
+  source._tag === "Getter" || source._tag === "Setter" ? [source] : calls;
+
 /** Reads the references in every public call's parameters, type parameters and result, including type-parameter constraints and defaults. */
 export const collect = (catalogue: Catalogue.Catalogue): Index => {
   const { ast } = catalogue;
@@ -90,8 +97,8 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
     );
 
     return Array.flatMap(callers, ({ user, parts: own }) =>
-      Array.flatMap(own, ({ calls }) =>
-        Array.flatMap(calls, (call) => {
+      Array.flatMap(own, (part) =>
+        Array.flatMap(signaturesOf(part), (call) => {
           const returns = pipe(
             call.returns,
             Option.map((id) => ast.get(id).node),
