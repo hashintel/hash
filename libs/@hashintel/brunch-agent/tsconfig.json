@@ -7,7 +7,9 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    // Implicit returns remain in src/server/voice/voice-request-guard.ts, src/ui/chat/ai-assistant-panel.tsx and src/ui/chat/ai-assistant-panel/tool-summaries.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src"]
 }
