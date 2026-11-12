@@ -125,7 +125,8 @@ export const styles = sva({
       flexShrink: "1",
       flexBasis: "[0%]",
       minWidth: "[64px]",
-      maxWidth: "[min(80%, 300px)]",
+      maxWidth:
+        "[max(calc(100% - var(--overflow-row-content-width, 0px)), min(80%, 300px))]",
       appearance: "none",
       border: "none",
       background: "[transparent]",

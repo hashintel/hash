@@ -61,13 +61,21 @@ export const baseInputRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
+      "--clear-offset": "[var(--clear-gap, var(--spacing-2))]",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
+      // While focused, the clear button joins the layout so the text cannot
+      // slide beneath it.
       "&:focus-within [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
+        position: "relative",
+        flexShrink: "0",
+      },
+      "&:focus-within:has([data-part='clear']) input": {
+        paddingRight: "[max(var(--clear-offset), 0px)]",
       },
       "&:focus-within [data-part='edit']": {
         display: "none",
@@ -210,7 +218,7 @@ export const baseInputRecipe = sva({
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "2",
+      right: "[var(--clear-offset, var(--spacing-2))]",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -329,6 +337,13 @@ export const baseInputRecipe = sva({
         root: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "--base-input-background-color": "transparent",
+          "--clear-offset":
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--clear-gap, var(--spacing-2)))]",
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) :is(input, [data-part='styled-value'])":
+            {
+              maskImage:
+                "[linear-gradient(to right, black, black calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px) - 12px), transparent calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px)))]",
+            },
           _before: {
             content: '""',
             position: "absolute",
@@ -376,10 +391,6 @@ export const baseInputRecipe = sva({
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
         },
-        clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
-        },
         adornment: {
           position: "relative",
         },
@@ -392,6 +403,7 @@ export const baseInputRecipe = sva({
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
@@ -400,6 +412,7 @@ export const baseInputRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
+          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
@@ -408,6 +421,7 @@ export const baseInputRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
+          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
         },
@@ -416,6 +430,7 @@ export const baseInputRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
         },
@@ -424,6 +439,7 @@ export const baseInputRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
+          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
         },
@@ -478,6 +494,7 @@ export const baseInputRecipe = sva({
         root: {
           width: "[fit-content]",
           minWidth: "[unset]",
+          "--clear-offset": "[var(--base-input-padding-x)]",
         },
         readonly: { width: "[fit-content]" },
         inputWrapper: {
@@ -511,8 +528,8 @@ export const baseInputRecipe = sva({
     },
     loading: {
       true: {
-        clear: {
-          right: "1.5",
+        root: {
+          "--clear-gap": "spacing.1.5",
         },
         editIcon: {
           right: "1.5",
@@ -532,6 +549,9 @@ export const baseInputRecipe = sva({
     hasIcons: { true: {} },
     hasBrowserControls: {
       true: {
+        root: {
+          "--clear-offset": "spacing.1",
+        },
         clear: {
           position: "relative",
           right: "1",
