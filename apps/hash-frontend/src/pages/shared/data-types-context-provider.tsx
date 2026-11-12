@@ -1,17 +1,15 @@
 import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
-import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { DataTypesContext } from "./data-types-context";
 
 import type {
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import type {
   BaseUrl,
@@ -21,26 +19,64 @@ import type {
 import type { PropsWithChildren } from "react";
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const { data, loading, refetch } = useQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    fetchPolicy: "cache-first",
-    variables: {
-      request: {
-        filter: { all: [] },
-        temporalAxes: fullTransactionTimeAxis,
-        graphResolveDepths: {
-          inheritsFrom: 255,
-          constrainsValuesOn: 255,
+  const [paginationError, setPaginationError] = useState<Error | null>(null);
+  const {
+    data,
+    loading: queryLoading,
+    refetch,
+    fetchMore,
+  } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
+    queryDataTypesQuery,
+    {
+      fetchPolicy: "cache-first",
+      notifyOnNetworkStatusChange: true,
+      variables: {
+        request: {
+          filter: { all: [] },
+          temporalAxes: fullTransactionTimeAxis,
+          limit: 1000,
         },
-        traversalPaths: [],
       },
     },
-  });
+  );
+
+  const cursor = data?.queryDataTypes.cursor;
+  const loading = queryLoading || !!cursor;
+
+  useEffect(() => {
+    if (!cursor || queryLoading || paginationError) {
+      return;
+    }
+    void fetchMore({
+      variables: {
+        request: {
+          filter: { all: [] },
+          temporalAxes: fullTransactionTimeAxis,
+          limit: 1000,
+          after: cursor,
+        },
+      },
+      updateQuery: (previous, { fetchMoreResult }) => ({
+        ...previous,
+        queryDataTypes: {
+          ...fetchMoreResult.queryDataTypes,
+          dataTypes: [
+            ...previous.queryDataTypes.dataTypes,
+            ...fetchMoreResult.queryDataTypes.dataTypes,
+          ],
+        },
+      }),
+    }).catch((error: unknown) => {
+      setPaginationError(
+        error instanceof Error
+          ? error
+          : new Error("Could not load the remaining data types"),
+      );
+    });
+  }, [cursor, fetchMore, paginationError, queryLoading]);
 
   const { dataTypes, latestDataTypes } = useMemo(() => {
-    if (!data) {
+    if (!data || cursor) {
       return {
         dataTypes: null,
         latestDataTypes: null,
@@ -50,35 +86,23 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
     const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
 
-    const subgraph = deserializeQueryDataTypeSubgraphResponse(
-      data.queryDataTypeSubgraph,
-    ).subgraph;
-
-    for (const versionToVertexMap of Object.values(subgraph.vertices)) {
-      let highestVersion: DataTypeWithMetadata | null = null;
-
-      for (const dataTypeVertex of typedValues(versionToVertexMap)) {
-        if (dataTypeVertex.kind === "dataType") {
-          if (
-            !highestVersion ||
-            compareOntologyTypeVersions(
-              dataTypeVertex.inner.metadata.recordId.version,
-              highestVersion.metadata.recordId.version,
-            ) > 0
-          ) {
-            highestVersion = dataTypeVertex.inner;
-          }
-          all[dataTypeVertex.inner.schema.$id] = dataTypeVertex.inner;
-        }
-      }
-
-      if (highestVersion) {
-        latest[highestVersion.metadata.recordId.baseUrl] = highestVersion;
+    for (const dataType of data.queryDataTypes.dataTypes) {
+      const { baseUrl, version } = dataType.metadata.recordId;
+      const previous = latest[baseUrl];
+      all[dataType.schema.$id] = dataType;
+      if (
+        !previous ||
+        compareOntologyTypeVersions(
+          version,
+          previous.metadata.recordId.version,
+        ) > 0
+      ) {
+        latest[baseUrl] = dataType;
       }
     }
 
     return { dataTypes: all, latestDataTypes: latest };
-  }, [data]);
+  }, [data, cursor]);
 
   const value = useMemo(() => {
     return {
@@ -88,6 +112,10 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       refetch,
     };
   }, [dataTypes, latestDataTypes, loading, refetch]);
+
+  if (paginationError) {
+    throw paginationError;
+  }
 
   return (
     <DataTypesContext.Provider value={value}>
