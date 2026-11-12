@@ -84,7 +84,6 @@ const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
 }>;
 
 class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
-  readonly #scope: S & Namespace.Rebindable<S>;
   readonly #next: Referential.ReferenceProducer;
   readonly #prelude: Namespace.Flatten<S>;
   readonly #modules: Namespace.Modules<S>;
@@ -112,7 +111,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     scope: S & Namespace.Rebindable<S>,
     next: Referential.ReferenceProducer,
   ) {
-    this.#scope = scope;
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
@@ -352,8 +350,6 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   /** Adds `filter` and `collect` to a graph expression. The vertex type stays erased here, and `Context.Queries` restores it. */
   #query(graph: Expression.Expression.Any): ErasedQuery<S> {
-    const scope = this.#scope;
-    const next = this.#next;
     const expression = pipe(
       graph,
       Expression.toNode,
@@ -367,9 +363,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
         this.#query(
           Query.filter(expression, name, (vertex) =>
             pipe(
-              new ContextImpl<S>(scope, next).build(($) =>
-                predicate($, vertex),
-              ),
+              this.build(($) => predicate($, vertex)),
               Expression.fromResult<Type.PrimitiveBoolean, Inputs.Empty>,
             ),
           ),
