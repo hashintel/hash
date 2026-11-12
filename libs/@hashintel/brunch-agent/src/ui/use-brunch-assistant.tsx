@@ -173,7 +173,15 @@ export interface BrunchConversationPointer {
    * applies. Brunch binds no conversation until it is read.
    */
   readonly conversationId: string | null | undefined;
-  /** Stores a new conversation for the open document, when the user clears. */
+  /**
+   * The user sent a message in this conversation. Called for every message,
+   * so a host that records a conversation when it starts ignores the repeats.
+   */
+  readonly start: (conversationId: string) => void;
+  /**
+   * The user cleared the chat: this conversation replaces the one that was
+   * bound, which has ended.
+   */
   readonly replace: (conversationId: string) => void;
 }
 
@@ -652,14 +660,18 @@ export const useBrunchAssistant = ({
                   : current,
               );
             },
-            onSubmission: (messageId) =>
+            onSubmission: (messageId) => {
+              if (baseConstructionConversationId !== undefined) {
+                conversationPointer?.start(baseConstructionConversationId);
+              }
               setHighlightDismissal({
                 tracker: conversationTracker,
                 // The latest turn the user saw when they sent the message,
                 // or, while the history is being read, of the first read.
                 ...(historyKnown ? { turn: { id: latestTurnId } } : {}),
                 messageId,
-              }),
+              });
+            },
             onToolOutputError: (event) =>
               reportBrunchFailure("server-tool", new Error(event.errorText), {
                 submissionId: event.submissionId,
@@ -674,6 +686,8 @@ export const useBrunchAssistant = ({
             onDisconnect: refreshHistory,
           }),
     [
+      baseConstructionConversationId,
+      conversationPointer,
       conversationTracker,
       conversationId,
       constructionBrowser,

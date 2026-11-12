@@ -309,12 +309,16 @@ vi.hoisted(() => {
   });
 });
 
-// The conversation's store has its own tests; the fake graph holds only nets.
+// The conversation's entities have their own tests; the fake graph holds only nets.
 vi.mock(
-  "./process-editor/petrinaut-editor/process-petrinaut/use-brunch-conversation-pointer",
+  "./process-editor/petrinaut-editor/process-petrinaut/use-agent-conversation",
   () => {
-    const conversationPointer = { conversationId: null, replace: () => {} };
-    return { useBrunchConversationPointer: () => conversationPointer };
+    const conversation = {
+      conversationId: null,
+      start: () => {},
+      replace: () => {},
+    };
+    return { useAgentConversation: () => conversation };
   },
 );
 

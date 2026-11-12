@@ -1720,16 +1720,17 @@ test("a conversation Flue does not have yet is a known, empty history", async ()
   expect(highlighted()).toBe(true);
 });
 
-test("a host that stores the conversation decides which one binds, and Clear hands it the new one", async () => {
+test("a host that stores the conversation decides which one binds, hears of each message sent in it, and Clear hands it the new one", async () => {
   const replace = vi.fn<(conversationId: string) => void>();
+  const start = vi.fn<(conversationId: string) => void>();
   const firstId = ordinaryConstructionConversationIdFrom(netOneId);
   const rendered = renderAssistant({
-    conversationPointer: { conversationId: undefined, replace },
+    conversationPointer: { conversationId: undefined, start, replace },
   });
   const pointAt = (conversationId: string | null) =>
     rendered.rerender({
       ...rendered.input,
-      conversationPointer: { conversationId, replace },
+      conversationPointer: { conversationId, start, replace },
     });
 
   // Nothing binds while the host still reads which conversation applies.
@@ -1749,6 +1750,18 @@ test("a host that stores the conversation decides which one binds, and Clear han
       brunchEvaluationConversationIdFrom("stored-conversation"),
     ),
   );
+
+  // A message sent tells the host which conversation it started or continued.
+  const submitted = () =>
+    act(() =>
+      (
+        brunchPanelTransportOptions.current as {
+          onSubmission?: (messageId: string) => void;
+        }
+      ).onSubmission?.("message"),
+    );
+  submitted();
+  expect(start.mock.calls).toEqual([["stored-conversation"]]);
 
   act(() => rendered.assistant().onClearMessages?.());
   expect(replace).toHaveBeenCalledTimes(1);

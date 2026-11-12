@@ -2891,6 +2891,29 @@ export type HasServiceAccountPropertiesWithMetadata =
   };
 
 /**
+ * The subject something has
+ */
+export type HasSubject = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-subject/v/1"];
+  properties: HasSubjectProperties;
+  propertiesWithMetadata: HasSubjectPropertiesWithMetadata;
+};
+
+export type HasSubjectOutgoingLinkAndTarget = never;
+
+export type HasSubjectOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The subject something has
+ */
+export type HasSubjectProperties = LinkProperties & {};
+
+export type HasSubjectPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
  * The text something has.
  */
 export type HasText = {

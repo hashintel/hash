@@ -30,7 +30,7 @@ import { brunchAgentOrigin } from "../../../../../lib/public-env";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
-import { useBrunchConversationPointer } from "./process-petrinaut/use-brunch-conversation-pointer";
+import { useAgentConversation } from "./process-petrinaut/use-agent-conversation";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 
@@ -40,6 +40,9 @@ const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 /** Brunch's HASH agent, which the page calls directly. */
 const brunchChatEndpoint = (origin: string) =>
   `${origin}${brunchRoutes.agents}/${brunchRoutes.hashAgent}`;
+
+/** Names Brunch's HASH agent on the `Agent Conversation` entities it keeps. */
+const brunchAgentId = `brunch/${brunchRoutes.hashAgent}`;
 
 /** Returns `{ actorKey }` for the signed-in account. */
 const brunchIdentityEndpoint = (origin: string) =>
@@ -162,7 +165,7 @@ const BrunchSession = memo(
     /** Brunch's HASH agent. */
     chatEndpoint: string;
     openDocument: BrunchOpenDocument;
-    /** The open net's entity id, which its conversation is stored against. */
+    /** The open net's entity id, which its conversation is about. */
     processEntityId: EntityId;
     /** The net is saved. A draft's entity doesn't exist yet. */
     processExists: boolean;
@@ -182,9 +185,10 @@ const BrunchSession = memo(
     versionLoad: VersionLoad | undefined;
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
-    const conversationPointer = useBrunchConversationPointer({
-      processEntityId,
-      processExists,
+    const conversationPointer = useAgentConversation({
+      agentId: brunchAgentId,
+      subjectEntityId: processEntityId,
+      subjectExists: processExists,
     });
     const { assistant } = useBrunchAssistant({
       actorKey,

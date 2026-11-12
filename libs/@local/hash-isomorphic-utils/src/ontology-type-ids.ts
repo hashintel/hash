@@ -845,6 +845,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
   },
+  agentId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/agent-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/agent-id/" as BaseUrl,
+  },
   alternativeBom: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/alternative-bom/v/1",
