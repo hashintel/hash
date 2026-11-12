@@ -3,6 +3,7 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
@@ -37,8 +38,8 @@ export type DependentTypeIndex = {
   incomplete: boolean;
 };
 
-const versionNumber = (entityTypeId: VersionedUrl) =>
-  Number.parseInt(extractVersion(entityTypeId).toString(), 10);
+const versionNumber = (version: OntologyTypeVersion) =>
+  Number.parseInt(version.toString(), 10);
 
 /** Groups the versions that extend the parent by their type. */
 export const getDependentTypes = ({
@@ -78,18 +79,20 @@ export const getDependentTypes = ({
     }
     seenIds.add(schema.$id);
 
-    const version = versionNumber(schema.$id);
+    const version = versionNumber(metadata.recordId.version);
 
     for (const { $ref } of schema.allOf ?? []) {
       if (extractBaseUrl($ref) !== parentBaseUrl) {
         continue;
       }
 
-      const parentVersion = versionNumber($ref);
+      const parentVersion = versionNumber(extractVersion($ref));
 
       const dependentType: DependentType = byType.get(baseUrl) ?? {
         entityType: latest ?? entityType,
-        version: latest ? versionNumber(latest.schema.$id) : version,
+        version: latest
+          ? versionNumber(latest.metadata.recordId.version)
+          : version,
         former: !latest,
         versionsByParentVersion: new Map(),
       };
