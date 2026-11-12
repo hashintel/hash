@@ -37,6 +37,7 @@ import {
   useWaitingRun,
 } from "./needs-review";
 import { RunGlyph } from "./run-glyph";
+import { oldStatusLine, StatusLine } from "./run-step-status";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
 import { type Certificate, Page } from "./run-outputs";
@@ -70,7 +71,11 @@ type ReviewContext =
       rows: { name: string; line: string; state: "done" | "failed" }[];
     };
 
-type R2Request = ReviewRequest & { context: ReviewContext };
+type R2Request = ReviewRequest & {
+  context: ReviewContext;
+  /** The quiet line under the request's Status: the item and why it asks, or who it waits on. */
+  why: string;
+};
 
 const certificate = (
   fileName: string,
@@ -97,6 +102,7 @@ const certificate = (
 const r2Requests: R2Request[] = [
   {
     id: "pinecrest",
+    why: "Pinecrest Minerals · certificate link returned 404 · 3 tries",
     stepId: "fetchCertificate",
     path: "Fetch certificate › Pinecrest Minerals",
     question: "The certificate link returns 404. What should the flow do?",
@@ -126,6 +132,7 @@ const r2Requests: R2Request[] = [
   },
   {
     id: "kestrel",
+    why: "Kestrel Alloys · 2 certificates found on the page",
     stepId: "readCertificateLink",
     path: "Read certificate link › Kestrel Alloys",
     question:
@@ -159,6 +166,7 @@ const r2Requests: R2Request[] = [
   },
   {
     id: "sign-off",
+    why: "Waiting on Head of quality",
     stepId: "qualitySignOff",
     path: "Quality sign-off",
     question: "Sign off the October supplier review?",
@@ -187,6 +195,7 @@ const r2Requests: R2Request[] = [
   },
   {
     id: "marlow",
+    why: "Marlow Resins · 2 contact emails found",
     stepId: "readEmail",
     path: "Read contact email › Marlow Resins",
     question: "Two contact emails found. Which is the quality contact?",
@@ -214,6 +223,7 @@ const r2Requests: R2Request[] = [
   },
   {
     id: "ostara",
+    why: "Ostara Fibres · 2 trading names found",
     stepId: "readName",
     path: "Read supplier name › Ostara Fibres",
     question: "The record has two trading names. Which goes on the review?",
@@ -649,13 +659,41 @@ const ContextView = ({
   );
 };
 
+/** The request's Status, on one line as every step's (step-status-line, 10 Nov); `?statusline=old` drops it. */
+const ReviewStatus = ({ request }: { request: R2Request }) => {
+  const { answers } = useReview();
+  const answer = answerOf(request, answers);
+  if (oldStatusLine) {
+    return null;
+  }
+  return (
+    <Section title="Status">
+      {answer ? (
+        <StatusLine
+          state="done"
+          word="Answered"
+          facts={[`Asked ${request.asked}`]}
+          notes={[`${request.why} · ${answer.by}, ${answer.at}`]}
+        />
+      ) : (
+        <StatusLine
+          state="needsReview"
+          word="Needs review"
+          facts={[`Asked ${request.asked}`]}
+          notes={[request.why]}
+        />
+      )}
+    </Section>
+  );
+};
+
 /** The form, with when it was asked and the run under it. */
 const AnswerForm = ({ request }: { request: R2Request }) => {
   const run = useWaitingRun();
   return (
     <div className={css({ display: "flex", flexDirection: "column", gap: "3" })}>
       <RequestForm key={request.id} request={request} />
-      {run ? (
+      {run && oldStatusLine ? (
         <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           Asked {request.asked}
           {repeatsTrim ? null : (
@@ -733,6 +771,7 @@ const ReviewPanel = ({
       ) : null}
       <div className={panelBodyStyle}>
         <StepHeader request={request} />
+        <ReviewStatus request={request} />
         {/* r2-2 pins the question on top, so it shows without scrolling (ledger 11 Nov 14:40). */}
         {take === "r2-2" ? answer : null}
         <ContextView request={request} pageWidth={156} />
@@ -979,6 +1018,7 @@ const Sheet = ({ request, onClose }: { request: R2Request; onClose: () => void }
               )}
             >
               <StepHeader request={request} />
+              <ReviewStatus request={request} />
               <AnswerForm request={request} />
             </div>
           </div>

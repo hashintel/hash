@@ -23,7 +23,12 @@ import { navigate, routePath } from "./router";
 import { RunGlyph } from "./run-glyph";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { runOutputs, StepOutputs } from "./run-outputs";
-import { ForEachItems, StepStatusLines } from "./run-step-status";
+import {
+  ForEachItems,
+  oldStatusLine,
+  StepStatusLine,
+  StepStatusLines,
+} from "./run-step-status";
 import type { StepState } from "./run-history";
 import type { StepInputSource } from "./engine";
 import {
@@ -951,33 +956,43 @@ export const RunStepPanel = ({ history }: { history: HistoryValue }) => {
         />
       )}
       <Section title="Status">
-        <div
-          className={css({
-            gridColumn: "1 / -1",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1.5",
-          })}
-        >
-          <span
-            className={css({ display: "flex", gap: "1", flexWrap: "wrap" })}
+        {oldStatusLine ? (
+          <div
+            className={css({
+              gridColumn: "1 / -1",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.5",
+            })}
           >
-            {detail.chips.map((chip) => (
-              <span key={chip.label} className={statusMarkStyle}>
-                <RunGlyph state={chipState(chip)} size={16} />
-                {chip.label}
-              </span>
-            ))}
-          </span>
-          {/* The step's own facts (Run outputs playground, 5 Nov): "12 s · 5 Nov, 14:02", then attempts or waiting only when they apply. */}
-          <StepStatusLines
+            <span
+              className={css({ display: "flex", gap: "1", flexWrap: "wrap" })}
+            >
+              {detail.chips.map((chip) => (
+                <span key={chip.label} className={statusMarkStyle}>
+                  <RunGlyph state={chipState(chip)} size={16} />
+                  {chip.label}
+                </span>
+              ))}
+            </span>
+            {/* The step's own facts (Run outputs playground, 5 Nov): "12 s · 5 Nov, 14:02", then attempts or waiting only when they apply. */}
+            <StepStatusLines
+              stepId={stepId}
+              run={run}
+              facts={facts}
+              state={state}
+              now={now}
+            />
+          </div>
+        ) : (
+          <StepStatusLine
             stepId={stepId}
             run={run}
             facts={facts}
             state={state}
             now={now}
           />
-        </div>
+        )}
       </Section>
       {stepId === forEachId && state.state !== "notReached" ? (
         <Section title="Items">

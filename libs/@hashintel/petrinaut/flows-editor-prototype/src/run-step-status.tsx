@@ -12,6 +12,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID } from "./document";
+import { statusWord } from "./status-grammar";
 import { RunGlyph } from "./run-glyph";
 import { clockText } from "./run-time";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
@@ -68,6 +69,37 @@ const stepTiming = (
   return span ? { from: span.from, to: span.to } : null;
 };
 
+/** `?statusline=old`: the Status block from before the one-line take (mark row, then facts, then notes). */
+export const oldStatusLine =
+  new URLSearchParams(globalThis.location.search).get("statusline") === "old";
+
+/** When the step started and ended, as text: its duration (when it has ended or is running) and its start. */
+const stepWhen = (
+  stepId: string,
+  run: RunRecord,
+  facts: RunFacts,
+  state: StepRun,
+  now: number,
+) => {
+  const timing = stepTiming(stepId, run, facts);
+  if (!timing || state.state === "notReached") {
+    return null;
+  }
+  const live = run.kind === "live";
+  const end =
+    timing.to === undefined || (live && runClock(run, now) < timing.to)
+      ? live
+        ? runClock(run, now)
+        : undefined
+      : timing.to;
+  const clock = clockPlus(run.startClock, timing.from);
+  return {
+    clock: clock.slice(0, 5),
+    started: runWhen(run, clock),
+    duration: end === undefined ? undefined : durationText(end - timing.from),
+  };
+};
+
 export const StepStatusLines = ({
   stepId,
   run,
@@ -81,22 +113,11 @@ export const StepStatusLines = ({
   state: StepRun;
   now: number;
 }) => {
-  const timing = stepTiming(stepId, run, facts);
-  if (!timing || state.state === "notReached") {
+  const when = stepWhen(stepId, run, facts, state, now);
+  if (!when) {
     return null;
   }
-  const live = run.kind === "live";
-  const end =
-    timing.to === undefined || (live && runClock(run, now) < timing.to)
-      ? live
-        ? runClock(run, now)
-        : undefined
-      : timing.to;
-  const started = runWhen(run, clockPlus(run.startClock, timing.from));
-  const first =
-    end === undefined
-      ? started
-      : `${durationText(end - timing.from)} · ${started}`;
+  const first = when.duration ? `${when.duration} · ${when.started}` : when.started;
   const retried = facts.failures.filter((failure) => failure.reason === "timed out");
   const extra =
     stepId === "fetchCertificate" && retried.length > 0 && state.state !== "running"
@@ -111,6 +132,198 @@ export const StepStatusLines = ({
       <span className={strongLineStyle}>{first}</span>
       {extra ? <span className={quietLineStyle}>{extra}</span> : null}
     </>
+  );
+};
+
+/* ----------------------------------------------------------------------------------------------------------------
+ * The one-line Status (step-status-line "bake", 10 Nov): mark · word · count · duration · start on one line, and a
+ * quiet line under it only for a reason, attempts or who it waits on. Words follow the status grammar.
+ * ------------------------------------------------------------------------------------------------------------- */
+
+const statusLineStyle = css({
+  gridColumn: "1 / -1",
+  display: "flex",
+  flexDirection: "column",
+  // The output rows' rhythm: a 22 px line, 2 px, the quiet line under it.
+  gap: "0.5",
+  minWidth: "[0]",
+});
+
+const firstLineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  minWidth: "[0]",
+  textStyle: "sm",
+  color: "neutral.fg.body",
+  whiteSpace: "nowrap",
+});
+
+const firstLineTextStyle = css({
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const wordStyle = css({ fontWeight: "medium", color: "neutral.fg.heading" });
+
+const noteStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+  overflowWrap: "anywhere",
+});
+
+/** One Status: the mark and its word, then the facts after it, then a quiet line per reason or person. */
+export const StatusLine = ({
+  state,
+  word,
+  facts,
+  notes = [],
+}: {
+  state: StepState;
+  word: string;
+  facts: (string | undefined)[];
+  notes?: React.ReactNode[];
+}) => (
+  <div className={statusLineStyle} data-status-line>
+    <span className={firstLineStyle}>
+      <RunGlyph state={state} size={16} />
+      <span className={firstLineTextStyle}>
+        <span className={wordStyle}>{word}</span>
+        {facts
+          .filter(Boolean)
+          .map((fact) => ` · ${fact}`)
+          .join("")}
+      </span>
+    </span>
+    {notes.map((note, index) => (
+      <span key={index} className={noteStyle}>
+        {note}
+      </span>
+    ))}
+  </div>
+);
+
+const failureNote = (failure: RunFacts["failures"][number]) =>
+  `${suppliers[failure.item] ?? "An item"} · ${
+    failure.reason === "404"
+      ? "certificate link returned 404"
+      : failure.reason === "timed out"
+        ? "certificate link timed out · 3 tries"
+        : failure.reason
+  }`;
+
+const loopSteps = [
+  "readName",
+  "readEmail",
+  "readCertificateLink",
+  "fetchCertificate",
+  "sendReviewEmail",
+  "markReviewed",
+];
+
+/** The word, the count and the quiet notes of a step's Status, by the status grammar. */
+const statusParts = (
+  stepId: string,
+  facts: RunFacts,
+  state: StepRun,
+): { word: string; count?: string; notes: string[] } => {
+  const { n } = facts;
+  // "2 of 20 failed": with the noun ("suppliers") the line runs past the 384 px panel.
+  const items = (count: number) => `${count} of ${n}`;
+  switch (state.state) {
+    case "notReached":
+      return { word: statusWord("Not reached", "Waiting"), notes: [] };
+    case "skipped":
+      return { word: "Skipped", notes: [] };
+    case "abandoned":
+      return { word: "Abandoned", notes: [] };
+    case "needsReview":
+      return {
+        word: "Needs review",
+        notes: stepId === signOffId ? ["Waiting on Head of quality"] : [],
+      };
+    default:
+  }
+  if (stepId === runTriggerId) {
+    return { word: "Started the run", notes: [] };
+  }
+  if (stepId === "findSuppliers") {
+    return state.state === "failed"
+      ? { word: "Failed", notes: ["Timed out"] }
+      : state.state === "running"
+        ? { word: "Running", notes: [] }
+        : { word: `${n} found`, notes: [] };
+  }
+  if (stepId === signOffId) {
+    return state.state === "failed"
+      ? { word: "Failed", notes: ["Timed out after 48 h"] }
+      : { word: "Approved", notes: [] };
+  }
+  const failed = state.bar?.find((segment) => segment.state === "failed")?.count ?? 0;
+  const skipped = state.bar?.find((segment) => segment.state === "skipped")?.count ?? 0;
+  if (stepId === forEachId) {
+    const failures = facts.failures.length;
+    return state.state === "running"
+      ? { word: "Running", count: items(facts.processed[0]), notes: [] }
+      : failures > 0
+        ? { word: "Done", count: `${items(failures)} failed`, notes: [] }
+        : { word: "Done", notes: [] };
+  }
+  if (loopSteps.includes(stepId)) {
+    const word = state.state === "running" ? "Running" : state.state === "failed" ? "Failed" : "Done";
+    const stage = loopSteps.indexOf(stepId) < 3 ? 0 : loopSteps.indexOf(stepId) - 2;
+    const shown = facts.failures.filter(
+      (failure) => failure.item < facts.processed[stage as 0 | 1 | 2 | 3],
+    );
+    const count =
+      state.state === "running"
+        ? items(facts.processed[stage as 0 | 1 | 2 | 3])
+        : failed > 0
+          ? `${items(failed)} failed`
+          : skipped > 0
+            ? `${items(skipped)} skipped`
+            : undefined;
+    const notes =
+      stepId === "fetchCertificate"
+        ? shown.map(failureNote)
+        : skipped > 0
+          ? [`${shown.map((failure) => suppliers[failure.item] ?? "An item").join(", ")} · no certificate`]
+          : [];
+    return { word, count, notes };
+  }
+  return { word: state.state === "failed" ? "Failed" : "Done", notes: [] };
+};
+
+/** A step's Status in a run, on one line (the default; `?statusline=old` keeps the block from before). */
+export const StepStatusLine = ({
+  stepId,
+  run,
+  facts,
+  state,
+  now,
+}: {
+  stepId: string;
+  run: RunRecord;
+  facts: RunFacts;
+  state: StepRun;
+  now: number;
+}) => {
+  const when = stepWhen(stepId, run, facts, state, now);
+  const { word, count, notes } = statusParts(stepId, facts, state);
+  const timeFacts =
+    !when
+      ? []
+      : state.state === "needsReview"
+        ? [`Asked ${when.clock}`]
+        : [when.duration, when.started];
+  return (
+    <StatusLine
+      state={state.state}
+      word={word}
+      facts={[count, ...timeFacts]}
+      notes={notes}
+    />
   );
 };
 
