@@ -492,7 +492,7 @@ const ValueCases = ({
   );
 };
 
-type Condition = { field: "Region" | "Priority"; value: string };
+type Condition = { field: "Region" | "Priority" | "Amount"; value: string };
 type CaseConditions = { join: "and" | "or"; rows: Condition[] };
 
 const initialConditions: Record<string, CaseConditions> = {
@@ -511,7 +511,14 @@ const initialConditions: Record<string, CaseConditions> = {
 const fieldValues: Record<Condition["field"], string[]> = {
   Region: regionValues,
   Priority: ["High", "Medium", "Low"],
+  Amount: ["1,000", "10,000", "100,000"],
 };
+
+/** A condition's operator: Amount compares ("greater than"), the other fields match a value ("is"). */
+const operatorOf = (field: Condition["field"]) =>
+  field === "Amount"
+    ? ({ key: "gt", label: "greater than" } as const)
+    : ({ key: "is", label: "is" } as const);
 
 /**
  * The Region values no case is sure to match: a case covers a value when one of its OR rows is "Region is" that
@@ -539,10 +546,10 @@ const ConditionChip = ({
   onChange: (value: string) => void;
   className?: string;
 }) => {
-  const operators: FilterOperator<{ is: string }>[] = [
+  const operator = operatorOf(row.field);
+  const operators: FilterOperator<{ is: string; gt: string }>[] = [
     {
-      key: "is",
-      label: "is",
+      ...operator,
       input: {
         type: "select",
         items: fieldValues[row.field].map((value) => ({ value, text: value })),
@@ -550,13 +557,13 @@ const ConditionChip = ({
     },
   ];
   return (
-    <Filter<{ is: string }>
+    <Filter<{ is: string; gt: string }>
       size="sm"
       className={className}
       property={row.field}
       propertyLabel={row.field}
       operators={operators}
-      value={{ key: "is", value: row.value }}
+      value={{ key: operator.key, value: row.value }}
       onChange={(_key, value) => {
         if (value) {
           onChange(value);
@@ -824,6 +831,126 @@ export const GoesToRow = ({
   );
 };
 
+/** A path's condition rows on the paths grid: "Where", then the joiner, each with its chip; then Add condition. */
+const PathConditionRows = ({
+  group,
+  onChange,
+  newRow,
+}: {
+  group: CaseConditions;
+  onChange: (group: CaseConditions) => void;
+  newRow: Condition;
+}) => {
+  const readOnly = useReadOnlyPanel();
+  return (
+    <div className={conditionsStyle}>
+      {group.rows.map((row, rowIndex) => (
+        <div
+          // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
+          key={rowIndex}
+          className={conditionRowStyle}
+        >
+          <span data-joiner>
+            {rowIndex === 0 ? (
+              "Where"
+            ) : (
+              <Button
+                size="sm"
+                variant="subtle"
+                iconName="chevronDown"
+                iconPosition="right"
+                disabled={readOnly}
+                onClick={() =>
+                  onChange({
+                    ...group,
+                    join: group.join === "or" ? "and" : "or",
+                  })
+                }
+              >
+                {group.join.toUpperCase()}
+              </Button>
+            )}
+          </span>
+          <span data-chip>
+            <ConditionChip
+              row={row}
+              onChange={(value) =>
+                onChange({
+                  ...group,
+                  rows: group.rows.map((candidate, candidateIndex) =>
+                    candidateIndex === rowIndex
+                      ? { ...candidate, value }
+                      : candidate,
+                  ),
+                })
+              }
+            />
+          </span>
+        </div>
+      ))}
+      {readOnly ? null : (
+        <>
+          <span />
+          <span className={css({ display: "flex" })}>
+            <Button
+              size="sm"
+              variant="ghost"
+              iconName="plus"
+              onClick={() =>
+                onChange({ ...group, rows: [...group.rows, newRow] })
+              }
+            >
+              Add condition
+            </Button>
+          </span>
+        </>
+      )}
+    </div>
+  );
+};
+
+const initialIfConditions: CaseConditions = {
+  join: "or",
+  rows: [
+    { field: "Amount", value: "10,000" },
+    { field: "Priority", value: "High" },
+  ],
+};
+
+/** If's Paths, built as a Switch case: Yes is its condition rows and "Goes to"; No runs when they don't match. */
+export const IfPathGroups = ({
+  stepId,
+  yes,
+  no,
+  iconOf,
+  renamable,
+}: {
+  stepId: string;
+  yes: Port;
+  no: Port;
+  iconOf: (id: string) => IconName;
+  renamable: (port: Port) => boolean;
+}) => {
+  const [group, setGroup] = useState(initialIfConditions);
+  return (
+    <Section title="Paths">
+      <div className={pathGroupsStyle} data-paths="groups">
+        <PathHead stepId={stepId} port={yes} renamable={renamable(yes)} />
+        <PathConditionRows
+          group={group}
+          onChange={setGroup}
+          newRow={{ field: "Amount", value: "10,000" }}
+        />
+        <GoesToRow stepId={stepId} port={yes} iconOf={iconOf} />
+        <PathHairline />
+        <PathHead stepId={stepId} port={no} renamable={renamable(no)} />
+        <PathHelp>When the condition doesn't match</PathHelp>
+        <GoesToRow stepId={stepId} port={no} iconOf={iconOf} />
+      </div>
+    </Section>
+  );
+};
+
 /** The Switch's Paths: one group per case, checked top to bottom, Add case, then Default last. */
 export const SwitchPathGroups = ({
   step,
@@ -856,75 +983,11 @@ export const SwitchPathGroups = ({
             <Fragment key={port.outputName}>
               {index > 0 ? <PathHairline /> : null}
               <PathHead stepId={step.stepId} port={port} renamable />
-              <div className={conditionsStyle}>
-                {group.rows.map((row, rowIndex) => (
-                  <div
-                    // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
-                    key={rowIndex}
-                    className={conditionRowStyle}
-                  >
-                    <span data-joiner>
-                      {rowIndex === 0 ? (
-                        "Where"
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="subtle"
-                          iconName="chevronDown"
-                          iconPosition="right"
-                          disabled={readOnly}
-                          onClick={() =>
-                            setGroup(port.outputName, {
-                              ...group,
-                              join: group.join === "or" ? "and" : "or",
-                            })
-                          }
-                        >
-                          {group.join.toUpperCase()}
-                        </Button>
-                      )}
-                    </span>
-                    <span data-chip>
-                      <ConditionChip
-                        row={row}
-                        onChange={(value) =>
-                          setGroup(port.outputName, {
-                            ...group,
-                            rows: group.rows.map((candidate, candidateIndex) =>
-                              candidateIndex === rowIndex
-                                ? { ...candidate, value }
-                                : candidate,
-                            ),
-                          })
-                        }
-                      />
-                    </span>
-                  </div>
-                ))}
-                {readOnly ? null : (
-                  <>
-                    <span />
-                    <span className={css({ display: "flex" })}>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        iconName="plus"
-                        onClick={() =>
-                          setGroup(port.outputName, {
-                            ...group,
-                            rows: [
-                              ...group.rows,
-                              { field: "Region", value: "Europe" },
-                            ],
-                          })
-                        }
-                      >
-                        Add condition
-                      </Button>
-                    </span>
-                  </>
-                )}
-              </div>
+              <PathConditionRows
+                group={group}
+                onChange={(next) => setGroup(port.outputName, next)}
+                newRow={{ field: "Region", value: "Europe" }}
+              />
               <GoesToRow stepId={step.stepId} port={port} iconOf={iconOf} />
             </Fragment>
           );

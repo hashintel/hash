@@ -16,10 +16,7 @@ import { BranchRows, PathsSection } from "./branches";
 import { pathsGroups } from "./paths-flags";
 import { namedPorts, pathRenamable, switchTake } from "./switch-flags";
 import {
-  GoesToRow,
-  PathHairline,
-  PathHead,
-  PathHelp,
+  IfPathGroups,
   SwitchPathGroups,
   SwitchSections,
 } from "./switch-panel";
@@ -755,7 +752,7 @@ const ActionSections = ({
   };
 
   // Paths as groups (inbox `paths-no-rail`, B, 12 Nov): Settings, then Paths, each path its condition rows and "Goes
-  // to". If's condition rows move into its Yes path. `?paths=rail` keeps the look from before.
+  // to". If's Yes is built as a Switch case. `?paths=rail` keeps the look from before.
   if (
     pathsGroups &&
     entry.ports &&
@@ -768,23 +765,13 @@ const ActionSections = ({
       <>
         <StepSettings actionDefinitionId={step.actionDefinitionId} />
         {step.actionDefinitionId === "if" && yes && no ? (
-          <Section title="Paths">
-            <PathHead
-              stepId={step.stepId}
-              port={yes}
-              renamable={pathRenamable(yes.outputName)}
-            />
-            {visibleInputs.map(renderInput)}
-            <GoesToRow stepId={step.stepId} port={yes} iconOf={iconOf} />
-            <PathHairline />
-            <PathHead
-              stepId={step.stepId}
-              port={no}
-              renamable={pathRenamable(no.outputName)}
-            />
-            <PathHelp>When the condition doesn't match</PathHelp>
-            <GoesToRow stepId={step.stepId} port={no} iconOf={iconOf} />
-          </Section>
+          <IfPathGroups
+            stepId={step.stepId}
+            yes={yes}
+            no={no}
+            iconOf={iconOf}
+            renamable={(port) => pathRenamable(port.outputName)}
+          />
         ) : (
           <SwitchPathGroups step={step} ports={entry.ports} iconOf={iconOf} />
         )}
