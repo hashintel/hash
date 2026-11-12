@@ -22,6 +22,10 @@ pub(crate) struct RunInput {
 
 /// Why the worker rejects a run's input.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "only a worker's run function reads a run's input")
+)]
 pub(crate) enum RunInputError {
     #[display("the run was started for another web")]
     WebMismatch,
@@ -40,6 +44,10 @@ impl RunInput {
     /// - [`RunInputError::WebMismatch`] if the run was started for another web.
     /// - [`RunInputError::InvalidDefinition`] if the definition is not a valid definition.
     /// - [`RunInputError::ConnectorMismatch`] if the definition names another connector.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "only a worker's run function reads a run's input")
+    )]
     pub(crate) fn definition(&self, web: WebId) -> Result<Definition, Report<RunInputError>> {
         if self.web != web {
             bail!(RunInputError::WebMismatch);

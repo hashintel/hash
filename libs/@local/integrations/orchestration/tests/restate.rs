@@ -5,8 +5,9 @@
 //!     docker.restate.dev/restatedev/restate:1.8.1
 //! ```
 //!
-//! `RESTATE_INGRESS_URL` and `RESTATE_ADMIN_URL` name another server. `RESTATE_WORKER_HOST` names
-//! the host at which the server reaches the tests' workers, `host.docker.internal` by default.
+//! `HASH_RESTATE_INGRESS_URL` and `HASH_RESTATE_ADMIN_URL` name another server, as they do for the
+//! `hash-integrations` CLI. `HASH_RESTATE_WORKER_HOST` names the host at which the server reaches
+//! the tests' workers, `host.docker.internal` by default.
 //!
 //! Each test registers a worker of its own, and the server sends new runs to the worker registered
 //! last. So each test holds [`lock_server`] and the tests run one at a time, each with run IDs and
@@ -55,8 +56,8 @@ fn env(name: &str, default: &str) -> String {
 /// Where the tests' Restate server is.
 fn config() -> RestateConfig {
     RestateConfig {
-        ingress_url: env("RESTATE_INGRESS_URL", "http://localhost:8080"),
-        admin_url: env("RESTATE_ADMIN_URL", "http://localhost:9070"),
+        ingress_url: env("HASH_RESTATE_INGRESS_URL", "http://localhost:8080"),
+        admin_url: env("HASH_RESTATE_ADMIN_URL", "http://localhost:9070"),
     }
 }
 
@@ -70,7 +71,7 @@ fn worker_config() -> WorkerConfig {
         listen: SocketAddr::from(([0, 0, 0, 0], port)),
         worker_url: format!(
             "http://{}:{port}",
-            env("RESTATE_WORKER_HOST", "host.docker.internal")
+            env("HASH_RESTATE_WORKER_HOST", "host.docker.internal")
         ),
         step_timeout: Duration::from_mins(1),
     }

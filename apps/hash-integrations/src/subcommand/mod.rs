@@ -1,11 +1,7 @@
 mod completions;
-#[expect(
-    dead_code,
-    reason = "no orchestration backend is available to run them yet"
-)]
 mod run;
 
-use error_stack::{Report, bail};
+use error_stack::Report;
 
 pub use self::{
     completions::{CompletionsArgs, completions},
@@ -27,21 +23,21 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    /// Runs the subcommand.
+    /// Runs the subcommand. `submit`, `status` and `cancel` run on the Restate server their
+    /// arguments name.
     ///
     /// # Errors
     ///
-    /// - [`SubcommandError::NoBackend`] for `submit`, `status` and `cancel`, which need an
-    ///   orchestration backend.
-    pub(crate) fn execute(self) -> Result<(), Report<SubcommandError>> {
+    /// Returns the [`SubcommandError`] of `submit`, `status` or `cancel`.
+    pub(crate) async fn execute(self) -> Result<(), Report<SubcommandError>> {
         match self {
             Self::Completions(args) => {
                 completions(&args);
                 Ok(())
             }
-            Self::Submit(_) | Self::Status(_) | Self::Cancel(_) => {
-                bail!(SubcommandError::NoBackend)
-            }
+            Self::Submit(args) => run::submit(args.restate.backend(), *args).await,
+            Self::Status(args) => run::status(args.restate.backend(), *args).await,
+            Self::Cancel(args) => run::cancel(args.restate.backend(), *args).await,
         }
     }
 }

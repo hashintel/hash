@@ -1,7 +1,10 @@
 use std::{fs, path::PathBuf};
 
 use error_stack::{Report, ResultExt as _};
-use hash_integrations_orchestration::{RunId, RunPhase, Runs};
+use hash_integrations_orchestration::{
+    RunId, RunPhase, Runs,
+    restate::{RestateBackend, RestateConfig},
+};
 use serde::Serialize;
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
@@ -11,8 +14,6 @@ use crate::service::{IntegrationService, Invocation, Request, Submission};
 /// Why a subcommand failed.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum SubcommandError {
-    #[display("no orchestration backend is available")]
-    NoBackend,
     #[display("the integration definition could not be read")]
     ReadDefinition,
     #[display("the integration service could not complete the request")]
@@ -21,8 +22,41 @@ pub enum SubcommandError {
     UnknownRun,
 }
 
+/// Where the Restate server is.
+#[derive(Debug, clap::Args)]
+pub struct RestateArgs {
+    /// The URL of Restate's ingress.
+    #[clap(
+        long,
+        env = "HASH_RESTATE_INGRESS_URL",
+        default_value = "http://localhost:8080"
+    )]
+    pub restate_ingress_url: String,
+
+    /// The URL of Restate's admin API.
+    #[clap(
+        long,
+        env = "HASH_RESTATE_ADMIN_URL",
+        default_value = "http://localhost:9070"
+    )]
+    pub restate_admin_url: String,
+}
+
+impl RestateArgs {
+    /// The backend on the Restate server these arguments name.
+    pub(crate) fn backend(&self) -> RestateBackend {
+        RestateBackend::new(RestateConfig {
+            ingress_url: self.restate_ingress_url.clone(),
+            admin_url: self.restate_admin_url.clone(),
+        })
+    }
+}
+
 #[derive(Debug, clap::Parser)]
 pub struct SubmitArgs {
+    #[clap(flatten)]
+    pub restate: RestateArgs,
+
     /// The web the request is for.
     #[clap(long, env = "HASH_WEB_ID")]
     pub web: Uuid,
@@ -46,6 +80,9 @@ pub struct SubmitArgs {
 
 #[derive(Debug, clap::Parser)]
 pub struct RunArgs {
+    #[clap(flatten)]
+    pub restate: RestateArgs,
+
     /// The web the run belongs to.
     #[clap(long, env = "HASH_WEB_ID")]
     pub web: Uuid,

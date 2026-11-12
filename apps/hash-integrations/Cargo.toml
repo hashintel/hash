@@ -15,7 +15,7 @@ authors.workspace = true
 # Private workspace dependencies
 error-stack                     = { workspace = true }
 hash-integrations-definition    = { workspace = true }
-hash-integrations-orchestration = { workspace = true }
+hash-integrations-orchestration = { workspace = true, features = ["restate"] }
 hash-telemetry                  = { workspace = true, features = ["clap"] }
 type-system                     = { workspace = true }
 
@@ -27,6 +27,7 @@ mimalloc       = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
+tokio          = { workspace = true, features = ["rt-multi-thread"] }
 uuid           = { workspace = true, features = ["v4", "v5"] }
 
 [dev-dependencies]
