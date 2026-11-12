@@ -1,7 +1,8 @@
 /**
  * The Brunch Ledger as a Pi Durable document. It stores the Ledger's own
- * history, the USER turns and accepted `ledger_commit` calls in transcript
- * order, which `@hashintel/brunch-agent` folds exactly as it folds a
+ * history, the turns the USER opened (messages and Ledger comments) and
+ * accepted `ledger_commit` calls in transcript order, which
+ * `@hashintel/brunch-agent` folds exactly as it folds a
  * transcript. The folded Ledger is not stored: the lib's only entry points,
  * `prepareAppend` and `foldCommits`, take a history, so storing their state
  * would make a second source of truth beside the commits they derive it from.
@@ -18,9 +19,12 @@ import {
 import * as v from "valibot";
 
 import {
+  brunchSignals,
   brunchTools,
   foldCommits,
   type LedgerAppend,
+  type LedgerHistory,
+  parseLedgerComments,
   prepareAppend,
   vLedgerAppendOutput,
 } from "@hashintel/brunch-agent";
@@ -36,7 +40,22 @@ export type LedgerAppendOutput = v.InferOutput<typeof vLedgerAppendOutput>;
 const userTurnKinds: ReadonlySet<string> = new Set(["brunch.user", "pi.user"]);
 
 /** A USER message the Ledger's turns anchor to, by its user input entry ID. */
-type LedgerTurn = { id: string; role: "user"; parts: [] };
+type LedgerUserTurn = { id: string; role: "user"; parts: [] };
+
+/**
+ * The USER's Ledger comments, by their `brunch.ledger-comments` entry ID,
+ * shaped as the comment signal Brunch folds: it opens a turn and holds the
+ * comments in the Ledger.
+ */
+type LedgerCommentsTurn = {
+  id: string;
+  role: "system";
+  signal: { tagName: typeof brunchSignals.ledgerComments };
+  parts: [{ type: "text"; text: string }];
+};
+
+/** A turn the USER opened: a message or Ledger comments. */
+type LedgerTurn = LedgerUserTurn | LedgerCommentsTurn;
 
 /** An accepted call, shaped as the settled tool part Brunch folds. */
 type LedgerCall = {
@@ -92,7 +111,32 @@ const issuesCall = (entry: EntryRecord, callId: string) =>
       ),
   );
 
-/** The USER turns after `after`, through the last one before the call `callId`. */
+/**
+ * The turn an input entry opens, if any. A comment entry opens one only when
+ * its comments parse, as Brunch's fold opens a turn on a comment signal.
+ */
+const turnOf = (entry: EntryRecord): LedgerTurn | undefined => {
+  const id = String(entry.id);
+  if (userTurnKinds.has(entry.kind)) return { id, role: "user", parts: [] };
+  if (entry.kind !== brunchSignals.ledgerComments) return undefined;
+  const { data } = entry;
+  const body = JSON.stringify({
+    comments:
+      typeof data === "object" && data !== null && "comments" in data
+        ? data.comments
+        : null,
+  });
+  return parseLedgerComments(body) === undefined
+    ? undefined
+    : {
+        id,
+        role: "system",
+        signal: { tagName: brunchSignals.ledgerComments },
+        parts: [{ type: "text", text: body }],
+      };
+};
+
+/** The turns after `after`, through the last one before the call `callId`. */
 const turnsBefore = async (
   tx: Tx,
   conversationId: ConversationId,
@@ -111,14 +155,39 @@ const turnsBefore = async (
     const page = await tx.scanEntries(query, 100, cursor);
     for (const entry of page.items) {
       if (issuesCall(entry, callId)) return turns;
-      if (userTurnKinds.has(entry.kind) && String(entry.id) !== after)
-        turns.push({ id: String(entry.id), role: "user", parts: [] });
+      const turn = String(entry.id) === after ? undefined : turnOf(entry);
+      if (turn !== undefined) turns.push(turn);
     }
     cursor = page.next;
   } while (cursor !== undefined);
   throw new Error(
     `Conversation ${conversationId} holds no ledger_commit call ${callId}.`,
   );
+};
+
+/** The ID of the latest turn a stored history holds. */
+const lastTurnId = (ledger: Readonly<LedgerHistoryDoc>) =>
+  ledger.messages.findLast(({ role }) => role !== "assistant")?.id;
+
+/**
+ * The Ledger's history as call `callId` sees it, read inside `tx` without
+ * writing: the stored history `stored`, read by the caller, then the turns
+ * opened since, through the last one before the call. So a turn with no
+ * commit yet, such as Ledger comments, is in the history already.
+ */
+export const ledgerHistoryAt = async (
+  tx: Tx,
+  conversationId: ConversationId,
+  callId: string,
+  stored: Readonly<LedgerHistoryDoc> | undefined,
+): Promise<LedgerHistory> => {
+  const ledger = stored ?? emptyHistory();
+  return {
+    messages: [
+      ...ledger.messages,
+      ...(await turnsBefore(tx, conversationId, callId, lastTurnId(ledger))),
+    ],
+  };
 };
 
 /**
@@ -140,8 +209,12 @@ export const appendToLedger = async (
   if (recorded?.role === "assistant")
     return v.parse(vLedgerAppendOutput, recorded.parts[0].output);
 
-  const lastTurn = ledger.messages.findLast(({ role }) => role === "user");
-  const turns = await turnsBefore(tx, conversationId, callId, lastTurn?.id);
+  const turns = await turnsBefore(
+    tx,
+    conversationId,
+    callId,
+    lastTurnId(ledger),
+  );
   const part = {
     type: "dynamic-tool",
     toolName: brunchTools.ledgerCommit,
