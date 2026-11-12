@@ -1,0 +1,248 @@
+import { useEffect, useRef } from "react";
+
+import { Button, LoadingSpinner } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { sidePanelFrame } from "../shared/side-panel-frame";
+import { OutputSheet } from "./output-viewer/output-sheet";
+import { getFileSteps, goByFileKey } from "./output-viewer/shared/files";
+import {
+  FileActions,
+  FileNav,
+  FileStage,
+} from "./output-viewer/shared/output-file";
+import { OutputList } from "./output-viewer/shared/output-list";
+import {
+  getEntityDisplay,
+  isFileEntity,
+  useRunEntities,
+} from "./shared/run-entities";
+
+import type { OutputViewerState } from "./use-output-viewer";
+import type { EntityId } from "@blockprotocol/type-system";
+
+const noEntityIds: EntityId[] = [];
+
+const column = css({
+  display: "flex",
+  flexDirection: "column",
+  outline: "none",
+});
+const head = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: "0",
+  height: "[52px]",
+  px: "4",
+  borderBottomWidth: "1px",
+  borderBottomStyle: "solid",
+  borderBottomColor: "bd.subtle",
+});
+const back = css({ ml: "[-6px]" });
+const headTitle = css({
+  flex: "1",
+  minWidth: "0",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "fg.heading",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+const headActions = css({ display: "flex", alignItems: "center", gap: "1.5" });
+const body = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "1",
+  gap: "6",
+  minHeight: "0",
+  p: "6",
+  overflowY: "auto",
+});
+const heading = css({ display: "flex", flexDirection: "column", gap: "1" });
+const headingTitle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "fg.heading",
+  overflowWrap: "anywhere",
+});
+const headingMeta = css({ textStyle: "xs", color: "fg.subtle" });
+/* The file full height, less the run's header and the file's name above it, and edge to edge of the panel. */
+const stage = css({ minHeight: "[calc(100vh - 220px)]", mx: "[-24px]" });
+const actions = css({ display: "flex", flexWrap: "wrap", gap: "1.5" });
+const loading = css({ display: "flex", justifyContent: "center", py: "6" });
+
+const countItems = (count: number) =>
+  `${count} ${count === 1 ? "item" : "items"}`;
+
+/**
+ * A value a run got or gave, open in place of the panel it was opened from, with a back arrow: a file in HASH's file
+ * preview, with ← → between its list's files, or a list whole. Expand opens it wide, in a side sheet beside the run,
+ * which Esc and collapse close again. Esc in the panel goes back.
+ */
+export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
+  const { view, depth } = viewer;
+  const entities = useRunEntities(
+    !view
+      ? noEntityIds
+      : view.kind === "file"
+        ? view.entityIds
+        : view.list.kind === "entities"
+          ? view.list.entityIds
+          : noEntityIds,
+  );
+  const columnRef = useRef<HTMLElement>(null);
+
+  /* Takes Esc and ← → from the start, and again on going back from a file to its list. */
+  useEffect(() => {
+    if (depth > 0) {
+      columnRef.current?.focus({ preventScroll: true });
+    }
+  }, [depth]);
+
+  if (!view) {
+    return null;
+  }
+
+  const file = view.kind === "file" ? entities.entities[view.index] : null;
+  const fileSteps =
+    view.kind === "file"
+      ? getFileSteps(entities.entities.map(isFileEntity), view.index)
+      : null;
+  const goToFile = (index: number) => {
+    if (view.kind === "file") {
+      viewer.replace({ ...view, index });
+    }
+  };
+  const openFile = (index: number) => {
+    if (view.kind === "list" && view.list.kind === "entities") {
+      viewer.push({
+        kind: "file",
+        entityIds: view.list.entityIds,
+        index,
+        title: view.title,
+        source: view.source,
+      });
+    }
+  };
+  const collapse = () => {
+    viewer.collapse();
+    columnRef.current?.focus({ preventScroll: true });
+  };
+  const fileHeading = file
+    ? getEntityDisplay(file, entities.typesMap, entities)
+    : null;
+  const listLength =
+    view.kind === "list"
+      ? view.list.kind === "inline"
+        ? view.list.values.length
+        : view.list.entityIds.length
+      : 0;
+
+  return (
+    <>
+      {/* Esc and ← → anywhere in the viewer, which isn't a control of its own. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <section
+        ref={columnRef}
+        tabIndex={-1}
+        aria-label={view.title}
+        className={cx(sidePanelFrame, column)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            /* The side sheet over it closes first. */
+            if (viewer.wide) {
+              collapse();
+            } else {
+              viewer.back();
+            }
+          } else if (fileSteps) {
+            goByFileKey(event, fileSteps, goToFile);
+          }
+        }}
+      >
+        <div className={head}>
+          <Button
+            size="sm"
+            variant="ghost"
+            tone="neutral"
+            iconName="arrowLeft"
+            aria-label="Back"
+            tooltip={depth > 1 ? "Back to the list · Esc" : "Back · Esc"}
+            className={back}
+            onClick={viewer.back}
+          />
+          <span className={headTitle}>{view.source}</span>
+          <span className={headActions}>
+            {fileSteps && (
+              <FileNav steps={fileSteps} variant="ghost" onGo={goToFile} />
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="expand"
+              aria-label="Expand"
+              tooltip="Open wide, beside the run"
+              onClick={viewer.expand}
+            />
+          </span>
+        </div>
+        <div
+          // A new view starts at its top, not where the last was scrolled to.
+          key={`${depth}.${view.kind === "file" ? view.index : ""}`}
+          className={body}
+        >
+          {view.kind === "list" ? (
+            <>
+              <div className={heading}>
+                <span className={headingTitle}>{view.title}</span>
+                <span className={headingMeta}>{countItems(listLength)}</span>
+              </div>
+              <OutputList
+                list={view.list}
+                entities={entities}
+                onOpenFile={openFile}
+              />
+            </>
+          ) : file ? (
+            <>
+              <div className={heading}>
+                <span className={headingTitle}>{fileHeading?.title}</span>
+                <span className={headingMeta}>{fileHeading?.meta}</span>
+              </div>
+              <FileStage file={file} wide={false} className={stage} />
+              <div className={actions}>
+                <FileActions file={file} compact={false} />
+              </div>
+            </>
+          ) : entities.loading ? (
+            <div role="status" className={loading}>
+              <LoadingSpinner size="md" />
+            </div>
+          ) : (
+            <div className={heading}>
+              <span className={headingTitle}>
+                {getEntityDisplay(undefined, undefined, entities).title}
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+      {viewer.wide && (
+        <OutputSheet
+          view={view}
+          entities={entities}
+          file={file ?? null}
+          fileSteps={fileSteps}
+          onGoToFile={goToFile}
+          onOpenFile={openFile}
+          onCollapse={collapse}
+        />
+      )}
+    </>
+  );
+};

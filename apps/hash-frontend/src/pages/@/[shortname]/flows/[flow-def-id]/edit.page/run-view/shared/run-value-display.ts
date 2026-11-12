@@ -21,6 +21,9 @@ export type ValueDisplay =
   /** Only by what it is, e.g. "An entity query", where its value means little to read. */
   | { kind: "described"; text: string };
 
+/** A value that shows as a list: of text, or of entities. */
+export type ListDisplay = Exclude<ValueDisplay, { kind: "described" }>;
+
 const formatDate = (value: string, pattern: string) => {
   const date = parseISO(value);
 
@@ -116,6 +119,15 @@ const longTextLines = 12;
  */
 export const isLongText = (text: string) =>
   text.length > longTextCharacters || text.split("\n").length > longTextLines;
+
+/** How many of a list's values a panel shows before "Show all N", which opens the whole list. */
+const peekLength = 5;
+
+/** How many of a list's values a panel shows, and how many "Show all" opens when that's not all of them. */
+export const getListPeek = (length: number) => ({
+  shown: Math.min(length, peekLength),
+  showAll: length > peekLength ? length : null,
+});
 
 /** A value's kind, and whether it's a list, as the editor names a value's type. */
 export const getPayloadShape = ({ kind, value }: Payload) => ({
