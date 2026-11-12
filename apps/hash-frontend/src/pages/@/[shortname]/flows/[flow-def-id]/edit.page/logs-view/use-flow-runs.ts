@@ -74,6 +74,31 @@ export const loadAllRuns = async (
   return [...runs.values()];
 };
 
+/**
+ * Reads the first page, which holds the runs that changed most recently, into `runs`: a run on it replaces the one
+ * read before, and a new one is added. Misses a change only when more runs than fit on a page changed since `runs`
+ * were read.
+ */
+export const loadRecentRuns = async (
+  client: FlowRunsClient,
+  flowDefinitionEntityId: EntityId,
+  runs: RunSummary[],
+) => {
+  const { data } = await client.query({
+    query: getFlowDefinitionRunsQuery,
+    variables: firstPageVariables(flowDefinitionEntityId),
+    fetchPolicy: "network-only",
+  });
+
+  const merged = new Map(runs.map((run) => [run.flowRunEntityId, run]));
+
+  for (const run of data.getFlowRuns.flowRuns) {
+    merged.set(run.flowRunEntityId, run);
+  }
+
+  return [...merged.values()];
+};
+
 /** Whether the flow's runs were read before, so are in the cache. */
 const hasCachedRuns = (
   client: FlowRunsClient,
@@ -85,9 +110,9 @@ const hasCachedRuns = (
   }) !== null;
 
 /**
- * The flow's runs, read again every few seconds while shown and the page is visible. Runs read on an earlier visit
- * show at once, until the fresh read replaces them. A failed refresh keeps the runs last read and tries again at the
- * next one.
+ * The flow's runs. Every page is read when shown and when the page is shown again; in between, the most recently
+ * changed runs are read every few seconds while the page is visible. Runs read on an earlier visit show at once, until
+ * the fresh read replaces them. A failed refresh keeps the runs last read and tries again at the next one.
  */
 export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
   const client = useApolloClient();
@@ -99,16 +124,15 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     /* Set when a refresh fell due while the page was hidden, to refresh as soon as it's shown. */
     let refreshDue = false;
+    /* The runs last read, which a refresh of the most recent ones is merged into. */
+    let lastRead: RunSummary[] | null = null;
 
-    const read = async (fetchPolicy: "cache-first" | "network-only") => {
+    const read = async (load: () => Promise<RunSummary[]>) => {
       try {
-        const runs = await loadAllRuns(
-          client,
-          flowDefinitionEntityId,
-          fetchPolicy,
-        );
+        const runs = await load();
 
         if (!stopped) {
+          lastRead = runs;
           setFlowRuns({ status: "loaded", runs, loadedAt: new Date() });
         }
       } catch (error) {
@@ -126,8 +150,13 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
       }
     };
 
-    const refresh = async () => {
-      await read("network-only");
+    /* While the page was hidden, more runs may have changed than the first page holds, so every page is read then. */
+    const refresh = async (readEveryPage: boolean) => {
+      await read(() =>
+        readEveryPage || !lastRead
+          ? loadAllRuns(client, flowDefinitionEntityId, "network-only")
+          : loadRecentRuns(client, flowDefinitionEntityId, lastRead),
+      );
 
       if (stopped) {
         return;
@@ -135,7 +164,7 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
 
       timeout = setTimeout(() => {
         if (document.visibilityState === "visible") {
-          void refresh();
+          void refresh(false);
         } else {
           refreshDue = true;
         }
@@ -145,7 +174,7 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible" && refreshDue) {
         refreshDue = false;
-        void refresh();
+        void refresh(true);
       }
     };
 
@@ -153,11 +182,13 @@ export const useFlowRuns = (flowDefinitionEntityId: EntityId) => {
 
     const start = async () => {
       if (hasCachedRuns(client, flowDefinitionEntityId)) {
-        await read("cache-first");
+        await read(() =>
+          loadAllRuns(client, flowDefinitionEntityId, "cache-first"),
+        );
       }
 
       if (!stopped) {
-        await refresh();
+        await refresh(true);
       }
     };
 

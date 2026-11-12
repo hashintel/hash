@@ -2,7 +2,7 @@ import { NetworkStatus } from "@apollo/client";
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
-import { loadAllRuns } from "./use-flow-runs";
+import { loadAllRuns, loadRecentRuns } from "./use-flow-runs";
 
 import type { GetFlowDefinitionRunsQuery } from "../../../../../../../graphql/api-types.gen";
 import type { FlowRunsClient } from "./use-flow-runs";
@@ -107,5 +107,27 @@ describe("loadAllRuns", () => {
           flowRunEntityId === run("0001").flowRunEntityId,
       )?.status,
     ).toBe(FlowRunStatus.Completed);
+  });
+});
+
+describe("loadRecentRuns", () => {
+  it("reads only the first page, updating the runs on it and keeping the rest", async () => {
+    const { client, cursorsAsked } = clientServing([
+      page([run("0001"), run("0003")], "after-0003"),
+    ]);
+
+    const runs = await loadRecentRuns(client, flowDefinitionEntityId, [
+      run("0001", { status: FlowRunStatus.Running, closedAt: null }),
+      run("0002"),
+    ]);
+
+    expect(cursorsAsked).toEqual([null]);
+    expect(
+      runs.map(({ flowRunEntityId, status }) => [flowRunEntityId, status]),
+    ).toEqual([
+      [run("0001").flowRunEntityId, FlowRunStatus.Completed],
+      [run("0002").flowRunEntityId, FlowRunStatus.Completed],
+      [run("0003").flowRunEntityId, FlowRunStatus.Completed],
+    ]);
   });
 });
