@@ -3,11 +3,14 @@
  * Brunch's `apps/brunch-agent/src/shared/conversation/net-changes.ts` with
  * the record by `toolCallId` in place of the settled tool part, and the
  * call's issue position (its assistant entry, then its index there) in place
- * of the message and part indexes.
+ * of the message and part indexes. A change is attributed per canonical call
+ * (`canonicalCallsOf`), as Brunch's is.
  */
 import {
   type ArcElement,
   browserToolFacts,
+  type CanonicalPetrinautCall,
+  canonicalCallsOf,
   generatedArcId,
   namesId,
   type NetElementAddress,
@@ -103,12 +106,18 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
   );
 };
 
-/** Arcs have no standalone ID: the arc actions identify their transition, direction and endpoint, and a batch deletion uses the generated arc ID. */
-const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
-  if (call.toolName === "deleteItemsByIds")
-    return hasId(call.input, generatedArcId(arc));
-  if (!browserToolFacts(call.toolName).targets.includes("arc")) return false;
-  const input = call.input;
+/**
+ * Arcs have no standalone ID: the arc actions identify their transition,
+ * direction and endpoint, and a batch deletion uses the generated arc ID.
+ * Judged on each canonical call a call makes, so a merged arc update counts as
+ * the calls it runs.
+ */
+const canonicalCallMatchesArc = (
+  { toolName, input }: CanonicalPetrinautCall,
+  arc: ArcElement,
+): boolean => {
+  if (toolName === "deleteItemsByIds") return hasId(input, generatedArcId(arc));
+  if (!browserToolFacts(toolName).targets.includes("arc")) return false;
   if (typeof input !== "object" || input === null) return false;
   if (
     !("transitionId" in input) ||
@@ -117,7 +126,7 @@ const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
     return false;
   const direction = "arcDirection" in input ? input.arcDirection : "input";
   if (direction !== arc.arcDirection) return false;
-  if (call.toolName === "updateArcPlace")
+  if (toolName === "updateArcPlace")
     return (
       ("newPlaceId" in input && namesId(input.newPlaceId, arc.placeId)) ||
       ("newEndpoint" in input && hasId(input.newEndpoint, arc.placeId))
@@ -128,18 +137,33 @@ const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
   );
 };
 
+/**
+ * The applied changes that touched an element, each judged on the canonical
+ * calls it makes (`canonicalCallsOf`), so one of HASH's merged updates is
+ * attributed to every element any of its operations touched. An ID in the
+ * call's output still counts, for the element a creation produced.
+ */
 export const callsForElement = (
   calls: readonly NetCall[],
   element: NetElement,
 ): NetCall[] =>
-  calls.filter(
-    (call) =>
-      isAppliedChange(call) &&
-      (element.arc
-        ? matchesArc(call, element.arc)
-        : browserToolFacts(call.toolName).targets.includes(element.kind) &&
-          (hasId(call.input, element.id) || hasId(call.output, element.id))),
-  );
+  calls.filter((call) => {
+    if (!isAppliedChange(call)) return false;
+    const canonicalCalls = canonicalCallsOf(call.toolName, call.input);
+    const { arc } = element;
+    return arc
+      ? canonicalCalls.some((canonical) =>
+          canonicalCallMatchesArc(canonical, arc),
+        )
+      : canonicalCalls.some(
+          (canonical) =>
+            browserToolFacts(canonical.toolName).targets.includes(
+              element.kind,
+            ) &&
+            (hasId(canonical.input, element.id) ||
+              hasId(call.output, element.id)),
+        );
+  });
 
 /**
  * The net as the latest result that shows it: a net read, or a change that
