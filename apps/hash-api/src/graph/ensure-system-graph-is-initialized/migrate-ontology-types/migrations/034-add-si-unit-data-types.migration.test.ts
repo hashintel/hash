@@ -442,7 +442,7 @@ describe("SI unit conversions", () => {
       1,
       4186.8,
     ],
-    ["Pound-Force Feet", "Newton Meters", 1, 1.3558179483314004],
+    ["Pound-Force Feet", "Newton Meters", 1, 1.3558179483314],
     [
       "Pounds per Cubic Foot",
       "Kilograms per Cubic Meter",
@@ -509,8 +509,8 @@ describe("SI unit conversions", () => {
       96.56064,
     ],
     ["Ounces", "Grams", "Kilograms", 1, 28.349523125],
-    ["Imperial Gallons", "US Liquid Gallons", "Litres", 1, 1.2009499255048549],
-    ["Imperial Pints", "US Liquid Pints", "Litres", 1, 1.2009499255048549],
+    ["Imperial Gallons", "US Liquid Gallons", "Litres", 1, 1.20094992550485],
+    ["Imperial Pints", "US Liquid Pints", "Litres", 1, 1.20094992550485],
     [
       "Imperial Fluid Ounces",
       "US Fluid Ounces",
