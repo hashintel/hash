@@ -35,11 +35,11 @@ import {
 } from "./run-history";
 
 /**
- * `?approver=person`: Ask a person waits on the person the editor names (People · Maya Patel), not the role (Head of
- * quality), and its run inputs take the editor's labels (People, Instructions).
+ * Ask a person waits on the person the editor names (People · Maya Patel) and its run inputs take the editor's labels
+ * (People, Instructions). `?approver=role` keeps the old look: the role (Head of quality), Person and Question.
  */
 export const approverPerson =
-  new URLSearchParams(globalThis.location.search).get("approver") === "person";
+  new URLSearchParams(globalThis.location.search).get("approver") !== "role";
 
 export const approverName = approverPerson ? "Maya Patel" : "Head of quality";
 
