@@ -450,6 +450,55 @@ export declare const choose: {
     }),
   );
 
+  it.effect.each([
+    [
+      "export type Fn<S> = (value: S) => S;\nexport declare const applied: Fn<string>;",
+      "FunctionDeclaration",
+    ],
+    [
+      "export interface Fn<S> { (value: S): S }\nexport declare const applied: Fn<string>;",
+      "FunctionDeclaration",
+    ],
+    [
+      "type Inner<X> = (value: X) => X;\nexport type Outer<T> = Inner<T>;\nexport declare const applied: Outer<string>;",
+      "ConstantDeclaration",
+    ],
+    [
+      'import type { Api } from "shapes";\nexport declare const applied: Api["run"];',
+      "ConstantDeclaration",
+    ],
+  ] as const)(
+    "applied_declaration_%#",
+    Effect.fnUntraced(function* ([source, tag]: readonly [string, string]) {
+      expect.hasAssertions();
+      const ast = yield* success({
+        source,
+        files: {
+          "node_modules/shapes/package.json":
+            '{ "name": "shapes", "types": "./index.d.ts" }',
+          "node_modules/shapes/index.d.ts":
+            "export interface Api { /** The dependency's own words. */ run(value: string): void }",
+        },
+      });
+      const applied = ast
+        .get(exported(ast, "applied").target)
+        .leaf.pipe(Option.getOrThrow, ast.get);
+      expect(applied).toMatchObject({
+        _tag: "IndependentDeclarations",
+      });
+      const value = pipe(
+        applied,
+        Option.liftPredicate(
+          AST.IndependentDeclarations.isIndependentDeclarations,
+        ),
+        Option.flatMap(({ value: held }) => held),
+        Option.map(ast.get),
+        Option.getOrThrow,
+      );
+      expect(value._tag).toBe(tag);
+    }),
+  );
+
   it.effect(
     "shadowed_parameters",
     Effect.fnUntraced(function* () {
