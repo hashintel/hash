@@ -11,7 +11,7 @@
         "@local/eslint#build"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -23,43 +23,61 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "probe:async-browser-call": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "probe:ownership-unit": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "probe:postgres-viewer": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "probe:two-writers": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "proof:browser-call": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "test:integration": {
       "dependsOn": [
@@ -67,6 +85,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -75,6 +96,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     }
   }
