@@ -342,6 +342,32 @@ layer(
   );
 
   it.effect(
+    "wrapped_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source: `/** A box. */
+export interface Box {
+  readonly wrapped: (
+    first: ReadonlyArray<ReadonlyArray<string>>,
+    second: ReadonlyArray<ReadonlyArray<number>>,
+  ) => ReadonlyArray<ReadonlyArray<boolean>>;
+}`,
+      });
+      expect(Reference.page(result, "pkg.html").markdown).toContain(
+        [
+          "```ts",
+          "readonly wrapped: (",
+          "  first: ReadonlyArray<ReadonlyArray<string>>,",
+          "  second: ReadonlyArray<ReadonlyArray<number>>,",
+          ") => ReadonlyArray<ReadonlyArray<boolean>>;",
+          "```",
+        ].join("\n"),
+      );
+    }),
+  );
+
+  it.effect(
     "external_meanings",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
@@ -465,6 +491,57 @@ export declare const value: Option.Option.Value<Option.Option<string>>;`,
         signatureOverloads(reference, "choose"),
         signatureOverloads(reference, "identity"),
       ]).toStrictEqual([[[1], [2]], [undefined]]);
+    }),
+  );
+
+  it.effect(
+    "signature_counts",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const counted = (name: string): readonly Properties[string][] =>
+        pipe(
+          exportOf(reference, name),
+          elementChildren,
+          Array.filter(({ tagName }) => tagName === "api-signatures"),
+          Array.flatMap((element) => [
+            propertyOf(element, "overloads"),
+            propertyOf(element, "counted"),
+          ]),
+        );
+      expect([counted("choose"), counted("Pair")]).toStrictEqual([
+        [2, "overloads"],
+        [2, "declarations"],
+      ]);
+      const { markdown } = Reference.page(reference, "pkg/index.html");
+      expect(markdown).toContain(
+        "(2) Value side.\n\n**Signatures · 2 declarations**",
+      );
+    }),
+  );
+
+  it.effect(
+    "members_last",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const { markdown } = Reference.page(reference, "pkg/index.html");
+      const start = markdown.indexOf('### <a id="Value"></a>Value');
+      const section = markdown.slice(
+        start,
+        markdown.indexOf("\n### ", start + 1),
+      );
+      expect(
+        Array.filter(section.split("\n"), (line) =>
+          /^(?:\*\*|<a id=)/u.test(line),
+        ),
+      ).toStrictEqual([
+        "**Signature**",
+        "**Accepted by**",
+        "**Returned by**",
+        "**Members**",
+        '<a id="Value.text"></a>**`text`**',
+      ]);
     }),
   );
 

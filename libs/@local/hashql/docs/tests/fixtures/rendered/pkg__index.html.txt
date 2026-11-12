@@ -61,16 +61,6 @@ export interface Value {
 }
 ```
 
-**Members**
-
-<a id="Value.text"></a>**`text`**
-
-[Source](index.d.ts#L2)
-
-```ts
-readonly text: string;
-```
-
 **Accepted by**
 
 * [`Box.held`](#Box.held) Reads.
@@ -86,13 +76,23 @@ readonly text: string;
 * [`callable`](#callable) Container docs.
 * [`choose`](#choose) First call.
 
+**Members**
+
+<a id="Value.text"></a>**`text`**
+
+[Source](index.d.ts#L2)
+
+```ts
+readonly text: string;
+```
+
 ### <a id="Pair"></a>Pair
 
 (1) Type side.
 
 (2) Value side.
 
-**Signatures · 2 overloads**
+**Signatures · 2 declarations**
 
 (1) · [Source](index.d.ts#L22)
 
@@ -153,6 +153,11 @@ export class Model {
 }
 ```
 
+**Returned by**
+
+* [`Model.make`](#Model.make) Static make.
+* [`Model.make`](#Model.make-2) Instance make.
+
 **Members**
 
 <a id="Model.make"></a>**`make`**
@@ -192,11 +197,6 @@ set value(input: Value);
 ```
 
 Setter.
-
-**Returned by**
-
-* [`Model.make`](#Model.make) Static make.
-* [`Model.make`](#Model.make-2) Instance make.
 
 **namespace Model**
 

@@ -79,7 +79,14 @@ const signatures =
     Content.declarations(output)(
       Array.flatMap(Option.toArray(values), ({ children }) => children),
     ).pipe(
-      Result.map(Content.section(Titles.signatures(Output.count(values)))),
+      Result.map(
+        Content.section(
+          Titles.signatures({
+            total: Output.count(values),
+            counted: Output.counted(values),
+          }),
+        ),
+      ),
     );
 
 /** Declarations of a member, then what documents them: the descriptions of their comments, their documented calls and the comments' other sections. */
@@ -224,7 +231,6 @@ const exported =
         ...(yield* each(value.comments, Content.description)),
         ...(yield* signatures(output)(value.signatures)),
         ...(yield* related(output)(value.related, ["traits"])),
-        ...Content.section(members, Titles.sections.members),
         ...(yield* Callable.callable(output)(value)),
         ...(yield* each(value.comments, Content.details)),
         ...(yield* each(value.comments, Content.examples)),
@@ -234,6 +240,8 @@ const exported =
           "acceptedBy",
           "returnedBy",
         ])),
+        // A member is a paragraph, so only the next heading ends the members. They come last, after every section of the export itself.
+        ...Content.section(members, Titles.sections.members),
         ...namespace,
       ];
     });

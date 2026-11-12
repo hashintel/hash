@@ -104,11 +104,17 @@ export const print = Effect.fnUntraced(function* (
     });
   }
 
+  // The formatter indents a member inside the wrapper that gives it its grammar, and each further line of the member keeps that margin.
+  const line = formatted.code.lastIndexOf("\n", start - 1) + 1;
+  const [margin = ""] = /^[\t ]*/u.exec(formatted.code.slice(line)) ?? [];
+  const copied = (from: number, to: number): string =>
+    formatted.code.slice(from, to).replaceAll(`\n${margin}`, "\n");
+
   let text = "";
   let at = start;
   const occurrences: Printed["occurrences"][number][] = [];
   for (const [node, emitted] of Array.zip(before, after)) {
-    text += formatted.code.slice(at, emitted.getStart());
+    text += copied(at, emitted.getStart());
     const offset = text.length;
     let spelling = formatted.code.slice(emitted.getStart(), emitted.end);
     if (Syntax.isElision(node)) {
@@ -120,6 +126,6 @@ export const print = Effect.fnUntraced(function* (
     at = emitted.end;
   }
 
-  text += formatted.code.slice(at, end);
+  text += copied(at, end);
   return { text, occurrences };
 }, Effect.scoped);

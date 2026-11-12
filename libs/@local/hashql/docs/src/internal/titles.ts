@@ -28,9 +28,14 @@ export const related: Record<keyof Tree.Row.Related, string> = {
   returnedBy: "Returned by",
 };
 
-/** The heading of an export's declarations, which counts its overloads when it has several. */
-export const signatures = (overloads: number): string =>
-  overloads > 1 ? `Signatures · ${overloads} overloads` : "Signature";
+/** The heading of an export's declarations. More than one get a count, as overloads or as declarations. */
+export const signatures = ({
+  total,
+  counted,
+}: {
+  readonly total: number;
+  readonly counted: "overloads" | "declarations";
+}): string => (total > 1 ? `Signatures · ${total} ${counted}` : "Signature");
 
 export const sections = {
   typeParameters: "Type parameters",

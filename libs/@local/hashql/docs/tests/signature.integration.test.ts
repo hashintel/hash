@@ -158,6 +158,27 @@ layer(TypeScript.Api.layer, { excludeTestServices: true })(
     );
 
     it.effect(
+      "private_members",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const input = yield* fixture(
+          `export declare class Box { #private; private secret; private hidden(): void; protected guarded: number; value: string; private constructor(); }`,
+          "Box",
+        );
+        const signature = yield* printed(input);
+        expect(signature.text).toBe(
+          [
+            "export class Box {",
+            "  protected guarded: number;",
+            "  value: string;",
+            "  private constructor();",
+            "}",
+          ].join("\n"),
+        );
+      }),
+    );
+
+    it.effect(
       "keyword_export",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();
