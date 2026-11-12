@@ -100,21 +100,55 @@ export const reference =
     );
 
 /** The path a code span spells when it is a qualified name, such as `Tools.make` or `Tools.make()`. */
-const qualifiedName = (code: string): Option.Option<readonly string[]> =>
+const qualifiedName = (
+  code: string,
+): Option.Option<Array.NonEmptyReadonlyArray<string>> =>
   pipe(
     code,
     String.replace(/\(\)$/u, ""),
     String.split("."),
     Option.liftPredicate(
-      (path: readonly string[]) =>
+      (path: Array.NonEmptyReadonlyArray<string>) =>
         path.length > 1 && Array.every(path, isIdentifier),
     ),
+  );
+
+/** Every export or member whose public path ends with `path`, in any namespace of any entrypoint. */
+const ending = (
+  catalogue: Catalogue.Catalogue,
+  path: Array.NonEmptyReadonlyArray<string>,
+): readonly Local[] =>
+  pipe(
+    catalogue.byName,
+    Array.fromIterable,
+    Array.flatMap(([name, id]): readonly Local[] => {
+      if (samePath(Array.takeRight(name.path, path.length), path)) {
+        return [id];
+      }
+
+      if (
+        !samePath(
+          Array.takeRight(name.path, path.length - 1),
+          Array.initNonEmpty(path),
+        )
+      ) {
+        return [];
+      }
+
+      return Option.toArray(
+        memberOf(catalogue, {
+          entrypoint: name.entrypoint,
+          path: Array.append(name.path, Array.lastNonEmpty(path)),
+        }),
+      );
+    }),
+    Array.dedupe,
   );
 
 /**
  * The public APIs a code span may mention.
  *
- * A qualified name means what it resolves to in the scope. A name that resolves nowhere there may still mean any export whose path ends with it.
+ * A qualified name means what it resolves to in the scope. One that resolves nowhere there may still mean any export or member whose public path ends with it.
  */
 export const mentioned =
   (scope: Scope) =>
@@ -124,14 +158,6 @@ export const mentioned =
       onSome: (path) =>
         Option.match(scoped(scope, path), {
           onSome: Array.of,
-          onNone: () =>
-            pipe(
-              scope.catalogue.byName,
-              Array.fromIterable,
-              Array.filter(([name]) =>
-                samePath(Array.takeRight(name.path, path.length), path),
-              ),
-              Array.map(([, id]) => id),
-            ),
+          onNone: () => ending(scope.catalogue, path),
         }),
     });

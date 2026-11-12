@@ -1,6 +1,7 @@
 import { expect, layer } from "@effect/vitest";
 import { Array, Effect, HashMap, HashSet, Option, pipe } from "effect";
 
+import * as Catalogue from "../src/Catalogue.js";
 import * as Related from "../src/internal/related.js";
 import * as Tree from "../src/Tree/index.js";
 import * as Reference from "./fixtures/reference.js";
@@ -268,6 +269,40 @@ layer(
         ).deprecated;
       expect(deprecated("choose")).toBe(false);
       expect(deprecated("old")).toBe(true);
+    }),
+  );
+
+  it.effect(
+    "reexported_entrypoint",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: 'export * as Other from "./other.js";',
+        other:
+          "export interface Item {}\nexport namespace Nested { export interface Deep {} }",
+      });
+      const { document } = reference;
+      const item = Catalogue.lookup(document.catalogue, {
+        entrypoint: "@scope/pkg",
+        path: ["Other", "Item"],
+      }).pipe(Option.getOrThrow);
+      expect(item.name).toStrictEqual({
+        entrypoint: "@scope/pkg/Other",
+        path: ["Item"],
+      });
+      expect(
+        HashMap.get(document.placement.places, item.id).pipe(
+          Option.map(({ page }) => page.entry.name),
+        ),
+      ).toStrictEqual(
+        Option.some({ entrypoint: "@scope/pkg/Other", path: [] }),
+      );
+      expect(
+        Array.map(documentedOf(reference), ({ origin }) => origin.name),
+      ).toStrictEqual([
+        { entrypoint: "@scope/pkg/Other", path: ["Item"] },
+        { entrypoint: "@scope/pkg/Other", path: ["Nested", "Deep"] },
+      ]);
     }),
   );
 

@@ -15,6 +15,10 @@ const privateTrait = (comment: string): string => `${prelude}
 interface Model extends Hidden {}
 export { Model };`;
 
+/** The private trait `comment` documents, beside a public class with a static member. */
+const privateTraitWithBox = (comment: string): string =>
+  `${privateTrait(comment)}\nexport declare class Box { static create(): Box; }`;
+
 /** The links below `node`. */
 const tagsIn = (node: DocNode): readonly DocLinkTag[] => {
   if (node instanceof DocLinkTag) {
@@ -267,6 +271,30 @@ export declare class Model extends Base { merge(other: Model): Model; }
       });
       yield* Reference.success({
         source: privateTrait("Use {@link Tools.make}."),
+        configuration: "render-tsdoc.json",
+      });
+    }),
+  );
+
+  it.effect(
+    "private_trait_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      expect(
+        yield* Effect.flip(
+          Reference.success({
+            source: privateTraitWithBox("Use `Box.create()`."),
+            configuration: "render-tsdoc.json",
+          }),
+        ),
+      ).toMatchObject({
+        _tag: "DocumentationError",
+        reason: { _tag: "UnlinkedName", code: "Box.create()" },
+      });
+      yield* Reference.success({
+        source: privateTraitWithBox(
+          "Use {@link Box.create}, not `Box.missing()`.",
+        ),
         configuration: "render-tsdoc.json",
       });
     }),

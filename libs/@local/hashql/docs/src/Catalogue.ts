@@ -45,7 +45,7 @@ export interface Entry {
 /**
  * The public declarations reachable from the AST's entrypoints.
  *
- * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The shortest path to a declaration is its canonical name, and among paths of one length the first in that order. An entrypoint's root keeps its entrypoint as its name, whatever re-exports it.
+ * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The shortest path to a declaration is its canonical name, and among paths of one length the first in that order. An entrypoint's root and the names below it take precedence over the paths through a re-export of that root.
  */
 export interface Catalogue {
   readonly ast: AST.Store["Service"];
@@ -61,7 +61,40 @@ interface Pending {
   readonly name: Name;
   readonly typeOnlyExport: boolean;
   readonly ancestors: HashSet.HashSet<DeclarationId>;
+  /** The path crosses a re-export of an entrypoint's root, so the names below that root are the canonical ones. */
+  readonly reexported: boolean;
 }
+
+/** Gives a declaration its entry at the shortest path that may name it, the first of them where two are as short, and lifts the entry's restriction once a path permits value use. */
+const record = (
+  byId: MutableHashMap.MutableHashMap<DeclarationId, Entry>,
+  { id, name, typeOnlyExport, reexported }: Pending,
+): void => {
+  const previous = MutableHashMap.get(byId, id);
+
+  if (Option.isNone(previous)) {
+    if (!reexported) {
+      MutableHashMap.set(byId, id, {
+        id,
+        name,
+        nameTypeOnlyExport: typeOnlyExport,
+        typeOnlyExport,
+      });
+    }
+  } else if (
+    !reexported &&
+    name.path.length < previous.value.name.path.length
+  ) {
+    MutableHashMap.set(byId, id, {
+      id,
+      name,
+      nameTypeOnlyExport: typeOnlyExport,
+      typeOnlyExport: previous.value.typeOnlyExport && typeOnlyExport,
+    });
+  } else if (previous.value.typeOnlyExport && !typeOnlyExport) {
+    MutableHashMap.set(byId, id, { ...previous.value, typeOnlyExport });
+  }
+};
 
 /** Collects public names without consulting the compiler or visiting package-private declarations. */
 export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
@@ -82,46 +115,19 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
     name: { entrypoint, path: [] },
     typeOnlyExport: false,
     ancestors: HashSet.empty(),
+    reexported: false,
   }));
+  const rootIds = HashSet.fromIterable(Array.map(roots, ({ id }) => id));
 
-  for (const { id, name, typeOnlyExport } of roots) {
-    if (!MutableHashMap.has(byId, id)) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport,
-      });
-    }
+  for (const root of roots) {
+    record(byId, root);
   }
 
   const pending = Array.reverse(roots);
-  const visit = ({ id, name, typeOnlyExport, ancestors }: Pending): void => {
+  const visit = (current: Pending): void => {
+    const { id, name, typeOnlyExport, ancestors, reexported } = current;
     MutableHashMap.set(byName, name, id);
-    const previous = MutableHashMap.get(byId, id);
-
-    if (Option.isNone(previous)) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport,
-      });
-    } else if (name.path.length < previous.value.name.path.length) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport: previous.value.typeOnlyExport && typeOnlyExport,
-      });
-    } else if (previous.value.typeOnlyExport && !typeOnlyExport) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name: previous.value.name,
-        nameTypeOnlyExport: previous.value.nameTypeOnlyExport,
-        typeOnlyExport,
-      });
-    }
+    record(byId, current);
 
     if (HashSet.has(ancestors, id)) {
       return;
@@ -149,6 +155,7 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
         },
         typeOnlyExport: typeOnlyExport || alias.typeOnlyExport,
         ancestors: visited,
+        reexported: reexported || HashSet.has(rootIds, alias.target),
       });
     }
   };
