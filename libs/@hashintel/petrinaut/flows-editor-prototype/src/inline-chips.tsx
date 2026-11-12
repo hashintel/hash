@@ -214,8 +214,6 @@ const headingStyle = css({
   color: "neutral.fg.heading",
 });
 
-const hintStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
-
 type FallbackChoice = "none" | "text" | "line";
 
 export const FallbackPopover = ({
@@ -249,10 +247,7 @@ export const FallbackPopover = ({
       onClose={onClose}
     >
       <div ref={focusRef} tabIndex={-1} className={surfaceStyle}>
-        <div>
-          <div className={headingStyle}>If {path} is empty</div>
-          <div className={hintStyle}>What the email says instead.</div>
-        </div>
+        <div className={headingStyle}>If {path} is empty</div>
         <RadioGroup
           size="sm"
           value={choice}
