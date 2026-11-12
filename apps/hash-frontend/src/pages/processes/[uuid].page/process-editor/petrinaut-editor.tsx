@@ -547,6 +547,7 @@ export const PetrinautEditor = ({
           <ProcessPetrinaut
             handle={session.handle}
             entityId={session.mode.entityId}
+            saved={session.mode.kind === "saved"}
             readTitle={readTitle}
             hostSave={hostSave}
             versionLoad={session.versionLoad}

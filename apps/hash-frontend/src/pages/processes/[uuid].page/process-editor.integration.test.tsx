@@ -309,6 +309,15 @@ vi.hoisted(() => {
   });
 });
 
+// The conversation's store has its own tests; the fake graph holds only nets.
+vi.mock(
+  "./process-editor/petrinaut-editor/process-petrinaut/use-brunch-conversation-pointer",
+  () => {
+    const conversationPointer = { conversationId: null, replace: () => {} };
+    return { useBrunchConversationPointer: () => conversationPointer };
+  },
+);
+
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
   createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
     .createHashPetrinautSaveTool,

@@ -87,6 +87,11 @@ vi.mock("./process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => hashGraphReadTools,
 }));
 
+vi.mock("./process-petrinaut/use-brunch-conversation-pointer", () => {
+  // Stable, as the hook's is while the stored conversation is unchanged.
+  const conversationPointer = { conversationId: null, replace: () => {} };
+  return { useBrunchConversationPointer: () => conversationPointer };
+});
 vi.mock("./process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: topBarPluginMarker,
 }));
@@ -162,6 +167,7 @@ const renderEditor = (props: {
       <ProcessPetrinaut
         handle={handle}
         entityId={entityId}
+        saved
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}

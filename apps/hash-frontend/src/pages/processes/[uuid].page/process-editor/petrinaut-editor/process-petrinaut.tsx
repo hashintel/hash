@@ -30,6 +30,7 @@ import { brunchAgentOrigin } from "../../../../../lib/public-env";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { useBrunchHashGraphReadTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
+import { useBrunchConversationPointer } from "./process-petrinaut/use-brunch-conversation-pointer";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 
@@ -149,6 +150,8 @@ const BrunchSession = memo(
     actorKey,
     chatEndpoint,
     openDocument,
+    processEntityId,
+    processExists,
     shown,
     hostTools,
     hostSave,
@@ -159,6 +162,10 @@ const BrunchSession = memo(
     /** Brunch's HASH agent. */
     chatEndpoint: string;
     openDocument: BrunchOpenDocument;
+    /** The open net's entity id, which its conversation is stored against. */
+    processEntityId: EntityId;
+    /** The net is saved. A draft's entity doesn't exist yet. */
+    processExists: boolean;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
     /**
@@ -175,12 +182,17 @@ const BrunchSession = memo(
     versionLoad: VersionLoad | undefined;
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
+    const conversationPointer = useBrunchConversationPointer({
+      processEntityId,
+      processExists,
+    });
     const { assistant } = useBrunchAssistant({
       actorKey,
       chatEndpoint,
       fetch: brunchFetch,
       selected: shown,
       openDocument,
+      conversationPointer,
       voice: brunchVoice,
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
@@ -208,6 +220,7 @@ const BrunchSession = memo(
 export const ProcessPetrinaut = ({
   handle,
   entityId,
+  saved,
   readTitle,
   hostSave,
   versionLoad,
@@ -218,6 +231,8 @@ export const ProcessPetrinaut = ({
   handle: PetrinautDocHandle;
   /** The open net's entity id; a draft's is the one its first save creates. */
   entityId: EntityId;
+  /** The net is saved, so its entity exists. */
+  saved: boolean;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
   /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
@@ -266,6 +281,8 @@ export const ProcessPetrinaut = ({
           actorKey={brunch.actorKey}
           chatEndpoint={brunchChatEndpoint(brunch.origin)}
           openDocument={openDocument}
+          processEntityId={entityId}
+          processExists={saved}
           shown={brunchShown}
           hostTools={hostTools}
           hostSave={hostSave}
