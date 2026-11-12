@@ -4,8 +4,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useAuthenticatedUser } from "../../../../../shared/auth-info-context";
 import { toRunRow } from "./logs-view/run-list";
 import { RunsTable } from "./logs-view/runs-table";
-import { useFlowRuns } from "./shared/use-flow-runs";
 
+import type { FlowRuns } from "./shared/use-flow-runs";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 
 const page = css({ flex: "1", minHeight: "0", overflowY: "auto", p: "6" });
@@ -36,14 +36,16 @@ const failure = css({ maxWidth: "[560px]", mx: "auto" });
 
 /** The editor's Logs view: the flow's runs. */
 export const LogsView = ({
-  flowDefinitionEntityId,
+  flowRuns,
+  onRetry,
   getRunPath,
 }: {
-  flowDefinitionEntityId: EntityId;
+  flowRuns: FlowRuns;
+  /** Reads the runs again after they couldn't be loaded. */
+  onRetry: () => void;
   /** Where a run opens. */
   getRunPath: (flowRunEntityId: EntityId) => string;
 }) => {
-  const { flowRuns, retry } = useFlowRuns(flowDefinitionEntityId);
   const { authenticatedUser } = useAuthenticatedUser();
 
   if (flowRuns.status === "loading") {
@@ -63,7 +65,7 @@ export const LogsView = ({
           <Banner tone="error">
             <Banner.Title>Couldn't load this flow's runs</Banner.Title>
             <Banner.Description>{flowRuns.message}</Banner.Description>
-            <Button size="sm" variant="subtle" onClick={retry}>
+            <Button size="sm" variant="subtle" onClick={onRetry}>
               Try again
             </Button>
           </Banner>

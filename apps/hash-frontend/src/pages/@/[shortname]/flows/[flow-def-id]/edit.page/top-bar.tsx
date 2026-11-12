@@ -11,12 +11,12 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useSnackbar } from "../../../../../../components/hooks/use-snackbar";
 import { RenameInput } from "./shared/rename-input";
-import { useFlowRuns } from "./shared/use-flow-runs";
 import { RunActions } from "./top-bar/run-actions";
 import { RunFlow } from "./top-bar/run-flow";
 import { RunSwitcher } from "./top-bar/run-switcher";
 import { RunTime } from "./top-bar/run-time";
 
+import type { FlowRuns } from "./shared/use-flow-runs";
 import type { FlowSaveStatus } from "./use-autosaved-flow-editor";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
@@ -193,6 +193,7 @@ export const TopBar = ({
   flowDefinitionEntityId,
   view,
   flowRunEntityId,
+  flowRuns,
   onViewChange,
   onOpenRun,
   onRename,
@@ -216,6 +217,8 @@ export const TopBar = ({
   view: FlowEditorView;
   /** The run shown, in the Logs view. */
   flowRunEntityId: EntityId | null;
+  /** The flow's runs, for the run switcher. */
+  flowRuns: FlowRuns;
   onViewChange: (view: FlowEditorView) => void;
   /** Shows another of the flow's runs. */
   onOpenRun: (flowRunEntityId: EntityId) => void;
@@ -243,10 +246,6 @@ export const TopBar = ({
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  /* Read only while a run is shown: the Logs table reads them for itself. */
-  const { flowRuns } = useFlowRuns(
-    flowRunEntityId ? flowDefinitionEntityId : null,
-  );
 
   const leave = async () => {
     if (saveStatus === "failed") {

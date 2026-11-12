@@ -4,7 +4,7 @@ import {
   runStates,
   runStatesByUrgency,
 } from "../shared/run-state";
-import { getRunDuration } from "../shared/run-times";
+import { compareNewestFirst, getRunDuration } from "../shared/run-times";
 
 import type { RunState, RunTab } from "../shared/run-state";
 import type { RunSummary } from "../shared/use-flow-runs";
@@ -118,6 +118,5 @@ export const sortRuns = (rows: RunRow[], sort: RunSort, now: Date) =>
     (a, b) =>
       (sort.direction === "ASCENDING" ? 1 : -1) *
         compareInAscendingOrder(sort.key, a, b, now) ||
-      b.startedAt.getTime() - a.startedAt.getTime() ||
-      a.shortId.localeCompare(b.shortId),
+      compareNewestFirst(a, b),
   );

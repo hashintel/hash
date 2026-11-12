@@ -58,3 +58,11 @@ export const getRunDuration = (
     ? now.getTime() - run.startedAt.getTime()
     : null;
 };
+
+/** Newest first, then by short ID for runs started at the same moment: how the Logs table and the run switcher order runs. */
+export const compareNewestFirst = (
+  left: { startedAt: Date; shortId: string },
+  right: { startedAt: Date; shortId: string },
+) =>
+  right.startedAt.getTime() - left.startedAt.getTime() ||
+  left.shortId.localeCompare(right.shortId);

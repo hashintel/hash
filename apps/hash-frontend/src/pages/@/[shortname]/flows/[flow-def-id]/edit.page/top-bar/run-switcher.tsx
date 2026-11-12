@@ -69,10 +69,10 @@ export const RunSwitcher = ({
   onOpenRun: (flowRunEntityId: EntityId) => void;
   onAllRuns: () => void;
 }) => {
-  const { data } = useQuery<GetFlowRunByIdQuery, GetFlowRunByIdQueryVariables>(
-    getFlowRunById,
-    { variables: { flowRunEntityId } },
-  );
+  const { data, loading } = useQuery<
+    GetFlowRunByIdQuery,
+    GetFlowRunByIdQueryVariables
+  >(getFlowRunById, { variables: { flowRunEntityId } });
   const openRun = data?.getFlowRunById;
 
   const { menuRuns, older, newer } =
@@ -85,6 +85,22 @@ export const RunSwitcher = ({
             : null,
         )
       : { menuRuns: [], older: null, newer: null };
+  const listed = menuRuns.some(
+    (run) => run.flowRunEntityId === flowRunEntityId,
+  );
+
+  /* A disabled arrow says why. */
+  const disabledReason = (direction: "older" | "newer") => {
+    if (flowRuns.status === "loading" || (!listed && loading)) {
+      return "Loading runs";
+    }
+
+    if (flowRuns.status === "failed") {
+      return "Couldn't load this flow's runs";
+    }
+
+    return listed ? `No ${direction} run` : "Not one of this flow's runs";
+  };
 
   /* A flow with no runs lists none when the run shown isn't its own, so the menu says so, as Logs does. */
   const runItems: MenuItem[] =
@@ -150,7 +166,7 @@ export const RunSwitcher = ({
         variant="ghost"
         size="sm"
         iconName="chevronLeft"
-        tooltip="Older run"
+        tooltip={older ? "Older run" : disabledReason("older")}
         disabled={!older}
         onClick={() => older && onOpenRun(older.flowRunEntityId)}
       />
@@ -171,7 +187,7 @@ export const RunSwitcher = ({
         variant="ghost"
         size="sm"
         iconName="chevronRight"
-        tooltip="Newer run"
+        tooltip={newer ? "Newer run" : disabledReason("newer")}
         disabled={!newer}
         onClick={() => newer && onOpenRun(newer.flowRunEntityId)}
       />

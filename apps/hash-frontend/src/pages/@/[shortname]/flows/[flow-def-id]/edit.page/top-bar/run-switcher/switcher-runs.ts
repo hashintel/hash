@@ -1,17 +1,11 @@
 import { getShortRunId } from "../../shared/run-id";
+import { compareNewestFirst } from "../../shared/run-times";
 
 import type { RunSummary } from "../../shared/use-flow-runs";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /** How many of the flow's newest runs the run menu lists. */
 const menuRunCount = 6;
-
-/** Newest first, as the Logs table sorts runs by default, so the two agree. */
-const compareNewestFirst = (left: RunSummary, right: RunSummary) =>
-  new Date(right.startedAt).getTime() - new Date(left.startedAt).getTime() ||
-  getShortRunId(left.flowRunEntityId).localeCompare(
-    getShortRunId(right.flowRunEntityId),
-  );
 
 /**
  * The runs the run switcher offers for the open run. The menu lists the flow's six newest, and the open run too if
@@ -36,7 +30,14 @@ export const getSwitcherRuns = (
           openRun,
         ]
       : runs
-  ).toSorted(compareNewestFirst);
+  )
+    .map((run) => ({
+      run,
+      startedAt: new Date(run.startedAt),
+      shortId: getShortRunId(run.flowRunEntityId),
+    }))
+    .toSorted(compareNewestFirst)
+    .map(({ run }) => run);
   const openIndex = newestFirst.findIndex(
     (run) => run.flowRunEntityId === flowRunEntityId,
   );
