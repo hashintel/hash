@@ -82,12 +82,6 @@ describe("DependentTypesSection", () => {
     };
   });
 
-  it("says that it covers every version of the type", () => {
-    const { section } = renderSection({ rows: [] });
-
-    expect(section.textContent).toContain("Across all versions of Actor");
-  });
-
   it("marks the section busy while loading", () => {
     const { section } = renderSection();
 

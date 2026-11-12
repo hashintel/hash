@@ -1,4 +1,4 @@
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import { useState } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
@@ -198,56 +198,37 @@ export const DependentTypesByVersionTable = ({
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
-  <>
-    <TableCard gridTemplateColumns={gridTemplateColumns}>
-      <HeaderRow>
-        <Box
-          sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
-        >
-          <Box component="span" sx={{ fontWeight: 700 }}>
-            {entityType.schema.title}
-          </Box>{" "}
-          version
-        </Box>
-        <Box sx={treeCellSx}>Extended by</Box>
-        <Box
-          sx={{
-            ...cellSx,
-            // Only an expanded row puts values in this column.
-            [`.${tableGridClassName}:not(:has([role="group"])) &`]: {
-              visibility: "hidden",
-            },
-          }}
-        >
-          Versions
-        </Box>
-      </HeaderRow>
-      {parentVersionRows.map((parentVersionRow) => (
-        <ParentVersionTableRow
-          key={parentVersionRow.parentVersion}
-          parentVersionRow={parentVersionRow}
-          parent={entityType}
-          isLinkType={isLinkType}
-          onOpenType={onOpenType}
-        />
-      ))}
-    </TableCard>
-    <Typography
-      sx={({ palette }) => ({
-        mt: 1.5,
-        fontSize: 13,
-        lineHeight: "18px",
-        color: palette.gray[70],
-      })}
-    >
-      In this layout a type can appear under several{" "}
+  <TableCard gridTemplateColumns={gridTemplateColumns}>
+    <HeaderRow>
       <Box
-        component="span"
-        sx={({ palette }) => ({ fontWeight: 600, color: palette.gray[80] })}
+        sx={{ ...firstCellSx, overflow: "hidden", textOverflow: "ellipsis" }}
       >
-        {entityType.schema.title}
-      </Box>{" "}
-      versions. In the “By type” layout each type appears once.
-    </Typography>
-  </>
+        <Box component="span" sx={{ fontWeight: 700 }}>
+          {entityType.schema.title}
+        </Box>{" "}
+        version
+      </Box>
+      <Box sx={treeCellSx}>Extended by</Box>
+      <Box
+        sx={{
+          ...cellSx,
+          // Only an expanded row puts values in this column.
+          [`.${tableGridClassName}:not(:has([role="group"])) &`]: {
+            visibility: "hidden",
+          },
+        }}
+      >
+        Versions
+      </Box>
+    </HeaderRow>
+    {parentVersionRows.map((parentVersionRow) => (
+      <ParentVersionTableRow
+        key={parentVersionRow.parentVersion}
+        parentVersionRow={parentVersionRow}
+        parent={entityType}
+        isLinkType={isLinkType}
+        onOpenType={onOpenType}
+      />
+    ))}
+  </TableCard>
 );
