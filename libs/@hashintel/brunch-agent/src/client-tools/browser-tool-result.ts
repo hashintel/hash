@@ -1,9 +1,22 @@
 import * as v from "valibot";
 import { z } from "zod";
 
-const zJson = z.json();
-// Use the existing JSON parser without cloning or normalizing the result.
-const vJson = v.custom<z.infer<typeof zJson>>(
+/**
+ * `z.json()`, except that an object property may be `undefined`: what
+ * `JSON.stringify` carries without loss, dropping only those properties.
+ */
+const zJson: z.ZodType = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(zJson),
+    z.record(z.string(), zJson.optional()),
+  ]),
+);
+// Check without cloning or normalizing the result; typed as the JSON received.
+const vJson = v.custom<z.infer<ReturnType<typeof z.json>>>(
   (value) => zJson.safeParse(value).success,
   "Expected a JSON value",
 );

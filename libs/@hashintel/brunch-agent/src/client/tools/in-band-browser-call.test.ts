@@ -2,6 +2,11 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
 
+import { executeSetNetTitle } from "../../ui/chat/ai-assistant-panel/editor-commands";
+import {
+  summarizePetrinautAiToolCall,
+  toPetrinautAiToolOutput,
+} from "../../ui/chat/ai-assistant-panel/tool-summaries";
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
 import type { FlueClient } from "@flue/sdk";
@@ -164,7 +169,71 @@ const createCalls = (
     acceptsRevision: () => true,
   });
 
-test.each([undefined, { invalid: undefined }, [NaN], new Date()])(
+test.each([
+  [
+    "setNetTitle with no previous title",
+    executeSetNetTitle({
+      input: { title: "Replenishment" },
+      document: {
+        title: { get: () => "", subscribe: () => () => {} },
+        setTitle: () => ({ applied: true, value: undefined }),
+      },
+    }),
+  ],
+  [
+    "updateTransition without a rename",
+    toPetrinautAiToolOutput(
+      summarizePetrinautAiToolCall({
+        toolName: "updateTransition",
+        input: {
+          transitionId: "transition",
+          update: { lambdaCode: "export default Lambda(() => 1);" },
+        },
+      }),
+    ),
+  ],
+])(
+  "an edit output with undefined properties is submitted without them: %s",
+  async (_name, output) => {
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (_url, init) => {
+        if (init?.method === "POST") {
+          posted.push(
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+          );
+          return new Response(null, { status: 200 });
+        }
+        return Response.json({
+          capability: "capability",
+          binding: canonicalContent(binding),
+          toolName: "addPlace",
+          input,
+        });
+      }),
+    );
+    expect(Object.values(output)).toContain(undefined);
+
+    await createCalls().run(
+      {
+        toolCallId: "call",
+        toolName: "addPlace",
+        input,
+        signal: new AbortController().signal,
+      },
+      async () => output,
+    );
+
+    expect(posted).toStrictEqual([
+      expect.objectContaining({
+        output: JSON.parse(JSON.stringify(output)) as unknown,
+      }),
+    ]);
+  },
+);
+
+test.each([undefined, [undefined], [NaN], new Date()])(
   "a non-JSON result fails before HTTP serialization: %s",
   async (output) => {
     const posted = stubIssuingFetch();
