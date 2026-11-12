@@ -1,6 +1,6 @@
 /**
  * A step's Status in a run, as decided in the Run outputs playground (5 Nov, Aakarsh: "date-time on always"): the
- * step's own facts, "12 s · 5 Nov, 14:02"; a reason (attempts, waiting on someone) shows on hover. The
+ * step's own facts, "12 s · 5 Nov, 14:02", and a quiet reason line only when it applies (attempts, waiting on someone). The
  * run's id and trigger are not repeated here.
  *
  * The For each's item list (spec R8; Ciarán and Dora, 26 Oct): every item with its mark, failures first. Picking one
@@ -220,10 +220,13 @@ const builtNoteStyle = css({
 const statusLook = new URLSearchParams(globalThis.location.search).get("statuslook");
 
 /**
- * `?statusreason=line`: the reason as a quiet line under the Status line, as before. The default drops that line and
- * shows the reason as a tooltip on the Status line (Aakarsh, 13 Nov: "Yes, everywhere").
+ * Where a Status line's reason shows (Aakarsh, 13 Nov ~01:45, "Visible, at x 0"): by default a quiet line 2 px under,
+ * starting at the text edge with "Status" and the mark's ink. `?statusreason=hover` shows it only as a tooltip on the
+ * line; `?statusreason=line` keeps it indented to the word (x 20), as built in 0045b2d1c.
  */
-const reasonOnLine = new URLSearchParams(globalThis.location.search).get("statusreason") === "line";
+const statusReason = new URLSearchParams(globalThis.location.search).get("statusreason");
+const reasonOnLine = statusReason !== "hover";
+const reasonIndented = statusReason === "line" && !builtStatusLine;
 
 const reasonTriggerStyle = css({ display: "flex", minWidth: "[0]" });
 
@@ -276,7 +279,7 @@ export const StatusLine = ({
       )}
       {reasonOnLine
         ? notes.map((note, index) => (
-            <span key={index} className={builtStatusLine ? builtNoteStyle : noteStyle}>
+            <span key={index} className={reasonIndented ? noteStyle : builtNoteStyle}>
               {note}
             </span>
           ))
