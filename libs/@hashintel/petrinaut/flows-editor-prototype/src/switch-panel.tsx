@@ -26,6 +26,7 @@ import {
   labelColumnStyle,
   menuSegmentStyle,
   rowStackStyle,
+  fullChipStyle,
   rowStyle,
   takeColumnStyle,
   takeFooterAtEdge,
@@ -42,6 +43,7 @@ import { MiddleCut } from "./middle-cut";
 import { useEditor } from "./editor-context";
 import {
   conditionLayout,
+  conditionRowsOld,
   ifRenameTake,
   joinerTake,
   namedPorts,
@@ -139,6 +141,32 @@ const chipsStyle = css({
 
 /** S3: a case's conditions on the panel grid: the joiner in the label column, the chip in the value column. */
 const conditionsStyle = css({ display: "contents" });
+
+/** Full-width rows (field-conditions 2): "Where" or the joiner above the chip, both across the panel. */
+const fullConditionRowStyle = css({
+  "&[class]": {
+    gridColumn: "1 / -1",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "2",
+  },
+  "& > [data-joiner]": { minHeight: "[0]" },
+});
+
+/** Plain muted lowercase "and" / "or"; a click switches it. */
+const fullJoinerButtonStyle = css({
+  alignSelf: "flex-start",
+  padding: "[0]",
+  border: "none",
+  background: "[none]",
+  cursor: "pointer",
+  color: "neutral.fg.muted",
+  fontSize: "[13px]",
+  lineHeight: "[16px]",
+  _hover: { color: "neutral.fg.body" },
+  _disabled: { cursor: "default", _hover: { color: "neutral.fg.muted" } },
+});
 
 const conditionRowStyle = css({
   display: "contents",
@@ -848,11 +876,30 @@ const PathConditionRows = ({
         <div
           // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
           key={rowIndex}
-          className={conditionRowStyle}
+          className={cx(
+            conditionRowStyle,
+            !conditionRowsOld && fullConditionRowStyle,
+            !conditionRowsOld && fullChipStyle,
+          )}
         >
           <span data-joiner>
             {rowIndex === 0 ? (
               "Where"
+            ) : !conditionRowsOld ? (
+              <button
+                type="button"
+                className={fullJoinerButtonStyle}
+                disabled={readOnly}
+                aria-label={`Join with ${group.join}`}
+                onClick={() =>
+                  onChange({
+                    ...group,
+                    join: group.join === "or" ? "and" : "or",
+                  })
+                }
+              >
+                {group.join}
+              </button>
             ) : (
               <Button
                 size="sm"
@@ -890,8 +937,13 @@ const PathConditionRows = ({
       ))}
       {readOnly ? null : (
         <>
-          <span />
-          <span className={css({ display: "flex" })}>
+          {conditionRowsOld ? <span /> : null}
+          <span
+            className={cx(
+              css({ display: "flex" }),
+              !conditionRowsOld && css({ gridColumn: "1 / -1" }),
+            )}
+          >
             <Button
               size="sm"
               variant="ghost"

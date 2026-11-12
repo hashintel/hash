@@ -64,7 +64,7 @@ import {
 } from "./mock-graph";
 import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
-import { conditionLayout, joinerTake } from "./switch-flags";
+import { conditionLayout, conditionRowsOld, joinerTake } from "./switch-flags";
 import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -369,6 +369,50 @@ const joinerColumnStyle = css({
   fontWeight: "medium",
   color: "neutral.fg.body",
 });
+
+/** Full-width rows (field-conditions 2): the joiner on its own line above its chip, which spans the builder. */
+export const fullRowStackStyle = css({
+  "&[class]": { flexDirection: "column", alignItems: "stretch", gap: "2" },
+  "& > [data-joiner]": { width: "[auto]" },
+});
+
+/**
+ * The chip across the row, its value taking what's left and wrapping inside the chip rather than ending in "…".
+ * The attribute and operator keep their width.
+ */
+export const fullChipStyle = css({
+  "& [data-condition-row] > span:first-child, & [data-chip] > *": {
+    flex: "1",
+    minWidth: "[0]",
+    display: "flex",
+  },
+  "& [role=group][data-property]": {
+    display: "flex",
+    flex: "1",
+    width: "[100%]",
+    height: "[auto]",
+    alignItems: "stretch",
+  },
+  "& [role=group][data-property] > [data-part=input-slot]": {
+    flex: "1",
+    maxWidth: "[none]",
+  },
+  "& [data-part=input-slot] *": {
+    whiteSpace: "normal",
+    textOverflow: "clip",
+    overflowWrap: "anywhere",
+    textAlign: "left",
+    justifyContent: "flex-start",
+  },
+  "& [data-part=input-slot] button, & [data-part=input-slot] [data-part=trigger]": {
+    height: "[auto]",
+    minHeight: "[100%]",
+    width: "[100%]",
+  },
+});
+
+/** The joiner as "Where" reads: plain muted lowercase text, its chevron on hover; a click opens the menu. */
+const fullJoinerStyle = css({ "&[class]": { height: "[auto]" } });
 
 /** A row: the chip, then its ⋮ segment, on one line. */
 export const rowStyle = css({
@@ -1055,7 +1099,13 @@ const ConditionRowView = ({
   };
 
   return (
-    <div className={rowStackStyle}>
+    <div
+      className={cx(
+        rowStackStyle,
+        !conditionRowsOld && fullRowStackStyle,
+        !conditionRowsOld && fullChipStyle,
+      )}
+    >
       {prefix}
       <div
         ref={rowRef}
@@ -1334,13 +1384,13 @@ export const Joiner = ({
       <Menu
         className={joinerMenuStyle}
         items={joinerItems(conjunction, onPick, (choice) =>
-          joinerTake ? choice : choice.toUpperCase(),
+          joinerTake || !conditionRowsOld ? choice : choice.toUpperCase(),
         )}
         trigger={
-          joinerTake === "j1" ? (
+          joinerTake === "j1" || (!conditionRowsOld && !joinerTake) ? (
             <button
               type="button"
-              className={joinerTextStyle}
+              className={cx(joinerTextStyle, !conditionRowsOld && fullJoinerStyle)}
               aria-label={`Join with ${conjunction ?? "and"}`}
             >
               {conjunction ?? "and"}
@@ -1725,7 +1775,7 @@ export const ConditionBuilder = ({
       <div
         className={cx(
           footerStyle,
-          !takeFooterAtEdge && valueColumnFooterStyle,
+          !takeFooterAtEdge && conditionRowsOld && valueColumnFooterStyle,
         )}
       >
         <AddCondition
