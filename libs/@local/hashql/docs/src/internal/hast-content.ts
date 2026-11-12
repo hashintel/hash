@@ -180,7 +180,11 @@ export const code =
       for (const name of names) {
         pieces.push(text(value.slice(end, name.offset)));
         end = name.offset + name.length;
-        pieces.push(yield* nameOf(output)(name, value.slice(name.offset, end)));
+        const linked = yield* nameOf(output)(
+          name,
+          value.slice(name.offset, end),
+        );
+        pieces.push(linked);
       }
       pieces.push(text(value.slice(end)));
 
@@ -358,7 +362,9 @@ const detailsOf: Part = (output) => (value) =>
       Result.all,
     );
 
-    return [...(yield* section(output)("remarks", value.remarks)), ...custom];
+    const remarks = yield* section(output)("remarks", value.remarks);
+
+    return [...remarks, ...custom];
   });
 
 const examplesOf: Part = (output) => (value) =>
