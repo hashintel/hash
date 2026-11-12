@@ -7,6 +7,7 @@ import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { updateDataType } from "../../../../ontology/primitive/data-type";
 import { createSystemDataTypeIfNotExists } from "../../util";
 import { ensureUnitDataType } from "./ensure-unit-data-type";
+import { scaledConversion } from "./shared/conversions";
 
 import type { BaseUrl, DataTypeWithMetadata } from "@blockprotocol/type-system";
 
@@ -101,7 +102,7 @@ beforeEach(() => {
   loadExternalDataType.mockResolvedValue({ data: updated.metadata });
 });
 
-describe("unit hierarchy upgrades", () => {
+describe("unit definition upgrades", () => {
   it("keeps a newly created or already matching type at its current version", async () => {
     vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue(updated);
     expect(
@@ -110,6 +111,144 @@ describe("unit hierarchy upgrades", () => {
     expect(getDataTypeById).not.toHaveBeenCalled();
     expect(updateDataType).not.toHaveBeenCalled();
     expect(loadExternalDataType).not.toHaveBeenCalled();
+  });
+
+  it("treats an omitted abstract flag as false", async () => {
+    vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue({
+      ...updated,
+      schema: { ...updated.schema, abstract: false },
+    });
+    const params = parameters();
+    await ensureUnitDataType(context, authentication, params);
+    expect(updateDataType).not.toHaveBeenCalled();
+    expect(params.migrationState.dataTypeVersions[baseUrl]).toBe(
+      makeOntologyTypeVersion({ major: 2 }),
+    );
+  });
+
+  it.each([
+    { minimum: 0 },
+    { maximum: 100 },
+    { exclusiveMinimum: 0 },
+    { exclusiveMaximum: 100 },
+    { multipleOf: 0.5 },
+  ])(
+    "upgrades changed constraints even when parents match: %j",
+    async (constraint) => {
+      vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue(updated);
+      const params = parameters();
+      params.dataTypeDefinition = {
+        ...params.dataTypeDefinition,
+        ...constraint,
+      };
+      await ensureUnitDataType(context, authentication, params);
+      expect(updateDataType).toHaveBeenCalledWith(
+        context,
+        { actorId: "system-actor" },
+        expect.objectContaining({
+          dataTypeId: updated.schema.$id,
+          schema: expect.objectContaining(constraint),
+        }),
+      );
+    },
+  );
+
+  it("upgrades changed conversions even when the schema matches", async () => {
+    const target = "https://hash.ai/@h/types/data-type/meters/" as BaseUrl;
+    vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue({
+      ...updated,
+      metadata: {
+        ...updated.metadata,
+        conversions: { [target]: scaledConversion(0.3) },
+      },
+    });
+    const params = parameters();
+    params.conversions = { [target]: scaledConversion(0.3048) };
+    await ensureUnitDataType(context, authentication, params);
+    expect(updateDataType).toHaveBeenCalledWith(
+      context,
+      { actorId: "system-actor" },
+      expect.objectContaining({
+        dataTypeId: updated.schema.$id,
+        conversions: params.conversions,
+      }),
+    );
+  });
+
+  it.each([
+    [Math.PI, 3.14159265358979],
+    [745.6998715822702, 745.69987158227],
+    [1.3558179483314003, 1.3558179483314],
+  ])(
+    "reuses graph-rounded conversion constants: %s",
+    async (requested, saved) => {
+      const target = "https://hash.ai/@h/types/data-type/meters/" as BaseUrl;
+      vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue({
+        ...updated,
+        metadata: {
+          ...updated.metadata,
+          conversions: { [target]: scaledConversion(saved) },
+        },
+      });
+      const params = parameters();
+      params.conversions = { [target]: scaledConversion(requested) };
+      await ensureUnitDataType(context, authentication, params);
+      expect(getDataTypeById).not.toHaveBeenCalled();
+      expect(updateDataType).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [1e-30, 2e-30],
+    [1e30, 2e30],
+    [1_000_000_000_000_001, 1_000_000_000_000_002],
+  ])(
+    "preserves changes to small, large, and integer constants: %s",
+    async (requested, saved) => {
+      const target = "https://hash.ai/@h/types/data-type/meters/" as BaseUrl;
+      vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue({
+        ...updated,
+        metadata: {
+          ...updated.metadata,
+          conversions: { [target]: scaledConversion(saved) },
+        },
+      });
+      const params = parameters();
+      params.conversions = { [target]: scaledConversion(requested) };
+      await ensureUnitDataType(context, authentication, params);
+      expect(updateDataType).toHaveBeenCalledWith(
+        context,
+        { actorId: "system-actor" },
+        expect.objectContaining({ conversions: params.conversions }),
+      );
+    },
+  );
+
+  it("skips stale intermediate versions and reuses the matching definition", async () => {
+    const params = parameters();
+    params.dataTypeDefinition = {
+      ...params.dataTypeDefinition,
+      type: "number",
+      minimum: 0,
+    };
+    const current = {
+      ...updated,
+      schema: { ...updated.schema, $id: `${baseUrl}v/3`, minimum: 0 },
+      metadata: {
+        ...updated.metadata,
+        recordId: { baseUrl, version: makeOntologyTypeVersion({ major: 3 }) },
+      },
+    } as DataTypeWithMetadata;
+    vi.mocked(getDataTypeById)
+      .mockResolvedValueOnce(updated)
+      .mockResolvedValueOnce(current);
+    expect(await ensureUnitDataType(context, authentication, params)).toBe(
+      current,
+    );
+    expect(updateDataType).not.toHaveBeenCalled();
+    expect(params.migrationState.dataTypeVersions[baseUrl]).toBe(
+      makeOntologyTypeVersion({ major: 3 }),
+    );
   });
 
   it("creates a new hosted version using the owning system actor", async () => {
