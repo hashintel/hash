@@ -78,10 +78,10 @@ const signatures =
       Array.map(signature(output, context, total)),
       Result.all,
       Result.map((children) =>
-        Content.element("signatures")({ overloads: total }, [
-          ...title,
-          ...children,
-        ]),
+        Content.element("signatures")(
+          { overloads: total, counted: Output.counted(Option.some(value)) },
+          [...title, ...children],
+        ),
       ),
     );
   };
@@ -163,7 +163,7 @@ const member =
     );
 
 /**
- * An export's parts in the order of its Markdown body. The descriptions of its comments come first, and their other sections follow its members and calls.
+ * An export's parts in reading order. The descriptions of its comments come first, and their other sections follow its members and calls.
  *
  * Each part of a comment is an element of its own that names the overloads the comment documents.
  */

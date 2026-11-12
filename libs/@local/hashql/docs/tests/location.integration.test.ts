@@ -30,7 +30,7 @@ const permission = PlatformError.systemError({
 });
 const sourceMap = JSON.stringify({
   version: 3,
-  sources: ["/project/src/value.ts"],
+  sources: ["libs/pkg/src/value.ts"],
   names: [],
   mappings: "AAKA,iBAKA",
 });
@@ -46,11 +46,9 @@ const emptyMap = JSON.stringify({
 
 const fixture = Effect.fnUntraced(function* <A, E>({
   read,
-  exists = (path) => Effect.succeed(path === "/project/.git"),
   run,
 }: {
   readonly read: FileSystem.FileSystem["readFileString"];
-  readonly exists?: FileSystem.FileSystem["exists"];
   readonly run: (input: {
     readonly source: SourceFile;
     readonly declaration: InterfaceDeclaration;
@@ -69,10 +67,7 @@ const fixture = Effect.fnUntraced(function* <A, E>({
     isInterfaceDeclaration,
   ).pipe(Option.getOrThrow);
   const files = yield* Layer.build(
-    Layer.merge(
-      FileSystem.layerNoop({ exists, readFileString: read }),
-      Path.layer,
-    ),
+    Layer.merge(FileSystem.layerNoop({ readFileString: read }), Path.layer),
   );
 
   return yield* run({ source, declaration }).pipe(Effect.provide(files));
@@ -83,7 +78,7 @@ const locate = Effect.fnUntraced(function* ({
 }: {
   readonly declaration: InterfaceDeclaration;
 }) {
-  const locations = yield* Location.make("/project/.generated");
+  const locations = yield* Location.make();
   return yield* locations.locate(declaration);
 });
 
@@ -100,38 +95,17 @@ describe("location", () => {
         },
         run: ({ source, declaration }) =>
           Effect.gen(function* () {
-            const locations = yield* Location.make("/project/.generated");
+            const locations = yield* Location.make();
             const item = yield* locations.locate(declaration);
             const namespace = yield* locations.locate(source);
             return { item, namespace };
           }),
       });
       expect(result).toStrictEqual({
-        item: Option.some({ file: "src/value.ts", line: 11 }),
-        namespace: Option.some({ file: "src/value.ts", line: 1 }),
+        item: Option.some({ file: "libs/pkg/src/value.ts", line: 11 }),
+        namespace: Option.some({ file: "libs/pkg/src/value.ts", line: 1 }),
       });
       expect(reads).toBe(1);
-    }),
-  );
-
-  it.effect(
-    "relative_directory",
-    Effect.fnUntraced(function* () {
-      expect.hasAssertions();
-      const result = yield* fixture({
-        read: () => Effect.succeed(sourceMap),
-        run: ({ declaration }) =>
-          Effect.gen(function* () {
-            const path = yield* Path.Path;
-            const locations = yield* Location.make(
-              path.relative(path.resolve("."), "/project/.generated"),
-            );
-            return yield* locations.locate(declaration);
-          }),
-      });
-      expect(result).toStrictEqual(
-        Option.some({ file: "src/value.ts", line: 11 }),
-      );
     }),
   );
 
@@ -162,19 +136,6 @@ describe("location", () => {
         run: (input) => locate(input).pipe(Effect.result),
       });
       expect(Result.isFailure(result)).toBe(true);
-    }),
-  );
-
-  it.effect(
-    "missing_repository",
-    Effect.fnUntraced(function* () {
-      expect.hasAssertions();
-      const result = yield* fixture({
-        read: () => Effect.die("No map should be read"),
-        exists: () => Effect.succeed(false),
-        run: locate,
-      });
-      expect(result).toStrictEqual(Option.none());
     }),
   );
 

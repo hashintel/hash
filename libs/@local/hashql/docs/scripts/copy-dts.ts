@@ -42,6 +42,14 @@ const copy = Effect.gen(function* () {
   const sdk = path.join(import.meta.dirname, "..", "..", "sdk", "typescript");
   const dist = path.join(sdk, "dist");
   const generated = path.join(import.meta.dirname, "..", ".generated");
+  const repository = path.join(
+    import.meta.dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "..",
+  );
 
   // A module the SDK renamed or removed would otherwise linger from an earlier copy.
   yield* fs.remove(generated, { recursive: true, force: true });
@@ -61,12 +69,11 @@ const copy = Effect.gen(function* () {
     { discard: true },
   );
 
-  // A declaration map names its sources relative to itself, so each copy is rebased onto its new location.
+  // A declaration map names its sources relative to itself. Each copy names them from the repository's root. A link to a source file starts there, so a copy means the same in any directory.
   yield* Effect.forEach(
     Array.filter(files, (file) => file.endsWith(".d.ts.map")),
     (file) => {
       const from = path.dirname(path.join(dist, file));
-      const to = path.dirname(path.join(generated, file));
 
       return pipe(
         path.join(dist, file),
@@ -76,7 +83,10 @@ const copy = Effect.gen(function* () {
           ...map,
           sourceRoot: "",
           sources: Array.map(map.sources, (source) =>
-            path.relative(to, path.resolve(from, map.sourceRoot, source)),
+            path.relative(
+              repository,
+              path.resolve(from, map.sourceRoot, source),
+            ),
           ),
         })),
         Effect.flatMap(Schema.encodeEffect(DeclarationMap)),

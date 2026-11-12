@@ -328,10 +328,17 @@ export const project: {
 
     let node: Syntax.Node = source;
     if (Syntax.isClassDeclaration(source)) {
-      let members: readonly Syntax.ClassElement[] = source.members;
+      // A private constructor stays, because it tells a reader that code outside the class cannot construct it.
+      const open = Array.filter(
+        source.members,
+        (member) =>
+          Syntax.isConstructorDeclaration(member) || !Node.isPrivate(member),
+      );
+      let members: readonly Syntax.ClassElement[] =
+        open.length === source.members.length ? source.members : open;
       if (typeOnlyExport) {
         members = Array.filter(
-          source.members,
+          members,
           (member) =>
             !Syntax.isConstructorDeclaration(member) &&
             !Node.hasModifier(member, Syntax.ModifierFlags.Static),

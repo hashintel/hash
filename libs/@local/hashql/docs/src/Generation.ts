@@ -100,6 +100,6 @@ export const fromDirectory = Effect.fnUntraced(function* (options: Options) {
       documentation,
     ),
     // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The generation owns the program's lifetime, which ends once every page is written.
-    Effect.provide(Layer.merge(program, Location.layer(options.directory))),
+    Effect.provide(Layer.merge(program, Location.layer)),
   );
 });
