@@ -15,7 +15,7 @@ pub enum SubcommandError {
     NoBackend,
     #[display("the integration definition could not be read")]
     ReadDefinition,
-    #[display("the integration service rejected the request")]
+    #[display("the integration service could not complete the request")]
     Service,
     #[display("no run has this ID")]
     UnknownRun,
@@ -59,7 +59,8 @@ pub struct SubmitArgs {
     #[clap(long)]
     pub links_only: bool,
 
-    /// The ID of the request. Repeating a request with the same ID attaches to the run it started.
+    /// The ID of the request. Repeating the request with the same ID, actor, definition and
+    /// options attaches to the run it started; without an ID, every submission starts a new run.
     #[clap(long)]
     pub request_id: Option<Uuid>,
 }
@@ -73,7 +74,13 @@ pub struct RunArgs {
     pub run: RunId,
 }
 
-/// Starts the run of the definition and prints its ID.
+/// Starts the run of the definition, or attaches to the run its request ID started, and prints
+/// the run's ID.
+///
+/// # Errors
+///
+/// - [`SubcommandError::ReadDefinition`] if the definition file cannot be read.
+/// - [`SubcommandError::Service`] if the integration service could not start the run.
 pub(crate) async fn submit<R: Runs>(
     runs: R,
     args: SubmitArgs,
@@ -105,6 +112,11 @@ pub(crate) async fn submit<R: Runs>(
 }
 
 /// Prints the status of the run.
+///
+/// # Errors
+///
+/// - [`SubcommandError::Service`] if the integration service could not read the run.
+/// - [`SubcommandError::UnknownRun`] if no run has this ID.
 pub(crate) async fn status<R: Runs>(runs: R, args: RunArgs) -> Result<(), Report<SubcommandError>> {
     let status = args
         .request
@@ -112,7 +124,7 @@ pub(crate) async fn status<R: Runs>(runs: R, args: RunArgs) -> Result<(), Report
         .status(&args.request.request(Uuid::new_v4()), &args.run)
         .await
         .change_context(SubcommandError::Service)?
-        .ok_or(SubcommandError::UnknownRun)?;
+        .ok_or_else(|| Report::new(SubcommandError::UnknownRun).attach(args.run.to_string()))?;
 
     print(&StatusOutput {
         run_id: args.run.as_ref(),
@@ -156,7 +168,11 @@ impl From<RunPhase> for Phase {
     }
 }
 
-/// Asks the run to stop before its next step.
+/// Asks the run to stop before its next step. Cancelling a finished or unknown run succeeds.
+///
+/// # Errors
+///
+/// - [`SubcommandError::Service`] if the integration service could not record the request.
 pub(crate) async fn cancel<R: Runs>(runs: R, args: RunArgs) -> Result<(), Report<SubcommandError>> {
     args.request
         .service(runs)

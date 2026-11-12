@@ -21,11 +21,18 @@ pub enum Subcommand {
     Submit(Box<SubmitArgs>),
     /// Print the status of a run as JSON.
     Status(Box<RunArgs>),
-    /// Request cancellation of a run and print its ID as JSON.
+    /// Request cancellation of a run and print its ID as JSON. A finished or unknown run is not an
+    /// error.
     Cancel(Box<RunArgs>),
 }
 
 impl Subcommand {
+    /// Runs the subcommand.
+    ///
+    /// # Errors
+    ///
+    /// - [`SubcommandError::NoBackend`] for `submit`, `status` and `cancel`, which need an
+    ///   orchestration backend.
     pub(crate) fn execute(self) -> Result<(), Report<SubcommandError>> {
         match self {
             Self::Completions(args) => {
