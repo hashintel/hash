@@ -207,6 +207,20 @@ export const openDecisions: OpenSwitch[] = [
     ],
   },
   {
+    card: "audit-logs-tabs",
+    title: "Logs · tab counts",
+    flag: "logtabs",
+    defaultValue: null,
+    options: [
+      { label: "keep (today)", value: null },
+      { label: "revert", value: "revert" },
+      { label: "figma rounded", value: "figma" },
+      { label: "figma underlined", value: "underlined" },
+      { label: "figma simple", value: "simple" },
+      { label: "figma quiet", value: "quiet" },
+    ],
+  },
+  {
     card: "repeats-trim",
     title: "Repeated facts · trim",
     flag: "repeats",
