@@ -156,30 +156,35 @@ const documentedOf = (
               ),
             );
 
+            const parameters = yield* Result.all(
+              Array.map(
+                Array.filter(documentation.parameters, ({ name }) =>
+                  declared.parameters.includes(name),
+                ),
+                distil,
+              ),
+            );
+            const typeParameters = yield* Result.all(
+              Array.map(
+                Array.filter(documentation.typeParameters, ({ name }) =>
+                  declared.typeParameters.includes(name),
+                ),
+                distil,
+              ),
+            );
+            const returns = yield* Result.transposeOption(
+              Option.map(documentation.returns, distil),
+            );
+            const throws = yield* Result.all(
+              Array.map(documentation.throws, distil),
+            );
+
             return {
               index: entry.index,
-              parameters: yield* Result.all(
-                Array.map(
-                  Array.filter(documentation.parameters, ({ name }) =>
-                    declared.parameters.includes(name),
-                  ),
-                  distil,
-                ),
-              ),
-              typeParameters: yield* Result.all(
-                Array.map(
-                  Array.filter(documentation.typeParameters, ({ name }) =>
-                    declared.typeParameters.includes(name),
-                  ),
-                  distil,
-                ),
-              ),
-              returns: yield* Result.transposeOption(
-                Option.map(documentation.returns, distil),
-              ),
-              throws: yield* Result.all(
-                Array.map(documentation.throws, distil),
-              ),
+              parameters,
+              typeParameters,
+              returns,
+              throws,
             } satisfies Documented;
           }),
         ),

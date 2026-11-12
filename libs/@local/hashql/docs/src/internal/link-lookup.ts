@@ -99,13 +99,13 @@ export const reference =
       ),
     );
 
-/** The path a code span spells when it is a qualified name, such as `Tools.make` or `Tools.make()`. */
+/** The path a code span spells when it starts with a qualified name, such as `Tools.make`, `Tools.make(1)` or `Tools.Item<string>`. The type arguments or the call after the name are no part of the path. */
 const qualifiedName = (
   code: string,
 ): Option.Option<Array.NonEmptyReadonlyArray<string>> =>
   pipe(
     code,
-    String.replace(/\(\)$/u, ""),
+    String.replace(/[<(].*$/su, ""),
     String.split("."),
     Option.liftPredicate(
       (path: Array.NonEmptyReadonlyArray<string>) =>

@@ -114,7 +114,7 @@ export declare namespace Intersection {
 /**
  * A nominal type distinguished by its name and underlying type.
  *
- * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type {@link PrimitiveInteger | `Type.PrimitiveInteger`} or `Type.Opaque<"PostId", Type.PrimitiveInteger>` rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. The underlying descriptor remains available through {@link Opaque."type" | `type`}.
+ * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type {@link PrimitiveInteger | `Type.PrimitiveInteger`} or {@link Opaque | `Type.Opaque<"PostId", Type.PrimitiveInteger>`} rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. The underlying descriptor remains available through {@link Opaque."type" | `type`}.
  *
  * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types.
  *
