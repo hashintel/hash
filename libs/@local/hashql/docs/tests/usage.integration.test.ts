@@ -108,6 +108,27 @@ describe("usage", () => {
   );
 
   it.effect(
+    "accessors",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
+      export interface A {} export interface B {} export interface C {}
+      export declare class Box {
+        get current(): A;
+        set current(value: B);
+        static get shared(): A;
+        readonly plain: C;
+      }
+    `);
+      expect(Array.map(["A", "B", "C"], users)).toStrictEqual([
+        { accepted: [], returned: ["current", "static shared"] },
+        { accepted: ["current"], returned: [] },
+        { accepted: [], returned: [] },
+      ]);
+    }),
+  );
+
+  it.effect(
     "private_and_self",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

@@ -168,7 +168,8 @@ const classify = (
   const category = Entry.summary(entry).pipe(
     Option.flatMap(({ origin }) => origin.category),
   );
-  if (Option.isSome(category) && entry.kind !== "module") {
+  const kind = declaredOf(entry.kind);
+  if (Option.isSome(category) && kind !== "modules") {
     return {
       grouping: Tree.Page.Category({
         name: category.value.name,
@@ -178,8 +179,6 @@ const classify = (
       exported,
     };
   }
-
-  const kind = declaredOf(entry.kind);
 
   return {
     grouping: Tree.Page.Declared({ kind }),
