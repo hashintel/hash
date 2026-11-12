@@ -173,6 +173,13 @@ const memberOf = (reference: Reference.Reference, name: string): Element =>
     Option.getOrThrow,
   );
 
+/** The version, the stability and the internal mark an element states. */
+const stated = (element: Element): readonly Properties[string][] => [
+  propertyOf(element, "since"),
+  propertyOf(element, "stability"),
+  propertyOf(element, "internal"),
+];
+
 /** The text and the kind of each link on `page` to Effect's documentation. */
 const effectLinks = (
   page: Reference.Written,
@@ -763,6 +770,78 @@ export function plain(): void;`,
             "(2) Without a name.",
           ],
           ["`RangeError`", "When released."],
+        ]);
+      }),
+    );
+  });
+
+  it.layer(
+    Reference.layer({
+      source: `/** First.
+ * @since 0.1.0
+ */
+export function pick(value: string): string;
+/** Second.
+ * @since 0.2.0
+ * @stability experimental
+ */
+export function pick(value: number): number;
+/** Third.
+ * @since 0.1.0
+ */
+export function pick(value: boolean): boolean;
+export function pick(): void;
+export declare class Box {
+  /** Reads.
+   * @since 0.1.0
+   */
+  get held(): string;
+  /** Writes.
+   * @since 0.3.0
+   * @internal
+   */
+  set held(value: string);
+}`,
+    }),
+  )("facts", (it) => {
+    it.effect(
+      "unstated_declaration_facts",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        const entry = (name: string): Element =>
+          pipe(
+            hastOf(reference, "pkg.html"),
+            Array.findFirst((element) => propertyOf(element, "name") === name),
+            Option.getOrThrow,
+          );
+        const declarations = (
+          name: string,
+        ): readonly (readonly Properties[string][])[] =>
+          pipe(
+            elementsOf(entry(name)),
+            Array.filter(({ tagName }) => tagName === "api-signature"),
+            Array.map(stated),
+          );
+        expect(stated(entry("pick"))).toStrictEqual([
+          "0.1.0",
+          undefined,
+          undefined,
+        ]);
+        expect(declarations("pick")).toStrictEqual([
+          [undefined, undefined, undefined],
+          ["0.2.0", "experimental", undefined],
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+        ]);
+        expect(stated(entry("Box.held"))).toStrictEqual([
+          "0.1.0",
+          undefined,
+          undefined,
+        ]);
+        expect(declarations("Box.held")).toStrictEqual([
+          [undefined, undefined, undefined],
+          ["0.3.0", undefined, true],
         ]);
       }),
     );
