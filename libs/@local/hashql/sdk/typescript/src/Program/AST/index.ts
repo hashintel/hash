@@ -16,3 +16,4 @@ export * from "./Struct.js";
 export * from "./Subscript.js";
 export * from "./Tuple.js";
 export * from "./Type.js";
+export * from "./As.js";
