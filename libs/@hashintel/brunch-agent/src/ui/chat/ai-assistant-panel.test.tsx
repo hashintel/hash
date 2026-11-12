@@ -6688,112 +6688,6 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
-  test("a clicked answer is the message typing it sends, and the Ledger reads the same turn", async () => {
-    const requestMessages: PetrinautAiMessage[][] = [];
-    const offering = (id: string): UIMessageChunk[] => [
-      ...textChunks(`${id}-text`, "Does it stay counted as open?"),
-      {
-        type: "tool-input-available",
-        providerExecuted: true,
-        toolCallId: id,
-        toolName: brunchTools.offerAnswers,
-        input: {
-          questions: [
-            {
-              kind: "choose",
-              label: "Quarantined shipment",
-              options: ["Stays counted as open", "Drops out until released"],
-            },
-          ],
-        },
-      },
-      {
-        type: "tool-output-available",
-        providerExecuted: true,
-        toolCallId: id,
-        output: { offered: 1 },
-      },
-      { type: "finish-step" },
-    ];
-    const transport: PetrinautAiTransport = {
-      reconnectToStream: () => Promise.resolve(null),
-      sendMessages: vi.fn(({ messages }) => {
-        requestMessages.push(structuredClone(messages));
-        return Promise.resolve(
-          streamChunks(offering(`offer-${requestMessages.length}`)),
-        );
-      }),
-    };
-    renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
-      initialMessage: "We quarantine Flowbind on arrival.",
-    });
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Drops out until released" }),
-    );
-    await waitFor(() => expect(requestMessages).toHaveLength(2));
-    await screen.findByRole("button", { name: "Drops out until released" });
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Message AI assistant" }),
-      { target: { value: "Drops out until released" } },
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
-    await waitFor(() => expect(requestMessages).toHaveLength(3));
-
-    const clicked = requestMessages[1]?.at(-1);
-    const typed = requestMessages[2]?.at(-1);
-    expect(clicked).toEqual({
-      id: expect.any(String) as string,
-      role: "user",
-      parts: [{ type: "text", text: "Drops out until released" }],
-    });
-    expect({ ...clicked, id: undefined }).toEqual({ ...typed, id: undefined });
-
-    const turnOf = (message: PetrinautAiMessage | undefined) =>
-      foldCommits({
-        messages: [
-          ...(message ? [message] : []),
-          {
-            id: `commit-after-${message?.id}`,
-            role: "assistant",
-            parts: [
-              {
-                type: "dynamic-tool",
-                toolName: brunchTools.ledgerCommit,
-                toolCallId: `commit-${message?.id}`,
-                state: "output-available",
-                input: {
-                  entries: [
-                    [
-                      "entity/create",
-                      {
-                        name: "Flowbind",
-                        kind: "resource",
-                        origin: "stated",
-                        status: "confirmed",
-                      },
-                    ],
-                  ],
-                },
-                output: {
-                  status: "recorded",
-                  commitId: `commit-${message?.id}`,
-                  revision: 1,
-                  ids: ["e1"],
-                },
-              },
-            ],
-          },
-        ],
-      }).state.turns;
-    expect(turnOf(clicked)).toEqual([
-      { id: clicked?.id, excerpt: "Drops out until released" },
-    ]);
-    expect(turnOf(typed)).toEqual([
-      { id: typed?.id, excerpt: "Drops out until released" },
-    ]);
-  });
-
   const offerReplies = (questions: unknown[]) => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {
@@ -6806,7 +6700,9 @@ describe("AiAssistantPanel composer submissions", () => {
             ...textChunks(`${id}-text`, "A few questions."),
             {
               type: "tool-input-available",
-              dynamic: true,
+              // The browser transport projects a server tool as a static
+              // part on one reply and a dynamic one on the next.
+              dynamic: requestMessages.length % 2 === 0,
               providerExecuted: true,
               toolCallId: id,
               toolName: brunchTools.offerAnswers,
@@ -6814,7 +6710,7 @@ describe("AiAssistantPanel composer submissions", () => {
             },
             {
               type: "tool-output-available",
-              dynamic: true,
+              dynamic: requestMessages.length % 2 === 0,
               providerExecuted: true,
               toolCallId: id,
               output: { offered: questions.length },
@@ -6863,204 +6759,124 @@ describe("AiAssistantPanel composer submissions", () => {
         },
       ],
     }).state.turns;
-  const typeAndSend = (text: string) => {
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Message AI assistant" }),
-      { target: { value: text } },
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  const batchStart = {
+    kind: "choose",
+    label: "Batch start",
+    options: [
+      {
+        label: "Starts when ready",
+        value: "It starts when both are available",
+      },
+      { label: "Rescheduled", value: "It must be rescheduled" },
+    ],
   };
-
-  test("a clicked answer is sent without taking the text already typed in the composer", async () => {
-    const { requestMessages, transport } = offerReplies([
-      {
-        kind: "choose",
-        label: "Batch start",
-        options: ["Starts when both are available", "Must be rescheduled"],
-      },
-    ]);
-    renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
-      initialMessage: "Batches wait for material.",
-    });
-    const answer = await screen.findByRole("button", {
-      name: "Must be rescheduled",
-    });
-    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
+  const composerOf = () =>
+    screen.getByRole<HTMLTextAreaElement>("textbox", {
       name: "Message AI assistant",
     });
-    fireEvent.change(composer, {
-      target: { value: "Also, operators change at six." },
+  const sendWith = (name: string) =>
+    fireEvent.click(screen.getByRole("button", { name }));
+
+  test("a picked answer is the message typing it sends, and the Ledger reads the same turn", async () => {
+    const { requestMessages, transport } = offerReplies([batchStart]);
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Batches wait for material.",
     });
-    fireEvent.click(answer);
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    expect(requestMessages, "A click alone sends nothing.").toHaveLength(1);
+    expect(composerOf().value).toBe("It must be rescheduled");
+    sendWith("Send message");
     await waitFor(() => expect(requestMessages).toHaveLength(2));
-    await screen.findByRole("button", { name: "Must be rescheduled" });
+    expect(composerOf().value).toBe("");
 
-    expect(requestMessages[1]?.at(-1)).toMatchObject({
+    await screen.findByRole("button", { name: "Rescheduled" });
+    fireEvent.change(composerOf(), {
+      target: { value: "It must be rescheduled" },
+    });
+    sendWith("Send message");
+    await waitFor(() => expect(requestMessages).toHaveLength(3));
+
+    const picked = requestMessages[1]?.at(-1);
+    const typed = requestMessages[2]?.at(-1);
+    expect(picked).toEqual({
+      id: expect.any(String) as string,
       role: "user",
-      parts: [{ type: "text", text: "Must be rescheduled" }],
+      parts: [{ type: "text", text: "It must be rescheduled" }],
     });
-    expect(composer.value).toBe("Also, operators change at six.");
+    expect({ ...picked, id: undefined }).toEqual({ ...typed, id: undefined });
+    const excerpt = "It must be rescheduled";
+    expect(ledgerTurnOf(picked)).toEqual([{ id: picked?.id, excerpt }]);
+    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
   });
 
-  test("a clicked answer that fails to send leaves the typed text as it was", async () => {
+  test("answers to several questions go out as one message, and the Ledger reads it as one turn", async () => {
     const { requestMessages, transport } = offerReplies([
-      {
-        kind: "choose",
-        label: "Batch start",
-        options: ["Starts when both are available", "Must be rescheduled"],
-      },
-    ]);
-    const sendOffer = transport.sendMessages;
-    transport.sendMessages = vi.fn((options) =>
-      requestMessages.length === 0
-        ? sendOffer(options)
-        : Promise.reject(new Error("Answer rejected.")),
-    );
-    renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
-      initialMessage: "Batches wait for material.",
-    });
-    const answer = await screen.findByRole("button", {
-      name: "Must be rescheduled",
-    });
-    const composer = screen.getByRole<HTMLTextAreaElement>("textbox", {
-      name: "Message AI assistant",
-    });
-    fireEvent.change(composer, {
-      target: { value: "Also, operators change at six." },
-    });
-    fireEvent.click(answer);
-
-    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
-    expect(composer.value).toBe("Also, operators change at six.");
-  });
-
-  test("a clicked answer that fails to send leaves an empty composer empty", async () => {
-    const { requestMessages, transport } = offerReplies([
-      {
-        kind: "choose",
-        label: "Batch start",
-        options: ["Starts when both are available", "Must be rescheduled"],
-      },
-    ]);
-    const sendOffer = transport.sendMessages;
-    transport.sendMessages = vi.fn((options) =>
-      requestMessages.length === 0
-        ? sendOffer(options)
-        : Promise.reject(new Error("Answer rejected.")),
-    );
-    renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
-      initialMessage: "Batches wait for material.",
-    });
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Must be rescheduled" }),
-    );
-
-    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
-    expect(
-      screen.getByRole<HTMLTextAreaElement>("textbox", {
-        name: "Message AI assistant",
-      }).value,
-      "The answer is still on the card to click again, so it is not typed for the person.",
-    ).toBe("");
-  });
-
-  test("answers sent together are the message typing them sends, and the Ledger reads the same turn", async () => {
-    const { requestMessages, transport } = offerReplies([
-      {
-        kind: "choose",
-        label: "Batch start",
-        options: ["Starts when both are available", "Must be rescheduled"],
-      },
+      batchStart,
+      { kind: "open", label: "Last delay" },
       { kind: "confirm", label: "Delay clock" },
     ]);
     renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
+      aiAssistant: { transport },
       initialMessage: "Batches wait for material.",
     });
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Must be rescheduled" }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Not quite…" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Delay clock" }), {
-      target: { value: "From the rescheduled start." },
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    sendWith("Continue to next question");
+    fireEvent.change(composerOf(), {
+      target: { value: "Two days, last month." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Send answers" }));
+    sendWith("Continue to next question");
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+    expect(requestMessages).toHaveLength(1);
+    sendWith("Send answers");
     await waitFor(() => expect(requestMessages).toHaveLength(2));
-    await screen.findByRole("button", { name: "Send answers" });
-    const text =
-      "1. Batch start: Must be rescheduled\n2. Delay clock: Not quite — From the rescheduled start.";
-    typeAndSend(text);
-    await waitFor(() => expect(requestMessages).toHaveLength(3));
 
-    const clicked = requestMessages[1]?.at(-1);
-    const typed = requestMessages[2]?.at(-1);
-    expect(clicked).toEqual({
+    const text =
+      "1. Batch start: It must be rescheduled\n2. Last delay: Two days, last month.\n3. Delay clock: Yes";
+    const sent = requestMessages[1]?.at(-1);
+    expect(sent).toEqual({
       id: expect.any(String) as string,
       role: "user",
       parts: [{ type: "text", text }],
     });
-    expect({ ...clicked, id: undefined }).toEqual({ ...typed, id: undefined });
-    const excerpt =
-      "1. Batch start: Must be rescheduled 2. Delay clock: Not quite — From the rescheduled start.";
-    expect(ledgerTurnOf(clicked)).toEqual([{ id: clicked?.id, excerpt }]);
-    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
+    expect(ledgerTurnOf(sent)).toEqual([
+      { id: sent?.id, excerpt: text.replaceAll("\n", " ") },
+    ]);
+    expect(composerOf().value).toBe("");
+    expect(
+      await screen.findByText("Question 1/3 · Batch start"),
+      "The next reply's questions start from the first.",
+    ).not.toBeNull();
   });
 
-  test("a drafted answer, finished and sent from the composer, is the message typing it sends", async () => {
+  test("answers that fail to send come back as text to send again", async () => {
     const { requestMessages, transport } = offerReplies([
-      { kind: "open", label: "Summer peak case" },
-      { kind: "open", label: "Model boundary" },
-      { kind: "open", label: "What else judges it" },
-      {
-        kind: "choose",
-        label: "Time to spend",
-        options: ["Quick", "Standard", "Thorough", "Deep"],
-      },
+      batchStart,
+      { kind: "confirm", label: "Delay clock" },
     ]);
-    renderTestPanel({
-      aiAssistant: { presentation: "brunch", transport },
-      initialMessage: "Should we add a chiller before summer?",
-    });
-    fireEvent.click(await screen.findByRole("button", { name: "Quick" }));
-    const composer = screen.getByRole("textbox", {
-      name: "Message AI assistant",
-    }) as HTMLTextAreaElement;
-    const draft =
-      "1. Summer peak case:\n2. Model boundary:\n3. What else judges it:\n4. Time to spend: Quick";
-    await waitFor(() => expect(composer.value).toBe(draft));
-    expect(document.activeElement).toBe(composer);
-    expect(composer.selectionStart).toBe(draft.length);
-    composer.setSelectionRange(0, 0);
-    fireEvent.click(screen.getByRole("button", { name: "Quick" }));
-    expect(composer.value).toBe(draft);
-    expect(composer.selectionStart).toBe(draft.length);
-    expect(requestMessages).toHaveLength(1);
-
-    const text = draft.replace(
-      "1. Summer peak case:",
-      "1. Summer peak case: last July's incident",
+    const sendOffer = transport.sendMessages;
+    transport.sendMessages = vi.fn((options) =>
+      requestMessages.length === 0
+        ? sendOffer(options)
+        : Promise.reject(new Error("Answer rejected.")),
     );
-    typeAndSend(text);
-    await waitFor(() => expect(requestMessages).toHaveLength(2));
-    await screen.findByRole("button", { name: "Quick" });
-    typeAndSend(text);
-    await waitFor(() => expect(requestMessages).toHaveLength(3));
-
-    const drafted = requestMessages[1]?.at(-1);
-    const typed = requestMessages[2]?.at(-1);
-    expect(drafted).toEqual({
-      id: expect.any(String) as string,
-      role: "user",
-      parts: [{ type: "text", text }],
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Batches wait for material.",
     });
-    expect({ ...drafted, id: undefined }).toEqual({ ...typed, id: undefined });
-    const excerpt =
-      "1. Summer peak case: last July's incident 2. Model boundary: 3. What else judges it: 4. Time to spend: Quick";
-    expect(ledgerTurnOf(drafted)).toEqual([{ id: drafted?.id, excerpt }]);
-    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    sendWith("Continue to next question");
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+    sendWith("Send answers");
+
+    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
+    expect(composerOf().value).toBe(
+      "1. Batch start: It must be rescheduled\n2. Delay clock: Yes",
+    );
+    expect(
+      screen.queryByRole("region", { name: "Brunch's questions" }),
+      "The questions don't return to wrap the text a second time.",
+    ).toBeNull();
   });
 
   test("can force a separate message while an interactive tool is pending", async () => {

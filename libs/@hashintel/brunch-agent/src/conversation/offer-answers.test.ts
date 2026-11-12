@@ -12,10 +12,13 @@ import type { z } from "zod";
 const quarantine = {
   kind: "choose",
   label: "Quarantined shipment",
-  options: ["Stays counted as open", "Drops out until released"],
+  options: [
+    { label: "Stays counted as open" },
+    { label: "Drops out until released" },
+  ],
 } as const;
 const demand = { kind: "confirm", label: "Production demand" } as const;
-/** Case 9 of the P0 set: the opening battery, with a card only for appetite. */
+/** Case 9 of the P0 set: the opening battery, with answers offered only for appetite. */
 const opening = {
   questions: [
     { kind: "open", label: "Summer peak case" },
@@ -24,7 +27,12 @@ const opening = {
     {
       kind: "choose",
       label: "Time to spend",
-      options: ["Quick", "Standard", "Thorough", "Deep"],
+      options: [
+        { label: "Quick" },
+        { label: "Standard" },
+        { label: "Thorough" },
+        { label: "Deep" },
+      ],
     },
   ],
 };
@@ -37,6 +45,20 @@ describe("offer_answers input", () => {
   test.each([
     ["a single choose", { questions: [quarantine] }],
     ["a single confirm", { questions: [demand] }],
+    [
+      "options that carry the answer in full",
+      {
+        questions: [
+          {
+            ...quarantine,
+            options: [
+              { label: "Stays open", value: "It stays counted as open" },
+              { label: "Drops out" },
+            ],
+          },
+        ],
+      },
+    ],
     ["the opening battery", opening],
   ])("accepts %s", (_name, input) => {
     expect(zOfferAnswersInput.parse(input)).toEqual(input);
@@ -49,7 +71,11 @@ describe("offer_answers input", () => {
     ],
     [
       "a choose with one option",
-      { questions: [{ ...quarantine, options: ["Stays counted as open"] }] },
+      {
+        questions: [
+          { ...quarantine, options: [{ label: "Stays counted as open" }] },
+        ],
+      },
     ],
     ["five questions", { questions: Array.from({ length: 5 }, () => demand) }],
     ["an unknown key", { questions: [{ ...demand, mark: "clicked" }] }],
@@ -57,7 +83,26 @@ describe("offer_answers input", () => {
     [
       "an empty option",
       {
-        questions: [{ ...quarantine, options: ["Stays counted as open", ""] }],
+        questions: [
+          {
+            ...quarantine,
+            options: [{ label: "Stays counted as open" }, { label: "" }],
+          },
+        ],
+      },
+    ],
+    [
+      "an option whose label is a sentence",
+      {
+        questions: [
+          {
+            ...quarantine,
+            options: [
+              { label: "It stays counted as an open purchase order" },
+              { label: "Drops out" },
+            ],
+          },
+        ],
       },
     ],
     ["no questions", { questions: [] }],
@@ -122,6 +167,16 @@ describe("offer_answers input", () => {
                     description: offerText.options,
                     minItems: questionKinds.choose.bounds.min,
                     maxItems: questionKinds.choose.bounds.max,
+                    items: {
+                      required: ["label"],
+                      properties: {
+                        label: {
+                          description: offerText.optionLabel,
+                          maxLength: questionKinds.choose.bounds.maxLabelLength,
+                        },
+                        value: { description: offerText.optionValue },
+                      },
+                    },
                   },
                 },
               },

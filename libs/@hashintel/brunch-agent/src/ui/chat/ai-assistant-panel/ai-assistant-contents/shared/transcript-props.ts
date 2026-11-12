@@ -14,8 +14,6 @@ export type MessageHandlersRef = RefObject<{
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onRetryMessage: (messageId: string) => void;
-  onSendAnswer?: (text: string) => void;
-  onDraftAnswer?: (fill: (draft: string) => string) => void;
 }>;
 
 /** What every transcript presentation needs to render its messages. */

@@ -2302,15 +2302,13 @@ const ConversationAiAssistantPanel = ({
       text: string,
       target: "auto" | "message" = "auto",
       preserveDraft = false,
-      /** Whether a failed send puts `text` into an empty composer. */
-      restoreOnFailure = true,
     ) => {
       if (!text.trim() || voiceHandoffPendingRef.current) {
         return;
       }
 
       const restoreInputAfterFailure = () => {
-        if (restoreOnFailure) setInput((currentInput) => currentInput || text);
+        setInput((currentInput) => currentInput || text);
       };
       const submitAndRecover = async () => {
         pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
@@ -2657,9 +2655,7 @@ const ConversationAiAssistantPanel = ({
         submitUserText(prompt, "message");
       }}
       onSendAnswer={(answer) => {
-        // The answer stays on the card to click again, so a failed send
-        // types nothing for the person.
-        submitUserText(answer, "message", true, false);
+        submitUserText(answer, "message");
       }}
       onRetryPrompt={(prompt) => {
         submitUserText(prompt, "message", true);

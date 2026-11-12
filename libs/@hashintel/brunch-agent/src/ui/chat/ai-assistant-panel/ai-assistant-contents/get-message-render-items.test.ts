@@ -3,7 +3,10 @@ import { describe, expect, test } from "vitest";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { definePetrinautAiInteractiveTool } from "../../ai-interactive-tool";
-import { getMessageRenderItems } from "./get-message-render-items";
+import {
+  getMessageRenderItems,
+  offerOf,
+} from "./get-message-render-items";
 
 import type { PetrinautAiMessage } from "../types";
 
@@ -152,14 +155,17 @@ describe("conversation turn structure", () => {
       { type: "dynamic-tool", toolName: "offer_answers" },
     ],
   ] as const)(
-    "turns offered answers in %s into one card, outside the work fold",
+    "keeps offered answers in %s out of the transcript, and reads them for the composer",
     (_shape, identity) => {
       const offer = {
         questions: [
           {
             kind: "choose",
             label: "Quarantined shipment",
-            options: ["Stays counted as open", "Drops out until released"],
+            options: [
+              { label: "Stays counted as open" },
+              { label: "Drops out until released" },
+            ],
           },
         ],
       };
@@ -171,7 +177,7 @@ describe("conversation turn structure", () => {
           input,
           output: { offered: 1 },
         }) as unknown as PetrinautAiMessage["parts"][number];
-      const turn = getMessageRenderItems({
+      const message: PetrinautAiMessage = {
         id: "turn",
         role: "assistant",
         parts: [
@@ -187,10 +193,10 @@ describe("conversation turn structure", () => {
             output: { status: "recorded" },
           },
         ],
-      });
-      expect(turn.cards).toEqual([
-        { type: "answers", key: "turn-answers", offer },
-      ]);
+      };
+      const turn = getMessageRenderItems(message);
+      expect(turn.cards).toEqual([]);
+      expect(offerOf(message)).toEqual(offer);
       expect(turn.work.tools.map((tool) => tool.id)).toEqual(["commit-1"]);
       expect(turn.answers.map((answer) => answer.part.text)).toEqual([
         "Does it stay counted as open?",
@@ -210,7 +216,10 @@ describe("conversation turn structure", () => {
     const quarantine = {
       kind: "choose",
       label: "Quarantined shipment",
-      options: ["Stays counted as open", "Drops out until released"],
+      options: [
+        { label: "Stays counted as open" },
+        { label: "Drops out until released" },
+      ],
     };
     const demand = { kind: "confirm", label: "Production demand" };
     const experiment = (toolCallId: string) =>
@@ -221,58 +230,49 @@ describe("conversation turn structure", () => {
         input: {},
       }) as unknown as PetrinautAiMessage["parts"][number];
 
-    test("become one card, placed where the last offer was", () => {
-      const turn = getMessageRenderItems({
-        id: "turn",
-        role: "assistant",
-        parts: [
-          offerPart("offer-1", [quarantine]),
-          experiment("experiment-1"),
-          offerPart("offer-2", [demand]),
-          experiment("experiment-2"),
-        ],
-      });
+    test("are one set of questions", () => {
       expect(
-        turn.cards.map((card) =>
-          card.type === "answers" ? card.offer.questions : card.key,
-        ),
-      ).toEqual(["experiment-1", [quarantine, demand], "experiment-2"]);
+        offerOf({
+          id: "turn",
+          role: "assistant",
+          parts: [
+            offerPart("offer-1", [quarantine]),
+            experiment("experiment-1"),
+            offerPart("offer-2", [demand]),
+          ],
+        }),
+      ).toEqual({ questions: [quarantine, demand] });
     });
 
     test("a question offered twice shows once, in its first place with its latest content", () => {
       const reworded = {
         ...quarantine,
         label: "quarantined shipment",
-        options: ["Counted as open", "Out until released"],
-      };
-      const turn = getMessageRenderItems({
-        id: "turn",
-        role: "assistant",
-        parts: [
-          offerPart("offer-1", [quarantine, demand]),
-          offerPart("offer-2", [reworded]),
+        options: [
+          { label: "Counted as open" },
+          { label: "Out until released" },
         ],
-      });
-      expect(turn.cards).toEqual([
-        {
-          type: "answers",
-          key: "turn-answers",
-          offer: { questions: [reworded, demand] },
-        },
-      ]);
+      };
+      expect(
+        offerOf({
+          id: "turn",
+          role: "assistant",
+          parts: [
+            offerPart("offer-1", [quarantine, demand]),
+            offerPart("offer-2", [reworded]),
+          ],
+        }),
+      ).toEqual({ questions: [reworded, demand] });
     });
 
-    test("the card keeps its key when a later offer arrives", () => {
-      const first = offerPart("offer-1", [quarantine]);
-      const keys = [[first], [first, offerPart("offer-2", [demand])]].map(
-        (parts) =>
-          getMessageRenderItems({
-            id: "turn",
-            role: "assistant",
-            parts,
-          }).cards.map((card) => card.key),
-      );
-      expect(keys).toEqual([["turn-answers"], ["turn-answers"]]);
+    test("a turn whose questions are all open offers nothing", () => {
+      expect(
+        offerOf({
+          id: "turn",
+          role: "assistant",
+          parts: [{ type: "text", text: "Walk me through one order." }],
+        }),
+      ).toBeUndefined();
     });
   });
 

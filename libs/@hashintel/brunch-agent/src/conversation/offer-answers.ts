@@ -19,7 +19,19 @@ const zOfferedQuestion = z.discriminatedUnion("kind", [
     kind: z.literal("choose"),
     label: zLabel,
     options: z
-      .array(zTextWith(choose.bounds.maxLength))
+      .array(
+        z.strictObject({
+          label: zTextWith(choose.bounds.maxLabelLength).describe(
+            offerText.optionLabel,
+          ),
+          value: z
+            .string()
+            .trim()
+            .min(1)
+            .optional()
+            .describe(offerText.optionValue),
+        }),
+      )
       .min(choose.bounds.min)
       .max(choose.bounds.max)
       .describe(offerText.options),

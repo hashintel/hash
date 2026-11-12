@@ -46,7 +46,6 @@ export type MessageRenderItems = {
   cards: (
     | { type: "experiment"; key: string; part: ExperimentToolPart }
     | { type: "tool"; key: string; tool: ToolRenderItem }
-    | { type: "answers"; key: string; offer: OfferedQuestions }
   )[];
   brief?: VoiceBrief;
   voiceAgentReply?: VoiceAgentLine;
@@ -75,8 +74,6 @@ export const getMessageRenderItems = (
       )
       .map(({ toolName }) => toolName),
   );
-  const offers: OfferedQuestions[] = [];
-  let cardsBeforeLastOffer = 0;
   message.parts.forEach((part, index) => {
     const key = `${message.id}-${index}`;
     if (part.type === "text") {
@@ -89,11 +86,7 @@ export const getMessageRenderItems = (
       isToolPart(part) &&
       getToolName(part) === brunchTools.offerAnswers
     ) {
-      const offer = zOfferAnswersInput.safeParse(part.input);
-      if (offer.success) {
-        offers.push(offer.data);
-        cardsBeforeLastOffer = turn.cards.length;
-      }
+      // The questions show on the composer, not in the transcript.
     } else if (isToolPart(part)) {
       if (hiddenToolNames.has(getToolName(part))) return;
       const tool = toToolRenderItem(
@@ -141,14 +134,23 @@ export const getMessageRenderItems = (
       }
     }
   });
-  // One card answers the whole turn, so whether a click sends, collects or
-  // drafts is decided over every question the turn offered.
-  const offer = mergeOffers(offers);
-  if (offersAnswers(offer))
-    turn.cards.splice(cardsBeforeLastOffer, 0, {
-      type: "answers",
-      key: `${message.id}-answers`,
-      offer,
-    });
   return turn;
+};
+
+/**
+ * The one set of questions a message offers answers for, across every offer
+ * its turn made. Undefined when it offers none.
+ */
+export const offerOf = (
+  message: PetrinautAiMessage,
+): OfferedQuestions | undefined => {
+  const offer = mergeOffers(
+    message.parts.flatMap((part) => {
+      if (!isToolPart(part) || getToolName(part) !== brunchTools.offerAnswers)
+        return [];
+      const parsed = zOfferAnswersInput.safeParse(part.input);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  );
+  return offersAnswers(offer) ? offer : undefined;
 };
