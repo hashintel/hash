@@ -1,4 +1,9 @@
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { scaledConversion } from "../shared/conversions";
+
 import type { SiUnitDefinition } from "../si-unit-groups";
+import type { BaseUrl, Conversions } from "@blockprotocol/type-system";
 
 const prefixes = [
   { name: "quetta", symbol: "Q", exponent: 30 },
@@ -27,41 +32,74 @@ const prefixes = [
   { name: "quecto", symbol: "q", exponent: -30 },
 ];
 
-const prefixableUnits = new Set([
-  "Meters",
-  "Grams",
-  "Second",
-  "Amperes",
-  "Kelvins",
-  "Moles",
-  "Candelas",
-  "Radians",
-  "Steradians",
-  "Hertz",
-  "Newtons",
-  "Pascals",
-  "Joules",
-  "Watts",
-  "Coulombs",
-  "Volts",
-  "Farads",
-  "Ohms",
-  "Siemens",
-  "Webers",
-  "Teslas",
-  "Henries",
-  "Lumens",
-  "Lux",
-  "Becquerels",
-  "Grays",
-  "Sieverts",
-  "Katals",
-  "Ampere Hours",
-  "Watt Hours",
-  "Litres",
-  "Square Metres",
-  "Cubic Metres",
-]);
+const prefixableUnits = new Map<string, BaseUrl>(
+  [
+    systemDataTypes.meters,
+    systemDataTypes.grams,
+    systemDataTypes.second,
+    systemDataTypes.amperes,
+    systemDataTypes.kelvins,
+    systemDataTypes.moles,
+    systemDataTypes.candelas,
+    systemDataTypes.radians,
+    systemDataTypes.steradians,
+    systemDataTypes.hertz,
+    systemDataTypes.newtons,
+    systemDataTypes.pascals,
+    systemDataTypes.joules,
+    systemDataTypes.watts,
+    systemDataTypes.coulombs,
+    systemDataTypes.volts,
+    systemDataTypes.farads,
+    systemDataTypes.ohms,
+    systemDataTypes.siemens,
+    systemDataTypes.webers,
+    systemDataTypes.teslas,
+    systemDataTypes.henries,
+    systemDataTypes.lumens,
+    systemDataTypes.lux,
+    systemDataTypes.becquerels,
+    systemDataTypes.grays,
+    systemDataTypes.sieverts,
+    systemDataTypes.katals,
+    systemDataTypes.ampereHours,
+    systemDataTypes.wattHours,
+    systemDataTypes.litres,
+    systemDataTypes.squareMetres,
+    systemDataTypes.cubicMetres,
+  ].map(({ title, dataTypeBaseUrl }) => [title, dataTypeBaseUrl]),
+);
+
+const prefixConversion = (
+  conversion: Conversions,
+  exponent: number,
+): Conversions => {
+  const [operator, dividend, divisor] = conversion.to.expression;
+  if (
+    operator !== "/" ||
+    !Array.isArray(dividend) ||
+    dividend[0] !== "*" ||
+    dividend[1] !== "self" ||
+    typeof dividend[2] !== "object" ||
+    Array.isArray(dividend[2]) ||
+    typeof divisor !== "object" ||
+    Array.isArray(divisor)
+  ) {
+    throw new Error("SI prefixes require a multiplicative conversion");
+  }
+  const factor = dividend[2].const;
+  if (
+    JSON.stringify(conversion.from) !==
+    JSON.stringify(scaledConversion(factor, divisor.const).from)
+  ) {
+    throw new Error("SI prefix conversion has an inconsistent inverse");
+  }
+  const [coefficient, originalExponent] = factor.toExponential().split("e");
+  return scaledConversion(
+    Number(`${coefficient}e${Number(originalExponent) + exponent}`),
+    divisor.const,
+  );
+};
 
 export const expandSiPrefixes = (
   units: SiUnitDefinition[],
@@ -70,7 +108,8 @@ export const expandSiPrefixes = (
   const expanded = [...units];
 
   for (const unit of units) {
-    if (!prefixableUnits.has(unit.title)) {
+    const baseUrl = prefixableUnits.get(unit.title);
+    if (!baseUrl) {
       continue;
     }
 
@@ -96,10 +135,9 @@ export const expandSiPrefixes = (
       }
 
       const scale = Number(`1e${prefix.exponent * power}`);
-      const conversion = unit.conversion ?? { target: unit.title };
-      const [coefficient, exponent] = (conversion.factor ?? 1)
-        .toExponential()
-        .split("e");
+      const conversions = unit.conversions ?? {
+        [baseUrl]: scaledConversion(1),
+      };
       expanded.push({
         title,
         symbol: `${prefix.symbol}${unit.symbol}`,
@@ -107,12 +145,12 @@ export const expandSiPrefixes = (
         ...(unit.minimum === undefined
           ? {}
           : { minimum: unit.minimum / scale }),
-        conversion: {
-          ...conversion,
-          factor: Number(
-            `${coefficient}e${Number(exponent) + prefix.exponent * power}`,
-          ),
-        },
+        conversions: Object.fromEntries(
+          Object.entries(conversions).map(([target, conversion]) => [
+            target,
+            prefixConversion(conversion, prefix.exponent * power),
+          ]),
+        ),
       });
       titles.add(title);
     }

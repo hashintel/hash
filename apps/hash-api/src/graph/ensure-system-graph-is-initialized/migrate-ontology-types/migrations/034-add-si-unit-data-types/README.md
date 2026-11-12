@@ -51,17 +51,16 @@ where another unit of the same quantity is available, a bidirectional conversion
 to a shared reference unit. The graph can compose conversions between units that
 share that reference, including across metric, imperial, and US customary subgroups. There are 928 bidirectional conversion definitions.
 
-The catalogue specifies conversions as:
+The catalogue stores the existing `Record<BaseUrl, Conversions>` schema directly,
+with `to` and `from` expressions. Targets use the existing system data type base
+URLs. Small typed helpers return that schema for scaling and affine conversions;
+the migration passes it through without translating a separate formula format.
 
-```text
-target = (source + inputOffset) × factor / divisor + offset
-source = (target − offset) × divisor / factor − inputOffset
-```
-
-The migration expresses these formulas with the existing conversion operators.
 Integer ratios preserve conversions such as kilometres per hour to metres per
 second without rounding their factors to decimal constants. Radians use a
 floating-point approximation of π to convert to the existing `Degree` type.
+Prefix expansion scales the coefficient in multiplicative conversions while
+retaining the shared target, ratio denominator, and evaluator operation order.
 
 Prefixes on square and cubic metres scale the whole prefixed length: 1 cm² is
 10⁻⁴ m², and 1 cm³ is 10⁻⁶ m³. Ampere-hours and watt-hours convert through
