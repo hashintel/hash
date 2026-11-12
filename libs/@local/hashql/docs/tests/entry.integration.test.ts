@@ -85,6 +85,84 @@ const numbersOf = (
     Array.map(({ overloads }) => Array.map(overloads, ({ index }) => index)),
   );
 
+type Applied = readonly [text: string, overloads: readonly number[]];
+
+const describedOf = <Origin>(
+  values: readonly Tree.Callable.Described<Origin>[],
+): readonly Applied[] =>
+  Array.map(values, ({ children, applies }) => [
+    Option.getOrThrow(Tree.Prose.plain(children)),
+    applies.overloads,
+  ]);
+
+const formsOf = <Origin>(
+  values: readonly Tree.Callable.Form<Origin>[],
+): readonly Applied[] =>
+  Array.map(values, ({ type, applies }) => [type.getText(), applies.overloads]);
+
+interface Calls {
+  readonly parameters: readonly {
+    readonly name: string;
+    readonly forms: readonly Applied[];
+    readonly descriptions: readonly Applied[];
+  }[];
+  readonly returns: Option.Option<{
+    readonly forms: readonly Applied[];
+    readonly descriptions: readonly Applied[];
+  }>;
+  readonly throws: readonly {
+    readonly error: Option.Option<string>;
+    readonly overloads: readonly number[];
+    readonly descriptions: readonly Applied[];
+  }[];
+}
+
+/** What comments document about calls: every type, description and error with the overloads it holds in. */
+const callsOf = ({
+  parameters,
+  returns,
+  throws,
+}: Tree.Callable.Callable): Calls => ({
+  parameters: Array.map(parameters, ({ name, forms, descriptions }) => ({
+    name,
+    forms: formsOf(forms),
+    descriptions: describedOf(descriptions),
+  })),
+  returns: Option.map(returns, ({ forms, descriptions }) => ({
+    forms: formsOf(forms),
+    descriptions: describedOf(descriptions),
+  })),
+  throws: Array.map(throws, ({ error, applies, descriptions }) => ({
+    error: error.pipe(
+      Option.filter((node) => node.type === "inlineCode"),
+      Option.map(({ value }) => value),
+    ),
+    overloads: applies.overloads,
+    descriptions: describedOf(descriptions),
+  })),
+});
+
+/** A member's documented calls beside the summary of the comment that documents them, a getter's and a setter's apart. */
+const memberCalls = (
+  member: Tree.Member.Member,
+): readonly (readonly [string, Option.Option<string>, Calls])[] => {
+  if (member.type === "accessor") {
+    return Array.map(member.halves, (half) => [
+      `${half.type} ${member.name}`,
+      Option.flatMap(half.comment, summaryOf),
+      callsOf(half),
+    ]);
+  }
+
+  return [
+    [
+      member.name,
+      Option.flatMap(Array.head(member.comments), summaryOf),
+      callsOf(member),
+    ],
+  ];
+};
+
 layer(Reference.layer({ source: Reference.source }), {
   excludeTestServices: true,
 })("entry", (it) => {
@@ -179,10 +257,14 @@ layer(Reference.layer({ source: Reference.source }), {
         ["value", false],
       ]);
       expect(
-        summaries(Array.get(own.members, 2).pipe(Option.getOrThrow)),
+        summaries({
+          comments: Tree.Member.comments(
+            Array.get(own.members, 2).pipe(Option.getOrThrow),
+          ),
+        }),
       ).toStrictEqual([
         [Option.some("Getter."), [1]],
-        [Option.some("Setter."), [2]],
+        [Option.some("Setter."), [1]],
       ]);
       expect(
         own.namespace.pipe(
@@ -193,6 +275,113 @@ layer(Reference.layer({ source: Reference.source }), {
       expect(Option.flatMap(Entry.summary(own), summaryOf)).toStrictEqual(
         Option.some("Model."),
       );
+    }),
+  );
+
+  it.effect(
+    "member_calls",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `export class Model {
+  /** Getter.
+   * @returns The value.
+   * @throws \`RangeError\` When empty.
+   */
+  get value(): string;
+  /** Setter.
+   * @param input - The new value.
+   * @throws \`TypeError\` When frozen.
+   */
+  set value(input: string | number);
+  /** Size. @returns The size. @deprecated Use the value. */
+  get size(): number;
+  set size(size: number);
+  /** Ready. @throws \`Error\` When read early. */
+  readonly ready: boolean;
+}`,
+      });
+      const { members } = ownOf(reference, "Model");
+      expect(
+        Array.map(members, ({ name, deprecated }) => [name, deprecated]),
+      ).toStrictEqual([
+        ["value", false],
+        ["size", true],
+        ["ready", false],
+      ]);
+      expect(Array.flatMap(members, memberCalls)).toStrictEqual([
+        [
+          "getter value",
+          Option.some("Getter."),
+          {
+            parameters: [],
+            returns: Option.some({
+              forms: [["string", [1]]],
+              descriptions: [["The value.", [1]]],
+            }),
+            throws: [
+              {
+                error: Option.some("RangeError"),
+                overloads: [1],
+                descriptions: [["When empty.", [1]]],
+              },
+            ],
+          },
+        ],
+        [
+          "setter value",
+          Option.some("Setter."),
+          {
+            parameters: [
+              {
+                name: "input",
+                forms: [["string | number", [1]]],
+                descriptions: [["The new value.", [1]]],
+              },
+            ],
+            returns: Option.none(),
+            throws: [
+              {
+                error: Option.some("TypeError"),
+                overloads: [1],
+                descriptions: [["When frozen.", [1]]],
+              },
+            ],
+          },
+        ],
+        [
+          "getter size",
+          Option.some("Size."),
+          {
+            parameters: [],
+            returns: Option.some({
+              forms: [["number", [1]]],
+              descriptions: [["The size.", [1]]],
+            }),
+            throws: [],
+          },
+        ],
+        [
+          "setter size",
+          Option.none(),
+          { parameters: [], returns: Option.none(), throws: [] },
+        ],
+        [
+          "ready",
+          Option.some("Ready."),
+          {
+            parameters: [],
+            returns: Option.none(),
+            throws: [
+              {
+                error: Option.some("Error"),
+                overloads: [1],
+                descriptions: [["When read early.", [1]]],
+              },
+            ],
+          },
+        ],
+      ]);
     }),
   );
 

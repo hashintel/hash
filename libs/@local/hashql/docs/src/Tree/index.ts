@@ -3,7 +3,7 @@ export type * as Comment from "./Comment.js";
 export type * as Declaration from "./Declaration.js";
 export type * as Export from "./Export.js";
 export type * as Hierarchy from "./Hierarchy.js";
-export type * as Member from "./Member.js";
+export * as Member from "./Member.js";
 export type * as Node from "./Node.js";
 export * as Page from "./Page.js";
 export * as Prose from "./Prose.js";

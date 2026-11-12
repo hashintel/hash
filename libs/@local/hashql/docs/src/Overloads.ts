@@ -12,11 +12,11 @@ import type { Equivalence } from "effect";
 type OverloadIndex = Tree.Callable.OverloadIndex;
 type TypeNode = AST.TypeNode.TypeNode["node"];
 
-/** Each explicit call receives an index. A declaration without calls is one overload. */
+/** Each explicit call receives an index. A declaration without calls is one overload, and a getter or a setter is its own call. */
 export interface Overload {
   readonly index: OverloadIndex;
   readonly part: Parts.Part;
-  readonly call: Option.Option<AST.CallSignature.CallSignature>;
+  readonly call: Option.Option<Tree.Callable.Call>;
   readonly comment: Option.Option<AST.Documentation.Documentation>;
 }
 
@@ -64,6 +64,13 @@ const group = <A, Origin>(
   return groups;
 };
 
+/** A getter or a setter is the call that reading or writing its member makes. */
+const accessed: (source: Parts.Source) => Option.Option<Tree.Callable.Call> =
+  Option.liftPredicate(
+    (source: Parts.Source): source is AST.Getter.Getter | AST.Setter.Setter =>
+      source._tag === "Getter" || source._tag === "Setter",
+  );
+
 /**
  * A callable constant's nested comment takes precedence over its enclosing declaration's comment.
  *
@@ -78,18 +85,12 @@ const entriesOf = (
     Array.flatMap((part) => {
       const own = Option.map(part.source.documentation, ast.get);
       if (part.calls.length === 0) {
-        return [
-          {
-            part,
-            call: Option.none<AST.CallSignature.CallSignature>(),
-            comment: own,
-          },
-        ];
+        return [{ part, call: accessed(part.source), comment: own }];
       }
 
       return Array.map(part.calls, (call) => ({
         part,
-        call: Option.some(call),
+        call: Option.some<Tree.Callable.Call>(call),
         comment: Option.map(call.documentation, ast.get).pipe(
           Option.orElse(() => own),
         ),
@@ -453,7 +454,7 @@ const throwsOf = (
             ),
             Tree.Prose.equivalence,
           ),
-          entries.length,
+          overloads.length,
         ),
         origin: origins,
       };

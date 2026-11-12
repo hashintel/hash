@@ -28,6 +28,12 @@ export const whole: Applies = { overloads: [OverloadIndex(1)], total: 1 };
 export const isEvery = ({ overloads, total }: Applies): boolean =>
   overloads.length === total;
 
+/** What states an overload's parameters and result. Reading a member calls its getter, and writing it calls its setter. */
+export type Call =
+  | AST.CallSignature.CallSignature
+  | AST.Getter.Getter
+  | AST.Setter.Setter;
+
 /**
  * A type a parameter or a call's result has, in the overloads it has it in. Equal types of different overloads form one form.
  *
@@ -77,11 +83,15 @@ export interface Returns extends Node.Node<
   "returns",
   Array.NonEmptyReadonlyArray<AST.Documentation.Returns.Returns>
 > {
-  readonly forms: readonly Form<AST.CallSignature.CallSignature>[];
+  readonly forms: readonly Form<Call>[];
   readonly descriptions: readonly Described<AST.Documentation.Returns.Returns>[];
 }
 
-/** An error the calls throw. A `@throws` that opens with code, or a link to it, names the error, and the rest describes it. */
+/**
+ * An error the calls throw. A `@throws` that opens with code, or a link to it, names the error, and the rest describes it.
+ *
+ * The error owns its descriptions. A description's total counts the overloads that throw the error, and a description all of them give holds in every overload of its owner.
+ */
 export interface Throw extends Node.Node<
   "throw",
   Array.NonEmptyReadonlyArray<AST.Documentation.Throws.Throws>
@@ -91,7 +101,7 @@ export interface Throw extends Node.Node<
   readonly descriptions: readonly Described<AST.Documentation.Throws.Throws>[];
 }
 
-/** The documented parts of the calls an export or a member declares. A declaration without calls has none of them. */
+/** The documented parts of the calls an export or a member declares. */
 export interface Callable {
   readonly typeParameters: readonly TypeParameter[];
   readonly parameters: readonly Parameter[];
