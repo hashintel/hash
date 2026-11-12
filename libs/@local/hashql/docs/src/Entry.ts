@@ -262,88 +262,147 @@ const groupOf = (
     };
   });
 
-const half = (
-  signatures: Option.Option<Tree.Declaration.Signatures>,
-  tag: "Getter" | "Setter",
-): Option.Option<Tree.Declaration.Signature> =>
-  Option.flatMap(signatures, ({ children }) =>
-    Array.findFirst(children, ({ origin }) => origin._tag === tag),
+const callsOf = (group: Group): Tree.Callable.Callable =>
+  Struct.pick(group, ["typeParameters", "parameters", "returns", "throws"]);
+
+/** A getter or a setter as a group of its own, so its comment documents it alone and it numbers no overloads. */
+const halfOf = <
+  Type extends string,
+  Origin extends AST.Getter.Getter | AST.Setter.Setter,
+>(
+  type: Type,
+  origin: Origin,
+  context: Context,
+): Result.Result<Option.Option<Tree.Member.Half<Type, Origin>>, Failure> =>
+  groupOf([{ source: origin, calls: [] }], {
+    exported: Option.none(),
+    context,
+  }).pipe(
+    Result.map((group) =>
+      pipe(
+        group.signatures,
+        Option.flatMap(({ children }) => Array.head(children)),
+        Option.map((signature) => ({
+          ...callsOf(group),
+          type,
+          signature,
+          comment: Array.head(group.comments),
+          origin,
+        })),
+      ),
+    ),
+  );
+
+const accessorOf = (
+  member: Parts.Member,
+  origin: AST.Accessor.Accessor,
+  context: Context,
+): Result.Result<Option.Option<Tree.Member.Accessor>, Failure> =>
+  pipe(
+    member.parts,
+    Array.map(({ source }) =>
+      Match.value(source).pipe(
+        Match.withReturnType<
+          Result.Result<
+            Option.Option<Tree.Member.Getter | Tree.Member.Setter>,
+            Failure
+          >
+        >(),
+        Match.tag("Getter", (getter) => halfOf("getter", getter, context)),
+        Match.tag("Setter", (setter) => halfOf("setter", setter, context)),
+        Match.orElse(() => Result.succeedNone),
+      ),
+    ),
+    Result.all,
+    Result.map(Array.getSomes),
+    Result.map(
+      Option.liftPredicate(
+        Array.isReadonlyArrayNonEmpty<Tree.Member.Getter | Tree.Member.Setter>,
+      ),
+    ),
+    Result.map(
+      Option.map((halves): Tree.Member.Accessor => {
+        const documented = Array.getSomes(
+          Array.map(halves, ({ comment }) => comment),
+        );
+
+        return {
+          type: "accessor",
+          id: member.id,
+          name: member.name,
+          static: member.static,
+          deprecated:
+            Array.isReadonlyArrayNonEmpty(documented) &&
+            Array.every(documented, ({ facts }) =>
+              Option.isSome(facts.deprecation),
+            ),
+          halves,
+          origin,
+        };
+      }),
+    ),
   );
 
 /** A member as the node of its kind, or none for a kind that its owner's declaration documents instead. */
 const memberOf = (
   member: Parts.Member,
   context: Context,
-): Result.Result<Option.Option<Tree.Member.Member>, Failure> =>
-  Result.gen(function* () {
-    const { signatures, ...group } = yield* groupOf(member.parts, {
-      exported: Option.none(),
-      context,
-    });
-    const shared = {
-      name: member.name,
-      static: member.static,
-      comments: group.comments,
-      deprecated: group.deprecated,
-    };
-    const origin = context.ast.get(member.id);
+): Result.Result<Option.Option<Tree.Member.Member>, Failure> => {
+  const origin = context.ast.get(member.id);
+  if (origin._tag === "Accessor") {
+    return accessorOf(member, origin, context);
+  }
 
-    return Match.value(origin).pipe(
-      Match.withReturnType<Option.Option<Tree.Member.Member>>(),
-      Match.tag("Property", (value) =>
-        Option.map(signatures, (declared) => ({
-          ...shared,
-          type: "property" as const,
-          id: member.id,
-          signatures: declared,
-          origin: value,
-        })),
-      ),
-      Match.tag("Method", (value) =>
-        Option.map(signatures, (declared) => ({
-          ...shared,
-          ...Struct.pick(group, [
-            "typeParameters",
-            "parameters",
-            "returns",
-            "throws",
-          ]),
-          type: "method" as const,
-          id: member.id,
-          signatures: declared,
-          origin: value,
-        })),
-      ),
-      Match.tag("Accessor", (value) =>
-        Option.some({
-          ...shared,
-          type: "accessor" as const,
-          id: member.id,
-          get: half(signatures, "Getter"),
-          set: half(signatures, "Setter"),
-          origin: value,
-        }),
-      ),
-      Match.tag("EnumMember", (value) =>
-        Option.map(signatures, (declared) => ({
-          ...shared,
-          type: "enumMember" as const,
-          id: member.id,
-          signatures: declared,
-          origin: value,
-        })),
-      ),
-      // Their owner's declaration documents these.
-      Match.tag(
-        "Constructor",
-        "CallSignature",
-        "ConstructSignature",
-        "IndexSignature",
-        () => Option.none(),
-      ),
-      Match.exhaustive,
-    );
-  });
+  return groupOf(member.parts, { exported: Option.none(), context }).pipe(
+    Result.map((group) => {
+      const shared = {
+        ...callsOf(group),
+        id: member.id,
+        name: member.name,
+        static: member.static,
+        comments: group.comments,
+        deprecated: group.deprecated,
+      };
+
+      return Match.value(origin).pipe(
+        Match.withReturnType<Option.Option<Tree.Member.Member>>(),
+        Match.tag("Property", (value) =>
+          Option.map(group.signatures, (signatures) => ({
+            ...shared,
+            type: "property" as const,
+            signatures,
+            origin: value,
+          })),
+        ),
+        Match.tag("Method", (value) =>
+          Option.map(group.signatures, (signatures) => ({
+            ...shared,
+            type: "method" as const,
+            signatures,
+            origin: value,
+          })),
+        ),
+        Match.tag("EnumMember", (value) =>
+          Option.map(group.signatures, (signatures) => ({
+            ...shared,
+            type: "enumMember" as const,
+            signatures,
+            origin: value,
+          })),
+        ),
+        // Their owner's declaration documents these.
+        Match.tag(
+          "Constructor",
+          "CallSignature",
+          "ConstructSignature",
+          "IndexSignature",
+          () => Option.none(),
+        ),
+        Match.exhaustive,
+      );
+    }),
+  );
+};
 
 /** The comment an index summarises an export by: its first declaration's, or a namespace-only declaration's own. */
 export const summary = (

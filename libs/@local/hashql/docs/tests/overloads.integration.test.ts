@@ -92,6 +92,17 @@ export function duplicate(): void;
  * @throws {@link Failure} When broken.
  */
 export function linked(): void;
+/** First.
+ * @throws \`Failure\` When invalid.
+ */
+export function narrow(value: Value): void;
+/** Second.
+ * @throws \`Failure\` When invalid.
+ * @throws \`Failure\` When negative.
+ */
+export function narrow(value: number): void;
+/** Third. */
+export function narrow(): void;
 /** First documented.
  * @param value - Keep this source.
  */
@@ -464,6 +475,29 @@ layer(Reference.layer({ source, configuration: "render-tsdoc.json" }), {
       expect([at(throws, 1).error, descriptions(at(throws, 1))]).toStrictEqual([
         Option.none(),
         [applied("No reason given.", [1])],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "throw_description_scope",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const thrown = at(collect(reference, "narrow").throws, 0);
+      expect([
+        thrown.applies.overloads,
+        Tree.Callable.isEvery(thrown.applies),
+      ]).toStrictEqual([[1, 2], false]);
+      expect(
+        Array.map(thrown.descriptions, ({ children, applies }) => [
+          Tree.Prose.plain(children),
+          applies.overloads,
+          Tree.Callable.isEvery(applies),
+        ]),
+      ).toStrictEqual([
+        [Option.some("When invalid."), [1, 2], true],
+        [Option.some("When negative."), [2], false],
       ]);
     }),
   );
