@@ -17,7 +17,6 @@ export {
 export * from "./conversation-identity";
 export { offerIn, zOfferAnswersInput } from "./conversation/offer-answers";
 export {
-  neverOffer,
   questionKinds,
   spokenQuestion,
   type OfferedQuestion,

@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 
 import {
   mergeOffers,
-  neverOffer,
   type OfferedQuestion,
   optionsFor,
   optionText,
@@ -77,15 +76,6 @@ describe("the answers each kind offers as buttons", () => {
       "It drops out until quality releases it",
     ]);
     expect(optionsFor(p0.confirmation).map(optionText)).toEqual(["Yes"]);
-  });
-});
-
-describe("what is never offered as choices", () => {
-  test("the user's purpose, and open or narrative questions", () => {
-    expect(neverOffer).toEqual([
-      expect.stringContaining("the user's purpose"),
-      expect.stringContaining("open or narrative"),
-    ]);
   });
 });
 

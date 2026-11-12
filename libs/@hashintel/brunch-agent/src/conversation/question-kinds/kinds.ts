@@ -28,30 +28,24 @@ export type QuestionKind = OfferedQuestion["kind"];
 const optionBounds = { min: 2, max: 4, maxLabelLength: 32 };
 
 /**
- * What makes a question each kind, and its bounds. `use` completes
- * "Use <kind> …" in the model's instructions. Whatever the kind, the person
- * can answer in their own words in the composer.
+ * What each kind offers and its bounds. Whatever the kind, the person can
+ * answer in their own words in the composer. When to use each is the
+ * agent's guidance, not this module's.
  */
 export const questionKinds = {
   confirm: {
-    use: "when you restate something for the user to confirm",
     answers: [{ label: "Yes" }],
   },
   choose: {
-    use: `for ${optionBounds.min} to ${optionBounds.max} named alternatives such as readings of the user's own words`,
     bounds: optionBounds,
   },
   values: {
-    use: "for numbers the user supplies",
     bounds: { min: 1, max: 3, maxLabelLength: 32, maxUnitLength: 16 },
   },
-  open: {
-    use: "for every other question",
-  },
+  open: {},
 } as const satisfies Record<
   QuestionKind,
   {
-    use: string;
     answers?: readonly OfferedOption[];
     bounds?: Readonly<Record<string, number>>;
   }
@@ -62,15 +56,6 @@ export const offerBounds = {
   questions: { min: 1, max: 4 },
   maxLabelLength: 48,
 };
-
-/**
- * Questions that never get offered answers, whatever their form: a menu
- * would put guesses in the person's mouth, or break up their account.
- */
-export const neverOffer = [
-  "a question about the user's purpose: what they want the model to help them decide, answer or achieve",
-  "an open or narrative question",
-] as const;
 
 /** What each part of an offer means, for whoever writes one. */
 export const offerText = {
