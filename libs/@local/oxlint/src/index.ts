@@ -167,7 +167,7 @@ const createDefaults = (
       }
       case "next": {
         plugins.push("nextjs", "react-perf", "jsx-a11y");
-        ignorePatterns.push(".next/**", "next-env.d.ts");
+        ignorePatterns.push("**/.next/**", "next-env.d.ts");
         overrides.push(
           defineOverride({
             files: ["**/app/**/*.tsx", "**/pages/**/*.tsx"],

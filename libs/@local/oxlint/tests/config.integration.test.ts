@@ -204,3 +204,31 @@ export default defineConfig({
     });
   });
 });
+
+describe("next_profile", () => {
+  test("nested_build_output", () => {
+    expect.hasAssertions();
+
+    const result = lintFiles(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+export default defineConfig({
+  frameworks: ["react", "next"],
+  runtime: "browser",
+  options: { typeAware: false },
+});
+`,
+        "preview/.next/types/routes.js": "UNDEFINED_GENERATED;\n",
+        "preview/app/page.js": "UNDEFINED_SOURCE;\n",
+      },
+      "no-undef",
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      diagnostics: [
+        { filename: "preview/app/page.js", code: "eslint(no-undef)" },
+      ],
+    });
+  });
+});

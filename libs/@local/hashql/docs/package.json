@@ -2,7 +2,7 @@
   "name": "@local/hashql-docs",
   "version": "0.0.0-private",
   "private": true,
-  "description": "HashQL Reference",
+  "description": "HashQL documentation",
   "type": "module",
   "scripts": {
     "build:reference": "cd reference && typst compile --root ../../../../.. --features html,bundle --format bundle main.typ dist",
