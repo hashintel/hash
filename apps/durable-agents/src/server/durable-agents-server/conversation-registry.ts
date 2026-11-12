@@ -9,9 +9,9 @@
  * Only an acquisition that asks to create one creates a conversation; any
  * other finds an unknown ID absent without creating its storage.
  *
- * Opening a conversation, before its scheduling starts: its agent gets the
- * request-slot gate and the turn limit, and the crash-loop guard inspects
- * its tasks.
+ * Opening a conversation, before its scheduling starts: its host binding is
+ * bound to the new Harness, its agent gets the request-slot gate and the turn
+ * limit, and the crash-loop guard inspects its tasks.
  */
 import {
   type AgentChange,
@@ -24,6 +24,7 @@ import {
   ROOT_CONVERSATION_ID,
 } from "@earendil-works/pi-durable";
 
+import { createHostBinding, type HostBinding } from "../../agent/host-binding";
 import {
   type CrashLoopAbort,
   guardCrashLoops,
@@ -45,8 +46,11 @@ export type {
 export type ConversationRegistryOptions = {
   readonly openStorage: OpenConversationStorage;
   readonly storageExists: ConversationStorageExists;
-  /** A registry per Harness, with the agent's extensions installed; the server installs its own beside them. */
-  readonly createRegistry: () => Registry;
+  /**
+   * A registry per Harness, with the agent's extensions installed, built over
+   * that Harness's host binding; the server installs its own beside them.
+   */
+  readonly createRegistry: (host: HostBinding) => Registry;
   readonly models: HarnessOptions["models"];
   /** The agent a new conversation's root starts with. */
   readonly agent: AgentChange;
@@ -141,7 +145,8 @@ export const createConversationRegistry = (
       return undefined;
     const storage = await options.openStorage(conversationId);
     const gate = limits.requestSlots.gate();
-    const registry = options.createRegistry();
+    const host = createHostBinding();
+    const registry = options.createRegistry(host);
     registry.install(gate.extension);
     const harness = await Harness.open(
       storage,
@@ -152,6 +157,8 @@ export const createConversationRegistry = (
       },
       context,
     );
+    // Open schedules nothing, so no tool, hook or section runs before this.
+    host.bind(harness);
     try {
       const root = create
         ? await harness.root(context, {

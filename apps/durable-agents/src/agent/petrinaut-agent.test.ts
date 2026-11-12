@@ -15,7 +15,9 @@ import {
 } from "@hashintel/brunch-agent";
 
 import { fauxAssistantMessage, scriptedModel } from "../../test/scripted-model";
+import { browserCallExtension } from "../browser-call/browser-call";
 import { ledgerExtension } from "../ledger";
+import { createHostBinding } from "./host-binding";
 import { createPetrinautAgent } from "./petrinaut-agent";
 
 const context = BACKGROUND_CONTEXT;
@@ -51,6 +53,18 @@ describe("the minimal Petrinaut agent", () => {
     );
   });
 
+  test("installs per host binding the extensions its agent selects by name, and the browser-call tasks", () => {
+    const { agent, extensions } = createPetrinautAgent();
+    const names = (list: readonly { readonly name: string }[]) =>
+      list.map(({ name }) => name);
+    const installed = names(extensions(createHostBinding()));
+    expect(installed).toEqual([
+      ...names(agent.extensions),
+      browserCallExtension.name,
+    ]);
+    expect(names(extensions(createHostBinding()))).toEqual(installed);
+  });
+
   test("installs beside the server's own extensions and sends its prompt", async () => {
     const { extensions, agent, systemPrompt } = createPetrinautAgent();
     const seen: string[] = [];
@@ -61,14 +75,16 @@ describe("the minimal Petrinaut agent", () => {
       },
     ]);
     const registry = createRegistry();
+    const host = createHostBinding();
     // As `openHarness` does; reinstalling by name replaces in place.
     registry.install(ledgerExtension);
-    for (const extension of extensions) registry.install(extension);
+    for (const extension of extensions(host)) registry.install(extension);
     const harness = await Harness.open(
       new MemoryStorage(),
       { models, registry },
       context,
     );
+    host.bind(harness);
     const root = await harness.root(context, { agent: { ...agent, model } });
     const submission = await root.submit(
       { type: "input", content: "We run a laundry." },

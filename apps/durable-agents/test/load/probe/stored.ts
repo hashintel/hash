@@ -12,6 +12,7 @@ import {
   ROOT_CONVERSATION_ID,
 } from "@earendil-works/pi-durable";
 
+import { createHostBinding } from "../../../src/agent/host-binding";
 import { createPetrinautAgent } from "../../../src/agent/petrinaut-agent";
 import {
   type BrowserCallRecord,
@@ -82,13 +83,15 @@ export const readStoredConversation = async (
       runFailure: undefined,
     };
   const registry = createRegistry();
-  for (const extension of createPetrinautAgent().extensions)
+  const host = createHostBinding();
+  for (const extension of createPetrinautAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({ pool, schema, readOnly: true }),
     { models: scriptedModel([]).models, registry, readOnly: true },
     context,
   );
+  host.bind(harness);
   try {
     const root = await harness.conversation(ROOT_CONVERSATION_ID, context);
     if (root === undefined) throw new Error(`${conversationId} has no root.`);

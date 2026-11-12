@@ -61,6 +61,7 @@ import {
   vBrowserCallResultBody,
 } from "@hashintel/brunch-agent";
 
+import { createHostBinding } from "../../src/agent/host-binding";
 import { createPetrinautAgent } from "../../src/agent/petrinaut-agent";
 import { BrowserCallsDoc } from "../../src/browser-call/browser-call";
 import { LedgerDoc } from "../../src/ledger";
@@ -747,7 +748,8 @@ const drive = async () => {
 /** The conversation as stored, by a read-only Harness after the server is gone. */
 const readStored = async (chatId: string) => {
   const registry = createRegistry();
-  for (const extension of createPetrinautAgent().extensions)
+  const host = createHostBinding();
+  for (const extension of createPetrinautAgent().extensions(host))
     registry.install(extension);
   const harness = await Harness.open(
     await openPostgresStorage({
@@ -758,6 +760,7 @@ const readStored = async (chatId: string) => {
     { models: builtinModels(), registry, readOnly: true },
     context,
   );
+  host.bind(harness);
   try {
     const root = (await harness.conversation(ROOT_CONVERSATION_ID, context))!;
     const entries = (
