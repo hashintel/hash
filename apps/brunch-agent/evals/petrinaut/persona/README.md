@@ -37,6 +37,7 @@ persona say "We lose about a day a week to expediting."   # prints Brunch's repl
 persona say <<'EOF'
 A longer message, typed as one chat turn.
 EOF
+persona answer "Stays open" "" "About nine days."   # one answer per docked question
 persona transcript          # the visible conversation so far
 persona state               # run and turn state as JSON
 persona end "Goal reached"  # ends the conversation and closes the run
@@ -45,7 +46,17 @@ persona rpc '{"type":"get_state"}'   # one raw record in, JSONL records out
 
 The persona starts the conversation itself with `open`, which sends the case's opening exactly as written, so the opening exchange is in its own context and the time before its second message is its own. The bridge refuses `say` until `open` has been admitted, and refuses `open` after that and on resume. `open` and `say` block until Brunch has completely finished, including browser-tool continuations; a turn can take several minutes. Interrupting the command (or a shell-tool timeout) stops Brunch's turn. Errors go to stderr with exit status 1, and the persona is told never to resend a failed message: it may already have been admitted.
 
-The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?, "type", ... }` records: `open`, `prompt` (with `message`), `get_state`, `get_transcript` and `end` (with optional `reason`). Each command gets one `response` record with `success` and `data` or `error`. An accepted `open` or `prompt` is followed by `turn_start`, `assistant_message` and `turn_settled` events (`replied`, `failed` or `aborted`). Records are framed on LF only. New interaction types, such as structured answers to a question card, are added as new command and event types.
+The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?, "type", ... }` records: `open`, `prompt` (with `message`), `answer` (with `answers`), `get_state`, `get_transcript` and `end` (with optional `reason`). Each command gets one `response` record with `success` and `data` or `error`. An accepted `open` or `prompt` is followed by `turn_start`, `assistant_message` and `turn_settled` events (`replied`, `failed` or `aborted`). Records are framed on LF only. New interaction types are added as new command and event types.
+
+### Questions docked on the composer
+
+When a reply offers quick answers, the panel docks its questions on the composer one at a time, and the composer's Send moves to the next question rather than sending. So the persona gets the whole set at once and answers it at once:
+
+- The `assistant_message` event carries `questions`: each question's label and kind, with its options (label and fuller value) or its value fields. The helper prints them as a numbered list after the reply.
+- `answer` (with `answers`, one string per question in order) drives the dock as a person would: it clicks the option an answer names by its label, types any other answer, presses Send between questions, and sends them all from the last. A blank answer skips its question with the dock's arrow. The number of answers must match the number of docked questions.
+- `say` still answers a single docked question, since the composer's text is that question's answer. With several docked it is refused before anything is typed.
+
+`bridge-log.jsonl` records the text Brunch received, which for `answer` is the one message the panel composed.
 
 ## Stopping
 

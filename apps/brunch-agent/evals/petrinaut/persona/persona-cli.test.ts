@@ -51,3 +51,76 @@ test("the CLI's own flags stay options on either side of the command", () => {
     "--verbose",
   ]);
 });
+
+test("answer keeps each argument as one question's answer, and a reply lists the questions to answer", async () => {
+  const command = await personaCommandFromArguments([
+    "answer",
+    "Stays open",
+    "",
+    "About nine days, last time.",
+  ]);
+  expect(command).toEqual({
+    type: "answer",
+    answers: ["Stays open", "", "About nine days, last time."],
+  });
+  expect(
+    formatPersonaResult(command, [
+      { type: "response", command: "answer", success: true },
+      { type: "turn_start", message: "1. Quarantined shipment: …" },
+      {
+        type: "assistant_message",
+        text: "Recorded. Two more things.",
+        questions: [
+          {
+            kind: "choose",
+            label: "Reorder timing",
+            options: [
+              { label: "At once", value: "We reorder as soon as it is found" },
+              { label: "It varies" },
+            ],
+          },
+          {
+            kind: "values",
+            label: "Reorder points",
+            fields: [{ label: "Lower", unit: "units" }, { label: "Higher" }],
+          },
+          { kind: "open", label: "Recent order" },
+        ],
+      },
+      { type: "turn_settled", outcome: "replied", submissionIds: ["sub_2"] },
+    ]),
+  ).toBe(
+    [
+      "Recorded. Two more things.",
+      "",
+      'Brunch put 3 questions on its message box. Answer them together with `answer`, one quoted argument each in this order, "" to skip one:',
+      "1. Reorder timing: pick one by its label, or answer in your own words",
+      "   - At once: We reorder as soon as it is found",
+      "   - It varies",
+      "2. Reorder points: Lower (units), Higher",
+      "3. Recent order: answer in your own words",
+    ].join("\n"),
+  );
+});
+
+test("a reply with one docked question says that say still answers it", () => {
+  expect(
+    formatPersonaResult({ type: "prompt", message: "We plan weekly." }, [
+      { type: "response", command: "prompt", success: true },
+      {
+        type: "assistant_message",
+        text: "So demand is fixed for the week?",
+        questions: [
+          {
+            kind: "confirm",
+            label: "Production demand",
+            options: [{ label: "Yes" }],
+          },
+        ],
+      },
+      { type: "turn_settled", outcome: "replied", submissionIds: ["sub_3"] },
+    ]),
+  ).toContain(
+    'Reply with `say`, or pick an option with `answer "<its label>"`',
+  );
+});

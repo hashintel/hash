@@ -16,9 +16,17 @@ import {
   agentOwnershipHeaders,
   brunchHeaders,
   brunchRoutes,
+  brunchTools,
+  mergeOffers,
+  offersAnswers,
+  petrinautUserMessageText,
+  zOfferAnswersInput,
 } from "@hashintel/brunch-agent";
 
-import type { ConversationIdentity } from "@hashintel/brunch-agent";
+import type {
+  ConversationIdentity,
+  OfferedQuestion,
+} from "@hashintel/brunch-agent";
 
 /** A failed persona turn that still carries the admitted conversation's history. */
 export class PersonaBrowserTurnError extends Error {
@@ -84,23 +92,111 @@ export const allowDestructiveEdits = async (
     await allowNext();
 };
 
-/** Submit text, not tools. Only the ordinary panel executes and continues browser work. */
+/**
+ * The questions a settled turn docked on the composer: every question its
+ * offers named, merged as the panel merges them.
+ */
+export const offeredQuestionsOf = (
+  snapshot: FlueConversationSnapshot,
+  submissionIds: readonly string[],
+): OfferedQuestion[] => {
+  const offer = mergeOffers(
+    snapshot.messages
+      .filter(
+        ({ submissionId }) =>
+          submissionId !== undefined && submissionIds.includes(submissionId),
+      )
+      .flatMap(({ parts }) =>
+        parts.flatMap((part) => {
+          if (
+            part.type !== "dynamic-tool" ||
+            part.toolName !== brunchTools.offerAnswers
+          )
+            return [];
+          const parsed = zOfferAnswersInput.safeParse(part.input);
+          return parsed.success ? [parsed.data] : [];
+        }),
+      ),
+  );
+  return offersAnswers(offer) ? offer.questions : [];
+};
+
+/**
+ * Give each docked question its answer the way a person would: a click on
+ * the option an answer names, typing otherwise, and Send between questions.
+ * The last answer is left in the composer for the caller to send.
+ */
+const fillDockedAnswers = async (page: Page, answers: readonly string[]) => {
+  const dock = page.getByRole("region", {
+    name: "Brunch's questions",
+    exact: true,
+  });
+  const docked = (await dock.isVisible())
+    ? Number(await dock.getAttribute("data-question-count"))
+    : 0;
+  assert.equal(
+    answers.length,
+    docked,
+    docked === 0
+      ? "Brunch has no questions on the message box; reply with `say`."
+      : `Brunch has ${docked} question(s) on the message box; give exactly that many answers, "" to skip one.`,
+  );
+  const composer = page.getByRole("textbox", {
+    name: "Message AI assistant",
+    exact: true,
+  });
+  for (const [index, answer] of answers.entries()) {
+    const text = answer.trim();
+    if (text) {
+      const option = dock
+        .getByRole("group")
+        .getByRole("button", { name: text, exact: true });
+      // eslint-disable-next-line no-await-in-loop -- The dock shows one question at a time.
+      if ((await option.count()) === 1) await option.click();
+      // eslint-disable-next-line no-await-in-loop -- As above.
+      else await composer.fill(text);
+    }
+    if (index < answers.length - 1)
+      // Send moves on once there is an answer; the arrow skips without one.
+      // eslint-disable-next-line no-await-in-loop -- As above.
+      await page
+        .getByRole("button", {
+          name: text ? "Continue to next question" : "Next question",
+          exact: true,
+        })
+        .click();
+  }
+};
+
+/**
+ * Submit text, not tools. Only the ordinary panel executes and continues
+ * browser work. `utterance` is one typed message, or one answer for each
+ * question docked on the composer.
+ */
 export const submitPersonaBrowserTurn = async (
   page: Page,
-  message: string,
+  utterance: string | readonly string[],
   options: {
     session?: PersonaBrowserSession;
     signal?: AbortSignal;
+    /** `sent` is the text Brunch received. */
     onAdmission?: (
       session: PersonaBrowserSession,
       receipt: AgentSendResult,
+      sent: string,
     ) => Promise<void>;
     onAllowedEdit?: (edit: PersonaAllowedEdit) => Promise<void>;
   } = {},
 ) => {
   const { signal } = options;
   signal?.throwIfAborted();
-  assert(message.trim(), "Persona message must not be empty");
+  const typed = typeof utterance === "string" ? utterance : undefined;
+  assert(
+    (typeof utterance === "string" ? [utterance] : utterance).some((text) =>
+      text.trim(),
+    ),
+    "Persona message must not be empty",
+  );
   const composer = page.getByRole("textbox", {
     name: "Message AI assistant",
     exact: true,
@@ -139,7 +235,19 @@ export const submitPersonaBrowserTurn = async (
   let turnSettled = false;
   let allowing: Promise<void> | undefined;
   try {
-    await composer.fill(message);
+    if (typeof utterance !== "string") await fillDockedAnswers(page, utterance);
+    else {
+      // With several questions docked, Send would only move to the next one.
+      const steps = page.getByRole("button", {
+        name: "Next question",
+        exact: true,
+      });
+      assert(
+        !(await steps.isVisible()),
+        "Brunch has several questions on the message box; answer them together with `answer`.",
+      );
+      await composer.fill(utterance);
+    }
     signal?.throwIfAborted();
     const responsePromise = page.waitForResponse(isAdmission);
     await composer.press("Enter");
@@ -189,7 +297,15 @@ export const submitPersonaBrowserTurn = async (
       url: session.url,
       headers: agentOwnershipHeaders(session),
     });
-    await options.onAdmission?.(session, admission);
+    const body =
+      "body" in request && typeof request.body === "string"
+        ? petrinautUserMessageText(request.body)
+        : undefined;
+    assert(
+      typed !== undefined || body,
+      "Could not read the answers Brunch received",
+    );
+    await options.onAdmission?.(session, admission, typed ?? body ?? "");
     signal?.throwIfAborted();
     // Submission revokes earlier approvals before its POST. Wait for the
     // receipt and utterance log before watching for this turn's approvals.

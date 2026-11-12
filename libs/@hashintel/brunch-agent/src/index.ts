@@ -17,8 +17,11 @@ export {
 export * from "./conversation-identity";
 export { zOfferAnswersInput } from "./conversation/offer-answers";
 export {
+  mergeOffers,
   neverOffer,
+  offersAnswers,
   questionKinds,
+  type OfferedQuestion,
   type OfferedQuestions,
 } from "./conversation/question-kinds";
 export * from "./client-tools";

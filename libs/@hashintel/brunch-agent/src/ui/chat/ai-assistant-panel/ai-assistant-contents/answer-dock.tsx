@@ -107,7 +107,7 @@ const AnswerDock = ({
     <section
       className={dockStyle}
       aria-label="Brunch's questions"
-      data-answer-dock
+      data-question-count={questions.length}
     >
       <div className={headerStyle}>
         <span>

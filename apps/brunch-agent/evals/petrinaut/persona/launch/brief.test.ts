@@ -37,6 +37,7 @@ test("the fresh brief assembles the role, command guide, opening to send and pac
     system.trim(),
     "## How to talk to Brunch",
     '/tmp/run/bin/persona say "<your message>"',
+    '/tmp/run/bin/persona answer "<answer to 1>" "<answer to 2>"',
     "/tmp/run/bin/persona end",
     "## Starting the conversation",
     "/tmp/run/bin/persona open",
