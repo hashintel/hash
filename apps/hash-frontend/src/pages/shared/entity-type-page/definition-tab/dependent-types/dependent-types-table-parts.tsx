@@ -15,8 +15,8 @@ import {
 } from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
-import type { BoxProps, Theme } from "@mui/material";
-import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from "react";
+import type { BoxProps, ButtonBaseProps, Theme } from "@mui/material";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 
 /** The white card around a table, which scrolls sideways when the page is narrow, and the grid its rows share, with the open column added on the right. */
 export const TableCard = ({
@@ -310,76 +310,12 @@ export const TypeLabel = ({
   </Box>
 );
 
-type RowToggleProps = {
-  "aria-describedby"?: string;
-  onFocusVisible?: () => void;
-  onBlur?: () => void;
-  onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
-};
-
-/** The button in an expandable row's first cell, whose pseudo-element covers the row, so that a click anywhere on the row toggles it. */
-const RowToggle = ({
-  label,
-  expanded,
-  onToggle,
-  toggleProps: { onFocusVisible, ...toggleProps },
-  children,
-}: {
-  label: string;
-  expanded: boolean;
-  onToggle: () => void;
-  toggleProps: RowToggleProps;
-  children: ReactNode;
-}) => (
-  <Box
-    component="button"
-    type="button"
-    {...toggleProps}
-    aria-label={label}
-    aria-expanded={expanded}
-    onClick={onToggle}
-    onFocus={(event) => {
-      if (event.currentTarget.matches(":focus-visible")) {
-        onFocusVisible?.();
-      }
-    }}
-    sx={({ palette }) => ({
-      display: "flex",
-      width: 1,
-      m: 0,
-      p: 0,
-      border: 0,
-      background: "none",
-      color: "inherit",
-      font: "inherit",
-      lineHeight: "inherit",
-      letterSpacing: "inherit",
-      textAlign: "left",
-      cursor: "pointer",
-      WebkitTapHighlightColor: "transparent",
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: 1,
-      },
-      "&:focus-visible": { outline: "none" },
-      "&:focus-visible::after": {
-        outline: `2px solid ${palette.blue[70]}`,
-        outlineOffset: 2,
-      },
-    })}
-  >
-    {children}
-  </Box>
-);
-
-/** A type's row that expands into nested rows: the toggle with the type's label, the other cells, the open button, and the chevron that shows whether the row is expanded. */
+/** A type's row that expands into nested rows: the toggle with the type's label, the other cells, the open button, and the chevron that shows whether the row is expanded. The toggle's pseudo-element covers the row, so that a click anywhere on the row toggles it. */
 export const ExpandableRow = ({
   type,
   expanded,
   onToggle,
-  toggleProps = {},
+  toggleProps,
   openButton,
   children,
   ...props
@@ -388,7 +324,10 @@ export const ExpandableRow = ({
   type: TypeLabelProps;
   expanded: boolean;
   onToggle: () => void;
-  toggleProps?: RowToggleProps;
+  toggleProps?: Pick<
+    ButtonBaseProps,
+    "aria-describedby" | "onFocusVisible" | "onBlur" | "onKeyDown"
+  >;
   openButton: ReactNode;
 }) => {
   const { title } = type.entityType.schema;
@@ -396,14 +335,36 @@ export const ExpandableRow = ({
   return (
     <Box {...props} role="row" sx={[rowGridSx, rowSx, { userSelect: "none" }]}>
       <Cell sx={{ ...firstCellSx, maxWidth: 1 }}>
-        <RowToggle
-          label={type.former ? `${title}, former` : `${title} v${type.version}`}
-          expanded={expanded}
-          onToggle={onToggle}
-          toggleProps={toggleProps}
+        <ButtonBase
+          {...toggleProps}
+          aria-label={
+            type.former ? `${title}, former` : `${title} v${type.version}`
+          }
+          aria-expanded={expanded}
+          onClick={onToggle}
+          sx={({ palette }) => ({
+            position: "static",
+            display: "flex",
+            justifyContent: "flex-start",
+            width: 1,
+            font: "inherit",
+            lineHeight: "inherit",
+            letterSpacing: "inherit",
+            textAlign: "left",
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              inset: 0,
+              borderRadius: 1,
+            },
+            "&.Mui-focusVisible::after": {
+              outline: `2px solid ${palette.blue[70]}`,
+              outlineOffset: 2,
+            },
+          })}
         >
           <TypeLabel {...type} />
-        </RowToggle>
+        </ButtonBase>
       </Cell>
       {children}
       {openButton}
