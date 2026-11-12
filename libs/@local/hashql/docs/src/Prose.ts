@@ -224,7 +224,8 @@ export const phrasing: {
       ) {
         code = Option.some({ type: "inlineCode", value: "", origin: node });
       } else {
-        output.push(...(yield* prose(node)));
+        const phrases = yield* prose(node);
+        output.push(...phrases);
       }
     }
 

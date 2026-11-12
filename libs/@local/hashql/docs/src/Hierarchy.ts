@@ -1,4 +1,12 @@
-import { Array, Function, HashMap, MutableHashMap, Option, pipe } from "effect";
+import {
+  Array,
+  Function,
+  HashMap,
+  MutableHashMap,
+  MutableHashSet,
+  Option,
+  pipe,
+} from "effect";
 
 import * as AST from "./AST/index.js";
 import * as Trait from "./Trait.js";
@@ -135,7 +143,7 @@ const reach = (
   edges: readonly (readonly number[])[],
   start: number,
 ): readonly number[] => {
-  const seen = new Set([start]);
+  const seen = MutableHashSet.make(start);
   const reached: number[] = [];
   let frontier = [start];
 
@@ -144,10 +152,10 @@ const reach = (
       frontier,
       Array.flatMap((current) => edges[current] ?? []),
       Array.dedupe,
-      Array.filter((neighbour) => !seen.has(neighbour)),
+      Array.filter((neighbour) => !MutableHashSet.has(seen, neighbour)),
     );
     for (const neighbour of next) {
-      seen.add(neighbour);
+      MutableHashSet.add(seen, neighbour);
     }
     reached.push(...next);
     frontier = next;

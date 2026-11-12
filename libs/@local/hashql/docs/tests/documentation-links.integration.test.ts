@@ -304,6 +304,9 @@ export declare class Model extends Base { merge(other: Model): Model; }
     ["missing_link", "See {@link Missing}.", "UnresolvedLink"],
     ["foreign_package", "See {@link other#Tools.make}.", "UnresolvedLink"],
     ["unlinked_name", "Use `Tools.make()`.", "UnlinkedName"],
+    ["type_arguments", "Use `Tools.Item<string>`.", "UnlinkedName"],
+    ["generic_call", "Use `Tools.make<string>()`.", "UnlinkedName"],
+    ["call_arguments", "Use `Tools.make(1, 2)`.", "UnlinkedName"],
     [
       "link_after_name",
       "Use `Tools.make`, see {@link Tools.make}.",
