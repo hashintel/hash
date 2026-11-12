@@ -212,13 +212,13 @@ export const openDecisions: OpenSwitch[] = [
     flag: "logtabs",
     defaultValue: null,
     options: [
-      { label: "keep (today)", value: null },
+      { label: "salt pill (picked)", value: null },
+      { label: "keep (before 12 Nov)", value: "keep" },
       { label: "revert", value: "revert" },
       { label: "figma rounded", value: "figma" },
       { label: "figma underlined", value: "underlined" },
       { label: "figma simple", value: "simple" },
       { label: "figma quiet", value: "quiet" },
-      { label: "salt pill", value: "salt" },
     ],
   },
   {

@@ -6,10 +6,11 @@
  * Gap, recorded: the part's layers put the badge before the words; here it follows them ("All 17"), as the counts
  * have read since 4 Nov (ledger L320).
  *
- * Takes for inbox audit-logs-tabs, `?logtabs=`: no param (or `keep`) is the look above; `revert` is the look before
- * 72af9f5d5 (muted count after the label, the selected tab on a fill); `figma`, `underlined` and `simple` are the
- * figma-ds variants with the badge before the label, blue on the selected tab; `quiet` is simple with every badge grey;
- * `salt` is code-ds Tabs (ds-components, origin/main) variant pill, size sm, with revert's muted count after the label.
+ * Takes for inbox audit-logs-tabs, `?logtabs=`: no param (or `salt`) is code-ds Tabs (ds-components, origin/main)
+ * variant pill, size sm, with revert's muted count after the label, decided 12 Nov; `keep` is the look above; `revert`
+ * is the look before 72af9f5d5 (muted count after the label, the selected tab on a fill); `figma`, `underlined` and
+ * `simple` are the figma-ds variants with the badge before the label, blue on the selected tab; `quiet` is simple with
+ * every badge grey.
  */
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -17,6 +18,7 @@ type Look =
   "keep" | "revert" | "figma" | "underlined" | "simple" | "quiet" | "salt";
 
 const looks: Look[] = [
+  "keep",
   "revert",
   "figma",
   "underlined",
@@ -31,7 +33,7 @@ const lookParam = new URLSearchParams(globalThis.location.search).get(
 
 const look: Look = looks.includes(lookParam as Look)
   ? (lookParam as Look)
-  : "keep";
+  : "salt";
 
 const listStyle = css({ display: "flex", alignItems: "center", gap: "1" });
 
