@@ -1320,6 +1320,7 @@ const VersionCell = ({ page, trigger, flow }: { page: Page; trigger: PageTrigger
       <Select
         required
         size="sm"
+        variant={query().get("versionselect") === "subtle" ? "subtle" : "default"}
         width="fullWidth"
         aria-label={`${trigger.label} flow version`}
         items={items(versionsOf(flow))}
