@@ -16,7 +16,19 @@
  */
 export type PathsTake = "b" | "i2" | "cr" | "attio";
 
+const pathsParam = new URLSearchParams(globalThis.location.search).get("paths");
+
+/**
+ * If and Switch paths (inbox `paths-no-rail`, B, picked 12 Nov). With no `?paths=` both panels head the section
+ * "Paths" and draw each path as a group: its condition rows, then "Goes to" and the next-step select, a hairline
+ * between groups. If is Yes (the condition rows) and No ("When the condition doesn't match"); a Switch's Default is
+ * last ("When no case matches"). A path with no next step reads "Ends here" in its select.
+ * `?paths=rail` shows the look from before the pick: If's Yes / No with muted true / false under Outputs, the
+ * Switch's paths on the rail. The older takes (`i2`, `cr`, `attio`) keep their own If and Switch panels.
+ */
+export const pathsGroups = pathsParam === null || pathsParam === "b";
+
 export const pathsTake: PathsTake = (() => {
-  const value = new URLSearchParams(globalThis.location.search).get("paths");
+  const value = pathsParam;
   return value === "i2" || value === "cr" || value === "attio" ? value : "b";
 })();

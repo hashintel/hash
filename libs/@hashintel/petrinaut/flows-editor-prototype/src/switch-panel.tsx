@@ -4,7 +4,7 @@
  * this panel's state, and only a path's name, its wire and Default's on/off reach the document (and so the card).
  * See `switch-flags.ts` for the takes.
  */
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import {
   Button,
@@ -37,6 +37,8 @@ import {
   updateStep,
 } from "./document";
 import { Select } from "./fill-select";
+import { useReadOnlyPanel } from "./branches";
+import { MiddleCut } from "./middle-cut";
 import { useEditor } from "./editor-context";
 import {
   conditionLayout,
@@ -208,10 +210,14 @@ const PathTarget = ({
   stepId,
   port,
   iconOf,
+  placeholder = "Select next step",
+  readonly = false,
 }: {
   stepId: string;
   port: Port;
   iconOf: (id: string) => IconName;
+  placeholder?: string;
+  readonly?: boolean;
 }) => {
   const { document, setDocument } = useEditor();
   const wire = document.wires.find(
@@ -227,9 +233,16 @@ const PathTarget = ({
         size="sm"
         width="fullWidth"
         aria-label={`${port.label} leads to`}
-        placeholder="Select next step"
+        placeholder={placeholder}
+        readonly={readonly}
         prefix={wire ? { iconName: iconOf(wire.target) } : undefined}
         items={items}
+        // A long name loses its middle, not its end, as on If's select; the full name shows on hover.
+        renderSelectedItem={(value) => (
+          <MiddleCut
+            text={items.find((item) => item.value === value)?.text ?? value}
+          />
+        )}
         value={wire?.target}
         onChange={(target) => {
           if (!target) {
@@ -723,6 +736,223 @@ const ConditionCases = ({
   );
 };
 
+/* ----------------------------------------------------------------------------------------------------------------
+ * Paths as groups (inbox `paths-no-rail`, B, 12 Nov): the default for If and Switch; `?paths=rail` shows the look
+ * from before. Each path is its name, its condition rows, then "Goes to" and the next-step select; a hairline
+ * separates the groups. The condition rows are drawn as the prototype drew them before the pick (S3's rows for the
+ * Switch, the condition builder for If): that look and the and/or joiner are not part of the pick.
+ * ------------------------------------------------------------------------------------------------------------- */
+
+/** The hairline between two paths: 16 px on each side (8 px row gap + 8 px margin). */
+const pathHairlineStyle = css({
+  gridColumn: "1 / -1",
+  height: "[1px]",
+  marginBlock: "2",
+  backgroundColor: "neutral.bd.subtle",
+});
+
+/** A Switch's groups on the panel grid, rows centred as in S3's cases. */
+const pathGroupsStyle = css({
+  gridColumn: "1 / -1",
+  display: "grid",
+  gridTemplateColumns: "minmax(88px, 30%) minmax(0, 1fr)",
+  columnGap: "2",
+  rowGap: "2",
+  alignItems: "center",
+});
+
+/** "Goes to" centred on its select in any grid, as in S3's cases (the panel grid lines rows up by baseline). */
+const goesToRowStyle = css({
+  display: "contents",
+  "& > *": { alignSelf: "center" },
+});
+
+export const PathHairline = () => (
+  <div className={pathHairlineStyle} aria-hidden="true" data-path-hairline />
+);
+
+/** A path's name, medium, as a case title; renamed in place on hover unless the panel is read-only. */
+export const PathHead = ({
+  stepId,
+  port,
+  renamable,
+}: {
+  stepId: string;
+  port: Port;
+  renamable: boolean;
+}) => {
+  const readOnly = useReadOnlyPanel();
+  return (
+    <span className={caseHeadStyle} data-path-head>
+      <PathName
+        stepId={stepId}
+        port={port}
+        renamable={renamable && !readOnly}
+        heading
+      />
+    </span>
+  );
+};
+
+/** One muted line under a catch-all path's name: when it runs. */
+export const PathHelp = ({ children }: { children: React.ReactNode }) => (
+  <span className={helpStyle}>{children}</span>
+);
+
+/** "Goes to" and the next-step select; a path with no next step reads "Ends here". */
+export const GoesToRow = ({
+  stepId,
+  port,
+  iconOf,
+}: {
+  stepId: string;
+  port: Port;
+  iconOf: (id: string) => IconName;
+}) => {
+  const readOnly = useReadOnlyPanel();
+  return (
+    <div className={goesToRowStyle} data-row>
+      <span className={keyStyle}>Goes to</span>
+      <PathTarget
+        stepId={stepId}
+        port={port}
+        iconOf={iconOf}
+        placeholder="Ends here"
+        readonly={readOnly}
+      />
+    </div>
+  );
+};
+
+/** The Switch's Paths: one group per case, checked top to bottom, Add case, then Default last. */
+export const SwitchPathGroups = ({
+  step,
+  ports,
+  iconOf,
+}: {
+  step: DraftActionStep;
+  ports: Port[];
+  iconOf: (id: string) => IconName;
+}) => {
+  const readOnly = useReadOnlyPanel();
+  const [conditions, setConditions] = useState(initialConditions);
+  const named = namedPorts(step, ports);
+  const cases = named.filter((port) => port.outputName !== "default");
+  const fallback = named.find((port) => port.outputName === "default");
+  const setGroup = (outputName: string, group: CaseConditions) =>
+    setConditions((current) => ({ ...current, [outputName]: group }));
+  return (
+    <Section title="Paths">
+      <span className={helpStyle}>
+        Checked top to bottom. The first match runs.
+      </span>
+      <div className={pathGroupsStyle} data-paths="groups">
+        {cases.map((port, index) => {
+          const group = conditions[port.outputName] ?? {
+            join: "or",
+            rows: [],
+          };
+          return (
+            <Fragment key={port.outputName}>
+              {index > 0 ? <PathHairline /> : null}
+              <PathHead stepId={step.stepId} port={port} renamable />
+              <div className={conditionsStyle}>
+                {group.rows.map((row, rowIndex) => (
+                  <div
+                    // oxlint-disable-next-line react/no-array-index-key -- rows have no id in this mock
+                    key={rowIndex}
+                    className={conditionRowStyle}
+                  >
+                    <span data-joiner>
+                      {rowIndex === 0 ? (
+                        "Where"
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="subtle"
+                          iconName="chevronDown"
+                          iconPosition="right"
+                          disabled={readOnly}
+                          onClick={() =>
+                            setGroup(port.outputName, {
+                              ...group,
+                              join: group.join === "or" ? "and" : "or",
+                            })
+                          }
+                        >
+                          {group.join.toUpperCase()}
+                        </Button>
+                      )}
+                    </span>
+                    <span data-chip>
+                      <ConditionChip
+                        row={row}
+                        onChange={(value) =>
+                          setGroup(port.outputName, {
+                            ...group,
+                            rows: group.rows.map((candidate, candidateIndex) =>
+                              candidateIndex === rowIndex
+                                ? { ...candidate, value }
+                                : candidate,
+                            ),
+                          })
+                        }
+                      />
+                    </span>
+                  </div>
+                ))}
+                {readOnly ? null : (
+                  <>
+                    <span />
+                    <span className={css({ display: "flex" })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        iconName="plus"
+                        onClick={() =>
+                          setGroup(port.outputName, {
+                            ...group,
+                            rows: [
+                              ...group.rows,
+                              { field: "Region", value: "Europe" },
+                            ],
+                          })
+                        }
+                      >
+                        Add condition
+                      </Button>
+                    </span>
+                  </>
+                )}
+              </div>
+              <GoesToRow stepId={step.stepId} port={port} iconOf={iconOf} />
+            </Fragment>
+          );
+        })}
+        {readOnly ? null : (
+          <div className={css({ gridColumn: "1 / -1", marginTop: "2" })}>
+            <Button size="sm" variant="subtle" iconName="plus">
+              Add case
+            </Button>
+          </div>
+        )}
+        {fallback ? (
+          <>
+            <PathHairline />
+            <PathHead
+              stepId={step.stepId}
+              port={fallback}
+              renamable={defaultRenamable}
+            />
+            <PathHelp>When no case matches</PathHelp>
+            <GoesToRow stepId={step.stepId} port={fallback} iconOf={iconOf} />
+          </>
+        ) : null}
+      </div>
+    </Section>
+  );
+};
+
 /**
  * `?switchlayout=a|b|c` (inbox `condition-panels-layout`): S3 on the condition builder's own rows, so If, Switch and
  * Find entities share one layout. A case is its in-place name (regular, as I1's path names), its condition rows
@@ -889,15 +1119,15 @@ const LayoutConditionCases = ({
                       {joinerTake === "j3" && group.rows.length > 1 ? (
                         <EmptyJoiner />
                       ) : (
-                      <Joiner
-                        conjunction={rowIndex === 0 ? undefined : group.join}
-                        onPick={
-                          rowIndex === 0
-                            ? undefined
-                            : (join) =>
-                                setGroup(port.outputName, { ...group, join })
-                        }
-                      />
+                        <Joiner
+                          conjunction={rowIndex === 0 ? undefined : group.join}
+                          onPick={
+                            rowIndex === 0
+                              ? undefined
+                              : (join) =>
+                                  setGroup(port.outputName, { ...group, join })
+                          }
+                        />
                       )}
                       <div className={rowStyle} data-condition-row={rowIndex}>
                         <ConditionChip
@@ -906,10 +1136,11 @@ const LayoutConditionCases = ({
                           onChange={(value) =>
                             setGroup(port.outputName, {
                               ...group,
-                              rows: group.rows.map((candidate, candidateIndex) =>
-                                candidateIndex === rowIndex
-                                  ? { ...candidate, value }
-                                  : candidate,
+                              rows: group.rows.map(
+                                (candidate, candidateIndex) =>
+                                  candidateIndex === rowIndex
+                                    ? { ...candidate, value }
+                                    : candidate,
                               ),
                             })
                           }

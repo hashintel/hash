@@ -14,6 +14,16 @@ export type OpenSwitch = {
 
 export const openDecisions: OpenSwitch[] = [
   {
+    card: "paths-no-rail",
+    title: "If and Switch · paths",
+    flag: "paths",
+    defaultValue: null,
+    options: [
+      { label: "groups (B, picked)", value: null },
+      { label: "rail", value: "rail" },
+    ],
+  },
+  {
     card: "condition-panels-layout",
     title: "If, Switch and Find entities · layout",
     flag: "switchlayout",

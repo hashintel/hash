@@ -13,8 +13,16 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { Select } from "./fill-select";
 import { BranchRows, PathsSection } from "./branches";
-import { namedPorts, switchTake } from "./switch-flags";
-import { SwitchSections } from "./switch-panel";
+import { pathsGroups } from "./paths-flags";
+import { namedPorts, pathRenamable, switchTake } from "./switch-flags";
+import {
+  GoesToRow,
+  PathHairline,
+  PathHead,
+  PathHelp,
+  SwitchPathGroups,
+  SwitchSections,
+} from "./switch-panel";
 import {
   type CatalogEntry,
   forEachEntry,
@@ -207,11 +215,16 @@ const UsedBy = ({
   quiet?: boolean;
 }) => {
   const { document } = useEditor();
-  const uses = usesMatching(document, (source) => source !== undefined && match(source));
+  const uses = usesMatching(
+    document,
+    (source) => source !== undefined && match(source),
+  );
   if (uses.length === 0) {
     return quiet ? null : <span className={emptyValueStyle}>Not used yet</span>;
   }
-  return <UsedInList uses={uses} iconOf={(id) => nodeLook(document, id).icon} />;
+  return (
+    <UsedInList uses={uses} iconOf={(id) => nodeLook(document, id).icon} />
+  );
 };
 
 /**
@@ -657,6 +670,139 @@ const ActionSections = ({
   visibleInputs: InputView[];
 }) => {
   const { document, validation } = useEditor();
+  const iconOf = (id: string) => nodeLook(document, id).icon;
+  const renderInput = (input: InputView) => {
+    const kinds = acceptedKinds(document, step.stepId, input, entry);
+    // Query builders stack: key above, builder below (Journey 3).
+    if (kinds.includes("EntityQuery") || kinds.includes("FilterCondition")) {
+      return (
+        // Its rows join the section grid; the builder itself spans both columns.
+        <div key={input.name} className={css({ display: "contents" })} data-row>
+          {fieldFor(document, step, input)}
+        </div>
+      );
+    }
+    const label =
+      inputLabels[`${step.actionDefinitionId}.${input.name}`] ?? input.label;
+    // Free text is a wide control: its label above, the field across the panel (J3 D1).
+    if (isFreeText(input)) {
+      return (
+        <div
+          key={input.name}
+          data-row
+          className={cx(
+            css({
+              gridColumn: "1 / -1",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.5",
+            }),
+            step.actionDefinitionId === "sendEmail" && css({ gap: "2" }),
+          )}
+        >
+          <Tooltip
+            content={`${label} · ${inputHover(input, kinds)}`}
+            position="top"
+          >
+            <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
+          </Tooltip>
+          {fieldFor(document, step, input)}
+        </div>
+      );
+    }
+    return (
+      <PropertyRow
+        key={input.name}
+        label={label}
+        hover={inputHover(input, kinds)}
+        required={
+          input.required &&
+          !input.hasDefault &&
+          !input.rule?.startsWith("At least")
+        }
+        invalid={validation.mockFields.has(`${step.stepId}.${input.name}`)}
+      >
+        {fieldFor(document, step, input)}
+      </PropertyRow>
+    );
+  };
+  // A branching step's port values are not data: they show as its paths.
+  const dataOutputs = stepOutputs(step).filter(
+    (output) => !entry.ports?.some((port) => port.outputName === output.name),
+  );
+  const kindOf = (outputName: string) => {
+    const shape = getSourceShape(
+      document,
+      { kind: "step-output", stepId: step.stepId, outputName },
+      step.stepId,
+    );
+    if (!shape) {
+      return null;
+    }
+    // A list of entities names its type, as the source menu does: "List of Suppliers".
+    const entityType = shape.array
+      ? findEntityType(
+          entityTypeOf(
+            document,
+            { kind: "step-output", stepId: step.stepId, outputName },
+            step.stepId,
+          ) ?? "",
+        )
+      : undefined;
+    return entityType
+      ? `List of ${entityType.pluralTitle}`
+      : kindLabel(shape.payloadKind, shape.array);
+  };
+
+  // Paths as groups (inbox `paths-no-rail`, B, 12 Nov): Settings, then Paths, each path its condition rows and "Goes
+  // to". If's condition rows move into its Yes path. `?paths=rail` keeps the look from before.
+  if (
+    pathsGroups &&
+    entry.ports &&
+    (step.actionDefinitionId === "if" || step.actionDefinitionId === "switch")
+  ) {
+    const ports = namedPorts(step, entry.ports);
+    const yes = ports.find((port) => port.outputName === "true");
+    const no = ports.find((port) => port.outputName === "false");
+    return (
+      <>
+        <StepSettings actionDefinitionId={step.actionDefinitionId} />
+        {step.actionDefinitionId === "if" && yes && no ? (
+          <Section title="Paths">
+            <PathHead
+              stepId={step.stepId}
+              port={yes}
+              renamable={pathRenamable(yes.outputName)}
+            />
+            {visibleInputs.map(renderInput)}
+            <GoesToRow stepId={step.stepId} port={yes} iconOf={iconOf} />
+            <PathHairline />
+            <PathHead
+              stepId={step.stepId}
+              port={no}
+              renamable={pathRenamable(no.outputName)}
+            />
+            <PathHelp>When the condition doesn't match</PathHelp>
+            <GoesToRow stepId={step.stepId} port={no} iconOf={iconOf} />
+          </Section>
+        ) : (
+          <SwitchPathGroups step={step} ports={entry.ports} iconOf={iconOf} />
+        )}
+        {dataOutputs.length > 0 ? (
+          <Section title="Outputs">
+            <OutputRows
+              stepId={step.stepId}
+              outputs={dataOutputs}
+              kindOf={kindOf}
+              iconOf={iconOf}
+            />
+          </Section>
+        ) : null}
+        <Checks stepId={step.stepId} />
+      </>
+    );
+  }
+
   return (
     <>
       {visibleInputs.length > 0 ? (
@@ -668,72 +814,7 @@ const ActionSections = ({
               : undefined
           }
         >
-          {visibleInputs.map((input) => {
-            const kinds = acceptedKinds(document, step.stepId, input, entry);
-            // Query builders stack: key above, builder below (Journey 3).
-            if (
-              kinds.includes("EntityQuery") ||
-              kinds.includes("FilterCondition")
-            ) {
-              return (
-                // Its rows join the section grid; the builder itself spans both columns.
-                <div
-                  key={input.name}
-                  className={css({ display: "contents" })}
-                  data-row
-                >
-                  {fieldFor(document, step, input)}
-                </div>
-              );
-            }
-            const label =
-              inputLabels[`${step.actionDefinitionId}.${input.name}`] ??
-              input.label;
-            // Free text is a wide control: its label above, the field across the panel (J3 D1).
-            if (isFreeText(input)) {
-              return (
-                <div
-                  key={input.name}
-                  data-row
-                  className={cx(
-                    css({
-                      gridColumn: "1 / -1",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1.5",
-                    }),
-                    step.actionDefinitionId === "sendEmail" &&
-                      css({ gap: "2" }),
-                  )}
-                >
-                  <Tooltip
-                    content={`${label} · ${inputHover(input, kinds)}`}
-                    position="top"
-                  >
-                    <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
-                  </Tooltip>
-                  {fieldFor(document, step, input)}
-                </div>
-              );
-            }
-            return (
-              <PropertyRow
-                key={input.name}
-                label={label}
-                hover={inputHover(input, kinds)}
-                required={
-                  input.required &&
-                  !input.hasDefault &&
-                  !input.rule?.startsWith("At least")
-                }
-                invalid={validation.mockFields.has(
-                  `${step.stepId}.${input.name}`,
-                )}
-              >
-                {fieldFor(document, step, input)}
-              </PropertyRow>
-            );
-          })}
+          {visibleInputs.map(renderInput)}
         </Section>
       ) : null}
       <StepSettings actionDefinitionId={step.actionDefinitionId} />
@@ -835,7 +916,11 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           <Checks stepId={step.stepId} />
         </>
       ) : (
-        <ActionSections step={step} entry={entry} visibleInputs={visibleInputs} />
+        <ActionSections
+          step={step}
+          entry={entry}
+          visibleInputs={visibleInputs}
+        />
       )}
     </>
   );
@@ -870,9 +955,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           {
             id: child.stepId,
             label: stepLabel(child),
-            items: (
-              stepOutputs(child)
-            ).map((output) => ({
+            items: stepOutputs(child).map((output) => ({
               value: `${child.stepId}.${output.name}`,
               text: output.label,
             })),

@@ -177,7 +177,7 @@ const useGoesTo = (stepId: string, iconOf: (id: string) => IconName) => {
 };
 
 /** A run, a past version or the old run view is read-only: nothing is added or disconnected from the panel. */
-const useReadOnlyPanel = () => {
+export const useReadOnlyPanel = () => {
   const { ui } = useEditor();
   const runView = useRunView();
   const viewingVersion = useLocation().query.has("version");
