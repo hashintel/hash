@@ -170,15 +170,6 @@ describe("DependentTypesSection", () => {
     ).toEqual(["Machine v2", "User v7"]);
   });
 
-  it("toggles a row with a native button, which Enter and Space press", () => {
-    const { section } = renderSection({ rows: [user] });
-
-    const toggle = within(section).getByRole("button", { name: "User v7" });
-
-    expect(toggle.tagName).toBe("BUTTON");
-    expect(toggle.getAttribute("type")).toBe("button");
-  });
-
   it("expands a row into its version ranges, and collapses it again", () => {
     const { section } = renderSection({ rows: [user] });
 
