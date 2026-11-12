@@ -521,6 +521,13 @@ const toEdges = (
   return [...wires, ...pills];
 };
 
+/**
+ * A step selected in a run is shown by fading everything else (Spotlight; inbox run-selected-state, 12 Nov), as its
+ * coloured bar leaves no edge for a selection border. `?runselect=border` keeps the selected card's dark border.
+ */
+const runSpotlight =
+  new URLSearchParams(globalThis.location.search).get("runselect") !== "border";
+
 const cardStyle = cva({
   base: {
     position: "relative",
@@ -1800,7 +1807,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   return (
     <div
       ref={enterRef}
-      className={cardStyle({ selected })}
+      className={cardStyle({ selected: selected && !(runView && runSpotlight) })}
       data-run-faint={run && !run.ran.has(id) ? true : undefined}
       // `?nodepaths=chips`: the card grows to hold its chips.
       style={
@@ -1964,7 +1971,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   return (
     <div
       className={triggerStyle}
-      data-selected={selected || undefined}
+      data-selected={(selected && !(runView && runSpotlight)) || undefined}
       data-source-hover={ui.hoverSourceId === START_ID || undefined}
     >
       {/* The triggers lead into Start: the ghosts in the editor, the one that fired in a run. */}
@@ -2600,7 +2607,7 @@ const RunTriggerView = ({ selected }: NodeProps<StepNode>) => {
           "&[data-selected]": { borderColor: "[var(--flows-sel-border)]" },
         }),
       )}
-      data-selected={selected || undefined}
+      data-selected={(selected && !runSpotlight) || undefined}
     >
       <div className={cardHeadStyle}>
         <CardTile
@@ -2680,7 +2687,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   return (
     <div
       ref={enterRef}
-      className={groupStyle({ selected })}
+      className={groupStyle({ selected: selected && !(runView && runSpotlight) })}
       data-run-state={mark?.state}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
@@ -3170,6 +3177,10 @@ const useCanvasMenuItems = (
  * and React Flow's selection box in DS blue rather than its default violet. Keyboard focus on a node keeps the DS ring.
  */
 const canvasStyle = css({
+  // A step selected in a run (Spotlight): every other card and every wire drops to the faint rule; the selected card
+  // keeps its unselected look and its bar in full colour.
+  "&[data-run-spotlight] .react-flow__node:not(.selected) > *, &[data-run-spotlight] .react-flow__edge":
+    { opacity: "[0.45]" },
   // A screen state draws the + beside a step on hover only (Figma J2 A and B2 show it beside the selected step).
   "&[data-quiet-port-add] [data-port-add]": { opacity: "[0]" },
   "&[data-quiet-port-add] .react-flow__node:hover [data-port-add]": {
@@ -3839,6 +3850,10 @@ export const FlowCanvas = ({
         );
       }}
       data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
+      data-run-spotlight={
+        (runSpotlight && runView && ui.selectedId !== null && ui.selectedId !== undefined) ||
+        undefined
+      }
       // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
       connectOnClick={false}
       // `?plusopen=c`: the picker stays where it opened, so panning or zooming by hand closes it and its ghost.
