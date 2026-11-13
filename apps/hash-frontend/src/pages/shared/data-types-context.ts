@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 
 import type {
   BaseUrl,
@@ -10,6 +10,7 @@ export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
   latestDataTypes: Record<BaseUrl, DataTypeWithMetadata> | null;
   loading: boolean;
+  ensureFetched: () => void;
   refetch: () => void;
 };
 
@@ -23,6 +24,11 @@ export const useDataTypesContext = () => {
   if (!dataTypesContext) {
     throw new Error("no DataTypesContext value has been provided");
   }
+
+  const { ensureFetched } = dataTypesContext;
+  useEffect(() => {
+    ensureFetched();
+  }, [ensureFetched]);
 
   return dataTypesContext;
 };
