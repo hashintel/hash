@@ -21,7 +21,7 @@ import {
   brunchTools,
   hashProcessEditorId,
   petrinautContextualUserMessageBody,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 import { liveToolRouteSegment } from "@local/flue-aisdk-transport/server";
 
@@ -437,8 +437,8 @@ test("only the HASH agent counts records it read from HASH as evidence", async (
 });
 
 test("the agent admits a document binding or no initial data", () => {
-  expect(v.parse(vSdcpnInitialData, bound)).toEqual(bound);
-  expect(v.parse(vSdcpnInitialData, undefined)).toBeUndefined();
+  expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+  expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
 
 test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {

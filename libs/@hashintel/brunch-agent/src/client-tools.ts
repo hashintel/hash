@@ -5,9 +5,9 @@
 import { toolName } from "./conversation/naming";
 
 export {
-  vBrowserCallFailureBody,
-  vBrowserCallLeaseBody,
-  vBrowserCallResultBody,
+  browserCallFailureBodySchema,
+  browserCallLeaseBodySchema,
+  browserCallResultBodySchema,
   type BrowserCallClaim,
   type BrowserCallFailureBody,
   type BrowserCallFailureDisposition,

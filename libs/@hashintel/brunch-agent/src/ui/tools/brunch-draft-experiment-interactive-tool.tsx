@@ -5,9 +5,9 @@ import {
   brunchTools,
   canonicalContent,
   type DraftPetrinautExperimentInput,
-  zDraftPetrinautExperimentInput,
+  draftPetrinautExperimentInputSchema,
   type DraftPetrinautExperimentOutput,
-  zDraftPetrinautExperimentOutput,
+  draftPetrinautExperimentOutputSchema,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
@@ -826,8 +826,8 @@ export const createBrunchDraftExperimentInteractiveTool = ({
   >({
     toolName: brunchTools.draftPetrinautExperiment,
     placement: "card",
-    inputParser: zDraftPetrinautExperimentInput,
-    outputParser: zDraftPetrinautExperimentOutput,
+    inputParser: draftPetrinautExperimentInputSchema,
+    outputParser: draftPetrinautExperimentOutputSchema,
     component: (props) => (
       <WithBrunchEditorApi>
         {(api) => (

@@ -10,7 +10,7 @@ import { defineTool, type JsonValue } from "@flue/runtime";
 
 import {
   brunchTools,
-  vHashSaveInput,
+  hashSaveInputSchema,
   type HashSaveOutcome,
   parseHashSaveOutcome,
 } from "@hashintel/brunch-agent";
@@ -67,7 +67,7 @@ export const createHashPetrinautSaveTool = (
   defineTool({
     name: brunchTools.appSaveNet,
     description: hashSaveDescription(documentId),
-    input: vHashSaveInput,
+    input: hashSaveInputSchema,
     run: async ({ data, toolCallId, signal }) => {
       try {
         const result = await execute({

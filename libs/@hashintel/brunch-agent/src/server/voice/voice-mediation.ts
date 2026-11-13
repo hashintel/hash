@@ -3,17 +3,17 @@ import { z } from "zod";
 import {
   prepareVoiceBrief,
   validateVoiceWrapUp,
-  zVoiceWrapUpResponse,
+  voiceWrapUpResponseSchema,
 } from "../../shared/voice-mediation.js";
 import { getVoiceProvider } from "./openai-voice-config.js";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 import { guardVoiceRequest } from "./voice-request-guard.js";
 
-const zRequest = z.object({
+const voiceMediationRequestSchema = z.object({
   kind: z.enum(["brief", "wrap-up"]),
   text: z.string().trim().min(1).max(32_000),
 });
-export type VoiceMediationRequest = z.infer<typeof zRequest>;
+export type VoiceMediationRequest = z.infer<typeof voiceMediationRequestSchema>;
 
 export const voiceMediationInstructions = {
   brief: `Prepare a short structured brief for Brunch from this spoken turn. Do not make modelling decisions.
@@ -79,7 +79,7 @@ export const createVoiceMediationHandler =
         }),
         { signal },
       );
-      input = zRequest.parse(
+      input = voiceMediationRequestSchema.parse(
         JSON.parse(new TextDecoder().decode(bytes.subarray(0, size))),
       );
     } catch {
@@ -97,7 +97,7 @@ export const createVoiceMediationHandler =
           ? { fields: prepareVoiceBrief(input.text, result) }
           : {
               text: validateVoiceWrapUp(
-                zVoiceWrapUpResponse.parse(result).text,
+                voiceWrapUpResponseSchema.parse(result).text,
               ),
             };
       return Response.json(data, { headers: { "cache-control": "no-store" } });

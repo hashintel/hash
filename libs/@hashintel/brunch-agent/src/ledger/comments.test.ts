@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { expect, test } from "vitest";
 
-import { vLedgerAppend } from "./append";
+import { ledgerAppendSchema } from "./append";
 import { ledgerCommentsMessage, parseLedgerComments } from "./comments";
 import {
   foldCommits,
@@ -99,7 +99,7 @@ const receiptFor = (
   messages: readonly LedgerHistoryMessage[],
   submitted: unknown[],
 ) => {
-  const { entries } = v.parse(vLedgerAppend, { entries: submitted });
+  const { entries } = v.parse(ledgerAppendSchema, { entries: submitted });
   return prepareAppend({
     history: {
       messages: [

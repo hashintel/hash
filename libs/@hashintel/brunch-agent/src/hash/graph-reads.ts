@@ -24,7 +24,7 @@ export const hashEntityReadMaxTraversalDepth = 3;
  * List length and id length are deliberately unbounded: the page reads as the
  * signed-in user, and the graph enforces its own limits.
  */
-const identifiers = (description: string) =>
+const identifiersSchemaWith = ({ description }: { description: string }) =>
   v.optional(
     v.pipe(
       v.array(v.pipe(v.string(), v.minLength(1))),
@@ -36,14 +36,16 @@ const identifiers = (description: string) =>
 const webIdsDescription =
   "Web ids to read from. An entity belongs to the web of the user or organization that owns it.";
 
-export const vHashEntityReadInput = v.strictObject({
-  entityTypes: identifiers(
-    "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
-  ),
-  webIds: identifiers(webIdsDescription),
-  entityIds: identifiers(
-    "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
-  ),
+export const hashEntityReadInputSchema = v.strictObject({
+  entityTypes: identifiersSchemaWith({
+    description:
+      "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
+  }),
+  webIds: identifiersSchemaWith({ description: webIdsDescription }),
+  entityIds: identifiersSchemaWith({
+    description:
+      "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
+  }),
   traversalDepth: v.optional(
     v.pipe(
       v.number(),
@@ -63,54 +65,58 @@ export const vHashEntityReadInput = v.strictObject({
       ),
     ),
   ),
-  fullValuesFor: identifiers(
-    "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
-  ),
+  fullValuesFor: identifiersSchemaWith({
+    description:
+      "Entity ids whose property values to show in full, as JSON, where the result would otherwise summarise a large value. It doesn't change which entities are read: read them by entityIds too.",
+  }),
 });
 
-export type HashEntityReadInput = v.InferOutput<typeof vHashEntityReadInput>;
+export type HashEntityReadInput = v.InferOutput<
+  typeof hashEntityReadInputSchema
+>;
 
 export const parseHashEntityReadInput = (input: unknown): HashEntityReadInput =>
-  v.parse(vHashEntityReadInput, input);
+  v.parse(hashEntityReadInputSchema, input);
 
-export const vHashEntityTypeReadInput = v.strictObject({
-  entityTypeIds: identifiers(
-    `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.hashQueryEntities}. Those exact versions are read.`,
-  ),
-  webIds: identifiers(
-    "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
-  ),
+export const hashEntityTypeReadInputSchema = v.strictObject({
+  entityTypeIds: identifiersSchemaWith({
+    description: `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.hashQueryEntities}. Those exact versions are read.`,
+  }),
+  webIds: identifiersSchemaWith({
+    description:
+      "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
+  }),
 });
 
 export type HashEntityTypeReadInput = v.InferOutput<
-  typeof vHashEntityTypeReadInput
+  typeof hashEntityTypeReadInputSchema
 >;
 
 export const parseHashEntityTypeReadInput = (
   input: unknown,
-): HashEntityTypeReadInput => v.parse(vHashEntityTypeReadInput, input);
+): HashEntityTypeReadInput => v.parse(hashEntityTypeReadInputSchema, input);
 
-export const vHashWebReadInput = v.strictObject({});
+export const hashWebReadInputSchema = v.strictObject({});
 
 export const parseHashWebReadInput = (input: unknown) =>
-  v.parse(vHashWebReadInput, input);
+  v.parse(hashWebReadInputSchema, input);
 
 /**
  * A read whose query failed in HASH's page: the page settles the call with
  * the failure's message rather than failing it, so the model can read why.
  */
-export const vHashReadFailure = v.object({ error: v.string() });
+export const hashReadFailureSchema = v.object({ error: v.string() });
 
-export type HashReadFailure = v.InferOutput<typeof vHashReadFailure>;
+export type HashReadFailure = v.InferOutput<typeof hashReadFailureSchema>;
 
 /**
  * The graph returns at most a page of matches, and the page reports
  * `truncated` when it stopped there; the reads don't fetch further pages.
  */
-const vTruncated = v.optional(v.literal(true));
+const truncatedSchema = v.optional(v.literal(true));
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
-const vHashEntity = v.object({
+const hashEntitySchema = v.object({
   entityId: v.string(),
   /** The entity's name as HASH labels it, where it has one. */
   label: v.optional(v.string()),
@@ -125,7 +131,7 @@ const vHashEntity = v.object({
   ),
 });
 
-export const vHashEntityReadResult = v.object({
+export const hashEntityReadResultSchema = v.object({
   /** Candidate definitions selected by key matches, not per-value applicability. */
   propertyTypes: v.array(
     v.object({
@@ -139,13 +145,15 @@ export const vHashEntityReadResult = v.object({
   entityTypes: v.array(
     v.object({ entityTypeId: v.string(), title: v.string() }),
   ),
-  entities: v.array(vHashEntity),
-  truncated: vTruncated,
+  entities: v.array(hashEntitySchema),
+  truncated: truncatedSchema,
 });
 
-export type HashEntityReadResult = v.InferOutput<typeof vHashEntityReadResult>;
+export type HashEntityReadResult = v.InferOutput<
+  typeof hashEntityReadResultSchema
+>;
 
-const vHashEntityType = v.object({
+const hashEntityTypeSchema = v.object({
   entityTypeId: v.string(),
   title: v.string(),
   description: v.optional(v.string()),
@@ -161,16 +169,16 @@ const vHashEntityType = v.object({
   ),
 });
 
-export const vHashEntityTypeReadResult = v.object({
-  entityTypes: v.array(vHashEntityType),
-  truncated: vTruncated,
+export const hashEntityTypeReadResultSchema = v.object({
+  entityTypes: v.array(hashEntityTypeSchema),
+  truncated: truncatedSchema,
 });
 
 export type HashEntityTypeReadResult = v.InferOutput<
-  typeof vHashEntityTypeReadResult
+  typeof hashEntityTypeReadResultSchema
 >;
 
-export const vHashWebReadResult = v.object({
+export const hashWebReadResultSchema = v.object({
   webs: v.array(
     v.object({
       webId: v.string(),
@@ -181,4 +189,4 @@ export const vHashWebReadResult = v.object({
   ),
 });
 
-export type HashWebReadResult = v.InferOutput<typeof vHashWebReadResult>;
+export type HashWebReadResult = v.InferOutput<typeof hashWebReadResultSchema>;

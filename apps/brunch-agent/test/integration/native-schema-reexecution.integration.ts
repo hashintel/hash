@@ -19,7 +19,7 @@ import { sqlite, start } from "@flue/runtime/node";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { type AgentSendResult, createFlueClient } from "@flue/sdk";
 
-import { zDraftPetrinautExperimentInput } from "@hashintel/brunch-agent";
+import { draftPetrinautExperimentInputSchema } from "@hashintel/brunch-agent";
 
 const directory = process.env.NATIVE_REEXECUTION_DIRECTORY;
 assert(directory);
@@ -62,13 +62,13 @@ const rawDraft = {
 
 const countedSchema = {
   "~standard": {
-    ...zDraftPetrinautExperimentInput["~standard"],
+    ...draftPetrinautExperimentInputSchema["~standard"],
     validate: (value: unknown) => {
       record({ event: "validate" });
-      return zDraftPetrinautExperimentInput["~standard"].validate(value);
+      return draftPetrinautExperimentInputSchema["~standard"].validate(value);
     },
   },
-} as unknown as typeof zDraftPetrinautExperimentInput;
+} as unknown as typeof draftPetrinautExperimentInputSchema;
 
 const faux = fauxProvider({ provider: "faux", models: [{ id: "faux-1" }] });
 faux.setResponses(

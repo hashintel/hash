@@ -3,15 +3,15 @@ import * as v from "valibot";
 import {
   epistemicFieldsWith,
   resolveStatus,
-  vOrigin,
+  originSchema,
 } from "../shared/epistemics";
 import {
   resolvesField,
-  vClaimReference,
-  vEntityReference,
+  claimReferenceSchema,
+  entityReferenceSchema,
 } from "../shared/references";
 
-export const vClaimWith = (origin: typeof vOrigin) =>
+export const claimSchemaWith = ({ origin }: { origin: typeof originSchema }) =>
   v.pipe(
     v.strictObject({
       text: v.pipe(
@@ -22,15 +22,15 @@ export const vClaimWith = (origin: typeof vOrigin) =>
         ),
       ),
       entities: v.pipe(
-        v.array(vEntityReference),
+        v.array(entityReferenceSchema),
         v.description(
           "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call. At least one, unless the claim is open or conflicted; the map shows any other claim only under its entities.",
         ),
       ),
-      ...epistemicFieldsWith(origin),
+      ...epistemicFieldsWith({ origin }),
       supersedes: v.optional(
         v.pipe(
-          v.array(vClaimReference),
+          v.array(claimReferenceSchema),
           v.description(
             "References to earlier claims this entry replaces: existing claim IDs or $index references to earlier claim entries in this queue. Omit for an additional claim. A superseded claim stays in the Ledger's log and leaves the current map; under an entity, the map shows it struck through beneath the claim that replaces it.",
           ),
@@ -44,6 +44,6 @@ export const vClaimWith = (origin: typeof vOrigin) =>
     ),
   );
 
-export const vClaim = vClaimWith(vOrigin);
+export const claimSchema = claimSchemaWith({ origin: originSchema });
 
-export type Claim = v.InferOutput<typeof vClaim>;
+export type Claim = v.InferOutput<typeof claimSchema>;

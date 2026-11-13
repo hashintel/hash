@@ -9,7 +9,7 @@ import * as v from "valibot";
 import {
   agentOwnershipHeaders,
   brunchActorKeyStorageKey,
-  vSdcpnInitialData,
+  sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
@@ -22,7 +22,7 @@ import type { Page } from "@playwright/test";
 const text = v.pipe(v.string(), v.minLength(1));
 const netArray = v.array(v.unknown());
 /** The website opens only stored entries of this shape and skips the rest. */
-const storedNetSchema = (documentId: string) =>
+const storedNetSchemaWith = ({ documentId }: { documentId: string }) =>
   v.object({
     id: v.literal(documentId),
     title: v.string(),
@@ -65,7 +65,7 @@ const sessionSchema = v.pipe(
     ownerKey: text,
     conversationId: text,
     uid: text,
-    initialData: v.nonOptional(vSdcpnInitialData),
+    initialData: v.nonOptional(sdcpnInitialDataSchema),
   }),
   v.transform(({ ownerKey, ...session }) => ({
     ...session,
@@ -128,7 +128,7 @@ export const openRetainedPersonaBrowser = async (
     }),
     brunchActorKeyStorageKey,
   );
-  const data = v.parse(vSdcpnInitialData, session.initialData);
+  const data = v.parse(sdcpnInitialDataSchema, session.initialData);
   assert(data);
   const binding = data.binding;
   assert.equal(
@@ -140,7 +140,7 @@ export const openRetainedPersonaBrowser = async (
   const stored = documents[binding.documentId];
   assert.ok(stored !== undefined, "Original browser document is missing");
   assert.ok(
-    v.is(storedNetSchema(binding.documentId), stored),
+    v.is(storedNetSchemaWith({ documentId: binding.documentId }), stored),
     "Original browser document is not a net the website opens",
   );
   await page.goto(new URL(route, origin).href);
