@@ -359,7 +359,7 @@ const FlowCanvas = ({
   const canvasActions = useMemo<CanvasActions>(
     () => ({
       editing: {
-        openAddMenuAfter: (anchor, stepId) => {
+        openAddMenuAfter: (anchor, stepId, outputName) => {
           const node = getInternalNode(
             stepId === null ? startNodeId : getStepNodeId(stepId),
           );
@@ -385,7 +385,9 @@ const FlowCanvas = ({
               selectStep(
                 editor.addStep(
                   actionDefinitionId,
-                  stepId === null ? { position } : { after: stepId, position },
+                  stepId === null
+                    ? { position }
+                    : { after: stepId, outputName, position },
                 ),
               ),
           });
@@ -557,6 +559,7 @@ const FlowCanvas = ({
           selectStep(
             editor.addStep(actionDefinitionId, {
               after: fromStepId,
+              outputName: fromHandle.id ?? undefined,
               position,
             }),
           );
@@ -675,6 +678,7 @@ const FlowCanvas = ({
               kind: "port",
               stepId,
               side: handle.classList.contains("source") ? "output" : "input",
+              outputName: handle.getAttribute("data-handleid") ?? undefined,
             }
           : { kind: "step", stepId },
       );
@@ -728,12 +732,16 @@ const FlowCanvas = ({
               savePositions(draggedNodes)
             }
             isValidConnection={isValidConnection}
-            onConnect={({ source, target }) => {
+            onConnect={({ source, sourceHandle, target }) => {
               const from = getTopLevelStepId(source);
               const to = getTopLevelStepId(target);
 
               if (from !== null && to !== null) {
-                editor.addConnection({ from, to });
+                editor.addConnection({
+                  from,
+                  to,
+                  outputName: sourceHandle ?? undefined,
+                });
               }
             }}
             onConnectEnd={onConnectEnd}

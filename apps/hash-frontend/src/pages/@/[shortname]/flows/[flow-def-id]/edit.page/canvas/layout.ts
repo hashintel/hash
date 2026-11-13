@@ -1,10 +1,12 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 
 import { getStepsBefore } from "../shared/step-order";
+import { getStepPaths } from "../shared/step-paths";
 import { getStartPosition, startNodeId } from "./flow-graph";
 import {
   collapsedForEachSize,
   forEachBoxPadding,
+  getStepCardSize,
   stepCardSize,
   stepGap,
 } from "./sizes";
@@ -58,7 +60,10 @@ const getElkNodes = (
 ): ElkNode[] =>
   steps.map((step) =>
     step.kind === "action"
-      ? { id: getStepElkId(step.stepId), ...stepCardSize }
+      ? {
+          id: getStepElkId(step.stepId),
+          ...getStepCardSize(getStepPaths(step).length),
+        }
       : collapsedStepIds.has(step.stepId)
         ? { id: getStepElkId(step.stepId), ...collapsedForEachSize }
         : {

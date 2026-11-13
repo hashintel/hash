@@ -1,6 +1,8 @@
 import { getStepsBefore } from "../shared/step-order";
+import { getStepPaths } from "../shared/step-paths";
 import { collapsedForEachSize, stepCardSize, stepGap } from "./sizes";
 
+import type { StepPath } from "../shared/step-paths";
 import type { StepRunMark } from "../shared/step-states";
 import type {
   FlowConnection,
@@ -41,8 +43,11 @@ type StepNodeDataBase = {
 
 export type StartNode = Node<{ run?: CardRun }, "start">;
 
+/** A path of a step, and whether a line leaves it. */
+export type CardPath = StepPath & { connected: boolean };
+
 export type ActionStepNode = Node<
-  StepNodeDataBase & { step: ActionStepDefinition<string> },
+  StepNodeDataBase & { step: ActionStepDefinition<string>; paths: CardPath[] },
   "step"
 >;
 
@@ -65,13 +70,15 @@ type ConnectionEdgeData =
 
 export type ConnectionEdge = Edge<ConnectionEdgeData, "connection">;
 
-const getConnectionEdgeId = ({ from, to }: FlowConnection) =>
-  `connection:${JSON.stringify([from, to])}`;
+const getConnectionEdgeId = ({ from, to, outputName }: FlowConnection) =>
+  `connection:${JSON.stringify([from, to, outputName])}`;
 
-const getNestedRunAfterIds = (steps: StepDefinition<string>[]): string[] =>
+type RunAfterEntry = NonNullable<StepDefinition<string>["runAfter"]>[number];
+
+const getNestedRunAfter = (steps: StepDefinition<string>[]): RunAfterEntry[] =>
   steps.flatMap((step) => [
-    ...(step.runAfter ?? []).map(({ stepId }) => stepId),
-    ...(step.kind === "for-each" ? getNestedRunAfterIds(step.steps) : []),
+    ...(step.runAfter ?? []),
+    ...(step.kind === "for-each" ? getNestedRunAfter(step.steps) : []),
   ]);
 
 /** Start isn't stored: it sits a gap to the left of the leftmost top-level step with nothing before it. */
@@ -151,7 +158,12 @@ export const getFlowGraph = ({
       };
 
       if (step.kind === "action") {
-        nodes.push({ ...placement, type: "step", data: { ...data, step } });
+        /* Filled in once every line is drawn. */
+        nodes.push({
+          ...placement,
+          type: "step",
+          data: { ...data, step, paths: [] },
+        });
       } else {
         const layout = forEachLayouts.get(step.stepId);
         const collapsed = !inner && collapsedStepIds.has(step.stepId);
@@ -169,13 +181,21 @@ export const getFlowGraph = ({
             (step.runAfter ?? []).map(({ stepId }) => stepId),
           );
 
-          /* Lines to the steps inside a collapsed box go to the box. */
-          for (const from of new Set(getNestedRunAfterIds(step.steps))) {
+          /* Lines to the steps inside a collapsed box go to the box, one per step or path they follow. */
+          const linesIn = new Map(
+            getNestedRunAfter(step.steps).map((entry) => [
+              JSON.stringify([entry.stepId, entry.outputName]),
+              entry,
+            ]),
+          );
+
+          for (const { stepId: from, outputName } of linesIn.values()) {
             if (stepIdsInScope.has(from) && !ownStepIdsBefore.has(from)) {
               edges.push({
-                id: getConnectionEdgeId({ from, to: step.stepId }),
+                id: getConnectionEdgeId({ from, to: step.stepId, outputName }),
                 type: "connection",
                 source: getStepNodeId(from),
+                sourceHandle: outputName,
                 target: id,
                 data: { kind: "inner" },
                 deletable: false,
@@ -193,17 +213,18 @@ export const getFlowGraph = ({
         }
       }
 
-      for (const { stepId: from } of step.runAfter ?? []) {
+      for (const { stepId: from, outputName } of step.runAfter ?? []) {
         if (!stepIdsInScope.has(from)) {
           continue;
         }
 
-        const connection = { from, to: step.stepId };
+        const connection = { from, to: step.stepId, outputName };
 
         edges.push({
           id: getConnectionEdgeId(connection),
           type: "connection",
           source: getStepNodeId(from),
+          sourceHandle: outputName,
           target: id,
           data: inner ? { kind: "inner" } : { kind: "connection", connection },
           deletable: !inner,
@@ -215,6 +236,21 @@ export const getFlowGraph = ({
   };
 
   addSteps(flowDefinition.steps);
+
+  const linesFrom = new Set(
+    edges.map(({ source, sourceHandle }) =>
+      JSON.stringify([source, sourceHandle]),
+    ),
+  );
+
+  for (const node of nodes) {
+    if (node.type === "step") {
+      node.data.paths = getStepPaths(node.data.step).map((path) => ({
+        ...path,
+        connected: linesFrom.has(JSON.stringify([node.id, path.outputName])),
+      }));
+    }
+  }
 
   const stepsBefore = getStepsBefore(flowDefinition.steps);
 

@@ -682,7 +682,9 @@ export const validateFlowDefinition = (
   }
 
   for (const { step, path, scope } of entries) {
-    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+    for (const [index, { stepId, outputName }] of (
+      step.runAfter ?? []
+    ).entries()) {
       const runAfterPath = [...path, "runAfter", index, "stepId"];
       const before = stepsById.get(stepId);
 
@@ -699,6 +701,15 @@ export const validateFlowDefinition = (
           "stepNotInScope",
           `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
           runAfterPath,
+        );
+      } else if (
+        outputName !== undefined &&
+        !hasStepOutput(before.step, outputName)
+      ) {
+        report(
+          "unknownStepOutput",
+          `Step "${stepId}" has no output "${outputName}"`,
+          [...path, "runAfter", index, "outputName"],
         );
       } else {
         addDependency(step.stepId, stepId);

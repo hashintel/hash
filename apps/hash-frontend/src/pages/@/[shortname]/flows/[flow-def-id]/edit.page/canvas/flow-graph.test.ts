@@ -168,6 +168,69 @@ describe("getFlowGraph", () => {
     ]);
   });
 
+  it("draws a line from the port of the path a step follows, and fills the dot of each path a line leaves", () => {
+    const steps: StepDefinition<string>[] = [
+      actionStep("check", {
+        actionDefinitionId: "if",
+        pathNames: { true: "Over budget", false: "Ignored" },
+      }),
+      actionStep("onNo", {
+        runAfter: [{ stepId: "check", outputName: "false" }],
+      }),
+      {
+        kind: "for-each",
+        stepId: "forEach",
+        description: "",
+        over: { kind: "flow-input", inputName: "suppliers" },
+        steps: [
+          actionStep("inner", {
+            runAfter: [{ stepId: "check", outputName: "false" }],
+          }),
+        ],
+        collect: { stepId: "inner", outputName: "entities", as: "results" },
+      },
+    ];
+
+    const graph = graphOf(steps, new Map(), new Set(["forEach"]));
+
+    expect(
+      graph.edges
+        .filter(({ data }) => data?.kind !== "start")
+        .map(({ source, sourceHandle, target, data }) => ({
+          source,
+          sourceHandle,
+          target,
+          data,
+        })),
+    ).toEqual([
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "false",
+        target: getStepNodeId("onNo"),
+        data: {
+          kind: "connection",
+          connection: { from: "check", to: "onNo", outputName: "false" },
+        },
+      },
+      /* A collapsed box's line leaves the path its step follows, too. */
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "false",
+        target: getStepNodeId("forEach"),
+        data: { kind: "inner" },
+      },
+    ]);
+    /* Yes takes its new name; No, the catch-all, keeps its own. */
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
+    ).toMatchObject({
+      paths: [
+        { outputName: "true", name: "Over budget", connected: false },
+        { outputName: "false", name: "No", connected: true },
+      ],
+    });
+  });
+
   it("puts Start a gap to the left of the leftmost step with nothing before it", () => {
     const graph = graphOf([
       actionStep("later", { position: { x: 500, y: 300 } }),
