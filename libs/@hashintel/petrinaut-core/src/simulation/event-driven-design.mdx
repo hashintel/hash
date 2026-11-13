@@ -248,8 +248,7 @@ the positions are steps, so every step is a sample:
 
 - `simulatorFromExperimentBackend` sets the sample period to
   `STEP_SAMPLE_PERIOD`, one step, whatever the simulator steps by, and
-  refuses a request that names another period. `maxTime` is the step the
-  runs stop at.
+  refuses a request that names another period.
 - A simulator hosted in the experiment workers builds each run's stepper
   with `createRunStepper` too, so the adaptive simulator's runs are stepped
   by the step stepper.
@@ -326,7 +325,7 @@ The declared `lambdaType` is kept for four reasons:
 ## What a net is, and who says so
 
 How a run reads depends on three properties of its net. Each is a fact
-about the model, so each is inferred from the net and none is stored.
+about the model, so none is stored.
 
 | Property   | Values                | Question                             | Inferred from                                                 |
 | ---------- | --------------------- | ------------------------------------ | ------------------------------------------------------------- |
@@ -373,7 +372,7 @@ whether it has subnets, the class of each place's dynamics
 
 ### Who decides
 
-The net decides what is true. Three parts then each have one job:
+The net decides what is true. Four parts then each have one job:
 
 - **Core infers.** `net-timing.ts` reads the structure and compiles
   nothing. What needs compiled code belongs where code is compiled, in the
@@ -404,7 +403,7 @@ run and not read off the net by the host.
 
 :::caution
 
-- **"Runs dynamics" has four rules.** `hasRunningDynamics` and the engine
+- **"Runs dynamics" has five rules.** `hasRunningDynamics` and the engine
   (`build-simulation.ts`) agree. `inferMetricShape` reads the switch alone.
   The shader's `assessGpuEligibility` and `analyzeCompilation` read the
   switch without the extensions, and `hirFromArtifacts` reads the switch,
@@ -770,7 +769,7 @@ run's state in the buffers the engine already uses, and `advance(stopAt?)`,
 which moves to the next firing, the next reference frame or the stop time.
 A run of an untimed net is stepped by a third stepper that belongs to no
 simulator, described in [A run in steps](#a-run-in-steps).
-Two hosts drive it:
+Two hosts drive a stepper:
 
 - **The event simulation worker** never passes a stop time, because a demand
   must not change the adaptive stepper's random draws. A recorder encodes
