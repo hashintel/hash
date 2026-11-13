@@ -751,8 +751,9 @@ export const SourceMenu = ({
               text: choice.label,
               glyph:
                 typedGroupLabel === "People" && !peopleAsRoles ? (
-                  <PersonAvatar name={choice.label} />
+                  <PersonAvatar name={choice.label} row />
                 ) : undefined,
+              avatar: typedGroupLabel === "People" && !peopleAsRoles,
               icon: iconsEverywhere
                 ? typedGroupLabel === "People"
                   ? peopleAsRoles

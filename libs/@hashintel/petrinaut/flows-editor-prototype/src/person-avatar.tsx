@@ -10,15 +10,29 @@ const avatarSizeStyle = css({
   fontSize: "[7px]", // token-guard: allow initials must fit the 14 px HASH avatar
 });
 
+const rowAvatarStyle = css({
+  "--avatar-size": "32px",
+  fontSize: "[11px]", // token-guard: allow initials fit the 32 px row avatar
+  backgroundColor: "neutral.a25",
+  color: "neutral.fg.muted",
+});
+
 /** A person's name without a role after it ("Maya Patel · quality lead" is "Maya Patel"). */
 export const personName = (label: string) =>
   peopleAsRoles ? label : (label.split(" · ")[0] ?? label);
 
 /** HASH's chip avatar (flow-tables/chips.tsx): a 14 px round avatar, initials until a user has an image. */
-export const PersonAvatar = ({ name }: { name: string }) => (
+export const PersonAvatar = ({
+  name,
+  row = false,
+}: {
+  name: string;
+  /** A menu row's avatar: as big as the 32 px tile it replaces, on the tile's light neutral fill. */
+  row?: boolean;
+}) => (
   <Avatar
     size="custom"
-    className={avatarSizeStyle}
+    className={row ? rowAvatarStyle : avatarSizeStyle}
     alt={name}
     placeholder={{
       initials: name

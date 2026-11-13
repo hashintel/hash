@@ -154,6 +154,15 @@ const sourceTileStyle = css({
   "&[data-two-line] svg": { width: "[18px]", height: "[18px]", "--icon-size": "18px" },
 });
 
+/** A person's avatar stands where the tile would: 32 px, centred on the row, no tile behind it. */
+const avatarSlotStyle = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  alignSelf: "center",
+  width: "[32px]",
+  height: "[32px]",
+});
+
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -350,7 +359,10 @@ export const MenuRow = ({
   lines = "value",
   tint,
   tiles,
+  avatar = false,
 }: {
+  /** The icon is a person's avatar: drawn at tile size with no tile behind it. */
+  avatar?: boolean;
   icon?: IconName | React.ReactElement;
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -369,7 +381,11 @@ export const MenuRow = ({
       data-menu-row={twoLine ? "two" : "one"}
       data-lines={lines}
     >
-      {tiles ? (
+      {avatar ? (
+        <span className={avatarSlotStyle} aria-hidden="true">
+          {glyph}
+        </span>
+      ) : tiles ? (
         tiled ? (
           <span
             className={sourceTileStyle}
@@ -412,6 +428,8 @@ export const MenuRow = ({
 /** A DS Menu item that may draw a glyph the DS icon set lacks (the [x] variable glyph). */
 export type TiledItem = MenuItem & {
   glyph?: React.ReactElement;
+  /** The glyph is a person's avatar: it replaces the tile. */
+  avatar?: boolean;
   /** `?pickercolour=` takes only: see `MenuRow`. */
   tint?: React.CSSProperties;
   /** A DS tooltip right of the menu while the row is hovered (the Add step menu's description and inputs → outputs). */
@@ -446,7 +464,7 @@ export const tileMenu = (
   const tiles = lines === "value" ? valueTiles : undefined;
   const tiled = always || tiles !== undefined || rows.some(hasDescription);
   const convert = (item: TiledItem): MenuItem => {
-    const { glyph, tint, tooltip, ...rest } = item;
+    const { glyph, avatar, tint, tooltip, ...rest } = item;
     const withTooltip = (row: React.ReactNode) =>
       tooltip ? (
         <Tooltip
@@ -491,6 +509,7 @@ export const tileMenu = (
           lines={lines}
           tint={tint}
           tiles={tiles}
+          avatar={avatar}
         />,
       ),
       icon: undefined,
