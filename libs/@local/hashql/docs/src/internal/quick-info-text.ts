@@ -5,6 +5,7 @@ import {
   isPropertyAccessExpression,
   isSignatureDeclaration,
   isTypeAliasDeclaration,
+  isTypeParameterDeclaration,
 } from "typescript/ast";
 import { getNameOfDeclaration } from "typescript/ast/utils";
 import {
@@ -22,7 +23,7 @@ import * as Location from "./quick-info-location.js";
 
 import type * as QuickInfo from "../QuickInfo.js";
 import type { Cause } from "effect";
-import type { Declaration, Identifier, Node } from "typescript/ast";
+import type { Declaration, Identifier, Node, TypeNode } from "typescript/ast";
 import type {
   Symbol as CompilerSymbol,
   Type,
@@ -138,20 +139,64 @@ const bracketed = <P>(
   ]);
 };
 
-/** `parameters` in angle brackets, each with its constraint and its default as `write` writes a type, or nothing when there are none. */
-const list = Effect.fnUntraced(function* <P>(
+/** How the parts of a type parameter list are written: a type, and the constraint of a parameter. */
+interface Writer<P, R> {
+  readonly type: (
+    type: Type,
+  ) => Effect.Effect<P, Cause.UnknownError, Checker.Checker>;
+  readonly constraint: (
+    parameter: TypeParameter,
+  ) => Effect.Effect<Option.Option<P>, Cause.UnknownError, R>;
+}
+
+/** The constraint of `parameter` as `write` writes its type, or none for a parameter without one. */
+const resolvedConstraint =
+  <P>(write: Writer<P, never>["type"]) =>
+  (
+    parameter: TypeParameter,
+  ): Effect.Effect<Option.Option<P>, Cause.UnknownError, Checker.Checker> =>
+    Effect.flatMap(Checker.Checker, (checker) =>
+      checker
+        .getConstraintOfTypeParameter(parameter)
+        .pipe(
+          Effect.flatMap((constraint) =>
+            Effect.transposeOption(Option.map(constraint, write)),
+          ),
+        ),
+    );
+
+/** The constraint of `parameter` as its declaration writes it, or none for a parameter that declares none. */
+const declaredConstraint = Effect.fnUntraced(function* (
+  parameter: TypeParameter,
+) {
+  const checker = yield* Checker.Checker;
+  const program = yield* Program.Program;
+  const symbol = yield* checker.getSymbolOfType(parameter);
+  if (Option.isNone(symbol)) {
+    return Option.none<TypeNode>();
+  }
+
+  const declarations = yield* program.declarations(symbol.value);
+
+  return pipe(
+    declarations,
+    Array.findFirst(isTypeParameterDeclaration),
+    Option.flatMapNullishOr(({ constraint }) => constraint),
+  );
+});
+
+/** `parameters` in angle brackets, each with its constraint and its default as `writer` writes them, or nothing when there are none. */
+const list = Effect.fnUntraced(function* <P, R>(
   parameters: readonly TypeParameter[],
-  write: (type: Type) => Effect.Effect<P, Cause.UnknownError, Checker.Checker>,
+  writer: Writer<P, R>,
 ) {
   const checker = yield* Checker.Checker;
   const items = yield* Effect.forEach(
     parameters,
     Effect.fnUntraced(function* (parameter) {
       const own = yield* detached(parameter);
-      const constraint = yield* checker.getConstraintOfTypeParameter(parameter);
-      const bound = yield* Effect.transposeOption(
-        Option.map(constraint, write),
-      );
+      const bound = yield* writer.constraint(parameter);
+      const write = writer.type;
       const fallback = yield* checker.getDefaultFromTypeParameter(parameter);
       const initial = yield* Effect.transposeOption(
         Option.map(fallback, write),
@@ -178,7 +223,13 @@ const list = Effect.fnUntraced(function* <P>(
 export const typeParameters = (
   parameters: readonly TypeParameter[],
 ): Effect.Effect<string, Cause.UnknownError, Checker.Checker> =>
-  Effect.map(list(parameters, detached), Array.join(""));
+  Effect.map(
+    list(parameters, {
+      type: detached,
+      constraint: resolvedConstraint(detached),
+    }),
+    Array.join(""),
+  );
 
 /** The type parameters of the first of `declarations` that declares any, where each is a type alias or a function-like declaration. */
 export const declaredTypeParameters = Effect.fnUntraced(function* (
@@ -260,6 +311,25 @@ const instantiation = Effect.fnUntraced(function* (
   );
 });
 
+/**
+ * How the type parameters of a holder are written where it qualifies a name, as `Box<T extends Space.Kind = string>` in `Box<T extends Space.Kind = string>.value`.
+ *
+ * The compiler writes a constraint there as its declaration writes it, and a default from its type.
+ */
+const qualifying = (
+  name: Identifier,
+): Writer<Part, Checker.Checker | Program.Program> => ({
+  type: inline(name),
+  constraint: Effect.fnUntraced(function* (parameter) {
+    const written = yield* declaredConstraint(parameter);
+    if (Option.isSome(written)) {
+      return Option.some<Part>(written.value);
+    }
+
+    return yield* resolvedConstraint(inline(name))(parameter);
+  }),
+});
+
 /** What `holder` writes after its name where it qualifies `member`: its type arguments when `member` belongs to an instantiation of it, and the type parameters it declares otherwise. */
 const qualification = Effect.fnUntraced(function* (
   holder: CompilerSymbol,
@@ -285,7 +355,7 @@ const qualification = Effect.fnUntraced(function* (
     const declared = yield* checker.getDeclaredTypeOfSymbol(holder);
     const parameters = yield* checker.getLocalTypeParameters(declared);
 
-    return yield* list(parameters, inline(name));
+    return yield* list(parameters, qualifying(name));
   }
 
   if (
@@ -297,7 +367,7 @@ const qualification = Effect.fnUntraced(function* (
       Option.toArray(declaration),
     );
 
-    return yield* list(parameters, inline(name));
+    return yield* list(parameters, qualifying(name));
   }
 
   return [];

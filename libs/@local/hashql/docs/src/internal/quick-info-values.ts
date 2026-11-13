@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Predicate } from "effect";
+import { Array, Effect, HashMap, Option, Predicate } from "effect";
 import {
   SyntaxKind,
   isFunctionLikeDeclaration,
@@ -122,6 +122,49 @@ export const value = Effect.fnUntraced(function* ({
   return [line(head.parts, text)];
 });
 
+/** The characters the compiler escapes with a letter in a string between double quotes. */
+const escapes = HashMap.make(
+  ["\t", String.raw`\t`],
+  ["\v", String.raw`\v`],
+  ["\f", String.raw`\f`],
+  ["\b", String.raw`\b`],
+  ["\r", String.raw`\r`],
+  ["\n", String.raw`\n`],
+  ["\\", String.raw`\\`],
+  ['"', String.raw`\"`],
+);
+
+/** The escape the compiler writes for a character it has no letter for, such as `\u001B`: four hexadecimal digits in capitals. */
+const unicodeEscape = (character: string): string => {
+  const radix = 16;
+  const digits = 4;
+  const code = character.codePointAt(0) ?? 0;
+
+  return `\\u${code.toString(radix).toUpperCase().padStart(digits, "0")}`;
+};
+
+/** `text` between double quotes as the compiler writes a string literal: a quote, a backslash, a control character and a line separator are escaped, and every other character stands as it is. */
+const quoted = (text: string): string => {
+  const written = text.replaceAll(
+    // oxlint-disable-next-line no-control-regex -- The compiler escapes the control characters.
+    /[\\"\u0000-\u001F\u0085\u2028\u2029]/gu,
+    (character, offset: number) => {
+      if (character === "\0") {
+        // A digit after `\0` would read as part of an octal escape.
+        return /^\d/u.test(text.slice(offset + 1))
+          ? String.raw`\x00`
+          : String.raw`\0`;
+      }
+
+      return HashMap.get(escapes, character).pipe(
+        Option.getOrElse(() => unicodeEscape(character)),
+      );
+    },
+  );
+
+  return `"${written}"`;
+};
+
 /** The value an enum member is a constant for, as quick info writes it after the member, or nothing for a member the compiler computes no value for. */
 const constantOf = (type: Type): string => {
   if (!type.isLiteralType()) {
@@ -129,7 +172,7 @@ const constantOf = (type: Type): string => {
   }
 
   if (Predicate.isString(type.value)) {
-    return ` = "${type.value}"`;
+    return ` = ${quoted(type.value)}`;
   }
 
   return ` = ${String(type.value)}`;

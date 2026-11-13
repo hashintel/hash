@@ -1,12 +1,22 @@
-import { Array, Effect, Function, Option, Predicate } from "effect";
-import { SyntaxKind, isObjectLiteralExpression } from "typescript/ast";
-import { SymbolFlags } from "typescript/async";
+import { Array, Boolean, Effect, Function, Option, Predicate } from "effect";
+import {
+  SyntaxKind,
+  isComputedPropertyName,
+  isObjectLiteralExpression,
+  isSpreadAssignment,
+} from "typescript/ast";
+import { SymbolFlags, TypeFlags } from "typescript/async";
 
 import * as Checker from "../TypeScript/Checker.js";
 import * as Symbol from "../TypeScript/Symbol.js";
 import * as Location from "./quick-info-location.js";
 
-import type { Identifier } from "typescript/ast";
+import type { Cause } from "effect";
+import type {
+  Identifier,
+  ObjectLiteralElementLike,
+  ObjectLiteralExpression,
+} from "typescript/ast";
 import type { Symbol as CompilerSymbol, Type } from "typescript/async";
 
 /** What a name names, where it stands. */
@@ -69,30 +79,106 @@ const flagsOf = (
   return method ? SymbolFlags.Method : flags;
 };
 
-/** The property `name` of the types `members` when they have exactly one between them, and none otherwise. */
-const shared = Effect.fnUntraced(function* (
+/** Whether `type` is a unit type, which has one value: a literal, an enum member, a unique symbol, `null` or `undefined`. */
+const isUnit = (type: Type): boolean =>
+  // oxlint-disable-next-line no-bitwise -- `TypeFlags` is the compiler's bit set.
+  (type.flags & TypeFlags.Unit) !== 0;
+
+/** Whether a property of `type` can tell the members of a union apart: `boolean`, an enum, a unit type, or a union of unit types. */
+const discriminates = Effect.fnUntraced(function* (type: Type) {
+  // oxlint-disable-next-line no-bitwise -- `TypeFlags` is the compiler's bit set.
+  if ((type.flags & (TypeFlags.Boolean | TypeFlags.EnumLiteral)) !== 0) {
+    return true;
+  }
+  if (!type.isUnionType()) {
+    return isUnit(type);
+  }
+
+  const checker = yield* Checker.Checker;
+  const members = yield* checker.getTypesOfUnion(type);
+
+  return Array.every(members, isUnit);
+});
+
+/** The name a member of an object literal declares, or none for a spread and for a computed name that is no string or number literal. */
+const declared = Effect.fnUntraced(function* (
+  member: ObjectLiteralElementLike,
+) {
+  if (isSpreadAssignment(member)) {
+    return Option.none<string>();
+  }
+
+  const { name } = member;
+  if (!isComputedPropertyName(name)) {
+    return Option.some(name.text);
+  }
+
+  const checker = yield* Checker.Checker;
+  const key = yield* checker.getTypeAtLocation(name.expression);
+  if (!key.isLiteralType() || Predicate.isObject(key.value)) {
+    return Option.none<string>();
+  }
+
+  return Option.some(String(key.value));
+});
+
+/** Whether `member` of an object literal has a value that `type` rules out, where `type` declares the property with a type that tells the members of a union apart. */
+const conflicts = Effect.fnUntraced(function* (
+  type: Type,
+  member: ObjectLiteralElementLike,
+) {
+  const checker = yield* Checker.Checker;
+  const name = yield* declared(member);
+  const property = yield* Effect.transposeOption(
+    Option.map(name, (text) => checker.getPropertyOfType(type, text)),
+  );
+  const found = Option.flatten(property);
+  if (Option.isNone(found)) {
+    return false;
+  }
+
+  const wanted = yield* checker.getTypeOfSymbol(found.value);
+  const telling = yield* discriminates(wanted);
+  if (!telling) {
+    return false;
+  }
+
+  const written = yield* checker.getTypeAtLocation(member);
+  const fits = yield* checker.isTypeAssignableTo(written, wanted);
+
+  return !fits;
+});
+
+/** Whether `literal` gives a property a value that `type` rules out. */
+const excludes = (
+  type: Type,
+  literal: ObjectLiteralExpression,
+): Effect.Effect<boolean, Cause.UnknownError, Checker.Checker> =>
+  Effect.map(
+    Effect.findFirst(literal.properties, (member) => conflicts(type, member)),
+    Option.isSome,
+  );
+
+/** The properties `name` of the types `members`, each once. */
+const properties = Effect.fnUntraced(function* (
   members: readonly Type[],
   name: string,
 ) {
   const checker = yield* Checker.Checker;
-  const properties = yield* Effect.forEach(members, (member) =>
+  const found = yield* Effect.forEach(members, (member) =>
     checker.getPropertyOfType(member, name),
   );
-  const distinct = Array.dedupeWith(
-    Array.getSomes(properties),
+
+  return Array.dedupeWith(
+    Array.getSomes(found),
     (self, that) => self.id === that.id,
   );
-  if (distinct.length !== 1) {
-    return Option.none<CompilerSymbol>();
-  }
-
-  return Array.head(distinct);
 });
 
 /**
  * The property that `name` gives a value for, where `name` names a member of an object literal and the code around the literal expects a type with one such property.
  *
- * An editor shows that property, with the type it declares, rather than the member the literal itself declares. Where the expected type is a union, the property is that of the members the literal fits, and of any member when those have none.
+ * An editor shows that property, with the type it declares, rather than the member the literal itself declares. Where the expected type is a union, a member of the union is out when the literal gives one of its discriminating properties another value, and the property is the one the remaining members declare. Where they declare more than one, the name shows the literal's own member.
  */
 const expected = Effect.fnUntraced(function* (name: Identifier) {
   const { parent } = name;
@@ -104,8 +190,9 @@ const expected = Effect.fnUntraced(function* (name: Identifier) {
     return Option.none<CompilerSymbol>();
   }
 
+  const literal = parent.parent;
   const checker = yield* Checker.Checker;
-  const type = yield* checker.getContextualType(parent.parent);
+  const type = yield* checker.getContextualType(literal);
   if (Option.isNone(type)) {
     return Option.none<CompilerSymbol>();
   }
@@ -115,16 +202,19 @@ const expected = Effect.fnUntraced(function* (name: Identifier) {
   }
 
   const members = yield* checker.getTypesOfUnion(type.value);
-  const written = yield* checker.getTypeAtLocation(parent.parent);
-  const fits = yield* Effect.filter(members, (member) =>
-    checker.isTypeAssignableTo(written, member),
+  const remaining = yield* Effect.filter(members, (member) =>
+    Effect.map(excludes(member, literal), Boolean.not),
   );
-  const fitted = yield* shared(fits, name.text);
-  if (Option.isSome(fitted)) {
-    return fitted;
+  let candidates = yield* properties(remaining, name.text);
+  // A literal that every member rules out has a wrong discriminant, and the name then reads against the whole union.
+  if (remaining.length === 0) {
+    candidates = yield* properties(members, name.text);
+  }
+  if (candidates.length !== 1) {
+    return Option.none<CompilerSymbol>();
   }
 
-  return yield* shared(members, name.text);
+  return Array.head(candidates);
 });
 
 /** What `name` names where it stands, given the symbol `found` that the compiler resolves it to, or none for a name the program cannot resolve. */

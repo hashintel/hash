@@ -95,6 +95,7 @@ const meanings = HashMap.fromIterable<SyntaxKind, Meaning>([
   [SyntaxKind.NamespaceImport, "any"],
   [SyntaxKind.NamespaceExport, "any"],
   [SyntaxKind.NamedTupleMember, "any"],
+  [SyntaxKind.ImportEqualsDeclaration, "any"],
 ]);
 
 /** What the name of `declaration` means, or none for a node whose name declares nothing, such as a property access. */
@@ -171,14 +172,41 @@ const passing = HashSet.make(
   SyntaxKind.ExternalModuleReference,
   SyntaxKind.ImportSpecifier,
   SyntaxKind.ImportClause,
-  SyntaxKind.ImportEqualsDeclaration,
 );
+
+/**
+ * What `name` means in the entity an import alias names, as `Space` and `Kind` are in `import Kind = Space.Kind`, or none for a name outside one.
+ *
+ * The alias takes every meaning of the entity, so its last name has them all. A name before a dot is a namespace, and so is an entity of one name.
+ */
+const aliased = (name: Identifier): Option.Option<Meaning> => {
+  let root: Node.Node = name;
+  while (isQualifiedName(root.parent)) {
+    root = root.parent;
+  }
+
+  if (
+    !isImportEqualsDeclaration(root.parent) ||
+    root.parent.moduleReference !== root
+  ) {
+    return Option.none();
+  }
+
+  const last = isQualifiedName(root) && root.right === name;
+
+  return Option.some(last ? "any" : "namespace");
+};
 
 /** What `name` means where it stands. */
 export const meaningOf = (name: Identifier): Meaning => {
   const { parent } = name;
   if (HashSet.has(passing, parent.kind)) {
     return "any";
+  }
+
+  const entity = aliased(name);
+  if (Option.isSome(entity)) {
+    return entity.value;
   }
 
   if (Predicate.hasProperty(parent, "name") && parent.name === name) {

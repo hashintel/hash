@@ -16,7 +16,7 @@ import type { Symbol as CompilerSymbol } from "typescript/async";
 /**
  * One line of quick info, as the parts it reads in and the signature it ends with.
  *
- * The compiler writes a keyword, a name and the type after a name as text. It has no call that writes a type inside a name, as `Box<number>` in `Box<number>.value`, or a signature, so those stay the syntax it builds until `display` prints them.
+ * The compiler writes a keyword, a name and the type after a name as text. It has no call that writes a type inside a name, as `Box<number>` in `Box<number>.value`, or a signature, so those stay the syntax it builds until `display` prints them. A constraint among a holder's type parameters, as `Space.Kind` in `Box<T extends Space.Kind>.value`, is the syntax its declaration writes.
  */
 export interface Line {
   readonly parts: readonly (string | TypeNode)[];

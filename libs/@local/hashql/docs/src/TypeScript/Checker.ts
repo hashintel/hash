@@ -4,6 +4,7 @@ import { SymbolFlags, isClassOrInterfaceType } from "typescript/async";
 import type { Cause } from "effect";
 import type {
   CallSignatureDeclaration,
+  ConstructSignatureDeclaration,
   ConstructorTypeNode,
   Declaration,
   Expression,
@@ -25,9 +26,10 @@ import type {
   UnionType,
 } from "typescript/async";
 
-/** A signature as the syntax the compiler builds for it: a call signature, or the type of a function or of a constructor. */
+/** A signature as the syntax the compiler builds for it: a call signature, a construct signature, or the type of a function or of a constructor. */
 export type SignatureNode =
   | CallSignatureDeclaration
+  | ConstructSignatureDeclaration
   | FunctionTypeNode
   | ConstructorTypeNode;
 
