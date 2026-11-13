@@ -3,20 +3,21 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
 import {
-  agentOwnershipHeaders,
   brunchActorKeyStorageKey,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
 import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
+import {
+  personaConversationClient,
+  type PersonaBrowserSession,
+} from "../browser-turn.ts";
 import { lastAdmittedUtterance } from "./bridge-log.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 
-import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
 
 const text = v.pipe(v.string(), v.minLength(1));
@@ -76,6 +77,7 @@ const sessionSchema = v.pipe(
 /** The `session.json` text for a session, in the shape `readPersonaResume` reads. */
 export const personaSessionFileText = ({
   actorKey,
+  cookie: _cookie,
   ...session
 }: PersonaBrowserSession): string =>
   `${JSON.stringify({ ...session, ownerKey: actorKey }, null, 2)}\n`;
@@ -153,10 +155,7 @@ export const reconcilePersonaResume = async (
   lastUtterance: string,
   signal?: AbortSignal,
 ) => {
-  const client = createFlueClient({
-    url: session.url,
-    headers: agentOwnershipHeaders(session),
-  });
+  const client = personaConversationClient(session);
   const before = await client.history();
   const lastUser = before.messages.findLast(
     (message) => message.purpose === "user",

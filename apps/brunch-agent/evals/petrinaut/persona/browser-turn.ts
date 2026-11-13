@@ -38,7 +38,23 @@ export type PersonaBrowserSession = ConversationIdentity & {
   readonly url: string;
   readonly uid: string;
   readonly initialData: unknown;
+  /**
+   * The cookies the browser sent with its latest submission. A host that
+   * names the actor from its session cookie, as HASH does, answers the
+   * launcher's own requests only with them. Held in memory, never written.
+   */
+  readonly cookie?: string;
 };
+
+/** Brunch's conversation as the browser holds it, read from the launcher. */
+export const personaConversationClient = (session: PersonaBrowserSession) =>
+  createFlueClient({
+    url: session.url,
+    headers: {
+      ...agentOwnershipHeaders(session),
+      ...(session.cookie === undefined ? {} : { cookie: session.cookie }),
+    },
+  });
 
 /** A destructive edit the harness allowed, described as the approval panel listed it. */
 export interface PersonaAllowedEdit {
@@ -122,7 +138,7 @@ export const submitPersonaBrowserTurn = async (
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
     admissionPath.test(new URL(response.url()).pathname);
-  let client: ReturnType<typeof createFlueClient> | undefined;
+  let client: ReturnType<typeof personaConversationClient> | undefined;
   let admitted = false;
   let stopTask: Promise<void> | undefined;
   const aborted = Promise.withResolvers<never>();
@@ -176,6 +192,7 @@ export const submitPersonaBrowserTurn = async (
         "initialData" in request
           ? request.initialData
           : options.session?.initialData,
+      ...(headers.cookie === undefined ? {} : { cookie: headers.cookie }),
     };
     if (options.session) {
       for (const key of ["url", "actorKey", "conversationId", "uid"] as const)
@@ -185,10 +202,7 @@ export const submitPersonaBrowserTurn = async (
           `Persona browser changed ${key}`,
         );
     }
-    client = createFlueClient({
-      url: session.url,
-      headers: agentOwnershipHeaders(session),
-    });
+    client = personaConversationClient(session);
     await options.onAdmission?.(session, admission);
     signal?.throwIfAborted();
     // Submission revokes earlier approvals before its POST. Wait for the

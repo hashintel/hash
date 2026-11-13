@@ -16,11 +16,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
-import { createFlueClient, FlueExecutionError } from "@flue/sdk";
+import { FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { brunchEnv } from "../../../src/env.ts";
@@ -32,8 +31,8 @@ import { writeRunPacket } from "../run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
+  personaConversationClient,
   submitPersonaBrowserTurn,
-  type PersonaBrowserSession,
 } from "./browser-turn.ts";
 import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
 import {
@@ -668,11 +667,7 @@ const launchPersona = async ({
       await showPersonaPanel(personaPage, panelOrigin, route);
       await recordingPause();
     }
-    const sessionClient = (identity: PersonaBrowserSession) =>
-      createFlueClient({
-        url: identity.url,
-        headers: agentOwnershipHeaders(identity),
-      });
+    const sessionClient = personaConversationClient;
     // Retained on resume; on a fresh run, admitted by the persona's opening.
     let session = resumed?.session;
     if (resumed) {

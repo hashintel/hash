@@ -57,7 +57,9 @@ export const resolvePersonaPorts = async ({
   const panel = fixedPanel ?? (await choosePort());
   let chat = fixedChat ?? (await choosePort());
   // The OS may hand back the port it just gave; only a fixed pair can clash.
-  while (fixedChat === undefined && chat === panel) chat = await choosePort();
+  while (fixedChat === undefined && chat === panel)
+    // eslint-disable-next-line no-await-in-loop -- Each choice depends on the last.
+    chat = await choosePort();
   if (chat === panel)
     throw new Error(
       `${brunchEnv.chatPort} and ${brunchEnv.panelPort} must differ; both are ${chat}`,
