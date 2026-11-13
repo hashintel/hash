@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 
+import { maxSubnetIconLength } from "@hashintel/petrinaut-core";
+
 import { iconMaskImage } from "./icon-mask";
 
 const prefix = 'url("data:image/svg+xml;charset=utf-8,';
@@ -47,16 +49,33 @@ describe("iconMaskImage", () => {
     expect(svg).toContain("<circle");
   });
 
-  it("drops what cannot draw", () => {
+  it("takes a size in px as user units", () => {
     const svg = svgOf(
-      iconMaskImage(
-        '<svg viewBox="0 0 8 8"><script>alert(1)</script><foreignObject><p>Hi</p></foreignObject><circle cx="4" cy="4" r="3"/></svg>',
-      ),
+      iconMaskImage('<svg width="32px" height="16.5px"><rect/></svg>'),
     );
 
-    expect(svg).not.toContain("script");
-    expect(svg).not.toContain("foreignObject");
-    expect(svg).toContain("<circle");
+    expect(svg).toContain('viewBox="0 0 32 16.5"');
+  });
+
+  it("makes no viewBox from a size in another unit", () => {
+    const svg = svgOf(
+      iconMaskImage('<svg width="100%" height="1em"><rect/></svg>'),
+    );
+
+    expect(svg).not.toContain("viewBox");
+    expect(svg).not.toMatch(/\s(width|height)="(100%|1em)"/);
+  });
+
+  it("refuses markup longer than an icon may be", () => {
+    expect(
+      iconMaskImage(`<svg>${" ".repeat(maxSubnetIconLength)}</svg>`),
+    ).toBeNull();
+  });
+
+  it("does not throw on half of a surrogate pair", () => {
+    expect(() =>
+      iconMaskImage('<svg viewBox="0 0 8 8"><title>\ud800</title></svg>'),
+    ).not.toThrow();
   });
 
   it("refuses markup with no svg in it", () => {

@@ -23,8 +23,8 @@ const itemContainerStyle = css({
   width: "[100%]",
 });
 
-// Pool of 10 well-differentiated colors for types
-const TYPE_COLOR_POOL = [
+/** Ten colours that tell apart well, to pick one from. */
+const colorPool = [
   { value: "#3b82f6", text: "Blue" },
   { value: "#ef4444", text: "Red" },
   { value: "#10b981", text: "Green" },
@@ -60,7 +60,7 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
       required
       value={value}
       onChange={onChange}
-      items={TYPE_COLOR_POOL}
+      items={colorPool}
       disabled={disabled}
       size="sm"
       renderItem={(itemValue) => <ColorItem value={itemValue} />}
@@ -76,7 +76,6 @@ interface OptionalColorSelectProps {
   /** What choosing no colour is called. */
   noneLabel: string;
   disabled?: boolean;
-  "aria-label"?: string;
 }
 
 /** A colour from the same pool, or none at all. */
@@ -85,33 +84,22 @@ export const OptionalColorSelect: React.FC<OptionalColorSelectProps> = ({
   onChange,
   noneLabel,
   disabled = false,
-  "aria-label": ariaLabel,
-}) => {
-  // A colour set in a file or by a tool can sit outside the pool: it stays
-  // on offer, so opening the select does not lose it.
-  const items = [
-    { value: noColor, text: noneLabel },
-    ...TYPE_COLOR_POOL,
-    ...(value !== null && !TYPE_COLOR_POOL.some((item) => item.value === value)
-      ? [{ value, text: value }]
-      : []),
-  ];
-  return (
-    <Select
-      required
-      aria-label={ariaLabel}
-      value={value ?? noColor}
-      onChange={(next) => onChange(next === noColor ? null : next)}
-      items={items}
-      disabled={disabled}
-      size="sm"
-      renderItem={(itemValue) =>
-        itemValue === noColor ? (
-          <span>{noneLabel}</span>
-        ) : (
-          <ColorItem value={itemValue} />
-        )
-      }
-    />
-  );
-};
+}) => (
+  // A colour set in a file or by a tool can sit outside the pool: the select
+  // keeps a value it has no item for on offer.
+  <Select
+    required
+    value={value ?? noColor}
+    onChange={(next) => onChange(next === noColor ? null : next)}
+    items={[{ value: noColor, text: noneLabel }, ...colorPool]}
+    disabled={disabled}
+    size="sm"
+    renderItem={(itemValue) =>
+      itemValue === noColor ? (
+        <span>{noneLabel}</span>
+      ) : (
+        <ColorItem value={itemValue} />
+      )
+    }
+  />
+);

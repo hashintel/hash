@@ -241,7 +241,6 @@ const AppearanceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
       </Form.Field>
       <Form.Field label="Color" size="sm">
         <OptionalColorSelect
-          aria-label="Color"
           value={subnet.displayColor ?? null}
           noneLabel="Default"
           disabled={isReadOnly}
