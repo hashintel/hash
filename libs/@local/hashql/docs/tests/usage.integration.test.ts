@@ -5,6 +5,7 @@ import * as Usage from "../src/Usage.js";
 import * as Reference from "./fixtures/reference.js";
 
 import type * as AST from "../src/AST/index.js";
+import type * as Document from "../src/Document.js";
 
 interface Users {
   readonly accepted: readonly string[];
@@ -14,6 +15,8 @@ interface Users {
 interface Collected {
   readonly index: Usage.Index;
   readonly users: (name: string) => Users;
+  /** The users of the value `name`, whose type is declared apart from it. */
+  readonly valueUsers: (name: string) => Users;
 }
 
 /** What a reader calls a user: an export's path, or a member's name with `static` before a static one's. */
@@ -53,16 +56,26 @@ const collect = Effect.fnUntraced(function* (
   const label = (target: AST.Node.Interned): string =>
     HashMap.get(labels, target).pipe(Option.getOrThrow);
 
-  return {
-    index,
-    users: (name) => {
-      const usage = Usage.of(index, Reference.id(reference, [name]));
+  const usersIn =
+    (exports: Document.Document["entries"]) =>
+    (name: string): Users => {
+      const usage = Usage.of(
+        index,
+        HashMap.get(exports, Reference.id(reference, [name])).pipe(
+          Option.getOrThrow,
+        ),
+      );
 
       return {
         accepted: Array.map(usage.acceptedBy, label),
         returned: Array.map(usage.returnedBy, label),
       };
-    },
+    };
+
+  return {
+    index,
+    users: usersIn(reference.document.entries),
+    valueUsers: usersIn(reference.document.values),
   };
 });
 
@@ -164,6 +177,23 @@ describe("usage", () => {
         HashMap.size(index.acceptedBy),
         HashMap.size(index.returnedBy),
       ]).toStrictEqual([0, 0]);
+    }),
+  );
+
+  it.effect(
+    "type_and_value_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users, valueUsers } = yield* collect(`
+      export interface A {}
+      export declare const A: number;
+      export declare function read(value: typeof A): A;
+      export declare function both(value: A | typeof A): void;
+    `);
+      expect([users("A"), valueUsers("A")]).toStrictEqual([
+        { accepted: ["both"], returned: ["read"] },
+        { accepted: ["read", "both"], returned: [] },
+      ]);
     }),
   );
 

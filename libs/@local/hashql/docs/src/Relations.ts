@@ -176,21 +176,29 @@ const implementorsOf = (
     ),
   );
 
-/** The traits, implementors, users and hierarchy of a public declaration. */
+type Exported = Pick<Tree.Export.Own, "origin" | "meaning">;
+
+/** The traits, implementors, users and hierarchy of an export. The hierarchy relates types, so a value declared apart from its type has no place in it. */
 export const of: {
-  (index: Index): (entry: Catalogue.Entry) => Relations;
-  (entry: Catalogue.Entry, index: Index): Relations;
+  (index: Index): (exported: Exported) => Relations;
+  (exported: Exported, index: Index): Relations;
 } = Function.dual(
   2,
-  (entry: Catalogue.Entry, { hierarchy, usage }: Index): Relations => {
-    const index = hierarchy.indexOf(entry.id);
+  (exported: Exported, { hierarchy, usage }: Index): Relations => {
+    const index = pipe(
+      Option.liftPredicate(
+        exported.origin.id,
+        () => !Option.contains(exported.meaning, "value"),
+      ),
+      Option.flatMap(hierarchy.indexOf),
+    );
     const isTrait = Option.exists(
       Option.flatMap(index, (own) => vertexAt(hierarchy, own)),
       ({ trait }) => Option.isSome(trait),
     );
 
     return {
-      ...Usage.of(usage, entry.id),
+      ...Usage.of(usage, exported),
       traits: Option.match(index, {
         onNone: () => [],
         onSome: (own) => Hierarchy.traitsOf(hierarchy, own),

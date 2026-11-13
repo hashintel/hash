@@ -1,4 +1,13 @@
-import { Array, HashMap, Match, Option, Order, Result, pipe } from "effect";
+import {
+  Array,
+  HashMap,
+  Match,
+  Option,
+  Order,
+  Predicate,
+  Result,
+  pipe,
+} from "effect";
 
 import * as Entry from "./Entry.js";
 import * as Import from "./Import.js";
@@ -17,7 +26,10 @@ type Local = AST.Interned.Interned<AST.Target.Local>;
 export interface Document {
   readonly catalogue: Catalogue.Catalogue;
   readonly placement: Placement.Placement;
+  /** Each public declaration's export, which is its type's where its type and its value are declared apart. */
   readonly entries: HashMap.HashMap<Catalogue.DeclarationId, Tree.Export.Own>;
+  /** The export of each value whose type is declared apart from it. */
+  readonly values: HashMap.HashMap<Catalogue.DeclarationId, Tree.Export.Own>;
   /** The export each documented member belongs to, by the member's identity. */
   readonly owners: HashMap.HashMap<AST.Node.Interned, Catalogue.DeclarationId>;
   readonly pages: readonly Tree.Page.Page[];
@@ -51,20 +63,40 @@ const traitRow = (trait: Relations.Described): Row => ({
 /** The names a reader sees on a row. Lists of rows sort by them, so they scan like an index. */
 const labelOf = ({ label }: Row): string => label.join(".");
 
+/** The row of each target, which `row` reads as a declaration or as something that uses one. */
 const rowsOf = (
   targets: readonly Local[],
-  composition: Composition,
+  row: (target: Local) => Option.Option<Row>,
 ): readonly Row[] =>
   pipe(
     targets,
-    Array.flatMap((target) => Option.toArray(Related.row(composition)(target))),
+    Array.flatMap((target) => Option.toArray(row(target))),
     Array.sortWith(labelOf, Order.String),
   );
 
+/** The row of the export that shares `own`'s name with the meaning `own` does not document, or none for an export that documents its name whole. */
+const counterpart = (
+  own: Tree.Export.Own,
+  meaning: Tree.Export.Meaning,
+  composition: Composition,
+): readonly Row[] =>
+  pipe(
+    own.meaning,
+    Option.filter((documented) => documented !== meaning),
+    Option.map(() =>
+      Related.exportAt({ id: own.origin.id, meaning }, composition),
+    ),
+    Option.map(Related.exportRow(composition)),
+    Option.toArray,
+  );
+
 const relatedOf = (
+  own: Tree.Export.Own,
   relations: Relations.Relations,
   composition: Composition,
 ): Tree.Row.Related => ({
+  type: counterpart(own, "type", composition),
+  value: counterpart(own, "value", composition),
   traits: pipe(
     relations.traits,
     Array.flatMap((index) =>
@@ -76,9 +108,9 @@ const relatedOf = (
     ),
     Array.sortWith(labelOf, Order.String),
   ),
-  implementedBy: rowsOf(relations.implementedBy, composition),
-  acceptedBy: rowsOf(relations.acceptedBy, composition),
-  returnedBy: rowsOf(relations.returnedBy, composition),
+  implementedBy: rowsOf(relations.implementedBy, Related.row(composition)),
+  acceptedBy: rowsOf(relations.acceptedBy, Related.user(composition)),
+  returnedBy: rowsOf(relations.returnedBy, Related.user(composition)),
 });
 
 const exportOf = (
@@ -86,23 +118,22 @@ const exportOf = (
   namespace: Option.Option<Tree.Export.Namespace>,
   composition: Composition,
 ): Tree.Export.Export => {
-  const relations = Relations.of(own.origin, composition);
+  const relations = Relations.of(own, composition);
 
   return {
     ...own,
     namespace,
     hierarchy: relations.hierarchy,
-    related: relatedOf(relations, composition),
+    related: relatedOf(own, relations, composition),
   };
 };
 
 /** The exports this page documents in full: each canonical name the page holds, with its namespace's exports beside it. */
 const declarations = (
-  exports: readonly Placement.Export[],
+  exports: readonly Related.Listed[],
   composition: Composition,
 ): readonly Tree.Export.Export[] =>
-  Array.flatMap(exports, (exported) => {
-    const entry = Related.entryAt(exported.target, composition);
+  Array.flatMap(exports, ({ exported, own: entry }) => {
     const place = HashMap.get(composition.placement.places, exported.target);
     if (
       !exported.canonical ||
@@ -119,7 +150,10 @@ const declarations = (
     const namespace = Option.map(
       entry.namespace,
       (value): Tree.Export.Namespace => {
-        const nested = Placement.exportsOf(composition.catalogue, entry.origin);
+        const nested = pipe(
+          Placement.exportsOf(composition.catalogue, entry.origin),
+          Related.listed(composition),
+        );
 
         return {
           ...value,
@@ -135,7 +169,7 @@ const declarations = (
 interface Classified {
   readonly grouping: Tree.Page.Grouping;
   readonly rank: number;
-  readonly exported: Placement.Export;
+  readonly listed: Related.Listed;
 }
 
 /** Each group's rank, before groups of equal rank sort by name: modules first, then categories, then what the exports declare. */
@@ -160,15 +194,12 @@ const declaredOf = (
     Match.orElse(() => "types" as const),
   );
 
-const classify = (
-  exported: Placement.Export,
-  composition: Composition,
-): Classified => {
-  const entry = Related.entryAt(exported.target, composition);
-  const category = Entry.summary(entry).pipe(
+/** The group of one listed export, by its own comment and what it declares. A type and a value declared apart can be in two groups. */
+const classify = (listed: Related.Listed): Classified => {
+  const category = Entry.summary(listed.own).pipe(
     Option.flatMap(({ origin }) => origin.category),
   );
-  const kind = declaredOf(entry.kind);
+  const kind = declaredOf(listed.own.kind);
   if (Option.isSome(category) && kind !== "modules") {
     return {
       grouping: Tree.Page.Category({
@@ -176,14 +207,14 @@ const classify = (
         origin: category.value,
       }),
       rank: ranks.category,
-      exported,
+      listed,
     };
   }
 
   return {
     grouping: Tree.Page.Declared({ kind }),
     rank: ranks[kind],
-    exported,
+    listed,
   };
 };
 
@@ -218,7 +249,8 @@ const modulePage = (
   // The sort is stable, so exports keep their order within a group.
   const groups = pipe(
     page.exports,
-    Array.map((exported) => classify(exported, composition)),
+    Related.listed(composition),
+    Array.map(classify),
     Array.sortBy(byRank, bySlug, byKey),
     Array.match({
       onEmpty: () => [],
@@ -226,7 +258,7 @@ const modulePage = (
     }),
     Array.map((members) => ({
       grouping: members[0].grouping,
-      exports: Array.map(members, ({ exported }) => exported),
+      exports: Array.map(members, ({ listed }) => listed),
     })),
     Array.map((group): Tree.Page.Group => ({
       grouping: group.grouping,
@@ -256,7 +288,7 @@ const traitsPage = (composition: Composition): Tree.Trait.Traits => ({
       type: "trait",
       name: trait.vertex.label,
       description: trait.description,
-      implementors: rowsOf(trait.implementors, composition),
+      implementors: rowsOf(trait.implementors, Related.row(composition)),
       hierarchy: trait.hierarchy,
       origin: trait.vertex.target,
     })),
@@ -292,6 +324,17 @@ const overviewPage = (composition: Composition): Tree.Page.Overview => ({
   origin: composition.catalogue,
 });
 
+/** Whether an export documents a value alone, whose type is declared apart from it. */
+const isValue = ({ meaning }: Tree.Export.Own): boolean =>
+  Option.contains(meaning, "value");
+
+const byDeclaration = (
+  exports: readonly Tree.Export.Own[],
+): Document["entries"] =>
+  HashMap.fromIterable(
+    Array.map(exports, (entry) => [entry.origin.id, entry] as const),
+  );
+
 /** Distils every page of the reference, from the overview to the traits, before any page is printed. */
 export const collect = (
   catalogue: Catalogue.Catalogue,
@@ -303,10 +346,12 @@ export const collect = (
       catalogue.entries,
       Array.map(Entry.from(Entry.contextOf(ast))),
       Result.all,
+      Result.map(Array.flatten),
     );
-    const entries = HashMap.fromIterable(
-      Array.map(distilled, (entry) => [entry.origin.id, entry] as const),
+    const entries = byDeclaration(
+      Array.filter(distilled, Predicate.not(isValue)),
     );
+    const values = byDeclaration(Array.filter(distilled, isValue));
     const owners = HashMap.fromIterable(
       Array.flatMap(distilled, (entry) =>
         Array.map(
@@ -323,6 +368,7 @@ export const collect = (
       catalogue,
       placement,
       entries,
+      values,
       owners,
       page,
       ...relations,
@@ -333,6 +379,7 @@ export const collect = (
       catalogue,
       placement,
       entries,
+      values,
       owners,
       pages: Array.flatten([
         [overviewPage(unplaced), traitsPage(unplaced)],

@@ -1,11 +1,13 @@
 import { Array, Function, HashMap, MutableHashMap, Option, pipe } from "effect";
 
 import * as AST from "./AST/index.js";
+import * as ExternalTarget from "./ExternalTarget.js";
 import * as Parts from "./internal/parts.js";
 import * as References from "./internal/references.js";
 import * as Node from "./TypeScript/Node.js";
 
 import type * as Catalogue from "./Catalogue.js";
+import type * as Tree from "./Tree/index.js";
 
 /** A public declaration or member whose calls mention another declaration. */
 type User = AST.Interned.Interned<AST.Target.Local>;
@@ -16,44 +18,45 @@ export interface Usage {
   readonly acceptedBy: readonly User[];
 }
 
+/** A user of a declaration, with the meaning its mention reads the declaration's name with: the value after `typeof`, and the type anywhere else. */
+interface Use {
+  readonly user: User;
+  readonly meaning: Tree.Export.Meaning;
+}
+
 /** A use names the declaration, so exported aliases share the same users. */
 export interface Index {
-  readonly returnedBy: HashMap.HashMap<
-    Catalogue.DeclarationId,
-    readonly User[]
-  >;
-  readonly acceptedBy: HashMap.HashMap<
-    Catalogue.DeclarationId,
-    readonly User[]
-  >;
+  readonly returnedBy: HashMap.HashMap<Catalogue.DeclarationId, readonly Use[]>;
+  readonly acceptedBy: HashMap.HashMap<Catalogue.DeclarationId, readonly Use[]>;
 }
 
-interface Note {
+interface Note extends Use {
   readonly id: Catalogue.DeclarationId;
   readonly role: keyof Usage;
-  readonly user: User;
 }
 
-/** Each declaration's users in `role`, each once, in the order the notes name them. */
-const usersOf = (
+/** The uses of each declaration in `role`, without repeats, in the order the notes name them. */
+const usesOf = (
   notes: readonly Note[],
   role: keyof Usage,
 ): Index["returnedBy"] => {
-  const users = MutableHashMap.empty<Catalogue.DeclarationId, User[]>();
+  const uses = MutableHashMap.empty<Catalogue.DeclarationId, Use[]>();
 
-  for (const { id, role: noted, user } of notes) {
+  for (const { id, role: noted, user, meaning } of notes) {
     if (noted === role) {
-      const known = MutableHashMap.get(users, id);
+      const known = MutableHashMap.get(uses, id);
 
       if (Option.isNone(known)) {
-        MutableHashMap.set(users, id, [user]);
-      } else if (!known.value.includes(user)) {
-        known.value.push(user);
+        MutableHashMap.set(uses, id, [{ user, meaning }]);
+      } else if (
+        !known.value.some((use) => use.user === user && use.meaning === meaning)
+      ) {
+        known.value.push({ user, meaning });
       }
     }
   }
 
-  return HashMap.fromIterable(users);
+  return HashMap.fromIterable(uses);
 };
 
 /** What states the parameters and the result of each call a part makes. Reading a member calls its getter, and writing it calls its setter. */
@@ -69,7 +72,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
   const names = References.namesOf(ast);
   const mentioned = (
     nodes: readonly Node.Node[],
-  ): readonly Catalogue.DeclarationId[] =>
+  ): readonly Pick<Note, "id" | "meaning">[] =>
     pipe(
       nodes,
       Array.flatMap(Node.identifiers),
@@ -80,10 +83,16 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
               .narrow(target, AST.Declaration.isDeclaration)
               .pipe(Option.filter((id) => HashMap.has(catalogue.byId, id))),
           ),
+          Option.map((id) => ({
+            id,
+            meaning:
+              ExternalTarget.meaning(node) === "value"
+                ? ("value" as const)
+                : ("type" as const),
+          })),
           Option.toArray,
         ),
       ),
-      Array.dedupe,
     );
 
   const notes = Array.flatMap(catalogue.entries, (entry) => {
@@ -117,13 +126,13 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
 
           return pipe(
             Array.appendAll(
-              Array.map(mentioned(returns), (id): Note => ({
-                id,
+              Array.map(mentioned(returns), (mention): Note => ({
+                ...mention,
                 role: "returnedBy",
                 user,
               })),
-              Array.map(mentioned(accepts), (id): Note => ({
-                id,
+              Array.map(mentioned(accepts), (mention): Note => ({
+                ...mention,
                 role: "acceptedBy",
                 user,
               })),
@@ -137,20 +146,35 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
   });
 
   return {
-    returnedBy: usersOf(notes, "returnedBy"),
-    acceptedBy: usersOf(notes, "acceptedBy"),
+    returnedBy: usesOf(notes, "returnedBy"),
+    acceptedBy: usesOf(notes, "acceptedBy"),
   };
 };
 
-/** Both roles of a declaration, each empty when nothing uses it that way. */
+type Exported = Pick<Tree.Export.Own, "origin" | "meaning">;
+
+const usersOf = (
+  uses: Index["returnedBy"],
+  { origin, meaning }: Exported,
+): readonly User[] =>
+  pipe(
+    HashMap.get(uses, origin.id),
+    Option.getOrElse((): readonly Use[] => []),
+    Array.filter((use) =>
+      Option.match(meaning, {
+        onNone: () => true,
+        onSome: (own) => use.meaning === own,
+      }),
+    ),
+    Array.map(({ user }) => user),
+    Array.dedupe,
+  );
+
+/** Both roles of an export, each empty when nothing uses it that way. An export that documents one meaning of its name has the users whose mention reads that meaning. */
 export const of: {
-  (id: Catalogue.DeclarationId): (index: Index) => Usage;
-  (index: Index, id: Catalogue.DeclarationId): Usage;
-} = Function.dual(2, (index: Index, id: Catalogue.DeclarationId): Usage => ({
-  returnedBy: HashMap.get(index.returnedBy, id).pipe(
-    Option.getOrElse(() => []),
-  ),
-  acceptedBy: HashMap.get(index.acceptedBy, id).pipe(
-    Option.getOrElse(() => []),
-  ),
+  (exported: Exported): (index: Index) => Usage;
+  (index: Index, exported: Exported): Usage;
+} = Function.dual(2, (index: Index, exported: Exported): Usage => ({
+  returnedBy: usersOf(index.returnedBy, exported),
+  acceptedBy: usersOf(index.acceptedBy, exported),
 }));

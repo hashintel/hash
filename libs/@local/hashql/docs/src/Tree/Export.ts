@@ -20,6 +20,10 @@ export type Kind =
   | "module"
   | "entrypoint";
 
+/** The meaning of its name an export documents alone, where the name's type and value are declared apart. */
+export type Meaning =
+  keyof AST.IndependentDeclarations.IndependentDeclarations.Fields;
+
 /** A namespace merged with an export, with its own comment, never its module's. */
 export interface OwnNamespace extends Node.Node<
   "namespace",
@@ -37,15 +41,20 @@ export interface Namespace extends OwnNamespace {
 /**
  * A public declaration as its own declarations and comments document it, under its canonical name. The catalogue's entry holds its identity, which local references name, and that name.
  *
+ * A type and a value that share a name without either declaring the other are an export each, so one entry can be the origin of two.
+ *
  * Another declaration's row reads this, so the reference distils it for every declaration before any page relates one to another.
  */
 export interface Own
   extends Node.Node<"export", Catalogue.Entry>, Callable.Callable {
   readonly kind: Kind;
+  /** The meaning of its name the export documents, where the name's type and value are declared apart. None for an export that documents its name whole. */
+  readonly meaning: Option.Option<Meaning>;
   /** None for a declaration that is only a namespace. */
   readonly signatures: Option.Option<Declaration.Signatures>;
   readonly comments: readonly Comment.Comment[];
   readonly members: readonly Member.Member[];
+  /** A namespace merged with a type and a value declared apart is the type's. */
   readonly namespace: Option.Option<OwnNamespace>;
   /** Every overload's comment carries `@deprecated`, or a namespace's comment does. */
   readonly deprecated: boolean;
