@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { DocLinkTag } from "@microsoft/tsdoc";
-import { Array, Chunk, Effect, HashMap, Option, pipe } from "effect";
+import { Array, Chunk, Effect, HashMap, Option, Result, pipe } from "effect";
 
 import * as AST from "../src/AST/index.js";
 import * as TypeScript from "../src/TypeScript/index.js";
@@ -279,6 +279,11 @@ export declare const choose: {
       26,
     ],
     ["interface Value {}\n/** The value. */\nexport { Value };", 19],
+    ["interface Value {}\n/** The value. */\nexport default Value;", 19],
+    [
+      "export declare namespace Inner { interface Value {} }\nexport declare namespace Outer {\n  /** The other. */\n  export import Other = Inner;\n}",
+      89,
+    ],
   ] as const)(
     "reexport_comment_%#",
     Effect.fnUntraced(function* ([source, start]: readonly [string, number]) {
@@ -1564,6 +1569,25 @@ export interface Options { readonly body: number }`,
             reason: { _tag: reason, name },
           },
         });
+      }),
+    );
+
+    it.effect(
+      "unknown_name_message",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const result = yield* parse({
+          source:
+            "/** @param input - Nothing. */ export type Handler = (input: string) => void;",
+        });
+        expect(
+          Result.match(result, {
+            onFailure: (failure) => failure.message,
+            onSuccess: () => "",
+          }),
+        ).toContain(
+          "The @param input at 4 names no parameter of a call the reference reads from the declaration it is on. A declaration it reads no call from, such as a type alias, takes no @param",
+        );
       }),
     );
 

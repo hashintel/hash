@@ -27,6 +27,14 @@ import type { Failure } from "./ast-type-parser.js";
 import type { Cause } from "effect";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
+const isReexport = (
+  statement: Syntax.Statement,
+): statement is Comments.Reexport =>
+  Syntax.isExportDeclaration(statement) ||
+  Syntax.isExportAssignment(statement) ||
+  (Syntax.isImportEqualsDeclaration(statement) &&
+    TypeScript.Node.hasModifier(statement, Syntax.ModifierFlags.Export));
+
 const statementsOf = (
   node: Syntax.SourceFile | Syntax.ModuleDeclaration,
 ): readonly Syntax.Statement[] => {
@@ -122,7 +130,7 @@ const parseNamespace = (
     ),
     Effect.tap(() =>
       Effect.forEach(
-        Array.filter(statementsOf(node), Syntax.isExportDeclaration),
+        Array.filter(statementsOf(node), isReexport),
         Comments.checkReexport,
         { discard: true },
       ),

@@ -8,7 +8,13 @@ import * as DocSource from "./ast/doc-source.js";
 import * as Source from "./ast/source.js";
 
 import type { Cause } from "effect";
-import type { ExportDeclaration, JSDoc, Node } from "typescript/ast";
+import type {
+  ExportAssignment,
+  ExportDeclaration,
+  ImportEqualsDeclaration,
+  JSDoc,
+  Node,
+} from "typescript/ast";
 
 type Documentation = AST.Documentation.Interned;
 
@@ -38,13 +44,19 @@ const stray = (comment: JSDoc): DocumentationError.DocumentationError =>
     reason: { _tag: "StrayModuleComment", start: comment.getStart() },
   });
 
+/** A statement that exports what another declaration declares. Besides an export declaration, that is an `export default` or `export =` of a name and an exported import alias. */
+export type Reexport =
+  | ExportDeclaration
+  | ExportAssignment
+  | ImportEqualsDeclaration;
+
 /**
  * Fails on a comment that `statement` carries, as `export * as Space from "./space.js"` can.
  *
  * A re-export shows the documentation of what it exports, so nothing would show its own comment to a reader. The `@module` comment that leads the file is the file's own, and stays.
  */
 export const checkReexport = (
-  statement: ExportDeclaration,
+  statement: Reexport,
 ): Effect.Effect<void, DocumentationError.DocumentationError> =>
   Option.match(Array.head(Source.strayModuleComments(statement)), {
     onSome: (comment) => Effect.fail(stray(comment)),
