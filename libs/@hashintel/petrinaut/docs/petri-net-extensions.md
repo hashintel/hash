@@ -275,7 +275,7 @@ Like kernels, lambda code is a plain function body with `input` and `parameters`
 
 Use predicates for deterministic guards based on token state.
 
-A predicate takes no time. A net whose transitions are all predicates, with no dynamics, is [untimed](simulation.md#timed-and-untimed-nets): its Quick simulation runs step by step. In a timed net a predicate fires at the instant its input places enable it, so it needs at least one input place. A predicate with no input place is reported as an error there, because nothing would ever disable it. Give it an input place, or switch it to **Stochastic rate**.
+A predicate takes no time. A net of predicates alone, with no dynamics, is [untimed](simulation.md#timed-and-untimed-nets) and runs step by step. In a timed net a predicate needs at least one input place: see [Predicates in a timed net](simulation.md#predicates-in-a-timed-net).
 
 ### Stochastic rate
 

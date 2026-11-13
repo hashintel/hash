@@ -84,10 +84,9 @@ While a run counts steps:
 - the toolbar reads **Step 3 of 12**, and the scrubber moves one step at a time;
 - **Previous step** and **Next step** move between steps;
 - playback settings offer **Steps per second** and **End at step**;
-- the Timeline's axis counts steps;
-- the simulator capsule reads **Step by step**: the selected simulator and its parameters are not used.
+- the Timeline's axis counts steps.
 
-A [Stochastic simulation](#stochastic-simulation) of an untimed net fires every run step by step and reads all of them at every step. The capsule reads the simulator, then `step by step · 100 runs · to step 60`. The simulator decides only where the runs are computed, in background workers or on the graphics card. Its **End time** field reads **End at step** and takes a whole number. A run that ends before that step, at a step in which nothing fires, keeps its last state in the mean from there on, as a run that deadlocks does in a timed net.
+A [Stochastic simulation](#stochastic-simulation) of an untimed net fires every run step by step and reads all of them at every step. Its **End time** field reads **End at step** and takes a whole number. A run that ends before that step, at a step in which nothing fires, keeps its last state in the mean from there on, as a run that deadlocks does in a timed net.
 
 An [experiment](experiments.md) of an untimed net counts steps in the same way.
 
