@@ -180,6 +180,25 @@ const stated = (element: Element): readonly Properties[string][] => [
   propertyOf(element, "internal"),
 ];
 
+/** What the heading of the export or the member `name` states, and then what each of its declarations states. */
+const factsOf = (
+  reference: Reference.Reference,
+  name: string,
+): readonly (readonly Properties[string][])[] => {
+  const entry = pipe(
+    hastOf(reference, "pkg.html"),
+    Array.findFirst((element) => propertyOf(element, "name") === name),
+    Option.getOrThrow,
+  );
+
+  return pipe(
+    elementsOf(entry),
+    Array.filter(({ tagName }) => tagName === "api-signature"),
+    Array.map(stated),
+    Array.prepend(stated(entry)),
+  );
+};
+
 /** The text and the kind of each link on `page` to Effect's documentation. */
 const effectLinks = (
   page: Reference.Written,
@@ -1077,6 +1096,15 @@ export function pick(value: number): number;
  */
 export function pick(value: boolean): boolean;
 export function pick(): void;
+/** Both.
+ * @since 0.1.0
+ * @internal
+ */
+export function same(value: string): string;
+/** Both.
+ * @since 0.1.0
+ */
+export function same(value: number): number;
 export declare class Box {
   /** Reads.
    * @since 0.1.0
@@ -1095,39 +1123,32 @@ export declare class Box {
       Effect.fnUntraced(function* () {
         expect.hasAssertions();
         const reference = yield* Reference.Fixture;
-        const entry = (name: string): Element =>
-          pipe(
-            hastOf(reference, "pkg.html"),
-            Array.findFirst((element) => propertyOf(element, "name") === name),
-            Option.getOrThrow,
-          );
-        const declarations = (
-          name: string,
-        ): readonly (readonly Properties[string][])[] =>
-          pipe(
-            elementsOf(entry(name)),
-            Array.filter(({ tagName }) => tagName === "api-signature"),
-            Array.map(stated),
-          );
-        expect(stated(entry("pick"))).toStrictEqual([
-          "0.1.0",
-          undefined,
-          undefined,
-        ]);
-        expect(declarations("pick")).toStrictEqual([
+        // The overloads disagree, and one states nothing, so the heading states nothing.
+        expect(factsOf(reference, "pick")).toStrictEqual([
           [undefined, undefined, undefined],
+          ["0.1.0", undefined, undefined],
           ["0.2.0", "experimental", undefined],
-          [undefined, undefined, undefined],
+          ["0.1.0", undefined, undefined],
           [undefined, undefined, undefined],
         ]);
-        expect(stated(entry("Box.held"))).toStrictEqual([
-          "0.1.0",
-          undefined,
-          undefined,
-        ]);
-        expect(declarations("Box.held")).toStrictEqual([
+        expect(factsOf(reference, "Box.held")).toStrictEqual([
           [undefined, undefined, undefined],
+          ["0.1.0", undefined, undefined],
           ["0.3.0", undefined, true],
+        ]);
+      }),
+    );
+
+    it.effect(
+      "shared_declaration_facts",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const reference = yield* Reference.Fixture;
+        // Both overloads state the version, which the heading states for them, and one of them the mark.
+        expect(factsOf(reference, "same")).toStrictEqual([
+          ["0.1.0", undefined, undefined],
+          [undefined, undefined, true],
+          [undefined, undefined, undefined],
         ]);
       }),
     );

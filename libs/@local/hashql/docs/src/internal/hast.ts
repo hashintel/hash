@@ -1,13 +1,13 @@
 import { Array, Match, Option, Result, pipe } from "effect";
 
 import * as Import from "../Import.js";
-import * as Tree from "../Tree/index.js";
 import * as Callable from "./hast-callable.js";
 import * as Content from "./hast-content.js";
 import * as Relations from "./hast-relations.js";
 import * as Output from "./output.js";
 import * as Titles from "./titles.js";
 
+import type * as Tree from "../Tree/index.js";
 import type { Element, ElementContent, Root } from "hast";
 
 type Written<A> = Result.Result<A, Output.Failure>;
@@ -146,10 +146,7 @@ const memberNames = {
 const member =
   (output: Output.Output) =>
   (value: Tree.Member.Member): Written<Element> => {
-    const entry = Output.leading(output)({
-      comments: Tree.Member.comments(value),
-      signatures: Output.declarationsOf(value),
-    });
+    const entry = Output.leading(output)(Output.declarationsOf(value));
 
     return pipe(
       value,
@@ -188,10 +185,7 @@ const exported =
         Option.toArray(value.signatures),
         ({ children }) => children,
       );
-      const entry = Output.leading(output)({
-        comments: value.comments,
-        signatures: parts,
-      });
+      const entry = Output.leading(output)(parts);
 
       const declarations = yield* Option.match(value.signatures, {
         onNone: () => hierarchyIn("header"),

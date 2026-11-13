@@ -246,20 +246,35 @@ export const unstated =
     };
   };
 
-/** The facts of an export or a member: its first comment's, at its first declaration. */
+/** The fact `read` gives for every one of `stated`, or none where one of them states another or none. */
+const shared = <A>(
+  stated: readonly Facts[],
+  read: (facts: Facts) => Option.Option<A>,
+): Option.Option<A> =>
+  pipe(
+    Array.head(stated),
+    Option.flatMap(read),
+    Option.filter((value) =>
+      Array.every(stated, (facts) => Option.contains(read(facts), value)),
+    ),
+  );
+
+/** The facts of an export or a member: those every one of its declarations states, at its first declaration. An overload added in a later version than the others keeps its version to itself. */
 export const leading =
   (output: Output) =>
-  ({
-    comments,
-    signatures,
-  }: {
-    readonly comments: readonly Tree.Comment.Comment[];
-    readonly signatures: readonly Tree.Declaration.Signature[];
-  }): Facts =>
-    facts(output)({
-      facts: Option.map(Array.head(comments), ({ facts: stated }) => stated),
-      origin: Option.map(Array.head(signatures), ({ origin }) => origin),
-    });
+  (signatures: readonly Tree.Declaration.Signature[]): Facts => {
+    const stated = Array.map(signatures, signatureFacts(output));
+    const every = (holds: (facts: Facts) => boolean): boolean =>
+      Array.isReadonlyArrayNonEmpty(stated) && Array.every(stated, holds);
+
+    return {
+      since: shared(stated, ({ since }) => since),
+      stability: shared(stated, ({ stability }) => stability),
+      internal: every(({ internal }) => internal),
+      deprecated: every(({ deprecated }) => deprecated),
+      source: Option.flatMap(Array.head(stated), ({ source }) => source),
+    };
+  };
 
 /** How many overloads the declarations number between them. */
 export const count = (
