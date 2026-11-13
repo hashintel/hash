@@ -14,6 +14,15 @@
   --api-kind-trait: #14b8a6;
 }
 
+/* Fumadocs thins the scrollbar of a code block with WebKit's pseudo-elements. A browser without them gets the same bar from the standard properties. */
+
+@supports not selector(::-webkit-scrollbar) {
+  .fd-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-fd-border) transparent;
+  }
+}
+
 /* A kind is coloured the same wherever it is drawn: a glyph, a heading's keyword. */
 
 .api-glyph,
