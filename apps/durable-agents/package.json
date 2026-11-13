@@ -35,8 +35,8 @@
     "@types/node": "catalog:",
     "@types/pg": "8.23.1",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
-    "oxlint": "1.86.0",
-    "oxlint-tsgolint": "7.0.2003",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "tsx": "catalog:",
     "vitest": "catalog:"
   }
