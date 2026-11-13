@@ -97,7 +97,7 @@ const addableActions: AddableAction[] = [
   {
     actionDefinitionId: "if",
     label: "If",
-    description: "Send a value to True or False by a condition",
+    description: "Send a value to Yes or No by a condition",
     groupId: "flowControl",
     icon: "diagramNodes",
   },

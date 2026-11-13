@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { getStepName } from "../shared/find-step";
-import { getNameLabel } from "../shared/name-label";
+import { getNameLabel, getOutputLabel } from "../shared/name-label";
 import { RunGlyph } from "../shared/run-marks";
 import { PanelSection, PanelTitle, SidePanel } from "../shared/side-panel";
 import { getActionDefinition, getStepDisplay } from "../shared/step-display";
@@ -373,30 +373,37 @@ export const StepRunPanel = ({
       {outputNames.length > 0 && (
         <PanelSection title="Outputs">
           <div className={values}>
-            {outputNames.map((outputName) => (
-              <OutputRow
-                key={outputName}
-                label={`${getNameLabel(outputName)} value`}
-                onClose={() => {
-                  if (getHighlightFrom(outputName) !== null) {
-                    highlightFrom(outputName)(null);
+            {outputNames.map((outputName) => {
+              const outputLabel = getOutputLabel(
+                actionDefinition?.actionDefinitionId,
+                outputName,
+              );
+
+              return (
+                <OutputRow
+                  key={outputName}
+                  label={`${outputLabel} value`}
+                  onClose={() => {
+                    if (getHighlightFrom(outputName) !== null) {
+                      highlightFrom(outputName)(null);
+                    }
+                  }}
+                  name={
+                    <ValueName
+                      name={outputLabel}
+                      shape={shapes.getStepOutputShape(step.stepId, outputName)}
+                    />
                   }
-                }}
-                name={
-                  <ValueName
-                    name={getNameLabel(outputName)}
-                    shape={shapes.getStepOutputShape(step.stepId, outputName)}
+                >
+                  {renderOutputValue(outputName)}
+                  <OutputUses
+                    valueUses={getOutputUses(outputName)}
+                    highlightedStepId={getHighlightFrom(outputName)}
+                    onHighlightStep={highlightFrom(outputName)}
                   />
-                }
-              >
-                {renderOutputValue(outputName)}
-                <OutputUses
-                  valueUses={getOutputUses(outputName)}
-                  highlightedStepId={getHighlightFrom(outputName)}
-                  onHighlightStep={highlightFrom(outputName)}
-                />
-              </OutputRow>
-            ))}
+                </OutputRow>
+              );
+            })}
           </div>
         </PanelSection>
       )}

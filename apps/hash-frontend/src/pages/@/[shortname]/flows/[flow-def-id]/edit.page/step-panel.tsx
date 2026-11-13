@@ -6,7 +6,7 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { findStep } from "./shared/find-step";
-import { getNameLabel } from "./shared/name-label";
+import { getOutputLabel } from "./shared/name-label";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
   getActionDefinition,
@@ -278,7 +278,10 @@ const SelectedStepPanel = ({
               return (
                 <UsedByField
                   key={outputName}
-                  name={getNameLabel(outputName)}
+                  name={getOutputLabel(
+                    actionDefinition?.actionDefinitionId,
+                    outputName,
+                  )}
                   shape={shapes.getStepOutputShape(step.stepId, outputName)}
                   usedBy={stepsUsing({
                     kind: "step-output",

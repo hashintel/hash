@@ -1,3 +1,5 @@
+import { upperFirst } from "lodash";
+
 import { getNameLabel } from "./name-label";
 
 import type { IconName } from "@hashintel/ds-components";
@@ -12,107 +14,74 @@ export const getFlowInputLabel = ({
   name,
 }: Pick<FlowInputDefinition, "label" | "name">) => label ?? getNameLabel(name);
 
+/** `plural` only where adding an "s" by the usual rules reads wrong. */
 const kindDisplays: Record<
   PayloadKind,
-  { label: string; plural: string; icon: IconName }
+  { label: string; plural?: string; icon: IconName }
 > = {
-  ActorType: { label: "actor type", plural: "actor types", icon: "user" },
-  Aggregation: {
-    label: "aggregation",
-    plural: "aggregations",
-    icon: "chartBar",
-  },
+  ActorType: { label: "actor type", icon: "user" },
+  Aggregation: { label: "aggregation", icon: "chartBar" },
   Boolean: {
     label: "true or false",
     plural: "true or false values",
     icon: "squareCheck",
   },
-  Date: { label: "date", plural: "dates", icon: "calendar" },
+  Date: { label: "date", icon: "calendar" },
   DateTime: {
     label: "date and time",
     plural: "dates and times",
     icon: "calendarClock",
   },
-  Duration: { label: "duration", plural: "durations", icon: "clock" },
-  EntityId: { label: "entity", plural: "entities", icon: "cube" },
-  EntityQuery: {
-    label: "entity query",
-    plural: "entity queries",
-    icon: "search",
-  },
-  FailedEntityProposal: {
-    label: "failed entity proposal",
-    plural: "failed entity proposals",
-    icon: "warning",
-  },
-  FilterCondition: {
-    label: "filter condition",
-    plural: "filter conditions",
-    icon: "filter",
-  },
-  FormattedText: {
-    label: "formatted text",
-    plural: "formatted text",
-    icon: "fileLines",
-  },
-  GoogleAccountId: {
-    label: "Google account",
-    plural: "Google accounts",
-    icon: "user",
-  },
-  GoogleSheet: {
-    label: "Google Sheet",
-    plural: "Google Sheets",
-    icon: "fileSpreadsheet",
-  },
-  Number: { label: "number", plural: "numbers", icon: "oneHundred" },
-  PersistedEntityMetadata: {
-    label: "saved entity",
-    plural: "saved entities",
-    icon: "cube",
-  },
+  Duration: { label: "duration", icon: "clock" },
+  EntityId: { label: "entity", icon: "cube" },
+  EntityQuery: { label: "entity query", icon: "search" },
+  FailedEntityProposal: { label: "failed entity proposal", icon: "warning" },
+  FilterCondition: { label: "filter condition", icon: "filter" },
+  FormattedText: { label: "formatted text", icon: "fileLines" },
+  GoogleAccountId: { label: "Google account", icon: "user" },
+  GoogleSheet: { label: "Google Sheet", icon: "fileSpreadsheet" },
+  Number: { label: "number", icon: "oneHundred" },
+  PersistedEntityMetadata: { label: "saved entity", icon: "cube" },
   PropertyObjectWithMetadata: {
     label: "entity properties",
-    plural: "entity properties",
     icon: "bracketsCurly",
   },
-  PropertyPatch: {
-    label: "property change",
-    plural: "property changes",
-    icon: "edit",
-  },
-  ProposedEntity: {
-    label: "proposed entity",
-    plural: "proposed entities",
-    icon: "cube",
-  },
+  PropertyPatch: { label: "property change", icon: "edit" },
+  ProposedEntity: { label: "proposed entity", icon: "cube" },
   ProposedEntityWithResolvedLinks: {
     label: "proposed entity",
-    plural: "proposed entities",
     icon: "cube",
   },
-  SortKey: { label: "sort order", plural: "sort orders", icon: "sortDown" },
-  Text: { label: "text", plural: "text", icon: "text" },
-  VersionedUrl: { label: "type", plural: "types", icon: "shapes" },
-  WebPage: { label: "web page", plural: "web pages", icon: "file" },
-  WebSearchResult: {
-    label: "web search result",
-    plural: "web search results",
-    icon: "search",
-  },
+  SortKey: { label: "sort order", icon: "sortDown" },
+  Text: { label: "text", icon: "text" },
+  VersionedUrl: { label: "type", icon: "shapes" },
+  WebPage: { label: "web page", icon: "file" },
+  WebSearchResult: { label: "web search result", icon: "search" },
 };
 
-/** The kind of a value in lower case, e.g. "date" or, for an array, "list of dates". */
+/** "entity" → "entities", "sheet" → "sheets"; words ending in s, x, ch, sh or text stay as they are. */
+const pluralize = (noun: string) =>
+  /[^aeiou]y$/i.test(noun)
+    ? `${noun.slice(0, -1)}ies`
+    : /(s|x|ch|sh|text)$/i.test(noun)
+      ? noun
+      : `${noun}s`;
+
+/**
+ * The kind of a value in lower case, e.g. "date". An array names its kind's plural with a capital, as a list of entities
+ * names its type: "list of Dates", which reads "List of Dates" at the start of a sentence.
+ */
 export const getKindLabel = ({
   payloadKind,
   array,
 }: {
   payloadKind: PayloadKind;
   array: boolean;
-}) =>
-  array
-    ? `list of ${kindDisplays[payloadKind].plural}`
-    : kindDisplays[payloadKind].label;
+}) => {
+  const { label, plural } = kindDisplays[payloadKind];
+
+  return array ? `list of ${upperFirst(plural ?? pluralize(label))}` : label;
+};
 
 /** An array of entities shows the many-entities icon, as Figma's Entities output does. */
 export const getKindIcon = ({
