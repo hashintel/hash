@@ -165,6 +165,25 @@ describe("usage", () => {
   );
 
   it.effect(
+    "applied_bounds",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
+      export interface A {} export interface B {} export interface C {}
+      export interface Draft<S> { <U extends S>(value: U): C }
+      export type Fallback<S> = <U = S>(value: U) => C;
+      export declare const program: Draft<A>;
+      export interface Context { readonly other: Fallback<B> }
+    `);
+      expect(Array.map(["A", "B"], users)).toStrictEqual([
+        // To `program` the bound `S` is `A`, and to `other` the default `S` is `B`.
+        { accepted: ["program"], returned: [] },
+        { accepted: ["other"], returned: [] },
+      ]);
+    }),
+  );
+
+  it.effect(
     "constructors_and_signatures",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
