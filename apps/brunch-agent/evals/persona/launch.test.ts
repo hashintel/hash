@@ -15,7 +15,6 @@ import {
 } from "../../src/shared/chat-model.ts";
 import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import {
-  documentIdFromInitialData,
   personaEnvironment,
   personaSettingsRecord,
   readPersonaCase,
@@ -83,18 +82,6 @@ test("launcher Stop bounds an unobserved settlement", async () => {
     settlement: "not-observed",
     submissionId: receipt.submissionId,
   });
-});
-
-test("locates the bound Petrinaut document", () => {
-  expect(
-    documentIdFromInitialData({
-      binding: {
-        conversationId: "conversation",
-        documentId: "document-bound",
-      },
-    }),
-  ).toBe("document-bound");
-  expect(documentIdFromInitialData({})).toBeUndefined();
 });
 
 const loadingRuntimeUnavailable = {

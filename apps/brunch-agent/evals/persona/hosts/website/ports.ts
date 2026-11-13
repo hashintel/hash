@@ -6,7 +6,7 @@
  */
 import { createServer } from "node:net";
 
-import { brunchEnv } from "../../../src/env.ts";
+import { brunchEnv } from "../../../../src/env.ts";
 
 const host = "127.0.0.1";
 

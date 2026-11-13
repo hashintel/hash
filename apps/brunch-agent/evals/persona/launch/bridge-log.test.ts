@@ -26,6 +26,7 @@ test("an allowed destructive edit is recorded without becoming the utterance res
     personaAgent: { agent: "pi" },
   });
   await appendAllowedDestructiveEdit(run, {
+    kind: "destructive-edit",
     items: ["Remove place — Queue"],
   });
 
@@ -56,4 +57,20 @@ test("a torn log line names the file and line instead of guessing the last utter
   await expect(lastAdmittedUtterance(run)).rejects.toThrow(
     /bridge-log\.jsonl line 2 is not valid JSON; refusing automatic resume/,
   );
+});
+
+test("an allowed save is recorded as a save", async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-bridge-log-"));
+  runs.push(run);
+  await appendAllowedDestructiveEdit(run, {
+    kind: "save",
+    items: ["Save ‘Bakery’ as a new version?"],
+  });
+  const [line] = (await readFile(join(run, "bridge-log.jsonl"), "utf8"))
+    .trim()
+    .split("\n");
+  expect(JSON.parse(line ?? "{}")).toMatchObject({
+    event: "save-allowed",
+    items: ["Save ‘Bakery’ as a new version?"],
+  });
 });

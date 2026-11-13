@@ -110,7 +110,9 @@ const currentApproval = async () => {
       },
     },
   );
-  assert.deepEqual(allowed, [{ items: ["Remove place — Victim"] }]);
+  assert.deepEqual(allowed, [
+    { kind: "destructive-edit", items: ["Remove place — Victim"] },
+  ]);
   const removal = netCalls(result.snapshot).find(
     ({ toolCallId }) => toolCallId === openaiCallId("current-remove"),
   );

@@ -5,11 +5,6 @@ import { join, resolve } from "node:path";
 
 import * as v from "valibot";
 
-import {
-  brunchActorKeyStorageKey,
-  sdcpnInitialDataSchema,
-} from "@hashintel/brunch-agent";
-
 import { flueConversationId } from "../../../src/shared/conversation/identity.ts";
 import {
   personaConversationClient,
@@ -21,28 +16,13 @@ import { roleSettingsFromRun } from "./role-settings.ts";
 import type { Page } from "@playwright/test";
 
 const text = v.pipe(v.string(), v.minLength(1));
-const netArray = v.array(v.unknown());
-/** The website opens only stored entries of this shape and skips the rest. */
-const storedNetSchemaWith = ({ documentId }: { documentId: string }) =>
-  v.object({
-    id: v.literal(documentId),
-    title: v.string(),
-    lastUpdated: v.string(),
-    sdcpn: v.object({
-      places: netArray,
-      transitions: netArray,
-      types: netArray,
-      parameters: netArray,
-      differentialEquations: netArray,
-    }),
-  });
 const runSchema = v.pipe(
   v.looseObject({
     caseDirectory: text,
     databasePath: text,
     browserProfile: text,
-    panelOrigin: text,
-    route: text,
+    /** Runs from before HASH runs name no host; they ran on the website. */
+    host: v.optional(v.picklist(["website", "hash"]), "website"),
     model: v.optional(v.string()),
     brunchModel: v.optional(text),
     brunchThinking: v.optional(text),
@@ -66,7 +46,7 @@ const sessionSchema = v.pipe(
     ownerKey: text,
     conversationId: text,
     uid: text,
-    initialData: v.nonOptional(sdcpnInitialDataSchema),
+    initialData: v.unknown(),
   }),
   v.transform(({ ownerKey, ...session }) => ({
     ...session,
@@ -93,59 +73,14 @@ export const readPersonaResume = async (directory: string) => {
   );
   assert.equal(resolve(config.databasePath), join(run, "conversation.db"));
   assert.equal(
-    session.url,
-    `${config.panelOrigin}/agents/petrinaut/${flueConversationId(session)}`,
+    new URL(session.url).pathname.split("/").at(-1),
+    flueConversationId(session),
+    "session.json names another conversation",
   );
-  const binding = session.initialData.binding;
-  assert.equal(binding.conversationId, session.conversationId);
   assert((await stat(config.databasePath)).isFile());
   assert((await stat(config.browserProfile)).isDirectory());
   const lastUtterance = await lastAdmittedUtterance(run);
-  return { run, config, session, binding, lastUtterance };
-};
-
-/** Check the retained origin's storage before loading the application, which may create defaults. */
-export const openRetainedPersonaBrowser = async (
-  page: Page,
-  origin: string,
-  route: string,
-  session: PersonaBrowserSession,
-) => {
-  // A non-app document gives access to the same origin without mounting the editor.
-  const checkUrl = new URL("/__persona_identity_check__", origin).href;
-  await page.route(checkUrl, (request) =>
-    request.fulfill({
-      contentType: "text/html",
-      body: "<!doctype html><title>Checking original persona document</title>",
-    }),
-  );
-  await page.goto(checkUrl);
-  await page.unroute(checkUrl);
-  const saved = await page.evaluate(
-    (storageKey) => ({
-      actorKey: localStorage.getItem(storageKey),
-      documents: JSON.parse(
-        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-      ) as unknown,
-    }),
-    brunchActorKeyStorageKey,
-  );
-  const data = v.parse(sdcpnInitialDataSchema, session.initialData);
-  assert(data);
-  const binding = data.binding;
-  assert.equal(
-    saved.actorKey,
-    session.actorKey,
-    "Original browser actor key is missing or changed",
-  );
-  const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
-  const stored = documents[binding.documentId];
-  assert.ok(stored !== undefined, "Original browser document is missing");
-  assert.ok(
-    v.is(storedNetSchemaWith({ documentId: binding.documentId }), stored),
-    "Original browser document is not a net the website opens",
-  );
-  await page.goto(new URL(route, origin).href);
+  return { run, config, session, lastUtterance };
 };
 
 /** Native recovery settles the prior submission. The next persona utterance remains agent-authored. */
@@ -153,6 +88,7 @@ export const reconcilePersonaResume = async (
   page: Page,
   session: PersonaBrowserSession,
   lastUtterance: string,
+  reload: (page: Page) => Promise<void>,
   signal?: AbortSignal,
 ) => {
   const client = personaConversationClient(session);
@@ -174,13 +110,7 @@ export const reconcilePersonaResume = async (
     // A failed/aborted prior response is allowed only with a native terminal settlement below.
     signal?.throwIfAborted();
   }
-  await page.reload();
-  await page
-    .getByRole("button", { name: "Show AI assistant", exact: true })
-    .click();
-  await page
-    .getByRole("textbox", { name: "Message AI assistant", exact: true })
-    .waitFor();
+  await reload(page);
   await page
     .getByRole("button", { name: "Stop AI response", exact: true })
     .waitFor({ state: "hidden", timeout: 0 });

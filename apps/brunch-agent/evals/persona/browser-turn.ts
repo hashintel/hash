@@ -56,8 +56,17 @@ export const personaConversationClient = (session: PersonaBrowserSession) =>
     },
   });
 
-/** A destructive edit the harness allowed, described as the approval panel listed it. */
+/** The approval panels a turn can wait on, by their accessible names. */
+const approvalPanels = {
+  "Approve destructive edits": "destructive-edit",
+  /** HASH's agent saves a new version of the process only once allowed. */
+  "Approve saving the net": "save",
+} as const;
+
+/** An approval the harness allowed, described as its panel showed it. */
 export interface PersonaAllowedEdit {
+  readonly kind: (typeof approvalPanels)[keyof typeof approvalPanels];
+  /** The panel's listed edits, or a save card's text. */
   readonly items: readonly string[];
 }
 
@@ -72,7 +81,9 @@ export const allowDestructiveEdits = async (
   onAllowed?: (edit: PersonaAllowedEdit) => Promise<void>,
 ) => {
   const panel = page
-    .getByRole("region", { name: "Approve destructive edits", exact: true })
+    .getByRole("region", {
+      name: new RegExp(`^(${Object.keys(approvalPanels).join("|")})$`, "u"),
+    })
     .first();
   const allowNext = async () => {
     try {
@@ -81,7 +92,13 @@ export const allowDestructiveEdits = async (
       if (error instanceof errors.TimeoutError) return;
       throw error;
     }
-    const items = await panel.getByRole("listitem").allTextContents();
+    const name = await panel.getAttribute("aria-label");
+    const kind =
+      Object.entries(approvalPanels).find(([label]) => label === name)?.[1] ??
+      "destructive-edit";
+    const listed = await panel.getByRole("listitem").allTextContents();
+    const items =
+      listed.length > 0 ? listed : [(await panel.innerText()).trim()];
     const allow = await panel
       .getByRole("button", { name: "Allow", exact: true })
       .elementHandle();
@@ -93,7 +110,7 @@ export const allowDestructiveEdits = async (
     } finally {
       await allow.dispose();
     }
-    await onAllowed?.({ items });
+    await onAllowed?.({ kind, items });
   };
   while (!isSettled())
     // eslint-disable-next-line no-await-in-loop -- Approvals queue; each panel must leave before the next is read.
