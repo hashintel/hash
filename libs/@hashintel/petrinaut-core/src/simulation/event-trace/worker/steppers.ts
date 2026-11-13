@@ -1,4 +1,4 @@
-import { isTimedNet } from "../../../net-timing";
+import { netTimeOf } from "../../../net-class";
 import {
   ADAPTIVE_SIMULATOR_ID,
   createAdaptiveStepper,
@@ -58,7 +58,7 @@ export function createRunStepper(
   selection: StepperSelection,
   config: RunStepperConfig,
 ): RunStepper {
-  return isTimedNet(config.sdcpn, config.extensions)
+  return netTimeOf(config.sdcpn, config.extensions) === "timed"
     ? createSimulatorStepper(selection, config)
     : createStepStepper(config);
 }

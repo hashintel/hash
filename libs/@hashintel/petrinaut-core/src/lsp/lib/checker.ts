@@ -13,7 +13,7 @@ import {
 } from "../../hir";
 import { lowerAndCheck } from "../../hir/compile";
 import { inferMetricShape } from "../../hir/metric-shape";
-import { isSourcePredicate, isTimedNet } from "../../net-timing";
+import { isSourcePredicate, netTimeOf } from "../../net-class";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import {
   sourcePredicateDiagnostic,
@@ -130,7 +130,7 @@ export function checkSDCPN(
     }
   }
 
-  const timed = isTimedNet(sdcpn, extensions);
+  const timed = netTimeOf(sdcpn, extensions) === "timed";
 
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {

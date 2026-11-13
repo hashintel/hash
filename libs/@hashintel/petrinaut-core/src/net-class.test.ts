@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions";
 import {
-  isContinuousNet,
   isSourcePredicate,
-  isTimedNet,
+  netColoringOf,
+  netTimeOf,
   runClockOf,
   runContinuityOf,
-} from "./net-timing";
+} from "./net-class";
 
 import type { Place, SDCPN, Transition } from "./types/sdcpn";
 
@@ -43,32 +43,48 @@ const net = (overrides: Partial<SDCPN> = {}): SDCPN => ({
   ...overrides,
 });
 
+const subnet = (overrides: Partial<SDCPN>) => ({
+  id: "subnet",
+  name: "Subnet",
+  places: [],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+  ...overrides,
+});
+
+const without = (extension: keyof typeof DEFAULT_PETRINAUT_EXTENSIONS) => ({
+  ...DEFAULT_PETRINAUT_EXTENSIONS,
+  [extension]: false,
+});
+
+const typedPlace = place({ colorId: "type" });
+
 const movingPlace = place({
   colorId: "type",
   dynamicsEnabled: true,
   dynamics: [{ differentialEquationId: "equation" }],
 });
 
-describe("isTimedNet", () => {
+const rated = net({ transitions: [transition({ lambdaType: "stochastic" })] });
+
+describe("netTimeOf", () => {
   it("is untimed with predicates only and no dynamics", () => {
-    expect(isTimedNet(net())).toBe(false);
+    expect(netTimeOf(net())).toBe("untimed");
   });
 
   it("is timed once a transition fires at a rate", () => {
-    expect(
-      isTimedNet(
-        net({ transitions: [transition({ lambdaType: "stochastic" })] }),
-      ),
-    ).toBe(true);
+    expect(netTimeOf(rated)).toBe("timed");
   });
 
   it("is timed once a place runs dynamics", () => {
-    expect(isTimedNet(net({ places: [movingPlace] }))).toBe(true);
+    expect(netTimeOf(net({ places: [movingPlace] }))).toBe("timed");
   });
 
   it("ignores dynamics that are switched off, untyped or empty", () => {
     expect(
-      isTimedNet(
+      netTimeOf(
         net({
           places: [
             { ...movingPlace, dynamicsEnabled: false },
@@ -77,83 +93,59 @@ describe("isTimedNet", () => {
           ],
         }),
       ),
-    ).toBe(false);
+    ).toBe("untimed");
   });
 
   it("ignores what a disabled extension would run", () => {
-    const rated = net({
-      transitions: [transition({ lambdaType: "stochastic" })],
-    });
-    expect(
-      isTimedNet(rated, {
-        ...DEFAULT_PETRINAUT_EXTENSIONS,
-        stochasticity: false,
-      }),
-    ).toBe(false);
-    expect(
-      isTimedNet(net({ places: [movingPlace] }), {
-        ...DEFAULT_PETRINAUT_EXTENSIONS,
-        dynamics: false,
-      }),
-    ).toBe(false);
+    expect(netTimeOf(rated, without("stochasticity"))).toBe("untimed");
+    expect(netTimeOf(net({ places: [movingPlace] }), without("dynamics"))).toBe(
+      "untimed",
+    );
   });
 
-  it("counts a subnet's rates and dynamics", () => {
-    const subnet = {
-      id: "subnet",
-      name: "Subnet",
-      places: [],
-      transitions: [transition({ lambdaType: "stochastic" })],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
-    };
-    expect(isTimedNet(net({ subnets: [subnet] }))).toBe(true);
-    expect(
-      isTimedNet(net({ subnets: [subnet] }), {
-        ...DEFAULT_PETRINAUT_EXTENSIONS,
-        subnets: false,
-      }),
-    ).toBe(false);
+  it("counts a subnet's rates", () => {
+    const nested = net({
+      subnets: [subnet({ transitions: rated.transitions })],
+    });
+    expect(netTimeOf(nested)).toBe("timed");
+    expect(netTimeOf(nested, without("subnets"))).toBe("untimed");
   });
 });
 
-describe("isContinuousNet", () => {
-  const rated = net({
-    transitions: [transition({ lambdaType: "stochastic" })],
+describe("netColoringOf", () => {
+  it("is uncoloured while no place has a type", () => {
+    expect(netColoringOf(net())).toBe("none");
+    expect(netColoringOf(rated)).toBe("none");
   });
 
-  it("is discrete with predicates only, and with rates only", () => {
-    expect(isContinuousNet(net())).toBe(false);
-    // Time passes between two firings, and nothing else does.
-    expect(isContinuousNet(rated)).toBe(false);
-  });
-
-  it("is continuous once a place runs dynamics", () => {
-    expect(isContinuousNet(net({ places: [movingPlace] }))).toBe(true);
-  });
-
-  it("ignores dynamics that are switched off, untyped or empty, or whose extension is disabled", () => {
+  it("is statically coloured once a place has a type", () => {
+    expect(netColoringOf(net({ places: [typedPlace] }))).toBe("static");
     expect(
-      isContinuousNet(
+      netColoringOf(net({ places: [typedPlace] }), without("colors")),
+    ).toBe("none");
+  });
+
+  it("is dynamically coloured once a place runs dynamics", () => {
+    expect(netColoringOf(net({ places: [movingPlace] }))).toBe("dynamic");
+  });
+
+  it("stays statically coloured while dynamics are switched off or empty, or their extension is disabled", () => {
+    expect(
+      netColoringOf(
         net({
           places: [
             { ...movingPlace, dynamicsEnabled: false },
-            { ...movingPlace, colorId: null },
             { ...movingPlace, dynamics: [] },
           ],
         }),
       ),
-    ).toBe(false);
+    ).toBe("static");
     expect(
-      isContinuousNet(net({ places: [movingPlace] }), {
-        ...DEFAULT_PETRINAUT_EXTENSIONS,
-        dynamics: false,
-      }),
-    ).toBe(false);
+      netColoringOf(net({ places: [movingPlace] }), without("dynamics")),
+    ).toBe("static");
   });
 
-  it("ignores dynamics on tokens with no real attribute, which nothing can move", () => {
+  it("stays statically coloured with dynamics on tokens with no real attribute, which nothing can move", () => {
     const typed = (type: "real" | "integer") =>
       net({
         places: [movingPlace],
@@ -168,35 +160,25 @@ describe("isContinuousNet", () => {
         ],
       });
 
-    expect(isContinuousNet(typed("real"))).toBe(true);
-    expect(isContinuousNet(typed("integer"))).toBe(false);
-    expect(isTimedNet(typed("integer"))).toBe(false);
+    expect(netColoringOf(typed("real"))).toBe("dynamic");
+    expect(netColoringOf(typed("integer"))).toBe("static");
+    expect(netTimeOf(typed("integer"))).toBe("untimed");
   });
 
-  it("counts a subnet's dynamics", () => {
-    const subnet = {
-      id: "subnet",
-      name: "Subnet",
-      places: [movingPlace],
-      transitions: [],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
-    };
-    expect(isContinuousNet(net({ subnets: [subnet] }))).toBe(true);
-    expect(
-      isContinuousNet(net({ subnets: [subnet] }), {
-        ...DEFAULT_PETRINAUT_EXTENSIONS,
-        subnets: false,
-      }),
-    ).toBe(false);
+  it("counts a subnet's places", () => {
+    const nested = net({ subnets: [subnet({ places: [movingPlace] })] });
+    expect(netColoringOf(nested)).toBe("dynamic");
+    expect(netColoringOf(nested, without("subnets"))).toBe("none");
   });
+});
 
-  it("leaves three kinds of run: a continuous net is always timed", () => {
+describe("a run of the net", () => {
+  it("is of three kinds: a dynamically coloured net is always timed", () => {
     const kindOf = (sdcpn: SDCPN) =>
       `${runClockOf(sdcpn)}, ${runContinuityOf(sdcpn)}`;
 
     expect(kindOf(net())).toBe("steps, discrete");
+    expect(kindOf(net({ places: [typedPlace] }))).toBe("steps, discrete");
     expect(kindOf(rated)).toBe("time, discrete");
     expect(kindOf(net({ places: [movingPlace] }))).toBe("time, continuous");
   });

@@ -1,4 +1,4 @@
-import { runClockOf, STEP_SAMPLE_PERIOD } from "../../net-timing";
+import { runClockOf, STEP_SAMPLE_PERIOD } from "../../net-class";
 
 import type { ExperimentBackend } from "../../experiments/experiment-backend";
 import type { ExperimentRequest } from "../../experiments/experiment-request";
