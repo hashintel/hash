@@ -490,7 +490,7 @@ measure();`);
 let run: typeof import("./declarations.js").measure;`);
         expect(names).toStrictEqual([
           ["unit", "let unit: string"],
-          ["measure", "namespace measure"],
+          ["measure", "function measure(): void"],
           ["Unit", "type measure.Unit = string"],
           ["run", "let run: () => void"],
           ["measure", "function measure(): void"],

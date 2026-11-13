@@ -146,7 +146,7 @@ const isTypeReference = (name: Identifier): boolean => {
   );
 };
 
-/** Whether `name` qualifies the type that a type reference, an import type or a heritage clause names, as `Space` does in `Space.Kind`. */
+/** Whether `name` qualifies the type that a type reference or a heritage clause names, as `Space` does in `Space.Kind`. */
 const isNamespaceReference = (name: Identifier): boolean => {
   let root: Node.Node = name;
   while (isQualifiedName(root.parent)) {
@@ -154,12 +154,7 @@ const isNamespaceReference = (name: Identifier): boolean => {
   }
 
   if (isQualifiedName(root)) {
-    const { parent } = root;
-    const type =
-      isTypeReferenceNode(parent) ||
-      (isImportTypeNode(parent) && !parent.isTypeOf);
-
-    return type && root.right !== name;
+    return isTypeReferenceNode(root.parent) && root.right !== name;
   }
 
   while (isPropertyAccessExpression(root.parent)) {
