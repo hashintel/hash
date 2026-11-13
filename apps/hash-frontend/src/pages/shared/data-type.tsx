@@ -80,14 +80,18 @@ export const DataType = ({
 }: DataTypeProps) => {
   const router = useRouter();
 
-  const { refetch: refetchAllDataTypes } = useDataTypesContext();
+  const {
+    dataTypes: allDataTypes,
+    refetch: refetchAllDataTypes,
+    onDataTypeSaved,
+  } = useDataTypesContext();
 
   const [createDataType] = useMutation<
     CreateDataTypeMutation,
     CreateDataTypeMutationVariables
   >(createDataTypeMutation, {
-    onCompleted() {
-      refetchAllDataTypes();
+    onCompleted(data) {
+      onDataTypeSaved(data.createDataType);
     },
   });
 
@@ -96,7 +100,7 @@ export const DataType = ({
     UpdateDataTypeMutationVariables
   >(updateDataTypeMutation, {
     onCompleted(data) {
-      refetchAllDataTypes();
+      onDataTypeSaved(data.updateDataType);
       onDataTypeUpdated(data.updateDataType);
     },
   });
@@ -320,7 +324,11 @@ export const DataType = ({
     );
   }
 
-  if (loadingUserPermissions || loadingRemoteDataType) {
+  if (
+    loadingUserPermissions ||
+    loadingRemoteDataType ||
+    allDataTypes === null
+  ) {
     return <TypeEditorSkeleton />;
   }
 
@@ -360,7 +368,7 @@ export const DataType = ({
             ]}
             onItemUnarchived={() => {
               void refetchRemoteType();
-              refetchAllDataTypes();
+              void refetchAllDataTypes();
             }}
             scrollToTop={() => {}}
             sx={{ bgcolor: "white" }}

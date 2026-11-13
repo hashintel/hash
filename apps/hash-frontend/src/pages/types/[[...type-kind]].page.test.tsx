@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
-import { MockedProvider } from "@apollo/client/testing";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
-import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { DataTypesContextProvider } from "../shared/data-types-context-provider";
+import { DataTypesContext } from "../shared/data-types-context";
+import { TypesTable } from "../shared/types-table";
 import TypesPage from "./[[...type-kind]].page";
 
+import type { DataTypesContextValue } from "../shared/data-types-context";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
@@ -54,13 +53,7 @@ vi.mock("./[[...type-kind]].page/types-page-tabs", () => ({
   TypesPageTabs: () => null,
 }));
 vi.mock("../shared/types-table", () => ({
-  TypesTable: ({ types }: { types?: DataTypeWithMetadata[] }) => (
-    <div>
-      {types
-        ? `${types.length} types; meters ${types.find(({ schema }) => schema.title === "Meters")?.metadata.recordId.version}; final ${types.some(({ schema }) => schema.title === "Final page type")}`
-        : "Loading types"}
-    </div>
-  ),
+  TypesTable: vi.fn(() => null),
 }));
 
 const dataType = (slug: string, title: string, version = 1) =>
@@ -77,63 +70,57 @@ const dataType = (slug: string, title: string, version = 1) =>
     },
   }) as unknown as DataTypeWithMetadata;
 
-const request = {
-  filter: { all: [] },
-  temporalAxes: fullTransactionTimeAxis,
-  limit: 1000,
-};
-
 describe("data types in the Types listing", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
 
   it.each(["data-type", "all"] as const)(
-    "lists more than 1,000 types without duplicate versions in the %s tab",
+    "passes every latest data type to the table in the %s tab",
     async (currentTab) => {
-      const firstPage = [
-        dataType("meters", "Meters"),
+      const latest = [
+        dataType("meters", "Meters", 2),
         ...Array.from({ length: 999 }, (_, index) =>
           dataType(`fixture-${index}`, `Fixture ${index}`),
         ),
+        dataType("final", "Final type"),
       ];
-      const cursor = firstPage.at(-1)?.schema.$id;
-      render(
-        <MockedProvider
-          mocks={[
-            {
-              request: { query: queryDataTypesQuery, variables: { request } },
-              result: {
-                data: { queryDataTypes: { dataTypes: firstPage, cursor } },
-              },
-            },
-            {
-              request: {
-                query: queryDataTypesQuery,
-                variables: { request: { ...request, after: cursor } },
-              },
-              result: {
-                data: {
-                  queryDataTypes: {
-                    dataTypes: [
-                      dataType("meters", "Meters", 2),
-                      dataType("final", "Final page type"),
-                    ],
-                  },
-                },
-              },
-            },
-          ]}
-        >
-          <DataTypesContextProvider>
-            <TypesPage currentTab={currentTab} />
-          </DataTypesContextProvider>
-        </MockedProvider>,
+      const loadingContext: DataTypesContextValue = {
+        dataTypes: null,
+        latestDataTypes: null,
+        loading: true,
+        refetch: vi.fn().mockResolvedValue(true),
+        onDataTypeSaved: vi.fn(),
+      };
+      const { rerender } = render(
+        <DataTypesContext.Provider value={loadingContext}>
+          <TypesPage currentTab={currentTab} />
+        </DataTypesContext.Provider>,
+      );
+      expect(vi.mocked(TypesTable).mock.lastCall?.[0].types).toBeUndefined();
+
+      const loadedContext: DataTypesContextValue = {
+        ...loadingContext,
+        dataTypes: Object.fromEntries(
+          [...latest, dataType("meters", "Meters")].map((type) => [
+            type.schema.$id,
+            type,
+          ]),
+        ),
+        latestDataTypes: Object.fromEntries(
+          latest.map((type) => [type.metadata.recordId.baseUrl, type]),
+        ),
+        loading: false,
+      };
+      rerender(
+        <DataTypesContext.Provider value={loadedContext}>
+          <TypesPage currentTab={currentTab} />
+        </DataTypesContext.Provider>,
       );
 
-      expect(screen.getByText("Loading types")).toBeTruthy();
       await waitFor(() =>
-        expect(
-          screen.getByText("1001 types; meters 2; final true"),
-        ).toBeTruthy(),
+        expect(vi.mocked(TypesTable).mock.lastCall?.[0].types).toEqual(latest),
       );
     },
   );

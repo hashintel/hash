@@ -1,10 +1,14 @@
-import { useQuery } from "@apollo/client";
-import { useEffect, useMemo, useState } from "react";
+import { useApolloClient } from "@apollo/client";
+import { captureException } from "@sentry/nextjs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
+import { useSnackbar } from "../../components/hooks/use-snackbar";
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { Button } from "../../shared/ui/button";
 import { DataTypesContext } from "./data-types-context";
 
 import type {
@@ -19,77 +23,168 @@ import type {
 import type { PropsWithChildren } from "react";
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const [paginationError, setPaginationError] = useState<Error | null>(null);
-  const {
-    data,
-    loading: queryLoading,
-    refetch,
-    fetchMore,
-  } = useQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
-    queryDataTypesQuery,
-    {
-      fetchPolicy: "cache-first",
-      notifyOnNetworkStatusChange: true,
-      variables: {
-        request: {
-          filter: { all: [] },
-          temporalAxes: fullTransactionTimeAxis,
-          limit: 1000,
-        },
-      },
-    },
-  );
-
-  const cursor = data?.queryDataTypes.cursor;
-  const loading = queryLoading || !!cursor;
+  const client = useApolloClient();
+  const { triggerSnackbar, closeSnackbar } = useSnackbar();
+  const [dataTypes, setDataTypes] = useState<Record<
+    VersionedUrl,
+    DataTypeWithMetadata
+  > | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [refreshId, setRefreshId] = useState(0);
+  const [refreshResult, setRefreshResult] = useState<{
+    id: number;
+    success: boolean;
+  } | null>(null);
+  const requestedRefresh = useRef(0);
+  const refreshWaiters = useRef<((success: boolean) => void)[]>([]);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (!cursor || queryLoading || paginationError) {
+    const waiters = refreshWaiters.current;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      for (const resolve of waiters.splice(0)) {
+        resolve(false);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (refreshResult?.id === requestedRefresh.current) {
+      for (const resolve of refreshWaiters.current.splice(0)) {
+        resolve(refreshResult.success);
+      }
+    }
+  }, [refreshResult]);
+
+  const refetch = useCallback((): Promise<boolean> => {
+    if (!mounted.current) {
+      return Promise.resolve(false);
+    }
+    requestedRefresh.current += 1;
+    setLoading(true);
+    setError(null);
+    setRefreshId(requestedRefresh.current);
+    return new Promise((resolve) => {
+      refreshWaiters.current.push(resolve);
+    });
+  }, []);
+
+  const onDataTypeSaved = useCallback(
+    (dataType: DataTypeWithMetadata) => {
+      setDataTypes((previous) =>
+        previous ? { ...previous, [dataType.schema.$id]: dataType } : previous,
+      );
+      void refetch();
+    },
+    [refetch],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const isCurrent = () =>
+      !controller.signal.aborted && requestedRefresh.current === refreshId;
+
+    const load = async () => {
+      const catalogue: Record<VersionedUrl, DataTypeWithMetadata> = {};
+      const cursors = new Set<VersionedUrl>();
+      let after: VersionedUrl | undefined;
+
+      try {
+        do {
+          const { data } = await client.query<
+            QueryDataTypesQuery,
+            QueryDataTypesQueryVariables
+          >({
+            query: queryDataTypesQuery,
+            variables: {
+              request: {
+                filter: { all: [] },
+                temporalAxes: fullTransactionTimeAxis,
+                limit: 1000,
+                ...(after ? { after } : {}),
+              },
+            },
+            fetchPolicy: "no-cache",
+            context: {
+              queryDeduplication: false,
+              fetchOptions: { signal: controller.signal },
+            },
+          });
+
+          if (!isCurrent()) {
+            return;
+          }
+
+          for (const dataType of data.queryDataTypes.dataTypes) {
+            catalogue[dataType.schema.$id] = dataType;
+          }
+
+          after = data.queryDataTypes.cursor;
+          if (after) {
+            if (cursors.has(after)) {
+              throw new Error(`Data type pagination repeated cursor ${after}`);
+            }
+            cursors.add(after);
+          }
+        } while (after);
+
+        setDataTypes(catalogue);
+        setLoading(false);
+        setRefreshResult({ id: refreshId, success: true });
+      } catch (cause) {
+        if (!isCurrent()) {
+          return;
+        }
+        setError(
+          cause instanceof Error
+            ? cause
+            : new Error("Could not load data types", { cause }),
+        );
+        setLoading(false);
+        setRefreshResult({ id: refreshId, success: false });
+      }
+    };
+
+    void load();
+    return () => controller.abort();
+  }, [client, refreshId]);
+
+  useEffect(() => {
+    if (!error) {
       return;
     }
-    void fetchMore({
-      variables: {
-        request: {
-          filter: { all: [] },
-          temporalAxes: fullTransactionTimeAxis,
-          limit: 1000,
-          after: cursor,
-        },
-      },
-      updateQuery: (previous, { fetchMoreResult }) => ({
-        ...previous,
-        queryDataTypes: {
-          ...fetchMoreResult.queryDataTypes,
-          dataTypes: [
-            ...previous.queryDataTypes.dataTypes,
-            ...fetchMoreResult.queryDataTypes.dataTypes,
-          ],
-        },
-      }),
-    }).catch((error: unknown) => {
-      setPaginationError(
-        error instanceof Error
-          ? error
-          : new Error("Could not load the remaining data types"),
-      );
+    captureException(error);
+    const key = uuid();
+    triggerSnackbar.error("Could not refresh data types. Try again.", {
+      key,
+      persist: true,
+      action: (
+        <Button
+          size="small"
+          variant="tertiary_quiet"
+          onClick={() => {
+            void refetch();
+          }}
+          sx={{ color: "inherit" }}
+        >
+          Retry
+        </Button>
+      ),
     });
-  }, [cursor, fetchMore, paginationError, queryLoading]);
+    return () => closeSnackbar(key);
+  }, [error, triggerSnackbar, closeSnackbar, refetch]);
 
-  const { dataTypes, latestDataTypes } = useMemo(() => {
-    if (!data || cursor) {
-      return {
-        dataTypes: null,
-        latestDataTypes: null,
-      };
+  const latestDataTypes = useMemo(() => {
+    if (!dataTypes) {
+      return null;
     }
-
-    const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
     const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
-
-    for (const dataType of data.queryDataTypes.dataTypes) {
+    for (const dataType of Object.values(dataTypes)) {
       const { baseUrl, version } = dataType.metadata.recordId;
       const previous = latest[baseUrl];
-      all[dataType.schema.$id] = dataType;
       if (
         !previous ||
         compareOntologyTypeVersions(
@@ -100,22 +195,13 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
         latest[baseUrl] = dataType;
       }
     }
+    return latest;
+  }, [dataTypes]);
 
-    return { dataTypes: all, latestDataTypes: latest };
-  }, [data, cursor]);
-
-  const value = useMemo(() => {
-    return {
-      dataTypes,
-      latestDataTypes,
-      loading,
-      refetch,
-    };
-  }, [dataTypes, latestDataTypes, loading, refetch]);
-
-  if (paginationError) {
-    throw paginationError;
-  }
+  const value = useMemo(
+    () => ({ dataTypes, latestDataTypes, loading, refetch, onDataTypeSaved }),
+    [dataTypes, latestDataTypes, loading, refetch, onDataTypeSaved],
+  );
 
   return (
     <DataTypesContext.Provider value={value}>
