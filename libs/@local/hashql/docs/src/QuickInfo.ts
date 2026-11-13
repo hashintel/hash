@@ -28,12 +28,11 @@ export interface Line {
  *
  * A name has a line for each meaning it has where it stands, as a value, a type or a namespace, and a function has a line for each overload.
  *
- * The text follows the hover of the compiler's language server, and differs from it in four places on purpose:
+ * The text follows the hover of the compiler's language server, and differs from it in three places on purpose:
  *
  * - An imported name has no mark before its lines.
  * - A type after a name and a signature are written in full, where an editor cuts a long one short.
  * - A module that no import names reads as a namespace under the name the code uses. The compiler names it by its file's path, which belongs to the machine that built the documentation.
- * - A name the compiler resolves to no symbol has no quick info, where an editor shows the type at the name. The label of a tuple member is such a name.
  */
 export type QuickInfo = Array.NonEmptyReadonlyArray<Line>;
 
@@ -94,6 +93,19 @@ export const of: {
     );
   }),
 );
+
+/**
+ * The quick info of a name the compiler resolves to no symbol: the type at the name. An editor shows nothing on the label of a statement, and such a name has none.
+ *
+ * The label of a tuple member has the member's type. A name that nothing declares has the type `any`, and so does a property of a value of that type.
+ */
+export const typeAt = (
+  name: Identifier,
+): Effect.Effect<
+  Option.Option<QuickInfo>,
+  Cause.UnknownError,
+  Checker.Checker
+> => Effect.map(Values.typeAt(name), Option.map(Array.of));
 
 /** One part of a line as text. A type inside a name stands on one line, as the compiler writes a name. */
 const written = (
