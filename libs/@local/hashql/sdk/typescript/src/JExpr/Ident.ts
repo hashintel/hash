@@ -111,7 +111,18 @@ export const Schema: $Schema.decodeTo<
  *
  * A `Lexical` value follows Unicode XID rules, with `_` permitted before one or more continuation characters. A `Symbol` contains ASCII operator characters or non-ASCII punctuation and symbols. Lexical and symbol values retain their Unicode spelling. Character membership follows the JavaScript runtime's Unicode tables. The HashQL compiler handles normalization. A `BaseUrl` retains the source spelling of a validated HTTP(S) URL ending in `/`. An object literal remains unchecked until {@link make} validates it.
  */
-export type Ident = (typeof Schema)["Type"];
+export type Ident = Ident.Lexical | Ident.Symbol | Ident.BaseUrl;
+
+export declare namespace Ident {
+  /** An unquoted name whose value follows the lexical identifier grammar. */
+  export interface Lexical extends $Schema.Schema.Type<typeof LexicalSchema> {}
+
+  /** An operator name stored without its source backticks. */
+  export interface Symbol extends $Schema.Schema.Type<typeof SymbolSchema> {}
+
+  /** A base-URL name stored without its source backticks. */
+  export interface BaseUrl extends $Schema.Schema.Type<typeof BaseUrlSchema> {}
+}
 
 /** Identifier source text, with backticks around a quoted symbol or base URL. */
 export type Encoded = (typeof Schema)["Encoded"];
