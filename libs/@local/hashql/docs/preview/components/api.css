@@ -562,11 +562,6 @@
   border-top: none;
 }
 
-.api-member .api-signature > .api-overloads {
-  top: 0.125rem;
-  left: 0;
-}
-
 /* A member's code has no padding of its own, so a numbered declaration makes room for its number itself. */
 .prose .api-member .api-signatures > .api-signature > figure.shiki {
   padding-left: 1.75rem;
@@ -1179,11 +1174,40 @@
   overflow-wrap: anywhere;
 }
 
-/* Overloads: one panel with a rule between declarations, each numbered in its margin. A single declaration is its code block alone. The panel's last column holds the declarations' own facts, so no code runs under them, and it takes no room when no declaration has any. */
+/* One line of an entry's declaration, as fumadocs draws a code block: its code size at the leading of `text-sm`. What shares a declaration's first line takes its place from it. */
+
+.api-export-body > .api-part[data-part="declaration"] {
+  --api-code-line: calc(0.8125rem * 1.25 / 0.875);
+}
+
+.api-export-body > .api-part[data-part="declaration"] figure .line {
+  line-height: var(--api-code-line);
+}
+
+/* The button that copies a declaration is centred on its first line. Fumadocs holds it in the block's top right corner, and the block's code starts 0.875rem down. */
+.api-export-body
+  > .api-part[data-part="declaration"]
+  figure.shiki
+  > div:has(> button) {
+  top: calc(0.875rem + var(--api-code-line) / 2);
+  translate: 0 -50%;
+}
+
+/* Fumadocs ends every line with room for the button, and code that scrolls passes under it. A declaration's code ends before the button instead, which takes no more room. */
+.api-export-body
+  > .api-part[data-part="declaration"]
+  figure.shiki
+  > .fd-scroll-container {
+  margin-right: 2rem;
+}
+
+.api-export-body > .api-part[data-part="declaration"] figure.shiki .line {
+  padding-right: 0;
+}
+
+/* Overloads: one panel with a rule between declarations. Each is a row of its number, its code and its own facts, so only a declaration that has facts gives them room, and code that scrolls stays between the two. */
 
 .api-signatures {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   border: 1px solid var(--color-fd-border);
   border-radius: 0.75rem;
   overflow: hidden;
@@ -1191,53 +1215,77 @@
 }
 
 .api-signatures > .api-signature {
-  position: relative;
   display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-}
-
-.api-signatures > .api-signature > figure {
-  grid-column: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .api-signatures > .api-signature + .api-signature {
   border-top: 1px solid var(--color-fd-border);
 }
 
+.api-signatures > .api-signature > * {
+  grid-row: 1;
+}
+
+/* A declaration that numbers several overloads stacks their numbers, and the first is centred on its first line, as its facts are. */
 .api-signature > .api-overloads {
-  position: absolute;
-  top: 0.875rem;
-  left: 1rem;
-  z-index: 1;
   flex-direction: column;
 }
 
-/* A declaration's own facts are level with its first line. */
-.api-signatures > .api-signature > .api-facts {
-  grid-column: 2;
-  grid-row: 1;
+.api-signatures > .api-signature > .api-overloads {
+  grid-column: 1;
   align-self: start;
-  height: 1.25rem;
-  margin: 0.875rem 1rem 0 0;
-  line-height: 1.25rem;
+  margin: calc(0.875rem + (var(--api-code-line) - 1.125rem) / 2) 0.625rem 0 1rem;
 }
 
-/* A narrow page gives the code the panel's whole width, and puts the facts under it. */
-@container (max-width: 36rem) {
-  .api-signatures {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.api-signatures > .api-signature > figure {
+  grid-column: 2;
+}
 
+.api-signatures > .api-signature > .api-facts {
+  grid-column: 3;
+  align-self: start;
+  height: var(--api-code-line);
+  margin: 0.875rem 0.75rem 0 0;
+}
+
+/* A narrow page gives the code the rest of the row, and puts the facts under it. */
+@container (max-width: 36rem) {
   .api-signatures > .api-signature > .api-facts {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 2;
     justify-self: end;
-    margin: 0 1rem 0.75rem 0;
+    margin: 0 0.75rem 0.75rem 0;
   }
 }
 
-/* A member's declarations have no panel, and their facts keep the member's column at every width. */
+/* The variable is fumadocs' own, which it sets on every `.shiki` code block. The number's column keeps the code's distance from it. */
+.api-signatures > .api-signature > figure.shiki {
+  --padding-left: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* A member's declarations have no panel. Each keeps the member's two columns, with its number in the room its code leaves at the start of its first line, and its facts in the member's column at every width. */
+.api-member .api-signatures > .api-signature {
+  position: relative;
+  grid-template-columns: subgrid;
+}
+
+.api-member .api-signatures > .api-signature > .api-overloads {
+  position: absolute;
+  top: 0.125rem;
+  left: 0;
+  z-index: 1;
+  margin: 0;
+}
+
+.api-member .api-signatures > .api-signature > figure {
+  grid-column: 1;
+}
+
 .api-member .api-signatures > .api-signature > .api-facts {
   grid-column: 2;
   grid-row: 1;
@@ -1245,15 +1293,6 @@
   height: 1.3rem;
   margin: 0;
   line-height: 1.3rem;
-}
-
-/* The variable is fumadocs' own, which it sets on every `.shiki` code block. */
-.api-signatures > .api-signature > figure.shiki {
-  --padding-left: 2.75rem;
-  margin: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
 }
 
 /* A module's import statement sits under its comment, apart from it. */
