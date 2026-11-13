@@ -18,7 +18,6 @@ import { pathsGroups } from "./paths-flags";
 import { namedPorts, pathRenamable, switchTake } from "./switch-flags";
 import {
   AnswerPathGroups,
-  answersOld,
   IfPathGroups,
   SwitchPathGroups,
   SwitchSections,
@@ -96,12 +95,6 @@ import { ToggleableTextInput } from "./ds-parts/toggleable-text-input";
 import { itemSourceOld, lastRunCount, ListSourceBlock } from "./list-source";
 import { RefPath, refLook } from "./ref-path";
 
-/**
- * Panel parity (inbox panel-parity, apply-all, 13 Nov): For each's Collect reads as one select with the step's tile and
- * `Step › Output` (t2). `?collect=old` keeps the output's name in the select and the step as a chip under it.
- */
-const collectOld =
-  new URLSearchParams(globalThis.location.search).get("collect") === "old";
 import { RunPanel } from "./run-view";
 import { UsedInList, usesMatching } from "./used-in";
 import {
@@ -282,11 +275,6 @@ const StepSettings = ({
 /** Send email's Inputs (Figma, 3 Nov): 16 px between To, Subject and Body; 8 px from a label to its box. */
 const sendEmailGridStyle = css({ rowGap: "4" });
 
-/** `?textareaexpand=off`: no expand control on short text areas, and Subject on its own line (before 13 Nov). */
-const oldTextareaExpand =
-  new URLSearchParams(globalThis.location.search).get("textareaexpand") ===
-  "off";
-
 /** Short notes that get the expand control (textarea-placement 7). */
 const expandableInputs = new Set(["instructions"]);
 
@@ -377,8 +365,7 @@ const ExpandableTextRow = ({
 /** Text areas for writing, which keep their own line; any other text area sits beside its label (D-v2). */
 const writingInputs = new Set([
   "body",
-  // Subject is one line: a row beside its label with textarea-placement 7 (13 Nov); `?textareaexpand=off` stacks it.
-  ...(oldTextareaExpand ? ["subject"] : []),
+  // Subject is one line: a row beside its label with textarea-placement 7 (13 Nov).
   "prompt",
   "userGoal",
   "relevantEntitiesPrompt",
@@ -850,8 +837,7 @@ const ActionSections = ({
     }
     if (
       isFreeText(input) &&
-      expandableInputs.has(input.name) &&
-      !oldTextareaExpand
+      expandableInputs.has(input.name)
     ) {
       return (
         <ExpandableTextRow
@@ -948,8 +934,7 @@ const ActionSections = ({
     );
   }
 
-  const answersAsPaths =
-    step.actionDefinitionId === "requestReview" && !answersOld;
+  const answersAsPaths = step.actionDefinitionId === "requestReview";
   return (
     <>
       {visibleInputs.length > 0 ? (
@@ -1292,19 +1277,15 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                 ? "Add a step inside first"
                 : "Choose an output"
             }
-            renderSelectedItem={
-              collectOld
-                ? undefined
-                : (value) => {
-                    const [childId = "", outputName = ""] = value.split(".");
-                    const look = refLook(
-                      document,
-                      { kind: "step-output", stepId: childId, outputName },
-                      step.stepId,
-                    );
-                    return look ? <RefPath look={look} /> : value;
-                  }
-            }
+            renderSelectedItem={(value) => {
+              const [childId = "", outputName = ""] = value.split(".");
+              const look = refLook(
+                document,
+                { kind: "step-output", stepId: childId, outputName },
+                step.stepId,
+              );
+              return look ? <RefPath look={look} /> : value;
+            }}
             onChange={(value) => {
               const [childId, outputName] = (value ?? "").split(".");
               setDocument((current) =>
@@ -1322,27 +1303,6 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               );
             }}
           />
-          {step.collect && collectOld ? (
-            <div>
-              <SourceChip
-                icon={nodeLook(document, step.collect.stepId).icon}
-                onClick={() =>
-                  setUi((current) => ({
-                    ...current,
-                    selectedId: step.collect?.stepId ?? null,
-                  }))
-                }
-              >
-                {(() => {
-                  const collected = findStep(
-                    document,
-                    step.collect.stepId,
-                  )?.step;
-                  return collected ? stepLabel(collected) : "";
-                })()}
-              </SourceChip>
-            </div>
-          ) : null}
           {step.collect ? (
             <UsedBy
               quiet

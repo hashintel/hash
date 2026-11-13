@@ -111,11 +111,3 @@ export const joinerTake: JoinerTake | null = (() => {
   const value = query.get("joiner");
   return value === "j1" || value === "j2" || value === "j3" ? value : null;
 })();
-
-/**
- * Condition rows (inbox field-conditions, option 2, 13 Nov): "Where" above the rows, each condition across the panel's
- * full width with a long value wrapping inside its chip, and the joiner ("and" / "or", plain muted text) on its own
- * line between rows. Used by If, Switch cases and the Find entities filter. `?conditions=old` keeps the joiner in the
- * label column and the chip in the value column.
- */
-export const conditionRowsOld = query.get("conditions") === "old";

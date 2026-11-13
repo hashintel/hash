@@ -64,13 +64,9 @@ import {
 } from "./mock-graph";
 import { selectedLabel } from "./menu-rows";
 import { SourceMenu } from "./source-menu";
-import { conditionLayout, conditionRowsOld, joinerTake } from "./switch-flags";
+import { conditionLayout, joinerTake } from "./switch-flags";
 import { refLook, RefTileOutput } from "./ref-path";
 
-/** `?conditionref=old`: another step's value in a condition reads "Step › Output" with no tile (before 13 Nov). */
-const conditionRefOld =
-  new URLSearchParams(globalThis.location.search).get("conditionref") ===
-  "old";
 import { oldLabelColumn } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -751,7 +747,7 @@ const ConditionRowView = ({
               onPointerEnter={sourceHover.onPointerEnter}
               onPointerLeave={sourceHover.onPointerLeave}
             >
-              {tokenLook && !conditionRefOld ? (
+              {tokenLook ? (
                 // The step's tile, then the output name (condition-value-ref 3p); the hover gives the whole path.
                 <RefTileOutput look={tokenLook} />
               ) : (
@@ -1132,8 +1128,8 @@ const ConditionRowView = ({
     <div
       className={cx(
         rowStackStyle,
-        !conditionRowsOld && fullRowStackStyle,
-        !conditionRowsOld && fullChipStyle,
+        fullRowStackStyle,
+        fullChipStyle,
       )}
     >
       {prefix}
@@ -1414,14 +1410,12 @@ export const Joiner = ({
     {onPick ? (
       <Menu
         className={joinerMenuStyle}
-        items={joinerItems(conjunction, onPick, (choice) =>
-          joinerTake || !conditionRowsOld ? choice : choice.toUpperCase(),
-        )}
+        items={joinerItems(conjunction, onPick, (choice) => choice)}
         trigger={
-          joinerTake === "j1" || (!conditionRowsOld && !joinerTake) ? (
+          joinerTake === "j1" || !joinerTake ? (
             <button
               type="button"
-              className={cx(joinerTextStyle, !conditionRowsOld && fullJoinerStyle)}
+              className={cx(joinerTextStyle, fullJoinerStyle)}
               aria-label={`Join with ${conjunction ?? "and"}`}
             >
               {conjunction ?? "and"}
@@ -1804,10 +1798,7 @@ export const ConditionBuilder = ({
         </div>
       ) : null}
       <div
-        className={cx(
-          footerStyle,
-          !takeFooterAtEdge && conditionRowsOld && valueColumnFooterStyle,
-        )}
+        className={footerStyle}
       >
         <AddCondition
           label="Add filter"

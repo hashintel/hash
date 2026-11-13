@@ -44,7 +44,6 @@ import { MiddleCut } from "./middle-cut";
 import { useEditor } from "./editor-context";
 import {
   conditionLayout,
-  conditionRowsOld,
   ifRenameTake,
   joinerTake,
   namedPorts,
@@ -879,14 +878,14 @@ const PathConditionRows = ({
           key={rowIndex}
           className={cx(
             conditionRowStyle,
-            !conditionRowsOld && fullConditionRowStyle,
-            !conditionRowsOld && fullChipStyle,
+            fullConditionRowStyle,
+            fullChipStyle,
           )}
         >
           <span data-joiner>
             {rowIndex === 0 ? (
               "Where"
-            ) : !conditionRowsOld ? (
+            ) : (
               <button
                 type="button"
                 className={fullJoinerButtonStyle}
@@ -901,22 +900,6 @@ const PathConditionRows = ({
               >
                 {group.join}
               </button>
-            ) : (
-              <Button
-                size="sm"
-                variant="subtle"
-                iconName="chevronDown"
-                iconPosition="right"
-                disabled={readOnly}
-                onClick={() =>
-                  onChange({
-                    ...group,
-                    join: group.join === "or" ? "and" : "or",
-                  })
-                }
-              >
-                {group.join.toUpperCase()}
-              </Button>
             )}
           </span>
           <span data-chip onPointerEnter={showConditionOnHover}>
@@ -938,11 +921,10 @@ const PathConditionRows = ({
       ))}
       {readOnly ? null : (
         <>
-          {conditionRowsOld ? <span /> : null}
           <span
             className={cx(
               css({ display: "flex" }),
-              !conditionRowsOld && css({ gridColumn: "1 / -1" }),
+              css({ gridColumn: "1 / -1" }),
             )}
           >
             <Button
@@ -1072,11 +1054,8 @@ export const SwitchPathGroups = ({
 /**
  * Ask a person's answers are its paths (inbox field-people-answers, option 3, 13 Nov): each answer is a group, its
  * name renamed in place on hover, then "Goes to" and the next-step select, hairlines between; Add answer last, the
- * same outline button as Add case. `?answers=old` keeps the paths under the Decision output.
+ * same outline button as Add case.
  */
-export const answersOld =
-  new URLSearchParams(globalThis.location.search).get("answers") === "old";
-
 export const AnswerPathGroups = ({
   step,
   ports,
