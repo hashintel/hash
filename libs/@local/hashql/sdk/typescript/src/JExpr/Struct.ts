@@ -1,20 +1,37 @@
+/**
+ * Struct constructors, written `{ "#struct": { name: value } }`.
+ *
+ * {@link @local/hashql#JExpr.struct | `JExpr.struct`} assembles one without checking it. {@link make} checks a finished value against {@link Schema}. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** Schema for `Struct` values. */
+/**
+ * Schema for {@link Struct} values.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Struct = Defs.Struct;
 
 /**
  * A data constructor with identifier-named fields.
  *
  * Each field contains an expression. The schema checks the field names as well as their values.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Struct extends Defs.StructType {}
 
 export declare namespace Struct {
-  /** The schema-encoded representation of `Struct`. */
+  /** The schema-encoded representation of {@link Struct}. */
   export interface Encoded extends Defs.StructEncoded {}
 }
 
@@ -24,22 +41,35 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks field names, field expressions and an optional type annotation.
  *
- * Field names must be identifiers, such as `name` or `` `+` ``. Field values must be expressions. `#type` can be any text. The result is a new struct. `options.disableChecks` skips the field-name check and the checks inside nested values. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * Field names must be identifiers, such as `name` or <code>\`+\`</code>. Field values must be expressions. `#type` can be any text. The result is a new struct. `options.disableChecks` skips the field-name check and the checks inside nested values. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Struct =
   Overflow.make(Schema);
 
-/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
+/**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Struct, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
-/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
+/**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

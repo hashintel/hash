@@ -1,16 +1,33 @@
+/**
+ * String expressions: source text that HashQL parses as a path, a type or an argument shorthand.
+ *
+ * {@link make} confirms only that a value is a string, since HashQL parses the text when it compiles the program. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @since 0.1.0
+ * @module
+ */
+
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
-/** Schema for {@link Identifier} values. */
+/**
+ * Schema for {@link Identifier} values.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.Identifier = Defs.Identifier;
 
 /**
  * Source text interpreted as a path, type or argument shorthand.
  *
- * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see `JExpr.Ident`.
+ * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see {@link JExpr.Ident}.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Identifier = Defs.IdentifierType;
 
@@ -27,7 +44,10 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * The schema has no checks, so this confirms only that the input is a string. HashQL parses the text when it compiles the program. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -35,7 +55,12 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => Identifier = SchemaParser.make(Schema);
 
-/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
+/**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -43,7 +68,12 @@ export const makeEffect: (
 ) => Effect.Effect<Identifier, SchemaIssue.Issue> =
   SchemaParser.makeEffect(Schema);
 
-/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
+/**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

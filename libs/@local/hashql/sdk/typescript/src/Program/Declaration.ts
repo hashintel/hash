@@ -25,6 +25,9 @@ const TypeId = "~hashql/Declaration";
  * An export waiting for a module to supply its absolute path.
  *
  * The produced export `E` is covariant. Equality compares factory behavior and generic arity, not the erased TypeScript descriptor. Binding is the first operation that emits syntax or validates arity.
+ *
+ * @category Declarations
+ * @since 0.1.0
  */
 export interface Declaration<out E> extends Equal.Equal, Pipeable.Pipeable {
   readonly [TypeId]: Types.Covariant<E>;
@@ -90,6 +93,9 @@ export const isDeclaration = <E>(
  * Declares a value with trusted semantic type information.
  *
  * The bound export emits its absolute path, such as `::core::math::rem`, and requires no inputs. `T` decides which calls, projections and indexing TypeScript accepts, and a function descriptor makes the export callable. Nothing checks that the HashQL value has this type.
+ *
+ * @category Declarations
+ * @since 0.1.0
  */
 export const value = <T extends Type.Any>(): Declaration<
   Expression.Expression<T, Inputs.Empty>
@@ -107,6 +113,9 @@ export const value = <T extends Type.Any>(): Declaration<
  * Declares a named type without expanding it into its structural representation.
  *
  * Once bound, the export emits a reference to its absolute path, such as `::core::uuid::Uuid`. TypeScript takes its descriptor `T` on trust.
+ *
+ * @category Declarations
+ * @since 0.1.0
  */
 export const type = <T extends Type.Any>(): Declaration<
   TypeExpression.TypeExpression<T>
@@ -120,6 +129,9 @@ export const type = <T extends Type.Any>(): Declaration<
  * Declares a named generic type with a type-level operation for its result.
  *
  * TypeScript requires `arity` to equal `F["arity"]`. Binding returns a {@link ProgramError.Construction} failure with reason `InvalidTypeArity` for an arity that is not a non-negative safe integer. The bound constructor emits applications of the export's path and checks the argument count of each call.
+ *
+ * @category Declarations
+ * @since 0.1.0
  */
 export const genericType = <F extends Type.TypeConstructor>(
   arity: F["arity"],

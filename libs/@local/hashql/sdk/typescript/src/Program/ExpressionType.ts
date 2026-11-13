@@ -3,6 +3,7 @@
  *
  * Union projections require the field in every alternative. Intersections combine field descriptors. Index access includes {@link Type.PrimitiveNull} for an absent element. These calculations retain the source expression's input requirements.
  *
+ * @since 0.1.0
  * @module
  */
 import type * as Type from "../Type.js";
@@ -434,7 +435,12 @@ export type Callable<T extends Type.Any, Inputs> =
           FunctionMembers<T, Inputs>
       : EmptyAccessors;
 
-/** The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal. */
+/**
+ * The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal.
+ *
+ * @category Utility Types
+ * @since 0.1.0
+ */
 export type Conditional<Then extends Type.Any, Else extends Type.Any> = Join<
   Normalize<Then>,
   Normalize<Else>

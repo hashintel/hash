@@ -3,6 +3,8 @@
  *
  * {@link program} wraps a root expression as a program. {@link compile} serializes a program to J-Expr JSON text. {@link Expression} builds the typed expressions. {@link TypeExpression} annotates type syntax with semantic descriptors. A builder that fails stores a {@link ProgramError.Construction} in its expression instead of throwing. {@link Program.Inputs} extracts the input requirements a program's caller must supply.
  *
+ * @stability beta
+ * @since 0.1.0
  * @module
  */
 import { Result, pipe } from "effect";
@@ -18,6 +20,9 @@ import type * as Type from "../Type.js";
  * A root {@link Expression.Expression} carrying its result descriptor and input requirements.
  *
  * The wrapper does not establish that the expression constructed successfully or that the HashQL compiler accepts it. {@link compile} extracts the syntax and returns any {@link ProgramError.Construction} the expression stored. Query execution is separate.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Program<T extends Type.Any, Requirements> {
   /** The expression whose syntax becomes the program, including its retained construction result. */
@@ -39,6 +44,9 @@ export declare namespace Program {
  * Wraps a root expression without validating or evaluating it.
  *
  * The constructor freezes the wrapper. It keeps the original handle as {@link Program.root}. See {@link compile} for serialization and failure handling.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const program = <T extends Type.Any, Inputs>(
   root: Expression.Expression<T, Inputs>,
@@ -47,11 +55,11 @@ export const program = <T extends Type.Any, Inputs>(
 /**
  * Serializes a program to J-Expr JSON text, or returns the {@link ProgramError.Construction} its root stored or a stale handle causes.
  *
- * This is syntax serialization, not HashQL compiler execution. It does not check types, check the program against a graph schema or execute a query. The text is what `JExpr.compile` writes, keeping each numeric literal's source spelling.
+ * This is syntax serialization, not HashQL compiler execution. It does not check types, check the program against a graph schema or execute a query. The text is what {@link JExpr.compile} writes, keeping each numeric literal's source spelling.
  *
  * HashQL resolves a bare name to the innermost binding of that name, so a handle used outside the binding it came from would read another binding of the same name, or none. `compile` checks every handle a builder bound against the root's scopes and returns the `StaleReference` reason for one that does not resolve to its own binding. It checks no other name.
  *
- * The builders validate syntax as they store it, so `compile` does not decode the tree again. It checks each numeric literal's spelling as it writes, because {@link Expression.fromNode} and {@link Expression.fromResult} take a tree on trust. Literal text that `JExpr.make` would reject, such as `NaN`, and an object with no constructor key return the `InvalidExpression` reason.
+ * The builders validate syntax as they store it, so `compile` does not decode the tree again. It checks each numeric literal's spelling as it writes, because {@link Expression.fromNode} and {@link Expression.fromResult} take a tree on trust. Literal text that {@link JExpr.make} would reject, such as `NaN`, and an object with no constructor key return the `InvalidExpression` reason.
  *
  * @example <caption>Serialize an expression for a HashQL consumer.</caption>
  * ```ts
@@ -62,6 +70,9 @@ export const program = <T extends Type.Any, Inputs>(
  * const greeting = Program.program(Program.Expression.literal("hello"));
  * assert.equal(Result.getOrThrow(Program.compile(greeting)), '{"#literal":"hello"}');
  * ```
+ *
+ * @category Compiling
+ * @since 0.1.0
  */
 export const compile = <T extends Type.Any, Inputs>(
   self: Program<T, Inputs>,

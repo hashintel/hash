@@ -3,6 +3,7 @@
  *
  * {@link make} checks a decoded object such as `{ _tag: "GenericBound", name, bound }`, whose `name` is an identifier object rather than source text and whose `bound` may be absent. It checks the name and the paths and identifiers inside the bound. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
  *
+ * @since 0.1.0
  * @module
  */
 
@@ -11,8 +12,20 @@ import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 
+/**
+ * Schema for {@link GenericBound} values.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Schema: typeof Defs.GenericBound = Defs.GenericBound;
 
+/**
+ * A named generic parameter with an optional bound, such as the `T: Integer` in `List<T: Integer>`.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface GenericBound extends Defs.GenericBoundType {}
 
 export declare namespace GenericBound {
@@ -24,7 +37,10 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a decoded generic bound object and returns it.
  *
- * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ * @throws `Error` If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
@@ -32,6 +48,12 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => GenericBound = Overflow.make(Schema);
 
+/**
+ * Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -39,6 +61,12 @@ export const makeEffect: (
 ) => Effect.Effect<GenericBound, SchemaIssue.Issue> =
   Overflow.makeEffect(Schema);
 
+/**
+ * Checks a value like {@link make}, returning `None` instead of throwing for a schema failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
