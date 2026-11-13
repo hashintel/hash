@@ -145,7 +145,7 @@ export const declared = Effect.fnUntraced(function* (
 const installation = /^".*\/node_modules\//u;
 
 /**
- * The name the pages of `symbol` give it. An Effect module has its own name alone, as `Schema` does, and it qualifies what it declares, as in `Equal.Equal`. Any other symbol keeps its own name.
+ * The name the pages of `symbol` give it. An Effect module has its own name alone, as `Schema` does, and it qualifies what it declares, as in `Equal.Equal`, by the name it exports the declaration under. Any other symbol keeps its own name.
  *
  * The compiler names a file by its path. The part below `node_modules` names the file within its package, and the part above it belongs to the machine that built the documentation, so a file outside Effect keeps the former alone.
  */
@@ -162,10 +162,16 @@ const nameOf = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
     );
   }
 
-  return Option.match(qualifier, {
-    onNone: () => symbol.name,
-    onSome: (name) => `${name}.${symbol.name}`,
-  });
+  if (Option.isNone(qualifier) || Option.isNone(declaration)) {
+    return symbol.name;
+  }
+
+  const exported = yield* ExternalTarget.exportedName(
+    symbol,
+    declaration.value,
+  );
+
+  return `${qualifier.value}.${exported}`;
 });
 
 /** The item outside the package `symbol` names, with its documented name, its pages and its bases. A dependency's types cannot extend the package's, so its bases are outside the package too. */
