@@ -4,17 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
-import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../shared/ui/button";
 import { DataTypesContext } from "./data-types-context";
+import { queryDataTypeCatalogue } from "./data-types-context-provider/query-data-type-catalogue";
 
-import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
-} from "../../graphql/api-types.gen";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -33,10 +28,10 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   const [error, setError] = useState<Error | null>(null);
   const [refreshId, setRefreshId] = useState(0);
   const [refreshResult, setRefreshResult] = useState<{
-    id: number;
+    signal: AbortSignal;
     success: boolean;
   } | null>(null);
-  const requestedRefresh = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
   const refreshWaiters = useRef<((success: boolean) => void)[]>([]);
   const mounted = useRef(false);
 
@@ -52,7 +47,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   }, []);
 
   useEffect(() => {
-    if (refreshResult?.id === requestedRefresh.current) {
+    if (refreshResult && !refreshResult.signal.aborted) {
       for (const resolve of refreshWaiters.current.splice(0)) {
         resolve(refreshResult.success);
       }
@@ -63,10 +58,10 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     if (!mounted.current) {
       return Promise.resolve(false);
     }
-    requestedRefresh.current += 1;
+    activeRequest.current?.abort();
     setLoading(true);
     setError(null);
-    setRefreshId(requestedRefresh.current);
+    setRefreshId((previous) => previous + 1);
     return new Promise((resolve) => {
       refreshWaiters.current.push(resolve);
     });
@@ -84,58 +79,23 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     const controller = new AbortController();
-    const isCurrent = () =>
-      !controller.signal.aborted && requestedRefresh.current === refreshId;
+    activeRequest.current = controller;
 
     const load = async () => {
-      const catalogue: Record<VersionedUrl, DataTypeWithMetadata> = {};
-      const cursors = new Set<VersionedUrl>();
-      let after: VersionedUrl | undefined;
-
       try {
-        do {
-          const { data } = await client.query<
-            QueryDataTypesQuery,
-            QueryDataTypesQueryVariables
-          >({
-            query: queryDataTypesQuery,
-            variables: {
-              request: {
-                filter: { all: [] },
-                temporalAxes: fullTransactionTimeAxis,
-                limit: 1000,
-                ...(after ? { after } : {}),
-              },
-            },
-            fetchPolicy: "no-cache",
-            context: {
-              queryDeduplication: false,
-              fetchOptions: { signal: controller.signal },
-            },
-          });
-
-          if (!isCurrent()) {
-            return;
-          }
-
-          for (const dataType of data.queryDataTypes.dataTypes) {
-            catalogue[dataType.schema.$id] = dataType;
-          }
-
-          after = data.queryDataTypes.cursor;
-          if (after) {
-            if (cursors.has(after)) {
-              throw new Error(`Data type pagination repeated cursor ${after}`);
-            }
-            cursors.add(after);
-          }
-        } while (after);
+        const catalogue = await queryDataTypeCatalogue(
+          client,
+          controller.signal,
+        );
+        if (controller.signal.aborted) {
+          return;
+        }
 
         setDataTypes(catalogue);
         setLoading(false);
-        setRefreshResult({ id: refreshId, success: true });
+        setRefreshResult({ signal: controller.signal, success: true });
       } catch (cause) {
-        if (!isCurrent()) {
+        if (controller.signal.aborted) {
           return;
         }
         setError(
@@ -144,7 +104,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
             : new Error("Could not load data types", { cause }),
         );
         setLoading(false);
-        setRefreshResult({ id: refreshId, success: false });
+        setRefreshResult({ signal: controller.signal, success: false });
       }
     };
 
