@@ -60,6 +60,32 @@ const bodyRange = (
   return [0, parsed.text.trimEnd().length];
 };
 
+/** The ranges of `source` that hold the text of a template literal, in order. A line break there, and the spaces after it, are part of the type the literal writes. */
+const literalTexts = (
+  source: TypeScript.Node,
+): readonly (readonly [number, number])[] => {
+  const found: (readonly [number, number])[] = [];
+  const pending = [source];
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (current !== undefined) {
+      if (
+        TypeScript.isNoSubstitutionTemplateLiteral(current) ||
+        TypeScript.isTemplateHead(current) ||
+        TypeScript.isTemplateMiddle(current) ||
+        TypeScript.isTemplateTail(current)
+      ) {
+        found.push([current.getStart(), current.end]);
+      }
+
+      pending.push(...Array.fromIterable(current.childrenIter()).toReversed());
+    }
+  }
+
+  return found;
+};
+
 /** Prints once at the output boundary, assigning positions as each identifier is emitted. */
 export const print = Effect.fnUntraced(function* (
   nodes: readonly TypeScript.Node[],
@@ -105,11 +131,27 @@ export const print = Effect.fnUntraced(function* (
     });
   }
 
-  // The formatter indents a member inside the wrapper that gives it its grammar, and each further line of the member keeps that margin.
+  // The formatter indents a member inside the wrapper that gives it its grammar, and each further line of the member keeps that margin. The text of a template literal is the type's own, margin included.
   const line = formatted.code.lastIndexOf("\n", start - 1) + 1;
   const [margin = ""] = /^[\t ]*/u.exec(formatted.code.slice(line)) ?? [];
-  const copied = (from: number, to: number): string =>
-    formatted.code.slice(from, to).replaceAll(`\n${margin}`, "\n");
+  const literals = literalTexts(parsed);
+  const dedented = (code: string): string =>
+    code.replaceAll(`\n${margin}`, "\n");
+  const copied = (from: number, to: number): string => {
+    let written = "";
+    let reached = from;
+    for (const [first, last] of literals) {
+      if (last > from && first < to) {
+        const head = Math.max(first, from);
+        const tail = Math.min(last, to);
+        written += dedented(formatted.code.slice(reached, head));
+        written += formatted.code.slice(head, tail);
+        reached = tail;
+      }
+    }
+
+    return written + dedented(formatted.code.slice(reached, to));
+  };
 
   let text = "";
   let at = start;
