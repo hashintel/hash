@@ -188,21 +188,21 @@ describe("draft_petrinaut_experiment input schema", () => {
   });
 
   test("serialises to JSON Schema without dropping the request fields", () => {
-    const jsonSchema = draftPetrinautExperimentInputSchema[
-      "~standard"
-    ].jsonSchema.input({ target: "draft-2020-12" }) as
-      | { properties?: Record<string, unknown> }
-      | undefined;
-    expect(jsonSchema?.properties).toBeDefined();
-    expect(Object.keys(jsonSchema?.properties ?? {}).sort()).toEqual([
-      "declarations",
-      "experiment",
-      "unsupported",
-    ]);
-    const experimentSchema = jsonSchema?.properties?.experiment as {
+    const draftPetrinautExperimentInputJsonSchema =
+      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }) as { properties?: Record<string, unknown> } | undefined;
+    expect(draftPetrinautExperimentInputJsonSchema?.properties).toBeDefined();
+    expect(
+      Object.keys(
+        draftPetrinautExperimentInputJsonSchema?.properties ?? {},
+      ).sort(),
+    ).toEqual(["declarations", "experiment", "unsupported"]);
+    const experimentJsonSchema = draftPetrinautExperimentInputJsonSchema
+      ?.properties?.experiment as {
       properties?: Record<string, unknown>;
     };
-    expect(Object.keys(experimentSchema.properties ?? {}).sort()).toEqual([
+    expect(Object.keys(experimentJsonSchema.properties ?? {}).sort()).toEqual([
       "dt",
       "execution",
       "maxTime",
