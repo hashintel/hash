@@ -25,6 +25,7 @@ import {
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
+import { resolveRunningPort } from "./interfaces";
 import {
   describePortDirection,
   endpointUsage,
@@ -60,6 +61,7 @@ export type FusionProblemCode =
 export type ProblemSeverity = "error" | "warning" | "info";
 
 export type FusionProblem = {
+  kind: "fusion";
   /** The subnet the fusion belongs to; `null` for the root net. */
   subnetId: ID | null;
   fusionId: ID;
@@ -70,6 +72,7 @@ export type FusionProblem = {
 
 /** A port whose subnet uses it against the direction it declares. */
 export type PortProblem = {
+  kind: "port";
   subnetId: ID;
   placeId: ID;
   severity: "warning";
@@ -142,22 +145,33 @@ type MemberFacts = TokenFlow & {
 };
 
 const factsFor = (
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   net: CheckedNet,
   member: ArcEndpoint,
   resolved: ResolvedFusionMember,
   label: string,
 ): MemberFacts => {
-  const { place } = resolved;
-  const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
+  // An instance port is the place that runs for it: for an instance of an
+  // interface, the bound implementation's port, which the flattener merges.
+  const running =
+    resolved.kind === "port"
+      ? resolveRunningPort(sdcpn, resolved.instance, resolved)
+      : null;
+  const place = running?.place ?? resolved.place;
+  const types = running ? running.subnet.types : net.types;
   const equationIds = getPlaceDynamicsEquationIds(place);
   const outside = flowOf(endpointUsage(net.transitions, member));
   // What is on the far side of the member from this net's transitions: the
-  // component's own, for an instance port. For an anchor that is itself a
-  // port of this net it is the net above, which does with the port the
-  // opposite of what this net does.
+  // component's own, for an instance port, under the direction its interface
+  // declares when it has one. For an anchor that is itself a port of this
+  // net it is the net above, which does with the port the opposite of what
+  // this net does.
   const usage = (): TokenFlow => {
-    if (resolved.kind === "port") {
-      return ownPortFlow(resolved.subnet, place);
+    if (running) {
+      return ownPortFlow(running.subnet, {
+        id: place.id,
+        portDirection: resolved.place.portDirection ?? place.portDirection,
+      });
     }
     if (!place.isPort) {
       return { produced: false, consumed: false };
@@ -199,7 +213,7 @@ const transitionsReachingTwice = (
 
 /** The problems with one fusion of `net`. */
 export const checkFusion = (
-  sdcpn: Pick<SDCPN, "subnets">,
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
   net: CheckedNet,
   fusion: Fusion,
   subnetId: ID | null,
@@ -213,7 +227,14 @@ export const checkFusion = (
     severity: ProblemSeverity,
     message: string,
   ) =>
-    problems.push({ subnetId, fusionId: fusion.id, code, severity, message });
+    problems.push({
+      kind: "fusion",
+      subnetId,
+      fusionId: fusion.id,
+      code,
+      severity,
+      message,
+    });
 
   if (fusion.members.length < 2) {
     report(
@@ -258,7 +279,7 @@ export const checkFusion = (
       );
       continue;
     }
-    facts.push(factsFor(net, member, resolved, label));
+    facts.push(factsFor(sdcpn, net, member, resolved, label));
   }
   if (multipleAnchors) {
     report(
@@ -381,6 +402,7 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
         place.portDirection === "in" ? "produces into" : "consumes from";
       return [
         {
+          kind: "port" as const,
           subnetId: subnet.id,
           placeId: place.id,
           severity: "warning" as const,

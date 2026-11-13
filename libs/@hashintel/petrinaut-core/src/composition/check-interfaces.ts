@@ -8,7 +8,10 @@
 import { colorsStructurallyEqual } from "./check-fusions";
 import {
   describeUnboundInstance,
+  hasBody,
   isInterface,
+  mapInterfaceParameters,
+  mapInterfacePorts,
   resolveImplementation,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirection } from "./ports";
@@ -26,6 +29,7 @@ export type InterfaceProblemCode =
   | "unbound-instance";
 
 export type InterfaceProblem = {
+  kind: "interface";
   /**
    * The subnet the problem is on: the interface or the implementation, or
    * for an instance the net that holds it, `null` for the root net.
@@ -47,11 +51,22 @@ const checkImplementation = (
     code: InterfaceProblemCode,
     severity: InterfaceProblem["severity"],
     message: string,
-  ) => problems.push({ subnetId: implementation.id, code, severity, message });
+  ) =>
+    problems.push({
+      kind: "interface",
+      subnetId: implementation.id,
+      code,
+      severity,
+      message,
+    });
+
+  // The pairs the flattener wires, so the check and the run cannot differ.
+  const ports = mapInterfacePorts(iface, implementation);
+  const parameters = mapInterfaceParameters(iface, implementation);
 
   for (const port of iface.places.filter((place) => place.isPort)) {
     const match = implementation.places.find(
-      (place) => place.isPort && place.name === port.name,
+      ({ id }) => id === ports.get(port.id),
     );
     if (!match) {
       report(
@@ -88,7 +103,7 @@ const checkImplementation = (
 
   for (const parameter of iface.parameters) {
     const match = implementation.parameters.find(
-      (candidate) => candidate.variableName === parameter.variableName,
+      ({ id }) => id === parameters.get(parameter.id),
     );
     if (!match) {
       report(
@@ -113,12 +128,9 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   const subnets = sdcpn.subnets ?? [];
 
   for (const subnet of subnets) {
-    if (
-      isInterface(subnet) &&
-      (subnet.transitions.length > 0 ||
-        (subnet.componentInstances?.length ?? 0) > 0)
-    ) {
+    if (isInterface(subnet) && hasBody(subnet)) {
       problems.push({
+        kind: "interface",
         subnetId: subnet.id,
         code: "interface-has-body",
         severity: "error",
@@ -129,6 +141,7 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
       const iface = subnets.find(({ id }) => id === interfaceId);
       if (!iface || !isInterface(iface)) {
         problems.push({
+          kind: "interface",
           subnetId: subnet.id,
           code: "unknown-interface",
           severity: "error",
@@ -151,11 +164,12 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
       const binding = resolveImplementation(sdcpn, instance);
       if (binding?.kind === "unbound") {
         problems.push({
+          kind: "interface",
           subnetId: netId,
           instanceId: instance.id,
           code: "unbound-instance",
           severity: "error",
-          message: describeUnboundInstance(sdcpn, binding, instance.name),
+          message: describeUnboundInstance(binding, instance.name),
         });
       }
     }

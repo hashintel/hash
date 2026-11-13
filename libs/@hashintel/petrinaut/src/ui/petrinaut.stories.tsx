@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
+  type Subnet,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
@@ -636,7 +637,7 @@ const place = (
 });
 
 /** A stage with one input port and one output port, processing one token at a time. */
-const stageSubnet: NonNullable<SDCPN["subnets"]>[number] = {
+const stageSubnet: Subnet = {
   id: "stage",
   name: "Stage",
   places: [
@@ -739,7 +740,7 @@ export const PlaceFusion: Story = {
 };
 
 /** The stage as a signature alone: two ports, no transition. */
-const stageInterface: NonNullable<SDCPN["subnets"]>[number] = {
+const stageInterface: Subnet = {
   id: "stage_interface",
   name: "Stage",
   interface: true,
@@ -761,7 +762,7 @@ const stageImplementation = (
   id: string,
   name: string,
   steps: 1 | 2,
-): NonNullable<SDCPN["subnets"]>[number] => {
+): Subnet => {
   const stochastic = {
     lambdaType: "stochastic" as const,
     lambdaCode: generateDefaultLambdaCode("stochastic"),
@@ -774,7 +775,7 @@ const stageImplementation = (
     implements: ["stage_interface"],
     places: [
       place(`${id}_in`, "In", 80, 160, { isPort: true, portDirection: "in" }),
-      ...(steps === 2 ? [place(`${id}_half`, "Half done", 440, 160)] : []),
+      ...(steps === 2 ? [place(`${id}_half`, "HalfDone", 440, 160)] : []),
       place(`${id}_out`, "Out", steps === 2 ? 800 : 440, 160, {
         isPort: true,
         portDirection: "out",

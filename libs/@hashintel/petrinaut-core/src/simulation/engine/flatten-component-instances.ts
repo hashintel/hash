@@ -162,7 +162,7 @@ const resolveRunningSubnet = (
   }
   if (binding.kind === "unbound") {
     throw new Error(
-      `Component instance \`${instance.name}\` has no implementation to run: ${describeUnboundInstance(ctx.source, binding, instance.name)}`,
+      `Component instance \`${instance.name}\` has no implementation to run: ${describeUnboundInstance(binding, instance.name)}`,
     );
   }
   if (binding.kind === "component") {

@@ -57,6 +57,11 @@ const itemStyle = cva({
     "&:focus-within [data-row-action]": {
       display: "flex",
     },
+    /* The options popover hangs off the gear: the gear has to stay laid out
+       while it is open, or the popover loses its anchor. */
+    "&[data-options-open] [data-row-action]": {
+      display: "flex",
+    },
   },
   variants: {
     active: {
@@ -316,6 +321,9 @@ export const NetNavigationList: React.FC<{
             key={subnet.id}
             {...rowFocusProps(subnet.id)}
             className={itemStyle({ active: activeSubnetId === subnet.id })}
+            data-options-open={
+              optionsAnchor?.subnetId === subnet.id ? "" : undefined
+            }
             onClick={() => {
               if (editingId !== subnet.id) {
                 handleSelect(subnet.id);
@@ -355,55 +363,56 @@ export const NetNavigationList: React.FC<{
               <span className={nameStyle}>{subnet.name}</span>
             )}
             {mutationActionsVisible && editingId !== subnet.id && (
-              <RowActionCell
-                registerButton={registerTarget(optionsTarget)}
-                onArrowKeyDown={onStopsKeyDown(optionsTarget)}
-                onButtonFocus={() => onFocusTarget(optionsTarget)}
-              >
-                <Button
-                  aria-label="Subnet options"
-                  size="xs"
-                  variant="ghost"
-                  iconName="gear"
-                  tooltip="Interface and implementations"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOptionsAnchor({
-                      subnetId: subnet.id,
-                      element: e.currentTarget,
-                    });
-                  }}
-                />
-              </RowActionCell>
-            )}
-            {mutationActionsVisible && editingId !== subnet.id && (
-              <RowActionCell
-                registerButton={registerTarget(actionTarget)}
-                onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                onButtonFocus={() => onFocusTarget(actionTarget)}
-              >
-                <Button
-                  aria-label="Delete subnet"
-                  size="xs"
-                  variant="ghost"
-                  tone="error"
-                  iconName="trash"
-                  disabled={isReadOnly}
-                  tooltip={
-                    isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSubnet(subnet.id);
-                  }}
-                />
-              </RowActionCell>
+              <>
+                <RowActionCell
+                  registerButton={registerTarget(optionsTarget)}
+                  onArrowKeyDown={onStopsKeyDown(optionsTarget)}
+                  onButtonFocus={() => onFocusTarget(optionsTarget)}
+                >
+                  <Button
+                    aria-label="Subnet options"
+                    size="xs"
+                    variant="ghost"
+                    iconName="gear"
+                    tooltip="Interface and implementations"
+                    onClick={(event) =>
+                      setOptionsAnchor({
+                        subnetId: subnet.id,
+                        element: event.currentTarget,
+                      })
+                    }
+                  />
+                </RowActionCell>
+                <RowActionCell
+                  registerButton={registerTarget(actionTarget)}
+                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
+                  onButtonFocus={() => onFocusTarget(actionTarget)}
+                >
+                  <Button
+                    aria-label="Delete subnet"
+                    size="xs"
+                    variant="ghost"
+                    tone="error"
+                    iconName="trash"
+                    disabled={isReadOnly}
+                    tooltip={
+                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSubnet(subnet.id);
+                    }}
+                  />
+                </RowActionCell>
+              </>
             )}
           </div>
         );
       })}
       {optionsAnchor && optionsSubnet && (
         <SubnetOptionsPopover
+          // One popover per subnet: opening another row's starts afresh.
+          key={optionsSubnet.id}
           subnet={optionsSubnet}
           anchor={optionsAnchor.element}
           onClose={() => setOptionsAnchor(null)}

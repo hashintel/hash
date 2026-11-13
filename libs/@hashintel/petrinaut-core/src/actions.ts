@@ -426,12 +426,57 @@ const assertEndpointReferences = (
   }
 };
 
+/** Keeps the document's default implementations `keep` picks, and drops the record once it is empty. */
+const filterImplementations = (
+  sdcpn: SDCPN,
+  keep: (interfaceId: ID, implementationId: ID) => boolean,
+): void => {
+  const document = sdcpn;
+  const remaining = Object.fromEntries(
+    Object.entries(document.implementations ?? {}).filter(
+      ([interfaceId, implementationId]) => keep(interfaceId, implementationId),
+    ),
+  );
+  if (Object.keys(remaining).length === 0) {
+    delete document.implementations;
+  } else {
+    document.implementations = remaining;
+  }
+};
+
 /**
- * Drops every reference to a removed subnet as an interface or as an
- * implementation: `implements` lists, instances' own choices, and the
- * document's defaults.
+ * Drops the bindings that no longer hold: an instance's choice or a document
+ * default naming a subnet that is gone, or that no longer implements the
+ * interface it stands behind.
  */
-const removeImplementationReferences = (sdcpn: SDCPN, subnetId: ID): void => {
+const pruneImplementationBindings = (sdcpn: SDCPN): void => {
+  const subnets = sdcpn.subnets ?? [];
+  const holds = (interfaceId: ID, implementationId: ID): boolean => {
+    const iface = subnets.find(({ id }) => id === interfaceId);
+    const implementation = subnets.find(({ id }) => id === implementationId);
+    return (
+      iface !== undefined &&
+      isInterface(iface) &&
+      implementation !== undefined &&
+      !isInterface(implementation) &&
+      implementsInterface(implementation, interfaceId)
+    );
+  };
+  for (const net of getAllMutableNets(sdcpn)) {
+    for (const instance of net.componentInstances ?? []) {
+      if (
+        instance.implementation !== undefined &&
+        !holds(instance.subnetId, instance.implementation)
+      ) {
+        delete instance.implementation;
+      }
+    }
+  }
+  filterImplementations(sdcpn, holds);
+};
+
+/** Takes a removed subnet out of the `implements` lists that name it. */
+const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
   for (const subnet of sdcpn.subnets ?? []) {
     if (subnet.implements?.includes(subnetId)) {
       const remaining = subnet.implements.filter((id) => id !== subnetId);
@@ -440,27 +485,6 @@ const removeImplementationReferences = (sdcpn: SDCPN, subnetId: ID): void => {
       } else {
         delete subnet.implements;
       }
-    }
-  }
-  for (const net of getAllMutableNets(sdcpn)) {
-    for (const instance of net.componentInstances ?? []) {
-      if (instance.implementation === subnetId) {
-        delete instance.implementation;
-      }
-    }
-  }
-  if (sdcpn.implementations) {
-    const document = sdcpn;
-    const remaining = Object.fromEntries(
-      Object.entries(sdcpn.implementations).filter(
-        ([interfaceId, implementationId]) =>
-          interfaceId !== subnetId && implementationId !== subnetId,
-      ),
-    );
-    if (Object.keys(remaining).length === 0) {
-      delete document.implementations;
-    } else {
-      document.implementations = remaining;
     }
   }
 };
@@ -1286,22 +1310,11 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
-            Object.assign(subnet, parsed.update);
-            // An absent flag or list is the field's unset state, so clearing
-            // one deletes it rather than storing `undefined`.
-            if (
-              "interface" in parsed.update &&
-              parsed.update.interface === undefined
-            ) {
-              delete subnet.interface;
-            }
-            if (
-              "implements" in parsed.update &&
-              parsed.update.implements === undefined
-            ) {
-              delete subnet.implements;
-            }
+            assignUpdate(subnet, parsed.update);
             subnetSchema.parse(subnet);
+            // A subnet that stops being an interface, or stops implementing
+            // one, leaves the bindings that relied on it.
+            pruneImplementationBindings(sdcpn);
             break;
           }
         }
@@ -1318,54 +1331,43 @@ export function createPetrinautActions(
           if (subnet.id === subnetId) {
             subnets.splice(index, 1);
             removeComponentInstancesReferencingSubnet(sdcpn, subnetId);
-            removeImplementationReferences(sdcpn, subnetId);
+            removeFromImplementsLists(sdcpn, subnetId);
+            pruneImplementationBindings(sdcpn);
             break;
           }
         }
       });
     },
     setImplementation(input) {
-      const parsed = mutationActionInputSchemas.setImplementation.parse(input);
+      const { interfaceId, implementationId } =
+        mutationActionInputSchemas.setImplementation.parse(input);
       mutateWithExtensionGuards((sdcpn) => {
-        const document = sdcpn;
-        const iface = sdcpn.subnets?.find(
-          ({ id }) => id === parsed.interfaceId,
-        );
+        if (implementationId === null) {
+          filterImplementations(sdcpn, (id) => id !== interfaceId);
+          return;
+        }
+        const iface = sdcpn.subnets?.find(({ id }) => id === interfaceId);
         if (!iface) {
-          throw new Error(
-            `Subnet ID \`${parsed.interfaceId}\` does not exist.`,
-          );
+          throw new Error(`Subnet ID \`${interfaceId}\` does not exist.`);
         }
         if (!isInterface(iface)) {
           throw new Error(`Subnet \`${iface.name}\` is not an interface.`);
         }
-        if (parsed.subnetId === null) {
-          const remaining = Object.fromEntries(
-            Object.entries(document.implementations ?? {}).filter(
-              ([interfaceId]) => interfaceId !== parsed.interfaceId,
-            ),
-          );
-          if (Object.keys(remaining).length === 0) {
-            delete document.implementations;
-          } else {
-            document.implementations = remaining;
-          }
-          return;
-        }
         const implementation = sdcpn.subnets?.find(
-          ({ id }) => id === parsed.subnetId,
+          ({ id }) => id === implementationId,
         );
         if (!implementation) {
-          throw new Error(`Subnet ID \`${parsed.subnetId}\` does not exist.`);
+          throw new Error(`Subnet ID \`${implementationId}\` does not exist.`);
         }
         if (!implementsInterface(implementation, iface.id)) {
           throw new Error(
             `Subnet \`${implementation.name}\` does not implement \`${iface.name}\`.`,
           );
         }
+        const document = sdcpn;
         document.implementations = {
           ...document.implementations,
-          [parsed.interfaceId]: parsed.subnetId,
+          [interfaceId]: implementationId,
         };
       });
     },
@@ -1395,13 +1397,7 @@ export function createPetrinautActions(
             ) {
               removeReferencesToComponentInstance(net, instance.id);
             }
-            Object.assign(instance, parsed.update);
-            if (
-              "implementation" in parsed.update &&
-              parsed.update.implementation === undefined
-            ) {
-              delete instance.implementation;
-            }
+            assignUpdate(instance, parsed.update);
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
             break;

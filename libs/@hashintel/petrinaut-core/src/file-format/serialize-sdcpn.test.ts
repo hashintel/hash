@@ -265,6 +265,20 @@ describe("serializeSDCPN", () => {
     expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
   });
 
+  it("reads `interface: false` as a subnet that is no interface", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      subnets: sourceDocument.subnets.map((subnet) => ({
+        ...subnet,
+        interface: false,
+      })),
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.subnets?.[0]).not.toHaveProperty("interface");
+  });
+
   it("writes an interface flag, an implements list and the document's bindings in their places", () => {
     const sdcpn = parseFixture();
     const iface = sdcpn.subnets![0]!;

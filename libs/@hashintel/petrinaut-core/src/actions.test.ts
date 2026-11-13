@@ -1640,7 +1640,7 @@ describe("Petrinaut core interface actions", () => {
 
     instance.mutations.setImplementation({
       interfaceId: "stage",
-      subnetId: "fast",
+      implementationId: "fast",
     });
     expect(instance.definition.get().implementations).toEqual({
       [idOf("stage")]: idOf("fast"),
@@ -1648,7 +1648,7 @@ describe("Petrinaut core interface actions", () => {
 
     instance.mutations.setImplementation({
       interfaceId: "stage",
-      subnetId: null,
+      implementationId: null,
     });
     expect(instance.definition.get().implementations).toBeUndefined();
   });
@@ -1659,13 +1659,13 @@ describe("Petrinaut core interface actions", () => {
     expect(() =>
       instance.mutations.setImplementation({
         interfaceId: "stage",
-        subnetId: "other",
+        implementationId: "other",
       }),
     ).toThrow(/does not implement/);
     expect(() =>
       instance.mutations.setImplementation({
         interfaceId: "fast",
-        subnetId: "slow",
+        implementationId: "slow",
       }),
     ).toThrow(/not an interface/);
   });
@@ -1697,11 +1697,54 @@ describe("Petrinaut core interface actions", () => {
     ).toBeUndefined();
   });
 
+  test("a subnet that stops implementing an interface, or being one, leaves no binding behind", () => {
+    const bound = () => {
+      const instance = createInstance(withInterface());
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "fast",
+      });
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "fast" },
+      });
+      return instance;
+    };
+
+    const unticked = bound();
+    unticked.mutations.updateSubnet({
+      subnetId: "fast",
+      update: { implements: undefined },
+    });
+    expect(unticked.definition.get().implementations).toBeUndefined();
+    expect(
+      unticked.definition.get().componentInstances?.[0],
+    ).not.toHaveProperty("implementation");
+    // The instance can still be edited afterwards.
+    unticked.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { name: "Renamed" },
+    });
+    expect(unticked.definition.get().componentInstances?.[0]?.name).toBe(
+      "Renamed",
+    );
+
+    const demoted = bound();
+    demoted.mutations.updateSubnet({
+      subnetId: "stage",
+      update: { interface: undefined },
+    });
+    expect(demoted.definition.get().implementations).toBeUndefined();
+    expect(demoted.definition.get().componentInstances?.[0]).not.toHaveProperty(
+      "implementation",
+    );
+  });
+
   test("removing a subnet drops the bindings and implements entries that named it", () => {
     const instance = createInstance(withInterface());
     instance.mutations.setImplementation({
       interfaceId: "stage",
-      subnetId: "fast",
+      implementationId: "fast",
     });
     instance.mutations.updateComponentInstance({
       instanceId: "s1",

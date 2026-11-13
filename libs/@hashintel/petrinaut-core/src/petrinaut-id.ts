@@ -156,9 +156,10 @@ const canonicalizeComponentInstance = (
     id: toPetrinautId(instance.id),
     subnetId: toPetrinautId(instance.subnetId),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
-    ...(instance.implementation === undefined
-      ? {}
-      : { implementation: toPetrinautId(instance.implementation) }),
+    implementation:
+      instance.implementation === undefined
+        ? undefined
+        : toPetrinautId(instance.implementation),
   });
 
 /** Interface ids to implementation ids, both converted. */
@@ -276,11 +277,7 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
     subnets: mapOptional(net.subnets, (subnet) =>
       assignChanged(canonicalizePetrinautIds(subnet), {
         id: toPetrinautId(subnet.id),
-        ...(subnet.implements === undefined
-          ? {}
-          : {
-              implements: mapUnlessUnchanged(subnet.implements, toPetrinautId),
-            }),
+        implements: mapOptional(subnet.implements, toPetrinautId),
       }),
     ),
   }) as Net;

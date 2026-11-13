@@ -583,7 +583,7 @@ export const mutationActionInputSchemas = {
       interfaceId: idSchema.meta({
         description: "The interface subnet's ID.",
       }),
-      subnetId: idSchema.nullable().meta({
+      implementationId: idSchema.nullable().meta({
         description:
           "The implementing subnet to run for instances of the interface that choose none themselves, or null to clear the document's default.",
       }),

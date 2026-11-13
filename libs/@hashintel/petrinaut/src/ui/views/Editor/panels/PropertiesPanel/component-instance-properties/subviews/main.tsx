@@ -10,8 +10,10 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  defaultImplementationId,
   describeUnboundInstance,
   implementationsOf,
+  isInterface,
   resolveImplementation,
   validateEntityName,
 } from "@hashintel/petrinaut-core";
@@ -27,6 +29,7 @@ import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+import type { Subnet } from "@hashintel/petrinaut-core";
 
 const fieldsSectionStyle = css({
   paddingY: "3",
@@ -58,43 +61,36 @@ const hintTextStyle = css({
   color: "neutral.s85",
 });
 
-const ComponentInstanceMainContent: React.FC = () => {
-  const { instance, subnet, subnetParameters, updateComponentInstance } =
+/**
+ * Which implementation runs for an instance of an interface: the instance's
+ * own choice, or the document's default.
+ */
+const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
+  const { instance, updateComponentInstance } =
     useComponentInstancePropertiesContext();
-  const isDisabled = useIsReadOnly();
-  const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
   const { petriNetDefinition } = use(SDCPNContext);
+  const isDisabled = useIsReadOnly();
 
   const subnetName = (subnetId: string | undefined) =>
-    (petriNetDefinition.subnets ?? []).find(
-      (candidate) => candidate.id === subnetId,
-    )?.name;
+    (petriNetDefinition.subnets ?? []).find(({ id }) => id === subnetId)?.name;
   const binding = resolveImplementation(petriNetDefinition, instance);
-  const bindingDescription =
-    binding === null || binding.kind === "component"
-      ? null
-      : binding.kind === "bound"
-        ? binding.chosenBy === "instance"
-          ? `Runs ${binding.implementation.name}, chosen for this instance.`
-          : `Runs ${binding.implementation.name}, the document's default.`
-        : describeUnboundInstance(petriNetDefinition, binding, instance.name);
-  const documentDefaultName = subnetName(
-    subnet?.interface === true
-      ? petriNetDefinition.implementations?.[subnet.id]
-      : undefined,
+  const description =
+    binding?.kind === "bound"
+      ? binding.chosenBy === "instance"
+        ? `Runs ${binding.implementation.name}, chosen for this instance.`
+        : `Runs ${binding.implementation.name}, the document's default.`
+      : binding?.kind === "unbound"
+        ? describeUnboundInstance(binding, instance.name)
+        : undefined;
+  const defaultName = subnetName(
+    defaultImplementationId(petriNetDefinition, iface.id),
   );
-  const implementationItems =
-    subnet?.interface === true
-      ? implementationsOf(petriNetDefinition, subnet.id).map(
-          (implementation) => ({
-            value: implementation.id,
-            text: implementation.name,
-          }),
-        )
-      : [];
-  const chosenOutsideItems =
+  const implementations = implementationsOf(petriNetDefinition, iface.id);
+  // A loaded document may name a subnet that does not implement the
+  // interface: it stays listed under its name until the choice changes.
+  const chosenElsewhere =
     instance.implementation !== undefined &&
-    !implementationItems.some(({ value }) => value === instance.implementation)
+    !implementations.some(({ id }) => id === instance.implementation)
       ? [
           {
             value: instance.implementation,
@@ -103,6 +99,58 @@ const ComponentInstanceMainContent: React.FC = () => {
         ]
       : [];
 
+  return (
+    <Form.Field
+      label="Implementation"
+      size="sm"
+      descriptionBottom={
+        description === undefined ? undefined : (
+          <span className={hintTextStyle}>{description}</span>
+        )
+      }
+    >
+      <Tooltip
+        content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
+        disableTooltip={!isDisabled}
+      >
+        <Select
+          required
+          size="sm"
+          value={instance.implementation ?? "default"}
+          disabled={isDisabled}
+          onChange={(value) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: {
+                implementation: value === "default" ? undefined : value,
+              },
+            })
+          }
+          items={[
+            {
+              value: "default",
+              text:
+                defaultName === undefined
+                  ? "Document default (none)"
+                  : `Document default (${defaultName})`,
+            },
+            ...implementations.map(({ id, name }) => ({
+              value: id,
+              text: name,
+            })),
+            ...chosenElsewhere,
+          ]}
+        />
+      </Tooltip>
+    </Form.Field>
+  );
+};
+
+const ComponentInstanceMainContent: React.FC = () => {
+  const { instance, subnet, subnetParameters, updateComponentInstance } =
+    useComponentInstancePropertiesContext();
+  const isDisabled = useIsReadOnly();
+  const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
   const nameField = useDraftField({
     sourceId: instance.id,
     sourceValue: instance.name,
@@ -172,48 +220,8 @@ const ComponentInstanceMainContent: React.FC = () => {
           </div>
         </Form.Field>
 
-        {subnet?.interface === true && (
-          <Form.Field
-            label="Implementation"
-            size="sm"
-            descriptionBottom={
-              bindingDescription === null ? undefined : (
-                <span className={hintTextStyle}>{bindingDescription}</span>
-              )
-            }
-          >
-            <Tooltip
-              content={readOnlyTooltip ?? ""}
-              disableTooltip={!isDisabled}
-            >
-              <Select
-                aria-label="Implementation"
-                required
-                size="sm"
-                value={instance.implementation ?? "default"}
-                disabled={isDisabled}
-                onChange={(value) =>
-                  updateComponentInstance({
-                    instanceId: instance.id,
-                    update: {
-                      implementation: value === "default" ? undefined : value,
-                    },
-                  })
-                }
-                items={[
-                  {
-                    value: "default",
-                    text:
-                      documentDefaultName === undefined
-                        ? "Document default (none)"
-                        : `Document default (${documentDefaultName})`,
-                  },
-                  ...implementationItems,
-                  ...chosenOutsideItems,
-                ]}
-              />
-            </Tooltip>
-          </Form.Field>
+        {subnet && isInterface(subnet) && (
+          <ImplementationField iface={subnet} />
         )}
       </Form.Section>
 
