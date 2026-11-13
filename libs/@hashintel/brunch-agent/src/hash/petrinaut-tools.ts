@@ -497,6 +497,7 @@ export const hashPetrinautTools = {
   petrinaut_remove_fusion: mapped("removeFusion"),
   petrinaut_create_fusion_member: mapped("addFusionMember"),
   petrinaut_remove_fusion_member: mapped("removeFusionMember"),
+  petrinaut_replace_fusion_member: mapped("replaceFusionMember"),
   petrinaut_get_net: standIn({
     operation: "getLatestNetDefinition",
     description:

@@ -35,11 +35,13 @@ place. Petrinaut's version keeps it small on purpose.
   fusion without an anchor, two ports joined directly, makes a place that
   exists only inside the composition.
 - Fusions are sets: a member belongs to one fusion, and a connection that
-  joins two fusions merges them. `addFusion` and `addFusionMember` absorb a
-  fusion that already holds one of the members; a member removed from a
-  fusion of two members removes the fusion. A document from elsewhere can
-  still list a member in two fusions, which the checks report and flattening
-  refuses: the two would chain into one place.
+  joins two fusions merges them. `addFusion`, `addFusionMember` and
+  `replaceFusionMember` absorb a fusion that already holds one of the
+  members; a member removed from a fusion of two members removes the fusion.
+  `replaceFusionMember` moves a fusion from one member to another as one
+  change, which is what dragging the end of a fusion link does. A document
+  from elsewhere can still list a member in two fusions, which the checks
+  report and flattening refuses: the two would chain into one place.
 - Removing a place, an instance, a subnet, or a port's `isPort` mark takes
   it out of every fusion that named it, the way arcs on it go away.
 

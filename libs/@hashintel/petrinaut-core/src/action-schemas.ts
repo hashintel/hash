@@ -150,7 +150,7 @@ export const fusionUpdateSchema = fusionSchema
   .partial()
   .meta({
     description:
-      "Fields to assign to an existing fusion. Members change through `addFusionMember` and `removeFusionMember`.",
+      "Fields to assign to an existing fusion. Members change through `addFusionMember`, `removeFusionMember` and `replaceFusionMember`.",
   });
 
 const targetSubnetIdSchema = idSchema.nullable().optional().meta({
@@ -577,6 +577,21 @@ export const mutationActionInputSchemas = {
     .meta({
       description:
         "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
+    }),
+  replaceFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema.meta({
+        description: "The member that leaves the fusion.",
+      }),
+      replacement: fusionMemberSchema.meta({
+        description: "The place or instance port that joins in its stead.",
+      }),
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Move a fusion from one place or instance port to another, in one step. A replacement already in another fusion of the same net brings that fusion's members along, and that fusion is removed. The replacement must not be a member of this fusion already: use `removeFusionMember` to take a member out.",
     }),
   setImplementation: z
     .strictObject({
