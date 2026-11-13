@@ -34,6 +34,7 @@ import { Mail, Paperclip } from "lucide-react";
  */
 import { createContext, Fragment, use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useFullScreenHandle } from "react-full-screen";
 
 import {
   Button,
@@ -59,6 +60,7 @@ import { useEditor } from "./editor-context";
 import { MixedFileOutputs, useFileTypes } from "./file-types";
 import { firstLineIconStyle, selectedLabel } from "./menu-rows";
 import { useLocation } from "./router";
+import { a4Ratio, PdfPreview, PdfThumb, pdfUrlOf } from "./pdf-preview";
 import { RunGlyph } from "./run-glyph";
 import { FileRow as DsFileRow } from "./ds-parts/file-row";
 import { Table } from "./ds-parts/table";
@@ -140,6 +142,15 @@ export const useEntityTypesTake = (): EntityTypesTake =>
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK outputs, from the seed suppliers
  * ------------------------------------------------------------------------------------------------------------- */
+
+/** `?docviewer=sheet`: a PDF's expand opens the wide side sheet with its facts and Download (never approved). */
+const docViewerSheet =
+  new URLSearchParams(globalThis.location.search).get("docviewer") ===
+  "sheet";
+
+/** `?pdf=drawn`: certificates show the drawn 3 : 4 page instead of the real PDF (before 13 Nov). */
+const drawnPages =
+  new URLSearchParams(globalThis.location.search).get("pdf") === "drawn";
 
 /** `?outputheading=old`: Fetch file's run Outputs heading reads "Certificates · 18 PDFs" (before 13 Nov). */
 const outputHeadingOld =
@@ -290,7 +301,10 @@ export type OutputFile = Certificate | Email;
 const slugOf = (supplier: string) =>
   supplier.toLowerCase().replace(/\s+/g, "-");
 
-const certificateOf = (supplier: string, item: number): Certificate => {
+export const certificateOf = (
+  supplier: string,
+  item: number,
+): Certificate => {
   const slug = slugOf(supplier);
   const known = drawn[supplier];
   const day = ((item * 7) % 27) + 1;
@@ -685,6 +699,31 @@ export const Page = ({
   framed?: boolean;
 }) => {
   const scale = width / pageWidth;
+  if (file.kind === "certificate" && !drawnPages) {
+    return (
+      <span
+        aria-hidden
+        data-page-preview={file.kind}
+        className={cx(
+          css({
+            position: "relative",
+            display: "block",
+            flexShrink: 0,
+            overflow: "hidden",
+            backgroundColor: "neutral.bgSolid.min",
+          }),
+          framed &&
+            css({
+              borderRadius: "[4px]",
+              boxShadow: "[0 0 0 1px var(--colors-neutral-a20)]",
+            }),
+        )}
+        style={{ width, height: Math.round(width * a4Ratio) }}
+      >
+        <PdfThumb url={pdfUrlOf(file.fileName)} width={width} />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden
@@ -3219,6 +3258,10 @@ const OutputColumn = ({
 }) => {
   const file = view.kind === "files" ? view.files[view.index]! : null;
   const attrib = useAttrib();
+  const fullScreen = useFullScreenHandle();
+  /** A PDF's expand is HASH's "View in fullscreen"; ?docviewer=sheet keeps the wide sheet with its facts. */
+  const pdfFullScreen =
+    file?.kind === "certificate" && !docViewerSheet && !drawnPages;
   return (
     <>
       <div className={columnHeadStyle}>
@@ -3238,7 +3281,20 @@ const OutputColumn = ({
           {view.kind === "files" ? (
             <FileNav view={view} onChange={onReplace} variant="ghost" />
           ) : null}
-          {onExpand ? (
+          {pdfFullScreen ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="expand"
+              aria-label="View in fullscreen"
+              tooltip="View in fullscreen"
+              onClick={() => {
+                fullScreen.enter().catch(() => undefined);
+              }}
+              data-outputs-expand
+            />
+          ) : onExpand ? (
             <Button
               size="sm"
               variant="ghost"
@@ -3266,7 +3322,14 @@ const OutputColumn = ({
               </span>
             </div>
             <div className={documentStageStyle} data-document-stage>
-              <Page file={file} width={width - 48} />
+              {file.kind === "certificate" && !drawnPages ? (
+                <PdfPreview
+                  url={pdfUrlOf(file.fileName)}
+                  handle={fullScreen}
+                />
+              ) : (
+                <Page file={file} width={width - 48} />
+              )}
             </div>
             <FileFacts file={file} run={run} />
             <span className={css({ display: "flex", gap: "1.5" })}>
