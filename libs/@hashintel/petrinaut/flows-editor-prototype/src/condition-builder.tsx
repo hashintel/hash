@@ -11,7 +11,7 @@
  * - a variable shows as the value's selected item (its step's icon, step name first, middle collapsed);
  * - "@" in a text value opens the variable picker beside the field, which keeps focus (no DS mention input).
  */
-import { useEffect, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -383,8 +383,9 @@ export const fullRowStackStyle = css({
 });
 
 /**
- * The chip across the row, its value taking what's left and wrapping inside the chip rather than ending in "…".
- * The attribute and operator keep their width.
+ * The chip across the row, one line high like the DS Filter: the value takes what's left, and long text in any segment
+ * ends in "…" (the whole condition shows on hover). The attribute and operator take at most 38 % so the value keeps
+ * room.
  */
 export const fullChipStyle = css({
   "& [data-condition-row] > span:first-child, & [data-chip] > *": {
@@ -396,40 +397,39 @@ export const fullChipStyle = css({
     display: "flex",
     flex: "1",
     width: "[100%]",
-    height: "[auto]",
-    alignItems: "stretch",
+    alignItems: "center",
   },
-  // A long attribute or operator wraps at words inside its own share instead of squeezing the value to a letter column.
-  "& [role=group][data-property] > span:not([data-part])": {
-    maxWidth: "[38%]",
+  "& [role=group][data-property] > span": {
     minWidth: "[0]",
-    whiteSpace: "normal",
-    alignItems: "flex-start",
+    overflow: "hidden",
   },
-  "& [role=group][data-property] > span:not([data-part]) *": {
-    whiteSpace: "normal",
-    overflowWrap: "break-word",
-    textAlign: "left",
+  "& [role=group][data-property] > span:not([data-part])": {
+    flex: "[0 1 auto]",
+    maxWidth: "[38%]",
   },
   "& [role=group][data-property] > [data-part=input-slot]": {
     flex: "1",
-    minWidth: "[34%]",
     maxWidth: "[none]",
   },
+  "& [role=group][data-property] *": {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
   "& [data-part=input-slot] *": {
-    whiteSpace: "normal",
-    textOverflow: "clip",
-    overflowWrap: "break-word",
     textAlign: "left",
     justifyContent: "flex-start",
-    alignItems: "flex-start",
   },
   "& [data-part=input-slot] button, & [data-part=input-slot] [data-part=trigger]": {
-    height: "[auto]",
-    minHeight: "[100%]",
     width: "[100%]",
   },
 });
+
+/** The whole condition as a native hover title, read from what the row shows. */
+export const showConditionOnHover = (event: PointerEvent<HTMLElement>) => {
+  const element = event.currentTarget;
+  element.title = element.innerText.replace(/\s*\n+\s*/g, " ").trim();
+};
 
 /** The joiner as "Where" reads: plain muted lowercase text, its chevron on hover; a click opens the menu. */
 const fullJoinerStyle = css({ "&[class]": { height: "[auto]" } });
@@ -1141,6 +1141,7 @@ const ConditionRowView = ({
         ref={rowRef}
         className={rowStyle}
         data-condition-row={row.id}
+        onPointerEnter={showConditionOnHover}
         onPointerDownCapture={takeDateSlot}
         onClickCapture={takeDateSlot}
         onKeyDownCapture={takeDateSlot}

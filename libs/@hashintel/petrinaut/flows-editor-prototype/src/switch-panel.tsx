@@ -28,6 +28,7 @@ import {
   rowStackStyle,
   fullChipStyle,
   rowStyle,
+  showConditionOnHover,
   takeColumnStyle,
   takeFooterAtEdge,
 } from "./condition-builder";
@@ -677,7 +678,7 @@ const ConditionCases = ({
                       </Button>
                     )}
                   </span>
-                  <span data-chip>
+                  <span data-chip onPointerEnter={showConditionOnHover}>
                     <ConditionChip
                       row={row}
                       onChange={(value) =>
@@ -918,7 +919,7 @@ const PathConditionRows = ({
               </Button>
             )}
           </span>
-          <span data-chip>
+          <span data-chip onPointerEnter={showConditionOnHover}>
             <ConditionChip
               row={row}
               onChange={(value) =>
