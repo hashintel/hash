@@ -76,7 +76,7 @@ export interface RowProps {
   readonly deprecated?: boolean | undefined;
 }
 
-/** An export. Its children are its parts in the order of its Markdown body, each in its own element. The child whose `slot` is `header` is the type hierarchy of an export without declarations, and belongs on its heading's line. */
+/** An export. Its children are its parts in reading order, each in its own element. Its members come before its calls and the rest of its comments, where the Markdown body writes them last. The child whose `slot` is `header` is the type hierarchy of an export without declarations, and belongs on its heading's line. */
 export interface ExportProps extends FactProps, ChildrenProps {
   /** The export's anchor. */
   readonly name: string;
