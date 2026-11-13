@@ -930,6 +930,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
   },
+  adcResolution: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/adc-resolution/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/adc-resolution/" as BaseUrl,
+  },
   admittance: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/admittance/v/1",
     propertyTypeBaseUrl:
@@ -940,6 +945,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/admittance-of-vacuum/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/admittance-of-vacuum/" as BaseUrl,
+  },
+  airborneRadionuclideActivityConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/airborne-radionuclide-activity-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/airborne-radionuclide-activity-concentration/" as BaseUrl,
   },
   alfvenNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/alfven-number/v/1",
@@ -962,6 +973,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/altitude/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/altitude/" as BaseUrl,
+  },
+  ambientAirTemperature: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/ambient-air-temperature/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/ambient-air-temperature/" as BaseUrl,
   },
   amountOfSubstance: {
     propertyTypeId:
@@ -1083,6 +1100,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/arrhenius-number/" as BaseUrl,
   },
+  atmosphericPressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/atmospheric-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/atmospheric-pressure/" as BaseUrl,
+  },
   atomicAttenuationCoefficient: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/atomic-attenuation-coefficient/v/1",
@@ -1122,6 +1145,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/automatic-inference-configuration/" as BaseUrl,
   },
+  availableMemoryCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/available-memory-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/available-memory-capacity/" as BaseUrl,
+  },
+  availableStorageCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/available-storage-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/available-storage-capacity/" as BaseUrl,
+  },
   averageEnergyLossPerElementaryChargeProduced: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/average-energy-loss-per-elementary-charge-produced/v/1",
@@ -1145,6 +1180,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/average-transinformation-rate/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/average-transinformation-rate/" as BaseUrl,
+  },
+  aWeightedEquivalentContinuousSoundPressureLevel: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/a-weighted-equivalent-continuous-sound-pressure-level/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/a-weighted-equivalent-continuous-sound-pressure-level/" as BaseUrl,
   },
   baggageClaim: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/baggage-claim/v/1",
@@ -1177,6 +1218,30 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/batch-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/batch-number/" as BaseUrl,
+  },
+  batteryChargeCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/battery-charge-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/battery-charge-capacity/" as BaseUrl,
+  },
+  batteryCycleCount: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/battery-cycle-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/battery-cycle-count/" as BaseUrl,
+  },
+  batteryEnergyCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/battery-energy-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/battery-energy-capacity/" as BaseUrl,
+  },
+  batteryStateOfCharge: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/battery-state-of-charge/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/battery-state-of-charge/" as BaseUrl,
   },
   bejanNumberEntropyGeneration: {
     propertyTypeId:
@@ -1236,6 +1301,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/biot-number-mass-transfer/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/biot-number-mass-transfer/" as BaseUrl,
+  },
+  bitErrorFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/bit-error-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/bit-error-fraction/" as BaseUrl,
   },
   blakeNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/blake-number/v/1",
@@ -1316,6 +1387,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/burgers-vector/" as BaseUrl,
   },
+  cableLength: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/cable-length/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/cable-length/" as BaseUrl,
+  },
+  cableResistance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/cable-resistance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/cable-resistance/" as BaseUrl,
+  },
   callIntensity: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/call-intensity/v/1",
     propertyTypeBaseUrl:
@@ -1337,6 +1419,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/capillary-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/capillary-number/" as BaseUrl,
+  },
+  carbonDioxideMoleFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-mole-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/carbon-dioxide-mole-fraction/" as BaseUrl,
   },
   carnotNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/carnot-number/v/1",
@@ -1423,6 +1511,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/charge-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/charge-number/" as BaseUrl,
+  },
+  chargingCurrent: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/charging-current/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/charging-current/" as BaseUrl,
   },
   chartConfiguration: {
     propertyTypeId:
@@ -1623,6 +1717,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/coherence-length/" as BaseUrl,
   },
+  coldTyreGaugePressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/cold-tyre-gauge-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/cold-tyre-gauge-pressure/" as BaseUrl,
+  },
   colourTemperature: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/colour-temperature/v/1",
@@ -1775,6 +1875,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/custom-metadata/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/custom-metadata/" as BaseUrl,
+  },
+  cWeightedPeakSoundPressureLevel: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/c-weighted-peak-sound-pressure-level/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/c-weighted-peak-sound-pressure-level/" as BaseUrl,
   },
   cyclotronAngularFrequency: {
     propertyTypeId:
@@ -1980,6 +2086,24 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/displacement-vector/" as BaseUrl,
   },
+  displayLuminance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/display-luminance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/display-luminance/" as BaseUrl,
+  },
+  dissolvedOxygenAmountConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/dissolved-oxygen-amount-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/dissolved-oxygen-amount-concentration/" as BaseUrl,
+  },
+  dissolvedOxygenMassConcentration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/dissolved-oxygen-mass-concentration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/dissolved-oxygen-mass-concentration/" as BaseUrl,
+  },
   distance: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/distance/v/1",
     propertyTypeBaseUrl:
@@ -2086,6 +2210,18 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/elasticity-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/elasticity-number/" as BaseUrl,
+  },
+  electricalEnergyConsumed: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/electrical-energy-consumed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/electrical-energy-consumed/" as BaseUrl,
+  },
+  electricalEnergyExported: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/electrical-energy-exported/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/electrical-energy-exported/" as BaseUrl,
   },
   electricalQualityFactor: {
     propertyTypeId:
@@ -2314,6 +2450,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/equilibrium-position-vector/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/equilibrium-position-vector/" as BaseUrl,
+  },
+  equipmentOperatingTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/equipment-operating-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/equipment-operating-time/" as BaseUrl,
   },
   equivalentBinaryDigitRate: {
     propertyTypeId:
@@ -2563,6 +2705,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flight-type/" as BaseUrl,
   },
+  floorArea: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/floor-area/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/floor-area/" as BaseUrl,
+  },
   flowDefinitionId: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/flow-definition-id/v/1",
@@ -2573,6 +2720,23 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/flow-type/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flow-type/" as BaseUrl,
+  },
+  fluidDensity: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/fluid-density/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fluid-density/" as BaseUrl,
+  },
+  fluidDynamicViscosity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/fluid-dynamic-viscosity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fluid-dynamic-viscosity/" as BaseUrl,
+  },
+  fluidKinematicViscosity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/fluid-kinematic-viscosity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fluid-kinematic-viscosity/" as BaseUrl,
   },
   force: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/force/v/1",
@@ -2614,6 +2778,29 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/froude-number-momentum-transfer/" as BaseUrl,
   },
+  fuelConsumption: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/fuel-consumption/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fuel-consumption/" as BaseUrl,
+  },
+  fuelEconomy: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/fuel-economy/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fuel-economy/" as BaseUrl,
+  },
+  fuelMassFlowRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/fuel-mass-flow-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fuel-mass-flow-rate/" as BaseUrl,
+  },
+  fuelVolumeConsumed: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/fuel-volume-consumed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/fuel-volume-consumed/" as BaseUrl,
+  },
   fugacity: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/fugacity/v/1",
     propertyTypeBaseUrl:
@@ -2651,6 +2838,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/gap-energy/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/gap-energy/" as BaseUrl,
+  },
+  gasVolumeFlowRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/gas-volume-flow-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/gas-volume-flow-rate/" as BaseUrl,
   },
   gate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/gate/v/1",
@@ -2740,6 +2933,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/gross-weight/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/gross-weight/" as BaseUrl,
+  },
+  groundClearance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/ground-clearance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/ground-clearance/" as BaseUrl,
   },
   groundSpeed: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/ground-speed/v/1",
@@ -2985,6 +3184,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/incoterms/" as BaseUrl,
   },
+  indicatedAirspeed: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/indicated-airspeed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/indicated-airspeed/" as BaseUrl,
+  },
   inducedVoltage: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/induced-voltage/v/1",
@@ -3025,6 +3230,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/information-redundancy/" as BaseUrl,
   },
+  inletGaugePressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/inlet-gauge-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/inlet-gauge-pressure/" as BaseUrl,
+  },
+  innerDiameter: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/inner-diameter/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/inner-diameter/" as BaseUrl,
+  },
   inputDefinition: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/input-definition/v/1",
@@ -3052,6 +3268,24 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/input-unit-count/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/input-unit-count/" as BaseUrl,
+  },
+  installedMemoryCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/installed-memory-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/installed-memory-capacity/" as BaseUrl,
+  },
+  instantaneousElectricalPower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/instantaneous-electrical-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/instantaneous-electrical-power/" as BaseUrl,
+  },
+  insulationResistance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/insulation-resistance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/insulation-resistance/" as BaseUrl,
   },
   intendedUse: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/intended-use/v/1",
@@ -3230,6 +3464,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/lagrange-number/" as BaseUrl,
   },
+  lampLuminousFlux: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/lamp-luminous-flux/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/lamp-luminous-flux/" as BaseUrl,
+  },
+  landArea: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/land-area/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/land-area/" as BaseUrl,
+  },
   landauGinzburgNumber: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/landau-ginzburg-number/v/1",
@@ -3300,6 +3545,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/laval-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/laval-number/" as BaseUrl,
+  },
+  leakageCurrent: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/leakage-current/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/leakage-current/" as BaseUrl,
   },
   leakageFactor: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/leakage-factor/v/1",
@@ -3406,6 +3657,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/linked-magnetic-flux/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/linked-magnetic-flux/" as BaseUrl,
+  },
+  liquidVolumeFlowRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/liquid-volume-flow-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/liquid-volume-flow-rate/" as BaseUrl,
   },
   location: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/location/v/1",
@@ -3567,6 +3824,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/lundquist-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/lundquist-number/" as BaseUrl,
+  },
+  machineCycleDuration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/machine-cycle-duration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/machine-cycle-duration/" as BaseUrl,
   },
   machineIdentifier: {
     propertyTypeId:
@@ -3852,6 +4115,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/material-number/" as BaseUrl,
   },
+  materialSpecificActivity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/material-specific-activity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/material-specific-activity/" as BaseUrl,
+  },
   materialType: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/material-type/v/1",
     propertyTypeBaseUrl:
@@ -3880,6 +4149,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/maximum-luminous-efficacy/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/maximum-luminous-efficacy/" as BaseUrl,
+  },
+  maximumPayloadMass: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/maximum-payload-mass/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/maximum-payload-mass/" as BaseUrl,
   },
   maximumThermalEfficiency: {
     propertyTypeId:
@@ -4127,6 +4402,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/morton-number/" as BaseUrl,
   },
+  motorEfficiency: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/motor-efficiency/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/motor-efficiency/" as BaseUrl,
+  },
   movementCategory: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/movement-category/v/1",
@@ -4204,6 +4485,24 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/net-weight/" as BaseUrl,
   },
+  networkDownloadRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/network-download-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/network-download-rate/" as BaseUrl,
+  },
+  networkRoundTripTime: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/network-round-trip-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/network-round-trip-time/" as BaseUrl,
+  },
+  networkUploadRate: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/network-upload-rate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/network-upload-rate/" as BaseUrl,
+  },
   neutronNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/neutron-number/v/1",
     propertyTypeBaseUrl:
@@ -4220,6 +4519,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/neutron-yield-per-fission/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/neutron-yield-per-fission/" as BaseUrl,
+  },
+  nominalSupplyVoltage: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/nominal-supply-voltage/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/nominal-supply-voltage/" as BaseUrl,
   },
   nonActivePower: {
     propertyTypeId:
@@ -4387,6 +4692,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/outcome-measure/" as BaseUrl,
   },
+  outerDiameter: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/outer-diameter/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/outer-diameter/" as BaseUrl,
+  },
+  outletGaugePressure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/outlet-gauge-pressure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/outlet-gauge-pressure/" as BaseUrl,
+  },
   outputDefinition: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/output-definition/v/1",
@@ -4421,6 +4737,17 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/output-unit-count/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/output-unit-count/" as BaseUrl,
+  },
+  packetCount: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/packet-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/packet-count/" as BaseUrl,
+  },
+  packetLossFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/packet-loss-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/packet-loss-fraction/" as BaseUrl,
   },
   packingFraction: {
     propertyTypeId:
@@ -4515,6 +4842,17 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/pause-on-failure/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/pause-on-failure/" as BaseUrl,
+  },
+  payloadMass: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/payload-mass/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/payload-mass/" as BaseUrl,
+  },
+  peakSolarPower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/peak-solar-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/peak-solar-power/" as BaseUrl,
   },
   pecletNumberHeatTransfer: {
     propertyTypeId:
@@ -4640,6 +4978,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/photon-radiance/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/photon-radiance/" as BaseUrl,
+  },
+  photovoltaicConversionEfficiency: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/photovoltaic-conversion-efficiency/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/photovoltaic-conversion-efficiency/" as BaseUrl,
   },
   pickingDate: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/picking-date/v/1",
@@ -4791,6 +5135,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/pressure-coefficient/" as BaseUrl,
   },
+  pressureDrop: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/pressure-drop/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pressure-drop/" as BaseUrl,
+  },
   priceControlIndicator: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/price-control-indicator/v/1",
@@ -4813,6 +5162,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/procurement-type/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/procurement-type/" as BaseUrl,
+  },
+  productDepth: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/product-depth/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/product-depth/" as BaseUrl,
   },
   productionOrderNumber: {
     propertyTypeId:
@@ -4853,6 +5207,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/publication-year/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/publication-year/" as BaseUrl,
+  },
+  pumpHydraulicPower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pump-hydraulic-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pump-hydraulic-power/" as BaseUrl,
   },
   purchaseOrderItemNumber: {
     propertyTypeId:
@@ -4998,6 +5358,29 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/radius-of-curvature/" as BaseUrl,
   },
+  rainfallDepth: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/rainfall-depth/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/rainfall-depth/" as BaseUrl,
+  },
+  ratedApparentPower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/rated-apparent-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/rated-apparent-power/" as BaseUrl,
+  },
+  ratedInputPower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/rated-input-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/rated-input-power/" as BaseUrl,
+  },
+  ratedReactivePower: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/rated-reactive-power/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/rated-reactive-power/" as BaseUrl,
+  },
   ratioOfSpecificHeatCapacities: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/ratio-of-specific-heat-capacities/v/1",
@@ -5089,6 +5472,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/real-part-wavenumber/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/real-part-wavenumber/" as BaseUrl,
+  },
+  receivedSignalPowerLevel: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/received-signal-power-level/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/received-signal-power-level/" as BaseUrl,
   },
   recombinationCoefficient: {
     propertyTypeId:
@@ -5241,10 +5630,21 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/reluctance/" as BaseUrl,
   },
+  remainingLiquidVolume: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/remaining-liquid-volume/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/remaining-liquid-volume/" as BaseUrl,
+  },
   reorderPoint: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/reorder-point/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/reorder-point/" as BaseUrl,
+  },
+  requestCount: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/request-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/request-count/" as BaseUrl,
   },
   requestedDeliveryDate: {
     propertyTypeId:
@@ -5427,6 +5827,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/sales-organization/" as BaseUrl,
   },
+  samplingFrequency: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/sampling-frequency/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/sampling-frequency/" as BaseUrl,
+  },
   scheduleCatchupWindow: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/schedule-catchup-window/v/1",
@@ -5550,6 +5956,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/seebeck-coefficient/" as BaseUrl,
   },
+  serviceAvailability: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/service-availability/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/service-availability/" as BaseUrl,
+  },
   serviceName: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/service-name/v/1",
     propertyTypeBaseUrl:
@@ -5560,6 +5972,17 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/service-unit-cost/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/service-unit-cost/" as BaseUrl,
+  },
+  shaftAngularVelocity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/shaft-angular-velocity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/shaft-angular-velocity/" as BaseUrl,
+  },
+  shaftTorque: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/shaft-torque/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/shaft-torque/" as BaseUrl,
   },
   shearModulus: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/shear-modulus/v/1",
@@ -5620,6 +6043,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/site-code/" as BaseUrl,
   },
+  siteElevation: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/site-elevation/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/site-elevation/" as BaseUrl,
+  },
   siteType: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/site-type/v/1",
     propertyTypeBaseUrl:
@@ -5642,6 +6070,29 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/slowing-down-length/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/slowing-down-length/" as BaseUrl,
+  },
+  snowDepth: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/snow-depth/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/snow-depth/" as BaseUrl,
+  },
+  soilTemperature: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/soil-temperature/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/soil-temperature/" as BaseUrl,
+  },
+  soilWaterVolumeFraction: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/soil-water-volume-fraction/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/soil-water-volume-fraction/" as BaseUrl,
+  },
+  solarIrradiance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/solar-irradiance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/solar-irradiance/" as BaseUrl,
   },
   solidAngle: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/solid-angle/v/1",
@@ -6192,6 +6643,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/superconductor-energy-gap/" as BaseUrl,
   },
+  supplyFrequency: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/supply-frequency/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/supply-frequency/" as BaseUrl,
+  },
   surfaceActivityDensity: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/surface-activity-density/v/1",
@@ -6216,6 +6673,18 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/surface-mass-density/" as BaseUrl,
   },
+  surfaceRadioactiveContamination: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/surface-radioactive-contamination/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/surface-radioactive-contamination/" as BaseUrl,
+  },
+  surfaceTemperature: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/surface-temperature/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/surface-temperature/" as BaseUrl,
+  },
   surfaceTension: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/surface-tension/v/1",
@@ -6227,10 +6696,26 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/susceptance/" as BaseUrl,
   },
+  tankCapacity: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/tank-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/tank-capacity/" as BaseUrl,
+  },
+  tareMass: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/tare-mass/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/tare-mass/" as BaseUrl,
+  },
   taylorNumber: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/taylor-number/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/taylor-number/" as BaseUrl,
+  },
+  tensileStrength: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/tensile-strength/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/tensile-strength/" as BaseUrl,
   },
   terminal: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/terminal/v/1",
@@ -6296,6 +6781,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/thermal-resistance/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/thermal-resistance/" as BaseUrl,
+  },
+  thermalTransmittance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/thermal-transmittance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/thermal-transmittance/" as BaseUrl,
   },
   thermalUtilizationFactor: {
     propertyTypeId:
@@ -6490,11 +6981,29 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/transmittance-optical-density/" as BaseUrl,
   },
+  transmittedSignalPowerLevel: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/transmitted-signal-power-level/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/transmitted-signal-power-level/" as BaseUrl,
+  },
   transportNumberOfTheIon: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/transport-number-of-the-ion/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/transport-number-of-the-ion/" as BaseUrl,
+  },
+  travelDistance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/travel-distance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/travel-distance/" as BaseUrl,
+  },
+  travelDuration: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/travel-duration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/travel-duration/" as BaseUrl,
   },
   trialPhase: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/trial-phase/v/1",
@@ -6530,6 +7039,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/tristimulus-values-for-the-cie-1964-standard-observer/" as BaseUrl,
   },
+  trueAirspeed: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/true-airspeed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/true-airspeed/" as BaseUrl,
+  },
   unifiedAtomicMassConstant: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/unified-atomic-mass-constant/v/1",
@@ -6553,6 +7067,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/upper-critical-magnetic-flux-density/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/upper-critical-magnetic-flux-density/" as BaseUrl,
+  },
+  usableTankCapacity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/usable-tank-capacity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/usable-tank-capacity/" as BaseUrl,
   },
   userRegistrationByInvitationIsEnabled: {
     propertyTypeId:
@@ -6605,6 +7125,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/vault-path/" as BaseUrl,
   },
+  vehicleGroundSpeed: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/vehicle-ground-speed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/vehicle-ground-speed/" as BaseUrl,
+  },
+  vehicleRange: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/vehicle-range/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/vehicle-range/" as BaseUrl,
+  },
   velocity: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/velocity/v/1",
     propertyTypeBaseUrl:
@@ -6653,6 +7184,28 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/waiting-probability/" as BaseUrl,
   },
+  wallThickness: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/wall-thickness/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/wall-thickness/" as BaseUrl,
+  },
+  waterElectricalConductivity: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/water-electrical-conductivity/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/water-electrical-conductivity/" as BaseUrl,
+  },
+  waterLevel: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/water-level/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/water-level/" as BaseUrl,
+  },
+  waterTemperature: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/water-temperature/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/water-temperature/" as BaseUrl,
+  },
   wavelength: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/wavelength/v/1",
     propertyTypeBaseUrl:
@@ -6689,6 +7242,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/weissenberg-number/" as BaseUrl,
   },
+  wheelbase: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/wheelbase/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/wheelbase/" as BaseUrl,
+  },
   width: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/width/v/1",
     propertyTypeBaseUrl:
@@ -6704,6 +7262,23 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/willing-to-pay/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/willing-to-pay/" as BaseUrl,
+  },
+  windGustSpeed: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/wind-gust-speed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/wind-gust-speed/" as BaseUrl,
+  },
+  windingInductance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/winding-inductance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/winding-inductance/" as BaseUrl,
+  },
+  windSpeed: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/wind-speed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/wind-speed/" as BaseUrl,
   },
   withdrawnQuantity: {
     propertyTypeId:
@@ -6726,6 +7301,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/work-function/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/work-function/" as BaseUrl,
+  },
+  workplaneIlluminance: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/workplane-illuminance/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/workplane-illuminance/" as BaseUrl,
   },
   xComponentAcceleration: {
     propertyTypeId:
@@ -7205,6 +7786,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/y-component-wavenumber/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/y-component-wavenumber/" as BaseUrl,
+  },
+  yieldStrength: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/yield-strength/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/yield-strength/" as BaseUrl,
   },
   youngModulus: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/young-modulus/v/1",
