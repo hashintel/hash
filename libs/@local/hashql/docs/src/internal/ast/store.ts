@@ -1,11 +1,12 @@
 import { Array, Effect, HashMap, MutableHashMap, Option } from "effect";
 
+import * as Names from "./names.js";
+
 import type * as AST from "../../AST/index.js";
-import type * as QuickInfo from "../../QuickInfo.js";
-import type { DocLinkTag } from "@microsoft/tsdoc";
 import type { Data } from "effect";
-import type { Node, SourceFile } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
+
+export type { Name } from "./names.js";
 
 // oxlint-disable typescript/ban-types -- effect no-content marker
 // eslint-disable typescript/no-empty-object-type -- effect no-content marker
@@ -39,15 +40,8 @@ type ReserveSymbolsFn = <T extends AST.Target.Target, E, R>(
   entries: readonly Entry<T, E, R>[],
 ) => Effect.Effect<readonly AST.Interned.Interned<T>[], E, R>;
 
-/** What a name the AST's own nodes do not hold resolves to: a `{@link}` in a comment, or an identifier in an example's code. */
-export interface Name {
-  readonly target: AST.Target.InternedSymbol;
-  /** What an editor shows on hover over the name, for a name in an example's code. */
-  readonly quickInfo: Option.Option<QuickInfo.QuickInfo>;
-}
-
 /** Typed identities retain the relationship between a slot and its node. */
-export interface Store {
+export interface Store extends Names.Names {
   readonly entrypoints: HashMap.HashMap<string, AST.Declaration.Interned>;
   readonly get: <T extends AST.Node.Node>(id: AST.Interned.Interned<T>) => T;
   /** The node `symbol` names. */
@@ -104,22 +98,6 @@ export interface Store {
   ) => boolean;
 
   readonly entrypoint: (name: string, id: AST.Declaration.Interned) => void;
-
-  /** Records what a `{@link}` in a comment or a name in an example's code resolves to. */
-  readonly name: (node: Node | DocLinkTag, name: Name) => void;
-  /** What a `{@link}` in a comment or a name in an example's code resolves to, or none for one that resolves to nothing. */
-  readonly nameOf: (node: Node | DocLinkTag) => Option.Option<Name>;
-
-  /** Records the source file an example's code was compiled as. */
-  readonly program: (
-    example: AST.Documentation.Example.Example,
-    file: SourceFile,
-  ) => void;
-
-  /** The source file an example's code was compiled as, or none for an example whose language the compiler does not read. */
-  readonly programOf: (
-    example: AST.Documentation.Example.Example,
-  ) => Option.Option<SourceFile>;
 
   readonly nodes: () => IterableIterator<AST.Node.Node>;
   readonly finish: () => Store;
@@ -433,8 +411,6 @@ export const make = (): Store => {
     byId: new Map(),
     bySymbol: MutableHashMap.empty(),
   };
-  const names = new WeakMap<Node | DocLinkTag, Name>();
-  const programs = new WeakMap<AST.Documentation.Example.Example, SourceFile>();
   const pending: Counter = { count: 0 };
 
   const get = getImpl(slots);
@@ -465,14 +441,7 @@ export const make = (): Store => {
     entrypoint: (name, id) => {
       entrypoints = HashMap.set(entrypoints, name, id);
     },
-    name: (node, name) => {
-      names.set(node, name);
-    },
-    nameOf: (node) => Option.fromUndefinedOr(names.get(node)),
-    program: (example, file) => {
-      programs.set(example, file);
-    },
-    programOf: (example) => Option.fromUndefinedOr(programs.get(example)),
+    ...Names.make(),
     *nodes() {
       for (const slot of slots) {
         if (slot._tag === "Complete") {
