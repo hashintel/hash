@@ -41,7 +41,7 @@ Expected fixtures derive from the reviewed scenario rows, fixed UUID vectors, sc
 | Stage 2: Hash and diff | Accepted: `c2a36e6342` | Frozen combined suite 360/360 passed, zero skipped; focused gates and actual Capture seam passed; Rust checks passed; Astra approved and independently passed 44 focused tests |
 | Stage 3: Plan writes | Accepted: `bcec9d9629` | Frozen suite 453/453 passed, zero skipped; exact bodies and fresh-scratch seams passed; Rust checks passed; Astra approved and independently passed 30 stage/seam tests and 63 graph tests |
 | Stage 4: Send and commit | Accepted: `922945bc87` | Frozen suite 531/531 passed, zero skipped; S1–S9, real HTTP, takeover, bounded rejection output and Rust checks passed; Astra approved and independently passed 79 sender/scenario/planner and 27 Graph tests |
-| Final integration | Accepted, commit follows | Frozen combined suite 572/572 passed, zero skipped; CLI/workflow behavioral gates and Rust checks passed; legacy sources unchanged; Astra approved with independent 35/35 workflow/service and 6/6 CLI reruns |
+| Final integration | Accepted: `6e1052be9a` | Frozen combined suite 572/572 passed, zero skipped; CLI/workflow behavioral gates and Rust checks passed; legacy sources unchanged; Astra approved with independent 35/35 workflow/service and 6/6 CLI reruns |
 
 ## Active assignment
 
@@ -150,7 +150,7 @@ Foundation assignment, base `da117f9d4e`:
 - Independent reviewer `foundation_review` (Astra): after build/test evidence, review the actual diff against the baseline, challenge missing behavioral/resource/seam coverage, verify fixes, and report blocking findings separately. No edits or commits.
 - Acceptance: marker winning/reuse including equivalent tables; `start` input stability; current-state authority and bounded CAS; separate-process local create/update races and real MinIO conditional transitions; valid/invalid/unsigned/nested decimal export before publication; bounded RowFile and valid empty schemas; independently executable expected fixtures; nextest, doc tests, all-feature/all-target clippy, rustdoc, formatting and diff checks. No skipped required test satisfies this gate.
 
-The shared foundation, stages 1–4 and final integration are accepted. All required implementation, behavioral/seam checks and independent reviews are complete; the final accepted local commit is the remaining checkpoint action.
+The shared foundation, stages 1–4 and final integration are accepted and committed. All required implementation, behavioral/seam checks, independent reviews and milestone checkpoints are complete. The final implementation commit is `6e1052be9a53e4811b2e9619b03ae9fcae233db7`; the following documentation-only checkpoint closes this record. Nothing was pushed, published or merged.
 
 ### Foundation acceptance evidence
 
