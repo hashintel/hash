@@ -1,12 +1,72 @@
 //! Graph delivery contracts and operation ordering.
 
+mod plan;
+mod property;
+
 use core::future::Future;
 
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::{
+    knowledge::{
+        entity::{id::EntityId, provenance::ProvidedEntityEditionProvenance},
+        property::PropertyObjectWithMetadata,
+    },
+    ontology::VersionedUrl,
+    principal::actor::{ActorEntityUuid, ActorType},
+    provenance::{OriginProvenance, OriginType, SourceProvenance, SourceType},
+};
 
+pub use self::{
+    plan::{PlannedUpsert, Planner, UnencodableRequest},
+    property::{
+        ConversionFailure, FailureReason, ResolvedProperties, SinkColumns, SinkRow,
+        UnsupportedValue,
+    },
+};
 use crate::InvalidText;
+
+/// Creates or updates an entity whose identity was persisted by stage 2.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EntityUpsert {
+    pub entity_id: EntityId,
+    pub entity_type: VersionedUrl,
+    pub properties: PropertyObjectWithMetadata,
+    pub provenance: ProvidedEntityEditionProvenance,
+}
+
+/// Creates or updates a directed link with its complete current property object.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinkUpsert {
+    pub link_id: EntityId,
+    pub link_type: VersionedUrl,
+    pub left_entity_id: EntityId,
+    pub right_entity_id: EntityId,
+    pub properties: PropertyObjectWithMetadata,
+    pub provenance: ProvidedEntityEditionProvenance,
+}
+
+/// Archives an entity or link written by the integration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Archive {
+    pub entity_id: EntityId,
+    pub provenance: ProvidedEntityEditionProvenance,
+}
+
+/// Describes an integration edition as a machine writing through the API.
+///
+/// The source type is always [`SourceType::Integration`].
+#[must_use]
+pub fn integration_provenance(source: SourceProvenance) -> ProvidedEntityEditionProvenance {
+    ProvidedEntityEditionProvenance {
+        sources: vec![SourceProvenance {
+            ty: SourceType::Integration,
+            ..source
+        }],
+        actor_type: ActorType::Machine,
+        origin: OriginProvenance::from_empty_type(OriginType::Api),
+    }
+}
 
 /// The order in which planned operations are delivered.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

@@ -316,7 +316,9 @@
       "batches": 2,
       "counts": {
         "upsert_entity": 4,
-        "upsert_link": 2
+        "upsert_link": 2,
+        "archive_link": 0,
+        "archive_entity": 0
       }
     },
     "send": {
@@ -393,7 +395,12 @@
         "rows": []
       },
       "batches": 0,
-      "counts": {}
+      "counts": {
+        "upsert_entity": 0,
+        "upsert_link": 0,
+        "archive_link": 0,
+        "archive_entity": 0
+      }
     },
     "send": {
       "rejected": null,

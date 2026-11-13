@@ -85,4 +85,10 @@ impl Rows {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &[Value]> {
         self.rows.iter().map(|row| &**row)
     }
+
+    /// Returns the values of the row at `index`, in the order of [`columns`](Self::columns).
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<&[Value]> {
+        self.rows.get(index).map(|row| &**row)
+    }
 }

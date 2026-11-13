@@ -25,6 +25,12 @@ run checkpoints, applies global identity/coverage/archive guards, and publishes 
 after the guards pass. Prior loading, row classification, and file publication each have one module;
 private forwarding helpers from the design sketches are folded into those operations.
 
+Stage 3 reads the persisted IDs and typed changes, resolves properties, and stores canonical request
+bodies with capture-time provenance. Every upsert patch replaces the complete property object.
+Sequential bounded ranges replace the private cursor sketch; one writer assigns batches across
+target boundaries, and bounded blocking buffers publish writes and property issues. Group traversal,
+checkpoint validation, target lookup, and file writing retain distinct responsibilities.
+
 Expected checkpoint data under `tests/fixtures` is grounded independently in the agreed scenarios,
 not captured from production output. Tests can construct every seam, remove scratch, and resume
 from the published files. Parquet byte identity is deliberately not required. Exact request JSON,

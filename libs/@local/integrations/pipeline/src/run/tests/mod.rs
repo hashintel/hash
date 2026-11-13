@@ -5,6 +5,7 @@ mod diff;
 mod error;
 pub(crate) mod fixtures;
 mod marker;
+mod plan;
 mod start;
 mod table;
 

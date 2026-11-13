@@ -37,12 +37,29 @@ Expected fixtures derive from the reviewed scenario rows, fixed UUID vectors, sc
 | Spec/baseline checkpoint | Accepted: `da117f9d4e` | Clean initial tree; agreed spec SHA recorded; ownership and placement settled; documentation consistency and staged `git diff --check` passed |
 | Shared foundation | Accepted: `295615fa24` | 135/135 nextest tests passed (zero skipped); clippy/rustdoc/doc tests/format/diff checks passed; coordinator inspected logs and frozen diff; Astra approved with no blocking findings |
 | Stage 1: Capture | Accepted: `3ce2b4e220` | 267/267 combined nextest tests passed, zero skipped; clippy/rustdoc/doc tests/format passed; coordinator fixture seam verified; Astra approved with no blocking findings |
-| Stage 2: Hash and diff | Accepted, base `3ce2b4e220` | Frozen combined suite 360/360 passed, zero skipped; focused gates and actual Capture seam passed; Rust checks passed; Astra approved and independently passed 44 focused tests |
-| Stage 3: Plan writes | Pending | Exact request JSON/order/batches/property removal; actual stage-2 output and fresh-scratch fixture resume |
+| Stage 2: Hash and diff | Accepted: `c2a36e6342` | Frozen combined suite 360/360 passed, zero skipped; focused gates and actual Capture seam passed; Rust checks passed; Astra approved and independently passed 44 focused tests |
+| Stage 3: Plan writes | Accepted, base `c2a36e6342` | Frozen suite 453/453 passed, zero skipped; exact bodies and fresh-scratch seams passed; Rust checks passed; Astra approved and independently passed 30 stage/seam tests and 63 graph tests |
 | Stage 4: Send and commit | Pending | Delivery/fallback/rejection/current authority/takeover/replay; S1–S9 and required HTTP Graph cases |
 | Final integration | Pending | Combined verification, same pipeline from both entry points, unchanged existing sources, deferred-findings reconciliation; commit resulting fixes |
 
 ## Active assignment
+
+Stage 3 assignment, base `c2a36e6342ca9d55854b5f9ec7ced932f62af0f3`:
+
+- Builder `plan_builder`: own `src/stage/plan/`, required `src/graph/` planning/property adaptations, and focused planning tests in the new crate. Read the full stage-3 spec, shared contracts, scenarios, review findings, workflow, Rust design guidelines, applicable AGENTS and Rust skills. Preserve stage/step APIs and schemas; simplify private helpers. Read-only reference planner/property code is available at `c47a17eed3`; do not edit legacy crates, implement sending, or commit.
+- Coordinator: own shared API/dependency decisions, expected fixtures, and `src/run/tests/plan.rs`. Verify actual Capture-to-Diff-to-Plan plus independent checkpoint-to-Plan on fresh scratch against exact S1 fixture bodies, ordered rows, counts and batches. No expectation generated from production output.
+- Independent reviewer `foundation_review` (Astra): review the complete candidate against this base after checks, run targeted checks and verify fixes; no edits or commits.
+- Gate: persisted IDs only; all request bodies use capture-time edition provenance and canonical JSON; whole-root replacement including property removal and empty links; six operation/first-request groups, target/ID ordering, cross-target batch sharing, 128-write/1,500,000-first-body-byte boundaries and oversized singleton; bounded range reads and blocking file writes; empty outputs, numeric/property regressions without row-value diagnostics, marker reuse/winner, invalid checkpoints and workspace cleanup; combined tests/Rust checks, independent review and accepted local commit before stage 4.
+
+### Stage 3 evidence in progress
+
+- Shared changes approved centrally: permanent `InvalidCheckpoint`, `PlanTooLarge` and `UnencodableRequest` codes, plus the specified `Rows::get`. Existing `RowFile::create_at` supports blocking writer construction without cloning the run context.
+- Private simplification approved: bounded range loops per target and request group replace the cursor object. Each query holds at most 2,048 rows; dense row numbering and increasing IDs remain validated. There is one resident range, with sequential group/target traversal and shared cross-target batching.
+- Coordinator implemented and registered the parameterized exact-body seam in `src/run/tests/plan.rs`: actual predecessors and independently encoded checkpoint fixtures, producer scratch deletion, a later planning clock, and exact successor schemas/rows/counts/batches. Both cases **passed** (`/tmp/pipeline-plan-canonical.log`), including marker replay from fresh scratch. Final combined verification and Astra review remain pending.
+- The initial canonical seam exposed a foundation fixture omission: S1 `PlanOutput::counts` omitted zero-valued operation keys. Stage-3's type contract explicitly requires all four entries, including an empty plan. Coordinator corrected only these literal fixture maps and documented the requirement; request bodies and row expectations were not regenerated or changed. The correction requires independent stage-3 review.
+- Focused planning checks **28/28** and property/request regressions **63/63** passed. They cover six-group ordering and cross-target batches, 4,100 typed rows across three ranges, exact byte/count limits from independent literals, oversized actual JSON, property removal/empty links, issue redaction, branch targets, invalid checkpoint/no-marker/closed-workspace behavior, and winning-marker replay.
+- Frozen combined nextest 0.9.151 suite: **453/453 passed, zero skipped**, eight binaries (25.724 s; `/tmp/pipeline-plan-nextest.log`). All-feature/all-target/no-deps clippy passed without crate warnings; rustdoc, doc tests (zero examples), formatting and diff checks passed. Coordinator inspected `/tmp/pipeline-plan-{clippy-final,rustdoc,doctest,fmt}.log` and confirmed existing engine/definition/app source trees still match `feb96672c5`. Full independent Astra review remains pending.
+- Full independent Astra review approved the integrated candidate at source SHA-256 `7dc71a80e0ae6c1781c932a65e39073b9fc1a8e54f9a4929b0b262e35434df70`, with no blocking findings or optional fixes. Reviewer independently passed **30/30** stage/seam tests (`/tmp/pipeline-stage3-independent-review.log`); its disjoint reviewer passed **63/63** graph tests and checked the adaptations against the reference. The zero-count fixture correction was independently confirmed against the mandatory contract. Coordinator confirmed the unchanged staged source hash and clean working-versus-staged tree. Stage 3 is accepted before any stage-4 implementation starts.
 
 Stage 2 assignment, base `3ce2b4e2200d78fed8c14da9f9fa0c282533aecb`:
 
@@ -90,7 +107,7 @@ Foundation assignment, base `da117f9d4e`:
 - Independent reviewer `foundation_review` (Astra): after build/test evidence, review the actual diff against the baseline, challenge missing behavioral/resource/seam coverage, verify fixes, and report blocking findings separately. No edits or commits.
 - Acceptance: marker winning/reuse including equivalent tables; `start` input stability; current-state authority and bounded CAS; separate-process local create/update races and real MinIO conditional transitions; valid/invalid/unsigned/nested decimal export before publication; bounded RowFile and valid empty schemas; independently executable expected fixtures; nextest, doc tests, all-feature/all-target clippy, rustdoc, formatting and diff checks. No skipped required test satisfies this gate.
 
-The shared foundation and Capture are accepted. Later implementation milestones remain pending.
+The shared foundation, Capture and Hash/diff are accepted. Planning is the active implementation milestone; sending and final integration remain pending.
 
 ### Foundation acceptance evidence
 

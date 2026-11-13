@@ -70,6 +70,12 @@ pub enum Code {
     CaptureMissing,
     #[display("row_key")]
     RowKey,
+    #[display("invalid_checkpoint")]
+    InvalidCheckpoint,
+    #[display("unencodable_request")]
+    UnencodableRequest,
+    #[display("plan_too_large")]
+    PlanTooLarge,
 }
 
 impl Code {
@@ -101,6 +107,9 @@ impl Code {
         Self::SecretUnavailable,
         Self::CaptureMissing,
         Self::RowKey,
+        Self::InvalidCheckpoint,
+        Self::UnencodableRequest,
+        Self::PlanTooLarge,
     ];
 
     /// The persisted diagnostic text.
@@ -133,6 +142,9 @@ impl Code {
             Self::SecretUnavailable => "secret_unavailable",
             Self::CaptureMissing => "capture_missing",
             Self::RowKey => "row_key",
+            Self::InvalidCheckpoint => "invalid_checkpoint",
+            Self::UnencodableRequest => "unencodable_request",
+            Self::PlanTooLarge => "plan_too_large",
         }
     }
 
@@ -165,7 +177,10 @@ impl Code {
             | Self::SourceCredentials
             | Self::SourceResponse
             | Self::CaptureMissing
-            | Self::RowKey => StageError::Permanent,
+            | Self::RowKey
+            | Self::InvalidCheckpoint
+            | Self::UnencodableRequest
+            | Self::PlanTooLarge => StageError::Permanent,
         }
     }
 
