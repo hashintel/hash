@@ -1,25 +1,21 @@
 import { Array, Effect, HashMap, Option, pipe } from "effect";
 import {
   SyntaxKind,
-  isClassLikeDeclaration,
-  isExpressionWithTypeArguments,
-  isHeritageClause,
+  isImportTypeNode,
   isModuleDeclaration,
-  isPropertyAccessExpression,
   isQualifiedName,
   isSourceFile,
-  isTypeNode,
-  isTypeQueryNode,
   isVariableStatement,
 } from "typescript/ast";
 import { SymbolFlags } from "typescript/async";
 
+import * as Location from "./internal/quick-info-location.js";
 import * as Checker from "./TypeScript/Checker.js";
 import * as Program from "./TypeScript/Program.js";
 import { hasFlag } from "./TypeScript/Symbol.js";
 
 import type { Cause } from "effect";
-import type { Node, SourceFile } from "typescript/ast";
+import type { Identifier, Node, SourceFile } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 /** Effect's API reference, one page per module. */
@@ -113,50 +109,34 @@ const anchorKinds = HashMap.make<readonly (readonly [SyntaxKind, string])[]>(
   [SyntaxKind.EnumDeclaration, "enum"],
 );
 
-/**
- * What `name` means in the declaration around it.
- *
- * A name before a dot is a namespace. A name after `typeof`, or in a class's `extends` clause, is a value. Type syntax and an interface's heritage clause select the type meaning. Other occurrences select the value meaning.
- */
-export const meaning = (name: Node): Meaning => {
-  // The dotted name that ends in `name`, such as `$Schema.Schema` for the second name in `$Schema.Schema.Type`.
-  let dotted = name;
-  if (
-    (isQualifiedName(name.parent) && name.parent.right === name) ||
-    (isPropertyAccessExpression(name.parent) && name.parent.name === name)
-  ) {
-    dotted = name.parent;
+/** Whether `name` stands before a dot in an import type, as `Box` does in `import("pkg").Box.Inner`. */
+const qualifiesImportType = (name: Identifier): boolean => {
+  let root: Node = name;
+  while (isQualifiedName(root.parent)) {
+    root = root.parent;
   }
 
-  const { parent } = dotted;
-  if (
-    (isQualifiedName(parent) && parent.left === dotted) ||
-    (isPropertyAccessExpression(parent) && parent.expression === dotted)
-  ) {
+  return (
+    isQualifiedName(root) &&
+    root.right !== name &&
+    isImportTypeNode(root.parent) &&
+    !root.parent.isTypeOf
+  );
+};
+
+/**
+ * What `name` means where it stands, which picks the declaration it links to.
+ *
+ * It is the meaning quick info shows there, with two readings of its own. A name with every meaning of its symbol, such as an import's, links to the value. A name before a dot in an import type links to the namespace it qualifies with, where an editor shows the value of the same name.
+ */
+export const meaning = (name: Identifier): Meaning => {
+  if (qualifiesImportType(name)) {
     return "namespace";
   }
 
-  let node = parent;
-  while (
-    isQualifiedName(node) ||
-    isPropertyAccessExpression(node) ||
-    isExpressionWithTypeArguments(node)
-  ) {
-    node = node.parent;
-  }
+  const reading = Location.meaningOf(name);
 
-  if (isTypeQueryNode(node)) {
-    return "value";
-  }
-  if (
-    isHeritageClause(node) &&
-    node.token === SyntaxKind.ExtendsKeyword &&
-    isClassLikeDeclaration(node.parent)
-  ) {
-    return "value";
-  }
-
-  return isTypeNode(node) || isHeritageClause(node) ? "type" : "value";
+  return reading === "any" ? "value" : reading;
 };
 
 /** The page of the module that declares `node`, when it is one of Effect's. */
