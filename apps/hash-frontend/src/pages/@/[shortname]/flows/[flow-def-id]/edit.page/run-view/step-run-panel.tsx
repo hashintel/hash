@@ -13,12 +13,9 @@ import { StepIconTile } from "../shared/step-icon-tile";
 import { stepStateLabels } from "../shared/step-states";
 import { ValueName } from "../shared/value-name";
 import { indexValueUses } from "../shared/value-uses";
+import { getPayloadShape, getValueDisplay } from "./shared/run-value-display";
 import { OutputUses } from "./step-run-panel/output-uses";
 import { RunValue } from "./step-run-panel/run-value";
-import {
-  getPayloadShape,
-  getValueDisplay,
-} from "./step-run-panel/run-value-display";
 import {
   getItemCountsLine,
   getStatusLines,
@@ -33,6 +30,8 @@ import {
 
 import type { StepRunMark } from "../shared/step-states";
 import type { ValueUse } from "../shared/value-uses";
+import type { ValueDisplay } from "./shared/run-value-display";
+import type { OutputView } from "./shared/use-output-viewer";
 import type { ItemRun } from "./step-run-panel/step-runs";
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type {
@@ -198,6 +197,8 @@ export const StepRunPanel = ({
   runPageHref,
   highlightedStepId,
   onHighlightStep,
+  inert,
+  onOpenValue,
 }: {
   step: StepDefinition<string>;
   /** Inside a for-each step, so it runs once per item. */
@@ -212,6 +213,9 @@ export const StepRunPanel = ({
   runPageHref: string | null;
   highlightedStepId: string | null;
   onHighlightStep: (stepId: string | null) => void;
+  /** Covered by a value it opened, so out of reach until that's closed. */
+  inert: boolean;
+  onOpenValue: (view: OutputView, options?: { wide: boolean }) => void;
 }) => {
   const runs = useMemo(() => getRunsOfStep(step, stepRuns), [step, stepRuns]);
   const perItem = inner || step.kind === "for-each";
@@ -273,6 +277,16 @@ export const StepRunPanel = ({
         onlyRun?.stepRun.outputs?.map((output) => output.outputName) ??
         []);
 
+  /* A value opens under its input's or output's name, from this step. */
+  const renderValue = (title: string, display: ValueDisplay) => (
+    <RunValue
+      display={display}
+      onOpen={(content, options) =>
+        onOpenValue({ ...content, title, source: name }, options)
+      }
+    />
+  );
+
   const renderOutputValue = (outputName: string) => {
     if (perItem) {
       return null;
@@ -283,7 +297,10 @@ export const StepRunPanel = ({
     );
 
     if (output) {
-      return <RunValue display={getValueDisplay(output.payload)} />;
+      return renderValue(
+        getNameLabel(outputName),
+        getValueDisplay(output.payload),
+      );
     }
 
     return (
@@ -297,7 +314,7 @@ export const StepRunPanel = ({
     usesOf({ kind: "step-output", stepId: step.stepId, outputName });
 
   return (
-    <SidePanel label={name}>
+    <SidePanel label={name} inert={inert}>
       <div className={header}>
         <StepIconTile icon={icon} tone={tone} size="large" />
         <div className={headerText}>
@@ -359,7 +376,7 @@ export const StepRunPanel = ({
                   />
                 }
               >
-                <RunValue display={getValueDisplay(payload)} />
+                {renderValue(getNameLabel(inputName), getValueDisplay(payload))}
               </RunValueRow>
             ))}
             {varying.length > 0 && (
