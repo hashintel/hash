@@ -1,6 +1,6 @@
 # Integration pipeline: change requests
 
-These are requested changes to the contracts and the six specs. None of them is applied: `01-contracts.md` and the specs are unchanged. Each request names what changes, why, which files it touches, and what it needs before it can be applied.
+These are requested changes to the contracts and the six specs. CR-1 to CR-6 are not applied. CR-7 and CR-8 are settled in a reduced form: the contracts and the overview state the limit, and the code change is deferred as D17 and D18 in `00-overview.md`. Each request names what changes, why, which files it touches, and what it needs before it can be applied.
 
 The requests come from a review of the specs against the goal of a small pipeline. The specs describe 209 functions. The requests below remove an estimated 35 to 45 of them.
 
@@ -12,8 +12,8 @@ The requests come from a review of the specs against the goal of a small pipelin
 | CR-4 | Compute the entity ID in SQL | A decision. Verification A8 holds. | About 12 functions less in stage 2 |
 | CR-5 | Take the rows of a failed run from its `writes` file | Nothing | One download and one table less in stage 2 |
 | CR-6 | Merge error codes that no caller tells apart | Nothing | Fewer variants of `Code` |
-| CR-7 | State what happens to a `HUGEINT` column | Nothing | One rule in the contracts |
-| CR-8 | State what happens to an integer above 2^53 | A decision | One rule in the contracts |
+| CR-7 | State what happens to a `HUGEINT` column | Settled: stated in the contracts, the cast is deferred (D17) | One sentence in the contracts |
+| CR-8 | State what happens to an integer above 2^53 | Settled: recorded as a limit, the check is deferred (D18) | One test case |
 
 ## CR-1: Order `writes` by target inside an operation
 
@@ -111,6 +111,8 @@ The requests come from a review of the specs against the goal of a small pipelin
 
 ## CR-7: State what happens to a `HUGEINT` column
 
+**Status.** The contract "Tables as files" now states the type change. The explicit cast described below is deferred as D17.
+
 **Change.** The contracts state that a `HUGEINT` column of a target's table is written to `changes` as `DECIMAL(38,0)`, and that a value with more than 38 digits fails stage 2 as permanent.
 
 **Reason.** The verification shows that a `HUGEINT` column comes back from Parquet as `DECIMAL(38,0)`, so the planner sees `Value::Decimal`, and that a value with 39 digits makes `Workspace::load_capture` fail (`verification/results.md`, A7). The contracts say a column keeps the type DuckDB gives it when it reads the file, and name no exception. All other tested types keep their type.
@@ -122,6 +124,8 @@ The requests come from a review of the specs against the goal of a small pipelin
 - `stage-3-plan.md`, "P9".
 
 ## CR-8: State what happens to an integer above 2^53
+
+**Status.** The first version sends the number as it is. `00-overview.md` records the limit as D18, and `03-scenarios.md` has one case against a real Graph. The text below describes the check that D18 defers.
 
 **Change.** The contracts state one of two rules for a number that a 64-bit float cannot hold exactly: stage 3 writes an issue and leaves the property out, or the pipeline accepts that every resend of the entity writes a new edition.
 

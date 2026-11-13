@@ -191,7 +191,7 @@ A restore to run K is one run, whatever lies between K and the committed run. Th
 
 ## What the review found
 
-These findings come from reading the code. None of them was run.
+These findings come from reading the code. `verification/results.md` has since run the ones the design depends on, and the points below say where a result differs.
 
 ### Graph behaviour the pipeline depends on
 
@@ -203,7 +203,7 @@ These findings come from reading the code. None of them was run.
 - **A patch on an ID that never existed returns 404.** The monorepo client treats 404 on an archive as success (`client/mod.rs:134`).
 - **Status codes do not separate bad data from temporary failure.** A missing link endpoint and a bad patch path return 500. 404 also covers a missing entity type and a clock difference. A lock conflict on the same entity returns 499. A purged entity returns 409 on create and 404 on patch for ever.
 - **Links.** Creating a link needs both endpoints to exist. Archiving an entity does not archive its links. A patch cannot change a link's endpoints.
-- **Numbers.** The Graph serialises numbers as 64-bit floats. A number that does not survive that conversion probably creates a new edition on every resend. This is inferred from the code.
+- **Numbers.** The Graph stores every number as a 64-bit float, which holds about 15 significant digits. A number with more digits is stored rounded: `9007199254740993` becomes `9007199254740992`. At store level a resend of such a number writes a new edition. Whether that also happens over HTTP was not run (D18).
 - **Read-only entities.** The planner creates entities with `readOnly: true`. A global policy forbids user and AI actors from updating or archiving read-only entities (`seed_policies.rs`). Machine actors are not restricted.
 
 ### How labs differs from the earlier description
@@ -282,6 +282,8 @@ Each item states what the first version does and what has to happen before the i
 | D14 | A limit on rejected writes. A Graph that answers 500 to every write rejects every write, the run commits, and the next run sends them all again (P2, C3). | Each repeated 500 waits before the next attempt. There is no limit. | The first production integration. |
 | D15 | A REST read that stops at `maxPages` counts as a full read. With `coverage: complete` the entities past the page limit are archived, or the run fails with `archive_limit`. | As in labs. A definition check that requires `coverage: partial` together with `maxPages` does not exist. | The first REST source with `maxPages` in production. |
 | D16 | Errors that hide their cause. `SourceError::Postgres` covers a wrong password and a failed connection, and `StatementError::Failed` covers a memory limit and an IO error. | Each is mapped to retryable, so a permanent fault is retried until the retry policy ends. | A source error variant per cause is added. |
+| D17 | A `HUGEINT` column, which a `SUM` over integers produces, has no Parquet type. It comes back from a `changes` file as `DECIMAL(38,0)`, and a value with more than 38 digits fails the load. | The contracts state the type change. No cast and no check exist. A 39-digit value fails the run with a data error. | A source has integers above 10^38, or the planner has to tell a 128-bit integer from a decimal. |
+| D18 | The Graph rounds a number with more than about 15 significant digits. The stored value then differs from the source, and nothing reports it. A resend of such a value wrote a new edition at store level. | The pipeline sends the number as it is. A definition should map such a column as text. The test against a real Graph records whether a resend over HTTP keeps the edition. | A customer needs exact long numbers, or the test shows a new edition on every resend. The fix is a check in stage 3 that leaves the property out and writes an issue (`05-change-requests.md`, CR-8). |
 
 ## Later: sources that send only changes
 

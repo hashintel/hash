@@ -277,6 +277,7 @@ impl RowFile {
 - The writer uses Snappy and row groups of 65,536 rows, as the REST reader does, and writes no key-value metadata of its own. The same rows give the same file.
 - A file with no rows is a valid Parquet file with the declared columns.
 - A column's type in a stage is the type DuckDB gives it when it reads the Parquet file. Stage 3 reads rows only this way (P9).
+- One type changes on the way through a file: a `HUGEINT` column comes back as `DECIMAL(38,0)`. A value with more than 38 digits fails the load (D17).
 
 ### `current.json`
 

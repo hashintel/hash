@@ -387,6 +387,7 @@ These cases need no sequence of runs. Each stage spec lists them with its unit t
 | 4 | A single write answers 499 | Sent again; the stage fails as retryable after `max_attempts` |
 | 4 | A single write answers 500 `max_attempts` times | Rejected with `graph_status` |
 | 4 | `committed` differs from `DiffOutput::base` | `base_moved`; nothing is sent |
+| 4 | Against a real Graph: an entity with the number `9007199254740993` is sent twice | The test records the stored value and whether the second send keeps the edition (D18) |
 | 4 | The stage runs again after `send/_done.json` exists | No request; `commit` runs |
 | All | A stage runs twice with the same input | The second call returns the first call's output and writes nothing |
 
