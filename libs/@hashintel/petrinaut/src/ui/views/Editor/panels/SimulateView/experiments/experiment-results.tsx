@@ -109,10 +109,10 @@ const experimentComputeBatches = (
   }));
 
 /**
- * Simulated time to show when no batch is publishing progress: a complete
- * run has taken every run to the end, and so has an idle or cancelled sweep
- * once a batch of its selection finished; a sweep that never computed sits
- * at zero.
+ * Simulated time to show when no batch is publishing progress, or the step
+ * on a clock of steps: a complete run has taken every run to the end, and
+ * so has an idle or cancelled sweep once a batch of its selection finished;
+ * a sweep that never computed sits at zero.
  */
 const settledTime = (experiment: ExperimentRecord): number =>
   experiment.status === "complete" ||
@@ -127,7 +127,9 @@ const experimentDetailsStats = (
 ): ExperimentDetail[] => {
   const { progress, sweep } = experiment;
   const runCount = formatCount(experiment.runCount);
-  const maxTime = formatFixed(experiment.maxTime);
+  // An untimed net's runs count steps, which are whole.
+  const inSteps = experiment.clock === "steps";
+  const formatPosition = inSteps ? formatCount : formatFixed;
   return [
     sweep
       ? {
@@ -153,9 +155,9 @@ const experimentDetailsStats = (
     },
     {
       id: "time",
-      label: "Simulation time",
+      label: inSteps ? "Step" : "Simulation time",
       value: {
-        text: `${formatFixed(progress?.time ?? settledTime(experiment))} / ${maxTime}`,
+        text: `${formatPosition(progress?.time ?? settledTime(experiment))} / ${formatPosition(experiment.maxTime)}`,
       },
     },
     // Wall-clock, as distinct from the simulated time; it stops once the

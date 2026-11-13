@@ -1,3 +1,4 @@
+import { STEP_SAMPLE_PERIOD, type RunClock } from "../../net-timing";
 import { resolveSimulatorSelection, simulatorUnavailable } from "./simulator";
 
 import type { ExperimentAssessment } from "../../experiments/experiment-assessment";
@@ -31,6 +32,20 @@ export const simulatorSamplePeriod = (
   const stored = parameters[key];
   return typeof stored === "number" ? stored : spec.default;
 };
+
+/**
+ * The sample period an experiment has no say in: one step on a clock that
+ * counts steps, else the simulator's time step. Null when the experiment
+ * chooses it.
+ */
+export const experimentSamplePeriod = (
+  clock: RunClock,
+  manifest: Pick<SimulatorManifest, "parameters" | "samplePeriodParameter">,
+  parameters: StoredSimulatorParameters,
+): number | null =>
+  clock === "steps"
+    ? STEP_SAMPLE_PERIOD
+    : simulatorSamplePeriod(manifest, parameters);
 
 const assessWith = async (
   registration: SimulatorRegistration,
@@ -102,8 +117,9 @@ const assessWith = async (
  * a sweep then runs any simulator a host registers.
  *
  * The request's `dt` is the experiment's sample period. A simulator that
- * samples at a time step refuses a request that names another, so the caller
- * takes {@link simulatorSamplePeriod} when it gives one.
+ * samples at a time step refuses a request that names another, and so does
+ * any simulator for an untimed net, which is sampled at every step. The
+ * caller takes {@link experimentSamplePeriod} when it gives one.
  *
  * Each `load` loads the simulator anew: the backend it resolves with owns
  * what that simulator keeps, and `dispose` releases it.

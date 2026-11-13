@@ -83,6 +83,7 @@ const makeRecord = (optimize = false): ExperimentRecord => ({
   constraintPolicy: null,
   runCount: 25,
   seed: 1,
+  clock: "time",
   dt: 1,
   maxTime: 10,
   status: optimize ? "idle" : "running",

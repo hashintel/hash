@@ -98,32 +98,46 @@ const MODE_ITEMS: { value: SimulationMode; label: string }[] = [
   { value: "stochastic", label: "Stochastic" },
 ];
 
+/** What the trigger reads in place of a simulator while the run counts steps. */
+const STEP_BY_STEP = "Step by step";
+
 /**
  * What Play computes and with what, on one line that keeps its width: the
  * mode, and the simulator with the values it runs at. The simulator opens a
  * popover over the panel to pick another one and edit its parameters, so
  * nothing in the panel moves. While a simulation exists the mode is locked
  * and the popover is read, not edited.
+ *
+ * An untimed net is stepped, not simulated over time. A Quick simulation
+ * of one uses no simulator, so the trigger says Step by step in its place.
+ * A Stochastic simulation still computes its runs on the simulator, so the
+ * trigger keeps its name and says step by step in place of its values.
  */
 export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
   locked,
 }) => {
   const { registrations } = use(SimulatorsContext);
-  const { mode, setMode, simulatorSelection, runs, maxTime } =
+  const { mode, setMode, clock, simulatorSelection, runs, maxTime } =
     use(SimulationContext);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const pickedSimulatorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const simulatorName = selected?.label ?? "No simulator";
-  const details = summarizeRunSettings({
-    mode,
-    specs: selected?.parameters ?? {},
-    parameters: simulatorSelection.parameters,
-    runs,
-    maxTime,
-  }).join(" · ");
+  const simulatorUnused = clock === "steps" && mode === "quick";
+  const simulatorName = simulatorUnused
+    ? STEP_BY_STEP
+    : (selected?.label ?? "No simulator");
+  const details = simulatorUnused
+    ? ""
+    : summarizeRunSettings({
+        mode,
+        clock,
+        specs: selected?.parameters ?? {},
+        parameters: simulatorSelection.parameters,
+        runs,
+        maxTime,
+      }).join(" · ");
 
   return (
     <div className={capsuleStyle} data-run-settings="">

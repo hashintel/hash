@@ -1,3 +1,5 @@
+import { runClockOf, STEP_SAMPLE_PERIOD } from "../../net-timing";
+
 import type { ExperimentBackend } from "../../experiments/experiment-backend";
 import type { ExperimentRequest } from "../../experiments/experiment-request";
 import type { MonteCarloSimulatorSelection } from "../monte-carlo/run-driver";
@@ -40,6 +42,10 @@ export type ExperimentBackendStepping<Specs extends SimulatorParameterSpecs> =
  * An experiment backend as a simulator that computes experiments: with its
  * own engine at the simulator's time step, or with the simulator's runs
  * hosted in its workers.
+ *
+ * An experiment of an untimed net counts steps. It is sampled at every
+ * step whatever the simulator steps by, and its end is the step its runs
+ * stop at.
  */
 export const simulatorFromExperimentBackend = <
   const Specs extends SimulatorParameterSpecs,
@@ -54,13 +60,17 @@ export const simulatorFromExperimentBackend = <
       notes: [],
       startExperiment: async (experiment, options) => {
         const { maxTime } = request;
+        const inSteps =
+          runClockOf(request.sdcpn, request.extensions) === "steps";
         if (maxTime === null) {
           return {
             ok: false,
             blockers: [
               {
                 code: "experiment-needs-max-time",
-                message: "An experiment needs a time to stop at",
+                message: inSteps
+                  ? "An experiment needs a step to stop at"
+                  : "An experiment needs a time to stop at",
                 origin: "configuration",
               },
             ],
@@ -70,24 +80,36 @@ export const simulatorFromExperimentBackend = <
           "timeStepParameter" in stepping
             ? request.simulatorParameters[stepping.timeStepParameter]
             : undefined;
-        const timeStep = typeof stepped === "number" ? stepped : undefined;
+        // What fixes the spacing of the samples, when something does: the
+        // steps of an untimed net, or the step the backend's engine takes.
+        const fixedPeriod = inSteps
+          ? STEP_SAMPLE_PERIOD
+          : typeof stepped === "number"
+            ? stepped
+            : undefined;
         const dt =
-          timeStep ??
+          fixedPeriod ??
           experiment.samplePeriod ??
           DEFAULT_EXPERIMENT_SAMPLE_PERIOD;
         if (
-          timeStep !== undefined &&
+          fixedPeriod !== undefined &&
           experiment.samplePeriod !== undefined &&
-          experiment.samplePeriod !== timeStep
+          experiment.samplePeriod !== fixedPeriod
         ) {
           return {
             ok: false,
             blockers: [
-              {
-                code: "sample-period-differs-from-time-step",
-                message: `${backend.label} samples at its time step, ${dt} s`,
-                origin: "configuration",
-              },
+              inSteps
+                ? {
+                    code: "sample-period-differs-from-step",
+                    message: "An untimed net is sampled at every step",
+                    origin: "configuration",
+                  }
+                : {
+                    code: "sample-period-differs-from-time-step",
+                    message: `${backend.label} samples at its time step, ${dt} s`,
+                    origin: "configuration",
+                  },
             ],
           };
         }

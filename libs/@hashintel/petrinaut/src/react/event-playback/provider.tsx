@@ -24,6 +24,7 @@ import {
   EventPlaybackContext,
   type EventPlaybackContextValue,
 } from "./context";
+import { findRestingTime } from "./resting-time";
 import { findStepTargetIndex } from "./step-target";
 
 /** Simulated seconds the demand must move by before the worker hears of it. */
@@ -152,8 +153,17 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
     };
   }, [coveredTimeRef, playState, playback, simulationDoneRef]);
 
+  // A discrete run is viewed at its events: a view put between two of them
+  // rests on the earlier one. Playing still moves the viewed time through
+  // the time between them, which is what paces a timed run.
   const setTime = (next: number) => {
-    playback.setTime(next, coveredTimeRef.current);
+    const covered = coveredTimeRef.current;
+    const simulation = eventSimulationRef.current;
+    const time = Math.max(0, Math.min(next, covered));
+    playback.setTime(
+      simulation ? findRestingTime(simulation, time) : time,
+      covered,
+    );
   };
 
   const stepToEvent = (direction: -1 | 1) => {
@@ -230,6 +240,8 @@ export const EventPlaybackProvider: React.FC<EventPlaybackProviderProps> = ({
       pauseSimulation();
     }
     playback.pause();
+    // Pausing a discrete run rests the view on the event it last passed.
+    setTime(playback.state.get().time);
   };
 
   const stop = () => {

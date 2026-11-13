@@ -370,6 +370,7 @@ export {
   defaultSimulatorParameters,
   defineSimulator,
   experimentBackendOfSimulator,
+  experimentSamplePeriod,
   placeCountMetricId,
   placeCountMetricSpecs,
   resolveSimulatorParameters,
@@ -485,6 +486,14 @@ export {
   getPlaceDynamicsEquationIds,
   placeUsesDifferentialEquation,
 } from "./place-dynamics";
+export {
+  isContinuousNet,
+  isTimedNet,
+  runClockOf,
+  runContinuityOf,
+  type RunClock,
+  type RunContinuity,
+} from "./net-timing";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

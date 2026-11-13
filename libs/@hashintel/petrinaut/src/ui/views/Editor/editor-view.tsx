@@ -14,6 +14,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  bicycleAssembly,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -26,6 +27,7 @@ import {
   supplyChainWithDisruption,
   supplyChainProfit,
   vaccinationCampaign,
+  wheelTruing,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -490,6 +492,22 @@ const EditorViewContent = ({
                 text: "Vaccination Campaign",
                 onClick: () => {
                   createNewNet(vaccinationCampaign);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-bicycle-assembly",
+                text: "Bicycle Assembly",
+                onClick: () => {
+                  createNewNet(bicycleAssembly);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-wheel-truing",
+                text: "Wheel Truing",
+                onClick: () => {
+                  createNewNet(wheelTruing);
                   clearSelection();
                 },
               },
