@@ -252,7 +252,7 @@ const persistEntities = async (params: {
         );
 
         const propertyPatches = patchesFromPropertyObjects({
-          oldProperties: existingEntity.properties,
+          oldProperties: existingEntity.propertiesWithMetadata,
           newProperties,
           removeProperties: false,
         });
@@ -515,7 +515,7 @@ const persistLinks = async (params: {
         );
 
         const propertyPatches = patchesFromPropertyObjects({
-          oldProperties: existingLink.properties,
+          oldProperties: existingLink.propertiesWithMetadata,
           newProperties,
           removeProperties: false,
         });

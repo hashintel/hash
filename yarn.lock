@@ -9467,6 +9467,7 @@ __metadata:
     "@temporalio/client": "npm:1.20.2"
     "@tsconfig/bases": "catalog:"
     "@vitest/coverage-istanbul": "catalog:"
+    dequal: "npm:2.0.3"
     effect: "npm:4.0.3"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
