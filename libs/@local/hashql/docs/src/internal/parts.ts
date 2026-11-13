@@ -19,10 +19,15 @@ export type Source =
   | AST.EnumMember.EnumMember
   | AST.IndexSignature.IndexSignature;
 
-/** One declaration a reader sees, with the calls it numbers. An overload of a function or of a method numbers its own call, and a callable constant or property numbers every call of its type. */
+/** What states one call a declaration numbers: a call signature, or a construct signature for a call that `new` makes. */
+export type Call =
+  | AST.CallSignature.CallSignature
+  | AST.ConstructSignature.ConstructSignature;
+
+/** One declaration a reader sees, with the calls it numbers. An overload of a function or of a method numbers its own call, a callable constant or property numbers every call of its type, and an interface numbers the calls its own call and construct signatures state. */
 export interface Part {
   readonly source: Source;
-  readonly calls: readonly AST.CallSignature.CallSignature[];
+  readonly calls: readonly Call[];
 }
 
 /** The declarations of an export as the reference documents them: whole as one export, or as two where a type and a value share the name without either declaring the other. */
@@ -72,6 +77,21 @@ export const declared: {
   (ast: AST.Store["Service"], source: Source): Declared;
 } = Function.dual(2, declaredBy);
 
+/** A declaration that is itself the one call it makes. Reading a member calls its getter and writing it calls its setter, and `new` calls a constructor's declaration. */
+export type Called =
+  | AST.Getter.Getter
+  | AST.Setter.Setter
+  | AST.ConstructSignature.ConstructSignature;
+
+/** `source` as the call it makes itself, or none for a declaration that numbers its calls or makes none. */
+export const called: (source: Source) => Option.Option<Called> =
+  Option.liftPredicate(
+    (source: Source): source is Called =>
+      source._tag === "Getter" ||
+      source._tag === "Setter" ||
+      source._tag === "ConstructSignature",
+  );
+
 const plain = (source: Source): Part => ({
   source,
   calls: [],
@@ -92,6 +112,31 @@ const callableParts = (
     return [{ source, calls }];
   }
   return Array.map(calls, call);
+};
+
+/** A type's part. An interface states its calls itself, as call and construct signatures among its members, in source order. */
+const typePart = (
+  ast: AST.Store["Service"],
+  source: AST.TypeDeclaration.TypeDeclaration,
+): Part => {
+  if (source._tag !== "InterfaceDeclaration") {
+    return plain(source);
+  }
+
+  return {
+    source,
+    calls: pipe(
+      source.members,
+      Array.fromIterable<AST.Member.InternedType>,
+      Array.map(ast.get),
+      Array.filter(
+        (member): member is Call =>
+          member._tag === "CallSignature" ||
+          member._tag === "ConstructSignature",
+      ),
+      Array.sortWith((member: Call) => member.node.pos, Number.Order),
+    ),
+  };
 };
 
 const valueParts = (
@@ -120,7 +165,7 @@ const documentedBy = (
       const types = pipe(
         type,
         Option.map(ast.get),
-        Option.map(plain),
+        Option.map((source) => typePart(ast, source)),
         Option.toArray,
       );
       // A type-only export can still expose a value's type through `typeof`.
@@ -215,12 +260,25 @@ const membersOf = (
       Array.flatMap((id): readonly Member[] => {
         const member = ast.get(id);
         if (
-          member._tag === "Constructor" ||
           member._tag === "IndexSignature" ||
           member._tag === "CallSignature" ||
           member._tag === "ConstructSignature"
         ) {
           return [];
+        }
+        if (member._tag === "Constructor") {
+          // A type-only export gives no value to construct.
+          if (entry.typeOnlyExport) {
+            return [];
+          }
+          return [
+            {
+              id,
+              name: "constructor",
+              static: false,
+              parts: memberParts(ast, member),
+            },
+          ];
         }
         const isStatic = member._tag !== "EnumMember" && member.static;
         if (entry.typeOnlyExport && isStatic) {
@@ -245,7 +303,7 @@ const membersOf = (
   );
 };
 
-/** The named members of the classes, interfaces and enums among `parts`, in source order. A type-only export has no static members, because a type-only import gives no value to call them on. */
+/** The named members of the classes, interfaces and enums among `parts`, in source order, with a class's constructor as the member `constructor`. A type-only export has neither static members nor a constructor, because a type-only import gives no value to call them on. */
 export const members: {
   (owner: Owner): (parts: readonly Part[]) => readonly Member[];
   (parts: readonly Part[], owner: Owner): readonly Member[];

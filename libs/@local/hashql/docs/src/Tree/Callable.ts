@@ -28,9 +28,10 @@ export const whole: Applies = { overloads: [OverloadIndex(1)], total: 1 };
 export const isEvery = ({ overloads, total }: Applies): boolean =>
   overloads.length === total;
 
-/** What states an overload's parameters and result. Reading a member calls its getter, and writing it calls its setter. */
+/** What states an overload's parameters and result. Reading a member calls its getter, writing it calls its setter, and `new` calls a constructor or a construct signature. */
 export type Call =
   | AST.CallSignature.CallSignature
+  | AST.ConstructSignature.ConstructSignature
   | AST.Getter.Getter
   | AST.Setter.Setter;
 

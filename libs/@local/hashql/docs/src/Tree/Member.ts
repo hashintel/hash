@@ -30,7 +30,11 @@ interface Declared<Type extends string, Origin extends AST.Member.Member>
 
 export interface Property extends Declared<"property", AST.Property.Property> {}
 
-export interface Method extends Declared<"method", AST.Method.Method> {}
+/** A method, or a class's constructor, which is the method named `constructor`. */
+export interface Method extends Declared<
+  "method",
+  AST.Method.Method | AST.Constructor.Constructor
+> {}
 
 /** A getter or a setter, with what its own comment alone documents about reading or writing the member. */
 export interface Half<Type extends string, Origin>
@@ -53,7 +57,7 @@ export interface EnumMember extends Declared<
   AST.EnumMember.EnumMember
 > {}
 
-/** A member a class, an interface or an enum documents. Constructors, index signatures and call or construct signatures are part of their owner's declaration instead. */
+/** A member a class, an interface or an enum documents. Index signatures and call or construct signatures are part of their owner's declaration instead. */
 export type Member = Property | Method | Accessor | EnumMember;
 
 /** The comments on a member's declarations, in source order. */

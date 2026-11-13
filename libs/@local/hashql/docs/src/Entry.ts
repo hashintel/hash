@@ -375,7 +375,7 @@ const memberOf = (
             origin: value,
           })),
         ),
-        Match.tag("Method", (value) =>
+        Match.tag("Method", "Constructor", (value) =>
           Option.map(group.signatures, (signatures) => ({
             ...shared,
             type: "method" as const,
@@ -392,12 +392,8 @@ const memberOf = (
           })),
         ),
         // Their owner's declaration documents these.
-        Match.tag(
-          "Constructor",
-          "CallSignature",
-          "ConstructSignature",
-          "IndexSignature",
-          () => Option.none(),
+        Match.tag("CallSignature", "ConstructSignature", "IndexSignature", () =>
+          Option.none(),
         ),
         Match.exhaustive,
       );

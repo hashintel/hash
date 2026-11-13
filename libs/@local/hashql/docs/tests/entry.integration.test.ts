@@ -462,6 +462,137 @@ export type { Typed };`,
   );
 
   it.effect(
+    "constructor_member",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** A box. */
+export declare class Box<T> {
+  /** The held value. */
+  readonly value: T;
+  /** Makes a box. @param value - The held value. */
+  constructor(value: T);
+  /** Makes an empty box. */
+  constructor();
+}
+export declare class Sealed {
+  /** Never called. */
+  private constructor();
+}
+declare class Shape {
+  /** Makes a shape. */
+  constructor();
+}
+export type { Shape };`,
+      });
+      const box = ownOf(reference, "Box");
+      const made = Array.findFirst(
+        box.members,
+        ({ name }) => name === "constructor",
+      ).pipe(Option.getOrThrow);
+      expect([
+        // The class's own comment stays the class's, and the constructor's are its member's.
+        summaries(box),
+        Array.map(box.members, ({ name, type }) => [name, type]),
+        Array.map(Tree.Member.comments(made), (comment) => [
+          summaryOf(comment),
+          comment.applies.overloads,
+        ]),
+        memberCalls(made),
+        // A private constructor is no member, and neither is the constructor of a class exported as a type alone.
+        Array.map(ownOf(reference, "Sealed").members, ({ name }) => name),
+        Array.map(ownOf(reference, "Shape").members, ({ name }) => name),
+      ]).toStrictEqual([
+        [[Option.some("A box."), [1]]],
+        [
+          ["value", "property"],
+          ["constructor", "method"],
+        ],
+        [
+          [Option.some("Makes a box."), [1]],
+          [Option.some("Makes an empty box."), [2]],
+        ],
+        [
+          [
+            "constructor",
+            Option.some("Makes a box."),
+            {
+              parameters: [
+                {
+                  name: "value",
+                  forms: [["T", [1]]],
+                  descriptions: [["The held value.", [1]]],
+                },
+              ],
+              returns: Option.none(),
+              throws: [],
+            },
+          ],
+        ],
+        [],
+        [],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "interface_calls",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** Runs things. */
+export interface Run {
+  /** The name. */
+  readonly name: string;
+  /** Makes a runner. @param name - Its name. */
+  new (name: string): Run;
+  /** Runs text. @param text - The text. @returns Nothing. */
+  (text: string): void;
+  (count: number): void;
+}`,
+      });
+      const run = ownOf(reference, "Run");
+      expect([
+        summaries(run),
+        numbersOf(run.signatures),
+        callsOf(run),
+        Array.map(run.members, ({ name }) => name),
+      ]).toStrictEqual([
+        // The interface's own comment documents every call, and each signature's comment its own, in source order.
+        [
+          [Option.some("Runs things."), [1, 2, 3]],
+          [Option.some("Makes a runner."), [1]],
+          [Option.some("Runs text."), [2]],
+        ],
+        [[1, 2, 3]],
+        {
+          parameters: [
+            {
+              name: "name",
+              forms: [["string", [1]]],
+              descriptions: [["Its name.", [1]]],
+            },
+            {
+              name: "text",
+              forms: [["string", [2]]],
+              descriptions: [["The text.", [2]]],
+            },
+          ],
+          returns: Option.some({
+            forms: [
+              ["Run", [1]],
+              ["void", [2, 3]],
+            ],
+            descriptions: [["Nothing.", [2]]],
+          }),
+          throws: [],
+        },
+        ["name"],
+      ]);
+    }),
+  );
+
+  it.effect(
     "callable_property_calls",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
