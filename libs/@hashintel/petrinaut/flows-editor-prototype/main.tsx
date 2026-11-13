@@ -1,5 +1,6 @@
 // First: old links move to their routes before the app store reads the URL.
 import "./src/legacy-redirect";
+import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "../src/ui/index.css";
 import { useEffect, useState } from "react";
