@@ -15,6 +15,18 @@ const nonblank = v.pipe(
 export const personaCommandSchema = v.variant("type", [
   v.object({ id: commandId, type: v.literal("open") }),
   v.object({ id: commandId, type: v.literal("prompt"), message: nonblank }),
+  // One answer per docked question, in order; a blank one skips its question.
+  v.object({
+    id: commandId,
+    type: v.literal("answer"),
+    answers: v.pipe(
+      v.array(v.string()),
+      v.check(
+        (answers) => answers.some((answer) => answer.trim().length > 0),
+        "Expected at least one answer",
+      ),
+    ),
+  }),
   v.object({ id: commandId, type: v.literal("get_state") }),
   v.object({ id: commandId, type: v.literal("get_transcript") }),
   v.object({
@@ -40,9 +52,28 @@ const personaResponseSchema = v.union([
 ]);
 export type PersonaResponse = v.InferOutput<typeof personaResponseSchema>;
 
+/** A question Brunch docked on the composer, as the panel shows it. */
+const personaQuestionSchema = v.object({
+  kind: v.string(),
+  label: v.string(),
+  text: v.string(),
+  options: v.optional(
+    v.array(v.object({ label: v.string(), value: v.optional(v.string()) })),
+  ),
+  fields: v.optional(
+    v.array(v.object({ label: v.string(), unit: v.optional(v.string()) })),
+  ),
+});
+export type PersonaQuestion = v.InferOutput<typeof personaQuestionSchema>;
+
 const personaEventSchema = v.variant("type", [
   v.object({ type: v.literal("turn_start"), message: v.string() }),
-  v.object({ type: v.literal("assistant_message"), text: v.string() }),
+  v.object({
+    type: v.literal("assistant_message"),
+    text: v.string(),
+    /** The questions now docked on the composer; absent when there are none. */
+    questions: v.optional(v.array(personaQuestionSchema)),
+  }),
   v.object({
     type: v.literal("turn_settled"),
     outcome: v.picklist(["replied", "failed", "aborted"]),

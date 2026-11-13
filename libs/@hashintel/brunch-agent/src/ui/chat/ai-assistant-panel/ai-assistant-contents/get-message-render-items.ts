@@ -1,3 +1,5 @@
+import { brunchTools } from "@hashintel/brunch-agent";
+
 import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
@@ -72,6 +74,11 @@ export const getMessageRenderItems = (
       turn.work.reasoning.push({ key, part });
     } else if (part.type === "tool-createExperiment") {
       turn.cards.push({ type: "experiment", key: part.toolCallId, part });
+    } else if (
+      isToolPart(part) &&
+      getToolName(part) === brunchTools.offerAnswers
+    ) {
+      // The questions show on the composer, not in the transcript.
     } else if (isToolPart(part)) {
       if (hiddenToolNames.has(getToolName(part))) return;
       const tool = toToolRenderItem(

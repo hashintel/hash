@@ -2654,6 +2654,9 @@ const ConversationAiAssistantPanel = ({
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
       }}
+      onSendAnswer={(answer) => {
+        submitUserText(answer, "message");
+      }}
       onRetryPrompt={(prompt) => {
         submitUserText(prompt, "message", true);
       }}

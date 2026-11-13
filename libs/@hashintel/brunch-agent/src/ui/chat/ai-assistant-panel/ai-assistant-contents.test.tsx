@@ -5634,3 +5634,308 @@ describe("interactive ending", () => {
     expect(screen.getByText("Waiting for your decision")).not.toBeNull();
   });
 });
+
+describe("questions docked on the composer", () => {
+  const quarantine = {
+    kind: "choose",
+    label: "Quarantined shipment",
+    text: "Quarantined shipment?",
+    options: [
+      { label: "Stays open", value: "It stays counted as an open order" },
+      { label: "Drops out", value: "It drops out until quality releases it" },
+    ],
+  };
+  const asking = (questions: unknown[]): PetrinautAiMessage => ({
+    id: "asking",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "A couple of things to check." },
+      {
+        type: "dynamic-tool",
+        toolName: "offer_answers",
+        toolCallId: "offer-1",
+        state: "output-available",
+        input: { questions },
+        output: { offered: questions.length },
+      },
+      {
+        type: "dynamic-tool",
+        toolName: "ledger_commit",
+        toolCallId: "commit-1",
+        state: "output-available",
+        input: { entries: [], endTurn: true },
+        output: { status: "recorded" },
+      },
+    ],
+  });
+  const opening: PetrinautAiMessage = {
+    id: "opening",
+    role: "user",
+    parts: [{ type: "text", text: "We quarantine Flowbind on arrival." }],
+  };
+  type ContentsProps = Parameters<typeof AiAssistantContents>[0];
+  /** The contents, with the composer's text held as the panel holds it. */
+  const Docked = ({
+    input: initialInput = "",
+    ...props
+  }: Partial<ContentsProps>) => {
+    const [input, setInput] = useState(initialInput);
+    return (
+      <AiAssistantContents
+        messages={[opening, asking([quarantine])]}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        {...props}
+        input={input}
+        onInputChange={setInput}
+      />
+    );
+  };
+  const renderDock = (props: Partial<ContentsProps> = {}) => {
+    const onSendAnswer = vi.fn<(answer: string) => void>();
+    const onSubmit = vi.fn<() => void>();
+    const view = render(
+      <Docked onSendAnswer={onSendAnswer} onSubmit={onSubmit} {...props} />,
+    );
+    return { ...view, onSendAnswer, onSubmit };
+  };
+  const dock = () =>
+    screen.queryByRole("region", { name: "Brunch's questions" });
+  const composer = () =>
+    screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+  const option = (name: string) => screen.getByRole("button", { name });
+  const send = (name = "Send message") =>
+    fireEvent.click(screen.getByRole("button", { name }));
+
+  test("a click writes the option's answer into the composer, and Send sends it", () => {
+    const { onSendAnswer, onSubmit } = renderDock();
+    expect(
+      within(screen.getByTestId("ai-transcript")).queryByText(
+        /Quarantined shipment|Stays open/,
+      ),
+      "Nothing about the questions is drawn in the transcript.",
+    ).toBeNull();
+
+    fireEvent.click(option("Drops out"));
+    expect(composer().value).toBe("It drops out until quality releases it");
+    expect(document.activeElement).toBe(composer());
+    expect(option("Drops out").getAttribute("aria-pressed")).toBe("true");
+    expect(onSendAnswer).not.toHaveBeenCalled();
+
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "It drops out until quality releases it",
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(dock(), "Questions that were sent don't come back.").toBeNull();
+  });
+
+  test("another click replaces the first pick and keeps what the person typed", () => {
+    renderDock({ input: "Only for imported lots." });
+    fireEvent.click(option("Stays open"));
+    fireEvent.click(option("Drops out"));
+    expect(composer().value).toBe(
+      "It drops out until quality releases it\nOnly for imported lots.",
+    );
+    expect(option("Stays open").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("the person's own words in the composer are the answer", () => {
+    const { onSendAnswer } = renderDock();
+    fireEvent.change(composer(), {
+      target: { value: "Neither: it is scrapped." },
+    });
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "Neither: it is scrapped.",
+    );
+  });
+
+  test("pointing at an option shows its answer in full beneath the buttons", () => {
+    const { container } = renderDock();
+    const description = () =>
+      container.querySelector("[data-answer-description]")?.textContent;
+    expect(description()).toBeUndefined();
+    fireEvent.mouseEnter(option("Stays open"));
+    expect(description()).toBe("It stays counted as an open order");
+    fireEvent.mouseLeave(option("Stays open"));
+    expect(description()).toBeUndefined();
+    fireEvent.focus(option("Drops out"));
+    expect(description()).toBe("It drops out until quality releases it");
+  });
+
+  const three = [
+    quarantine,
+    { kind: "open", label: "Recent order", text: "Recent order?" },
+    { kind: "confirm", label: "Production demand", text: "Production demand?" },
+  ];
+
+  test("several questions show one at a time: Send moves on, and on the last sends them all", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    expect(
+      screen.getByText("Question 1/3 · Quarantined shipment"),
+    ).not.toBeNull();
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+
+    expect(screen.getByText("Question 2/3 · Recent order")).not.toBeNull();
+    expect(
+      screen.getByText("Type your answer in the message box."),
+    ).not.toBeNull();
+    expect(composer().value).toBe("");
+    fireEvent.change(composer(), {
+      target: { value: "The last one took nine days." },
+    });
+    fireEvent.keyDown(composer(), { key: "Enter" });
+
+    expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    fireEvent.click(option("Yes"));
+    expect(onSendAnswer).not.toHaveBeenCalled();
+    send("Send answers");
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      [
+        "1. Quarantined shipment: It stays counted as an open order",
+        "2. Recent order: The last one took nine days.",
+        "3. Production demand: Yes",
+      ].join("\n"),
+    );
+  });
+
+  test("Send moves past a question left empty, rather than offering Voice and losing the answers given", () => {
+    const onInputModeChange = vi.fn();
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+      onInputModeChange,
+      voiceModeAvailable: true,
+    });
+    fireEvent.click(option("Stays open"));
+    send("Continue to next question");
+    expect(composer().value).toBe("");
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(screen.getByText("Question 3/3 · Production demand")).not.toBeNull();
+    send("Send answers");
+    expect(onInputModeChange).not.toHaveBeenCalled();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "1. Quarantined shipment: It stays counted as an open order\n\nNot answered yet: Recent order, Production demand.",
+    );
+  });
+
+  test("the arrows step between questions, each keeping its answer", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [opening, asking(three)],
+    });
+    fireEvent.click(option("Drops out"));
+    fireEvent.click(option("Next question"));
+    fireEvent.click(option("Next question"));
+    expect(
+      screen.getByRole("button", { name: "Send answers" }),
+      "An answer given earlier can be sent from the last question, left empty.",
+    ).not.toBeNull();
+
+    fireEvent.click(option("Previous question"));
+    fireEvent.click(option("Previous question"));
+    expect(composer().value).toBe("It drops out until quality releases it");
+    expect(option("Drops out").getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(option("Next question"));
+    fireEvent.click(option("Next question"));
+    send("Send answers");
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith(
+      "1. Quarantined shipment: It drops out until quality releases it\n\nNot answered yet: Recent order, Production demand.",
+    );
+  });
+
+  test("a turn of open questions docks too, each showing its wording", () => {
+    const { onSendAnswer } = renderDock({
+      messages: [
+        opening,
+        asking([
+          {
+            kind: "open",
+            label: "Recent order",
+            text: "Can you walk me through one recent order?",
+          },
+        ]),
+      ],
+    });
+    expect(
+      within(dock() as HTMLElement).getByText(
+        "Can you walk me through one recent order?",
+      ),
+    ).not.toBeNull();
+    fireEvent.change(composer(), {
+      target: { value: "It took nine days." },
+    });
+    send();
+    expect(onSendAnswer).toHaveBeenCalledExactlyOnceWith("It took nine days.");
+  });
+
+  test("a values question names what to type", () => {
+    renderDock({
+      messages: [
+        opening,
+        asking([
+          {
+            kind: "values",
+            label: "Reorder points",
+            text: "Reorder points?",
+            fields: [
+              { label: "Lower reorder point", unit: "units" },
+              { label: "Higher reorder point", unit: "units" },
+            ],
+          },
+        ]),
+      ],
+    });
+    expect(
+      screen.getByText(
+        "Type Lower reorder point (units), Higher reorder point (units) in the message box.",
+      ),
+    ).not.toBeNull();
+  });
+
+  test.each([
+    ["while Brunch is busy", { status: "streaming" as const }],
+    ["after the turn was stopped", { stopped: true }],
+    ["in Voice mode", { inputMode: "voice" as const }],
+    [
+      "once the person has answered",
+      {
+        messages: [
+          opening,
+          asking([quarantine]),
+          {
+            id: "answered",
+            role: "user" as const,
+            parts: [{ type: "text" as const, text: "It drops out." }],
+          },
+        ],
+      },
+    ],
+  ] satisfies [string, Partial<ContentsProps>][])(
+    "is absent %s",
+    (_name, props) => {
+      renderDock(props);
+      expect(dock()).toBeNull();
+    },
+  );
+
+  test("without questions, Send is the composer's own", () => {
+    const { onSendAnswer, onSubmit } = renderDock({
+      input: "A message.",
+      messages: [opening],
+    });
+    send();
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSendAnswer).not.toHaveBeenCalled();
+  });
+});

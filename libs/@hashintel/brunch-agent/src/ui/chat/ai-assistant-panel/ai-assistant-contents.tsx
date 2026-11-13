@@ -20,6 +20,7 @@ import {
   useVoiceSessionWarningMessage,
 } from "../voice-session/use-voice-session";
 import { AiAssistantIcon } from "./ai-assistant-contents/ai-assistant-icon";
+import { useAnswerDock } from "./ai-assistant-contents/answer-dock";
 import { BrunchResponseStatus } from "./ai-assistant-contents/brunch-response-status";
 import { BrunchTranscript } from "./ai-assistant-contents/brunch-transcript";
 import { ChatTabMark } from "./ai-assistant-contents/chat-tab-mark";
@@ -83,6 +84,8 @@ export type AiAssistantContentsProps = {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
+  /** Sends the answers to Brunch's questions as the next message. */
+  onSendAnswer?: (answer: string) => void;
   onRetryPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
@@ -266,6 +269,7 @@ export const AiAssistantContents = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
+  onSendAnswer,
   onRetryPrompt,
   onStop,
   onSubmit,
@@ -440,6 +444,20 @@ export const AiAssistantContents = ({
       .join("\n\n");
     if (prompt) onRetryPrompt?.(prompt);
   };
+  const answerDock = useAnswerDock({
+    messages,
+    enabled:
+      onSendAnswer !== undefined &&
+      inputMode !== "voice" &&
+      !isBusy &&
+      !stopped &&
+      !voiceHandoffPending &&
+      !reviewingHostTab,
+    input,
+    inputRef,
+    onInputChange,
+    onSend: (text) => onSendAnswer?.(text),
+  });
   // Stable container for the per-render callbacks so the memoised transcript
   // messages don't see identity churn from the panel's inline arrow functions
   // on every render. The ref itself is stable across renders, so memoised
@@ -676,6 +694,7 @@ export const AiAssistantContents = ({
                   />
                 </div>
               )}
+              {answerDock?.dock}
               <AiAssistantComposer
                 busy={isBusy}
                 control={composerControl}
@@ -687,7 +706,9 @@ export const AiAssistantContents = ({
                 onInputChange={onInputChange}
                 onInputModeChange={onInputModeChange}
                 onStop={onStop}
-                onSubmit={onSubmit}
+                onSubmit={answerDock?.onSubmit ?? onSubmit}
+                sendable={answerDock?.sendable}
+                submitLabel={answerDock?.submitLabel}
                 textEntry={!reviewingHostTab}
                 voiceModeAvailable={voiceModeAvailable}
               />

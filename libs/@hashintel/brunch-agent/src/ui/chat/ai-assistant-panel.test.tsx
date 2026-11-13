@@ -17,6 +17,7 @@ import { z } from "zod";
 import {
   brunchTools,
   canonicalContent,
+  foldCommits,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 import {
@@ -6685,6 +6686,198 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(requestMessages[1]?.at(-1)?.id).not.toBe(
       requestMessages[0]?.[0]?.id,
     );
+  });
+
+  const offerReplies = (questions: unknown[]) => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        const id = `offer-${requestMessages.length}`;
+        return Promise.resolve(
+          streamChunks([
+            ...textChunks(`${id}-text`, "A few questions."),
+            {
+              type: "tool-input-available",
+              // The browser transport projects a server tool as a static
+              // part on one reply and a dynamic one on the next.
+              dynamic: requestMessages.length % 2 === 0,
+              providerExecuted: true,
+              toolCallId: id,
+              toolName: brunchTools.offerAnswers,
+              input: { questions },
+            },
+            {
+              type: "tool-output-available",
+              dynamic: requestMessages.length % 2 === 0,
+              providerExecuted: true,
+              toolCallId: id,
+              output: { offered: questions.length },
+            },
+            { type: "finish-step" },
+          ]),
+        );
+      }),
+    };
+    return { requestMessages, transport };
+  };
+  const ledgerTurnOf = (message: PetrinautAiMessage | undefined) =>
+    foldCommits({
+      messages: [
+        ...(message ? [message] : []),
+        {
+          id: `commit-after-${message?.id}`,
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: brunchTools.ledgerCommit,
+              toolCallId: `commit-${message?.id}`,
+              state: "output-available",
+              input: {
+                entries: [
+                  [
+                    "entity/create",
+                    {
+                      name: "Batch",
+                      kind: "resource",
+                      origin: "stated",
+                      status: "confirmed",
+                    },
+                  ],
+                ],
+              },
+              output: {
+                status: "recorded",
+                commitId: `commit-${message?.id}`,
+                revision: 1,
+                ids: ["e1"],
+              },
+            },
+          ],
+        },
+      ],
+    }).state.turns;
+  const batchStart = {
+    kind: "choose",
+    label: "Batch start",
+    text: "Batch start?",
+    options: [
+      {
+        label: "Starts when ready",
+        value: "It starts when both are available",
+      },
+      { label: "Rescheduled", value: "It must be rescheduled" },
+    ],
+  };
+  const composerOf = () =>
+    screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+  const sendWith = (name: string) =>
+    fireEvent.click(screen.getByRole("button", { name }));
+
+  test("a picked answer is the message typing it sends, and the Ledger reads the same turn", async () => {
+    const { requestMessages, transport } = offerReplies([batchStart]);
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Batches wait for material.",
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    expect(requestMessages, "A click alone sends nothing.").toHaveLength(1);
+    expect(composerOf().value).toBe("It must be rescheduled");
+    sendWith("Send message");
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+    expect(composerOf().value).toBe("");
+
+    await screen.findByRole("button", { name: "Rescheduled" });
+    fireEvent.change(composerOf(), {
+      target: { value: "It must be rescheduled" },
+    });
+    sendWith("Send message");
+    await waitFor(() => expect(requestMessages).toHaveLength(3));
+
+    const picked = requestMessages[1]?.at(-1);
+    const typed = requestMessages[2]?.at(-1);
+    expect(picked).toEqual({
+      id: expect.any(String) as string,
+      role: "user",
+      parts: [{ type: "text", text: "It must be rescheduled" }],
+    });
+    expect({ ...picked, id: undefined }).toEqual({ ...typed, id: undefined });
+    const excerpt = "It must be rescheduled";
+    expect(ledgerTurnOf(picked)).toEqual([{ id: picked?.id, excerpt }]);
+    expect(ledgerTurnOf(typed)).toEqual([{ id: typed?.id, excerpt }]);
+  });
+
+  test("answers to several questions go out as one message, and the Ledger reads it as one turn", async () => {
+    const { requestMessages, transport } = offerReplies([
+      batchStart,
+      { kind: "open", label: "Last delay", text: "Last delay?" },
+      { kind: "confirm", label: "Delay clock", text: "Delay clock?" },
+    ]);
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Batches wait for material.",
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    sendWith("Continue to next question");
+    fireEvent.change(composerOf(), {
+      target: { value: "Two days, last month." },
+    });
+    sendWith("Continue to next question");
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+    expect(requestMessages).toHaveLength(1);
+    sendWith("Send answers");
+    await waitFor(() => expect(requestMessages).toHaveLength(2));
+
+    const text =
+      "1. Batch start: It must be rescheduled\n2. Last delay: Two days, last month.\n3. Delay clock: Yes";
+    const sent = requestMessages[1]?.at(-1);
+    expect(sent).toEqual({
+      id: expect.any(String) as string,
+      role: "user",
+      parts: [{ type: "text", text }],
+    });
+    expect(ledgerTurnOf(sent)).toEqual([
+      { id: sent?.id, excerpt: text.replaceAll("\n", " ") },
+    ]);
+    expect(composerOf().value).toBe("");
+    expect(
+      await screen.findByText("Question 1/3 · Batch start"),
+      "The next reply's questions start from the first.",
+    ).not.toBeNull();
+  });
+
+  test("answers that fail to send come back as text to send again", async () => {
+    const { requestMessages, transport } = offerReplies([
+      batchStart,
+      { kind: "confirm", label: "Delay clock", text: "Delay clock?" },
+    ]);
+    const sendOffer = transport.sendMessages;
+    transport.sendMessages = vi.fn((options) =>
+      requestMessages.length === 0
+        ? sendOffer(options)
+        : Promise.reject(new Error("Answer rejected.")),
+    );
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Batches wait for material.",
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Rescheduled" }));
+    sendWith("Continue to next question");
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+    sendWith("Send answers");
+
+    expect(await screen.findByText("Answer rejected.")).not.toBeNull();
+    expect(composerOf().value).toBe(
+      "1. Batch start: It must be rescheduled\n2. Delay clock: Yes",
+    );
+    expect(
+      screen.queryByRole("region", { name: "Brunch's questions" }),
+      "The questions don't return to wrap the text a second time.",
+    ).toBeNull();
   });
 
   test("can force a separate message while an interactive tool is pending", async () => {

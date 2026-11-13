@@ -11,6 +11,7 @@ import {
   encodePersonaRecord,
   parsePersonaCommand,
   type PersonaCommand,
+  type PersonaQuestion,
   type PersonaRecord,
   type PersonaTranscriptEntry,
 } from "./rpc-protocol.ts";
@@ -23,6 +24,9 @@ export const personaCliUsage = `Usage: persona <command> [arguments] [--json]
                       reply. Runs once, before any say.
   say <text>          Send one message through the browser and print Brunch's reply.
                       Reads the message from stdin when no text is given.
+  answer <a1> <a2>…   Answer the questions Brunch put on its message box: one
+                      argument each, in order, "" to skip one. An answer that
+                      is an option's label picks that option.
   state               Print the conversation state as JSON.
   transcript          Print the conversation so far.
   end [reason]        End the conversation and close the run.
@@ -84,6 +88,9 @@ export const personaCommandFromArguments = async (
     case "say":
       // Heredocs end in a newline the person never typed.
       return { type: "prompt", message: text ?? (await stdin()).trimEnd() };
+    case "answer":
+      // Each argument is one question's answer; they are not joined.
+      return { type: "answer", answers: rest };
     case "state":
       return { type: "get_state" };
     case "transcript":
@@ -113,6 +120,34 @@ const formatTranscript = (data: unknown) => {
     .join("\n\n");
 };
 
+const describeQuestion = (question: PersonaQuestion, index: number) => {
+  const head = `${index + 1}. ${question.label}: ${question.text}`;
+  if (question.options?.length)
+    return [
+      head,
+      "   Pick one by its label, or answer in your own words:",
+      ...question.options.map(({ label, value }) =>
+        value === undefined ? `   - ${label}` : `   - ${label}: ${value}`,
+      ),
+    ].join("\n");
+  if (question.fields?.length)
+    return `${head}\n   Give: ${question.fields
+      .map(({ label, unit }) =>
+        unit === undefined ? label : `${label} (${unit})`,
+      )
+      .join(", ")}`;
+  return head;
+};
+
+/** What the panel docks on the composer, as the persona needs to answer it. */
+const formatQuestions = (questions: readonly PersonaQuestion[]) =>
+  [
+    questions.length === 1
+      ? 'Brunch asks this on its message box. Reply with `say`, or pick an option with `answer "<its label>"`:'
+      : `Brunch asks ${questions.length} questions on its message box. Answer them together with \`answer\`, one quoted argument each in this order, "" to skip one:`,
+    ...questions.map(describeQuestion),
+  ].join("\n");
+
 /** Plain-text rendering of one command's records; failures throw. */
 export const formatPersonaResult = (
   command: PersonaCommand,
@@ -123,7 +158,8 @@ export const formatPersonaResult = (
   if (!response.success) throw new Error(response.error);
   switch (command.type) {
     case "open":
-    case "prompt": {
+    case "prompt":
+    case "answer": {
       const settled = records.find((record) => record.type === "turn_settled");
       if (settled?.outcome !== "replied")
         throw new Error(
@@ -131,10 +167,17 @@ export const formatPersonaResult = (
         );
       const reply = records
         .flatMap((record) =>
-          record.type === "assistant_message" ? [record.text] : [],
+          record.type === "assistant_message"
+            ? [
+                record.text,
+                ...(record.questions?.length
+                  ? [formatQuestions(record.questions)]
+                  : []),
+              ]
+            : [],
         )
         .join("\n\n");
-      if (command.type === "prompt") return reply;
+      if (command.type !== "open") return reply;
       // The opening is the persona's own first message; show it as sent.
       const sent = records.find((record) => record.type === "turn_start");
       return `You: ${sent?.type === "turn_start" ? sent.message : ""}\n\nBrunch: ${reply}`;

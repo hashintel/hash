@@ -15,6 +15,13 @@ export {
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";
+export { offerIn, zOfferAnswersInput } from "./conversation/offer-answers";
+export {
+  questionKinds,
+  spokenQuestion,
+  type OfferedQuestion,
+  type OfferedQuestions,
+} from "./conversation/question-kinds";
 export * from "./client-tools";
 export {
   hashEntityReadDefaultTraversalDepth,

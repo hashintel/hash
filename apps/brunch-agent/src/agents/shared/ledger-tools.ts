@@ -21,20 +21,48 @@ export const compileToolDescription =
 const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
 const vCallPart = v.object({ toolCallId: v.string() });
 
+/** The parts of the assistant message, one per turn, that holds this call. */
+export const turnPartsWith = (history: LedgerHistory, toolCallId: string) =>
+  history.messages.find((message) =>
+    message.parts.some(
+      (part) => v.is(vCallPart, part) && part.toolCallId === toolCallId,
+    ),
+  )?.parts ?? [];
+
 /**
  * Whether the turn has replied by this call. History keeps one assistant
  * message per turn, so a commit repaired after a refusal counts the reply
  * written beside the refused call.
  */
-const repliesWith = (history: LedgerHistory, toolCallId: string) =>
-  history.messages
-    .find((message) =>
-      message.parts.some(
-        (part) => v.is(vCallPart, part) && part.toolCallId === toolCallId,
-      ),
-    )
-    ?.parts.some((part) => v.is(vTextPart, part) && part.text.trim() !== "") ??
-  false;
+export const repliesWith = (history: LedgerHistory, toolCallId: string) =>
+  turnPartsWith(history, toolCallId).some(
+    (part) => v.is(vTextPart, part) && part.text.trim() !== "",
+  );
+
+const closingCommit = {
+  toolName: v.literal(brunchTools.ledgerCommit),
+  input: v.object({ endTurn: v.literal(true) }),
+};
+const vClosingCommitPart = v.variant("state", [
+  v.object({ ...closingCommit, state: v.literal("input-available") }),
+  v.object({
+    ...closingCommit,
+    state: v.literal("output-available"),
+    output: v.object({ status: v.literal("recorded") }),
+  }),
+]);
+
+/**
+ * Whether the turn closes as `ledger_commit` would: it has replied by this
+ * call, and holds a commit with `endTurn` still running in this batch or
+ * already recorded. A commit that failed or was refused recorded nothing, so
+ * it closes nothing.
+ */
+export const closesWithCommit = (history: LedgerHistory, toolCallId: string) =>
+  repliesWith(history, toolCallId) &&
+  turnPartsWith(history, toolCallId).some((part) =>
+    v.is(vClosingCommitPart, part),
+  );
 
 /**
  * The durable `ledger_commit` over this agent's Ledger. An agent may describe

@@ -18,6 +18,12 @@ It types your message into Brunch's chat, waits until Brunch has completely fini
     <your message>
     EOF
 
+When Brunch puts questions on its message box, the reply ends with them as a numbered list. Answer those with \`answer\`, one quoted argument for each question in the same order:
+
+    ${helper} answer "<answer to 1>" "<answer to 2>"
+
+An answer that is exactly an option's label picks that option; anything else is typed as your own words. Give \`""\` for a question you would leave unanswered. With one question listed, \`say\` works as well.
+
 Other commands:
 
 - \`${helper} transcript\` prints the conversation so far.
