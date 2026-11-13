@@ -1,18 +1,12 @@
 import { createContext, use } from "react";
 
-import {
-  Button,
-  Form,
-  Icon,
-  TextInput,
-  Tooltip,
-} from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { Button, Form, Icon, Tooltip } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   checkFusion,
+  describeFusionMember,
   fusionDisplayName,
-  fusionMemberKey,
-  resolveFusionMember,
+  getArcEndpointKey,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
 
@@ -22,20 +16,15 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../components/description-field";
-import { PropertyValue } from "../../../../../components/property-value";
+import { DraftFieldInput } from "../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { FusionIcon } from "../../../../../constants/entity-icons";
+import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import { useDraftField } from "../../../../../hooks/use-draft-field";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type {
-  Fusion,
-  FusionProblem,
-  PetrinautMutations,
-} from "@hashintel/petrinaut-core";
-
-const FusionIcon = () => <Icon name="diagramNodes" />;
+import type { Fusion, FusionMember } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -93,94 +82,67 @@ const memberNameStyle = css({
   whiteSpace: "nowrap",
 });
 
-const memberRoleStyle = css({
+const hintTextStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
   whiteSpace: "nowrap",
 });
 
-const problemStyle = cva({
-  base: {
-    fontSize: "xs",
-    lineHeight: "[1.4]",
-    paddingY: "1",
-  },
-  variants: {
-    severity: {
-      error: { color: "[#dc2626]" },
-      warning: { color: "[#b45309]" },
-      info: { color: "neutral.s95" },
-    },
-  },
-});
-
-const hintTextStyle = css({
+const problemStyle = css({
   fontSize: "xs",
-  color: "neutral.s85",
+  lineHeight: "[1.4]",
+  paddingY: "1",
 });
 
-type FusionPropertiesData = {
-  fusion: Fusion;
-  problems: FusionProblem[];
-  updateFusion: PetrinautMutations["updateFusion"];
-  removeFusion: PetrinautMutations["removeFusion"];
-  removeFusionMember: PetrinautMutations["removeFusionMember"];
-};
+const FusionContext = createContext<Fusion | null>(null);
 
-const FusionPropertiesContext = createContext<FusionPropertiesData | null>(
-  null,
-);
-
-const useFusionPropertiesContext = (): FusionPropertiesData => {
-  const context = use(FusionPropertiesContext);
-  if (!context) {
-    throw new Error(
-      "useFusionPropertiesContext must be used within FusionProperties",
-    );
+const useFusion = (): Fusion => {
+  const fusion = use(FusionContext);
+  if (!fusion) {
+    throw new Error("useFusion must be used within FusionProperties");
   }
-  return context;
+  return fusion;
 };
 
-const MemberRow = ({ member }: { member: Fusion["members"][number] }) => {
-  const { fusion, removeFusionMember } = useFusionPropertiesContext();
+/** A blank name is valid: it leaves the fusion named after its anchor. */
+const validateFusionName = (draft: string) =>
+  draft.trim() === ""
+    ? ({ valid: true, name: "" } as const)
+    : validateDisplayName(draft);
+
+const MemberRow = ({ member }: { member: FusionMember }) => {
+  const fusion = useFusion();
   const { petriNetDefinition } = use(SDCPNContext);
   const { activeNet } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
+  const { removeFusionMember } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
-  const resolved = resolveFusionMember(petriNetDefinition, activeNet, member);
-
-  const label =
-    resolved === null
-      ? "Missing member"
-      : resolved.kind === "place"
-        ? resolved.place.name
-        : `${resolved.instance.name}.${resolved.place.name}`;
-  const role =
-    resolved === null
-      ? undefined
-      : resolved.kind === "place"
-        ? "place of this net"
-        : "instance port";
-  const target =
-    member.kind === "place"
-      ? { type: "place" as const, id: member.placeId }
-      : { type: "componentInstance" as const, id: member.componentInstanceId };
+  const label = describeFusionMember(petriNetDefinition, activeNet, member);
 
   return (
     <div className={memberRowStyle}>
-      <button
-        type="button"
-        className={memberButtonStyle}
-        onClick={() => selectItem(target)}
-        title="Select on the canvas"
-      >
-        <Icon
-          name={member.kind === "place" ? "circleFilled" : "cube"}
-          size="xs"
-        />
-        <span className={memberNameStyle}>{label}</span>
-        {role !== undefined && <span className={memberRoleStyle}>{role}</span>}
-      </button>
+      <Tooltip content="Select on the canvas">
+        <button
+          type="button"
+          className={memberButtonStyle}
+          onClick={() =>
+            selectItem(
+              member.kind === "place"
+                ? { type: "place", id: member.placeId }
+                : { type: "componentInstance", id: member.componentInstanceId },
+            )
+          }
+        >
+          <Icon
+            name={member.kind === "place" ? "circleFilled" : "cube"}
+            size="xs"
+          />
+          <span className={memberNameStyle}>{label}</span>
+          <span className={hintTextStyle}>
+            {member.kind === "place" ? "place of this net" : "instance port"}
+          </span>
+        </button>
+      </Tooltip>
       <Button
         aria-label={`Remove ${label} from the fusion`}
         size="xxs"
@@ -195,65 +157,37 @@ const MemberRow = ({ member }: { member: Fusion["members"][number] }) => {
 };
 
 const FusionMainContent: React.FC = () => {
-  const { fusion, problems, updateFusion } = useFusionPropertiesContext();
+  const fusion = useFusion();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { activeNet, activeSubnetId } = use(ActiveNetContext);
+  const { updateFusion } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
-
-  const nameField = useDraftField({
-    sourceId: fusion.id,
-    sourceValue: fusion.name ?? "",
-  });
-
-  const handleNameBlur = () => {
-    const trimmed = nameField.value.trim();
-    if (trimmed === "") {
-      nameField.setError(null);
-      if (fusion.name !== undefined) {
-        updateFusion({ fusionId: fusion.id, update: { name: undefined } });
-      }
-      return;
-    }
-    const result = validateDisplayName(trimmed);
-    if (!result.valid) {
-      nameField.setError(result.error);
-      return;
-    }
-    nameField.setError(null);
-    if (result.name !== fusion.name) {
-      updateFusion({ fusionId: fusion.id, update: { name: result.name } });
-    }
-  };
+  const problems = checkFusion(
+    petriNetDefinition,
+    activeNet,
+    fusion,
+    activeSubnetId,
+  );
 
   return (
     <SectionList>
       <Form.Section className={fieldsSectionStyle}>
-        <Form.Field
+        <DraftFieldInput
           label="Name"
-          size="sm"
-          errors={
-            !isDisabled && nameField.error ? [nameField.error] : undefined
+          sourceId={fusion.id}
+          sourceValue={fusion.name ?? ""}
+          placeholder="Named after its anchor place"
+          validate={validateFusionName}
+          onCommit={(name) =>
+            updateFusion({
+              fusionId: fusion.id,
+              update: { name: name === "" ? undefined : name },
+            })
           }
-        >
-          <PropertyValue text={fusion.name ?? "(named after its anchor)"}>
-            <Tooltip
-              content={readOnlyTooltip ?? ""}
-              disableTooltip={!isDisabled}
-            >
-              <TextInput
-                value={nameField.value}
-                size="sm"
-                placeholder="Named after its anchor place"
-                onChange={(name) => {
-                  nameField.setValue(name);
-                  if (nameField.error) nameField.setError(null);
-                }}
-                onBlur={handleNameBlur}
-                disabled={isDisabled}
-                invalid={!!nameField.error}
-              />
-            </Tooltip>
-          </PropertyValue>
-        </Form.Field>
+          disabled={isDisabled}
+          tooltip={readOnlyTooltip}
+        />
         <DescriptionField
           sourceId={fusion.id}
           sourceValue={fusion.description}
@@ -267,7 +201,7 @@ const FusionMainContent: React.FC = () => {
       <Section title="Fused places">
         <div className={memberListStyle}>
           {fusion.members.map((member) => (
-            <MemberRow key={fusionMemberKey(member)} member={member} />
+            <MemberRow key={getArcEndpointKey(member)} member={member} />
           ))}
         </div>
         <div className={hintTextStyle}>
@@ -276,10 +210,14 @@ const FusionMainContent: React.FC = () => {
       </Section>
       {problems.length > 0 && (
         <Section title="Checks">
-          {problems.map((problem) => (
+          {problems.map((problem, index) => (
             <div
-              key={problem.code}
-              className={problemStyle({ severity: problem.severity })}
+              // The list is derived afresh on every render, and one check can
+              // report twice on one fusion.
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              className={cx(problemStyle, problemTextStyle)}
+              data-severity={problem.severity}
             >
               {problem.message}
             </div>
@@ -291,7 +229,7 @@ const FusionMainContent: React.FC = () => {
 };
 
 const FusionTitle: React.FC = () => {
-  const { fusion } = useFusionPropertiesContext();
+  const fusion = useFusion();
   const { petriNetDefinition } = use(SDCPNContext);
   const { activeNet } = use(ActiveNetContext);
   return (
@@ -302,7 +240,8 @@ const FusionTitle: React.FC = () => {
 };
 
 const DeleteFusionAction: React.FC = () => {
-  const { fusion, removeFusion } = useFusionPropertiesContext();
+  const fusion = useFusion();
+  const { removeFusion } = usePetrinautMutations();
   const { clearSelection } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
@@ -337,34 +276,10 @@ const fusionMainContentSubView: SubView = {
 
 const subViews: SubView[] = [fusionMainContentSubView];
 
-export const FusionProperties: React.FC<{ fusion: Fusion }> = ({ fusion }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
-  const { activeNet, activeSubnetId } = use(ActiveNetContext);
-  const { updateFusion, removeFusion, removeFusionMember } =
-    usePetrinautMutations();
-  const problems = checkFusion(
-    petriNetDefinition,
-    activeNet,
-    fusion,
-    activeSubnetId,
-  );
-
-  return (
-    <div className={containerStyle}>
-      <FusionPropertiesContext
-        value={{
-          fusion,
-          problems,
-          updateFusion,
-          removeFusion,
-          removeFusionMember,
-        }}
-      >
-        <VerticalSubViewsContainer
-          name="fusion-properties"
-          subViews={subViews}
-        />
-      </FusionPropertiesContext>
-    </div>
-  );
-};
+export const FusionProperties: React.FC<{ fusion: Fusion }> = ({ fusion }) => (
+  <div className={containerStyle}>
+    <FusionContext value={fusion}>
+      <VerticalSubViewsContainer name="fusion-properties" subViews={subViews} />
+    </FusionContext>
+  </div>
+);
