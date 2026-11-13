@@ -41,7 +41,7 @@ import * as pkg from "@scope/pkg";
 * [`choose`](#choose) First call.
 * [`callable`](#callable) Container docs.
 * [`partial`](#partial) Documented.
-* [`old`](#old) Both deprecated.
+* [`old`](#old) Deprecated. Both deprecated.
 * [`again`](#choose) First call.
 * [`identity`](#identity) Generic docs.
 
