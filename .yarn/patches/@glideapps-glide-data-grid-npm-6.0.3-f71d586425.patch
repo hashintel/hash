@@ -1,8 +1,46 @@
 diff --git a/dist/cjs/data-editor/data-editor.js b/dist/cjs/data-editor/data-editor.js
-index 081f3b38d82107204ac3f3620d6724ffad01b43f..9dec0519a1e179ec127022c480f01187ad16c4ee 100644
+index 081f3b38d82107204ac3f3620d6724ffad01b43f..91b774340464d73d674e81eaa5e418d2861ceb6e 100644
 --- a/dist/cjs/data-editor/data-editor.js
 +++ b/dist/cjs/data-editor/data-editor.js
-@@ -2597,7 +2597,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -1792,6 +1792,37 @@ const DataEditorImpl = (p, forwardedRef) => {
+     const overlayID = React.useMemo(() => {
+         return `gdg-overlay-${idCounter++}`;
+     }, []);
++    /** Patched so an open overlay editor tracks its cell when the grid or any ancestor scrolls */
++    const overlayCell = overlay?.cell;
++    React.useEffect(() => {
++        if (overlayCell === undefined)
++            return;
++        let rafHandle;
++        const repositionOverlay = () => {
++            if (rafHandle !== undefined)
++                return;
++            rafHandle = window.requestAnimationFrame(() => {
++                rafHandle = undefined;
++                const newTarget = gridRef.current?.getBounds(overlayCell[0], overlayCell[1]);
++                if (newTarget === undefined)
++                    return;
++                setOverlay(cur => {
++                    if (cur === undefined || cur.cell !== overlayCell)
++                        return cur;
++                    const { x, y, width, height } = cur.target;
++                    if (x === newTarget.x && y === newTarget.y && width === newTarget.width && height === newTarget.height)
++                        return cur;
++                    return { ...cur, target: newTarget };
++                });
++            });
++        };
++        window.addEventListener("scroll", repositionOverlay, true);
++        return () => {
++            window.removeEventListener("scroll", repositionOverlay, true);
++            if (rafHandle !== undefined)
++                window.cancelAnimationFrame(rafHandle);
++        };
++    }, [overlayCell]);
+     const deleteRange = React.useCallback((r) => {
+         focus();
+         const editList = [];
+@@ -2597,7 +2628,9 @@ const DataEditorImpl = (p, forwardedRef) => {
                  void normalSizeColumn(col + rowMarkerOffset);
              }
          },
@@ -61,10 +99,48 @@ index 4007ec6485ebdf8a5c60c30e3e82fb9468e6eba8..32971904056de270429100b9e34c53b4
  /** @category Columns */
  export interface AutoGridColumn extends BaseGridColumn {
 diff --git a/dist/esm/data-editor/data-editor.js b/dist/esm/data-editor/data-editor.js
-index ec05aa9866c70032fc5509ff557cb8c542e384ed..675685a49e67a2deffa8afb6891be88005286034 100644
+index ec05aa9866c70032fc5509ff557cb8c542e384ed..d6b7f62e7308ea0a89ddb70bd1b862a04868c796 100644
 --- a/dist/esm/data-editor/data-editor.js
 +++ b/dist/esm/data-editor/data-editor.js
-@@ -2568,7 +2568,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+@@ -1763,6 +1763,37 @@ const DataEditorImpl = (p, forwardedRef) => {
+     const overlayID = React.useMemo(() => {
+         return `gdg-overlay-${idCounter++}`;
+     }, []);
++    /** Patched so an open overlay editor tracks its cell when the grid or any ancestor scrolls */
++    const overlayCell = overlay?.cell;
++    React.useEffect(() => {
++        if (overlayCell === undefined)
++            return;
++        let rafHandle;
++        const repositionOverlay = () => {
++            if (rafHandle !== undefined)
++                return;
++            rafHandle = window.requestAnimationFrame(() => {
++                rafHandle = undefined;
++                const newTarget = gridRef.current?.getBounds(overlayCell[0], overlayCell[1]);
++                if (newTarget === undefined)
++                    return;
++                setOverlay(cur => {
++                    if (cur === undefined || cur.cell !== overlayCell)
++                        return cur;
++                    const { x, y, width, height } = cur.target;
++                    if (x === newTarget.x && y === newTarget.y && width === newTarget.width && height === newTarget.height)
++                        return cur;
++                    return { ...cur, target: newTarget };
++                });
++            });
++        };
++        window.addEventListener("scroll", repositionOverlay, true);
++        return () => {
++            window.removeEventListener("scroll", repositionOverlay, true);
++            if (rafHandle !== undefined)
++                window.cancelAnimationFrame(rafHandle);
++        };
++    }, [overlayCell]);
+     const deleteRange = React.useCallback((r) => {
+         focus();
+         const editList = [];
+@@ -2568,7 +2599,9 @@ const DataEditorImpl = (p, forwardedRef) => {
                  void normalSizeColumn(col + rowMarkerOffset);
              }
          },
