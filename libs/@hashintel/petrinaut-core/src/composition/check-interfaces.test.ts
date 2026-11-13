@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { checkFusions } from "./check-fusions";
 import { checkInterfaces } from "./check-interfaces";
 import { mapInterfacePorts, resolveImplementation } from "./interfaces";
 
@@ -205,6 +206,47 @@ describe("checkInterfaces", () => {
     expect(
       checkInterfaces({ ...sdcpn, implementations: { stage: "fast" } }),
     ).toEqual([]);
+  });
+});
+
+describe("a fusion on a port of an interface", () => {
+  it("is checked against the port of the implementation that runs", () => {
+    const narrow = subnet("narrow", {
+      implements: ["stage"],
+      places: [
+        place("narrow_in", { name: "In", isPort: true, capacity: 3 }),
+        place("narrow_out", { name: "Out", isPort: true }),
+      ],
+      parameters: [parameter("narrow_rate", "rate")],
+    });
+    const sdcpn = net({
+      places: [place("buffer", { capacity: 5 })],
+      subnets: [stage, narrow],
+      implementations: { stage: "narrow" },
+      componentInstances: [instance("s1", "stage")],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "s1",
+              portPlaceId: "stage_in",
+            },
+          ],
+        },
+      ],
+    });
+
+    const errors = (document: SDCPN) =>
+      checkFusions(document).filter(({ severity }) => severity === "error");
+
+    expect(errors(sdcpn)).toMatchObject([
+      { fusionId: "f1", code: "capacity-mismatch" },
+    ]);
+    // Unbound, the interface's own port is all there is to check.
+    expect(errors({ ...sdcpn, implementations: undefined })).toEqual([]);
   });
 });
 

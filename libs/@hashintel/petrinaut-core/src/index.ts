@@ -97,12 +97,12 @@ export type {
   InterfaceProblemCode,
 } from "./composition/check-interfaces";
 export {
+  defaultImplementationId,
   describeUnboundInstance,
+  hasBody,
   implementationsOf,
   implementsInterface,
   isInterface,
-  mapInterfaceParameters,
-  mapInterfacePorts,
   resolveImplementation,
 } from "./composition/interfaces";
 export type {

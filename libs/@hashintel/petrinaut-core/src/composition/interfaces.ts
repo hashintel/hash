@@ -7,10 +7,30 @@
  * holds it to their ports and parameters.
  */
 
-import type { ComponentInstance, ID, SDCPN, Subnet } from "../types/sdcpn";
+import { getOwn } from "../validation/record-keys";
+
+import type {
+  ComponentInstance,
+  ID,
+  Place,
+  SDCPN,
+  Subnet,
+} from "../types/sdcpn";
 
 export const isInterface = (subnet: Pick<Subnet, "interface">): boolean =>
   subnet.interface === true;
+
+/** Whether a subnet holds what an interface may not: a transition or an instance. */
+export const hasBody = (
+  subnet: Pick<Subnet, "transitions" | "componentInstances">,
+): boolean =>
+  subnet.transitions.length > 0 || (subnet.componentInstances?.length ?? 0) > 0;
+
+/** The subnet the document runs for an interface whose instance chooses none. */
+export const defaultImplementationId = (
+  sdcpn: Pick<SDCPN, "implementations">,
+  interfaceId: ID,
+): ID | undefined => getOwn(sdcpn.implementations, interfaceId);
 
 export const implementsInterface = (
   subnet: Pick<Subnet, "implements">,
@@ -26,13 +46,6 @@ export const implementationsOf = (
     implementsInterface(subnet, interfaceId),
   );
 
-/** Why an instance of an interface has nothing to run. */
-export type UnboundReason =
-  | "no-binding"
-  | "missing"
-  | "not-implementing"
-  | "is-interface";
-
 export type ImplementationBinding =
   | { kind: "component"; subnet: Subnet }
   | {
@@ -42,19 +55,19 @@ export type ImplementationBinding =
       /** Whether the instance chose the implementation or the document's default applied. */
       chosenBy: "instance" | "document";
     }
-  | {
-      kind: "unbound";
-      interface: Subnet;
-      reason: UnboundReason;
-      /** The subnet the binding named, when it named one. */
-      implementationId?: ID;
-    };
+  | ({ kind: "unbound"; interface: Subnet } & (
+      | { reason: "no-binding" }
+      /** The binding names a subnet that does not exist. */
+      | { reason: "missing"; implementationId: ID }
+      /** The binding names a subnet that cannot stand behind the interface. */
+      | { reason: "is-interface" | "not-implementing"; implementation: Subnet }
+    ));
 
-const lookup = (
-  record: Record<string, ID> | undefined,
-  key: ID,
-): ID | undefined =>
-  record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
+/** Why an instance of an interface has nothing to run. */
+export type UnboundReason = Extract<
+  ImplementationBinding,
+  { kind: "unbound" }
+>["reason"];
 
 /**
  * The subnet that runs for `instance`: its own subnet when that is a
@@ -73,60 +86,44 @@ export const resolveImplementation = (
   if (!isInterface(declared)) {
     return { kind: "component", subnet: declared };
   }
-  const chosenBy =
-    instance.implementation === undefined ? "document" : "instance";
+  const unbound = { kind: "unbound", interface: declared } as const;
   const implementationId =
-    instance.implementation ?? lookup(sdcpn.implementations, declared.id);
+    instance.implementation ?? defaultImplementationId(sdcpn, declared.id);
   if (implementationId === undefined) {
-    return { kind: "unbound", interface: declared, reason: "no-binding" };
+    return { ...unbound, reason: "no-binding" };
   }
   const implementation = subnets.find(({ id }) => id === implementationId);
   if (!implementation) {
-    return {
-      kind: "unbound",
-      interface: declared,
-      reason: "missing",
-      implementationId,
-    };
+    return { ...unbound, reason: "missing", implementationId };
   }
   if (isInterface(implementation)) {
-    return {
-      kind: "unbound",
-      interface: declared,
-      reason: "is-interface",
-      implementationId,
-    };
+    return { ...unbound, reason: "is-interface", implementation };
   }
   if (!implementsInterface(implementation, declared.id)) {
-    return {
-      kind: "unbound",
-      interface: declared,
-      reason: "not-implementing",
-      implementationId,
-    };
+    return { ...unbound, reason: "not-implementing", implementation };
   }
-  return { kind: "bound", interface: declared, implementation, chosenBy };
+  return {
+    kind: "bound",
+    interface: declared,
+    implementation,
+    chosenBy: instance.implementation === undefined ? "document" : "instance",
+  };
 };
 
 /** One sentence on why `binding` runs nothing, naming the instance. */
 export const describeUnboundInstance = (
-  sdcpn: Pick<SDCPN, "subnets">,
   binding: Extract<ImplementationBinding, { kind: "unbound" }>,
   instanceName: string,
 ): string => {
-  const named =
-    binding.implementationId === undefined
-      ? undefined
-      : (sdcpn.subnets ?? []).find(({ id }) => id === binding.implementationId);
   switch (binding.reason) {
     case "no-binding":
       return `${instanceName} is an instance of the interface ${binding.interface.name} with no implementation: choose one on the instance or set the document's default.`;
     case "missing":
       return `${instanceName} names an implementation that does not exist.`;
     case "is-interface":
-      return `${instanceName} names ${named?.name ?? "a subnet"} as its implementation, which is an interface itself.`;
+      return `${instanceName} names ${binding.implementation.name} as its implementation, which is an interface itself.`;
     case "not-implementing":
-      return `${instanceName} names ${named?.name ?? "a subnet"} as its implementation, which does not implement ${binding.interface.name}.`;
+      return `${instanceName} names ${binding.implementation.name} as its implementation, which does not implement ${binding.interface.name}.`;
   }
 };
 
@@ -173,4 +170,29 @@ export const mapInterfaceParameters = (
     }
   }
   return map;
+};
+
+/**
+ * The place that runs for a port of `instance`, and the subnet it is in: the
+ * declared port itself for a component, and for an instance of an interface
+ * the bound implementation's port of the same name. Falls back to the
+ * declared port while nothing is bound or the implementation lacks the port.
+ */
+export const resolveRunningPort = (
+  sdcpn: Pick<SDCPN, "subnets" | "implementations">,
+  instance: Pick<ComponentInstance, "subnetId" | "implementation">,
+  declared: { subnet: Subnet; place: Place },
+): { subnet: Subnet; place: Place } => {
+  const binding = resolveImplementation(sdcpn, instance);
+  if (binding?.kind !== "bound") {
+    return declared;
+  }
+  const runningId = mapInterfacePorts(
+    binding.interface,
+    binding.implementation,
+  ).get(declared.place.id);
+  const place = binding.implementation.places.find(
+    ({ id }) => id === runningId,
+  );
+  return place ? { subnet: binding.implementation, place } : declared;
 };
