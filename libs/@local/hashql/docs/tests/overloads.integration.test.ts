@@ -114,6 +114,10 @@ export function partial(value: number): void;
  */
 export function identity<T>(value: T): T;
 export function identity(other: string): string;
+/** First literal. @param value - The input. */
+export function literal(value: { a: string }): void;
+/** Second literal. @param value - The input. */
+export function literal(value: { a: string }, more: number): void;
 export class Members {
   static value: string;
   value: number;
@@ -243,6 +247,18 @@ layer(Reference.layer({ source, configuration: "render-tsdoc.json" }), {
       expect([typeParameter.name, descriptions(typeParameter)]).toStrictEqual([
         "T",
         [applied("The payload.", [1])],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "literal_forms",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const parameter = at(collect(reference, "literal").parameters, 0);
+      expect(types(parameter)).toStrictEqual([
+        applied("{ a: string }", [1, 2]),
       ]);
     }),
   );

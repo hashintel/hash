@@ -1,12 +1,96 @@
-import { Array, Function, Option, Predicate, pipe } from "effect";
+import { Array, Function, Option, Order, Predicate, pipe } from "effect";
 import * as Syntax from "typescript/ast";
 import * as Factory from "typescript/ast/factory";
 import { getNameOfDeclaration } from "typescript/ast/utils";
+import { visitEachChild, visitNodesArray } from "typescript/ast/visitor";
 
 import * as Node from "../TypeScript/Node.js";
 
 import type * as Catalogue from "../Catalogue.js";
 import type * as Parts from "./parts.js";
+
+// The formatter needs a valid type name, and one as wide as the ellipsis breaks lines where the ellipsis would. Only this identifier object prints as an ellipsis.
+const ellipsis = Factory.createIdentifier("_");
+const elision = Factory.createTypeReferenceNode(ellipsis);
+
+export const isElision = (node: Syntax.Node): boolean => node === ellipsis;
+
+/** The type arguments `node` writes, as one list. */
+const typeArgumentsOf = (node: Syntax.Node): readonly Syntax.TypeNode[] => {
+  if (
+    Syntax.isTypeReferenceNode(node) ||
+    Syntax.isTypeQueryNode(node) ||
+    Syntax.isImportTypeNode(node) ||
+    Syntax.isExpressionWithTypeArguments(node)
+  ) {
+    return node.typeArguments ?? [];
+  }
+
+  return [];
+};
+
+/** How deep the most nested list of type arguments in `nodes` sits, where the outermost lists are at 0, or none when `nodes` write no type arguments. */
+export const deepest = (
+  nodes: readonly Syntax.Node[],
+): Option.Option<number> => {
+  const levels: number[] = [];
+  const pending = Array.map(nodes, (node): readonly [Syntax.Node, number] => [
+    node,
+    0,
+  ]);
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (current !== undefined) {
+      const [node, level] = current;
+      const typeArguments = typeArgumentsOf(node);
+      if (typeArguments.length > 0) {
+        levels.push(level);
+      }
+
+      for (const child of node.childrenIter()) {
+        const argument = typeArguments.some((candidate) => candidate === child);
+        pending.push([child, level + Number(argument)]);
+      }
+    }
+  }
+
+  return pipe(
+    levels,
+    Option.liftPredicate(Array.isArrayNonEmpty),
+    Option.map(Array.max(Order.Number)),
+  );
+};
+
+/** `nodes` with each list of type arguments at `depth` shown as `…`, where the outermost lists are at 0. A list it leaves alone keeps its nodes, so each of its names still finds its reference. */
+export const elide: {
+  (depth: number): (nodes: readonly Syntax.Node[]) => readonly Syntax.Node[];
+  (nodes: readonly Syntax.Node[], depth: number): readonly Syntax.Node[];
+} = Function.dual(
+  2,
+  (nodes: readonly Syntax.Node[], depth: number): readonly Syntax.Node[] => {
+    const visit = (node: Syntax.Node, current: number): Syntax.Node => {
+      const typeArguments = typeArgumentsOf(node);
+
+      let replaced = false;
+      return visitEachChild(node, (child) => {
+        const argument = typeArguments.some((candidate) => candidate === child);
+        if (argument && current === depth) {
+          if (replaced) {
+            return;
+          }
+
+          replaced = true;
+          return elision;
+        }
+
+        return visit(child, current + Number(argument));
+      });
+    };
+
+    return visitNodesArray(nodes, (node) => visit(node, 0));
+  },
+);
 
 /** Compares syntax and resolved identifier meanings without printing either tree. */
 export const equivalence =
@@ -244,10 +328,17 @@ export const project: {
 
     let node: Syntax.Node = source;
     if (Syntax.isClassDeclaration(source)) {
-      let members: readonly Syntax.ClassElement[] = source.members;
+      // A private constructor stays, because it tells a reader that code outside the class cannot construct it.
+      const open = Array.filter(
+        source.members,
+        (member) =>
+          Syntax.isConstructorDeclaration(member) || !Node.isPrivate(member),
+      );
+      let members: readonly Syntax.ClassElement[] =
+        open.length === source.members.length ? source.members : open;
       if (typeOnlyExport) {
         members = Array.filter(
-          source.members,
+          members,
           (member) =>
             !Syntax.isConstructorDeclaration(member) &&
             !Node.hasModifier(member, Syntax.ModifierFlags.Static),
@@ -317,3 +408,37 @@ export const project: {
     return Array.prepend(Option.toArray(spelling.statement), node);
   },
 );
+
+/** Supplies the grammar context needed to parse a printed member or type on its own. */
+export const context = (
+  node: Syntax.Node,
+): { readonly prefix: string; readonly suffix: string } => {
+  if (Syntax.isTypePredicateNode(node)) {
+    return { prefix: "declare function __Printed(): ", suffix: ";" };
+  }
+  if (Syntax.isTypeNode(node) || Syntax.isExpressionWithTypeArguments(node)) {
+    return { prefix: "type __Printed = ", suffix: ";" };
+  }
+  if (Syntax.isEnumMember(node)) {
+    return { prefix: "enum __Printed {\n", suffix: "\n}" };
+  }
+  if (
+    Syntax.isPropertyDeclaration(node) ||
+    Syntax.isPropertySignatureDeclaration(node) ||
+    Syntax.isMethodDeclaration(node) ||
+    Syntax.isMethodSignatureDeclaration(node) ||
+    Syntax.isGetAccessorDeclaration(node) ||
+    Syntax.isSetAccessorDeclaration(node) ||
+    Syntax.isConstructorDeclaration(node) ||
+    Syntax.isIndexSignatureDeclaration(node)
+  ) {
+    return { prefix: "declare class __Printed {\n", suffix: "\n}" };
+  }
+  if (
+    Syntax.isCallSignatureDeclaration(node) ||
+    Syntax.isConstructSignatureDeclaration(node)
+  ) {
+    return { prefix: "interface __Printed {\n", suffix: "\n}" };
+  }
+  return { prefix: "", suffix: "" };
+};

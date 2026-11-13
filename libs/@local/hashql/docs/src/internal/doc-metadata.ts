@@ -3,6 +3,7 @@ import { Array, Option, Result, Schema, String, pipe } from "effect";
 
 import * as AST from "../AST/index.js";
 import * as DocumentationError from "../DocumentationError.js";
+import * as DocSource from "./ast/doc-source.js";
 import * as DocTags from "./doc-tags.js";
 
 import type { DocBlock, TSDocTagDefinition } from "@microsoft/tsdoc";
@@ -18,6 +19,13 @@ const wordOf = (block: DocBlock): string =>
     String.trim,
   );
 
+/** Where a block starts in the file its comment is in. */
+const startOf = (block: DocBlock): number =>
+  Option.match(DocSource.rangeOf(block), {
+    onNone: () => 0,
+    onSome: ({ pos }) => pos,
+  });
+
 /** The one block a singleton tag allows. A repeat fails rather than letting either occurrence win. */
 const single = (
   file: string,
@@ -31,16 +39,21 @@ const single = (
     DocTags.is(definition)(block.blockTag),
   );
 
-  if (found.length > 1) {
+  const [first, repeated] = found;
+  if (repeated !== undefined) {
     return Result.fail(
       DocumentationError.DocumentationError.make({
         file,
-        reason: { _tag: "DuplicateTag", tag: definition.tagName },
+        reason: {
+          _tag: "DuplicateTag",
+          tag: definition.tagName,
+          start: startOf(repeated),
+        },
       }),
     );
   }
 
-  return Result.succeed(Array.head(found));
+  return Result.succeed(Option.fromUndefinedOr(first));
 };
 
 /** A comment's custom blocks, with the file a failure names. */
@@ -99,7 +112,11 @@ export const stability = ({
             onFailure: (cause) =>
               DocumentationError.DocumentationError.make({
                 file,
-                reason: { _tag: "UnknownStability", cause },
+                reason: {
+                  _tag: "UnknownStability",
+                  cause,
+                  start: startOf(node),
+                },
               }),
             onSuccess: (level) =>
               AST.Documentation.Stability.make({ node, level }),

@@ -17,9 +17,12 @@
   },
   "dependencies": {
     "@effect/platform-node": "4.0.3",
+    "@jridgewell/trace-mapping": "0.3.31",
     "@microsoft/tsdoc": "0.16.0",
     "@microsoft/tsdoc-config": "0.18.1",
-    "effect": "4.0.3"
+    "effect": "4.0.3",
+    "mdast-util-to-markdown": "2.1.2",
+    "oxfmt": "0.71.0"
   },
   "devDependencies": {
     "@effect/vitest": "4.0.3",
@@ -27,6 +30,8 @@
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
     "@types/mdx": "2.0.13",
     "@types/node": "catalog:",
     "@types/react": "19.2.14",

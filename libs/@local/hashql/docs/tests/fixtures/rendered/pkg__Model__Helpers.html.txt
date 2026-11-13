@@ -1,0 +1,25 @@
+# Helpers
+
+[Source](index.d.ts#L37)
+
+```ts
+import { Model } from "@scope/pkg";
+```
+
+## <a id="page-index"></a>Index
+
+**Constants**
+
+* [`nested`](#nested)
+
+## <a id="category-constants"></a>Constants
+
+### <a id="nested"></a>nested
+
+**Signature**
+
+[Source](index.d.ts#L37)
+
+```ts
+export const nested: boolean;
+```

@@ -482,6 +482,23 @@ measure();`);
     );
 
     it.effect(
+      "merged_in_import_type",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`let unit: import("./declarations.js").measure.Unit;
+let run: typeof import("./declarations.js").measure;`);
+        expect(names).toStrictEqual([
+          ["unit", "let unit: string"],
+          ["measure", "function measure(): void"],
+          ["Unit", "type measure.Unit = string"],
+          ["run", "let run: () => void"],
+          ["measure", "function measure(): void"],
+        ]);
+      }),
+    );
+
+    it.effect(
       "merged_in_scope",
       Effect.fnUntraced(function* () {
         expect.hasAssertions();

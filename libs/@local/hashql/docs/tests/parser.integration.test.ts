@@ -1669,7 +1669,7 @@ export interface Options { readonly body: number }`,
             onSuccess: () => "",
           }),
         ).toContain(
-          "The @param input at 4 names no parameter of a call the reference reads from the declaration it is on. A declaration it reads no call from, such as a type alias, takes no @param",
+          ", offset 4: The @param input names no parameter of a call the reference reads from the declaration it is on. A declaration it reads no call from, such as a type alias, takes no @param",
         );
       }),
     );
