@@ -21,12 +21,15 @@ export const RenameInput = ({
   placeholder,
   autoFocus = false,
   ariaLabel,
+  editIcon = true,
   onRename,
 }: {
   value: string;
   placeholder?: string;
   autoFocus?: boolean;
   ariaLabel: string;
+  /** Whether a pen shows it can be renamed; without it, only hovering does. */
+  editIcon?: boolean;
   onRename: (name: string) => void;
 }) => {
   const [editing, setEditing] = useState<{
@@ -41,7 +44,7 @@ export const RenameInput = ({
       variant="subtle"
       size="sm"
       width="fitContent"
-      showEditIcon
+      showEditIcon={editIcon}
       autoFocus={autoFocus}
       aria-label={ariaLabel}
       placeholder={placeholder}

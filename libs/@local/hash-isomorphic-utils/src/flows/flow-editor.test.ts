@@ -560,6 +560,77 @@ describe("createFlowEditor", () => {
     });
   });
 
+  describe("paths", () => {
+    /** `first` → If `check`, whose Yes leads to `yes`. */
+    const loadWithIf = () => {
+      const editor = loadFlow();
+      const check = editor.addStep("if", { after: "first" });
+      const yes = editor.addStep("answerQuestion", {
+        after: check,
+        outputName: "true",
+      });
+
+      return { editor, check, yes };
+    };
+
+    it("removes a connection only on the path named, and puts a step on one path at most", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.removeConnection({ from: check, to: yes });
+      editor.removeConnection({ from: check, to: yes, outputName: "false" });
+      editor.addConnection({ from: check, to: yes, outputName: "false" });
+
+      expect(stepOf(editor, yes)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+    });
+
+    it("sets the one step a path leads to, moving a step from the step's other path, and ends a path", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.setPathTarget(check, "false", "second");
+      expect(stepOf(editor, "second")?.runAfter).toEqual([
+        { stepId: "first" },
+        { stepId: check, outputName: "false" },
+      ]);
+      expect(stepOf(editor, yes)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+
+      editor.setPathTarget(check, "true", "second");
+      expect(stepOf(editor, "second")?.runAfter).toEqual([
+        { stepId: "first" },
+        { stepId: check, outputName: "true" },
+      ]);
+      expect(stepOf(editor, yes)).not.toHaveProperty("runAfter");
+
+      editor.setPathTarget(check, "true", null);
+      expect(stepOf(editor, "second")?.runAfter).toEqual([{ stepId: "first" }]);
+    });
+
+    it("inserts a step into a path, which then leads to the new step", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      const added = editor.addStep("answerQuestion", {
+        into: { from: check, to: yes, outputName: "true" },
+      });
+
+      expect(stepOf(editor, added)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+      expect(stepOf(editor, yes)?.runAfter).toEqual([{ stepId: added }]);
+    });
+
+    it("lists a path the step doesn't have as a problem of the step following it", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.removeConnection({ from: check, to: yes, outputName: "true" });
+      editor.addConnection({ from: check, to: yes, outputName: "maybe" });
+
+      expect(problemCodesOf(editor, yes)).toContain("unknownStepOutput");
+    });
+  });
+
   it("disconnects a for-each step from the steps inside it too", () => {
     const definition = structuredClone(flowDefinition);
     const [, , each] = definition.steps;

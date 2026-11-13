@@ -16,15 +16,27 @@ export type StepPosition = NonNullable<StepDefinition<string>["position"]>;
 
 /**
  * A connection: a line between two steps that only sets the order they run in. Step `to` runs after step `from`,
- * which is in its `runAfter`.
+ * which is in its `runAfter`. With `outputName`, the line leaves one of `from`'s paths, such as an If's `true`.
  */
-export type FlowConnection = { from: string; to: string };
+export type FlowConnection = { from: string; to: string; outputName?: string };
+
+type RunAfter = NonNullable<StepDefinition<string>["runAfter"]>;
+
+/** The `runAfter` entry for following `stepId`, or one of its paths. */
+const runAfterEntry = (stepId: string, outputName: string | undefined) =>
+  outputName === undefined ? { stepId } : { stepId, outputName };
+
+const isEntryFor =
+  (stepId: string, outputName: string | undefined) =>
+  (entry: RunAfter[number]) =>
+    entry.stepId === stepId && entry.outputName === outputName;
 
 /**
- * Where a new step goes: after a step, into a connection (`from` → new step → `to`), or on its own.
+ * Where a new step goes: after a step or one of its paths, into a connection (`from` → new step → `to`), or on its
+ * own.
  */
 export type NewStepPlacement =
-  | { after: string; position?: StepPosition }
+  | { after: string; outputName?: string; position?: StepPosition }
   | { into: FlowConnection; position?: StepPosition }
   | { position: StepPosition };
 
@@ -131,10 +143,7 @@ const newStepId = (
 };
 
 /** A step that runs after the given steps, with no `runAfter` if there are none. */
-const setRunAfter = (
-  step: StepDefinition<string>,
-  runAfter: { stepId: string }[],
-) => {
+const setRunAfter = (step: StepDefinition<string>, runAfter: RunAfter) => {
   const updated: StepDefinition<string> = { ...step, runAfter };
 
   if (runAfter.length === 0) {
@@ -246,22 +255,23 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     addStep: (actionDefinitionId: string, placement: NewStepPlacement) => {
       const stepId = newStepId(state.flowDefinition, actionDefinitionId);
       let steps = state.flowDefinition.steps;
-      let runAfter: { stepId: string }[] = [];
+      let runAfter: RunAfter = [];
 
       if ("after" in placement) {
         getStep(placement.after);
-        runAfter = [{ stepId: placement.after }];
+        runAfter = [runAfterEntry(placement.after, placement.outputName)];
       } else if ("into" in placement) {
-        const { from, to } = placement.into;
+        const { from, to, outputName } = placement.into;
         const toStep = getStep(to);
         const toRunAfter = toStep.runAfter ?? [];
-        const index = toRunAfter.findIndex((entry) => entry.stepId === from);
+        const index = toRunAfter.findIndex(isEntryFor(from, outputName));
 
         if (index === -1) {
           throw new Error(`Step "${to}" doesn't run after step "${from}"`);
         }
 
-        runAfter = [{ stepId: from }];
+        /* The new step takes over the path; `to` follows the new step. */
+        runAfter = [runAfterEntry(from, outputName)];
         steps = replaceStep(
           steps,
           setRunAfter(toStep, toRunAfter.with(index, { stepId })),
@@ -449,7 +459,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       );
     },
 
-    addConnection: ({ from, to }: FlowConnection) => {
+    /** Does nothing if `to` already runs after `from`, on any of its paths: a step follows another at most once. */
+    addConnection: ({ from, to, outputName }: FlowConnection) => {
       getStep(from);
       const step = getStep(to);
       const runAfter = step.runAfter ?? [];
@@ -461,17 +472,18 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       setSteps(
         replaceStep(
           state.flowDefinition.steps,
-          setRunAfter(step, [...runAfter, { stepId: from }]),
+          setRunAfter(step, [...runAfter, runAfterEntry(from, outputName)]),
         ),
       );
     },
 
     /** Removes a connection, which may come from a step that doesn't exist. */
-    removeConnection: ({ from, to }: FlowConnection) => {
+    removeConnection: ({ from, to, outputName }: FlowConnection) => {
       const step = getStep(to);
       const runAfter = step.runAfter ?? [];
+      const isConnection = isEntryFor(from, outputName);
 
-      if (!runAfter.some(({ stepId }) => stepId === from)) {
+      if (!runAfter.some(isConnection)) {
         return;
       }
 
@@ -480,9 +492,57 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
           state.flowDefinition.steps,
           setRunAfter(
             step,
-            runAfter.filter(({ stepId }) => stepId !== from),
+            runAfter.filter((entry) => !isConnection(entry)),
           ),
         ),
+      );
+    },
+
+    /**
+     * Makes `to` the only top-level step on `stepId`'s `outputName` path, or ends the path if `to` is `null`. A `to`
+     * on another of the step's paths moves to this one.
+     */
+    setPathTarget: (stepId: string, outputName: string, to: string | null) => {
+      getStep(stepId);
+
+      if (to !== null) {
+        getStep(to);
+      }
+
+      const isOnPath = isEntryFor(stepId, outputName);
+
+      setSteps(
+        state.flowDefinition.steps.map((step) => {
+          if (step.stepId === to) {
+            return setRunAfter(step, [
+              ...(step.runAfter ?? []).filter(
+                (entry) => entry.stepId !== stepId,
+              ),
+              runAfterEntry(stepId, outputName),
+            ]);
+          }
+
+          const kept = step.runAfter?.filter((entry) => !isOnPath(entry));
+
+          return kept && kept.length !== step.runAfter?.length
+            ? setRunAfter(step, kept)
+            : step;
+        }),
+      );
+    },
+
+    setPathName: (stepId: string, outputName: string, name: string) => {
+      const step = getStep(stepId);
+
+      if (step.kind !== "action") {
+        throw new Error(`Step "${stepId}" is a for-each step, with no paths`);
+      }
+
+      setSteps(
+        replaceStep(state.flowDefinition.steps, {
+          ...step,
+          pathNames: { ...step.pathNames, [outputName]: name },
+        }),
       );
     },
 

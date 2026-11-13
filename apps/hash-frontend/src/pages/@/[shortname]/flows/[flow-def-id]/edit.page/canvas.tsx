@@ -32,8 +32,9 @@ import { getContextMenuItems } from "./canvas/context-menu";
 import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
-import { stepCardSize, stepGap } from "./canvas/sizes";
+import { getStepCardSize, stepCardSize, stepGap } from "./canvas/sizes";
 import { useSelectedStepInView, useStepFocus } from "./canvas/use-step-focus";
+import { getActionPaths } from "./shared/step-paths";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -316,15 +317,20 @@ const FlowCanvas = ({
     [onSelectionChange],
   );
 
-  const getTakenPlaces = useCallback(
-    () =>
-      getNodes()
-        .filter((node) => node.parentId === undefined)
-        .map((node) => ({
-          position: node.position,
-          width: node.measured?.width ?? stepCardSize.width,
-          height: node.measured?.height ?? stepCardSize.height,
-        })),
+  /** `position`, or below it if a new step's card would cover another card there. */
+  const getNewStepPosition = useCallback(
+    (actionDefinitionId: string, position: XYPosition) =>
+      getFreePosition(
+        position,
+        getStepCardSize(getActionPaths(actionDefinitionId).length),
+        getNodes()
+          .filter((node) => node.parentId === undefined)
+          .map((node) => ({
+            position: node.position,
+            width: node.measured?.width ?? stepCardSize.width,
+            height: node.measured?.height ?? stepCardSize.height,
+          })),
+      ),
     [getNodes],
   );
 
@@ -342,13 +348,10 @@ const FlowCanvas = ({
 
     selectStep(
       editor.addStep(actionDefinitionId, {
-        position: getFreePosition(
-          {
-            x: Math.round(center.x - stepCardSize.width / 2),
-            y: Math.round(center.y - stepCardSize.height / 2),
-          },
-          getTakenPlaces(),
-        ),
+        position: getNewStepPosition(actionDefinitionId, {
+          x: Math.round(center.x - stepCardSize.width / 2),
+          y: Math.round(center.y - stepCardSize.height / 2),
+        }),
       }),
     );
   };
@@ -359,7 +362,7 @@ const FlowCanvas = ({
   const canvasActions = useMemo<CanvasActions>(
     () => ({
       editing: {
-        openAddMenuAfter: (anchor, stepId) => {
+        openAddMenuAfter: (anchor, stepId, outputName) => {
           const node = getInternalNode(
             stepId === null ? startNodeId : getStepNodeId(stepId),
           );
@@ -368,45 +371,54 @@ const FlowCanvas = ({
             return;
           }
 
-          const position = getFreePosition(
-            {
-              x:
-                node.position.x +
-                (node.measured.width ?? stepCardSize.width) +
-                stepGap,
-              y: node.position.y,
-            },
-            getTakenPlaces(),
-          );
+          const beside = {
+            x:
+              node.position.x +
+              (node.measured.width ?? stepCardSize.width) +
+              stepGap,
+            y: node.position.y,
+          };
 
           setAddMenu({
             anchor: anchor.getBoundingClientRect(),
-            addStep: (actionDefinitionId) =>
+            addStep: (actionDefinitionId) => {
+              const position = getNewStepPosition(actionDefinitionId, beside);
+
               selectStep(
                 editor.addStep(
                   actionDefinitionId,
-                  stepId === null ? { position } : { after: stepId, position },
+                  stepId === null
+                    ? { position }
+                    : { after: stepId, outputName, position },
                 ),
-              ),
+              );
+            },
           });
         },
         removeConnection: editor.removeConnection,
       },
       toggleCollapsed: onToggleCollapsed,
     }),
-    [editor, getInternalNode, getTakenPlaces, selectStep, onToggleCollapsed],
+    [
+      editor,
+      getInternalNode,
+      getNewStepPosition,
+      selectStep,
+      onToggleCollapsed,
+    ],
   );
 
   const openAddMenuAtContextPoint = (addStep: AddStepAt) => {
     const point = contextPointRef.current;
-    const position = getFreePosition(
-      cardBeside(screenToFlowPosition(point), "right"),
-      getTakenPlaces(),
-    );
+    const beside = cardBeside(screenToFlowPosition(point), "right");
 
     setAddMenu({
       anchor: new DOMRect(point.x, point.y, 0, 0),
-      addStep: (actionDefinitionId) => addStep(actionDefinitionId, position),
+      addStep: (actionDefinitionId) =>
+        addStep(
+          actionDefinitionId,
+          getNewStepPosition(actionDefinitionId, beside),
+        ),
     });
   };
 
@@ -540,23 +552,23 @@ const FlowCanvas = ({
     }
 
     const fromOutput = fromHandle.type === "source";
-    const position = getFreePosition(
-      cardBeside(
-        screenToFlowPosition({ x: point.clientX, y: point.clientY }),
-        fromOutput ? "right" : "left",
-      ),
-      getTakenPlaces(),
+    const beside = cardBeside(
+      screenToFlowPosition({ x: point.clientX, y: point.clientY }),
+      fromOutput ? "right" : "left",
     );
 
     setAddMenu({
       anchor: new DOMRect(point.clientX, point.clientY, 0, 0),
       addStep: (actionDefinitionId) => {
+        const position = getNewStepPosition(actionDefinitionId, beside);
+
         if (fromStepId === null) {
           selectStep(editor.addStep(actionDefinitionId, { position }));
         } else if (fromOutput) {
           selectStep(
             editor.addStep(actionDefinitionId, {
               after: fromStepId,
+              outputName: fromHandle.id ?? undefined,
               position,
             }),
           );
@@ -675,6 +687,7 @@ const FlowCanvas = ({
               kind: "port",
               stepId,
               side: handle.classList.contains("source") ? "output" : "input",
+              outputName: handle.getAttribute("data-handleid") ?? undefined,
             }
           : { kind: "step", stepId },
       );
@@ -728,12 +741,16 @@ const FlowCanvas = ({
               savePositions(draggedNodes)
             }
             isValidConnection={isValidConnection}
-            onConnect={({ source, target }) => {
+            onConnect={({ source, sourceHandle, target }) => {
               const from = getTopLevelStepId(source);
               const to = getTopLevelStepId(target);
 
               if (from !== null && to !== null) {
-                editor.addConnection({ from, to });
+                editor.addConnection({
+                  from,
+                  to,
+                  outputName: sourceHandle ?? undefined,
+                });
               }
             }}
             onConnectEnd={onConnectEnd}

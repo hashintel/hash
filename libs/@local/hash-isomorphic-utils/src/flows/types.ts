@@ -628,8 +628,11 @@ type StepDefinitionBase = {
   /**
    * Steps this step starts after, a line drawn in the editor. Only sets order: the step's values still come from its
    * inputs. A skipped step counts as finished.
+   *
+   * With `outputName`, the step is on that output's path, such as an If's `true`, and should start only when the
+   * output is given. TODO(FE-2277): the engine and the compiled net ignore `outputName` and start it either way.
    */
-  runAfter?: { stepId: string }[];
+  runAfter?: { stepId: string; outputName?: string }[];
 };
 
 export type ActionStepDefinition<
@@ -645,6 +648,8 @@ export type ActionStepDefinition<
   /** The source of each of the action's inputs that is connected, by input name. */
   inputs: Record<string, StepInputSource>;
   retryCount?: number;
+  /** Names given to the step's paths, by output name, e.g. `{ true: "Over budget" }`. Only an editor reads them. */
+  pathNames?: Record<string, string>;
 };
 
 /**

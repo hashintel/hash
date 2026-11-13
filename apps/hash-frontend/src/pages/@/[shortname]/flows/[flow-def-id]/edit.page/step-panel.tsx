@@ -13,11 +13,13 @@ import {
   getStepDisplay,
   startDisplay,
 } from "./shared/step-display";
+import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
 import { getFieldProblems } from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
+import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
 import { UsedByField } from "./step-panel/used-by-field";
 
@@ -171,6 +173,7 @@ const SelectedStepPanel = ({
   onSelectStart: () => void;
 }) => {
   const { title, icon } = getStepDisplay(step);
+  const paths = getStepPaths(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -242,6 +245,17 @@ const SelectedStepPanel = ({
               );
             })}
           </Form.Section>
+        </PanelSection>
+      )}
+      {paths.length > 0 && (
+        <PanelSection title="Paths">
+          <PathsField
+            editor={editor}
+            flowDefinition={flowDefinition}
+            step={step}
+            paths={paths}
+            readOnly={inner}
+          />
         </PanelSection>
       )}
       {/* TODO(FE-1915): edit a for-each step's list and what it collects */}

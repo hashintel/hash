@@ -10,7 +10,13 @@ import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 export type ContextTarget =
   | { kind: "step"; stepId: string }
-  | { kind: "port"; stepId: string; side: "input" | "output" }
+  | {
+      kind: "port";
+      stepId: string;
+      side: "input" | "output";
+      /** The path an output port is for, on a step that branches. */
+      outputName?: string;
+    }
   | { kind: "connection"; connection: FlowConnection }
   | { kind: "start-line"; stepId: string }
   | { kind: "selection"; stepIds: string[] };
@@ -62,13 +68,13 @@ export const getContextMenuItems = ({
 
   const getConnections = (stepId: string) => ({
     incoming: (topLevelSteps.get(stepId)?.runAfter ?? []).map(
-      ({ stepId: from }) => ({ from, to: stepId }),
+      ({ stepId: from, outputName }) => ({ from, to: stepId, outputName }),
     ),
-    outgoing: [...topLevelSteps.values()]
-      .filter(({ runAfter }) =>
-        runAfter?.some(({ stepId: from }) => from === stepId),
-      )
-      .map(({ stepId: to }) => ({ from: stepId, to })),
+    outgoing: [...topLevelSteps.values()].flatMap(({ stepId: to, runAfter }) =>
+      (runAfter ?? [])
+        .filter(({ stepId: from }) => from === stepId)
+        .map(({ outputName }) => ({ from: stepId, to, outputName })),
+    ),
   });
 
   switch (target?.kind) {
@@ -90,7 +96,12 @@ export const getContextMenuItems = ({
     }
     case "port": {
       const { incoming, outgoing } = getConnections(target.stepId);
-      const atPort = target.side === "input" ? incoming : outgoing;
+      const atPort =
+        target.side === "input"
+          ? incoming
+          : outgoing.filter(
+              ({ outputName }) => outputName === target.outputName,
+            );
 
       return [
         {

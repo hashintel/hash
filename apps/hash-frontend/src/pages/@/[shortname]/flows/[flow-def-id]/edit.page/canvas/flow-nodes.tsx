@@ -8,11 +8,17 @@ import { StatusBar, StepStateText } from "../shared/run-marks";
 import { getStepDisplay, startDisplay, stepNoun } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
 import { useCanvasActions } from "./canvas-actions";
-import { forEachBoxPadding, stepCardSize } from "./sizes";
+import {
+  forEachBoxPadding,
+  getStepCardSize,
+  pathRows,
+  stepCardSize,
+} from "./sizes";
 
 import type { StepTone } from "../shared/step-display";
 import type {
   ActionStepNode,
+  CardPath,
   CardRun,
   ForEachStepNode,
   StartNode as StartNodeType,
@@ -36,6 +42,7 @@ const ports = css({
   "& .react-flow__handle.connectingto.valid": {
     borderColor: "blue.bd.strong",
   },
+  "& .react-flow__handle[data-connected='true']": { bg: "bd.strong" },
   "& .react-flow__handle:hover .port-add": { opacity: "1" },
 });
 
@@ -65,7 +72,13 @@ const portAdd = css({
 });
 
 /** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
-const PortAdd = ({ stepId }: { stepId: string | null }) => {
+const PortAdd = ({
+  stepId,
+  outputName,
+}: {
+  stepId: string | null;
+  outputName?: string;
+}) => {
   const { editing } = useCanvasActions();
 
   if (!editing) {
@@ -79,7 +92,7 @@ const PortAdd = ({ stepId }: { stepId: string | null }) => {
       aria-label={`Add a ${stepNoun.singular} after this`}
       onClick={(event) => {
         event.stopPropagation();
-        editing.openAddMenuAfter(event.currentTarget, stepId);
+        editing.openAddMenuAfter(event.currentTarget, stepId, outputName);
       }}
       /* Inline, as the design system's reset of buttons in its scope outranks classes. */
       style={{
@@ -143,13 +156,36 @@ const ProblemsMarker = ({
 const card = css({
   position: "relative",
   display: "flex",
+  flexDirection: "column",
+  boxSizing: "border-box",
+  borderRadius: "lg",
+  bg: "neutral.s00",
+});
+const cardHeader = css({
+  display: "flex",
   gap: "2",
   alignItems: "flex-start",
   boxSizing: "border-box",
   padding: "3",
-  borderRadius: "lg",
-  bg: "neutral.s00",
 });
+const pathList = css({
+  m: "0",
+  p: "0",
+  listStyle: "none",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "bd.subtle",
+});
+const pathRow = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  px: "3",
+  fontSize: "xs",
+  color: "fg.subtle",
+});
+const pathName = css({ truncate: true });
 const cardText = css({
   display: "flex",
   flexDirection: "column",
@@ -204,6 +240,8 @@ const Card = ({
   selected,
   problems,
   run,
+  paths,
+  size = stepCardSize,
   children,
 }: {
   title: string;
@@ -213,19 +251,25 @@ const Card = ({
   selected: boolean;
   problems: FlowDefinitionDiagnosticWithStepId[];
   run: CardRun | undefined;
+  paths?: ReactNode;
+  size?: { width: number; height: number };
   children: ReactNode;
 }) => (
-  <div className={cx(ports, card, getOutline(selected))} style={stepCardSize}>
-    <StepIconTile icon={icon} tone={tone} size="large" />
-    <div className={cardText}>
-      <div className={cardTitleRow}>
-        <span className={cardTitle}>{title}</span>
-        <TitleMarks problems={problems} run={run} />
+  <div className={cx(ports, card, getOutline(selected))} style={size}>
+    {/* The card's height less its borders, so the header is the same on every card. */}
+    <div className={cardHeader} style={{ height: stepCardSize.height - 2 }}>
+      <StepIconTile icon={icon} tone={tone} size="large" />
+      <div className={cardText}>
+        <div className={cardTitleRow}>
+          <span className={cardTitle}>{title}</span>
+          <TitleMarks problems={problems} run={run} />
+        </div>
+        <span className={cardDescription}>
+          {description || (run ? "" : "Add a description…")}
+        </span>
       </div>
-      <span className={cardDescription}>
-        {description || (run ? "" : "Add a description…")}
-      </span>
     </div>
+    {paths}
     {children}
     {run && <StatusBar mark={run.mark} />}
   </div>
@@ -250,32 +294,86 @@ export const StartNode = ({
   );
 };
 
+/** A row and an output port per path, its dot filled when a line leaves it. */
+const PathRows = ({
+  stepId,
+  paths,
+  connectable,
+  showAdd,
+}: {
+  stepId: string;
+  paths: CardPath[];
+  connectable: boolean;
+  showAdd: boolean;
+}) => (
+  <ul
+    className={pathList}
+    style={{ paddingBlock: pathRows.paddingY }}
+    aria-label="Paths"
+  >
+    {paths.map(({ outputName, name, connected }) => (
+      <li
+        key={outputName}
+        className={pathRow}
+        style={{ height: pathRows.rowHeight }}
+      >
+        <span className={pathName}>{name}</span>
+        <Handle
+          id={outputName}
+          type="source"
+          position={Position.Right}
+          isConnectable={connectable}
+          data-connected={connected}
+        >
+          {showAdd && <PortAdd stepId={stepId} outputName={outputName} />}
+        </Handle>
+      </li>
+    ))}
+  </ul>
+);
+
 export const StepNode = ({
-  data: { step, problems, inner, run },
+  data: { step, paths, problems, inner, run },
   selected,
 }: NodeProps<ActionStepNode>) => {
   const { editing } = useCanvasActions();
   const connectable = !inner && editing !== null;
+  const showAdd = selected && !inner;
 
   return (
     <Card
       {...getStepDisplay(step)}
+      size={getStepCardSize(paths.length)}
       selected={selected}
       problems={problems}
       run={run}
+      paths={
+        paths.length > 0 && (
+          <PathRows
+            stepId={step.stepId}
+            paths={paths}
+            connectable={connectable}
+            showAdd={showAdd}
+          />
+        )
+      }
     >
+      {/* Level with the header, on a card with paths too. */}
       <Handle
         type="target"
         position={Position.Left}
         isConnectable={connectable}
+        style={{ top: stepCardSize.height / 2 }}
       />
-      <Handle
-        type="source"
-        position={Position.Right}
-        isConnectable={connectable}
-      >
-        {selected && !inner && <PortAdd stepId={step.stepId} />}
-      </Handle>
+      {paths.length === 0 && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          isConnectable={connectable}
+        >
+          {showAdd && <PortAdd stepId={step.stepId} />}
+        </Handle>
+      )}
     </Card>
   );
 };
