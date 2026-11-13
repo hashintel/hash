@@ -1432,17 +1432,14 @@ const ConversationAiAssistantPanel = ({
       // A reply may append content without opening another step, and a clean
       // follow-up may publish an empty step with its metadata. The tool IDs
       // prevent a repeat send; only the continued parts, followed by nothing
-      // that is reply content, mean no reply. Reply text already in the turn
-      // is a reply, including text written before the tool.
+      // that is reply content, mean no reply.
       const finishedParts = finishedMessages.at(-1)?.parts ?? [];
-      const turnHasReplyText = hasVisibleReplyText(finishedMessages);
       const noReplyToToolStep =
         completedNormally &&
         continuedToolStepRef.current !== null &&
-        replyContentOf(finishedParts) === continuedToolStepRef.current.parts &&
-        !turnHasReplyText;
+        replyContentOf(finishedParts) === continuedToolStepRef.current.parts;
       // In-band tools continue on the server, not through sendAutomaticallyWhen.
-      // A clean finish on their result has no reply when the turn has none.
+      // A clean finish with no reply content after their result has no reply.
       const lastReplyPart = finishedMessages
         .at(-1)
         ?.parts.findLast(isReplyContent);
@@ -1452,8 +1449,7 @@ const ConversationAiAssistantPanel = ({
         isToolUIPart(lastReplyPart) &&
         lastReplyPart.providerExecuted === true &&
         (lastReplyPart.state === "output-available" ||
-          lastReplyPart.state === "output-error") &&
-        !turnHasReplyText;
+          lastReplyPart.state === "output-error");
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.
@@ -1508,9 +1504,11 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStoppedAnchor(null);
       // Both endings without a reply end in the tool result that went
-      // unanswered, so its call anchors the note.
+      // unanswered, so its call anchors the note. Reply text anywhere in the
+      // turn, including before the tool, is a reply.
       setNoReplyAnchor(
-        !(noReplyToToolStep || noReplyToServerToolStep)
+        !(noReplyToToolStep || noReplyToServerToolStep) ||
+          hasVisibleReplyText(finishedMessages)
           ? null
           : lastReplyPart !== undefined && isToolUIPart(lastReplyPart)
             ? { toolCallId: lastReplyPart.toolCallId }

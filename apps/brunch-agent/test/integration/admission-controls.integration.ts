@@ -195,13 +195,14 @@ const run = async () => {
       });
     }
     const outputLimits = [];
-    for (const text of ["The account is partly", ""]) {
-      caseId = text === "" ? "length-without-text" : "length-with-text";
+    for (const [limitCase, content] of [
+      ["length-with-text", [fauxText("The account is partly")]],
+      ["length-without-text", []],
+    ] as const) {
+      caseId = limitCase;
       const limited = clientFor();
       faux.setResponses([
-        fauxAssistantMessage(text === "" ? [] : [fauxText(text)], {
-          stopReason: "length",
-        }),
+        fauxAssistantMessage([...content], { stopReason: "length" }),
       ]);
       const attempt = await limited.send({
         kind: "user",

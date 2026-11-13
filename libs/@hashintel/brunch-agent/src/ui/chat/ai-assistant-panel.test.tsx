@@ -4681,31 +4681,47 @@ describe("AiAssistantPanel composer submissions", () => {
     ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
   });
 
-  /** One response in which the server runs a tool and then follows it up itself. */
+  /** A tool the server runs in band, and its result. */
+  const serverToolChunks = (
+    result:
+      | { type: "tool-output-available"; output: unknown }
+      | { type: "tool-output-error"; errorText: string } = {
+      type: "tool-output-available",
+      output: { places: 1 },
+    },
+  ): UIMessageChunk[] => [
+    {
+      type: "tool-input-available",
+      dynamic: true,
+      providerExecuted: true,
+      toolCallId: "outline-1",
+      toolName: "readNetOutline",
+      input: {},
+    },
+    {
+      ...result,
+      dynamic: true,
+      providerExecuted: true,
+      toolCallId: "outline-1",
+    },
+  ];
+
+  /**
+   * One response in which the server runs a tool and then follows it up
+   * itself. `toolStep` replaces the step that runs the tool.
+   */
   const runServerToolThenFollowUp = async (
     followUpChunks: UIMessageChunk[],
+    {
+      toolStep = [{ type: "start-step" }, ...serverToolChunks()],
+    }: { toolStep?: UIMessageChunk[] } = {},
   ) => {
     const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
       Promise.resolve(
         streamChunks([
           { type: "start", messageId: "server-tool-response" },
-          { type: "start-step" },
-          {
-            type: "tool-input-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "outline-1",
-            toolName: "readNetOutline",
-            input: {},
-          },
-          {
-            type: "tool-output-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "outline-1",
-            output: { places: 1 },
-          },
+          ...toolStep,
           { type: "finish-step" },
           ...followUpChunks,
           { type: "finish", finishReason: "stop" },
@@ -4830,96 +4846,26 @@ describe("AiAssistantPanel composer submissions", () => {
     },
   );
 
-  /** One response that ends on a finished server tool, with reply text before it when given. */
-  const runFinishedServerTool = async ({
-    replyText,
-    output,
-  }: {
-    replyText?: string;
-    output:
-      | { type: "tool-output-available"; output: { status: "recorded" } }
-      | { type: "tool-output-error"; errorText: string };
-  }) => {
-    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
-      Promise.resolve(
-        streamChunks([
-          { type: "start", messageId: "commit-response" },
-          ...(replyText === undefined
-            ? [{ type: "start-step" } as const]
-            : textChunks("reply", replyText)),
-          {
-            type: "tool-input-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "commit-1",
-            toolName: brunchTools.ledgerCommit,
-            input: { entries: [], endTurn: true },
-          },
-          {
-            ...output,
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "commit-1",
-          },
-          { type: "finish-step" },
-          { type: "finish", finishReason: "stop" },
-        ]),
-      ),
-    );
-    renderTestPanel({
-      aiAssistant: {
-        transport: { reconnectToStream: async () => null, sendMessages },
-      },
-      initialMessage: "The reservoir is slow.",
-      petriNetDefinition: nonEmptySDCPN,
-    });
-    await waitFor(() =>
+  test.each([
+    ["a recorded result", undefined],
+    [
+      "an error",
+      { type: "tool-output-error", errorText: "The batch was refused." },
+    ],
+  ] as const)(
+    "does not show a missing-reply notice when reply text precedes a server tool that ends in %s",
+    async (_label, result) => {
       expect(
-        screen.queryByRole("button", { name: "Stop AI response" }),
-      ).toBeNull(),
-    );
-    return {
-      noReplyNotices: screen.queryAllByText("No reply received").length,
-      requests: sendMessages.mock.calls.length,
-    };
-  };
-
-  test("does not show a missing-reply notice when reply text precedes a finished server tool", async () => {
-    expect(
-      await runFinishedServerTool({
-        replyText: "Recorded the reservoir.",
-        output: {
-          type: "tool-output-available",
-          output: { status: "recorded" },
-        },
-      }),
-    ).toEqual({ noReplyNotices: 0, requests: 1 });
-    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
-  });
-
-  test("shows a missing-reply notice when a server tool ends in an error and the turn has no reply text", async () => {
-    expect(
-      await runFinishedServerTool({
-        output: {
-          type: "tool-output-error",
-          errorText: "The batch was refused.",
-        },
-      }),
-    ).toEqual({ noReplyNotices: 1, requests: 1 });
-  });
-
-  test("does not show a missing-reply notice when reply text precedes a server tool that ends in an error", async () => {
-    expect(
-      await runFinishedServerTool({
-        replyText: "Recorded the reservoir.",
-        output: {
-          type: "tool-output-error",
-          errorText: "The batch was refused.",
-        },
-      }),
-    ).toEqual({ noReplyNotices: 0, requests: 1 });
-    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
-  });
+        await runServerToolThenFollowUp([], {
+          toolStep: [
+            ...textChunks("reply", "Recorded the reservoir."),
+            ...serverToolChunks(result),
+          ],
+        }),
+      ).toEqual({ ...serverEndedWithoutReply, noReplyNotices: 0 });
+      expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+    },
+  );
 
   test("does not show a missing-reply notice when reply text precedes a browser tool whose follow-up is empty", async () => {
     expect(
@@ -4952,21 +4898,7 @@ describe("AiAssistantPanel composer submissions", () => {
       Promise.resolve(
         streamChunks([
           { type: "start-step" },
-          {
-            type: "tool-input-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "commit-1",
-            toolName: brunchTools.ledgerCommit,
-            input: { entries: [], endTurn: true },
-          },
-          {
-            type: "tool-output-available",
-            dynamic: true,
-            providerExecuted: true,
-            toolCallId: "commit-1",
-            output: { status: "recorded" },
-          },
+          ...serverToolChunks(),
           { type: "finish-step" },
           { type: "finish", finishReason: "stop" },
         ]),
