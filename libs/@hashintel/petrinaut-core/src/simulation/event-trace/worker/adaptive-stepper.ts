@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state and frame buffers are mutable by design. */
 import { getPlaceDynamicsEquationIds } from "../../../place-dynamics";
 import { getOwn } from "../../../validation/record-keys";
+import { isScopedId, sourceItemId } from "../../engine/scoped-id";
 import { nextRandom } from "../../engine/seeded-rng";
 import { copyMonteCarloFrameBuffer } from "../../monte-carlo/frame-buffer";
 import {
@@ -72,15 +73,6 @@ const ZERO_TIME_FIRING_LIMIT = 10_000;
 /** Bisection steps locating the instant a predicate starts to hold. */
 const CROSSING_ITERATIONS = 48;
 
-/**
- * HIR artifacts are keyed by the net's item ids, while a flattened component
- * instance's item is `instancePath::originalId`.
- */
-const sourceItemId = (id: string): string => {
-  const separator = id.lastIndexOf("::");
-  return separator === -1 ? id : id.slice(separator + 2);
-};
-
 type PlaceDynamics = {
   placeIndex: number;
   integrator: PlaceIntegrator;
@@ -126,19 +118,20 @@ export function createAdaptiveStepper(
       continue;
     }
     const place = simulation.places.get(placeId);
-    const terms = place
-      ? getPlaceDynamicsEquationIds(place).map((equationId) => {
-          const artifact = getOwn(
-            config.hirArtifacts?.dynamics,
-            sourceItemId(equationId),
-          );
-          return { hir: artifact?.hir, arity: artifact?.arity ?? 1 };
-        })
-      : [];
+    const equationIds = place ? getPlaceDynamicsEquationIds(place) : [];
+    const terms = equationIds.map((equationId) => {
+      const artifact = getOwn(
+        config.hirArtifacts?.dynamics,
+        sourceItemId(equationId),
+      );
+      return { hir: artifact?.hir, arity: artifact?.arity ?? 1 };
+    });
     let dynamics = classifyDynamics(terms, realFieldNames(tokenLayout));
-    // A component instance's places may bind parameter values of their own,
-    // which the run does not expose, so their coefficients cannot be fixed.
-    if (dynamics.kind === "affine" && placeId.includes("::")) {
+    // A component instance's equations may bind parameter values of their
+    // own, which the run does not expose, so their coefficients cannot be
+    // fixed. A place of the root net runs such equations once it is fused
+    // with a port that has them.
+    if (dynamics.kind === "affine" && equationIds.some(isScopedId)) {
       dynamics = { kind: "independent" };
     }
     dynamicsKinds.set(placeId, dynamics.kind);

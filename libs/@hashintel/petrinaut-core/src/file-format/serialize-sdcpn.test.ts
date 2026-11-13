@@ -38,12 +38,66 @@ const sourceDocument = {
       name: "Subnet 1",
       description: "A subnet",
       metadata: { origin: "test" },
-      places: [],
+      places: [
+        {
+          id: "port1",
+          name: "Port 1",
+          colorId: null,
+          dynamicsEnabled: false,
+          isPort: true,
+          x: 0,
+          y: 0,
+        },
+      ],
       transitions: [],
+    },
+    {
+      id: "subnet2",
+      name: "Subnet 2",
+      places: [
+        {
+          id: "inner1",
+          name: "Inner 1",
+          colorId: null,
+          dynamicsEnabled: false,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      componentInstances: [
+        { id: "nested1", name: "Nested 1", subnetId: "subnet1", x: 0, y: 0 },
+      ],
+      fusions: [
+        {
+          id: "fusion2",
+          members: [
+            { kind: "place", placeId: "inner1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "nested1",
+              portPlaceId: "port1",
+            },
+          ],
+        },
+      ],
     },
   ],
   componentInstances: [
     { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
+  ],
+  fusions: [
+    {
+      id: "fusion1",
+      members: [
+        { kind: "place", placeId: "p1" },
+        {
+          kind: "componentPort",
+          componentInstanceId: "instance1",
+          portPlaceId: "port1",
+        },
+      ],
+    },
   ],
 };
 
@@ -140,6 +194,7 @@ describe("serializeSDCPN", () => {
       "subnets",
       "places",
       "componentInstances",
+      "fusions",
       "transitions",
       "metrics",
       "scenarios",
@@ -156,6 +211,58 @@ describe("serializeSDCPN", () => {
       "componentInstances",
       "transitions",
     ]);
+    expect(Object.keys(document.subnets![1]!)).toEqual([
+      "id",
+      "name",
+      "parameters",
+      "types",
+      "differentialEquations",
+      "places",
+      "componentInstances",
+      "fusions",
+      "transitions",
+    ]);
+  });
+
+  it("writes no `fusions` key for a net that has none", () => {
+    const { fusions: _fusions, ...withoutFusions } = sourceDocument;
+    const parsed = parseSDCPNFile(withoutFusions);
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    expect(parsed.sdcpn).not.toHaveProperty("fusions");
+
+    const text = serializeSDCPN({
+      petriNetDefinition: parsed.sdcpn,
+      title: "Test Net",
+      format: "json",
+    });
+    expect(JSON.parse(text)).not.toHaveProperty("fusions");
+  });
+
+  it("reads a fusion that carries a key this build does not know", () => {
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      fusions: sourceDocument.fusions.map((fusion) => ({
+        ...fusion,
+        addedLater: true,
+      })),
+    });
+
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("reads a fusion the editor would refuse, for the checks to report", () => {
+    const [first] = sourceDocument.fusions;
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      fusions: [{ ...first!, members: first!.members.slice(0, 1) }],
+    });
+
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {

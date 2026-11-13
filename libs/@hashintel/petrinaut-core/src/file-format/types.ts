@@ -7,6 +7,7 @@ import {
   componentInstanceSchema as currentComponentInstanceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
+  fusionSchema as currentFusionSchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -159,6 +160,19 @@ const componentInstanceSchema = z.object({
   y: z.number().optional(),
 });
 
+/**
+ * A net without fusions carries no `fusions` key, here as in the editor, so a
+ * file that never had one exports as it was read. Any list of members loads:
+ * the checks report a fusion of one, a member listed twice and a second
+ * place of the net, where the editor's own mutations refuse them.
+ */
+const fusionSchema = z.object({
+  ...currentFusionSchema.shape,
+  id: z.string(),
+  name: z.string().optional(),
+  members: z.array(currentFusionSchema.shape.members.element),
+});
+
 const subnetSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -170,6 +184,7 @@ const subnetSchema = z.object({
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(fusionSchema).optional(),
 });
 
 export const sdcpnSchema = z.object({
@@ -184,6 +199,7 @@ export const sdcpnSchema = z.object({
   metrics: z.array(metricSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
+  fusions: z.array(fusionSchema).optional(),
 });
 
 const fileMetaSchema = z.object({

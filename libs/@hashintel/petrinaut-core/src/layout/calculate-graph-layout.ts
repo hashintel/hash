@@ -122,6 +122,23 @@ export const calculateGraphLayout = async (
     }
   }
 
+  // Fusions join their members, so fused places and instances land near each
+  // other: one edge from the first member's node to each of the others. Two
+  // ports of one instance are one node, which gets no edge to itself.
+  for (const fusion of sdcpn.fusions ?? []) {
+    const [first, ...rest] = new Set(fusion.members.map(getArcEndpointNodeId));
+    if (first === undefined) {
+      continue;
+    }
+    for (const nodeId of rest) {
+      elkEdges.push({
+        id: `fusion__${fusion.id}-${first}-${nodeId}`,
+        sources: [first],
+        targets: [nodeId],
+      });
+    }
+  }
+
   const graph: ElkNode = {
     id: "root",
     children: elkNodes,
