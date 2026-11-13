@@ -221,7 +221,7 @@ pub(crate) fn labeled_argument_missing_prefix(
 
     let help_message = format!(
         "Add ':' prefix to '{}' to make it a valid labeled argument",
-        actual.as_ref()
+        actual.as_ref().escape_debug()
     );
     diagnostic.add_message(Message::help(help_message));
 

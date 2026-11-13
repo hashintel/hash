@@ -309,7 +309,7 @@ impl SyntaxDump for value::String<'_> {
             "String",
             None,
             None,
-            Some(&format!("{}", self.as_symbol())),
+            Some(&self.as_str().escape_debug().to_string()),
         )
     }
 }
