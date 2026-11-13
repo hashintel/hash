@@ -190,11 +190,14 @@ export type CreateLanguageClientConfig =
   | { createWorker: LspWorkerFactory; transport?: never }
   | { transport: LspTransport; createWorker?: never };
 
-const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {} };
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {}, netClass: null };
 
 const sameNetAnalysis = (left: NetAnalysis, right: NetAnalysis): boolean => {
   const leftIds = Object.keys(left.metricShapes);
   return (
+    left.netClass?.time === right.netClass?.time &&
+    left.netClass?.coloring === right.netClass?.coloring &&
+    left.netClass?.chance === right.netClass?.chance &&
     leftIds.length === Object.keys(right.metricShapes).length &&
     leftIds.every((id) => left.metricShapes[id] === right.metricShapes[id])
   );

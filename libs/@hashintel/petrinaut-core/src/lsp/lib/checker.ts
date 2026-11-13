@@ -11,6 +11,7 @@ import {
   buildMetricContext,
   buildVisualizerContext,
 } from "../../hir";
+import { classifyNet } from "../../hir/classify-net";
 import { lowerAndCheck } from "../../hir/compile";
 import { inferMetricShape } from "../../hir/metric-shape";
 import { isSourcePredicate, netTimeOf } from "../../net-class";
@@ -23,6 +24,7 @@ import { getItemFilePath } from "./file-paths";
 
 import type { HirSurfaceContext } from "../../hir";
 import type { MetricShape } from "../../hir/metric-shape";
+import type { NetClass } from "../../net-class";
 import type { SDCPN } from "../../types/sdcpn";
 import type { LanguageServers } from "./language-servers";
 import type { VirtualFileLanguageServer } from "./virtual-file-language-server";
@@ -60,6 +62,8 @@ export type SDCPNCheckResult = {
    * diagnostics are the metric editing session's.
    */
   metricShapes: Record<string, MetricShape>;
+  /** The class of the net, whatever its diagnostics. */
+  netClass: NetClass;
 };
 
 /**
@@ -237,6 +241,7 @@ export function checkSDCPN(
 
   return {
     metricShapes,
+    netClass: classifyNet(sdcpn, extensions),
     isValid: !itemDiagnostics.some(
       (item) =>
         item.itemType !== "place-visualizer" &&

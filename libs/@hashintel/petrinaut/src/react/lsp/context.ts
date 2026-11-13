@@ -63,7 +63,8 @@ export interface LanguageClientContextValue {
   requestDiagnostics: LanguageClient["requestDiagnostics"];
   /**
    * What the server learned about the net beyond its diagnostics, pushed
-   * with them on every check: the shape of each metric, for a start.
+   * with them on every check: the class of the net and the shape of each
+   * metric.
    */
   netAnalysis: LanguageClient["netAnalysis"];
   /**
@@ -138,7 +139,7 @@ export const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
 };
 
 /** The inert default: no worker wired — requests resolve to empty results. */
-const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {} };
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {}, netClass: null };
 
 export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   diagnostics: EMPTY_DIAGNOSTICS_SNAPSHOT,
