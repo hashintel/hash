@@ -6,8 +6,7 @@ Formats the entries Changesets writes into each package's `CHANGELOG.md`:
 - add arrow-right-arrow-left icon ([#8750](https://github.com/hashintel/hash/pull/8750))
 ```
 
-Entries link to the pull request the changeset arrived in, without adding a
-username. When no pull request is found, the entry contains just its description.
+Entries link to the pull request the changeset arrived in. When no pull request is found, the entry contains just its description.
 The `pr` and `commit` overrides are supported; legacy `author` and `user` overrides
 are stripped from the summary and ignored.
 
