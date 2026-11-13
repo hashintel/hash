@@ -1,18 +1,15 @@
-import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useApolloClient } from "@apollo/client";
+import { captureException } from "@sentry/nextjs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
-import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
-import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { useSnackbar } from "../../components/hooks/use-snackbar";
+import { Button } from "../../shared/ui/button";
 import { DataTypesContext } from "./data-types-context";
+import { queryDataTypeCatalogue } from "./data-types-context-provider/query-data-type-catalogue";
 
-import type {
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
-} from "../../graphql/api-types.gen";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -21,73 +18,157 @@ import type {
 import type { PropsWithChildren } from "react";
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const { data, loading, refetch } = useQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    fetchPolicy: "cache-first",
-    variables: {
-      request: {
-        filter: { all: [] },
-        temporalAxes: fullTransactionTimeAxis,
-        graphResolveDepths: {
-          inheritsFrom: 255,
-          constrainsValuesOn: 255,
-        },
-        traversalPaths: [],
-      },
+  const client = useApolloClient();
+  const { triggerSnackbar, closeSnackbar } = useSnackbar();
+  const [dataTypes, setDataTypes] = useState<Record<
+    VersionedUrl,
+    DataTypeWithMetadata
+  > | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [refreshId, setRefreshId] = useState(0);
+  const [refreshResult, setRefreshResult] = useState<{
+    signal: AbortSignal;
+    success: boolean;
+  } | null>(null);
+  const activeRequest = useRef<AbortController | null>(null);
+  const refreshWaiters = useRef<((success: boolean) => void)[]>([]);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    const waiters = refreshWaiters.current;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      for (const resolve of waiters.splice(0)) {
+        resolve(false);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (refreshResult && !refreshResult.signal.aborted) {
+      for (const resolve of refreshWaiters.current.splice(0)) {
+        resolve(refreshResult.success);
+      }
+    }
+  }, [refreshResult]);
+
+  const refetch = useCallback((): Promise<boolean> => {
+    if (!mounted.current) {
+      return Promise.resolve(false);
+    }
+    activeRequest.current?.abort();
+    setLoading(true);
+    setError(null);
+    setRefreshId((previous) => previous + 1);
+    return new Promise((resolve) => {
+      refreshWaiters.current.push(resolve);
+    });
+  }, []);
+
+  const onDataTypeSaved = useCallback(
+    (dataType: DataTypeWithMetadata) => {
+      setDataTypes((previous) =>
+        previous ? { ...previous, [dataType.schema.$id]: dataType } : previous,
+      );
+      void refetch();
     },
-  });
+    [refetch],
+  );
 
-  const { dataTypes, latestDataTypes } = useMemo(() => {
-    if (!data) {
-      return {
-        dataTypes: null,
-        latestDataTypes: null,
-      };
-    }
+  useEffect(() => {
+    const controller = new AbortController();
+    activeRequest.current = controller;
 
-    const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
-    const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
-
-    const subgraph = deserializeQueryDataTypeSubgraphResponse(
-      data.queryDataTypeSubgraph,
-    ).subgraph;
-
-    for (const versionToVertexMap of Object.values(subgraph.vertices)) {
-      let highestVersion: DataTypeWithMetadata | null = null;
-
-      for (const dataTypeVertex of typedValues(versionToVertexMap)) {
-        if (dataTypeVertex.kind === "dataType") {
-          if (
-            !highestVersion ||
-            compareOntologyTypeVersions(
-              dataTypeVertex.inner.metadata.recordId.version,
-              highestVersion.metadata.recordId.version,
-            ) > 0
-          ) {
-            highestVersion = dataTypeVertex.inner;
-          }
-          all[dataTypeVertex.inner.schema.$id] = dataTypeVertex.inner;
+    const load = async () => {
+      try {
+        const catalogue = await queryDataTypeCatalogue(
+          client,
+          controller.signal,
+        );
+        if (controller.signal.aborted) {
+          return;
         }
-      }
 
-      if (highestVersion) {
-        latest[highestVersion.metadata.recordId.baseUrl] = highestVersion;
+        setDataTypes(catalogue);
+        setLoading(false);
+        setRefreshResult({ signal: controller.signal, success: true });
+      } catch (cause) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setError(
+          cause instanceof Error
+            ? cause
+            : new Error("Could not load data types", { cause }),
+        );
+        setLoading(false);
+        setRefreshResult({ signal: controller.signal, success: false });
+      }
+    };
+
+    void load();
+    return () => controller.abort();
+  }, [client, refreshId]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    captureException(error);
+    const key = uuid();
+    triggerSnackbar.error("Could not refresh data types. Try again.", {
+      key,
+      persist: true,
+      action: (
+        <Button
+          size="small"
+          variant="tertiary_quiet"
+          onClick={() => {
+            void refetch();
+          }}
+          sx={{ color: "inherit" }}
+        >
+          Retry
+        </Button>
+      ),
+    });
+    return () => closeSnackbar(key);
+  }, [error, triggerSnackbar, closeSnackbar, refetch]);
+
+  const latestDataTypes = useMemo(() => {
+    if (!dataTypes) {
+      return null;
+    }
+    const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
+    for (const dataType of Object.values(dataTypes)) {
+      const { baseUrl, version } = dataType.metadata.recordId;
+      const previous = latest[baseUrl];
+      if (
+        !previous ||
+        compareOntologyTypeVersions(
+          version,
+          previous.metadata.recordId.version,
+        ) > 0
+      ) {
+        latest[baseUrl] = dataType;
       }
     }
+    return latest;
+  }, [dataTypes]);
 
-    return { dataTypes: all, latestDataTypes: latest };
-  }, [data]);
-
-  const value = useMemo(() => {
-    return {
+  const value = useMemo(
+    () => ({
       dataTypes,
       latestDataTypes,
       loading,
+      error,
       refetch,
-    };
-  }, [dataTypes, latestDataTypes, loading, refetch]);
+      onDataTypeSaved,
+    }),
+    [dataTypes, latestDataTypes, loading, error, refetch, onDataTypeSaved],
+  );
 
   return (
     <DataTypesContext.Provider value={value}>

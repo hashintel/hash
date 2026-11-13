@@ -210,7 +210,9 @@ const App: FunctionComponent<AppProps> = ({
                       <InvitesContextProvider>
                         <EntityTypesContextProvider>
                           <PropertyTypesContextProvider includeArchived>
-                            <DataTypesContextProvider>
+                            <DataTypesContextProvider
+                              key={authenticatedUser?.accountId ?? "public"}
+                            >
                               <FileUploadsProvider>
                                 <SidebarContextProvider>
                                   <SlideStackProvider>

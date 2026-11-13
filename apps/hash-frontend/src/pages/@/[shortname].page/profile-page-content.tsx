@@ -1,5 +1,6 @@
 import { Box, Container } from "@mui/material";
 
+import { DataTypesLoadError } from "../../shared/data-types-load-error";
 import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
 import { ProfilePageInfo } from "./profile-page-info";
 import { ProfileTab } from "./profile-tab";
@@ -27,6 +28,7 @@ export const ProfilePageContent: FunctionComponent<{
     | DataTypeWithMetadata
   )[];
   webTypesLoading: boolean;
+  webTypesError: Error | null;
 }> = ({
   profile,
   isEditable,
@@ -35,6 +37,7 @@ export const ProfilePageContent: FunctionComponent<{
   refetchProfile,
   webTypes,
   webTypesLoading,
+  webTypesError,
 }) => {
   return (
     <Container sx={{ paddingTop: 4 }}>
@@ -63,6 +66,8 @@ export const ProfilePageContent: FunctionComponent<{
                 isEditable={isEditable}
                 currentTab={currentTab}
               />
+            ) : webTypesError ? (
+              <DataTypesLoadError />
             ) : (
               <TypesTab loading={webTypesLoading} types={webTypes} />
             )
