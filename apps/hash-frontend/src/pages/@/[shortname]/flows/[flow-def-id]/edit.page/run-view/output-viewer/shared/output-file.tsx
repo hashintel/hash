@@ -8,6 +8,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 
 import { useGetOwnerForEntity } from "../../../../../../../../../components/hooks/use-get-owner-for-entity";
+import { fetchPresignedFileUrl } from "../../../../../../../../shared/fetch-presigned-file-url";
 import { getFileProperties } from "../../../../../../../../shared/get-file-properties";
 import { getFilePreviewKind } from "./files";
 
@@ -98,6 +99,31 @@ export const FileNav = ({
   </>
 );
 
+/**
+ * Saves the file. Files are served from another origin, where a link's `download` is ignored and the browser would
+ * leave the run to show the file, so it's fetched and saved from here, or failing that opened in a new tab.
+ */
+const downloadFile = (fileUrl: string, fileName: string) =>
+  fetchPresignedFileUrl(fileUrl)
+    .then((presignedUrl) => fetch(presignedUrl))
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Fetching ${fileUrl} failed with HTTP ${response.status}`,
+        );
+      }
+      return response.blob();
+    })
+    .then((blob) => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      // Once the click is handled: some browsers drop a download whose URL is revoked first.
+      setTimeout(() => URL.revokeObjectURL(link.href));
+    })
+    .catch(() => window.open(fileUrl, "_blank", "noopener"));
+
 /** Download, and the file's page in a new tab: `compact` as icons, for a header. */
 export const FileActions = ({
   file,
@@ -107,7 +133,7 @@ export const FileActions = ({
   compact: boolean;
 }) => {
   const getOwnerForEntity = useGetOwnerForEntity();
-  const { fileUrl } = getFileProperties(file.properties);
+  const { fileUrl, fileName, displayName } = getFileProperties(file.properties);
   const { entityId } = file.metadata.recordId;
   const { shortname } = getOwnerForEntity({ entityId });
 
@@ -119,8 +145,7 @@ export const FileActions = ({
           variant="subtle"
           tone="neutral"
           iconName="download"
-          href={fileUrl}
-          download
+          onClick={() => downloadFile(fileUrl, fileName ?? displayName ?? "")}
           {...(compact
             ? { "aria-label": "Download", tooltip: "Download" }
             : { children: "Download" })}

@@ -2,6 +2,8 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
+import { getTypeKey } from "../../../shared/run-entities";
+
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -35,7 +37,7 @@ export const groupByType = (
     }
 
     const { entityTypeIds } = entity.metadata;
-    const key = [...entityTypeIds].sort().join(" ");
+    const key = getTypeKey(entity);
     const group = groups.get(key);
 
     if (group) {

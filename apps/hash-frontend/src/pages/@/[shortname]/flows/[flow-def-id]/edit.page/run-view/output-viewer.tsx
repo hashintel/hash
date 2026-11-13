@@ -205,7 +205,10 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
                 <span className={headingTitle}>{fileHeading?.title}</span>
                 <span className={headingMeta}>{fileHeading?.meta}</span>
               </div>
-              <FileStage file={file} wide={false} className={stage} />
+              {/* The sheet shows the file while it's open: under it, a second preview would load and lay it out again. */}
+              {!wide && (
+                <FileStage file={file} wide={false} className={stage} />
+              )}
               <div className={actions}>
                 <FileActions file={file} compact={false} />
               </div>

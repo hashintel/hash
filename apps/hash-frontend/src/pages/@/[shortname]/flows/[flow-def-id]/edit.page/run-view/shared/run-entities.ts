@@ -39,6 +39,10 @@ export type RunEntities = {
 export const isFileEntity = (entity: HashEntity | undefined) =>
   !!entity && !!getFileProperties(entity.properties).fileUrl;
 
+/** The type tab an entity is on: its types, in either order. */
+export const getTypeKey = (entity: HashEntity) =>
+  [...entity.metadata.entityTypeIds].sort().join(" ");
+
 /** A file by its name, with a thumbnail if it's an image, and any other entity by its label. */
 export const getEntityDisplay = (
   entity: HashEntity | undefined,

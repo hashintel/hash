@@ -1,7 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EntityRows } from "../shared/entity-rows";
-import { isFileEntity, useRunEntities } from "../shared/run-entities";
+import {
+  getTypeKey,
+  isFileEntity,
+  useRunEntities,
+} from "../shared/run-entities";
 import { getListLength, getListPeek } from "../shared/run-value-display";
 import { ShowAllButton } from "../shared/show-all-button";
 import { TextValue } from "../shared/text-value";
@@ -12,7 +16,7 @@ import type { OutputContent } from "../shared/use-output-viewer";
 const values = css({ display: "flex", flexDirection: "column", gap: "1" });
 const quiet = css({ textStyle: "sm", color: "fg.subtle" });
 
-/** A file opens on its own, and any other entity opens the whole list. */
+/** A file opens on its own, and any other entity opens the whole list on its type. */
 const EntityPeek = ({
   list,
   shown,
@@ -27,13 +31,16 @@ const EntityPeek = ({
   return (
     <EntityRows
       entities={entities}
-      onOpen={(index) =>
+      onOpen={(index) => {
+        const entity = entities.entities[index];
+
         onOpen(
-          isFileEntity(entities.entities[index])
+          isFileEntity(entity)
             ? { kind: "file", entityIds: list.entityIds, index }
-            : { kind: "list", list },
-        )
-      }
+            : /* On the entity's type tab, so it's among those shown. */
+              { kind: "list", list, typeKey: entity && getTypeKey(entity) },
+        );
+      }}
     />
   );
 };
