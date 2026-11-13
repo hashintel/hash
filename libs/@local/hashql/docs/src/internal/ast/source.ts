@@ -4,26 +4,35 @@ import {
   isClassDeclaration,
   isComputedPropertyName,
   isEnumDeclaration,
+  isExpressionWithTypeArguments,
   isFunctionDeclaration,
   isInterfaceDeclaration,
   isJSDoc,
   isModuleDeclaration,
+  isPropertyAccessExpression,
+  isQualifiedName,
   isSourceFile,
   isTypeAliasDeclaration,
+  isTypeQueryNode,
+  isTypeReferenceNode,
   isVariableDeclaration,
 } from "typescript/ast";
 
 import type {
   ClassDeclaration,
   EnumDeclaration,
+  ExpressionWithTypeArguments,
   FunctionDeclaration,
   HeritageClause,
+  ImportTypeNode,
   InterfaceDeclaration,
   JSDoc,
   ModuleDeclaration,
   Node,
   PropertyName,
   TypeAliasDeclaration,
+  TypeQueryNode,
+  TypeReferenceNode,
   VariableDeclaration,
 } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
@@ -90,6 +99,42 @@ export const nameOf = (name: PropertyName): string => {
   }
 
   return name.text;
+};
+
+/** The name a type reference resolves, without its type arguments: `A.B` in `A.B<C>`, or the whole import type for one that names only its module. */
+export const referenceName = (
+  node:
+    | TypeReferenceNode
+    | TypeQueryNode
+    | ImportTypeNode
+    | ExpressionWithTypeArguments,
+): Node => {
+  if (isTypeReferenceNode(node)) {
+    return node.typeName;
+  }
+
+  if (isTypeQueryNode(node)) {
+    return node.exprName;
+  }
+
+  if (isExpressionWithTypeArguments(node)) {
+    return node.expression;
+  }
+
+  return node.qualifier ?? node;
+};
+
+/** The names of a dotted name in source order, `A`, `B` and `C` for `A.B.C`. */
+export const segments = (name: Node): Array.NonEmptyReadonlyArray<Node> => {
+  if (isQualifiedName(name)) {
+    return Array.append(segments(name.left), name.right);
+  }
+
+  if (isPropertyAccessExpression(name)) {
+    return Array.append(segments(name.expression), name.name);
+  }
+
+  return [name];
 };
 
 type HeritageToken = SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;

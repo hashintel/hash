@@ -1,5 +1,6 @@
 import {
   Array,
+  Equal,
   Function,
   HashMap,
   HashSet,
@@ -40,12 +41,14 @@ export interface Entry {
   readonly nameTypeOnlyExport: boolean;
   /** False if any public path permits value use. Each alias retains its own restriction in the AST. */
   readonly typeOnlyExport: boolean;
+  /** The shortest spelling that permits value use, the first of them where two are as short, or none where every path is type-only. It is `name` unless that spelling is type-only. */
+  readonly valueName: Option.Option<Name>;
 }
 
 /**
  * The public declarations reachable from the AST's entrypoints.
  *
- * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The shortest path to a declaration is its canonical name, and among paths of one length the first in that order. An entrypoint's root keeps its entrypoint as its name, whatever re-exports it.
+ * Private declarations discovered through type references remain in the AST but do not enter this catalogue. Entrypoints sort by name. Exports keep declaration order. The shortest path to a declaration is its canonical name, and among paths of one length the first in that order. An entrypoint's root and the names below it take precedence over the paths through a re-export of that root.
  */
 export interface Catalogue {
   readonly ast: AST.Store["Service"];
@@ -61,7 +64,50 @@ interface Pending {
   readonly name: Name;
   readonly typeOnlyExport: boolean;
   readonly ancestors: HashSet.HashSet<DeclarationId>;
+  /** The path crosses a re-export of an entrypoint's root, so the names below that root are the canonical ones. */
+  readonly reexported: boolean;
 }
+
+/** Gives a declaration its entry at the shortest path that may name it, the first of them where two are as short. Once a path permits value use, the entry's restriction lifts, and the shortest such path names the declaration's value. */
+const record = (
+  byId: MutableHashMap.MutableHashMap<DeclarationId, Entry>,
+  { id, name, typeOnlyExport, reexported }: Pending,
+): void => {
+  const previous = MutableHashMap.get(byId, id);
+  const valued = Option.liftPredicate(name, () => !typeOnlyExport);
+
+  if (Option.isNone(previous)) {
+    if (!reexported) {
+      MutableHashMap.set(byId, id, {
+        id,
+        name,
+        nameTypeOnlyExport: typeOnlyExport,
+        typeOnlyExport,
+        valueName: valued,
+      });
+    }
+
+    return;
+  }
+
+  const entry = previous.value;
+  const shorter = (known: Name): boolean =>
+    name.path.length < known.path.length;
+  const canonical = !reexported && shorter(entry.name);
+
+  MutableHashMap.set(byId, id, {
+    id,
+    name: canonical ? name : entry.name,
+    nameTypeOnlyExport: canonical ? typeOnlyExport : entry.nameTypeOnlyExport,
+    typeOnlyExport: entry.typeOnlyExport && typeOnlyExport,
+    valueName: Option.orElse(
+      Option.filter(valued, () =>
+        Option.match(entry.valueName, { onNone: () => true, onSome: shorter }),
+      ),
+      () => entry.valueName,
+    ),
+  });
+};
 
 /** Collects public names without consulting the compiler or visiting package-private declarations. */
 export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
@@ -82,46 +128,19 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
     name: { entrypoint, path: [] },
     typeOnlyExport: false,
     ancestors: HashSet.empty(),
+    reexported: false,
   }));
+  const rootIds = HashSet.fromIterable(Array.map(roots, ({ id }) => id));
 
-  for (const { id, name, typeOnlyExport } of roots) {
-    if (!MutableHashMap.has(byId, id)) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport,
-      });
-    }
+  for (const root of roots) {
+    record(byId, root);
   }
 
   const pending = Array.reverse(roots);
-  const visit = ({ id, name, typeOnlyExport, ancestors }: Pending): void => {
+  const visit = (current: Pending): void => {
+    const { id, name, typeOnlyExport, ancestors, reexported } = current;
     MutableHashMap.set(byName, name, id);
-    const previous = MutableHashMap.get(byId, id);
-
-    if (Option.isNone(previous)) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport,
-      });
-    } else if (name.path.length < previous.value.name.path.length) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name,
-        nameTypeOnlyExport: typeOnlyExport,
-        typeOnlyExport: previous.value.typeOnlyExport && typeOnlyExport,
-      });
-    } else if (previous.value.typeOnlyExport && !typeOnlyExport) {
-      MutableHashMap.set(byId, id, {
-        id,
-        name: previous.value.name,
-        nameTypeOnlyExport: previous.value.nameTypeOnlyExport,
-        typeOnlyExport,
-      });
-    }
+    record(byId, current);
 
     if (HashSet.has(ancestors, id)) {
       return;
@@ -149,6 +168,7 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
         },
         typeOnlyExport: typeOnlyExport || alias.typeOnlyExport,
         ancestors: visited,
+        reexported: reexported || HashSet.has(rootIds, alias.target),
       });
     }
   };
@@ -173,14 +193,31 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
   };
 };
 
-/** Resolves a finite export path, including paths that cross a namespace cycle more than once. */
-export const lookup: {
-  (name: Name): (catalogue: Catalogue) => Option.Option<Entry>;
-  (catalogue: Catalogue, name: Name): Option.Option<Entry>;
-} = Function.dual(2, (catalogue: Catalogue, name: Name) =>
+/**
+ * `entry` under the shortest name that permits value use, or none where no path permits it.
+ *
+ * A value declared apart from its type is an export of its own, and this is its entry: the page of that name documents it, with the names that page's namespace exports it by.
+ */
+export const valued = (entry: Entry): Option.Option<Entry> =>
+  Option.map(entry.valueName, (name): Entry => {
+    if (Equal.equals(name, entry.name)) {
+      return entry;
+    }
+
+    return { ...entry, name, nameTypeOnlyExport: false };
+  });
+
+/** The declaration a finite export path ends at, and whether an export along the path is type-only. A path may cross a namespace cycle more than once. */
+const walk = (
+  ast: AST.Store["Service"],
+  name: Name,
+): Option.Option<{
+  readonly id: DeclarationId;
+  readonly typeOnlyExport: boolean;
+}> =>
   Option.gen(function* () {
-    const { ast } = catalogue;
     let id = yield* HashMap.get(ast.entrypoints, name.entrypoint);
+    let typeOnlyExport = false;
 
     for (const member of name.path) {
       const namespaceId = yield* ast.get(id).namespace;
@@ -194,8 +231,53 @@ export const lookup: {
       );
 
       id = alias.target;
+      typeOnlyExport ||= alias.typeOnlyExport;
     }
 
-    return yield* HashMap.get(catalogue.byId, id);
-  }),
+    return { id, typeOnlyExport };
+  });
+
+/** Resolves a finite export path, including paths that cross a namespace cycle more than once. */
+export const lookup: {
+  (name: Name): (catalogue: Catalogue) => Option.Option<Entry>;
+  (catalogue: Catalogue, name: Name): Option.Option<Entry>;
+} = Function.dual(2, (catalogue: Catalogue, name: Name) =>
+  Option.flatMap(walk(catalogue.ast, name), ({ id }) =>
+    HashMap.get(catalogue.byId, id),
+  ),
+);
+
+/** One name a namespace exports a declaration under. */
+export interface ExportName {
+  readonly name: string;
+  /** An export on the path to the name is type-only. */
+  readonly typeOnlyExport: boolean;
+}
+
+/** Every name the namespace holding an entry's canonical name exports its declaration under, in declaration order. An entrypoint's own entry has none. */
+export const namesOf: {
+  (entry: Entry): (ast: AST.Store["Service"]) => readonly ExportName[];
+  (ast: AST.Store["Service"], entry: Entry): readonly ExportName[];
+} = Function.dual(2, (ast: AST.Store["Service"], entry: Entry) =>
+  pipe(
+    Array.init(entry.name.path),
+    Option.flatMap((path) =>
+      walk(ast, { entrypoint: entry.name.entrypoint, path }),
+    ),
+    Option.flatMap(({ id, typeOnlyExport }) =>
+      Option.map(ast.get(id).namespace, (namespace) =>
+        pipe(
+          ast.get(namespace).exports,
+          Array.fromIterable,
+          Array.map(ast.get),
+          Array.filter(({ target }) => target === entry.id),
+          Array.map((alias): ExportName => ({
+            name: alias.name,
+            typeOnlyExport: typeOnlyExport || alias.typeOnlyExport,
+          })),
+        ),
+      ),
+    ),
+    Option.getOrElse((): readonly ExportName[] => []),
+  ),
 );
