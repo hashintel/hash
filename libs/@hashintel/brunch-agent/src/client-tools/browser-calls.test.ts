@@ -26,6 +26,16 @@ test("browser results require a JSON output and preserve optional metadata", () 
   expect(v.safeParse(vBrowserCallResultBody, correlation).success).toBe(false);
 });
 
+test("browser results accept undefined properties, which serialization drops, without normalizing them", () => {
+  const output = {
+    applied: true,
+    detail: undefined,
+    nested: { gone: undefined },
+  };
+  const parsed = v.parse(vBrowserCallResultBody, { ...correlation, output });
+  expect(parsed.output).toBe(output);
+});
+
 test.each([
   undefined,
   NaN,
@@ -33,8 +43,9 @@ test.each([
   1n,
   () => {},
   new Date(),
-  { missing: undefined },
+  { value: new Map() },
   [undefined],
+  { nested: [undefined] },
 ])(
   "browser results reject non-JSON output rather than normalizing it: %s",
   (output) => {
@@ -49,7 +60,9 @@ test("browser results reject non-JSON metadata", () => {
     v.safeParse(vBrowserCallResultBody, {
       ...correlation,
       output: null,
-      metadata: { invalid: undefined },
+      // An undefined property is dropped by serialization and accepted; NaN
+      // would arrive as null, so it is still rejected.
+      metadata: { invalid: NaN },
     }).success,
   ).toBe(false);
 });
