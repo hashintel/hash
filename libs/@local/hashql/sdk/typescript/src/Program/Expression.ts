@@ -19,6 +19,7 @@ import {
   Schema,
   SchemaIssue,
   SchemaParser,
+  Struct,
   identity,
   pipe,
 } from "effect";
@@ -27,6 +28,7 @@ import { Relocate, head } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as ProgramError from "./ProgramError.js";
+import * as Structural from "./Structural.js";
 import * as TAST from "./TAST/index.js";
 
 import type { Bound, Relocatable } from "../internal/relocation.js";
@@ -40,6 +42,7 @@ import type {
 import type * as Input from "./Inputs.js";
 import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
+import type { ReadonlyRecord } from "effect/Record";
 
 export type { Conditional } from "./ExpressionType.js";
 
@@ -557,24 +560,29 @@ export const assume =
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
 export const as = Function.dual<
-  <T extends Type.Any>(
-    type: TypeExpression.TypeExpression<T>,
-  ) => <E extends Value.Any>(expression: E) => Expression<T, Value.Inputs<E>>,
-  <E extends Value.Any, T extends Type.Any>(
+  <T extends Structural.Definition>(
+    type: T,
+  ) => <E extends Value.Any>(
     expression: E,
-    type: TypeExpression.TypeExpression<T>,
-  ) => Expression<T, Value.Inputs<E>>
+  ) => Expression<Structural.Definition.Type<T>, Value.Inputs<E>>,
+  <E extends Value.Any, T extends Structural.Definition>(
+    expression: E,
+    type: T,
+  ) => Expression<Structural.Definition.Type<T>, Value.Inputs<E>>
 >(
   2,
-  <E extends Value.Any, T extends Type.Any>(
+  <E extends Value.Any, T extends Structural.Definition>(
     expression: E,
-    type: TypeExpression.TypeExpression<T>,
-  ): Expression<T, Value.Inputs<E>> =>
+    type: T,
+  ): Expression<Structural.Definition.Type<T>, Value.Inputs<E>> =>
     pipe(
-      { value: toNode(expression), type: type[TAST.Node] },
+      {
+        value: toNode(expression),
+        type: Structural.type(type).pipe(Result.flatMap(Struct.get(TAST.Node))),
+      },
       Result.all,
       Result.map(({ value, type }) => new AST.As(value, type)),
-      fromResult<T, Value.Inputs<E>>,
+      fromResult<Structural.Definition.Type<T>, Value.Inputs<E>>,
     ),
 );
 
@@ -646,47 +654,64 @@ export const number = (
  * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs an input from its name and type
-export function input<const Name extends string, T extends Type.Any>(
-  name: Name,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue?: undefined,
-): Expression<T, Readonly<Record<Name, T>>>;
 export function input<
   const Name extends string,
-  T extends Type.Any,
-  const Default extends Value<NoInfer<T>>,
+  T extends Structural.Definition,
 >(
   name: Name,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue: Default,
+  type: T,
+  defaultValue?: undefined,
 ): Expression<
-  T,
-  Input.Merge<Readonly<Partial<Record<Name, T>>>, Value.Inputs<Default>>
+  Structural.Definition.Type<T>,
+  ReadonlyRecord<Name, Structural.Definition.Type<T>>
 >;
 export function input<
   const Name extends string,
-  T extends Type.Any,
-  const Default extends Value<NoInfer<T>>,
+  T extends Structural.Definition,
+  const Default extends Value<Structural.Definition.Type<NoInfer<T>>>,
 >(
   name: Name,
-  type: TypeExpression.TypeExpression<T>,
+  type: T,
+  defaultValue: Default,
+): Expression<
+  Structural.Definition.Type<T>,
+  Input.Merge<
+    Readonly<Partial<Record<Name, Structural.Definition.Type<T>>>>,
+    Value.Inputs<Default>
+  >
+>;
+export function input<
+  const Name extends string,
+  T extends Structural.Definition,
+  const Default extends Value<Structural.Definition.Type<NoInfer<T>>>,
+>(
+  name: Name,
+  type: T,
   defaultValue: Default | undefined,
-): Expression<T, Input.Merge<Readonly<Record<Name, T>>, Value.Inputs<Default>>>;
-export function input<T extends Type.Any>(
+): Expression<
+  Structural.Definition.Type<T>,
+  Input.Merge<
+    ReadonlyRecord<Name, Structural.Definition.Type<T>>,
+    Value.Inputs<Default>
+  >
+>;
+export function input<T extends Structural.Definition>(
   name: string,
-  type: TypeExpression.TypeExpression<T>,
+  type: T,
   defaultValue?: Value.Any,
-): Expression<T, never> {
+): Expression<Structural.Definition.Type<T>, never> {
   return Result.gen(function* () {
     const ident = yield* AST.decodeInputName(name);
-    const node = yield* type[TAST.Node];
+    const typeExpr = yield* Structural.type(type);
+    const node = yield* typeExpr[TAST.Node];
+
     if (defaultValue === undefined) {
       return yield* AST.validate(new AST.Input(ident, node, undefined));
     }
 
     const value = yield* toNode(defaultValue);
     return yield* AST.validate(new AST.Input(ident, node, value));
-  }).pipe(fromResult<T, never>);
+  }).pipe(fromResult<Structural.Definition.Type<T>, never>);
 }
 
 /**
