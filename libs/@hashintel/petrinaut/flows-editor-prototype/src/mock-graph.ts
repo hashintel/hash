@@ -220,9 +220,14 @@ export const mockEntities: MockEntity[] = [
 ];
 
 /** People's email addresses, for an email list's "People" choices (Send email To and CC). */
-export const mockPeopleEmails: { label: string; email: string }[] = [
-  { label: "Maya Patel", email: "maya@example.com" },
-  { label: "Tom Okafor", email: "tom@example.com" },
+export const mockPeopleEmails: {
+  label: string;
+  email: string;
+  /** A user, not a shared team address. */
+  person?: true;
+}[] = [
+  { label: "Maya Patel", email: "maya@example.com", person: true },
+  { label: "Tom Okafor", email: "tom@example.com", person: true },
   { label: "Purity team", email: "purity-team@example.com" },
 ];
 

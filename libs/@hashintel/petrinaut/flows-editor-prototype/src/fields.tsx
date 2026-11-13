@@ -76,6 +76,7 @@ import {
 } from "./ui";
 
 import type { StepInputSource } from "./engine";
+import { PersonAvatar, peopleAsRoles, personName } from "./person-avatar";
 
 type FieldProps = {
   step: DraftActionStep;
@@ -1065,6 +1066,15 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const mixed =
     items.length > 1 && items.some((item) => item.kind !== "constant");
 
+  /** A picked person (not a typed address): drawn with their avatar, as HASH's user chip. */
+  const personEmail = (item: StepInputSource) =>
+    !peopleAsRoles &&
+    mode === "email" &&
+    item.kind === "constant" &&
+    mockPeopleEmails.some(
+      (person) => person.email === String(item.payload.value) && person.person,
+    );
+
   const chip = (item: StepInputSource) => {
     const index = items.indexOf(item);
     const bad = badEmail(item);
@@ -1074,7 +1084,14 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         size="md"
         color={bad ? "red" : "grey"}
         {...(item.kind === "constant"
-          ? {}
+          ? personEmail(item)
+            ? {
+                prefix: {
+                  children: <PersonAvatar name={itemLabel(item)} />,
+                  variant: "naked" as const,
+                },
+              }
+            : {}
           : {
               // Square md, as every reference chip (L141; 11 Nov convergence A4).
               prefix: {
@@ -1124,7 +1141,9 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 
   const typedChoices =
     mode === "email"
-      ? mockPeopleEmails.map((person) => ({
+      ? mockPeopleEmails
+          .filter((person) => peopleAsRoles || person.person)
+          .map((person) => ({
           label: person.label,
           hint: person.email,
           source: {
@@ -1160,8 +1179,10 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
               searchable
               renderSelectedAll={firstAndMore(
                 (value) =>
-                  mockEntities.find((entity) => entity.entityId === value)
-                    ?.label ?? value,
+                  personName(
+                    mockEntities.find((entity) => entity.entityId === value)
+                      ?.label ?? value,
+                  ),
               )}
               aria-label={input.label}
               items={mockEntities
@@ -1171,7 +1192,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
                 )
                 .map((candidate) => ({
                   value: candidate.entityId as string,
-                  text: candidate.label,
+                  text: personName(candidate.label),
                 }))}
               value={constants.map((item) =>
                 item.kind === "constant" ? String(item.payload.value) : "",
