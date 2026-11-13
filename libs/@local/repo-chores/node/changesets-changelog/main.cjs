@@ -19,7 +19,6 @@ const assertRepo = (options) => {
 const takeOverrides = (summary) => {
   let pull;
   let commit;
-  const logins = [];
 
   const description = summary
     .replace(/^\s*(?:pr|pull|pull\s+request):\s*#?(\d+)/im, (_match, value) => {
@@ -33,31 +32,17 @@ const takeOverrides = (summary) => {
       commit = value;
       return "";
     })
-    .replace(/^\s*(?:author|user):\s*@?(\S+)/gim, (_match, value) => {
-      logins.push(value);
-      return "";
-    })
+    .replace(/^\s*(?:author|user):\s*@?(\S+)/gim, "")
     .trim();
 
-  return { pull, commit, logins, description };
+  return { pull, commit, description };
 };
-
-/**
- * The GraphQL payload carries each person's own URL, which for an app author is
- * `https://github.com/apps/<slug>` rather than a profile under its login. The
- * frontmatter override keys give a bare login, so build the profile URL only
- * for those.
- */
-const personLink = ({ login, url }) =>
-  `[@${login}](${url ?? `https://github.com/${login}`})`;
 
 const getReleaseLine = async (changeset, _type, options) => {
   assertRepo(options);
 
   const { repo } = options;
-  const { pull, commit, logins, description } = takeOverrides(
-    changeset.summary,
-  );
+  const { pull, commit, description } = takeOverrides(changeset.summary);
 
   const info = await (async () => {
     if (pull !== undefined) {
@@ -68,21 +53,10 @@ const getReleaseLine = async (changeset, _type, options) => {
 
     return target
       ? getInfoFromCommit({ repo, commit: target })
-      : { person: null, pull: null };
+      : { pull: null };
   })();
 
-  const resolvedPeople = info.person ? [info.person] : [];
-  const attributedPeople =
-    logins.length > 0 ? logins.map((login) => ({ login })) : resolvedPeople;
-
-  const attribution = [
-    ...(attributedPeople.length > 0
-      ? [attributedPeople.map(personLink).join(", ")]
-      : []),
-    ...(info.pull ? [`[#${info.pull.number}](${info.pull.url})`] : []),
-  ];
-
-  const suffix = attribution.length > 0 ? ` (${attribution.join(", ")})` : "";
+  const suffix = info.pull ? ` ([#${info.pull.number}](${info.pull.url}))` : "";
 
   const lines = description.split("\n").map((line) => line.trimEnd());
   const breakIndex = lines.findIndex((line, index) => index > 0 && line === "");

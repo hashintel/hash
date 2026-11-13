@@ -8,16 +8,6 @@ const pullRequestFields = `
   number
   url
   mergedAt
-  author {
-    login
-    url
-  }
-  assignees(first: 1) {
-    nodes {
-      login
-      url
-    }
-  }
 `;
 
 const makeQuery = (repos) => `
@@ -29,28 +19,18 @@ const makeQuery = (repos) => `
           name: ${JSON.stringify(repo.split("/")[1])}
         ) {
           ${repos[repo]
-            .map((request) =>
-              request.kind === "commit"
-                ? `a${request.commit}: object(expression: ${JSON.stringify(
-                    request.commit,
-                  )}) {
-                    ... on Commit {
-                      associatedPullRequests(first: 50) {
-                        nodes {
-                          ${pullRequestFields}
-                        }
-                      }
-                      author {
-                        user {
-                          login
-                          url
-                        }
-                      }
+            .map(
+              (
+                commit,
+              ) => `a${commit}: object(expression: ${JSON.stringify(commit)}) {
+                ... on Commit {
+                  associatedPullRequests(first: 50) {
+                    nodes {
+                      ${pullRequestFields}
                     }
-                  }`
-                : `pr__${request.pull}: pullRequest(number: ${request.pull}) {
-                    ${pullRequestFields}
-                  }`,
+                  }
+                }
+              }`,
             )
             .join("\n")}
         }`,
@@ -67,14 +47,14 @@ const loader = new DataLoader(
   async (requests) => {
     if (!process.env.GITHUB_TOKEN) {
       throw new Error(
-        "GITHUB_TOKEN is unset. Create a GitHub personal access token at https://github.com/settings/tokens/new with `read:user` and `repo:status` permissions and expose it as GITHUB_TOKEN",
+        "GITHUB_TOKEN is unset. Set GITHUB_TOKEN to a token with read access to the repository to resolve changelog pull request links",
       );
     }
 
     const repos = {};
-    for (const { repo, ...request } of requests) {
+    for (const { repo, commit } of requests) {
       repos[repo] ??= [];
-      repos[repo].push(request);
+      repos[repo].push(commit);
     }
 
     const response = await fetch("https://api.github.com/graphql", {
@@ -98,23 +78,10 @@ const loader = new DataLoader(
 
     const byRepo = {};
     Object.keys(repos).forEach((repo, index) => {
-      const entries = { commit: {}, pull: {} };
-      byRepo[repo] = entries;
-
-      for (const [alias, value] of Object.entries(
-        body.data[`a${index}`] ?? {},
-      )) {
-        if (alias.startsWith("pr__")) {
-          entries.pull[alias.slice("pr__".length)] = value;
-        } else {
-          entries.commit[alias.slice(1)] = value;
-        }
-      }
+      byRepo[repo] = body.data[`a${index}`] ?? {};
     });
 
-    return requests.map(({ repo, kind, commit, pull }) =>
-      kind === "commit" ? byRepo[repo].commit[commit] : byRepo[repo].pull[pull],
-    );
+    return requests.map(({ repo, commit }) => byRepo[repo][`a${commit}`]);
   },
   { cacheKeyFn: (request) => JSON.stringify(request) },
 );
@@ -126,13 +93,6 @@ const assertValidRepo = (repo) => {
     );
   }
 };
-
-/**
- * A pull request's author is sometimes an agent or a bot; its assignee is a
- * person.
- */
-const attributablePerson = (pullRequest) =>
-  pullRequest?.assignees?.nodes?.[0] ?? pullRequest?.author ?? null;
 
 /**
  * Picks the same pull request out of a commit's associated set as
@@ -159,27 +119,21 @@ const primaryPullRequest = (nodes) =>
 const getInfoFromCommit = async ({ repo, commit }) => {
   assertValidRepo(repo);
 
-  const data = await loader.load({ kind: "commit", repo, commit });
+  const data = await loader.load({ repo, commit });
   const nodes = data?.associatedPullRequests?.nodes ?? [];
   const pullRequest = nodes.length > 0 ? primaryPullRequest(nodes) : null;
 
   return {
-    person: pullRequest
-      ? attributablePerson(pullRequest)
-      : (data?.author?.user ?? null),
     pull: pullRequest
       ? { number: pullRequest.number, url: pullRequest.url }
       : null,
   };
 };
 
-const getInfoFromPullRequest = async ({ repo, pull }) => {
+const getInfoFromPullRequest = ({ repo, pull }) => {
   assertValidRepo(repo);
 
-  const data = await loader.load({ kind: "pull", repo, pull });
-
   return {
-    person: attributablePerson(data),
     pull: { number: pull, url: `https://github.com/${repo}/pull/${pull}` },
   };
 };
