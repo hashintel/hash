@@ -1,5 +1,10 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
+import {
+  Handle,
+  Position,
+  useUpdateNodeInternals,
+  type NodeProps,
+} from "@xyflow/react";
+import { use, useEffect } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -151,7 +156,8 @@ const portLabelStyle = css({
   fontWeight: "medium",
   lineHeight: "[1]",
   color: "neutral.s105",
-  maxWidth: "[44%]",
+  // An unfolded port has its row to itself, short of the pin on each edge.
+  maxWidth: "[calc(100% - 24px)]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -173,17 +179,17 @@ const handles = {
   right: { position: Position.Right, idOf: portOutHandleId },
 };
 
+/**
+ * What the card says under its name: the component, or for an instance of an
+ * interface what runs for it. The line is short, so it leads with that.
+ */
 const describeBinding = (
   subnetName: string,
   binding: CanvasInstanceBinding,
-): string => {
-  if (binding.kind === "component") {
-    return subnetName;
-  }
-  return binding.implementationName === null
-    ? `${subnetName} · no implementation`
-    : `${subnetName} · ${binding.implementationName}`;
-};
+): string =>
+  binding.kind === "component"
+    ? subnetName
+    : (binding.implementationName ?? "no implementation");
 
 const describeFoldedPorts = (ports: CanvasPort[]): string => {
   const inputs = ports.filter((port) => port.direction !== "out").length;
@@ -199,6 +205,7 @@ export const ComponentInstanceNode: React.FC<
   isConnectable,
 }: NodeProps<ComponentInstanceNodeType>) => {
   const { toggleComponentInstanceFold } = use(EditorContext);
+  const updateNodeInternals = useUpdateNodeInternals();
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
@@ -207,9 +214,25 @@ export const ComponentInstanceNode: React.FC<
   const { ports, binding, unfolded, foldable } = data;
   const isInterface = binding.kind === "interface";
   const unbound = isInterface && binding.implementationName === null;
+  const runs = describeBinding(data.subnetName, binding);
+
+  // React Flow measures a handle when its node resizes. A port that comes or
+  // goes on a card that keeps its height is measured here, and the pins the
+  // change moved once they have slid into place.
+  const portIds = ports.map(({ id }) => id).join(" ");
+  useEffect(() => {
+    updateNodeInternals(data.id);
+  }, [updateNodeInternals, data.id, portIds]);
 
   return (
-    <div className={containerStyle}>
+    <div
+      className={containerStyle}
+      onTransitionEnd={(event) => {
+        if (event.propertyName === "top") {
+          updateNodeInternals(data.id);
+        }
+      }}
+    >
       <div className={cx(cardStyle, nodeFocusStyle({ focus }))}>
         <div className={headerStyle}>
           <div className={cx(iconContainerBaseStyle, iconTileStyle)}>
@@ -219,16 +242,18 @@ export const ComponentInstanceNode: React.FC<
             <div className={titleStyle}>{data.label}</div>
             <div
               className={cx(subtitleStyle, problemTextStyle)}
-              data-severity={unbound ? "warning" : undefined}
+              data-severity={unbound ? "error" : undefined}
+              title={isInterface ? `${data.subnetName}: ${runs}` : undefined}
             >
-              {describeBinding(data.subnetName, binding)}
+              {runs}
             </div>
           </div>
           {foldable ? (
             <button
               type="button"
-              className={cx("nodrag", "nopan", foldToggleStyle)}
-              aria-label={unfolded ? "Hide ports" : "Show ports"}
+              // `nokey`: Space and Enter fold the card without selecting it.
+              className={cx("nodrag", "nopan", "nokey", foldToggleStyle)}
+              aria-label="Ports"
               aria-expanded={unfolded}
               onClick={(event) => {
                 event.stopPropagation();
@@ -283,6 +308,7 @@ export const ComponentInstanceNode: React.FC<
                 type="source"
                 position={handles[side].position}
                 id={handles[side].idOf(port.id)}
+                title={shown ? port.name : undefined}
                 isConnectable={isConnectable}
                 isConnectableStart={shown}
                 isConnectableEnd={shown}
