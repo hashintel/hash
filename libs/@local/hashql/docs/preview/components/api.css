@@ -222,7 +222,7 @@
   margin-inline-start: auto;
 }
 
-/* An entry is one grid of its parts, in the order the page writes them. A comment without overload numbers lends its sections to the grid. A wide entry puts its description beside its declaration, and every other part across both columns, so neither column runs on alone. */
+/* An entry is one grid of its parts, in the order the page writes them. A comment without overload numbers lends its sections to the grid. A wide entry puts its description beside its declaration, and every other part across both columns, so neither column runs on alone. A declaration with no description beside it, as under numbered comments, takes both columns too. */
 
 .api-export-body {
   display: grid;
@@ -262,7 +262,8 @@
     grid-column: 1;
   }
 
-  .api-export-body > .api-part[data-part="declaration"] {
+  .api-export-body:has(> .api-comment > .api-description)
+    > .api-part[data-part="declaration"] {
     grid-column: 2;
   }
 }
