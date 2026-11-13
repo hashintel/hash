@@ -86,6 +86,7 @@ const FlowsPageContent = () => {
               path: userCanUpdate
                 ? generateFlowEditorPath(pathParams)
                 : generateFlowDefinitionPath(pathParams),
+              editable: userCanUpdate,
               lastEditedAt,
             };
           },

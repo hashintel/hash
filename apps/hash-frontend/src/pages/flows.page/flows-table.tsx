@@ -1,10 +1,16 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
+import { useState } from "react";
 
+import { EllipsisMenu } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { getFlowDefinitionRunsQuery } from "../../graphql/queries/knowledge/flow.queries";
+import {
+  archiveFlowDefinitionMutation,
+  getFlowDefinitionRunsQuery,
+} from "../../graphql/queries/knowledge/flow.queries";
 import { Link } from "../../shared/ui/link";
+import { ArchiveFlowDialog } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/archive-flow-dialog";
 import {
   getShortRunId,
   shortRunIdFont,
@@ -15,8 +21,11 @@ import {
   runStates,
 } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-state";
 import { formatRunTime } from "../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-times";
+import { flowDefinitionsQuery } from "../shared/use-flow-definitions";
 
 import type {
+  ArchiveFlowDefinitionMutation,
+  ArchiveFlowDefinitionMutationVariables,
   GetFlowDefinitionRunsQuery,
   GetFlowDefinitionRunsQueryVariables,
 } from "../../graphql/api-types.gen";
@@ -30,6 +39,8 @@ export type FlowRow = {
   name: string;
   /** Where the flow opens: the editor, or for a flow the user can't edit, its page. */
   path: string;
+  /** Whether the user can edit the flow, and so archive it. */
+  editable: boolean;
   lastEditedAt: string;
 };
 
@@ -100,6 +111,57 @@ const openableRow = css({
 const nameText = css({ color: "fg.heading", whiteSpace: "normal" });
 const lastRun = css({ display: "inline-flex", alignItems: "center", gap: "2" });
 const subtle = css({ color: "fg.subtle" });
+const menu = css({ display: "flex", justifyContent: "flex-end" });
+
+/** The row's menu, which has Archive, as the editor's does: flows are archived, never deleted. */
+const FlowMenu = ({ flow }: { flow: FlowRow }) => {
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+
+  const [archiveFlowDefinition] = useMutation<
+    ArchiveFlowDefinitionMutation,
+    ArchiveFlowDefinitionMutationVariables
+  >(archiveFlowDefinitionMutation);
+
+  return (
+    /* Neither the menu nor its dialog opens the flow: React passes their clicks up to the row through the portals. */
+    <div
+      role="presentation"
+      className={menu}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <EllipsisMenu
+        iconName="ellipsis"
+        variant="ghost"
+        size="xs"
+        items={[
+          {
+            id: "archive",
+            text: "Archive",
+            tone: "error",
+            onClick: () => setArchiveDialogOpen(true),
+          },
+        ]}
+      />
+      {archiveDialogOpen && (
+        <ArchiveFlowDialog
+          name={flow.name}
+          onArchive={async () => {
+            /* The flow's row leaves the list once the flows are read again. */
+            await archiveFlowDefinition({
+              variables: {
+                flowDefinitionEntityId: flow.flowDefinitionEntityId,
+              },
+              refetchQueries: [flowDefinitionsQuery],
+              awaitRefetchQueries: true,
+            });
+            setArchiveDialogOpen(false);
+          }}
+          onClose={() => setArchiveDialogOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
 
 const LastRun = ({
   run,
@@ -188,6 +250,7 @@ const FlowTableRow = ({ flow, now }: { flow: FlowRow; now: Date }) => {
             : `${runs.totalCount} ${runs.totalCount === 1 ? "run" : "runs"}`)}
       </td>
       <td>{formatRunTime(new Date(flow.lastEditedAt), now)}</td>
+      <td>{flow.editable && <FlowMenu flow={flow} />}</td>
     </tr>
   );
 };
@@ -212,6 +275,7 @@ export const FlowsTable = ({
             <th className={css({ width: "[272px]" })}>Last run</th>
             <th className={css({ width: "[96px]" })}>Runs</th>
             <th className={css({ width: "[160px]" })}>Last edited</th>
+            <th className={css({ width: "[56px]" })} aria-label="Actions" />
           </tr>
         </thead>
         <tbody>
@@ -225,7 +289,7 @@ export const FlowsTable = ({
           {flows.length === 0 && (
             <tr>
               <td
-                colSpan={4}
+                colSpan={5}
                 className={cx(subtle, css({ fontWeight: "normal" }))}
               >
                 No flows match “{search}”
