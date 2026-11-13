@@ -125,6 +125,7 @@ export function usePetrinautMutations(): PetrinautMutations {
     removeFusion: withReadonlyGuard("removeFusion"),
     addFusionMember: withReadonlyGuard("addFusionMember"),
     removeFusionMember: withReadonlyGuard("removeFusionMember"),
+    replaceFusionMember: withReadonlyGuard("replaceFusionMember"),
     setImplementation: withReadonlyGuard("setImplementation", {
       targetActiveSubnet: false,
     }),
