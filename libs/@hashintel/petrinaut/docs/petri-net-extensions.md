@@ -8,7 +8,7 @@ Some embedded Petrinaut documents can disable one or more extensions. When an ex
 
 By default, places hold **untyped tokens** -- they only track a count. Tokens are indistinguishable from each other. This is sufficient for simple flow models.
 
-To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, visualization, and data-dependent transition logic.
+To give tokens structure, assign a **type** to a place. Each token then carries named dimensions (e.g. `x`, `y`, `velocity`), enabling dynamics, data-dependent transition logic, and [visualizers](#visualizer) that draw each token from its values.
 
 Each dimension has one of five value types, chosen in the **Type** column of the **Dimensions** table:
 
@@ -161,6 +161,31 @@ return (
 ```
 
 This example expects token coordinates between 0 and 1.
+
+A place with no type draws too. Its tokens carry no values, so `tokens.length` is the place's token count and `tokens.map((_, index) => ...)` draws one mark per token:
+
+```jsx
+return (
+  <Visualizer.Svg backgroundColor="#f8fafc">
+    <text x={12} y={20} fontSize="12">
+      {tokens.length} in stock
+    </text>
+    {tokens.map((_, index) => (
+      <rect
+        key={index}
+        x={12 + index * 18}
+        y={32}
+        width={14}
+        height={14}
+        rx={3}
+        fill="#2563eb"
+      />
+    ))}
+  </Visualizer.Svg>
+);
+```
+
+Reading a value off such a token is an error.
 
 | Property          | Default      | Purpose                                                                     |
 | ----------------- | ------------ | --------------------------------------------------------------------------- |
