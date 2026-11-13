@@ -8,10 +8,12 @@ import {
   Menu,
   NumberInput,
   SelectableListSearch,
+  TextArea,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getInputSize } from "@local/hash-isomorphic-utils/flows/input-size";
 
 import { getNameLabel } from "../shared/name-label";
 import {
@@ -62,6 +64,10 @@ const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
 
 /** Values shown before Show more. */
 const shownOptionCount = 4;
+
+/** Rows of a medium text beside its label, and of a long or expanded one, which then grows with its text. */
+const besideLabelRows = 2;
+const ownLineRows = 6;
 
 /* The Button only fills the row; what's inside it is laid out by these. */
 const trigger = css({ width: "full" });
@@ -253,8 +259,8 @@ const SourceMenu = ({
 };
 
 /**
- * A step input's field: a menu to pick its value, or a text field once a value is typed. Its problems show beneath
- * it; a value whose source is gone shows as a red chip.
+ * A step input's field: a menu to pick its value, or a text field once a value is typed, sized by the input (see
+ * `getInputSize`). Its problems show beneath it; a value whose source is gone shows as a red chip.
  */
 export const InputField = ({
   editor,
@@ -280,6 +286,8 @@ export const InputField = ({
 }) => {
   /* Set from picking Type a value until the field is left with nothing typed. */
   const [typing, setTyping] = useState(false);
+  /* Whether a medium text has been given a line of its own. */
+  const [expanded, setExpanded] = useState(false);
 
   const label = getNameLabel(input.name);
   const target = getInputTarget({
@@ -320,34 +328,61 @@ export const InputField = ({
       readonly: readOnly,
       invalid: errors.length > 0,
       autoFocus: typing,
-      clearable: !readOnly && {
-        onClear: () => {
-          setTyping(false);
-          setSource(null);
-        },
-      },
       onBlur: () => setTyping(false),
     };
+    const clearable = !readOnly && {
+      onClear: () => {
+        setTyping(false);
+        setSource(null);
+      },
+    };
+
+    /* Text of a few lines or more is typed in a text area, on a line of its own when it's long or expanded. */
+    const size = typedInKind === "Text" ? getInputSize(input) : "short";
+    const ownLine = size === "long" || (size === "medium" && expanded);
 
     return (
       <Form.Field
-        layout="inline"
+        layout={ownLine ? "block" : "inline"}
         label={label}
         errors={errors.length > 0 ? errors : undefined}
+        labelActions={
+          size === "medium" &&
+          !readOnly && (
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName={expanded ? "collapse" : "expand"}
+              aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+              tooltip={expanded ? "Collapse" : "Expand"}
+              onClick={() => setExpanded(!expanded)}
+            />
+          )
+        }
       >
         {typedInKind === "Number" ? (
           <NumberInput
             {...fieldProps}
+            clearable={clearable}
             value={typedConstant ? Number(typedConstant.text) : null}
             min={-Number.MAX_VALUE}
             max={Number.MAX_VALUE}
             step="any"
             onChange={setTypedValue}
           />
-        ) : (
+        ) : size === "short" ? (
           <TextInput
             {...fieldProps}
+            clearable={clearable}
             type={typedInKind === "Date" ? "date" : "text"}
+            value={typedConstant?.text ?? ""}
+            onChange={setTypedValue}
+          />
+        ) : (
+          <TextArea
+            {...fieldProps}
+            rows={ownLine ? ownLineRows : besideLabelRows}
+            autoResize={ownLine}
             value={typedConstant?.text ?? ""}
             onChange={setTypedValue}
           />
