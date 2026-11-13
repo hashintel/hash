@@ -1,10 +1,5 @@
-import {
-  Handle,
-  Position,
-  useUpdateNodeInternals,
-  type NodeProps,
-} from "@xyflow/react";
-import { use, useEffect } from "react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -17,6 +12,7 @@ import { iconContainerBaseStyle } from "./node-card";
 import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { pinColorStyle, pinStyle } from "./port-pin";
+import { useRemeasureHandles } from "./use-remeasure-handles";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
 import type { ComponentInstanceNodeType } from "./react-flow-types";
@@ -205,7 +201,6 @@ export const ComponentInstanceNode: React.FC<
   isConnectable,
 }: NodeProps<ComponentInstanceNodeType>) => {
   const { toggleComponentInstanceFold } = use(EditorContext);
-  const updateNodeInternals = useUpdateNodeInternals();
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
@@ -216,20 +211,20 @@ export const ComponentInstanceNode: React.FC<
   const unbound = isInterface && binding.implementationName === null;
   const runs = describeBinding(data.subnetName, binding);
 
-  // React Flow measures a handle when its node resizes. A port that comes or
-  // goes on a card that keeps its height is measured here, and the pins the
-  // change moved once they have slid into place.
-  const portIds = ports.map(({ id }) => id).join(" ");
-  useEffect(() => {
-    updateNodeInternals(data.id);
-  }, [updateNodeInternals, data.id, portIds]);
+  // A card that keeps its height moves its pins when a port comes, goes or
+  // changes side. They are measured at once, and again once they have slid
+  // into place.
+  const remeasure = useRemeasureHandles(
+    data.id,
+    ports.map(({ id, direction }) => `${id}:${direction}`).join(" "),
+  );
 
   return (
     <div
       className={containerStyle}
       onTransitionEnd={(event) => {
         if (event.propertyName === "top") {
-          updateNodeInternals(data.id);
+          remeasure();
         }
       }}
     >
