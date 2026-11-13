@@ -55,13 +55,7 @@ import {
 } from "./run-time";
 
 export type RunBarVariant = 1 | 2 | 3 | 4 | 5;
-export type EditorBarVariant = 1 | 2 | 3;
 
-/** `?topbar=` from the URL only, never remembered; else take 1. */
-export const runBarVariant = (query: URLSearchParams): RunBarVariant => {
-  const take = Number(query.get("topbar"));
-  return take === 2 || take === 3 || take === 4 || take === 5 ? take : 1;
-};
 
 /**
  * `?runback=` (6 Nov sync, B9): where the run's way back goes. URL only, never remembered.
@@ -104,19 +98,6 @@ const backTarget = (flowName: string) => {
  */
 export type RunBarTake = 1 | 2 | 3 | 4;
 
-export const runBarTake = (query: URLSearchParams): RunBarTake | null => {
-  // Picked r2-2 (Aakarsh, 10 Nov 16:20): the editor's bar. ?runbar=today keeps the old bar.
-  if (query.get("runbar") === "today") {
-    return null;
-  }
-  const take = Number(query.get("runbar"));
-  return take === 1 || take === 2 || take === 3 || take === 4 ? take : 2;
-};
-
-export const editorBarVariant = (query: URLSearchParams): EditorBarVariant => {
-  const take = Number(query.get("editorbar"));
-  return take === 2 || take === 3 ? take : 1;
-};
 
 const sideStyle = css({
   display: "flex",

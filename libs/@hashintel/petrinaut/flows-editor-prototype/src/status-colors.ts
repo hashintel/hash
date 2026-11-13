@@ -435,8 +435,7 @@ const amberWarnings = {
 type StatusStep = "b" | "c" | "d" | "l1";
 
 /**
- * `l1` is round 3's L1, deeper DS steps (every mark 3:1 or more on white). `?cardstatus=` (any value) implies it, as
- * the M takes are drawn on L1's colours.
+ * `l1` is round 3's L1, deeper DS steps (every mark 3:1 or more on white).
  */
 export const statusStep = (): StatusStep | null => {
   const query = new URLSearchParams(globalThis.location.search);
@@ -444,7 +443,7 @@ export const statusStep = (): StatusStep | null => {
   if (value === "b" || value === "c" || value === "d" || value === "l1") {
     return value;
   }
-  return query.get("cardstatus") ? "l1" : null;
+  return null;
 };
 
 const statusSteps: Record<

@@ -38,14 +38,7 @@ import { PropertiesPanel } from "./properties-panel";
 import { navigate, routePath, setQuery, useLocation } from "./router";
 import { RunForm } from "./run-dialogs";
 import { RunLogPanel } from "./run-log-panel";
-import {
-  editorBarVariant,
-  HistoryButton,
-  RunTopBar,
-  runBackTake,
-  runBarTake,
-  runBarVariant,
-} from "./run-top-bar";
+import { RunTopBar, runBackTake } from "./run-top-bar";
 import { validateDocument } from "./shapes";
 import { findTask, newSession, type TaskSession, writeSession } from "./tasks";
 import { FlowToolbar, isTyping, organize } from "./toolbar";
@@ -124,14 +117,6 @@ const FlowTitle = ({
   name: string;
   onRename: (name: string) => void;
 }) => <ToggleableTextInput value={name} onSave={onRename} label="Flow name" />;
-
-/** Editor take 3's muted line: the version menu, a dot, and the run count. */
-const versionLineStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "0.5",
-  color: "neutral.fg.subtle",
-});
 
 /** Editor | History (3 Nov): the DS SegmentedControl at md, centred in the top bar (x 42 to 1440). */
 const viewSwitchStyle = css({
@@ -331,7 +316,6 @@ export const Editor = ({
   const liveRunId =
     history?.runs.find((run) => run.kind === "live" && !run.stopped)?.id ??
     null;
-  const editorBar = editorBarVariant(location.query);
   // J6: History for a flow with runs. Without them (every other flow), History opens the older mock run view.
   const inHistory = Boolean(history && ui.history);
   const openRun = inHistory ? history?.run : null;
@@ -494,9 +478,9 @@ export const Editor = ({
               <header className={topBarStyle}>
                 {openRun && history ? (
                   <RunTopBar
-                    variant={runBarVariant(location.query)}
+                    variant={1}
                     back={runBackTake(location.query)}
-                    take={runBarTake(location.query)}
+                    take={2}
                     onFlows={onBack ? () => onBack(document) : undefined}
                     forEachSwitch={
                       forEachSwitchTake(location.query) === "top" ? (
@@ -524,18 +508,6 @@ export const Editor = ({
                     >
                       {
                         <>
-                          {/* Without the switch (takes 2, 3), ← on All runs goes back to the editor. */}
-                          {inHistory && editorBar !== 1 ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              iconName="arrowLeft"
-                              className={backStyle}
-                              aria-label="Back to the editor"
-                              tooltip="Back to the editor"
-                              onClick={toEditor}
-                            />
-                          ) : (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -546,7 +518,6 @@ export const Editor = ({
                               disabled={!onBack}
                               onClick={() => onBack?.(document)}
                             />
-                          )}
                           <FlowTitle
                             name={document.name}
                             onRename={(name) =>
@@ -556,7 +527,7 @@ export const Editor = ({
                               }))
                             }
                           />
-                          {version && editorBar !== 3 ? (
+                          {version ? (
                             <VersionButton
                               version={version}
                               viewing={viewingVersion}
@@ -564,21 +535,6 @@ export const Editor = ({
                           ) : null}
                           {version && viewingVersion === null ? (
                             <DraftSaveNote document={document} />
-                          ) : null}
-                          {/* Take 3: one muted line, "v6 · Draft ▾ · 17 runs"; each part opens its own place. */}
-                          {version && editorBar === 3 ? (
-                            <span className={versionLineStyle}>
-                              <VersionButton
-                                version={version}
-                                viewing={viewingVersion}
-                              />
-                              <span aria-hidden>·</span>
-                              <HistoryButton
-                                variant="link"
-                                runCount={history?.runs.length ?? 0}
-                                onOpen={() => history?.open(null)}
-                              />
-                            </span>
                           ) : null}
                         </>
                       }
@@ -589,7 +545,6 @@ export const Editor = ({
                 */}
                     <div
                       className={viewSwitchStyle}
-                      style={editorBar === 1 ? undefined : { display: "none" }}
                     >
                       <SegmentedControl<"editor" | "history">
                         size="md"
@@ -635,13 +590,6 @@ export const Editor = ({
                     >
                       {/* T1 (4 Nov): Simulate, Run, Publish, ⋮. */}
                       <>
-                        {editorBar === 2 ? (
-                          <HistoryButton
-                            variant="button"
-                            runCount={history?.runs.length ?? 0}
-                            onOpen={() => history?.open(null)}
-                          />
-                        ) : null}
                         {/* Simulate: a dry run without the trigger. Its form opens under it. */}
                         <span
                           ref={runRef}

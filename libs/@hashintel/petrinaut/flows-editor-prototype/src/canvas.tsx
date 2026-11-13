@@ -18,7 +18,6 @@ import {
   ReactFlow,
   useNodesInitialized,
   useReactFlow,
-  useStore,
   useStoreApi,
 } from "@xyflow/react";
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -80,9 +79,6 @@ import {
   reviewMotionOf,
   reviewOnceStyle,
   CardMark,
-  cardStatusBar,
-  cardStatusTake,
-  StateMark,
   RunBar,
   RunGlyph,
   TitleMark,
@@ -1209,18 +1205,6 @@ const RunMarkTake = ({
       </>
     );
   }
-  if (cardStatusTake) {
-    return (
-      <CardStatusTakeMark
-        mark={mark}
-        segments={segments}
-        group={group}
-        radius={radius}
-        finish={finish}
-        breakdown={breakdown}
-      />
-    );
-  }
   return (
     <>
       <CardMark state={mark.state} progress={mark.progress} group={group} />
@@ -1233,54 +1217,6 @@ const RunMarkTake = ({
         reviewMotion={reviewMotion}
         breakdown={breakdown}
       />
-    </>
-  );
-};
-
-/** The canvas zoom, read only under ?cardstatus=m3 so other takes never re-render on zoom. */
-const useCounterScaleZoom = () =>
-  useStore((state) => (cardStatusTake === "m3" ? state.transform[2] : 1));
-
-/** ?cardstatus=l1|m1|m2|m3: a mark on every state, the bar per take (see cardStatusTake). */
-const CardStatusTakeMark = ({
-  mark,
-  segments,
-  group,
-  radius,
-  finish,
-  breakdown,
-}: {
-  mark: StepRun;
-  segments: NonNullable<ReturnType<typeof barOf>>;
-  group?: boolean;
-  radius: "lg" | "xl";
-  finish: "solid" | "reflect";
-  breakdown: string;
-}) => {
-  const zoom = useCounterScaleZoom();
-  // m3: 2 px on screen at any zoom; the 12 px mark grows back to 12 px below 100 %.
-  const barHeight = cardStatusTake === "m3" ? 2 / zoom : 2;
-  const markScale = cardStatusTake === "m3" ? Math.max(1, 1 / zoom) : 1;
-  return (
-    <>
-      <StateMark
-        state={mark.state}
-        progress={mark.progress}
-        group={group}
-        scale={markScale}
-      />
-      {cardStatusBar(mark.state, mark.progress) ? (
-        <RunBar
-          segments={segments}
-          colors={strongBarColor}
-          height={barHeight}
-          radius={radius}
-          finish={finish}
-          motion={barMotion}
-          reviewMotion={reviewMotion}
-          breakdown={breakdown}
-        />
-      ) : null}
     </>
   );
 };
@@ -1780,7 +1716,6 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const runView = useRunView();
   const enterRef = useEnterAnimation(id);
   const runStars = useRunStars();
-  const starMarkScale = Math.max(1, 1 / useCounterScaleZoom());
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
     return null;
@@ -1838,12 +1773,6 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           className={runStarStyle}
           data-run-star
           aria-label="Featured output"
-          // ?cardstatus=: every card has a mark in this corner, so the star moves left of it, 6 px apart.
-          style={
-            cardStatusTake && mark
-              ? { right: 10 + 12 * starMarkScale + 6 }
-              : undefined
-          }
         >
           <Icon name="star" size="xs" />
         </span>
