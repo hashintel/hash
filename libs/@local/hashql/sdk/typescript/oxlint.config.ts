@@ -7,17 +7,12 @@ import type { OxlintConfig } from "oxlint";
 const config: OxlintConfig = defineConfig({
   frameworks: ["effect", "vitest"],
   runtime: "browser",
+  additionalDefinedJsDocTags: tsdoc.tagDefinitions.map(({ tagName }) =>
+    tagName.slice(1),
+  ),
   rules: {
     "effecttsgo/unstable-api-usage": "allow", // we make deliberate use of unstable APIs, to avoid external dependencies
     "jsdoc/require-throws-type": "allow", // TSDoc has no braces after `@throws`, so the thrown type opens the tag's text
-    "jsdoc/check-tag-names": [
-      "deny", // the tags `tsdoc.json` defines, such as `@category`, are the package's own
-      {
-        definedTags: tsdoc.tagDefinitions.map(({ tagName }) =>
-          tagName.slice(1),
-        ),
-      },
-    ],
   },
   overrides: [
     {
