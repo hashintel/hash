@@ -199,9 +199,16 @@ const exported =
                 exported(output)(inner, depth + 1),
               ),
             );
+            const facts = Content.facts(
+              Output.facts(output)({
+                facts: Option.map(space.comment, ({ facts: stated }) => stated),
+                origin: Option.some(space.origin),
+              }),
+            );
 
             return Content.section(
               [
+                ...Option.toArray(facts),
                 ...own,
                 ...Content.section(index, Titles.sections.exports),
                 ...Array.flatten(nested),
