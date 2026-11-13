@@ -164,6 +164,14 @@ export const useFlowTriggers = (): FlowTriggers => {
   return flowTriggersOf(document, ui.triggerSwitches);
 };
 
+/** u-ghost-muted-line's count split: "13 on · 1 paused", a zero part dropped; "None" when there are none. */
+const countSplit = (on: number, paused: number) =>
+  on + paused === 0
+    ? "None"
+    : [on > 0 ? `${formatCount(on)} on` : "", paused > 0 ? `${formatCount(paused)} paused` : ""]
+        .filter(Boolean)
+        .join(" · ");
+
 /** What a ghost node says: its kind, a one-line summary, and whether any of it is on (50%) or not (25%). */
 export const ghostSummary = (
   triggers: FlowTriggers,
@@ -175,6 +183,16 @@ export const ghostSummary = (
       line: triggers.manual ? "On" : "Off",
       icon: "user",
       on: triggers.manual,
+    };
+  }
+  if (triggerPanelAtScale) {
+    // The Triggers panel's own counts (13 Nov), so the ghost and the panel never disagree.
+    const counts = scaleTotals[kind];
+    return {
+      title: kind === "schedule" ? "Schedule" : "Responsive",
+      line: countSplit(counts.on, counts.paused),
+      icon: kind === "schedule" ? "calendar" : "cube",
+      on: counts.on > 0,
     };
   }
   const items = triggers.items.filter((item) => item.kind === kind);
@@ -335,6 +353,16 @@ export const ghostTakeSummary = (
       };
     default:
       // u-ghost-muted-line (13 Nov): the kind as the title, then the count split, at every count ("2 on · 1 paused").
+      // The counts are the Triggers panel's own (13 Nov), so the ghost and the panel never disagree.
+      if (!ghostLineOld && triggerPanelAtScale) {
+        const counts = scaleTotals[kind];
+        return {
+          title: kindTitle[kind],
+          line: countSplit(counts.on, counts.paused),
+          icon,
+          on: counts.on > 0,
+        };
+      }
       if (!ghostLineOld) {
         const pausedCount = items.length - onCount;
         return {
@@ -823,7 +851,14 @@ const showAllNoun: Record<FlowTrigger["kind"], string> = {
 };
 
 const TriggersPanelAtScale = () => {
-  const [manual, setManual] = useState(false);
+  const { setUi } = useEditor();
+  // The flow's own Manual switch, so the Manual ghost reads what the panel shows.
+  const manual = useFlowTriggers().manual;
+  const setManual = (on: boolean) =>
+    setUi((current) => ({
+      ...current,
+      triggerSwitches: { ...current.triggerSwitches, manual: on },
+    }));
   const [filter, setFilter] = useState<ScaleFilter>("all");
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
