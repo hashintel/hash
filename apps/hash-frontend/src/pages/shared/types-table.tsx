@@ -691,11 +691,13 @@ export const TypesTable: FunctionComponent<{
       rows
         .filter(
           (row, rowIndex) =>
-            row.labelPreview
-              ?.map(({ text }) => text)
-              .join("")
-              .toLowerCase()
-              .includes(query) ||
+            Boolean(
+              row.labelPreview
+                ?.map(({ text }) => text)
+                .join("")
+                .toLowerCase()
+                .includes(query),
+            ) ||
             typesTableColumns.some((_column, colIndex) =>
               getCellSearchableText(getCellContent([colIndex, rowIndex]))
                 ?.toLowerCase()
