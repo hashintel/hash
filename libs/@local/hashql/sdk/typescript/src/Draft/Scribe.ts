@@ -96,6 +96,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly list = Structural.list;
   readonly dict = Structural.dict;
   readonly assume = Expression.assume;
+  readonly as = Expression.as;
   readonly input = Expression.input;
   readonly eq = Operators.eq;
   readonly ne = Operators.ne;
