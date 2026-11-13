@@ -1,6 +1,6 @@
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { ensureUnitDataType } from "./ensure-unit-data-type";
+import { ensureUnitDataType } from "../shared/ensure-unit-data-type";
 
 import type { MigrationFunction } from "../../types";
 import type { SiUnitGroup, UnitSystem } from "./si-unit-groups";
