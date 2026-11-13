@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { actionStep, flowWith } from "../shared/step-fixtures";
 import { getStartPosition } from "./flow-graph";
 import { getFreePosition, layOutFlow } from "./layout";
-import { stepCardSize } from "./sizes";
+import { getStepCardSize, stepCardSize } from "./sizes";
 
 describe("layOutFlow", () => {
   it("puts each step after the steps it runs after, counting data links, and keeps Start where it is", async () => {
@@ -82,12 +82,26 @@ describe("getFreePosition", () => {
     const card = { width: stepCardSize.width, height: stepCardSize.height };
 
     expect(
-      getFreePosition({ x: 0, y: 0 }, [
+      getFreePosition({ x: 0, y: 0 }, card, [
         { position: { x: 100, y: -20 }, ...card },
         { position: { x: 150, y: 60 }, ...card },
         /* Beside, so not covered. */
         { position: { x: 200, y: 0 }, ...card },
       ]),
     ).toEqual({ x: 0, y: 60 + stepCardSize.height + 32 });
+  });
+
+  it("keeps a taller new card, such as an If's, clear of a card below it", () => {
+    const card = { width: stepCardSize.width, height: stepCardSize.height };
+    /* Below a plain card's bottom, but above a two-path card's. */
+    const below = { position: { x: 0, y: stepCardSize.height + 20 }, ...card };
+
+    expect(getFreePosition({ x: 0, y: 0 }, card, [below])).toEqual({
+      x: 0,
+      y: 0,
+    });
+    expect(
+      getFreePosition({ x: 0, y: 0 }, getStepCardSize(2), [below]),
+    ).toEqual({ x: 0, y: below.position.y + stepCardSize.height + 32 });
   });
 });

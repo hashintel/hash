@@ -31,13 +31,17 @@ const actionPaths: Partial<Record<string, StepPath[]>> = {
   ],
 } satisfies Partial<Record<FlowActionDefinitionId, StepPath[]>>;
 
+/** An action's paths, with their default names; none for an action that doesn't branch. */
+export const getActionPaths = (actionDefinitionId: string): StepPath[] =>
+  actionPaths[actionDefinitionId] ?? [];
+
 /** A step's paths, with the names given to them; none for a step that doesn't branch. */
 export const getStepPaths = (step: StepDefinition<string>): StepPath[] =>
   step.kind === "action"
-    ? (actionPaths[step.actionDefinitionId]?.map((path) => ({
+    ? getActionPaths(step.actionDefinitionId).map((path) => ({
         ...path,
         name:
           (path.renamable ? step.pathNames?.[path.outputName] : undefined) ??
           path.name,
-      })) ?? [])
+      }))
     : [];

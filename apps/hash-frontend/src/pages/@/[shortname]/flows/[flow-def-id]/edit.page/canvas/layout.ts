@@ -107,17 +107,18 @@ const readLayout = (
   return positions;
 };
 
-/** `position`, or as far below it as needed for a new card to cover none of `taken`. */
+/** `position`, or as far below it as needed for a new card of `size` to cover none of `taken`. */
 export const getFreePosition = (
   position: StepPosition,
+  size: { width: number; height: number },
   taken: { position: StepPosition; width: number; height: number }[],
 ): StepPosition => {
   const covered = taken.filter(
     (rect) =>
       position.x < rect.position.x + rect.width &&
-      rect.position.x < position.x + stepCardSize.width &&
+      rect.position.x < position.x + size.width &&
       position.y < rect.position.y + rect.height &&
-      rect.position.y < position.y + stepCardSize.height,
+      rect.position.y < position.y + size.height,
   );
 
   return covered.length === 0
@@ -129,6 +130,7 @@ export const getFreePosition = (
             Math.max(...covered.map((rect) => rect.position.y + rect.height)) +
             stepGap / 2,
         },
+        size,
         taken,
       );
 };
