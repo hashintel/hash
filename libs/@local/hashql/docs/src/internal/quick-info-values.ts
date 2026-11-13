@@ -39,7 +39,7 @@ export const line = (...parts: readonly (Line["parts"] | string)[]): Line => ({
   signature: Option.none(),
 });
 
-/** Quick info writes a signature in full, with a line for each member of an object type and the type arguments a call resolves to. An alias keeps its name even where the code does not declare it. */
+/** A signature is written in full, where an editor cuts a long one short, with a line for each member of an object type and the type arguments a call resolves to. An alias keeps its name even where the code does not declare it. */
 const signatureFlags =
   // oxlint-disable-next-line no-bitwise -- `NodeBuilderFlags` is the compiler's bit set.
   NodeBuilderFlags.UseAliasDefinedOutsideCurrentScope |

@@ -27,6 +27,13 @@ export interface Line {
  * What an editor shows on hover over a name in code.
  *
  * A name has a line for each meaning it has where it stands, as a value, a type or a namespace, and a function has a line for each overload.
+ *
+ * The text follows the hover of the compiler's language server, and differs from it in four places on purpose:
+ *
+ * - An imported name has no mark before its lines.
+ * - A type after a name and a signature are written in full, where an editor cuts a long one short.
+ * - A module that no import names reads as a namespace under the name the code uses. The compiler names it by its file's path, which belongs to the machine that built the documentation.
+ * - A name the compiler resolves to no symbol has no quick info, where an editor shows the type at the name. The label of a tuple member is such a name.
  */
 export type QuickInfo = Array.NonEmptyReadonlyArray<Line>;
 
@@ -48,7 +55,7 @@ const forms = [
 /**
  * The quick info of `name`, which the compiler resolves to `found`, or none for a name that has none, such as one the program cannot resolve.
  *
- * An imported name shows what it imports, without the mark an editor puts before each line of an import.
+ * An imported name shows what it imports.
  */
 export const of: {
   (

@@ -32,7 +32,7 @@ import type {
 
 type Part = QuickInfo.Line["parts"][number];
 
-/** Quick info writes a type after a name in full, with a line for each member of an object type. An alias keeps its name even where the code does not declare it. */
+/** A type after a name is written in full, where an editor cuts a long one short, with a line for each member of an object type. An alias keeps its name even where the code does not declare it. */
 const typeFlags =
   // oxlint-disable-next-line no-bitwise -- `TypeFormatFlags` is the compiler's bit set.
   TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
