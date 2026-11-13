@@ -22,6 +22,7 @@ export declare class Thing<T> {
   static count: number;
   prop: T;
 }
+export declare class Derived extends Thing<string> { own: number; }
 export declare class Options {
   constructor(options: { readonly from: string; where?: [string, number] });
 }
@@ -64,6 +65,7 @@ export declare const enum Fixed { One = 1 }
 export declare abstract class Abstract<T extends object = {}> { abstract run(): T; }
 export type Pair<A, B = A> = readonly [A, B];
 export * as Nested from "./nested.js";
+export default function fallback(): void;
 `;
 
 const nested = `
@@ -273,6 +275,56 @@ draw({ kind: "square", side: 2 });`);
             ["radius", "(property) Circle.radius: number"],
             ["kind", '(property) Square.kind: "square"'],
             ["side", "(property) Square.side: number"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "object_method",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`const literal = { method() { return 1; } };
+literal.method();`);
+        expect(names).toStrictEqual([
+          ["literal", "const literal: {\n    method(): number;\n}"],
+          ["method", "(method) method(): number"],
+          ["literal", "const literal: {\n    method(): number;\n}"],
+          ["method", "(method) method(): number"],
+        ]);
+      }),
+    );
+
+    it.effect(
+      "disposable_bindings",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`declare const resource: any;
+function sync() { using held = resource; return held; }
+async function later() { await using awaited = resource; return awaited; }`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["held", "using held: any"],
+            ["awaited", "await using awaited: any"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "inherited_holder",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`import { type Derived, type Box } from "./declarations.js";
+declare const derived: Derived;
+declare const both: Box<string> & { extra: boolean };
+derived.prop; both.value;`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["prop", "(property) Thing<string>.prop: string"],
+            ["value", "(property) Box<string>.value: string"],
           ]),
         );
       }),
@@ -509,6 +561,23 @@ shaped; tuple;`);
         );
       }),
     );
+
+    it.effect(
+      "constructor_value",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`import { Thing } from "./declarations.js";
+declare const ctor: new (value: string) => Thing<string>;
+new ctor("x");`);
+        expect(names).toStrictEqual([
+          ["Thing", "class Thing<T>"],
+          ["ctor", "const ctor: new (value: string) => Thing<string>"],
+          ["value", "(parameter) value: string"],
+          ["Thing", "class Thing<T>"],
+          ["ctor", "const ctor: new (value: string) => Thing<string>"],
+        ]);
+      }),
+    );
   });
 
   describe("declarations", () => {
@@ -581,6 +650,34 @@ function generic<Input extends string>(input: Input): Input { return input; }`);
             ],
             ["field", "(property) Generic<T extends object = {}>.field: T"],
           ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "class_expression",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`const Made = class Named { static make() { return new Named(); } };
+Made.make();`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["Named", "(local class) Named"],
+            ["Named", "constructor Named(): Named"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "default_export",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`import fallback from "./declarations.js";
+fallback();`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([["fallback", "function fallback(): void"]]),
         );
       }),
     );
