@@ -1,0 +1,177 @@
+{
+  "dataTypes": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "https://example.com/@demo/types/data-type/mass/v/1",
+      "title": "Mass",
+      "allOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+        }
+      ],
+      "type": "number",
+      "abstract": true,
+      "description": "The mass of an aircraft."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "https://example.com/@demo/types/data-type/kilogram/v/1",
+      "title": "Kilogram",
+      "allOf": [
+        {
+          "$ref": "https://example.com/@demo/types/data-type/mass/v/1"
+        }
+      ],
+      "type": "number",
+      "abstract": false,
+      "description": "A mass measured in kilograms."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "https://example.com/@demo/types/data-type/pound/v/1",
+      "title": "Pound",
+      "allOf": [
+        {
+          "$ref": "https://example.com/@demo/types/data-type/mass/v/1"
+        }
+      ],
+      "type": "number",
+      "abstract": false,
+      "description": "A mass measured in pounds."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+      "kind": "dataType",
+      "$id": "https://example.com/@demo/types/data-type/date/v/1",
+      "title": "Date",
+      "allOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "type": "string",
+      "abstract": false,
+      "format": "date",
+      "description": "A calendar date."
+    }
+  ],
+  "propertyTypes": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/name/v/1",
+      "title": "Name",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "The name of an airfield."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/model/v/1",
+      "title": "Model",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "The model of an aircraft."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/first-flight/v/1",
+      "title": "First flight",
+      "oneOf": [
+        {
+          "$ref": "https://example.com/@demo/types/data-type/date/v/1"
+        }
+      ],
+      "description": "The date of an aircraft first flight."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/empty-mass/v/1",
+      "title": "Empty mass",
+      "oneOf": [
+        {
+          "$ref": "https://example.com/@demo/types/data-type/mass/v/1"
+        }
+      ],
+      "description": "The empty mass of an aircraft."
+    }
+  ],
+  "entityTypes": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "$id": "https://example.com/@demo/types/entity-type/airfield/v/1",
+      "title": "Airfield",
+      "type": "object",
+      "properties": {
+        "https://example.com/@demo/types/property-type/name/": {
+          "$ref": "https://example.com/@demo/types/property-type/name/v/1"
+        }
+      },
+      "required": ["https://example.com/@demo/types/property-type/name/"],
+      "description": "An airfield identified by its ICAO code."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "$id": "https://example.com/@demo/types/entity-type/aircraft/v/1",
+      "title": "Aircraft",
+      "type": "object",
+      "properties": {
+        "https://example.com/@demo/types/property-type/model/": {
+          "$ref": "https://example.com/@demo/types/property-type/model/v/1"
+        },
+        "https://example.com/@demo/types/property-type/first-flight/": {
+          "$ref": "https://example.com/@demo/types/property-type/first-flight/v/1"
+        },
+        "https://example.com/@demo/types/property-type/empty-mass/": {
+          "$ref": "https://example.com/@demo/types/property-type/empty-mass/v/1"
+        }
+      },
+      "required": [
+        "https://example.com/@demo/types/property-type/model/",
+        "https://example.com/@demo/types/property-type/first-flight/",
+        "https://example.com/@demo/types/property-type/empty-mass/"
+      ],
+      "links": {
+        "https://example.com/@demo/types/entity-type/based-at/v/1": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "https://example.com/@demo/types/entity-type/airfield/v/1"
+              }
+            ]
+          }
+        }
+      },
+      "description": "An aircraft identified by its registration."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "$id": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "title": "Based at",
+      "type": "object",
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+        }
+      ],
+      "description": "An aircraft home airfield."
+    }
+  ]
+}

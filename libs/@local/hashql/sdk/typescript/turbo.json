@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test:integration": {
+      "dependsOn": ["build", "^build", "hashql-syntax-jexpr#build:parse:debug"],
+      "inputs": ["$TURBO_DEFAULT$"]
+    },
+    "test:unit": {
+      "dependsOn": ["build", "^build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["@local/oxlint#build", "build"]
+    }
+  }
+}

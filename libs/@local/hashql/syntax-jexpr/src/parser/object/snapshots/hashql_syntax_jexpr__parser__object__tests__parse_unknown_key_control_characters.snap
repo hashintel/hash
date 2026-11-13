@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/object/mod.rs
+description: Escapes control characters in an unknown key
+expression: "{\"\\u001b[2J\\u001b[Hforged\": 42}"
+---
+error[parser::object::unknown-key]: Unknown or unsupported object key
+  ╭▸ 
+1 │ {"\u001b[2J\u001b[Hforged": 42}
+  │  ━━━━━━━━━━━━━━━━━━━━━━━━━ Replace `\u{1b}[2J\u{1b}[Hforged` with a valid key
+  │
+  ╰ help: This J-Expr object only accepts these specific keys: `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`

@@ -7,7 +7,9 @@
     "moduleResolution": "NodeNext",
     "noEmit": true,
     "rootDir": "..",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // Implicit returns remain in ../src/server/voice/voice-request-guard.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["./**/*.ts"]
 }

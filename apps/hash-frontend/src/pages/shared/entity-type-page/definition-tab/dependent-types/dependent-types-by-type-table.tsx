@@ -3,20 +3,22 @@ import { useState } from "react";
 
 import {
   cellSx,
+  firstCellSx,
   formatVersionList,
   formatVersions,
-  toggleRowSx,
-  visuallyHidden,
+  subgridRowSx,
+  treeCellSx,
 } from "./dependent-types-table-layout";
 import {
-  ExpandChevron,
+  Cell,
+  ColumnHeader,
+  ExpandableRow,
   HeaderRow,
   NestedRow,
   OpenTypeButton,
-  RowToggle,
   TableCard,
-  TypeLabel,
 } from "./dependent-types-table-parts";
+import { VersionGraphTooltip } from "./version-graph-tooltip";
 
 import type {
   DependentTypeRow,
@@ -26,8 +28,13 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { Theme } from "@mui/material";
 
-const gridTemplateColumns = "minmax(0, 1fr) 128px 196px";
+const gridTemplateColumns =
+  "fit-content(320px) max-content max-content minmax(0, 1fr)";
+
+/** A nested row's text, lighter than its row's so that a range reads apart from the type's versions. */
+const nestedTextSx = ({ palette }: Theme) => ({ color: palette.gray[70] });
 
 const RangeRow = ({
   range,
@@ -46,7 +53,6 @@ const RangeRow = ({
 
   return (
     <NestedRow
-      gridTemplateColumns={gridTemplateColumns}
       last={last}
       openButton={
         <OpenTypeButton
@@ -55,14 +61,9 @@ const RangeRow = ({
         />
       }
     >
-      <Box sx={cellSx} />
-      <Box sx={cellSx}>{versions}</Box>
-      <Box sx={cellSx}>
-        <Box component="span" sx={visuallyHidden}>
-          extends {parentTitle}{" "}
-        </Box>
-        {`v${range.parentVersion}`}
-      </Box>
+      <Cell sx={firstCellSx} />
+      <Cell sx={[treeCellSx, nestedTextSx]}>{versions}</Cell>
+      <Cell sx={[cellSx, nestedTextSx]}>{`v${range.parentVersion}`}</Cell>
     </NestedRow>
   );
 };
@@ -70,11 +71,13 @@ const RangeRow = ({
 const DependentTypeTableRow = ({
   row,
   parentTitle,
+  parentLatestVersion,
   isLink,
   onOpenType,
 }: {
   row: DependentTypeRow;
   parentTitle: string;
+  parentLatestVersion: number;
   isLink: boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
@@ -87,41 +90,41 @@ const DependentTypeTableRow = ({
   const parentVersions = formatVersionList(row.parentVersions);
 
   return (
-    <Box>
-      <Box sx={toggleRowSx}>
-        <RowToggle
-          gridTemplateColumns={gridTemplateColumns}
-          aria-expanded={expanded}
-          aria-label={
-            former
-              ? `${title}, former, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-              : `${title} v${version}, versions ${versions}, extends ${parentTitle} ${parentVersions}`
-          }
-          onClick={() => setExpanded(!expanded)}
-        >
-          <Box sx={{ ...cellSx, maxWidth: 1 }}>
-            <TypeLabel
-              entityType={entityType}
-              former={former}
-              isLink={isLink}
-              version={version}
-            />
-          </Box>
-          <Box sx={cellSx}>{versions}</Box>
-          <Box sx={cellSx}>{parentVersions}</Box>
-        </RowToggle>
-        <ExpandChevron expanded={expanded} />
-        <OpenTypeButton
-          label={
-            former
-              ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
-              : `Open ${title} v${version}`
-          }
-          onClick={() => onOpenType($id)}
-        />
-      </Box>
+    <Box sx={subgridRowSx}>
+      <VersionGraphTooltip
+        row={row}
+        parentTitle={parentTitle}
+        parentLatestVersion={parentLatestVersion}
+        expanded={expanded}
+      >
+        {({ rowRef, toggleProps, hide }) => (
+          <ExpandableRow
+            ref={rowRef}
+            type={{ entityType, former, isLink, version }}
+            expanded={expanded}
+            onToggle={() => {
+              hide();
+              setExpanded(!expanded);
+            }}
+            toggleProps={toggleProps}
+            openButton={
+              <OpenTypeButton
+                label={
+                  former
+                    ? `Open ${title} v${version}, its highest version that extends ${parentTitle}`
+                    : `Open ${title} v${version}`
+                }
+                onClick={() => onOpenType($id)}
+              />
+            }
+          >
+            <Cell sx={treeCellSx}>{versions}</Cell>
+            <Cell sx={cellSx}>{parentVersions}</Cell>
+          </ExpandableRow>
+        )}
+      </VersionGraphTooltip>
       {expanded ? (
-        <Box role="group" aria-label={`Version ranges of ${title}`}>
+        <Box sx={subgridRowSx}>
           {row.ranges.map((range, index) => (
             <RangeRow
               key={`${range.firstVersion}-${range.parentVersion}`}
@@ -140,32 +143,37 @@ const DependentTypeTableRow = ({
 
 /** One row per dependent type, expandable into its version ranges. */
 export const DependentTypesByTypeTable = ({
+  labelledBy,
   entityTypeTitle,
+  parentLatestVersion,
   rows,
   isLinkType,
   onOpenType,
 }: {
+  labelledBy: string;
   entityTypeTitle: string;
+  parentLatestVersion: number;
   rows: DependentTypeRow[];
   isLinkType: (entityType: EntityTypeWithMetadata) => boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => (
-  <TableCard>
-    <HeaderRow gridTemplateColumns={gridTemplateColumns}>
-      <Box sx={cellSx}>Type</Box>
-      <Box sx={cellSx}>Versions</Box>
-      <Box sx={cellSx}>
+  <TableCard gridTemplateColumns={gridTemplateColumns} labelledBy={labelledBy}>
+    <HeaderRow>
+      <ColumnHeader sx={firstCellSx}>Type</ColumnHeader>
+      <ColumnHeader sx={treeCellSx}>Versions</ColumnHeader>
+      <ColumnHeader sx={cellSx}>
         Extends{" "}
         <Box component="span" sx={{ fontWeight: 700 }}>
           {entityTypeTitle}
         </Box>
-      </Box>
+      </ColumnHeader>
     </HeaderRow>
     {rows.map((row) => (
       <DependentTypeTableRow
         key={row.entityType.schema.$id}
         row={row}
         parentTitle={entityTypeTitle}
+        parentLatestVersion={parentLatestVersion}
         isLink={isLinkType(row.entityType)}
         onOpenType={onOpenType}
       />

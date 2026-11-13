@@ -2,6 +2,7 @@ export {
   EntityTypeEditor,
   type EntityTypeEditorProps,
 } from "./entity-type-editor";
+export { EmptyListCard } from "./entity-type-editor/shared/empty-list-card";
 export {
   EntityTypeFormController,
   EntityTypeFormProvider,

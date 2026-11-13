@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
-    "@ark-ui/react": "5.38.1",
+    "@ark-ui/react": "5.40.0",
     "@blockprotocol/core": "0.1.5",
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/hook": "0.1.8",

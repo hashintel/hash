@@ -143,6 +143,18 @@ mod tests {
     }
 
     #[test]
+    fn parse_unknown_key_control_characters() {
+        let error = parse_object_expr(r#"{"\u001b[2J\u001b[Hforged": 42}"#)
+            .expect_err("should fail with unknown top-level key");
+
+        with_settings!({
+            description => "Escapes control characters in an unknown key"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
     fn parse_standalone_type() {
         // Object with only a #type key (should fail as type needs an associated expression)
         let error = parse_object_expr(r##"{"#type": "Int"}"##)

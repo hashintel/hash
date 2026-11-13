@@ -1,0 +1,46 @@
+{
+  "name": "@local/hashql",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "TypeScript SDK for HashQL",
+  "license": "AGPL-3",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./draft": {
+      "types": "./dist/Draft/index.d.ts",
+      "default": "./dist/Draft/index.js"
+    }
+  },
+  "scripts": {
+    "bench:unit": "tsdown benches/parser.bench.ts --no-config --out-dir dist/bench --no-dts --no-clean --deps.never-bundle vitest && vitest bench --run --experimental.viteModuleRunner=false --experimental.nodeLoader=false dist/bench",
+    "build": "tsc --project tsconfig.build.json",
+    "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
+    "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
+    "lint:tsc": "tsc --noEmit",
+    "test:integration": "vitest run --project integration",
+    "test:unit": "vitest run --project unit --typecheck"
+  },
+  "dependencies": {
+    "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@effect/platform-node": "4.0.3",
+    "@effect/vitest": "4.0.3",
+    "@local/oxlint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "0.23.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

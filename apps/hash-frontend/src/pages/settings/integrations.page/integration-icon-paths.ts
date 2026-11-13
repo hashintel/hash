@@ -59,5 +59,3 @@ export const integrationIconPaths: Readonly<
 };
 export const genericIntegrationIconPath =
   "/integration-icons/generic-app-app-light-6c2beb59d0ab.svg";
-export const linearIntegrationMarkPath =
-  "/integration-icons/linear-mark-light-8633e0639f85.svg";
