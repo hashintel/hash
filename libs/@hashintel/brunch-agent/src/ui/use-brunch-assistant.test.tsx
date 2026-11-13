@@ -1719,3 +1719,60 @@ test("a conversation Flue does not have yet is a known, empty history", async ()
   publish(observedHistory(highlightFirstTurn));
   expect(highlighted()).toBe(true);
 });
+
+test("a host that stores the conversation decides which one binds, hears of each message sent in it, and Clear hands it the new one", async () => {
+  const replace = vi.fn<(conversationId: string) => void>();
+  const start = vi.fn<(conversationId: string) => void>();
+  const firstId = ordinaryConstructionConversationIdFrom(netOneId);
+  const rendered = renderAssistant({
+    conversationPointer: { conversationId: undefined, start, replace },
+  });
+  const pointAt = (conversationId: string | null) =>
+    rendered.rerender({
+      ...rendered.input,
+      conversationPointer: { conversationId, start, replace },
+    });
+
+  // Nothing binds while the host still reads which conversation applies.
+  expect(rendered.result.current.assistant).toBeNull();
+
+  // None stored: the document's first conversation.
+  pointAt(null);
+  await waitFor(() =>
+    expect(rendered.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(firstId),
+    ),
+  );
+
+  pointAt("stored-conversation");
+  await waitFor(() =>
+    expect(rendered.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom("stored-conversation"),
+    ),
+  );
+
+  // A message sent tells the host which conversation it started or continued.
+  const submitted = () =>
+    act(() =>
+      (
+        brunchPanelTransportOptions.current as {
+          onSubmission?: (messageId: string) => void;
+        }
+      ).onSubmission?.("message"),
+    );
+  submitted();
+  expect(start.mock.calls).toEqual([["stored-conversation"]]);
+
+  act(() => rendered.assistant().onClearMessages?.());
+  expect(replace).toHaveBeenCalledTimes(1);
+  const clearedId = replace.mock.calls[0]?.[0] ?? "";
+  expect(clearedId.startsWith(`${firstId}:`)).toBe(true);
+  // The new conversation binds at once, before the host has stored it.
+  await waitFor(() =>
+    expect(rendered.assistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(clearedId),
+    ),
+  );
+  // The host's store is the only one written.
+  expect(window.localStorage.length).toBe(0);
+});

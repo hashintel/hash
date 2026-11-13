@@ -87,6 +87,15 @@ vi.mock("./process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => hashGraphReadTools,
 }));
 
+vi.mock("./process-petrinaut/use-agent-conversation", () => {
+  // Stable, as the hook's is while the open conversation is unchanged.
+  const conversation = {
+    conversationId: null,
+    start: () => {},
+    replace: () => {},
+  };
+  return { useAgentConversation: () => conversation };
+});
 vi.mock("./process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: topBarPluginMarker,
 }));
@@ -154,19 +163,21 @@ const hostSave: BrunchUi.BrunchHostSave = {
 };
 
 const renderEditor = (props: {
-  savedEntityId: EntityId | null;
+  savedEntityId: EntityId;
   readonly: boolean;
 }) => {
-  const element = (next: typeof props) => (
+  const element = ({ savedEntityId: entityId, readonly }: typeof props) => (
     <ErrorTrackerContext value={{ captureException }}>
       <ProcessPetrinaut
         handle={handle}
+        entityId={entityId}
+        saved
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}
+        readonly={readonly}
         setTitle={() => {}}
         title="Net"
-        {...next}
       />
     </ErrorTrackerContext>
   );
@@ -302,12 +313,4 @@ test("a net the user may not edit gets no Brunch, and gaining or losing permissi
 
   expect(observed.petrinautMounts).toBe(1);
   expect(fetchMock).toHaveBeenCalledTimes(1);
-});
-
-test("an unsaved draft gets no Brunch", async () => {
-  renderEditor({ savedEntityId: null, readonly: false });
-  await settleIdentity();
-
-  expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 });

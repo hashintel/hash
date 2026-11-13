@@ -138,6 +138,16 @@ vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => observed.hashGraphReadTools,
 }));
 
+vi.mock("./petrinaut-editor/process-petrinaut/use-agent-conversation", () => {
+  // Stable, as the hook's is while the open conversation is unchanged.
+  const conversation = {
+    conversationId: null,
+    start: () => {},
+    replace: () => {},
+  };
+  return { useAgentConversation: () => conversation };
+});
+
 vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: { id: "top-bar" },
 }));
@@ -194,7 +204,7 @@ const savedLoad = (
 const draftLoad = (): PetrinautEditorLoad => ({
   definition,
   title: "Draft",
-  mode: { kind: "draft", seedKey: null },
+  mode: { kind: "draft", seedKey: null, entityId: "web~draft" as EntityId },
   savedSnapshot: null,
   reason: "open",
 });
@@ -915,8 +925,9 @@ test("a failed save settles with its error after its one attempt, and nothing re
   });
 });
 
-// Brunch is offered only on an editable saved net, so a read-only net or a
-// draft can only reach the agent's save when the net changes under a session.
+// Brunch is offered only on a net the user may edit, under that net's id, so
+// a read-only net or another net can only reach the agent's save when the
+// net changes under a session.
 test.each([
   {
     refused: "another net",
@@ -931,11 +942,10 @@ test.each([
     reason: "The user can't edit this net, so they can't save it.",
   },
   {
-    refused: "a draft",
+    refused: "the saved net once a draft with another id is open",
     change: { load: draftLoad() },
     documentId: savedEntityId,
-    reason:
-      "The net is an unsaved draft, which the user creates with the editor's Create.",
+    reason: "That isn't the net open in the editor.",
   },
 ])(
   "the agent's save of $refused is refused as not started and saves nothing",

@@ -12,7 +12,11 @@ import {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 
-import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
+import { draftPath } from "./draft-path";
+import {
+  type PersistTarget,
+  useProcessSaveAndLoad,
+} from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
 
@@ -115,6 +119,11 @@ export type ProcessEditorView =
        */
       seedKey: string | null;
       seed?: { title: string; petriNetDefinition: SDCPN };
+      /**
+       * The draft's final identity, chosen when it opened and carried in its
+       * URL: its first save creates the net under this id, in this web.
+       */
+      entityId: EntityId;
     }
   | { kind: "saved"; entityUuid: string };
 
@@ -128,12 +137,9 @@ type Loaded = {
   load: PetrinautEditorLoad;
 };
 
-const draftPathForSeedKey = (seedKey: string | null): string =>
-  seedKey === null ? "/processes/draft" : `/processes/draft?example=${seedKey}`;
-
 const pathForLoadedView = (loadedView: NetMode): string => {
   if (loadedView.kind === "draft") {
-    return draftPathForSeedKey(loadedView.seedKey);
+    return draftPath(loadedView.entityId, loadedView.seedKey);
   }
   return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 };
@@ -143,7 +149,14 @@ const viewMatchesLoaded = (
   loadedView: NetMode,
 ): boolean => {
   if (view.kind === "draft" && loadedView.kind === "draft") {
-    return view.seedKey === loadedView.seedKey;
+    return (
+      view.entityId === loadedView.entityId &&
+      view.seedKey === loadedView.seedKey
+    );
+  }
+  // A draft's URL for a net that has since been saved under its id.
+  if (view.kind === "draft" && loadedView.kind === "saved") {
+    return view.entityId === loadedView.entityId;
   }
   if (view.kind === "saved" && loadedView.kind === "saved") {
     return (
@@ -259,23 +272,33 @@ export const ProcessEditor = ({
    */
   const resolveView = useCallback(
     (target: ProcessEditorView): Loaded | null => {
-      if (target.kind === "draft") {
+      // A draft's URL outlives its first save (another tab, a reload before
+      // the URL caught up): the net saved under its id is what it names now.
+      const targetNet = persistedNets.find((net) =>
+        target.kind === "draft"
+          ? net.entityId === target.entityId
+          : extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
+      );
+      if (target.kind === "draft" && !targetNet) {
+        if (persistedNetsLoading) {
+          return null;
+        }
+        const mode: NetMode = {
+          kind: "draft",
+          seedKey: target.seedKey,
+          entityId: target.entityId,
+        };
         return {
-          view: { kind: "draft", seedKey: target.seedKey },
+          view: mode,
           load: {
             definition: target.seed?.petriNetDefinition ?? emptySDCPN,
             title: target.seed?.title ?? "Process",
-            mode: { kind: "draft", seedKey: target.seedKey },
+            mode,
             savedSnapshot: null,
             reason: "open",
           },
         };
       }
-
-      const targetNet = persistedNets.find(
-        (net) =>
-          extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
-      );
       if (!targetNet) {
         return null;
       }
@@ -294,7 +317,7 @@ export const ProcessEditor = ({
         },
       };
     },
-    [persistedNets],
+    [persistedNets, persistedNetsLoading],
   );
 
   /**
@@ -478,7 +501,19 @@ export const ProcessEditor = ({
   const save = useCallback(
     async ({ definition, title, entityId }: PetrinautEditorSave) => {
       const submittedFrom = loadedRef.current?.load;
-      const result = await persistDefinition(definition, title, entityId);
+      const openView = loadedRef.current?.view;
+      // The editor names no net when it saves a draft; the draft's own id is
+      // the one its first save creates.
+      const target: PersistTarget | null =
+        entityId !== null
+          ? { entityId, exists: true }
+          : openView?.kind === "draft"
+            ? { entityId: openView.entityId, exists: false }
+            : null;
+      if (target === null) {
+        throw new Error("A net with no id can be saved only from a draft");
+      }
+      const result = await persistDefinition(definition, title, target);
       if (loadedRef.current?.load !== submittedFrom) {
         return result;
       }

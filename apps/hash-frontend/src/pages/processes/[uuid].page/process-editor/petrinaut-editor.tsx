@@ -52,7 +52,12 @@ import type {
  * seeded from, if any) or a saved net entity.
  */
 export type NetMode =
-  | { kind: "draft"; seedKey: string | null }
+  | {
+      kind: "draft";
+      seedKey: string | null;
+      /** The id the draft's first save creates the net under. */
+      entityId: EntityId;
+    }
   | { kind: "saved"; entityId: EntityId };
 
 export type RevisionSummary = {
@@ -541,9 +546,8 @@ export const PetrinautEditor = ({
         <ErrorTrackerContext value={errorTracker}>
           <ProcessPetrinaut
             handle={session.handle}
-            savedEntityId={
-              session.mode.kind === "saved" ? session.mode.entityId : null
-            }
+            entityId={session.mode.entityId}
+            saved={session.mode.kind === "saved"}
             readTitle={readTitle}
             hostSave={hostSave}
             versionLoad={session.versionLoad}

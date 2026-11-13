@@ -78,7 +78,6 @@ const graph = vi.hoisted(() => {
     cache: new Map<string, unknown>(),
     version: 0,
     nextTime: 1,
-    createdEntityId: null as EntityId | null,
     /** Gates the next writes wait on before applying. */
     writeGates: [] as Promise<void>[],
     writeFailures: [] as Error[],
@@ -118,11 +117,10 @@ const router = vi.hoisted(() => {
   const go = (url: string) => {
     const [path = "", search = ""] = url.split("?");
     const uuid = path.replace("/processes/", "");
-    const example = new URLSearchParams(search).get("example");
     state.current = {
       isReady: true,
       asPath: url,
-      query: example === null ? { uuid } : { uuid, example },
+      query: { uuid, ...Object.fromEntries(new URLSearchParams(search)) },
     };
     for (const listener of listeners) {
       listener();
@@ -152,6 +150,8 @@ const observed = vi.hoisted(() => ({
   handles: [] as PetrinautDocHandle[],
   /** The input of Brunch's mounted session, or `null` when none is. */
   brunch: null as BrunchInput | null,
+  /** How many times a Brunch session has mounted. */
+  brunchMounts: 0,
   alert: null as AlertProps | null,
 }));
 
@@ -309,6 +309,19 @@ vi.hoisted(() => {
   });
 });
 
+// The conversation's entities have their own tests; the fake graph holds only nets.
+vi.mock(
+  "./process-editor/petrinaut-editor/process-petrinaut/use-agent-conversation",
+  () => {
+    const conversation = {
+      conversationId: null,
+      start: () => {},
+      replace: () => {},
+    };
+    return { useAgentConversation: () => conversation };
+  },
+);
+
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
   createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
     .createHashPetrinautSaveTool,
@@ -322,12 +335,12 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     useLayoutEffect(() => {
       observed.brunch = input;
     });
-    useLayoutEffect(
-      () => () => {
+    useLayoutEffect(() => {
+      observed.brunchMounts += 1;
+      return () => {
         observed.brunch = null;
-      },
-      [],
-    );
+      };
+    }, []);
     return { assistant: null, openAIVoiceConfig: null };
   },
 }));
@@ -513,16 +526,19 @@ vi.mock("@apollo/client", async (importOriginal) => {
     if (name === "createEntity") {
       return [
         async ({
-          variables: { properties },
+          variables: { properties, webId: createdIn, entityUuid },
         }: {
           variables: {
             properties: { value: Record<string, { value: unknown }> };
+            webId?: string;
+            entityUuid?: string;
           };
         }) => {
-          const entityId = graph.createdEntityId;
-          if (!entityId) {
-            throw new Error("The test named no entity to create");
+          // As the graph does: the caller names the new entity and its web.
+          if (!createdIn || !entityUuid) {
+            throw new Error("The create named no web or uuid for its entity");
           }
+          const entityId = `${createdIn}~${entityUuid}` as EntityId;
           await write(
             "create",
             entityId,
@@ -553,6 +569,8 @@ const uuidCreated = "00000000-0000-4000-8000-00000000000c";
 const netAId = `${webId}~${uuidA}` as EntityId;
 const netBId = `${webId}~${uuidB}` as EntityId;
 const createdId = `${webId}~${uuidCreated}` as EntityId;
+/** A draft's URL names the net its first save creates, and that net's web. */
+const draftUrl = `/processes/${uuidCreated}?draftWeb=${webId}`;
 const firstSaved = "2026-10-24T00:00:00.000Z";
 
 /** A net whose place has a legacy (non-UUID) id, which a load converts. */
@@ -613,7 +631,6 @@ beforeEach(() => {
   graph.listPending = false;
   graph.cache.clear();
   graph.nextTime = 1;
-  graph.createdEntityId = createdId;
   graph.writeGates.length = 0;
   graph.writeFailures.length = 0;
   graph.editableAfterWrite = null;
@@ -624,6 +641,7 @@ beforeEach(() => {
   observed.editor = null;
   observed.handles.length = 0;
   observed.brunch = null;
+  observed.brunchMounts = 0;
   observed.alert = null;
   sentry.captureException.mockClear();
   vi.stubGlobal(
@@ -767,10 +785,16 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
 });
 
 test("Create turns the draft into the saved net in the same editor, under its URL, with its history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
   expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
-  expect(observed.brunch).toBeNull();
+  // The draft has Brunch already, under the id its first save creates.
+  const offered = observed.brunch?.openDocument;
+  expect(offered).toMatchObject({
+    documentId: createdId,
+    editor: { handle: draft },
+  });
+  const mounts = observed.brunchMounts;
   editTitle("New net");
 
   pressSave();
@@ -793,10 +817,10 @@ test("Create turns the draft into the saved net in the same editor, under its UR
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
   expect(topBar().revisions).toHaveLength(1);
   expect(topBar().loadedRevisionTime).toBe(topBar().revisions[0]?.decisionTime);
-  expect(observed.brunch?.openDocument).toMatchObject({
-    documentId: createdId,
-    editor: { handle: draft },
-  });
+  // Create changed nothing Brunch's session is built from: the same open
+  // document, in the session that was already mounted.
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
   expect(leaveIsBlocked()).toBe(false);
 });
 
@@ -887,7 +911,7 @@ test("Save persists the net as pressed, returns its history, and keeps edits mad
 });
 
 test("a Create finishing after another net loads leaves that net, its URL, history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const release = holdNextWrite();
   pressSave();
   await settle();
@@ -999,7 +1023,7 @@ test("a pending save takes no second press, and a failed save settles and can be
 });
 
 test("Save called twice before the editor rerenders writes once, for Create and for an update", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
 
   act(() => {
@@ -1043,7 +1067,7 @@ test("Save submits the title as it is when called, even one changed in the same 
 });
 
 test("a Save kept from before Create, called after Create resolves, saves to the created net", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
   const release = holdNextWrite();
   act(() => draftBar.onSave());
@@ -1143,7 +1167,7 @@ test("a save pending for an earlier load neither blocks the next load's save nor
 });
 
 test("a failed Create stays on the draft, and its retry creates the net and moves the URL", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
   graph.writeFailures.push(new Error("graph unavailable"));
 
@@ -1151,7 +1175,7 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   await settle();
 
   expect(router.replace).not.toHaveBeenCalled();
-  expect(url()).toBe("/processes/draft");
+  expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({
     persistPending: false,
     saveLabel: "Create",
@@ -1164,6 +1188,39 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   expect(url()).toBe(`/processes/${uuidCreated}`);
   expect(editor().handle).toBe(draft);
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+});
+
+test("starting a draft gives it an id in the active workspace, carried in its URL and kept by its first save", async () => {
+  await renderRoute("/processes/draft");
+
+  const [, uuid, web] =
+    /^\/processes\/([0-9a-f-]{36})\?draftWeb=(.+)$/u.exec(url()) ?? [];
+  expect(uuid).toBeDefined();
+  expect(web).toBe(webId);
+  expect(topBar()).toMatchObject({ saveLabel: "Create" });
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes).toEqual([
+    expect.objectContaining({ kind: "create", entityId: `${webId}~${uuid}` }),
+  ]);
+  expect(url()).toBe(`/processes/${uuid}`);
+});
+
+test("a draft's URL opens the saved net once a net exists under its id", async () => {
+  graph.nets.set(createdId, graphNet(createdId, "Saved elsewhere"));
+
+  await renderRoute(draftUrl);
+
+  expect(topBar()).toMatchObject({
+    title: "Saved elsewhere",
+    saveLabel: "Saved",
+  });
+  // Saving it updates that net; nothing is created a second time.
+  pressSave();
+  await settle();
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
 });
 
 test("contained failures reach Sentry as thrown, tagged with the net and permission the host loaded", async () => {
@@ -1195,7 +1252,7 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
   });
 
   // A draft turned into a saved net by Create reports as that net.
-  await navigate("/processes/draft");
+  await navigate(draftUrl);
   pressSave();
   await settle();
   const createdFailure = new Error("brunch failed");
@@ -1276,6 +1333,38 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
   await settle();
   expect(graph.writes).toHaveLength(2);
   expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
+});
+
+test("Brunch's agent save of a draft creates the net under the draft's id, in the session that offered it", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  const offered = observed.brunch?.openDocument;
+  const mounts = observed.brunchMounts;
+  // Never saved, which is what makes the approval card say it creates.
+  expect(observed.brunch?.hostSave?.read(createdId)).toMatchObject({
+    lastSavedTime: null,
+    refusal: null,
+  });
+
+  const saved = agentSave(createdId);
+  await settle();
+
+  const decisionTime = graph.nets
+    .get(createdId)
+    ?.revisions.at(-1)?.decisionTime;
+  await expect(saved).resolves.toMatchObject({
+    status: "saved",
+    decisionTime,
+    stillDirty: false,
+  });
+  expect(
+    graph.writes.map(({ kind, entityId }) => ({ kind, entityId })),
+  ).toEqual([{ kind: "create", entityId: createdId }]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
 });
 
 test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {

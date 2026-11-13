@@ -561,6 +561,8 @@ export const createBrunchMutationApprovalWidget = (
 /**
  * The card for an agent's save: Allow or Deny, never Always allow, since the
  * person decides each time when their work becomes the version others see.
+ * A net that was never saved doesn't exist for anyone else yet, so its card
+ * says the save creates it.
  */
 export const createBrunchSaveApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
@@ -570,6 +572,25 @@ export const createBrunchSaveApprovalWidget = (
     const { title, lastSavedTime } = readSaveState(
       saveInputParser.parse(input).documentId,
     );
+    if (lastSavedTime === null) {
+      return (
+        <section
+          className={containerStyle}
+          aria-label="Approve creating the net"
+        >
+          <strong>Create ‘{title}’?</strong>
+          <p className={css({ fontSize: "sm" })}>
+            This net hasn&apos;t been saved yet. Creating it saves everything in
+            the editor, yours and the assistant&apos;s, as its first version.
+          </p>
+          <ApprovalActions
+            coordinator={coordinator}
+            toolCallId={toolCallId}
+            toolName={saveToolName}
+          />
+        </section>
+      );
+    }
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
         <strong>Save ‘{title}’ as a new version?</strong>
@@ -578,11 +599,9 @@ export const createBrunchSaveApprovalWidget = (
           assistant&apos;s. Others who can see this net will see it as the
           latest version.
         </p>
-        {lastSavedTime !== null && (
-          <p className={css({ fontSize: "xs", color: "neutral.s90" })}>
-            Last saved {new Date(lastSavedTime).toLocaleString()}
-          </p>
-        )}
+        <p className={css({ fontSize: "xs", color: "neutral.s90" })}>
+          Last saved {new Date(lastSavedTime).toLocaleString()}
+        </p>
         <ApprovalActions
           coordinator={coordinator}
           toolCallId={toolCallId}
