@@ -70,11 +70,10 @@ direction. It decides three things.
 
 - **Where the port draws**: an input port's dot and label sit on the left of
   the instance, an output port's on the right, a two-way port's on both.
-- **Dataflow checks**: a fusion in which every member only consumes gets a
-  warning, nothing puts tokens into it; one in which every member only
-  produces gets a note, it accumulates. Arcs of the containing net on the
-  anchor, and port arcs on the member ports, count as producers and
-  consumers too.
+- **Dataflow checks**: a member port counts as a producer unless its
+  direction is `in`, and as a consumer unless it is `out`. The warning and
+  the note described under "What members must agree on" are worked out from
+  that.
 - **Interfaces, later**: a component's ports with their directions and token
   types are its signature, which the interfaces proposal builds on.
 

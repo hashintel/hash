@@ -193,7 +193,7 @@ const CompositionDiagnostics = ({
   const { setActiveSubnetId } = use(ActiveNetContext);
   const { selectItem } = use(EditorContext);
   const [isExpanded, setIsExpanded] = useState(true);
-  const countWith = (severity: FusionProblem["severity"]) =>
+  const countWith = (severity: CompositionProblem["severity"]) =>
     problems.filter((problem) => problem.severity === severity).length;
   const errorCount = countWith("error");
   // Each kind the list holds, said apart: "1 error, 2 notes".

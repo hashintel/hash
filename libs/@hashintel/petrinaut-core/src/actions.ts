@@ -604,6 +604,10 @@ export function createPetrinautActions(
         placeSchema.parse(place),
         extensions,
       );
+      // A direction belongs to a port: a place that is none carries none.
+      if (parsedPlace.isPort !== true) {
+        delete parsedPlace.portDirection;
+      }
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
         assertPlaceDynamicsReferences(parsedPlace, net.differentialEquations);
