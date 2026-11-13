@@ -1407,6 +1407,47 @@ export interface Options { readonly body: number }`,
       }),
     );
 
+    it.effect.each([
+      [
+        'import type { Schema } from "effect"; export type Items = Schema.$Array<Schema.String>;',
+        "Schema.$Array",
+        "type",
+        "#Array-interface",
+      ],
+      [
+        'import { Schema } from "effect"; export declare const items: typeof Schema.Array;',
+        "Schema.Array",
+        "value",
+        "#Array-variable",
+      ],
+      [
+        'import type { Schema } from "effect"; export type Text = Schema.String;',
+        "Schema.String",
+        "type",
+        "#String-interface",
+      ],
+    ] as const)(
+      "effect_exported_name_%#",
+      Effect.fnUntraced(function* ([source, name, meaning, anchor]: readonly [
+        string,
+        string,
+        "type" | "value",
+        string,
+      ]) {
+        expect.hasAssertions();
+        const ast = yield* success({ source });
+        const item = pipe(
+          Array.fromIterable(ast.nodes()),
+          Array.filter(AST.ExternalItem.isExternalItem),
+          Array.findFirst((node) => node.name === name),
+          Option.getOrThrow,
+        );
+        expect(
+          Option.map(item.page(meaning), ({ hash }) => hash),
+        ).toStrictEqual(Option.some(anchor));
+      }),
+    );
+
     it.effect(
       "dependency_file",
       Effect.fnUntraced(function* () {

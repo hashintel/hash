@@ -19,7 +19,7 @@ import * as Program from "./TypeScript/Program.js";
 import { hasFlag } from "./TypeScript/Symbol.js";
 
 import type { Cause } from "effect";
-import type { Node } from "typescript/ast";
+import type { Node, SourceFile } from "typescript/ast";
 import type { Symbol as CompilerSymbol } from "typescript/async";
 
 /** Effect's API reference, one page per module. */
@@ -230,6 +230,62 @@ const libraryPageOf = Effect.fnUntraced(function* (
   );
 });
 
+/** A name a module exports, with the symbol the name reaches. */
+interface Exported {
+  readonly name: string;
+  readonly symbol: CompilerSymbol;
+}
+
+/** The names the module of `file` exports. An export can reach a declaration that has another name of its own, as Effect's `Schema` exports `ArraySchema` as `Array`. */
+const exportsOf = Effect.fnUntraced(function* (file: SourceFile) {
+  const checker = yield* Checker.Checker;
+  const exporting = yield* checker.getSymbolOfSourceFile(file.fileName);
+  if (Option.isNone(exporting)) {
+    return [];
+  }
+
+  const exports = yield* checker.getExportsOfModule(exporting.value);
+
+  return yield* Effect.forEach(exports, (exported) =>
+    Effect.map(Checker.resolveAlias(exported), (symbol): Exported => ({
+      name: exported.name,
+      symbol,
+    })),
+  );
+});
+
+/** The name among `exported` that reaches `symbol`, or the symbol's own name when none does. */
+const nameAmong = (
+  exported: readonly Exported[],
+  symbol: CompilerSymbol,
+): string =>
+  pipe(
+    exported,
+    Array.findFirst(({ symbol: reached }) => reached.id === symbol.id),
+    Option.match({ onNone: () => symbol.name, onSome: ({ name }) => name }),
+  );
+
+/**
+ * The name code that imports a module writes for `symbol`, which `declaration` declares in it.
+ *
+ * A declaration at the top of the module's file has the name the module exports it under. A module itself, and a declaration inside a namespace, keep their own.
+ */
+export const exportedName = Effect.fnUntraced(function* (
+  symbol: CompilerSymbol,
+  declaration: Node,
+) {
+  if (isSourceFile(declaration) || topOf(declaration) !== declaration) {
+    return symbol.name;
+  }
+
+  const exported = yield* exportsOf(declaration.getSourceFile());
+
+  return nameAmong(exported, symbol);
+});
+
+/** The name Effect's pages head an export's section with. Effect puts `$` before an interface that shares its name with a global, such as `$Array`. Its pages leave the `$` out. */
+const headed = (name: string): string => name.replace(/^\$/u, "");
+
 type Handle = CompilerSymbol["declarations"][number];
 
 /** The declaration of `symbol` a name with `reading` means, or its first declaration when none has that meaning. */
@@ -285,9 +341,14 @@ const pageOfHandle = Effect.fnUntraced(function* (
     return Option.some(new URL(page.value));
   }
 
-  const { name, declarations } = owner.value;
+  const exported = yield* exportsOf(top.getSourceFile());
+  const name = headed(nameAmong(exported, owner.value));
+  // Exports whose sections would share a heading each say their kind, as `$Array` and `Array` do.
   const kinds = pipe(
-    declarations,
+    exported,
+    Array.filter(({ name: other }) => headed(other) === name),
+    Array.flatMap(({ symbol: sharing }) => sharing.declarations),
+    Array.appendAll(owner.value.declarations),
     Array.map((declared) => HashMap.get(anchorKinds, declared.kind)),
     Array.dedupe,
   );
@@ -305,7 +366,7 @@ const pageOfHandle = Effect.fnUntraced(function* (
  *
  * Effect's symbols have pages on effect.website, and TypeScript's own declarations have pages on MDN or in TypeScript's handbook. A symbol none of them documents has no page.
  *
- * A module links to its page, and a declaration at the top of a module's file to its section of the page. A namespace's member links to the namespace, whose section names its members. The pages do not document the members of an interface or a class, so those have no link. When declarations of different kinds share a name, as the `Option` type and namespace do, each meaning has its own section, and its anchor carries the kind, as in `#Option-type`. Meanings that pick the same declaration share its page.
+ * A module links to its page, and a declaration at the top of a module's file to its section of the page, under the name the module exports it by. A namespace's member links to the namespace, whose section names its members. The pages do not document the members of an interface or a class, so those have no link. When declarations of different kinds share a name, as the `Option` type and namespace do, each meaning has its own section, and its anchor carries the kind, as in `#Option-type`. Meanings that pick the same declaration share its page.
  */
 export const pages = Effect.fnUntraced(function* (
   symbol: CompilerSymbol,
