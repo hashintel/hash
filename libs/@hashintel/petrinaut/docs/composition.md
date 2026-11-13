@@ -21,6 +21,6 @@ Drag between a place and an instance's port, or between the ports of two instanc
 - Remove one member from the fusion's properties, or delete the fusion with its trash button or the Delete key.
 - A port that is fused can still be connected to a transition with an arc; the arc reaches the fused place.
 
-The fused places must agree: the same token type, the same capacity where one is set, and at most one differential equation among them. Disagreements show in red on the knot and in the fusion's properties, and in the **Diagnostics** tab under **Composition**, with notes for a fusion nothing fills or nothing empties.
+The fused places must agree: the same token type, the same capacity where one is set, and the same differential equations on the places that have dynamics. A transition can reach a fused place through one arc of each kind: two arcs of the same kind from one transition onto places of one fusion are an error, and one of them has to go. Problems turn the fusion's line red, or amber for a warning. They are listed in the fusion's properties and in the **Diagnostics** tab under **Composition**, with notes for a fusion nothing fills or nothing empties, and the errors and warnings count in the bottom bar's diagnostics indicator.
 
 When the net runs, each fusion is one place: tokens a component puts into its port are in the fused place, and a transition of another component takes them from there.
