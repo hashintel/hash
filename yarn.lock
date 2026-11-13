@@ -3789,7 +3789,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@base-ui/react@npm:^1.9.0":
+"@base-ui/react@npm:1.9.0, @base-ui/react@npm:^1.9.0":
   version: 1.9.0
   resolution: "@base-ui/react@npm:1.9.0"
   dependencies:
@@ -9672,6 +9672,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hashql-docs@workspace:libs/@local/hashql/docs"
   dependencies:
+    "@base-ui/react": "npm:1.9.0"
     "@effect/platform-node": "npm:4.0.3"
     "@effect/vitest": "npm:4.0.3"
     "@fumadocs/base-ui": "npm:16.17.8"
@@ -9680,6 +9681,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@microsoft/tsdoc": "npm:0.16.0"
     "@microsoft/tsdoc-config": "npm:0.18.1"
+    "@shikijs/themes": "npm:4.5.0"
     "@tsconfig/bases": "catalog:"
     "@types/hast": "npm:^3.0.5"
     "@types/mdast": "npm:^4.0.4"
@@ -9687,6 +9689,7 @@ __metadata:
     "@types/node": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
+    beautiful-mermaid: "npm:1.1.3"
     effect: "npm:4.0.3"
     fumadocs-core: "npm:16.17.8"
     fumadocs-mdx: "npm:15.4.10"
@@ -22018,6 +22021,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"beautiful-mermaid@npm:1.1.3":
+  version: 1.1.3
+  resolution: "beautiful-mermaid@npm:1.1.3"
+  dependencies:
+    elkjs: "npm:^0.11.0"
+    entities: "npm:^7.0.1"
+  checksum: 10c0/fd2d4a38449257b7666c5f7888c51cb01a2f0d79cb1efb216d3391cb0895c944629eb48ea2fa2781d73fc841888e444af547b1d6a1735df8acf60e58ccc7e9fe
+  languageName: node
+  linkType: hard
+
 "better-result@npm:3.0.1":
   version: 3.0.1
   resolution: "better-result@npm:3.0.1"
@@ -24706,6 +24719,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"elkjs@npm:^0.11.0":
+  version: 0.11.1
+  resolution: "elkjs@npm:0.11.1"
+  checksum: 10c0/e2216a7439c9dc65413e5f8d9e46bf829c32dacbfd869585bae8f8775b3cd5802d0ac9ccf0f45ad14decfa622244a092533263cc3a596e6d82e8247bf6bf84d7
+  languageName: node
+  linkType: hard
+
 "emoji-mart@npm:5.6.0":
   version: 5.6.0
   resolution: "emoji-mart@npm:5.6.0"
@@ -24808,6 +24828,13 @@ __metadata:
   version: 6.0.1
   resolution: "entities@npm:6.0.1"
   checksum: 10c0/ed836ddac5acb34341094eb495185d527bd70e8632b6c0d59548cbfa23defdbae70b96f9a405c82904efa421230b5b3fd2283752447d737beffd3f3e6ee74414
+  languageName: node
+  linkType: hard
+
+"entities@npm:^7.0.1":
+  version: 7.0.1
+  resolution: "entities@npm:7.0.1"
+  checksum: 10c0/b4fb9937bb47ecb00aaaceb9db9cdd1cc0b0fb649c0e843d05cf5dbbd2e9d2df8f98721d8b1b286445689c72af7b54a7242fc2d63ef7c9739037a8c73363e7ca
   languageName: node
   linkType: hard
 
