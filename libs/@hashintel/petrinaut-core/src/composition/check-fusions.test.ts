@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { checkComposition, checkFusions } from "./check-fusions";
 
-import type { Color, Fusion, Place, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  Color,
+  Fusion,
+  Place,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "../types/sdcpn";
 
 const place = (id: string, overrides: Partial<Place> = {}): Place => ({
   id,
@@ -554,6 +561,48 @@ describe("token flow through fused ports", () => {
     expect(checkComposition(sdcpn)).toMatchObject([
       { kind: "port", subnetId: "loop", placeId: "pool", severity: "warning" },
     ]);
+  });
+
+  it("holds a port to its direction through what its subnet fuses with it", () => {
+    // Inside the line, the port is fused with a port of a stage, and a
+    // transition of the line touches that port of the stage: fused, the two
+    // are one place.
+    const line = (
+      direction: "in" | "out",
+      touch: Pick<Transition, "inputArcs" | "outputArcs">,
+    ) =>
+      subnet("line", {
+        places: [place("edge", { isPort: true, portDirection: direction })],
+        componentInstances: [instance("s1", "stage")],
+        fusions: [
+          {
+            id: "f1",
+            members: [{ kind: "place", placeId: "edge" }, portOf("s1", "in")],
+          },
+        ],
+        transitions: [{ ...transition("touch", [], []), ...touch }],
+      });
+    const problems = (...lineArguments: Parameters<typeof line>) =>
+      checkComposition(
+        net({ subnets: [stage, line(...lineArguments)] }),
+      ).filter(({ kind }) => kind === "port");
+    const arc = { endpoint: portOf("s1", "in"), weight: 1 };
+
+    expect(problems("in", { inputArcs: [], outputArcs: [arc] })).toMatchObject([
+      { subnetId: "line", placeId: "edge" },
+    ]);
+    expect(
+      problems("out", {
+        inputArcs: [{ ...arc, type: "standard" }],
+        outputArcs: [],
+      }),
+    ).toMatchObject([{ subnetId: "line", placeId: "edge" }]);
+    expect(
+      problems("in", {
+        inputArcs: [{ ...arc, type: "standard" }],
+        outputArcs: [],
+      }),
+    ).toEqual([]);
   });
 
   it("tags fusion and port problems by kind", () => {

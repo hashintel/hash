@@ -11,7 +11,11 @@
  * `place-fusion.mdx` lists those cases.
  */
 
-import { arcEndpointsEqual, arcMatchesEndpoint } from "../arc-endpoints";
+import {
+  arcEndpointsEqual,
+  arcMatchesEndpoint,
+  placeArcEndpoint,
+} from "../arc-endpoints";
 import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 import {
   describeFusionMember,
@@ -341,6 +345,27 @@ export const checkFusions = (sdcpn: SDCPN): FusionProblem[] => [
   ),
 ];
 
+/**
+ * How a subnet's transitions touch one of its ports, on the port itself or
+ * on what the subnet fuses with it: fused, they are one place.
+ */
+const fusedPortUsage = (
+  subnet: Pick<Subnet, "transitions" | "fusions">,
+  placeId: ID,
+): Pick<PortUsage, "consumed" | "produced"> => {
+  const port = placeArcEndpoint(placeId);
+  const members = subnet.fusions?.find((fusion) =>
+    fusion.members.some((member) => arcEndpointsEqual(member, port)),
+  )?.members ?? [port];
+  const usages = members.map((member) =>
+    endpointUsage(subnet.transitions, member),
+  );
+  return {
+    consumed: usages.some(({ consumed }) => consumed),
+    produced: usages.some(({ produced }) => produced),
+  };
+};
+
 /** The ports whose declared direction their subnet's arcs contradict. */
 export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
   (sdcpn.subnets ?? []).flatMap((subnet) =>
@@ -348,7 +373,7 @@ export const checkPorts = (sdcpn: SDCPN): PortProblem[] =>
       if (!place.isPort || place.portDirection === undefined) {
         return [];
       }
-      const usage = portUsage(subnet, place.id);
+      const usage = fusedPortUsage(subnet, place.id);
       if (portUsageMatchesDirection(usage, place.portDirection)) {
         return [];
       }

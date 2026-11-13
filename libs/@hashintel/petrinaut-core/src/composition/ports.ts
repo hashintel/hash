@@ -82,7 +82,7 @@ export const effectivePortDirection = (
 
 /** Whether the subnet's arcs keep the port's declared direction. */
 export const portUsageMatchesDirection = (
-  usage: PortUsage,
+  usage: Pick<PortUsage, "consumed" | "produced">,
   direction: PortDirection,
 ): boolean =>
   direction === "inout" ||
