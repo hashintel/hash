@@ -123,7 +123,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "useful-patterns":
     "Duration modelling (exponential / non-exponential), resource pools, mutual exclusion, source / sink transitions, competing/routing transitions, multi-token arcs.",
   simulation:
-    "Simulating the open net: initial state, simulation settings (scenario picker, parameters, mode, simulator and its parameters), Quick Simulation of one run, Stochastic mode across many runs, deadlock, playback controls, timeline, locked editing.",
+    "Simulating the open net: initial state, simulation settings (scenario picker, parameters, mode, simulator and its parameters), the class of a net (timed or untimed, its colouring, stochastic or deterministic), Quick Simulation of one run, Stochastic mode across many runs, deadlock, playback controls, timeline, locked editing.",
   scenarios:
     "Named simulation configurations authored through the scenario form: Variables exposed as scenario parameters, parameter overrides, per-place initial state blocks, running and switching scenarios, the expression language, scenarios stored per place or as code by files, the AI or earlier versions.",
   "ad-hoc-scenarios":

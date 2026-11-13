@@ -319,6 +319,8 @@ Use read arcs when a transition needs to inspect shared state, permission tokens
 
 The **Diagnostics** tab in the bottom panel shows problems in your code (dynamics, firing rate, kernels, visualizers), grouped by entity. Click a diagnostic to select the relevant entity and see the problem in context.
 
+Above the problems, the tab reads [the class of the net](simulation.md#the-class-of-a-net): whether it is timed, how it is coloured and whether it is stochastic.
+
 Petrinaut only reports diagnostics for code surfaces that are active for the current document and graph shape. For example, a hidden firing-time editor or a transition with no coloured outputs will not produce lambda or kernel diagnostics.
 
 Diagnostics come in two flavours:

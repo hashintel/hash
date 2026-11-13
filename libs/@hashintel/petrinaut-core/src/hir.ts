@@ -19,6 +19,7 @@ export {
   type HirDependencies,
   type HirTokenRead,
 } from "./hir/analyze";
+export { classifyNet } from "./hir/classify-net";
 export {
   compileHirArtifacts,
   type CompileHirArtifactsOptions,

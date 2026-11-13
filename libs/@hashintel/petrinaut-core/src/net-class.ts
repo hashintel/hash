@@ -7,6 +7,54 @@ import { getPlaceDynamicsEquationIds } from "./place-dynamics";
 import type { Color, Place, SDCPN, Transition } from "./types/sdcpn";
 
 /**
+ * Whether anything in the net takes time.
+ *
+ * A net is **timed** when a transition fires at a rate, or when the net is
+ * dynamically coloured. A run of a timed net is read against simulated time.
+ *
+ * Every other net is **untimed**. Each transition is a predicate, which
+ * fires as soon as it holds, so nothing separates one firing from the next
+ * but their order: a run is a sequence of steps and has no clock.
+ */
+export type NetTime = "timed" | "untimed";
+
+/**
+ * What the tokens of the net carry.
+ *
+ * - `none`: the net is **uncoloured**. No place has a type, and a token is
+ *   one of a count.
+ * - `static`: the net is **statically coloured**. A token carries values,
+ *   which change only when a transition fires.
+ * - `dynamic`: the net is **dynamically coloured**. A place runs dynamics,
+ *   so the values of its tokens also move between two firings.
+ */
+export type NetColoring = "none" | "static" | "dynamic";
+
+/**
+ * Whether two runs of the net from one state can differ.
+ *
+ * A net is **stochastic** when a transition fires at a rate, or when its
+ * code draws at random. Every other net is **deterministic**: one run is
+ * every run.
+ */
+export type NetChance = "stochastic" | "deterministic";
+
+/**
+ * The class of a net: three facts about the model, each inferred from the
+ * net and none stored.
+ *
+ * Time and colouring are read from the structure alone, by `netTimeOf` and
+ * `netColoringOf`, which compile nothing. Chance needs the net's code, so
+ * `classifyNet` infers the whole class where code is lowered.
+ */
+export type NetClass = {
+  time: NetTime;
+  coloring: NetColoring;
+  /** `null` while code that may draw does not compile. */
+  chance: NetChance | null;
+};
+
+/**
  * Whether the transition fires at a rate: a delay drawn against simulated
  * time. A predicate does not: it fires as soon as it holds.
  */
@@ -60,52 +108,47 @@ const netsOf = (
   ...(extensions.subnets ? (sdcpn.subnets ?? []) : []),
 ];
 
-/**
- * Whether the net's state changes between two firings.
- *
- * A net is **continuous** when a place's tokens evolve under its dynamics:
- * its state moves all the time, and a run can be read at any time.
- *
- * A net with no running dynamics is **discrete**. Its state changes only
- * when a transition fires, at a rate or not, so a run has nothing to show
- * between two events.
- *
- * Dynamics are something that takes time, so a continuous net is timed. A
- * discrete net is timed or untimed. The property is inferred, never stored.
- */
-export const isContinuousNet = (
+/** Whether a transition of the net fires at a rate. */
+export const hasTimedTransition = (
   sdcpn: NetContent,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): boolean =>
-  netsOf(sdcpn, extensions).some((net) =>
-    net.places.some((place) =>
-      hasRunningDynamics(place, extensions, net.types),
-    ),
-  );
-
-/**
- * Whether time passes in the net.
- *
- * A net is **timed** when something in it takes time: a transition fires at
- * a rate, or a place's tokens evolve under its dynamics. A run of a timed
- * net is read against simulated time.
- *
- * A net with neither is **untimed**. Every transition is a predicate, which
- * fires as soon as it holds, so nothing separates one firing from the next
- * but their order: a run is a sequence of steps and has no clock.
- *
- * The property is inferred, never stored.
- */
-export const isTimedNet = (
-  sdcpn: NetContent,
-  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
-): boolean =>
-  isContinuousNet(sdcpn, extensions) ||
   netsOf(sdcpn, extensions).some((net) =>
     net.transitions.some((transition) =>
       isTimedTransition(transition, extensions),
     ),
   );
+
+/** The colouring of the net. */
+export const netColoringOf = (
+  sdcpn: NetContent,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): NetColoring => {
+  const nets = netsOf(sdcpn, extensions);
+  if (
+    nets.some((net) =>
+      net.places.some((place) =>
+        hasRunningDynamics(place, extensions, net.types),
+      ),
+    )
+  ) {
+    return "dynamic";
+  }
+  return extensions.colors &&
+    nets.some((net) => net.places.some((place) => place.colorId !== null))
+    ? "static"
+    : "none";
+};
+
+/** Whether time passes in the net. Dynamics take time, as a rate does. */
+export const netTimeOf = (
+  sdcpn: NetContent,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): NetTime =>
+  hasTimedTransition(sdcpn, extensions) ||
+  netColoringOf(sdcpn, extensions) === "dynamic"
+    ? "timed"
+    : "untimed";
 
 /**
  * What a run's positions count. A timed net's run is read against simulated
@@ -117,7 +160,7 @@ export type RunClock = "time" | "steps";
 export const runClockOf = (
   sdcpn: NetContent,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
-): RunClock => (isTimedNet(sdcpn, extensions) ? "time" : "steps");
+): RunClock => (netTimeOf(sdcpn, extensions) === "timed" ? "time" : "steps");
 
 /**
  * What lies between two events of a run. In a continuous run the state
@@ -127,12 +170,15 @@ export const runClockOf = (
  */
 export type RunContinuity = "continuous" | "discrete";
 
-/** Whether a run of the net evolves between its events. */
+/**
+ * Whether a run of the net evolves between its events. It does when the net
+ * is dynamically coloured, and only then.
+ */
 export const runContinuityOf = (
   sdcpn: NetContent,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): RunContinuity =>
-  isContinuousNet(sdcpn, extensions) ? "continuous" : "discrete";
+  netColoringOf(sdcpn, extensions) === "dynamic" ? "continuous" : "discrete";
 
 /**
  * The spacing of an experiment's samples on a clock that counts steps: every

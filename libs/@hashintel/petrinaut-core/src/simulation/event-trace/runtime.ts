@@ -7,7 +7,7 @@ import {
   runContinuityOf,
   type RunClock,
   type RunContinuity,
-} from "../../net-timing";
+} from "../../net-class";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
