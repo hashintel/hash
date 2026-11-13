@@ -75,6 +75,10 @@ const getConnectionEdgeId = ({ from, to, outputName }: FlowConnection) =>
 
 type RunAfterEntry = NonNullable<StepDefinition<string>["runAfter"]>[number];
 
+/** The line a `runAfter` entry draws from: a step, or one of its paths. */
+const getLineKey = ({ stepId, outputName }: RunAfterEntry) =>
+  JSON.stringify([stepId, outputName]);
+
 const getNestedRunAfter = (steps: StepDefinition<string>[]): RunAfterEntry[] =>
   steps.flatMap((step) => [
     ...(step.runAfter ?? []),
@@ -177,20 +181,18 @@ export const getFlowGraph = ({
         });
 
         if (collapsed) {
-          const ownStepIdsBefore = new Set(
-            (step.runAfter ?? []).map(({ stepId }) => stepId),
-          );
+          const ownLines = new Set((step.runAfter ?? []).map(getLineKey));
 
           /* Lines to the steps inside a collapsed box go to the box, one per step or path they follow. */
           const linesIn = new Map(
             getNestedRunAfter(step.steps).map((entry) => [
-              JSON.stringify([entry.stepId, entry.outputName]),
+              getLineKey(entry),
               entry,
             ]),
           );
 
-          for (const { stepId: from, outputName } of linesIn.values()) {
-            if (stepIdsInScope.has(from) && !ownStepIdsBefore.has(from)) {
+          for (const [key, { stepId: from, outputName }] of linesIn) {
+            if (stepIdsInScope.has(from) && !ownLines.has(key)) {
               edges.push({
                 id: getConnectionEdgeId({ from, to: step.stepId, outputName }),
                 type: "connection",

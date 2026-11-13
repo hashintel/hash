@@ -168,19 +168,17 @@ describe("getFlowGraph", () => {
     ]);
   });
 
-  it("draws a line from the port of the path a step follows, and fills the dot of each path a line leaves", () => {
+  it("draws a line from the port of the path a step follows, also into a collapsed box that follows another path", () => {
     const steps: StepDefinition<string>[] = [
       actionStep("check", {
         actionDefinitionId: "if",
         pathNames: { true: "Over budget", false: "Ignored" },
       }),
-      actionStep("onNo", {
-        runAfter: [{ stepId: "check", outputName: "false" }],
-      }),
       {
         kind: "for-each",
         stepId: "forEach",
         description: "",
+        runAfter: [{ stepId: "check", outputName: "true" }],
         over: { kind: "flow-input", inputName: "suppliers" },
         steps: [
           actionStep("inner", {
@@ -200,24 +198,20 @@ describe("getFlowGraph", () => {
           source,
           sourceHandle,
           target,
-          data,
+          kind: data?.kind,
         })),
     ).toEqual([
       {
         source: getStepNodeId("check"),
         sourceHandle: "false",
-        target: getStepNodeId("onNo"),
-        data: {
-          kind: "connection",
-          connection: { from: "check", to: "onNo", outputName: "false" },
-        },
+        target: getStepNodeId("forEach"),
+        kind: "inner",
       },
-      /* A collapsed box's line leaves the path its step follows, too. */
       {
         source: getStepNodeId("check"),
-        sourceHandle: "false",
+        sourceHandle: "true",
         target: getStepNodeId("forEach"),
-        data: { kind: "inner" },
+        kind: "connection",
       },
     ]);
     /* Yes takes its new name; No, the catch-all, keeps its own. */
@@ -225,7 +219,7 @@ describe("getFlowGraph", () => {
       graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
     ).toMatchObject({
       paths: [
-        { outputName: "true", name: "Over budget", connected: false },
+        { outputName: "true", name: "Over budget", connected: true },
         { outputName: "false", name: "No", connected: true },
       ],
     });
