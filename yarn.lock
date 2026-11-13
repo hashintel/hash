@@ -421,7 +421,7 @@ __metadata:
     "@valibot/to-json-schema": "npm:1.7.1"
     ai: "npm:6.0.286"
     dependency-cruiser: "npm:18.0.0"
-    hono: "npm:4.13.13"
+    hono: "npm:4.13.16"
     oxlint: "catalog:"
     oxlint-tsgolint: "catalog:"
     pg: "npm:8.23.0"
@@ -28173,10 +28173,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hono@npm:4.13.13, hono@npm:^4.11.4, hono@npm:^4.12.32":
-  version: 4.13.13
-  resolution: "hono@npm:4.13.13"
-  checksum: 10c0/c8524e685a59b4f23a9bea15385eeac5622218949db251cb871b20fd9ef673b751b44ccdee6c22b3df56e5ed4c1b1cebad17b518bdc1823039da39b53ef9c1cf
+"hono@npm:4.13.16, hono@npm:^4.11.4, hono@npm:^4.12.32":
+  version: 4.13.16
+  resolution: "hono@npm:4.13.16"
+  checksum: 10c0/8a06f1d49bb98fd38a2bc4d5c1f5410b4c5a9fbe2dff85fbad2191a1b55fde93b64b63b2deba97d3e241630aedd800c57d1f4dc539e5f93ece81809fa63cbed9
   languageName: node
   linkType: hard
 
