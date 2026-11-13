@@ -1,0 +1,15 @@
+.diagram {
+  margin-block: 1.5rem;
+  overflow-x: auto;
+}
+
+.diagram > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+.diagram text {
+  font-family: inherit;
+}

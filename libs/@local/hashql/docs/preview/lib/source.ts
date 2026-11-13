@@ -1,5 +1,7 @@
 import { Struct } from "effect";
+import { remarkMdxMermaid } from "fumadocs-core/mdx-plugins";
 import { loader } from "fumadocs-core/source";
+import { applyMdxPreset } from "fumadocs-mdx/config";
 import { defineDocs } from "fumadocs-mdx/macro";
 import { createElement } from "react";
 
@@ -9,13 +11,16 @@ import type * as Location from "../../src/Location.js";
 import type * as PageTree from "fumadocs-core/page-tree";
 import type { ReactNode } from "react";
 
-// The hand-written pages. The macro resolves `dir` against the working
-// directory, which is `preview/`. A host compiles them with its own MDX
-// options, so the preview keeps fumadocs' defaults.
-const docs = defineDocs({ dir: "../content" });
+// The macro resolves `dir` against `preview/`. Collection options replace the defaults, so the preset keeps headings, code tabs and highlighting alongside Mermaid.
+const docs = defineDocs({
+  dir: "../content",
+  docs: {
+    mdxOptions: applyMdxPreset({ remarkPlugins: [remarkMdxMermaid] }),
+  },
+});
 
 /** The directory the reference's pages go in. */
-const dir = "reference";
+const dir = "sdk/typescript/reference";
 
 // No commit names the working tree the preview builds. A declaration links to its line on the main branch.
 const sourceUrl = ({ file, line }: Location.Location): string =>
@@ -33,8 +38,12 @@ export const source = loader({
   pageTree: {
     transformers: [
       {
+        // The overview is the page of the reference's own folder, which takes its name from it.
         file(node, path): PageTree.Item {
-          if (path?.startsWith(`${dir}/`) !== true) {
+          if (
+            path?.startsWith(`${dir}/`) !== true ||
+            path === `${dir}/index.html`
+          ) {
             return node;
           }
 

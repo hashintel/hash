@@ -1,0 +1,112 @@
+/* MDX places the disclosure immediately after its code block or tab group. */
+:has(+ .result) {
+  margin-bottom: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+:has(+ .result) :global(.shiki:last-child) {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.result {
+  margin-block: 0 1rem;
+  overflow: hidden;
+  border: 1px solid var(--color-fd-border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  background: var(--color-fd-card);
+}
+
+.result-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-fd-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background-color 150ms ease-out;
+}
+
+.result-summary::-webkit-details-marker {
+  display: none;
+}
+
+.result-summary:focus-visible {
+  outline: 2px solid var(--color-fd-ring);
+  outline-offset: -3px;
+}
+
+.result-summary:hover {
+  background: var(--color-fd-accent);
+  color: var(--color-fd-accent-foreground);
+}
+
+.result-chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 150ms ease-out;
+}
+
+.result[open] .result-chevron {
+  transform: rotate(90deg);
+}
+
+.result-hide,
+.result[open] .result-show {
+  display: none;
+}
+
+.result[open] .result-hide {
+  display: inline;
+}
+
+.result-panel {
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.result-panel > * {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.result-panel :global(.shiki) {
+  margin: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+}
+
+.result-panel > p {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.result[data-kind="error"] .result-panel {
+  border-top-color: color-mix(
+    in oklab,
+    var(--color-fd-error) 55%,
+    var(--color-fd-border)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-summary,
+  .result-chevron {
+    transition: none;
+  }
+}

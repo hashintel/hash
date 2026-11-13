@@ -1,0 +1,384 @@
+---
+title: Troubleshooting
+description: Diagnose TypeScript errors, failed construction and unexpected behaviour inside Draft programs.
+---
+
+Start with what failed, then follow the corresponding fix. A Draft program is constructed in TypeScript, serialised as J-Expr and later compiled and executed by HashQL. Success at one step does not establish success at the next.
+
+## Find the failing stage
+
+| What you see                                                  | Where to start                                                                                                    |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| TypeScript rejects an argument or operation                   | [Expression types][expression-types] or [helper context types][helper-context]                                    |
+| `Draft.program` returns `Failure`                             | [Read the construction error][handle-a-construction-failure]                                                      |
+| `Program.compile` returns `Failure`                           | [Read the construction error][handle-a-construction-failure], including failures retained by lower-level builders |
+| A conditional or collection has the wrong shape in the J-Expr | [Construction-time behaviour][construction-time-behaviour]                                                        |
+| The server rejects successfully serialised J-Expr             | [Server errors][server-errors]                                                                                    |
+| Execution succeeds but the data is unexpected                 | [Unexpected query results][unexpected-query-results]                                                              |
+
+[`Program.compile`][program-compile] is the SDK's serializer. Despite its name, it does not invoke the server's compiler or execute the program. Inspect the generated J-Expr when you need to distinguish the program you constructed from the result you expected it to produce.
+
+## Read a construction error [#handle-a-construction-failure]
+
+**Symptom:** a builder returns `Failure`, or `Result.getOrThrow` throws a construction error.
+
+Keep the `Result` until you decide how to report it. Use `error.message` for a readable explanation and `error.reason._tag` when your code needs to distinguish failure cases:
+
+```ts data-example="construction-result"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+import { Result, pipe } from "effect";
+
+const built = Draft.program({}, ($) => $.let("not a name", 2n));
+
+const serialized = pipe(
+  built,
+  Result.map(Program.program),
+  Result.flatMap(Program.compile),
+);
+
+console.log(
+  Result.match(serialized, {
+    onSuccess: (text) => text,
+    onFailure: (error) => `${error.reason._tag}: ${error.message}`,
+  }),
+);
+// => InvalidBindingName: Invalid HashQL binding name: "not a name"
+```
+
+Here, `Draft.program` already returns `Failure`. The later `map` and `flatMap` preserve it without calling their success functions. You do not need to reach serialisation to discover an invalid binding name or a stale reference in a Draft program.
+
+The [construction error reference][program-error-construction] lists the typed reasons and their fields. Narrow on `reason._tag` to access the information associated with that case. For example, `InvalidBindingName` includes `reason.name`. Printing the tag alone loses that information. The complete error may also carry a `cause` with parser details; keep it when reporting a failure rather than converting an object cause with `String`, which can print only `[object Object]`.
+
+### The binding name is invalid
+
+**Cause:** the string passed to a naming operation is not valid HashQL identifier syntax. In the example above, the space in `"not a name"` prevents it from being a plain identifier.
+
+**Fix:** use a valid name such as `"nextRevision"`. Keep arbitrary user-provided labels as string values instead of turning them into binding names. A dictionary can hold arbitrary string keys when a struct field is the wrong representation for the data.
+
+### The error is `StaleReference`
+
+**Cause:** a handle refers to a binding that is no longer visible. A common case is declaring the same HashQL name twice and then returning the first handle:
+
+```ts data-example="stale-reference"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const first = $.let("count", 1n);
+  $.let("count", 2n);
+  return first;
+});
+
+console.log(built._tag);
+// => Failure
+```
+
+**Fix:** if both values must remain accessible, give their HashQL bindings different names:
+
+```ts data-example="distinct-bindings"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const count = $.let("count", 1n);
+  $.let("laterCount", 2n);
+  return count;
+});
+
+console.log(built._tag);
+// => Success
+```
+
+If you intended to return the second value, return its handle instead. That changes the program's result, so it is not an interchangeable repair. The same visibility check matters when a handle escapes a branch or another program. Follow the binding's HashQL scope, not just the JavaScript variable's scope.
+
+### The error is `InvalidBodyResult`
+
+**Cause:** a construction callback did not return an expression handle. For example, a block-bodied callback may declare a binding but forget to return the program's result.
+
+**Fix:** return the expression you want the program to produce. Use `$.literal` when the body should return a literal:
+
+```ts data-example="return-expression"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const count = $.let("count", 2n);
+  return count;
+});
+
+const literal = Draft.program({}, ($) => $.literal("ready"));
+```
+
+A callback returning normally does not establish that construction succeeded. Inspect its enclosing `Draft.program` result. A host `try`/`catch` alone does not handle a returned `Failure`.
+
+## TypeScript rejects my program [#expression-types]
+
+### A condition or arithmetic argument has the wrong type
+
+**Symptom:** TypeScript rejects a value passed to [`$.if`][draft-context-if], a comparison or a numeric operation.
+
+**Cause:** HashQL types are represented by SDK descriptors. A handle for an Integer is not a JavaScript `bigint` you can calculate with using `+`, and a condition must represent a Boolean rather than a truthy value. The host literal's type matters too: `2n` denotes Integer, while `2` denotes Number.
+
+**Fix:** construct the operation through the SDK and supply the intended literal type:
+
+```ts data-example="typed-operations"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({ revision: BigInt }, ($, { revision }) => {
+  const nextRevision = $.prelude().add(revision, 1n);
+
+  return $.if($.eq(nextRevision, 2n), {
+    then: () => $.literal("second revision"),
+    else: () => $.literal("another revision"),
+  });
+});
+```
+
+An `as` assertion can hide a TypeScript diagnostic without constructing the missing HashQL operation. Check the value's descriptor and the method's signature before adding one.
+
+### A raw string is not my newtype [#typed-string]
+
+**Symptom:** a string looks like the identifier you want, but TypeScript rejects it where a newtype is required.
+
+**Cause:** a String-backed newtype is distinct from String. In this rejected example, `target` represents a `TaskId`, while `"task-17"` represents a plain String:
+
+```ts data-example="raw-string-rejected"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const TaskId = $.newtype("TaskId", String);
+  const target = $.let("target", TaskId("task-17"));
+  return $.eq(target, "task-17");
+});
+```
+
+The diagnostic at the comparison says the string argument is not assignable to the required expression type. Running without typechecking can still serialise this program, but the right operand remains `{"#literal":"task-17"}`. Serialisation does not construct the missing `TaskId` value.
+
+**Fix:** call the newtype's constructor for the value you want to compare:
+
+```ts data-example="typed-string"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, ($) => {
+  const TaskId = $.newtype("TaskId", String);
+  const target = $.let("target", TaskId("task-17"));
+  return $.eq(target, TaskId("task-17"));
+});
+```
+
+The right operand now serialises as `["TaskId", {"#literal":"task-17"}]`. Both operands have the nominal type. Ordinary string literals remain valid where a HashQL String is expected. Wrapping the string with `$.literal`, or asserting a TypeScript type, does not replace the newtype constructor. See [Making a distinct type][intro-making-a-distinct-type-with-newtype] for the language semantics.
+
+### My helper rejects another program's `$` [#helper-context]
+
+**Symptom:** a helper accepts the context from one program but fails after you add an input to another. The diagnostic may begin with incompatible `if(...)` return types or “two different types with this name exist”.
+
+**Cause:** a helper parameter such as [`Draft.Body.Context<Program.Prelude.Builtin, Draft.Body.Requirements<typeof inputs>>`][draft-body-context] describes the context for those input requirements. It is not a context for every program that happens to contain those inputs. Adding a second input can make the contexts incompatible even when the helper only uses the original one. Read through the diagnostic to the differing input requirements.
+
+**Fix:** when the helper only constructs an expression, pass the expression handles it needs and keep declarations at the call site:
+
+```ts data-example="helper-context"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+
+const taskInputs = { task: { blocked: Boolean, done: Boolean } };
+type Task = Draft.Body.Handles<typeof taskInputs>["task"];
+
+const needsReviewFor = (task: Task) =>
+  Program.Operators.eq(task.blocked, true).and(
+    Program.Operators.not(task.done),
+  );
+
+const basic = Draft.program(taskInputs, ($, { task }) =>
+  $.let("needsReview", needsReviewFor(task)),
+);
+
+const withUrgency = Draft.program(
+  { ...taskInputs, urgent: Boolean },
+  ($, { task, urgent }) =>
+    $.let("needsReview", needsReviewFor(task).or(urgent)),
+);
+```
+
+Both programs use the same helper without asserting that their contexts are interchangeable. For a helper that needs `$`, derive its context from the inputs of its calling program, as in [Passing a context][using-draft-passing-a-context]. Do not erase the requirements with `any` to make an incompatible context fit.
+
+### My entity fields have unknown types
+
+**Cause:** the built-in SDK entity descriptor does not yet provide precise types for the fields your application expects. This does not mean the stored entity has no properties.
+
+**Fix:** supply declarations matching the actual entity schema, and select the appropriate entities in the query. The [worked query's setup][writing-a-query-the-question-and-the-data] states its fixture assumptions. [`Expression.assume`][program-expression-assume] is a trusted SDK declaration, not a data validator or the language's checked `as` operation.
+
+Generated standard-library declarations are tracked in [BE-1013]. Application-specific property types still need their own source of truth.
+
+## The constructed program is not what I intended [#construction-time-behaviour]
+
+### My comparison becomes a constant [#native-operators]
+
+**Symptom:** a comparison typechecks, but its generated condition is a literal Boolean rather than a comparison of the input values.
+
+**Cause:** native `===` and `!==` compare expression handles as JavaScript objects during construction. They do not construct HashQL equality or inequality. Some comparisons are rejected by TypeScript, but this one is accepted:
+
+```ts data-example="native-equality"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program(
+  { values: { left: BigInt, right: BigInt } },
+  ($, { values }) =>
+    $.if(values.left === values.right, {
+      then: () => $.literal("same"),
+      else: () => $.literal("different"),
+    }),
+);
+```
+
+The two handles are distinct objects, so the host comparison is `false`. Serialising this program produces:
+
+```json
+[
+  "::kernel::special_form::if",
+  { "#literal": false },
+  { "#literal": "same" },
+  { "#literal": "different" }
+]
+```
+
+Neither input field is read by that program. Even if the caller supplies equal values, the constructed conditional selects `"different"`.
+
+**Fix:** use [`$.eq`][program-operators-eq] or [`$.ne`][program-operators-ne] to construct the comparison:
+
+```ts data-example="hashql-equality"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program(
+  { values: { left: BigInt, right: BigInt } },
+  ($, { values }) =>
+    $.if($.eq(values.left, values.right), {
+      then: () => $.literal("same"),
+      else: () => $.literal("different"),
+    }),
+);
+```
+
+The condition now contains a `::core::cmp::eq` call over both input-field accesses. HashQL compares their values when the program runs. The same distinction applies to other native operators: use the SDK's arithmetic and predicate operations to construct work for HashQL.
+
+### My TypeScript `if` always takes the same branch
+
+**Cause:** an expression handle is a JavaScript object. Testing it with a TypeScript `if` tests that object during construction, not the value the HashQL expression will produce.
+
+**Fix:** use [`$.if`][draft-context-if] for a decision that belongs in the HashQL program:
+
+```ts data-example="hashql-condition"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({ enabled: Boolean }, ($, { enabled }) =>
+  $.if(enabled, {
+    then: () => $.literal("enabled"),
+    else: () => $.literal("disabled"),
+  }),
+);
+```
+
+Use TypeScript branching when you deliberately want to choose which program to construct from configuration-time values. The [control-flow comparison][using-draft-detour-using-hashql-logic-and-typescript-logic-together] shows the different outputs.
+
+### Both branch callbacks run, or my logging happens too early
+
+**Cause:** Draft calls the branch callbacks while constructing both expressions. The server later evaluates only the selected HashQL branch. Host-side logging, network calls and other work inside those callbacks happen during construction.
+
+**Fix:** keep the callbacks focused on building expressions. Move host-side effects to the application step where you intend them to happen. Returning a HashQL expression from a TypeScript callback does not send the callback itself to the server.
+
+### I wrote an array but got a tuple
+
+**Cause:** structural shorthand interprets a host array as a tuple with fixed positions. It does not infer a HashQL list from repeated element types. A host record likewise denotes a struct unless you explicitly construct a dictionary.
+
+**Fix:** use `Program.Structural.list` or `Program.Structural.dict` for dynamic collections, including when they are nested:
+
+```ts data-example="collection-shapes"
+import { Program } from "@local/hashql";
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({}, () =>
+  Program.Structural.struct({
+    pair: ["open", 1n],
+    labels: Program.Structural.list(String, ["open", "blocked"]),
+    counts: Program.Structural.dict(String, BigInt, { open: 1n }),
+    noLabels: Program.Structural.list(String, []),
+    noCounts: Program.Structural.dict(String, BigInt, {}),
+  }),
+);
+```
+
+The explicit element, key and value definitions also type the empty collections. See [values and types in the cheatsheet][cheatsheet-literal] for more examples.
+
+### Reusing a variable repeats the expression
+
+**Cause:** a TypeScript variable holds an expression handle. Reusing it inserts its represented expression again. The JavaScript variable name does not become a HashQL binding.
+
+**Fix:** use `$.let` when you want a HashQL binding, then reuse its returned handle. [Naming parts of a program][using-draft-naming-parts-of-a-program] compares the generated J-Expr for both forms.
+
+### A branch declaration appears outside its branch
+
+Declarations belong to the body being constructed. If an SDK build places a declaration made through a captured outer `$` around the whole conditional, it has the scope-placement behaviour being replaced in [BE-1139].
+
+For that build, use the context passed to the branch or filter callback. This also expresses the intended scope after the repair:
+
+```ts data-example="branch-context"
+import * as Draft from "@local/hashql/Draft";
+
+const built = Draft.program({ review: Boolean }, ($, { review }) =>
+  $.if(review, {
+    then: (branch) => branch.let("label", "review"),
+    else: () => $.literal("clear"),
+  }),
+);
+```
+
+The same applies to a query filter: declare through the context supplied to its predicate callback. Do not rely on the older behaviour to lift a declaration out of a body. The [scope explanation][using-draft-scope-management] describes the intended placement.
+
+## A language feature has no Draft method
+
+Check whether the feature has a construction API yet. The [language introduction][intro] describes HashQL semantics, while each SDK implements its own builders.
+
+General closure construction is tracked in [BE-1015]. Query filters already construct the closures their predicates need. This does not make arbitrary standalone closures available through Draft.
+
+Draft also has no dedicated `as` builder today. This is tracked in [BE-1141]. A type annotation on `$.let` annotates that binding. [`Expression.assume`][program-expression-assume] changes an SDK descriptor. Neither is a general Draft `as` operation. Consult the [J-Expr reference][j-expr] if you need to construct syntax through the lower-level API, whose contract differs from Draft's typed builders.
+
+## The server rejects serialised J-Expr [#server-errors]
+
+Keep the generated J-Expr, input names and declared types together with the server diagnostic. Check whether the named functions and types exist in the execution environment, the supplied input values match their declarations and the property accesses match the selected data.
+
+A declaration through `Program.Module`, `TypeExpression` or a custom prelude can name something the server does not provide. Successful serialisation cannot establish server availability. Changing only a TypeScript assertion does not provide that missing declaration.
+
+Reduce a failing query while retaining its failing expression and inputs. The [first worked-query checkpoint][writing-a-query-start-with-the-tasks] provides a small starting shape: one graph source and one collection operation.
+
+## The query result is empty, incomplete or unordered [#unexpected-query-results]
+
+Check the supplied inputs and temporal view first. An entity outside the selected time slice cannot appear merely because its properties match. Check visibility with the identity under which the query executes too.
+
+Then inspect predicates separately. Independent lists can overlap: a blocked task can also be unassigned. A display label need not be a stable identity, and an observed order is not a promised order unless the program requests it.
+
+Use the [release fixture][writing-a-query-the-question-and-the-data] to work out expected membership by hand. It tests the question you meant to ask. It does not establish that your execution environment contains the same data.
+
+[expression-types]: #expression-types
+[helper-context]: #helper-context
+[handle-a-construction-failure]: #handle-a-construction-failure
+[construction-time-behaviour]: #construction-time-behaviour
+[server-errors]: #server-errors
+[unexpected-query-results]: #unexpected-query-results
+[program-compile]: /docs/hashql/sdk/typescript/reference/hashql/Program#compile
+[program-error-construction]: /docs/hashql/sdk/typescript/reference/hashql/Program/ProgramError#Construction
+[draft-context-if]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Context#Context.if
+[intro-making-a-distinct-type-with-newtype]: /docs/hashql#making-a-distinct-type-with-newtype
+[draft-body-context]: /docs/hashql/sdk/typescript/reference/hashql/Draft/Body#Context
+[using-draft-passing-a-context]: /docs/hashql/sdk/typescript/using-draft#passing-a-context
+[writing-a-query-the-question-and-the-data]: /docs/hashql/sdk/typescript/writing-a-query#the-question-and-the-data
+[program-expression-assume]: /docs/hashql/sdk/typescript/reference/hashql/Program/Expression#assume
+[BE-1013]: https://linear.app/hash/issue/BE-1013
+[program-operators-eq]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#eq
+[program-operators-ne]: /docs/hashql/sdk/typescript/reference/hashql/Program/Operators#ne
+[using-draft-detour-using-hashql-logic-and-typescript-logic-together]: /docs/hashql/sdk/typescript/using-draft#detour-using-hashql-logic-and-typescript-logic-together
+[cheatsheet-literal]: /docs/hashql/sdk/typescript/cheatsheet#literal
+[using-draft-naming-parts-of-a-program]: /docs/hashql/sdk/typescript/using-draft#naming-parts-of-a-program
+[BE-1139]: https://linear.app/hash/issue/BE-1139
+[using-draft-scope-management]: /docs/hashql/sdk/typescript/using-draft#scope-management
+[intro]: /docs/hashql
+[BE-1015]: https://linear.app/hash/issue/BE-1015
+[BE-1141]: https://linear.app/hash/issue/BE-1141
+[j-expr]: /docs/hashql/sdk/typescript/reference/hashql/JExpr
+[writing-a-query-start-with-the-tasks]: /docs/hashql/sdk/typescript/writing-a-query#start-with-the-tasks

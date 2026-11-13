@@ -1,0 +1,46 @@
+---
+title: TypeScript SDK
+description: Construct HashQL programs in TypeScript, build a query and look up an API.
+---
+
+The TypeScript SDK tries to mirror much of the type safety that exists within HashQL and express it through TypeScript types.
+
+## Learn the language
+
+All guides below assume basic familiarity with HashQL. If you do not have prior experience with HashQL, start with the [Introduction][intro]. The introduction explains the language's type system, expressions and special forms through examples in different languages.
+
+If you are already comfortable with functional, side-effect-free languages such as Haskell or Nix, you may find the [cheatsheet] more helpful. It provides a quick reference for mapping concepts from familiar languages (Rust, Python, TypeScript) to their HashQL counterparts.
+
+## Use the TypeScript SDK
+
+The TypeScript SDK is built in layers. We recommend using Draft wherever possible, as it provides the most ergonomic way to build HashQL programs. [Using the SDK][using-draft] explains how the construction context, prelude, expression accessors and combinators work together.
+
+We build a small task summary program to demonstrate different SDK features, how to reuse expressions across programs and how to serialise the resulting program.
+
+## Build something useful
+
+[Writing a query][writing-a-query] shows how to query the graph rather than just execute code on the server. We create a fictional release briefing and incrementally build a HashQL program to summarise the tasks in the graph and group them into categories.
+
+<Callout>
+
+The guide features alternative implementations and future features that may not be available yet. These will be called out where this is the case.
+
+</Callout>
+
+## Find the problem
+
+If you are stuck and do not know why your query will not execute, use the [troubleshooting guide][troubleshooting] to diagnose the issue. It covers common pitfalls and execution problems.
+
+## Look up an API
+
+The full library surface is documented in the [TypeScript API reference][reference]. It includes signatures, type relationships and precise method contracts, as well as examples for many functions. [`Draft`][draft] is a good starting point for the construction style used in these guides.
+
+For details on the compiler, query placement and execution model, please refer to Bilal Mahmoud's Diplomarbeit (2026) on the HashQL compiler.
+
+[intro]: /docs/hashql
+[cheatsheet]: /docs/hashql/sdk/typescript/cheatsheet
+[using-draft]: /docs/hashql/sdk/typescript/using-draft
+[writing-a-query]: /docs/hashql/sdk/typescript/writing-a-query
+[troubleshooting]: /docs/hashql/sdk/typescript/troubleshooting
+[reference]: /docs/hashql/sdk/typescript/reference
+[draft]: /docs/hashql/sdk/typescript/reference/hashql/Draft
