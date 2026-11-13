@@ -12,47 +12,107 @@ export const getFlowInputLabel = ({
   name,
 }: Pick<FlowInputDefinition, "label" | "name">) => label ?? getNameLabel(name);
 
-const kindDisplays: Record<PayloadKind, { label: string; icon: IconName }> = {
-  ActorType: { label: "actor type", icon: "user" },
-  Aggregation: { label: "aggregation", icon: "chartBar" },
-  Boolean: { label: "true or false", icon: "squareCheck" },
-  Date: { label: "date", icon: "calendar" },
-  DateTime: { label: "date and time", icon: "calendarClock" },
-  Duration: { label: "duration", icon: "clock" },
-  EntityId: { label: "entity", icon: "cube" },
-  EntityQuery: { label: "entity query", icon: "search" },
-  FailedEntityProposal: { label: "failed entity proposal", icon: "warning" },
-  FilterCondition: { label: "filter condition", icon: "filter" },
-  FormattedText: { label: "formatted text", icon: "fileLines" },
-  GoogleAccountId: { label: "Google account", icon: "user" },
-  GoogleSheet: { label: "Google Sheet", icon: "fileSpreadsheet" },
-  Number: { label: "number", icon: "oneHundred" },
-  PersistedEntityMetadata: { label: "saved entity", icon: "cube" },
-  PropertyObjectWithMetadata: {
-    label: "entity properties",
-    icon: "bracketsCurly",
+const kindDisplays: Record<
+  PayloadKind,
+  { label: string; plural: string; icon: IconName }
+> = {
+  ActorType: { label: "actor type", plural: "actor types", icon: "user" },
+  Aggregation: {
+    label: "aggregation",
+    plural: "aggregations",
+    icon: "chartBar",
   },
-  PropertyPatch: { label: "property change", icon: "edit" },
-  ProposedEntity: { label: "proposed entity", icon: "cube" },
-  ProposedEntityWithResolvedLinks: {
-    label: "proposed entity",
+  Boolean: {
+    label: "true or false",
+    plural: "true or false values",
+    icon: "squareCheck",
+  },
+  Date: { label: "date", plural: "dates", icon: "calendar" },
+  DateTime: {
+    label: "date and time",
+    plural: "dates and times",
+    icon: "calendarClock",
+  },
+  Duration: { label: "duration", plural: "durations", icon: "clock" },
+  EntityId: { label: "entity", plural: "entities", icon: "cube" },
+  EntityQuery: {
+    label: "entity query",
+    plural: "entity queries",
+    icon: "search",
+  },
+  FailedEntityProposal: {
+    label: "failed entity proposal",
+    plural: "failed entity proposals",
+    icon: "warning",
+  },
+  FilterCondition: {
+    label: "filter condition",
+    plural: "filter conditions",
+    icon: "filter",
+  },
+  FormattedText: {
+    label: "formatted text",
+    plural: "formatted text",
+    icon: "fileLines",
+  },
+  GoogleAccountId: {
+    label: "Google account",
+    plural: "Google accounts",
+    icon: "user",
+  },
+  GoogleSheet: {
+    label: "Google Sheet",
+    plural: "Google Sheets",
+    icon: "fileSpreadsheet",
+  },
+  Number: { label: "number", plural: "numbers", icon: "oneHundred" },
+  PersistedEntityMetadata: {
+    label: "saved entity",
+    plural: "saved entities",
     icon: "cube",
   },
-  SortKey: { label: "sort order", icon: "sortDown" },
-  Text: { label: "text", icon: "text" },
-  VersionedUrl: { label: "type", icon: "shapes" },
-  WebPage: { label: "web page", icon: "file" },
-  WebSearchResult: { label: "web search result", icon: "search" },
+  PropertyObjectWithMetadata: {
+    label: "entity properties",
+    plural: "entity properties",
+    icon: "bracketsCurly",
+  },
+  PropertyPatch: {
+    label: "property change",
+    plural: "property changes",
+    icon: "edit",
+  },
+  ProposedEntity: {
+    label: "proposed entity",
+    plural: "proposed entities",
+    icon: "cube",
+  },
+  ProposedEntityWithResolvedLinks: {
+    label: "proposed entity",
+    plural: "proposed entities",
+    icon: "cube",
+  },
+  SortKey: { label: "sort order", plural: "sort orders", icon: "sortDown" },
+  Text: { label: "text", plural: "text", icon: "text" },
+  VersionedUrl: { label: "type", plural: "types", icon: "shapes" },
+  WebPage: { label: "web page", plural: "web pages", icon: "file" },
+  WebSearchResult: {
+    label: "web search result",
+    plural: "web search results",
+    icon: "search",
+  },
 };
 
-/** The kind of a value in lower case, e.g. "date" or, for an array, "date list". */
+/** The kind of a value in lower case, e.g. "date" or, for an array, "list of dates". */
 export const getKindLabel = ({
   payloadKind,
   array,
 }: {
   payloadKind: PayloadKind;
   array: boolean;
-}) => `${kindDisplays[payloadKind].label}${array ? " list" : ""}`;
+}) =>
+  array
+    ? `list of ${kindDisplays[payloadKind].plural}`
+    : kindDisplays[payloadKind].label;
 
 /** An array of entities shows the many-entities icon, as Figma's Entities output does. */
 export const getKindIcon = ({
