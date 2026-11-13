@@ -310,6 +310,28 @@ layer(
   );
 
   it.effect(
+    "deprecated_rows",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source: `/** Old way. @deprecated Use the new way. */ export declare function old(): void;
+/** @deprecated Gone. */ export declare const bare: number;
+/** New way. */ export declare function fresh(): void;`,
+      });
+      expect(
+        Array.filter(
+          Reference.page(result, "pkg.html").markdown.split("\n"),
+          (line) => line.startsWith("* "),
+        ),
+      ).toStrictEqual([
+        "* [`old`](#old) Deprecated. Old way.",
+        "* [`fresh`](#fresh) New way.",
+        "* [`bare`](#bare) Deprecated.",
+      ]);
+    }),
+  );
+
+  it.effect(
     "module_description",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

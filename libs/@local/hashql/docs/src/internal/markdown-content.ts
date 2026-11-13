@@ -394,8 +394,12 @@ const rowItem =
                 children: [label],
               }),
             }),
-            ...Array.map(Option.toArray(summaryOf(row)), (summary) =>
-              text(` ${summary}`),
+            ...Array.map(
+              Array.appendAll(
+                row.deprecated ? [Titles.deprecatedRow] : [],
+                Option.toArray(summaryOf(row)),
+              ),
+              (said) => text(` ${said}`),
             ),
           ],
         },

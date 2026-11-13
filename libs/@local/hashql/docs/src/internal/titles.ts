@@ -50,6 +50,9 @@ export const sections = {
   deprecated: "Deprecated:",
 } as const;
 
+/** What a row of the Markdown says of a deprecated declaration, before its summary. The hast marks the row instead, for a host to draw. */
+export const deprecatedRow = "Deprecated.";
+
 /** What the reference's own pages are about, for search and metadata and as the first paragraph of each one. */
 export const descriptions = {
   overview: "Package entrypoints and the traits of their types.",
