@@ -11,7 +11,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
-import { getCellHorizontalPadding, gridHeaderBaseFont } from "./utils";
+import {
+  getCellHorizontalPadding,
+  getCellSearchableText,
+  gridHeaderBaseFont,
+} from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
 import {
   ConversionMenu,
@@ -137,27 +141,6 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
 
 export const searchResultHighlightColor = "#fff9e3";
 
-/** Mirrors the cell text glide's built-in search tests, per cell kind. */
-const getCellSearchableText = (cell: GridCell): string | undefined => {
-  switch (cell.kind) {
-    case GridCellKind.Text:
-    case GridCellKind.Number:
-      return cell.displayData;
-    case GridCellKind.Uri:
-    case GridCellKind.Markdown:
-      return cell.data;
-    case GridCellKind.Boolean:
-      return typeof cell.data === "boolean" ? cell.data.toString() : undefined;
-    case GridCellKind.Image:
-    case GridCellKind.Bubble:
-      return cell.data.join("\n");
-    case GridCellKind.Custom:
-      return cell.copyData;
-    default:
-      return undefined;
-  }
-};
-
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
@@ -188,6 +171,8 @@ export const Grid = <
   noResultsMessage,
   onConversionTargetSelected,
   onSearchClose,
+  onSearchValueChange,
+  searchValue: externalSearchValue,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
@@ -370,7 +355,15 @@ export const Grid = <
     }
   }, [externalSort, filteredRows, localSort, sortRows]);
 
-  const [searchValue, setSearchValue] = useState("");
+  const [localSearchValue, setLocalSearchValue] = useState("");
+  const searchValue = externalSearchValue ?? localSearchValue;
+  const setSearchValue = useCallback(
+    (value: string) => {
+      setLocalSearchValue(value);
+      onSearchValueChange?.(value);
+    },
+    [onSearchValueChange],
+  );
 
   /**
    * Search supplied to glide in place of its built-in cell-by-cell search.
@@ -438,7 +431,7 @@ export const Grid = <
   const handleSearchClose = useCallback(() => {
     setSearchValue("");
     onSearchClose?.();
-  }, [onSearchClose]);
+  }, [onSearchClose, setSearchValue]);
 
   const gridSelection = useMemo(() => {
     if (sortedAndFilteredRows && selectedRows) {
