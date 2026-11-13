@@ -5,6 +5,7 @@
  */
 
 import { getPlaceDynamicsEquationIds } from "../place-dynamics";
+import { scopeDepth, sourceItemId } from "../simulation/engine/scoped-id";
 import { colorsStructurallyEqual } from "./check-fusions";
 
 import type {
@@ -18,11 +19,12 @@ import type {
 
 /** One fusion, as flat place ids. */
 export type FusionGroup = {
-  fusionId: ID;
+  /** Names the fusion in error messages. */
+  label: string;
   /** The flat ids of the fused places. */
   placeIds: ID[];
-  /** The fusion's display name, given to the fused place when no anchor names it. */
-  name: string | undefined;
+  /** The name the fused place takes: the fusion's own, where no place of its net anchors it. */
+  name?: string;
 };
 
 type FlatNet = {
@@ -31,10 +33,15 @@ type FlatNet = {
   types: Color[];
 };
 
-/** The flat place that stands for every member of its group. */
-export type FusionAliases = ReadonlyMap<ID, ID>;
-
-const scopeDepth = (id: ID): number => id.split("::").length;
+export type AppliedFusions = {
+  /** The flat place that stands for each flat place merged away. */
+  aliases: ReadonlyMap<ID, ID>;
+  /**
+   * For each fused place that took its dynamics from a merged place, that
+   * merged place: the parameter values its equations read are that place's.
+   */
+  dynamicsDonors: ReadonlyMap<ID, ID>;
+};
 
 /**
  * Union-find over the groups' place ids. The representative of a set is its
@@ -45,8 +52,12 @@ const resolveSets = (groups: readonly FusionGroup[]): Map<ID, ID> => {
   const parent = new Map<ID, ID>();
   const find = (id: ID): ID => {
     let root = id;
-    while (parent.get(root) !== undefined && parent.get(root) !== root) {
-      root = parent.get(root)!;
+    for (
+      let next = parent.get(root);
+      next !== undefined && next !== root;
+      next = parent.get(root)
+    ) {
+      root = next;
     }
     return root;
   };
@@ -62,7 +73,6 @@ const resolveSets = (groups: readonly FusionGroup[]): Map<ID, ID> => {
         ? [rightRoot, leftRoot]
         : [leftRoot, rightRoot];
     parent.set(follower, leader);
-    parent.set(leader, leader);
   };
   for (const group of groups) {
     for (const id of group.placeIds) {
@@ -85,136 +95,157 @@ const resolveSets = (groups: readonly FusionGroup[]): Map<ID, ID> => {
   return aliases;
 };
 
-const mergeArcs = <Arc extends InputArc | OutputArc>(
-  arcs: Arc[],
-  aliases: FusionAliases,
-): Arc[] => {
-  const merged: Arc[] = [];
-  for (const arc of arcs) {
-    const placeId =
-      arc.placeId === undefined
-        ? undefined
-        : (aliases.get(arc.placeId) ?? arc.placeId);
-    const next = { ...arc, placeId } as Arc;
-    const twin = merged.find(
-      (candidate) =>
-        candidate.placeId === next.placeId &&
-        ("type" in candidate ? candidate.type : undefined) ===
-          ("type" in next ? next.type : undefined),
-    );
-    if (twin) {
-      // Two arcs of one kind between one place and one transition are one arc
-      // whose weight is their sum, as the net theory has it.
-      twin.weight += next.weight;
-    } else {
-      merged.push(next);
-    }
-  }
-  return merged;
-};
+const runningEquations = (place: Place): ID[] =>
+  place.dynamicsEnabled ? getPlaceDynamicsEquationIds(place) : [];
 
+/** Whether two places run the same equations: each instance of a component scopes the same ones under its own id. */
+const sameEquations = (left: ID[], right: ID[]): boolean =>
+  left.length === right.length &&
+  left.every(
+    (equationId, index) =>
+      sourceItemId(equationId) === sourceItemId(right[index] ?? ""),
+  );
+
+/**
+ * Gives `fused` what `member` declares and throws where the two disagree.
+ * Returns whether `fused` took on `member`'s dynamics.
+ */
 const reconcile = (
   net: FlatNet,
-  representative: Place,
+  fused: Place,
   member: Place,
-  group: FusionGroup,
-): void => {
-  const fused = representative;
+  label: string,
+): boolean => {
+  const target = fused;
+  const disagree = (on: string) =>
+    new Error(
+      `Fusion ${label} joins places \`${fused.name}\` and \`${member.name}\` ${on}.`,
+    );
   const typeOf = (place: Place) =>
     place.colorId
       ? net.types.find(({ id }) => id === place.colorId)
       : undefined;
-  if (!colorsStructurallyEqual(typeOf(representative), typeOf(member))) {
-    throw new Error(
-      `Fusion ${group.name ?? group.fusionId} joins places \`${representative.name}\` and \`${member.name}\` of different token types.`,
-    );
+  if (!colorsStructurallyEqual(typeOf(fused), typeOf(member))) {
+    throw disagree("of different token types");
   }
   if (member.capacity != null) {
-    if (
-      representative.capacity != null &&
-      representative.capacity !== member.capacity
-    ) {
-      throw new Error(
-        `Fusion ${group.name ?? group.fusionId} joins places \`${representative.name}\` and \`${member.name}\` of different capacities.`,
-      );
+    if (fused.capacity != null && fused.capacity !== member.capacity) {
+      throw disagree("of different capacities");
     }
-    fused.capacity = member.capacity;
-  }
-  const memberEquations = getPlaceDynamicsEquationIds(member);
-  if (member.dynamicsEnabled && memberEquations.length > 0) {
-    const representativeEquations = getPlaceDynamicsEquationIds(representative);
-    if (
-      representative.dynamicsEnabled &&
-      representativeEquations.length > 0 &&
-      (representativeEquations.length !== memberEquations.length ||
-        representativeEquations.some(
-          (equationId, index) => equationId !== memberEquations[index],
-        ))
-    ) {
-      throw new Error(
-        `Fusion ${group.name ?? group.fusionId} joins places \`${representative.name}\` and \`${member.name}\` that run different differential equations.`,
-      );
-    }
-    fused.dynamicsEnabled = true;
-    fused.dynamics = memberEquations.map((differentialEquationId) => ({
-      differentialEquationId,
-    }));
+    target.capacity = member.capacity;
   }
   if (member.showAsInitialState) {
-    fused.showAsInitialState = true;
+    target.showAsInitialState = true;
   }
-  if (representative.visualizerCode === undefined && member.visualizerCode) {
-    fused.visualizerCode = member.visualizerCode;
+  if (fused.visualizerCode === undefined && member.visualizerCode) {
+    target.visualizerCode = member.visualizerCode;
   }
+  const memberEquations = runningEquations(member);
+  if (memberEquations.length === 0) {
+    return false;
+  }
+  const fusedEquations = runningEquations(fused);
+  if (fusedEquations.length > 0) {
+    if (!sameEquations(fusedEquations, memberEquations)) {
+      throw disagree("that run different differential equations");
+    }
+    return false;
+  }
+  target.dynamicsEnabled = true;
+  target.dynamics = memberEquations.map((differentialEquationId) => ({
+    differentialEquationId,
+  }));
+  return true;
+};
+
+/**
+ * A transition's arcs, off the places merged away. Its code addresses its
+ * arcs by position, so two arcs of one kind that now reach the same fused
+ * place cannot be folded into one: that is an error.
+ */
+const redirectArcs = <Arc extends InputArc | OutputArc>(
+  transition: Transition,
+  arcs: Arc[],
+  aliases: ReadonlyMap<ID, ID>,
+): Arc[] => {
+  // For each kind of arc and place an arc already reaches: whether a merge
+  // sent it there.
+  const reached = new Map<string, boolean>();
+  return arcs.map((arc) => {
+    const fusedId =
+      arc.placeId === undefined ? undefined : aliases.get(arc.placeId);
+    const placeId = fusedId ?? arc.placeId;
+    const key = `${"type" in arc ? arc.type : "output"}:${placeId}`;
+    const merged = fusedId !== undefined;
+    const earlier = reached.get(key);
+    if (earlier !== undefined && (earlier || merged)) {
+      throw new Error(
+        `Transition \`${transition.name}\` reaches one fused place through two arcs of the same kind. Keep one of them.`,
+      );
+    }
+    reached.set(key, merged);
+    return { ...arc, placeId };
+  });
 };
 
 /**
  * Applies the fusion groups to a flat net in place: merged places leave
- * `net.places`, arcs move to the representative, and the representative takes
- * on what its members declare. Returns which flat ids now stand for which.
+ * `net.places`, arcs move to the fused place, and the fused place takes on
+ * what its members declare.
  */
 export const applyFusions = (
   net: FlatNet,
   groups: readonly FusionGroup[],
-): FusionAliases => {
+): AppliedFusions => {
   const aliases = resolveSets(groups);
+  const dynamicsDonors = new Map<ID, ID>();
   if (aliases.size === 0) {
-    return aliases;
+    return { aliases, dynamicsDonors };
   }
   const placeById = new Map(net.places.map((place) => [place.id, place]));
   for (const group of groups) {
     for (const id of group.placeIds) {
-      const representativeId = aliases.get(id);
-      if (representativeId === undefined) {
+      const fusedId = aliases.get(id);
+      if (fusedId === undefined) {
         continue;
       }
-      const representative = placeById.get(representativeId);
+      const fused = placeById.get(fusedId);
       const member = placeById.get(id);
-      if (!representative || !member) {
+      if (!fused || !member) {
         throw new Error(
-          `Fusion ${group.name ?? group.fusionId} names a place that is not in the flattened net.`,
+          `Fusion ${group.label} names a place that is not in the flattened net.`,
         );
       }
-      reconcile(net, representative, member, group);
+      if (reconcile(net, fused, member, group.label)) {
+        dynamicsDonors.set(fusedId, id);
+      }
     }
   }
-  // A port-only group has no anchor to name the fused place: the fusion's
-  // own name, when it has one, names the representative instead.
-  for (const group of groups) {
-    const [first] = group.placeIds;
-    if (group.name === undefined || first === undefined) {
-      continue;
-    }
-    const representative = placeById.get(aliases.get(first) ?? first);
-    if (representative && representative.id.includes("::")) {
-      representative.name = group.name;
+  // A fusion with no anchor names the fused place itself, when the fused
+  // place is one of its own members and not a place fused in from outside.
+  for (const { name, placeIds } of groups) {
+    const [first] = placeIds;
+    const fused =
+      first === undefined
+        ? undefined
+        : placeById.get(aliases.get(first) ?? first);
+    if (name !== undefined && fused && placeIds.includes(fused.id)) {
+      fused.name = name;
     }
   }
   const flat = net;
   flat.places = net.places.filter((place) => !aliases.has(place.id));
   for (const transition of net.transitions) {
-    transition.inputArcs = mergeArcs(transition.inputArcs, aliases);
-    transition.outputArcs = mergeArcs(transition.outputArcs, aliases);
+    transition.inputArcs = redirectArcs(
+      transition,
+      transition.inputArcs,
+      aliases,
+    );
+    transition.outputArcs = redirectArcs(
+      transition,
+      transition.outputArcs,
+      aliases,
+    );
   }
-  return aliases;
+  return { aliases, dynamicsDonors };
 };
