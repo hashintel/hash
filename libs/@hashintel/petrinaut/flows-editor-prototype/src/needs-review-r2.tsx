@@ -16,7 +16,7 @@
  *
  * MOCK: the three open requests and two answered ones on the Monthly supplier review's waiting run (`?at=200&pin`).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button, Icon, type IconName } from "@hashintel/ds-components";
@@ -41,7 +41,12 @@ import { RunGlyph } from "./run-glyph";
 import { approverName, oldStatusLine, StatusLine } from "./run-step-status";
 import { STATUS_MARK_SIZE, statusSlotStyle, useStatusSide } from "./status-side";
 import { RunIdText } from "./run-id";
-import { type Certificate, Page } from "./run-outputs";
+import {
+  type Certificate,
+  Page,
+  runOutputs,
+  useOutputViewer,
+} from "./run-outputs";
 import { tileColor } from "./status-colors";
 import {
   HueHeader,
@@ -570,9 +575,12 @@ const fileNameStyle = css({
 const ContextView = ({
   request,
   pageWidth,
+  onOpenFile,
 }: {
   request: R2Request;
   pageWidth: number;
+  /** Opens a file in the panel's file preview (the parity panel only). */
+  onOpenFile?: (files: Certificate[], index: number) => void;
 }) => {
   const { context } = request;
   if (context.kind === "entity") {
@@ -602,19 +610,48 @@ const ContextView = ({
         <div
           className={css({ display: "flex", gap: "4", gridColumn: "1 / -1" })}
         >
-          {context.files.map((file) => (
-            <div
-              key={file.fileName}
-              className={css({ minWidth: "[0]" })}
-              style={{ width: pageWidth }}
-              data-review-file={file.fileName}
-            >
-              <Page file={file} width={pageWidth} />
-              <span className={fileNameStyle}>{file.fileName}</span>
-              <span className={lineTwo}>PDF · {file.sizeKb} KB</span>
-              <span className={lineTwo}>Valid to {file.validUntil}</span>
-            </div>
-          ))}
+          {context.files.map((file, index) => {
+            const open = onOpenFile
+              ? () => onOpenFile(context.files, index)
+              : undefined;
+            const openStyle = open
+              ? css({
+                  cursor: "pointer",
+                  _hover: { color: "neutral.fg.body" },
+                })
+              : undefined;
+            return (
+              <div
+                key={file.fileName}
+                className={css({ minWidth: "[0]" })}
+                style={{ width: pageWidth }}
+                data-review-file={file.fileName}
+              >
+                <div
+                  role={open ? "button" : undefined}
+                  tabIndex={open ? 0 : undefined}
+                  className={openStyle}
+                  onClick={open}
+                  onKeyDown={
+                    open
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            open();
+                          }
+                        }
+                      : undefined
+                  }
+                  data-review-file-open={open ? file.fileName : undefined}
+                >
+                  <Page file={file} width={pageWidth} />
+                  <span className={fileNameStyle}>{file.fileName}</span>
+                </div>
+                <span className={lineTwo}>PDF · {file.sizeKb} KB</span>
+                <span className={lineTwo}>Valid to {file.validUntil}</span>
+              </div>
+            );
+          })}
         </div>
       </Section>
     );
@@ -827,6 +864,9 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
   const history = useRunView();
   const { answers } = useReview();
   const [contextOpen, setContextOpen] = useState(false);
+  const anchor = useRef<HTMLDivElement>(null);
+  const outputs = history?.run ? runOutputs(history.run, history.now) : null;
+  const { open: openViewer, node: viewerNode } = useOutputViewer(outputs, anchor);
   if (!history) {
     return null;
   }
@@ -890,9 +930,23 @@ const ParityReviewPanel = ({ request }: { request: R2Request }) => {
                 <InboxButton request={request} />
               </span>
             </div>
-            {request.context.kind === "entity" || (link && !contextOpen) ? null : (
-              <ContextView request={request} pageWidth={156} />
-            )}
+            <div ref={anchor}>
+              {request.context.kind === "entity" || (link && !contextOpen) ? null : (
+                <ContextView
+                  request={request}
+                  pageWidth={156}
+                  onOpenFile={(files, index) =>
+                    openViewer({
+                      kind: "files",
+                      files,
+                      index,
+                      from: splitPath(request).step,
+                    })
+                  }
+                />
+              )}
+            </div>
+            {viewerNode}
           </>
         }
       />
