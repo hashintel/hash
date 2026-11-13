@@ -214,6 +214,17 @@ describe("resolveCanvasFocus", () => {
       expect(focus.nodeFocus("p1")).toBe("none");
     });
 
+    it("keeps a selected fusion's links lit while another node is hovered", () => {
+      const focus = resolveCanvasFocus({
+        adjacency: fusedAdjacency,
+        hoveredId: "p1",
+        selectedIds: new Set(["belt"]),
+      });
+
+      expect(linkIds.map(focus.arcFocus)).toEqual(["focused", "focused"]);
+      expect(focus.nodeFocus("p1")).toBe("focused");
+    });
+
     it("joins a focused member to the place it is fused with, both ways", () => {
       const focus = resolveCanvasFocus({
         adjacency: fusedAdjacency,
