@@ -1,5 +1,52 @@
 # @hashintel/petrinaut
 
+## 0.0.24
+
+### Patch Changes
+
+- Stochastic mode runs on the adaptive simulator. ([@kube](https://github.com/kube))
+
+- Add a compact, draggable browser FPS counter with a short history, command-palette access, and a keyboard shortcut. ([@kube](https://github.com/kube), [#10196](https://github.com/hashintel/hash/pull/10196))
+
+  Bind declared plugin command shortcuts automatically while each command is available.
+
+- Create Experiment picks the simulator that computes the runs, and an experiment names the one that ran. ([@kube](https://github.com/kube), [#10436](https://github.com/hashintel/hash/pull/10436))
+
+- `PetrinautOptimizationContext` accepts only a connected in-browser optimizer. ([@kube](https://github.com/kube), [#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Arcs always attach to node outlines, and the Automatic arc connections and Arc rendering settings are removed. ([@kube](https://github.com/kube), [#10407](https://github.com/hashintel/hash/pull/10407))
+
+- The canvas glides to keep the selection clear of panels and brings a selected item into view. ([@kube](https://github.com/kube), [#10418](https://github.com/hashintel/hash/pull/10418))
+
+- Lets users choose the AI assistant when several plugins provide one. ([@kube](https://github.com/kube), [#10214](https://github.com/hashintel/hash/pull/10214))
+
+- The place panel lists a place's composed equations in a reorderable table, the type panel its dimensions, and an equation's properties set how many tokens it couples. ([@kube](https://github.com/kube), [#10409](https://github.com/hashintel/hash/pull/10409))
+
+- Adds the SIR Mass-Action Model to the examples menu, and the editor strikes through deprecated `.length` reads. ([@kube](https://github.com/kube), [#10396](https://github.com/hashintel/hash/pull/10396))
+
+- Removes the `aiAssistant` prop and the built-in AI chat with its `PetrinautAi*` exports: the AI assistant comes from a plugin. ([@kube](https://github.com/kube), [#10267](https://github.com/hashintel/hash/pull/10267))
+
+- Clarify visualizer errors for unsupported CSS functions and external resource references, including values computed during simulation. ([@kube](https://github.com/kube), [#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Move and resize Canvas visualizers, follow places or fix windows on screen, and edit their code during simulation. ([@kube](https://github.com/kube), [#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Quick Simulation plays a run by time instead of by frame, and a host that supplies its own simulation worker now passes the event simulation worker. ([@kube](https://github.com/kube), [#10437](https://github.com/hashintel/hash/pull/10437))
+
+- The mode and simulator of a simulation sit in one picker that opens over Simulation Settings, and a reset returns to Simulation Settings. ([@kube](https://github.com/kube), [#10438](https://github.com/hashintel/hash/pull/10438))
+
+- Simulation Settings picks the simulator a Quick Simulation runs on and edits its parameters. ([@kube](https://github.com/kube), [#10433](https://github.com/hashintel/hash/pull/10433))
+
+- Adds a Stochastic mode that computes many runs and shows each place's token count across them on the canvas and the timeline. ([@kube](https://github.com/kube), [#10434](https://github.com/hashintel/hash/pull/10434))
+
+- The time-based timeline draws token counts and metrics stacked, and the Preview plays a run by time. ([@kube](https://github.com/kube), [#10432](https://github.com/hashintel/hash/pull/10432))
+
+- Add responsive SVG coordinates, full-window backgrounds, and independent scene pan and zoom. ([@kube](https://github.com/kube), [#10364](https://github.com/hashintel/hash/pull/10364))
+- Updated dependencies:
+  - @hashintel/petrinaut-core@0.0.7
+  - @hashintel/ds-components@0.6.0
+  - @hashintel/ds-helpers@0.3.0
+  - @hashintel/ds-icons@0.1.0
+
 ## 0.0.23
 
 ### Patch Changes

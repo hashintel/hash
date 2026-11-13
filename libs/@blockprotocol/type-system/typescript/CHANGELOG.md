@@ -1,5 +1,11 @@
 # @blockprotocol/type-system
 
+## 0.2.4
+
+### Patch Changes
+
+- Array data types with an `items` schema accept `minItems` and `maxItems`. Values with fewer or more items than allowed fail validation, and a data type that inherits array constraints from several parents keeps the strictest bounds, failing to resolve when `minItems` exceeds `maxItems` or when the bounds exclude the length of an inherited tuple. ([@TimDiekmann](https://github.com/TimDiekmann), [#10384](https://github.com/hashintel/hash/pull/10384))
+
 ## 0.2.3
 
 ### Patch Changes

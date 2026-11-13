@@ -1,5 +1,31 @@
 # @hashintel/petrinaut-core
 
+## 0.0.7
+
+### Patch Changes
+
+- The adaptive simulator computes the runs of an experiment. ([@kube](https://github.com/kube))
+
+- Places compose several differential equations, each declaring how many tokens it couples. ([@kube](https://github.com/kube), [#10409](https://github.com/hashintel/hash/pull/10409))
+
+- Transition code can read an input place's token count as `input.Place.count`, and a mass-action SIR example is included. ([@kube](https://github.com/kube), [#10396](https://github.com/hashintel/hash/pull/10396))
+
+- Removes `createPetrinautAiWritableCallbacks`, `normalizePetrinautAiToolInput` and `petrinautAiCapabilityGuidance`, which only the built-in AI chat used. ([@kube](https://github.com/kube), [#10267](https://github.com/hashintel/hash/pull/10267))
+
+- The assistant's summary of the settings page no longer lists the removed arc rendering setting. ([@kube](https://github.com/kube), [#10407](https://github.com/hashintel/hash/pull/10407))
+
+- Reject external image destinations in visualizer styles and attributes, including escaped CSS URLs and destinations computed from runtime tokens and parameters. Preserve supported non-network styling and local SVG references. ([@kube](https://github.com/kube), [#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Removes the server-backed optimization capability type, the CLI's protocol schemas, and the Monte Carlo experiment APIs only the CLI used: per-run seeds, per-run results, `runExperimentToCompletion` and `ExperimentRequest.runs`. ([@kube](https://github.com/kube), [#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Adds simulators: a manifest with parameters, and the single runs and experiments it starts, with fixed-step, adaptive and WebGPU ones built in. ([@kube](https://github.com/kube), [#10431](https://github.com/hashintel/hash/pull/10431))
+
+- Use SVG background colors in example visualizers so their backgrounds fill resizable windows without stretching the drawings. ([@kube](https://github.com/kube), [#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Adds a reader of each place's token count across the runs of an experiment. ([@kube](https://github.com/kube), [#10434](https://github.com/hashintel/hash/pull/10434))
+
+- Author visualizers with function bodies and Visualizer.Svg; keep legacy code working with migration hints. ([@kube](https://github.com/kube), [#10364](https://github.com/hashintel/hash/pull/10364))
+
 ## 0.0.6
 
 ### Patch Changes

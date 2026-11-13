@@ -1,5 +1,23 @@
 # @hashintel/ds-components
 
+## 0.6.0
+
+### Minor Changes
+
+- Stop shipping invalid styles in `panda.buildinfo.json`: those extracted from story and test files, and from component props named like CSS properties (`position`, `overflow`, `width`, `direction`). The `@hashintel/ds-helpers/jsx` components now take styles through the `css` prop and their pattern props only (`<VStack gap="2" css={{ alignItems: "center" }}>`), not as individual style props. ([@lunelson](https://github.com/lunelson), [#10452](https://github.com/hashintel/hash/pull/10452))
+
+- **Breaking:** `Combobox` no longer accepts the `maxLength`, `minLength`, `pattern`, or `spellcheck` input props. ([@alex-e-leon](https://github.com/alex-e-leon), [#10455](https://github.com/hashintel/hash/pull/10455))
+
+### Patch Changes
+
+- Add `TagsInput`, a text input that turns typed entries into removable tags. ([@alex-e-leon](https://github.com/alex-e-leon), [#10455](https://github.com/hashintel/hash/pull/10455))
+
+- Add ReorderableList component ([@alex-e-leon](https://github.com/alex-e-leon), [#10391](https://github.com/hashintel/hash/pull/10391))
+
+- `SortMenu` sorters accept a `defaultDirection`, the direction applied when the sorter is picked while another is active, so a date can start newest-first instead of ascending. ([@kostandinang](https://github.com/kostandinang), [#10415](https://github.com/hashintel/hash/pull/10415))
+- Updated dependencies:
+  - @hashintel/ds-helpers@0.3.0
+
 ## 0.5.1
 
 ### Patch Changes
