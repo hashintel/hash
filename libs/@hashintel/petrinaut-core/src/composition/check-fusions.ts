@@ -23,9 +23,10 @@ import {
 } from "./fusions";
 import {
   describePortDirection,
-  effectivePortDirection,
+  endpointUsage,
   portUsage,
   portUsageMatchesDirection,
+  type PortUsage,
 } from "./ports";
 
 import type {
@@ -34,7 +35,6 @@ import type {
   Fusion,
   ID,
   Place,
-  PortDirection,
   SDCPN,
   Subnet,
   Transition,
@@ -96,59 +96,34 @@ export const colorsStructurallyEqual = (
 
 type CheckedNet = FusionNet & Pick<SDCPN, "types" | "transitions">;
 
-type TokenFlow = {
-  /** Whether tokens can enter the fused place this way. */
-  produced: boolean;
-  /** Whether tokens can leave the fused place this way. */
-  consumed: boolean;
-};
+/** Whether tokens can enter and leave the fused place by way of one member. */
+type TokenFlow = { produced: boolean; consumed: boolean };
 
-const bothWays: TokenFlow = { produced: true, consumed: true };
-
-/**
- * How `transitions` move tokens through the place `endpoint` names, and
- * whether any of their arcs touches it at all. A read or an inhibitor arc
- * looks at the place and takes nothing from it.
- */
-const flowThrough = (
-  transitions: readonly Transition[],
-  endpoint: ArcEndpoint,
-): TokenFlow & { touched: boolean } => {
-  const inputs = transitions.flatMap(({ inputArcs }) =>
-    inputArcs.filter((arc) => arcMatchesEndpoint(arc, endpoint)),
-  );
-  const produced = transitions.some(({ outputArcs }) =>
-    outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
-  );
-  return {
-    consumed: inputs.some(({ type }) => type === "standard"),
-    produced,
-    touched: produced || inputs.length > 0,
-  };
-};
+/** What `usage` moves: a read or an inhibitor arc takes nothing. */
+const flowOf = ({ produced, drained }: PortUsage): TokenFlow => ({
+  produced,
+  consumed: drained,
+});
 
 /**
- * How a component touches one of its ports: the direction it declares, else
- * the one its arcs give it. A port no transition touches passes tokens
- * through for the net outside to use, so it counts as both.
+ * What a net does with one of its own ports: what the port declares, else
+ * what the net's arcs move through it. A port no transition touches passes
+ * tokens through, so it counts as both.
  */
-const portFlow = (
-  subnet: Pick<Subnet, "transitions">,
-  place: Pick<Place, "id" | "portDirection">,
+const ownPortFlow = (
+  net: Pick<Subnet, "transitions">,
+  port: Pick<Place, "id" | "portDirection">,
 ): TokenFlow => {
-  // A declared direction is the component's promise. Without one the arcs
-  // say what moves, and a read or an inhibitor arc takes nothing.
-  if (place.portDirection !== undefined) {
+  if (port.portDirection !== undefined) {
     return {
-      produced: place.portDirection !== "in",
-      consumed: place.portDirection !== "out",
+      produced: port.portDirection !== "in",
+      consumed: port.portDirection !== "out",
     };
   }
-  const { touched, ...flow } = flowThrough(
-    subnet.transitions,
-    placeArcEndpoint(place.id),
-  );
-  return touched ? flow : bothWays;
+  const usage = portUsage(net, port.id);
+  return usage.produced || usage.consumed
+    ? flowOf(usage)
+    : { produced: true, consumed: true };
 };
 
 type MemberFacts = TokenFlow & {
@@ -171,16 +146,22 @@ const factsFor = (
   const { place } = resolved;
   const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
   const equationIds = getPlaceDynamicsEquationIds(place);
-  const outside = flowThrough(net.transitions, member);
+  const outside = flowOf(endpointUsage(net.transitions, member));
   // What is on the far side of the member from this net's transitions: the
-  // component's own, for an instance port; for an anchor that is itself a
-  // port of this net, whatever the net above does with it.
-  const inside =
-    resolved.kind === "port"
-      ? portFlow(resolved.subnet, place)
-      : place.isPort
-        ? bothWays
-        : { produced: false, consumed: false };
+  // component's own, for an instance port. For an anchor that is itself a
+  // port of this net it is the net above, which does with the port the
+  // opposite of what this net does.
+  const usage = (): TokenFlow => {
+    if (resolved.kind === "port") {
+      return ownPortFlow(resolved.subnet, place);
+    }
+    if (!place.isPort) {
+      return { produced: false, consumed: false };
+    }
+    const own = ownPortFlow(net, place);
+    return { produced: own.consumed, consumed: own.produced };
+  };
+  const inside = usage();
   return {
     label,
     color: place.colorId

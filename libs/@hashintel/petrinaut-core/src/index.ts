@@ -99,10 +99,8 @@ export {
   describePortDirection,
   effectivePortDirection,
   inferPortDirection,
-  portUsage,
-  portUsageMatchesDirection,
+  portDirections,
 } from "./composition/ports";
-export type { PortUsage } from "./composition/ports";
 
 // --- Command registry (palette commands) ---
 export {

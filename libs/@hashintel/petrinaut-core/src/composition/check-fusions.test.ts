@@ -441,6 +441,35 @@ describe("token flow through fused ports", () => {
     expect(checkFusions(sdcpn)).toEqual([]);
   });
 
+  it("reads the far side of an anchor port off the direction the port declares", () => {
+    const lineWith = (portDirection: "in" | "out") =>
+      net({
+        subnets: [
+          stage,
+          subnet("line", {
+            places: [place("feed", { isPort: true, portDirection })],
+            componentInstances: [instance("s1", "stage")],
+            fusions: [
+              {
+                id: "f1",
+                members: [
+                  { kind: "place", placeId: "feed" },
+                  portOf("s1", "in"),
+                ],
+              },
+            ],
+          }),
+        ],
+      });
+
+    // An input port of the line is filled by the net above it.
+    expect(checkFusions(lineWith("in"))).toEqual([]);
+    // An output port is emptied from above, and the stage only consumes too.
+    expect(checkFusions(lineWith("out"))).toMatchObject([
+      { subnetId: "line", code: "no-producer" },
+    ]);
+  });
+
   it("reports a transition that reaches the fused place through two arcs of one kind", () => {
     const sdcpn = net({
       places: [place("feed")],
