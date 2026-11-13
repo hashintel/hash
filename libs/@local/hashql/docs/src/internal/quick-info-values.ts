@@ -122,6 +122,20 @@ export const value = Effect.fnUntraced(function* ({
   return [line(head.parts, text)];
 });
 
+/** The type an editor shows at `name` where the compiler resolves the name to no symbol, or none where an editor shows nothing. */
+export const typeAt = Effect.fnUntraced(function* (name: Identifier) {
+  const node = Location.typedAt(name);
+  if (Option.isNone(node)) {
+    return Option.none<Line>();
+  }
+
+  const checker = yield* Checker.Checker;
+  const type = yield* checker.getTypeAtLocation(node.value);
+  const text = yield* Text.type(type, name);
+
+  return Option.some(line(text));
+});
+
 /** The characters the compiler escapes with a letter in a string between double quotes. */
 const escapes = HashMap.make(
   ["\t", String.raw`\t`],

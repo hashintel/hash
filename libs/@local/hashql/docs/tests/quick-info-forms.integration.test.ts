@@ -72,10 +72,13 @@ const nested = `
 export declare const leaf: number;
 `;
 
-/** Each name in `code`, read as a module beside the declarations, with what an editor shows on hover over it. */
-const inspect = Effect.fnUntraced(function* (code: string) {
+/** Each name in `code`, read as a module beside the declarations, with what an editor shows on hover over it. The module is TypeScript, or TSX where `extension` says so. */
+const inspect = Effect.fnUntraced(function* (
+  code: string,
+  { extension = "ts" }: { readonly extension?: "ts" | "tsx" } = {},
+) {
   const { file } = yield* Compiler.Fixture;
-  const example = `${file}.example.ts`;
+  const example = `${file}.example.${extension}`;
   const compiler = yield* TypeScript.Program.extend(
     HashMap.make([example, code]),
   );
@@ -92,11 +95,10 @@ const inspect = Effect.fnUntraced(function* (code: string) {
         Identifier,
         Option.Option<CompilerSymbol>,
       ]) {
-        if (Option.isNone(symbol)) {
-          return Option.none();
-        }
-
-        const info = yield* QuickInfo.of(name, symbol.value);
+        const info = yield* Option.match(symbol, {
+          onNone: () => QuickInfo.typeAt(name),
+          onSome: (found) => QuickInfo.of(name, found),
+        });
         const text = yield* Effect.transposeOption(
           Option.map(info, QuickInfo.display),
         );
@@ -350,6 +352,71 @@ interface Boxed<T extends Space.Inner.Kind = Space.Inner.Kind> { value: T; }`);
     );
   });
 
+  describe("names without a symbol", () => {
+    it.effect(
+      "tuple_labels",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`type Labelled = [first: string, second?: number, ...rest: boolean[]];
+type Pair<T> = [left: T, right: readonly [inner: T]];`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["first", "string"],
+            ["second", "number | undefined"],
+            ["rest", "any"],
+            ["left", "T"],
+            ["right", "readonly [inner: T]"],
+            ["inner", "T"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "untyped_members",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`declare const anything: any;
+anything.member;
+const { key: bound } = anything;`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["member", "any"],
+            ["key", "any"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "statement_labels",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`outer: for (;;) { break outer; }`);
+        expect(names).toStrictEqual([]);
+      }),
+    );
+
+    it.effect(
+      "jsx_tags",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(
+          `const plain = <div></div>;
+const spaced = <svg:rect />;`,
+          { extension: "tsx" },
+        );
+        expect(names).toStrictEqual([
+          ["plain", "const plain: any"],
+          ["div", "any"],
+          ["div", "any"],
+          ["spaced", "const spaced: any"],
+        ]);
+      }),
+    );
+  });
+
   describe("meanings", () => {
     it.effect(
       "merged_by_position",
@@ -441,7 +508,7 @@ Nested.leaf;`);
         const names = yield* inspect(`unknownName;
 import { missing } from "missing-package";
 missing;`);
-        expect(names).toStrictEqual([]);
+        expect(names).toStrictEqual([["unknownName", "any"]]);
       }),
     );
 
