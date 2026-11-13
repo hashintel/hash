@@ -93,6 +93,60 @@ const run = (
   throw new Error("the run did not end within 500 advances");
 };
 
+/** What the visualizer of a place draws for its tokens. */
+const drawPlace = (
+  sdcpn: SDCPN,
+  placeName: string,
+  tokens: Record<string, number>[],
+  parameters: Record<string, number> = {},
+): ViewValue => {
+  const place = sdcpn.places.find(({ name }) => name === placeName)!;
+  const lowered = lowerVisualizerToHir(
+    place.visualizerCode!,
+    buildVisualizerContext(sdcpn, place),
+  );
+  if (!lowered.ok) {
+    throw new Error(lowered.diagnostics.map((item) => item.message).join());
+  }
+  return interpretViewHir(lowered.view, {
+    tokens,
+    width: 360,
+    height: 240,
+    parameters,
+  });
+};
+
+/** Every element of a drawing, the root first. */
+const elementsOf = (value: ViewValue): ViewElementValue[] =>
+  Array.isArray(value)
+    ? (value as readonly ViewValue[]).flatMap(elementsOf)
+    : value instanceof ViewElementValue
+      ? [value, ...value.children.flatMap(elementsOf)]
+      : [];
+
+/** An attribute of an element as it is written, or nothing when it has none. */
+const attributeOf = (element: ViewElementValue, name: string): string => {
+  const value = element.attributes.get(name);
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : "";
+};
+
+/** The words of a drawing, one string per text element. */
+const wordsOf = (value: ViewValue): string[] => {
+  const read = (child: ViewValue): string =>
+    Array.isArray(child)
+      ? (child as readonly ViewValue[]).map(read).join("")
+      : child instanceof ViewElementValue
+        ? child.children.map(read).join("")
+        : typeof child === "string" || typeof child === "number"
+          ? String(child)
+          : "";
+  return elementsOf(value)
+    .filter((element) => element.tag === "text")
+    .map(read);
+};
+
 describe("Bicycle Assembly", () => {
   const { petriNetDefinition } = bicycleAssembly;
 
@@ -209,57 +263,154 @@ describe("Wheel Truing", () => {
   });
 });
 
+describe("Bicycle Assembly visualizers", () => {
+  const { petriNetDefinition } = bicycleAssembly;
+
+  /** What a place with no type draws for a count of tokens. */
+  const draw = (placeName: string, count: number): ViewValue =>
+    drawPlace(
+      petriNetDefinition,
+      placeName,
+      Array.from({ length: count }, () => ({})),
+    );
+
+  /** The spot and the scale of every part of a drawing, in drawing order. */
+  const partsOf = (value: ViewValue) =>
+    elementsOf(value).flatMap((element) => {
+      // A part is a group, put in its cell and scaled to it.
+      const placed =
+        element.tag === "g"
+          ? /^translate\((\S+) (\S+)\) scale\((\S+)\)$/u.exec(
+              attributeOf(element, "transform"),
+            )
+          : null;
+      return placed
+        ? [
+            {
+              x: Number(placed[1]),
+              y: Number(placed[2]),
+              scale: Number(placed[3]),
+            },
+          ]
+        : [];
+    });
+
+  /** The places whose parts are drawn in a box of 100 by 66, not around the origin. */
+  const wide = new Set([
+    "Frames",
+    "FreeStands",
+    "OnStand",
+    "Rolling",
+    "Bicycles",
+  ]);
+
+  it("gives every place a visualizer, though none has a type", () => {
+    expect(
+      petriNetDefinition.places.map((place) => [
+        place.colorId,
+        place.visualizerCode !== undefined,
+      ]),
+    ).toEqual(petriNetDefinition.places.map(() => [null, true]));
+  });
+
+  it("draws one part per token, and says how many", () => {
+    expect(partsOf(draw("Rims", 10))).toHaveLength(10);
+    expect(wordsOf(draw("Rims", 10))).toContain("10 in stock");
+    expect(partsOf(draw("Bicycles", 4))).toHaveLength(4);
+    expect(wordsOf(draw("Bicycles", 4))).toContain("4 built");
+    expect(wordsOf(draw("FreeStands", 2))).toContain("2 free");
+    expect(wordsOf(draw("OnStand", 1))).toContain("1 waiting for two wheels");
+    expect(wordsOf(draw("Rolling", 2))).toContain("2 waiting for a saddle");
+  });
+
+  it("says on Wheels that one wheel is not enough for a frame", () => {
+    expect(wordsOf(draw("Wheels", 1))).toContain("1 ready · a frame takes 2");
+    expect(wordsOf(draw("Wheels", 2))).toContain("2 ready for a frame");
+  });
+
+  it("says which part ran out, in place of the parts", () => {
+    const tyres = draw("Tyres", 0);
+
+    expect(partsOf(tyres)).toHaveLength(0);
+    expect(wordsOf(tyres)).toEqual(["Tyres", "none left", "Out of tyres"]);
+    expect(wordsOf(draw("Saddles", 0))).toContain("Out of saddles");
+    expect(wordsOf(draw("FreeStands", 0))).toContain("Every stand is taken");
+    expect(wordsOf(draw("Bicycles", 0))).toContain("No bicycle is built yet");
+    expect(wordsOf(draw("Tyres", 1))).not.toContain("Out of tyres");
+  });
+
+  it("draws the first parts of a crowd, and says so", () => {
+    expect(partsOf(draw("Tyres", 40))).toHaveLength(32);
+    expect(wordsOf(draw("Tyres", 40))).toContain(
+      "40 in stock · the first 32 drawn",
+    );
+    expect(partsOf(draw("Bicycles", 25))).toHaveLength(20);
+    expect(wordsOf(draw("Bicycles", 25))).toContain(
+      "25 built · the first 20 drawn",
+    );
+  });
+
+  it("keeps every part under the header and inside the window, whatever the count", () => {
+    for (const place of petriNetDefinition.places) {
+      for (let count = 1; count <= 40; count++) {
+        for (const { x, y, scale } of partsOf(draw(place.name, count))) {
+          // A wide part hangs from its corner, a small one sits on its middle.
+          const [left, top, width, height] = wide.has(place.name)
+            ? [x, y, 100 * scale, 66 * scale]
+            : [x - 20 * scale, y - 20 * scale, 40 * scale, 40 * scale];
+          const at = `${place.name} at ${count}`;
+          expect(left, at).toBeGreaterThanOrEqual(8);
+          expect(left + width, at).toBeLessThanOrEqual(352);
+          expect(top, at).toBeGreaterThanOrEqual(44);
+          expect(top + height, at).toBeLessThanOrEqual(236);
+        }
+      }
+    }
+  });
+
+  it("fits a bicycle with the wheels, the frame and the saddle its parts are drawn with", () => {
+    /** The shapes of one part, as the paths and circles it is drawn with. */
+    const shapesOf = (placeName: string): string[] =>
+      elementsOf(draw(placeName, 1))
+        .filter((element) => ["path", "circle"].includes(element.tag))
+        .map((element) =>
+          element.tag === "path"
+            ? attributeOf(element, "d")
+            : `circle ${attributeOf(element, "r")}`,
+        );
+    const bicycle = shapesOf("Bicycles");
+
+    // Rolling is a bicycle with no saddle, on a stand.
+    const rolling = shapesOf("Rolling");
+    expect(bicycle.filter((shape) => !rolling.includes(shape))).toHaveLength(1);
+    expect(shapesOf("Saddles")).toContain(
+      bicycle.find((shape) => !rolling.includes(shape)),
+    );
+    // On a stand it has no wheels either: what is left is the frame.
+    expect(
+      shapesOf("OnStand").filter(
+        (shape) => !shapesOf("FreeStands").includes(shape),
+      ),
+    ).toEqual(shapesOf("Frames"));
+    // A wheel is a tyre on a rim.
+    expect(shapesOf("Wheels")).toEqual([
+      ...shapesOf("Tyres"),
+      ...shapesOf("Rims"),
+    ]);
+  });
+});
+
 describe("Wheel Truing visualizers", () => {
   const { petriNetDefinition } = wheelTruing;
   type Wheel = { runout: number; passes: number };
 
-  /** What the visualizer of a place draws for its tokens. */
-  const draw = (placeName: string, tokens: Wheel[]): ViewValue => {
-    const place = petriNetDefinition.places.find(
-      ({ name }) => name === placeName,
-    )!;
-    const lowered = lowerVisualizerToHir(
-      place.visualizerCode!,
-      buildVisualizerContext(petriNetDefinition, place),
-    );
-    if (!lowered.ok) {
-      throw new Error(lowered.diagnostics.map((item) => item.message).join());
-    }
-    return interpretViewHir(lowered.view, {
-      tokens,
-      width: 360,
-      height: 240,
-      parameters: {
-        tolerance: 0.5,
-        max_passes: 4,
-        correction: 0.45,
-        spread: 0.25,
-      },
+  const draw = (placeName: string, tokens: Wheel[]): ViewValue =>
+    drawPlace(petriNetDefinition, placeName, tokens, {
+      tolerance: 0.5,
+      max_passes: 4,
+      correction: 0.45,
+      spread: 0.25,
     });
-  };
-
-  /** Every element of a drawing, the root first. */
-  const elementsOf = (value: ViewValue): ViewElementValue[] =>
-    Array.isArray(value)
-      ? (value as readonly ViewValue[]).flatMap(elementsOf)
-      : value instanceof ViewElementValue
-        ? [value, ...value.children.flatMap(elementsOf)]
-        : [];
-
-  /** The words of a drawing, one string per text element. */
-  const wordsOf = (value: ViewValue): string[] => {
-    const read = (child: ViewValue): string =>
-      Array.isArray(child)
-        ? (child as readonly ViewValue[]).map(read).join("")
-        : child instanceof ViewElementValue
-          ? child.children.map(read).join("")
-          : typeof child === "string" || typeof child === "number"
-            ? String(child)
-            : "";
-    return elementsOf(value)
-      .filter((element) => element.tag === "text")
-      .map(read);
-  };
 
   it("gives every place a visualizer", () => {
     expect(

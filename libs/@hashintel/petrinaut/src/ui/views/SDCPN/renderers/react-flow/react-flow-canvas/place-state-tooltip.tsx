@@ -136,7 +136,6 @@ export const PlaceStateTooltip = ({ nodeId }: { nodeId: string }) => {
 
   const showTrigger =
     !keptOpen &&
-    !!placeType?.elements.length &&
     !!place.visualizerCode &&
     (hoveredItem?.id === nodeId || node.selected) &&
     !node.dragging;
