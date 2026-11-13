@@ -3,12 +3,15 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::{future::poll_fn, task::Poll, time::Duration};
+use core::{fmt::Write as _, future::poll_fn, task::Poll, time::Duration};
 
 use duckdb::types::Value;
-use hash_integrations_definition::{Definition, EntityPipeline, PrimaryKey};
+use hash_integrations_definition::{
+    Accessor, CheckpointName, ColumnName, Definition, EntityPipeline, PrimaryKey, Properties,
+    SourceKind,
+};
 use hash_integrations_engine::{
-    AssertionFailure, PreparationError, TableAssertions, Workspace, WorkspaceConfig,
+    AssertionFailure, PreparationError, PreparedSink, TableAssertions, Workspace, WorkspaceConfig,
 };
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
@@ -498,12 +501,15 @@ async fn link_named_inputs() {
     );
 }
 
-#[tokio::test]
-async fn definition_aviation_tables() {
-    let directory = TempDir::new().expect("the directory should be created");
-    let workspace = open(&directory).await;
-    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
-        .expect("the aviation definition should parse");
+/// The tables prepared from a definition's entity pipelines.
+struct PreparedEntities {
+    sinks: Vec<PreparedSink>,
+    /// The checkpoint tables by name, which the link pipelines read.
+    checkpoints: BTreeMap<CheckpointName, Box<str>>,
+}
+
+/// Stages the SQL sources of `definition` and prepares its entity pipelines in order.
+async fn prepare_entities(workspace: &Workspace, definition: &Definition) -> PreparedEntities {
     let mut checkpoints = BTreeMap::new();
     let mut sinks = Vec::new();
     for pipeline in definition.entity_pipelines() {
@@ -512,7 +518,7 @@ async fn definition_aviation_tables() {
             .get(&pipeline.source)
             .expect("the pipeline source should exist");
         let table = match &source.kind {
-            hash_integrations_definition::SourceKind::Sql { query, primary_key } => {
+            SourceKind::Sql { query, primary_key } => {
                 let table = format!("source/{}", pipeline.source).into_boxed_str();
                 workspace
                     .stage_table(
@@ -525,77 +531,127 @@ async fn definition_aviation_tables() {
                     .expect("the SQL source should be staged");
                 table
             }
-            hash_integrations_definition::SourceKind::Checkpoint { checkpoint } => checkpoints
+            SourceKind::Checkpoint { checkpoint } => checkpoints
                 .get(checkpoint)
                 .cloned()
                 .expect("the checkpoint source should exist"),
-            hash_integrations_definition::SourceKind::Local { .. }
-            | hash_integrations_definition::SourceKind::Postgres { .. }
-            | hash_integrations_definition::SourceKind::Rest { .. } => {
-                panic!("the aviation fixture should use SQL and checkpoint sources")
+            SourceKind::Local { .. } | SourceKind::Postgres { .. } | SourceKind::Rest { .. } => {
+                panic!("the example should use SQL and checkpoint sources")
             }
         };
         let prepared = workspace
             .prepare_pipeline(pipeline.clone(), table, checkpoints.clone())
             .await
-            .expect("the aviation pipeline should be prepared");
+            .expect("the pipeline should be prepared");
         checkpoints.extend(prepared.checkpoints);
         sinks.extend(prepared.sinks);
     }
-    assert_eq!(
-        sinks.len(),
-        2,
-        "airfields and aircraft should each produce an entity sink"
-    );
-    for sink in &sinks {
-        let rows = workspace
-            .query(
-                format!(
-                    "SELECT count(*), count(_content_hash) FROM \"{}\"",
-                    sink.table
-                )
-                .into_boxed_str(),
-            )
-            .await
-            .expect("the prepared sink should be readable");
-        assert_eq!(
-            rows.iter().next(),
-            Some([Value::BigInt(2), Value::BigInt(2)].as_slice()),
-            "each sink should contain two rows with content hashes"
-        );
-    }
-    let link = definition
-        .link_pipelines()
-        .first()
-        .expect("the aviation link should exist");
-    let prepared = workspace
-        .prepare_link_pipeline(link.clone(), checkpoints)
-        .await
-        .expect("the aviation links should be prepared");
+    PreparedEntities { sinks, checkpoints }
+}
+
+/// Returns the columns that `properties` read, in property order.
+fn property_columns(properties: &Properties) -> impl Iterator<Item = &ColumnName> {
+    properties
+        .iter()
+        .flat_map(|(_, accessor)| match accessor {
+            Accessor::Column(column) | Accessor::Coerce { column, .. } => [Some(column), None],
+            Accessor::Measure { amount, unit, .. } => [Some(amount), Some(unit)],
+        })
+        .flatten()
+}
+
+/// Appends `title`, then `columns` of every row of `table` as text, in sorted order.
+async fn render_table(
+    rendered: &mut String,
+    workspace: &Workspace,
+    title: &str,
+    table: &str,
+    columns: &[&ColumnName],
+) {
+    let selected: Vec<_> = columns
+        .iter()
+        .map(|column| format!("\"{column}\"::VARCHAR"))
+        .collect();
     let rows = workspace
         .query(
             format!(
-                "SELECT TAIL, HOME_BASE FROM \"{}\" ORDER BY TAIL",
-                prepared.table
+                "SELECT {} FROM \"{table}\" ORDER BY ALL",
+                selected.join(", ")
             )
             .into_boxed_str(),
         )
         .await
-        .expect("the link endpoints should be readable");
-    assert_eq!(
-        rows.iter().collect::<Vec<_>>(),
-        [
-            [
-                Value::Text("N100".to_owned()),
-                Value::Text("ESSA".to_owned())
-            ],
-            [
-                Value::Text("SE-XXX".to_owned()),
-                Value::Text("ESSA".to_owned())
-            ],
-        ],
-        "both aircraft should link to their home airfield"
-    );
+        .expect("the table should be readable");
+    let header: Vec<_> = columns.iter().map(ToString::to_string).collect();
+    writeln!(rendered, "{title}\n{}", header.join(" | "))
+        .expect("writing to a string should succeed");
+    for row in rows.iter() {
+        let cells: Vec<_> = row
+            .iter()
+            .map(|cell| {
+                if let Value::Text(text) = cell {
+                    text.as_str()
+                } else {
+                    "NULL"
+                }
+            })
+            .collect();
+        writeln!(rendered, "{}", cells.join(" | ")).expect("writing to a string should succeed");
+    }
+    rendered.push('\n');
+}
+
+/// Prepares the entity and link pipelines of `definition` and renders each sink and link table
+/// with the columns it writes.
+async fn render_prepared(definition: &Definition) -> String {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    let PreparedEntities { sinks, checkpoints } = prepare_entities(&workspace, definition).await;
+    let mut rendered = String::new();
+    for sink in &sinks {
+        let mut columns = vec![&sink.sink.entity_id];
+        columns.extend(property_columns(&sink.sink.properties));
+        render_table(
+            &mut rendered,
+            &workspace,
+            sink.step.as_ref(),
+            &sink.table,
+            &columns,
+        )
+        .await;
+    }
+    for link in definition.link_pipelines() {
+        let prepared = workspace
+            .prepare_link_pipeline(link.clone(), checkpoints.clone())
+            .await
+            .expect("the link pipeline should be prepared");
+        let mut columns = vec![&link.from.column, &link.to.column];
+        columns.extend(property_columns(&link.properties));
+        render_table(
+            &mut rendered,
+            &workspace,
+            link.id.as_ref(),
+            &prepared.table,
+            &columns,
+        )
+        .await;
+    }
+    rendered
+}
+
+#[tokio::test]
+async fn definition_aviation_tables() {
+    let definition = Definition::from_yaml(include_str!("../../definition/examples/aviation.yaml"))
+        .expect("the aviation definition should parse");
+    insta::assert_snapshot!(render_prepared(&definition).await);
+}
+
+#[tokio::test]
+async fn definition_flightaware_tables() {
+    let definition =
+        Definition::from_yaml(include_str!("../../definition/examples/flightaware.yaml"))
+            .expect("the flightaware definition should parse");
+    insta::assert_snapshot!(render_prepared(&definition).await);
 }
 
 #[tokio::test]

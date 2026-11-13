@@ -1,0 +1,782 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/examples/flightaware.yaml
+---
+Definition {
+    connector: ConnectorId(
+        "flightaware",
+    ),
+    variables: Variables(
+        {
+            VariableName(
+                "BLOCKPROTOCOL",
+            ): "https://blockprotocol.org/@blockprotocol/types",
+            VariableName(
+                "HASH",
+            ): "https://hash.ai/@h/types",
+        },
+    ),
+    sources: {
+        SourceName(
+            "arrivals",
+        ): Source {
+            kind: Sql {
+                query: SqlQuery(
+                    "SELECT * FROM (VALUES\n  (\n    'BAW115-1715000000-schedule-0001', 'BA115', 'BAW115', 'Airline',\n    '{\"code_icao\": \"KJFK\", \"name\": \"John F Kennedy Intl\", \"code_iata\": \"JFK\", \"timezone\": \"America/New_York\", \"city\": \"New York\"}'::JSON,\n    '{\"code_icao\": \"EGLL\", \"name\": \"Heathrow\", \"code_iata\": \"LHR\", \"timezone\": \"Europe/London\", \"city\": \"London\"}'::JSON,\n    'BAW', 'BA', 'British Airways',\n    false, false,\n    'A10', 'T5', 'A10', NULL,\n    '2024-05-06T22:00:00Z', '2024-05-06T22:05:00Z', '2024-05-06T22:10:00Z', '2024-05-06T22:15:00Z',\n    'B22', 'T5', 'B22', '5',\n    120, -300,\n    '2024-05-07T06:00:00Z', '2024-05-07T05:55:00Z', '2024-05-07T06:05:00Z', '2024-05-07T06:00:00Z'\n  ),\n  (\n    'DLH901-1715000000-schedule-0002', 'LH901', 'DLH901', 'Airline',\n    '{\"code_icao\": \"EDDF\", \"name\": \"Frankfurt am Main\", \"code_iata\": \"FRA\", \"timezone\": \"Europe/Berlin\", \"city\": \"Frankfurt\"}'::JSON,\n    '{\"code_icao\": \"EGLL\", \"name\": \"Heathrow\", \"code_iata\": \"LHR\", \"timezone\": \"Europe/London\", \"city\": \"London\"}'::JSON,\n    'DLH', 'LH', 'Lufthansa',\n    false, false,\n    NULL, 'T1', NULL, NULL,\n    '2024-05-07T07:00:00Z', '2024-05-07T07:10:00Z', '2024-05-07T07:15:00Z', NULL,\n    'C15', 'T2', NULL, '7',\n    NULL, 600,\n    '2024-05-07T08:30:00Z', '2024-05-07T08:40:00Z', '2024-05-07T08:35:00Z', NULL\n  ),\n  (\n    'UAE5-1715000000-schedule-0003', 'EK5', 'UAE5', 'Airline',\n    '{\"code_icao\": \"OMDB\", \"name\": \"Dubai Intl\", \"code_iata\": \"DXB\", \"timezone\": \"Asia/Dubai\", \"city\": \"Dubai\"}'::JSON,\n    '{\"code_icao\": \"EGLL\", \"name\": \"Heathrow\", \"code_iata\": \"LHR\", \"timezone\": \"Europe/London\", \"city\": \"London\"}'::JSON,\n    'UAE', 'EK', 'Emirates',\n    true, false,\n    NULL, NULL, NULL, NULL,\n    '2024-05-07T09:00:00Z', NULL, NULL, NULL,\n    NULL, NULL, NULL, NULL,\n    NULL, NULL,\n    '2024-05-07T14:00:00Z', NULL, NULL, NULL\n  )\n) AS t(\n  fa_flight_id, ident_iata, ident_icao, type,\n  origin, destination,\n  operator_icao, operator_iata, operator,\n  cancelled, diverted,\n  gate_origin, terminal_origin, actual_runway_off, departure_delay,\n  scheduled_out, actual_out, scheduled_off, actual_off,\n  gate_destination, terminal_destination, actual_runway_on, baggage_claim,\n  arrival_delay, departure_delay_secs,\n  scheduled_in, actual_in, scheduled_on, actual_on\n)\n",
+                ),
+                primary_key: PrimaryKey(
+                    [
+                        ColumnName(
+                            "fa_flight_id",
+                        ),
+                    ],
+                ),
+            },
+            coverage: Partial,
+        },
+    },
+    unit_maps: {},
+    entity_pipelines: [
+        EntityPipeline {
+            source: SourceName(
+                "arrivals",
+            ),
+            depends_on: [],
+            inputs: {},
+            steps: [
+                Step {
+                    id: StepId(
+                        "cleanup",
+                    ),
+                    kind: Action(
+                        Sql(
+                            SqlQuery(
+                                "SELECT * FROM input WHERE ident_iata IS NOT NULL AND fa_flight_id IS NOT NULL\n",
+                            ),
+                        ),
+                    ),
+                },
+                Step {
+                    id: StepId(
+                        "extract",
+                    ),
+                    kind: Branch(
+                        Branches(
+                            [
+                                [
+                                    BranchStep {
+                                        id: StepId(
+                                            "norm-airports",
+                                        ),
+                                        action: Sql(
+                                            SqlQuery(
+                                                "SELECT DISTINCT ON (icaoCode)\n  _op, _key, icaoCode, name, iataCode, timezone, city\nFROM (\n  SELECT _op, _key,\n    origin->>'code_icao' AS icaoCode,\n    origin->>'name' AS name,\n    origin->>'code_iata' AS iataCode,\n    origin->>'timezone' AS timezone,\n    origin->>'city' AS city\n  FROM input WHERE origin->>'code_icao' IS NOT NULL\n  UNION ALL\n  SELECT _op, _key,\n    destination->>'code_icao' AS icaoCode,\n    destination->>'name' AS name,\n    destination->>'code_iata' AS iataCode,\n    destination->>'timezone' AS timezone,\n    destination->>'city' AS city\n  FROM input WHERE destination->>'code_icao' IS NOT NULL\n) airports\n",
+                                            ),
+                                        ),
+                                    },
+                                    BranchStep {
+                                        id: StepId(
+                                            "write-airports",
+                                        ),
+                                        action: Sink(
+                                            EntitySink {
+                                                entity_type: VersionedUrl {
+                                                    base_url: "https://hash.ai/@h/types/entity-type/airport/",
+                                                    version: OntologyTypeVersion {
+                                                        major: OntologyTypeMajorVersion(
+                                                            1,
+                                                        ),
+                                                        pre_release: None,
+                                                    },
+                                                },
+                                                entity_id: ColumnName(
+                                                    "icaoCode",
+                                                ),
+                                                properties: Properties(
+                                                    {
+                                                        VersionedUrl {
+                                                            base_url: "https://blockprotocol.org/@blockprotocol/types/property-type/name/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "name",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/city/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "city",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/iata-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "iataCode",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/icao-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "icaoCode",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/timezone/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "timezone",
+                                                            ),
+                                                        ),
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                                [
+                                    BranchStep {
+                                        id: StepId(
+                                            "norm-airlines",
+                                        ),
+                                        action: Sql(
+                                            SqlQuery(
+                                                "SELECT DISTINCT ON (icaoCode) _op, _key, icaoCode, iataCode, name\nFROM (\n  SELECT _op, _key,\n    operator_icao AS icaoCode,\n    operator_iata AS iataCode,\n    COALESCE(operator, operator_icao, operator_iata) AS name\n  FROM input WHERE operator_icao IS NOT NULL\n) airlines\n",
+                                            ),
+                                        ),
+                                    },
+                                    BranchStep {
+                                        id: StepId(
+                                            "write-airlines",
+                                        ),
+                                        action: Sink(
+                                            EntitySink {
+                                                entity_type: VersionedUrl {
+                                                    base_url: "https://hash.ai/@h/types/entity-type/airline/",
+                                                    version: OntologyTypeVersion {
+                                                        major: OntologyTypeMajorVersion(
+                                                            1,
+                                                        ),
+                                                        pre_release: None,
+                                                    },
+                                                },
+                                                entity_id: ColumnName(
+                                                    "icaoCode",
+                                                ),
+                                                properties: Properties(
+                                                    {
+                                                        VersionedUrl {
+                                                            base_url: "https://blockprotocol.org/@blockprotocol/types/property-type/name/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "name",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/iata-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "iataCode",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/icao-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "icaoCode",
+                                                            ),
+                                                        ),
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                ],
+                                [
+                                    BranchStep {
+                                        id: StepId(
+                                            "norm-flights",
+                                        ),
+                                        action: Sql(
+                                            SqlQuery(
+                                                "SELECT\n  _op, _key,\n  fa_flight_id AS flightId,\n  ident_iata AS flightNumber,\n  ident_icao AS icaoCode,\n  ident_iata AS iataCode,\n  type AS flightType,\n  CASE\n    WHEN cancelled THEN 'Cancelled'\n    WHEN diverted THEN 'Diverted'\n    WHEN actual_on IS NOT NULL THEN 'Landed'\n    WHEN actual_off IS NOT NULL OR actual_out IS NOT NULL THEN 'Active'\n    ELSE 'Scheduled'\n  END AS flightStatus,\n  COALESCE(\n    scheduled_out, scheduled_off,\n    actual_out, actual_off, scheduled_in, scheduled_on\n  )::DATE::VARCHAR AS flightDate,\n  origin->>'code_icao' AS originIcao,\n  destination->>'code_icao' AS destIcao,\n  operator_icao AS airlineIcao,\n  gate_origin AS departGate,\n  terminal_origin AS departTerminal,\n  actual_runway_off AS departRunway,\n  departure_delay AS departDelay,\n  scheduled_out AS departSchedGate,\n  actual_out AS departActGate,\n  scheduled_off AS departSchedRunway,\n  actual_off AS departActRunway,\n  gate_destination AS arriveGate,\n  terminal_destination AS arriveTerminal,\n  actual_runway_on AS arriveRunway,\n  baggage_claim AS arriveBaggage,\n  arrival_delay AS arriveDelay,\n  scheduled_in AS arriveSchedGate,\n  actual_in AS arriveActGate,\n  scheduled_on AS arriveSchedRunway,\n  actual_on AS arriveActRunway\nFROM input\n",
+                                            ),
+                                        ),
+                                    },
+                                    BranchStep {
+                                        id: StepId(
+                                            "write-flights",
+                                        ),
+                                        action: Sink(
+                                            EntitySink {
+                                                entity_type: VersionedUrl {
+                                                    base_url: "https://hash.ai/@h/types/entity-type/flight/",
+                                                    version: OntologyTypeVersion {
+                                                        major: OntologyTypeMajorVersion(
+                                                            1,
+                                                        ),
+                                                        pre_release: None,
+                                                    },
+                                                },
+                                                entity_id: ColumnName(
+                                                    "flightId",
+                                                ),
+                                                properties: Properties(
+                                                    {
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/flight-date/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "flightDate",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/flight-number/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "flightNumber",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/flight-status/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "flightStatus",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/flight-type/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "flightType",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/iata-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "iataCode",
+                                                            ),
+                                                        ),
+                                                        VersionedUrl {
+                                                            base_url: "https://hash.ai/@h/types/property-type/icao-code/",
+                                                            version: OntologyTypeVersion {
+                                                                major: OntologyTypeMajorVersion(
+                                                                    1,
+                                                                ),
+                                                                pre_release: None,
+                                                            },
+                                                        }: Column(
+                                                            ColumnName(
+                                                                "icaoCode",
+                                                            ),
+                                                        ),
+                                                    },
+                                                ),
+                                            },
+                                        ),
+                                    },
+                                    BranchStep {
+                                        id: StepId(
+                                            "save-flights",
+                                        ),
+                                        action: Checkpoint(
+                                            CheckpointName(
+                                                "flightaware/flights",
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            ],
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+    link_pipelines: [
+        LinkPipeline {
+            id: LinkId(
+                "flight-takes-off-from",
+            ),
+            input: Checkpoint(
+                CheckpointName(
+                    "flightaware/flights",
+                ),
+            ),
+            steps: [
+                LinkStep {
+                    id: StepId(
+                        "with-origin",
+                    ),
+                    query: SqlQuery(
+                        "SELECT * FROM input WHERE originIcao IS NOT NULL",
+                    ),
+                },
+            ],
+            from: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/flight/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "flightId",
+                ),
+            },
+            to: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/airport/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "originIcao",
+                ),
+            },
+            link_type: VersionedUrl {
+                base_url: "https://hash.ai/@h/types/entity-type/takes-off-from/",
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion(
+                        1,
+                    ),
+                    pre_release: None,
+                },
+            },
+            properties: Properties(
+                {
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/actual-gate-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departActGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/actual-runway-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departActRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/delay-in-seconds/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departDelay",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/gate/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/runway/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/scheduled-gate-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departSchedGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/scheduled-runway-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departSchedRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/terminal/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "departTerminal",
+                        ),
+                    ),
+                },
+            ),
+        },
+        LinkPipeline {
+            id: LinkId(
+                "flight-lands-at",
+            ),
+            input: Checkpoint(
+                CheckpointName(
+                    "flightaware/flights",
+                ),
+            ),
+            steps: [
+                LinkStep {
+                    id: StepId(
+                        "with-destination",
+                    ),
+                    query: SqlQuery(
+                        "SELECT * FROM input WHERE destIcao IS NOT NULL",
+                    ),
+                },
+            ],
+            from: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/flight/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "flightId",
+                ),
+            },
+            to: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/airport/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "destIcao",
+                ),
+            },
+            link_type: VersionedUrl {
+                base_url: "https://hash.ai/@h/types/entity-type/lands-at/",
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion(
+                        1,
+                    ),
+                    pre_release: None,
+                },
+            },
+            properties: Properties(
+                {
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/actual-gate-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveActGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/actual-runway-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveActRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/baggage-claim/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveBaggage",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/delay-in-seconds/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveDelay",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/gate/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/runway/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/scheduled-gate-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveSchedGate",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/scheduled-runway-time/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveSchedRunway",
+                        ),
+                    ),
+                    VersionedUrl {
+                        base_url: "https://hash.ai/@h/types/property-type/terminal/",
+                        version: OntologyTypeVersion {
+                            major: OntologyTypeMajorVersion(
+                                1,
+                            ),
+                            pre_release: None,
+                        },
+                    }: Column(
+                        ColumnName(
+                            "arriveTerminal",
+                        ),
+                    ),
+                },
+            ),
+        },
+        LinkPipeline {
+            id: LinkId(
+                "flight-operated-by",
+            ),
+            input: Checkpoint(
+                CheckpointName(
+                    "flightaware/flights",
+                ),
+            ),
+            steps: [
+                LinkStep {
+                    id: StepId(
+                        "with-airline",
+                    ),
+                    query: SqlQuery(
+                        "SELECT * FROM input WHERE airlineIcao IS NOT NULL",
+                    ),
+                },
+            ],
+            from: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/flight/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "flightId",
+                ),
+            },
+            to: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://hash.ai/@h/types/entity-type/airline/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "airlineIcao",
+                ),
+            },
+            link_type: VersionedUrl {
+                base_url: "https://hash.ai/@h/types/entity-type/operated-by/",
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion(
+                        1,
+                    ),
+                    pre_release: None,
+                },
+            },
+            properties: Properties(
+                {},
+            ),
+        },
+    ],
+}
