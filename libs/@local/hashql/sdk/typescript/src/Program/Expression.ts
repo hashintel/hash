@@ -556,17 +556,22 @@ export const assume =
   <E extends Value.Any>(expression: E): Expression<T, Value.Inputs<E>> =>
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
-// TODO: pipeable overload
-export const as = <T extends Type.Any, E extends Value.Any>(
-  expression: E,
-  type: TypeExpression.TypeExpression<T>,
-): Expression<T, Value.Inputs<E>> =>
+export const as = Function.dual<
+  <T extends Type.Any>(
+    type: TypeExpression.TypeExpression<T>,
+  ) => <E extends Value.Any>(expression: E) => Expression<T, Value.Inputs<E>>,
+  <E extends Value.Any, T extends Type.Any>(
+    expression: E,
+    type: TypeExpression.TypeExpression<T>,
+  ) => Expression<T, Value.Inputs<E>>
+>(2, (expression, type) =>
   pipe(
     { value: toNode(expression), type: type.syntax },
     Result.all,
     Result.map(({ value, type }) => new AST.As(value, type)),
-    fromResult<T, Value.Inputs<E>>,
-  );
+    fromResult,
+  ),
+);
 
 /**
  * Constructs a typed host literal with no input requirements.
