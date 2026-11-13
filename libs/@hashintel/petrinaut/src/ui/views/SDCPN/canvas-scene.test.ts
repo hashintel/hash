@@ -56,8 +56,8 @@ const outputArcId = generateArcId({ inputId: "t1", outputId: placeKey("p2") });
 
 const input: CanvasSceneInput = {
   net: { ...sdcpn, componentInstances: [], fusions: [] },
-  activeSubnetId: null,
   sdcpn,
+  fusionStatuses: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
   draggingStateByNodeId: {},
@@ -210,17 +210,43 @@ describe("buildCanvasScene", () => {
       fusions: [fusionWith("left"), fusionWith("right")],
     };
 
-    const { fusions } = buildCanvasScene({
-      ...input,
-      sdcpn: composed,
-      net: {
-        ...composed,
-        componentInstances: composed.componentInstances ?? [],
-        fusions: composed.fusions ?? [],
-      },
-    });
+    const composedNet = {
+      ...composed,
+      componentInstances: composed.componentInstances ?? [],
+      fusions: composed.fusions ?? [],
+    };
+    const build = (overrides: Partial<CanvasSceneInput> = {}) =>
+      buildCanvasScene({
+        ...input,
+        sdcpn: composed,
+        net: composedNet,
+        fusionStatuses: new Map([
+          ["fusion-left", { name: "Belt", severity: "warning" }],
+        ]),
+        ...overrides,
+      });
+    const { fusions } = build();
 
     expect(fusions).toHaveLength(2);
+    // A link wears its fusion's name and worst problem; without a status it
+    // falls back to the fusion's id and no problem.
+    expect(fusions.map(({ name, severity }) => [name, severity])).toEqual([
+      ["Belt", "warning"],
+      ["fusion-right", null],
+    ]);
+    expect(
+      build({
+        extensions: { ...DEFAULT_PETRINAUT_EXTENSIONS, subnets: false },
+      }).fusions,
+    ).toEqual([]);
+    // An instance dragged across the hub swaps the ends of its link.
+    expect(
+      build({
+        draggingStateByNodeId: {
+          right: { dragging: true, position: { x: -900, y: 0 } },
+        },
+      }).fusions.find((link) => link.fusionId === "fusion-right"),
+    ).toMatchObject({ sourceId: "right", targetId: "p1" });
     expect(
       fusions.find((link) => link.fusionId === "fusion-left"),
     ).toMatchObject({

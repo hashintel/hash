@@ -96,8 +96,10 @@ export const ComponentInstanceNode: React.FC<
 
         return (
           <div key={portInHandleId(port.id)}>
+            {/* Both pins are source handles: a connection's source is then
+                where the drag began, whichever pin that was. */}
             <Handle
-              type="target"
+              type="source"
               position={Position.Left}
               id={portInHandleId(port.id)}
               className={portStyle}

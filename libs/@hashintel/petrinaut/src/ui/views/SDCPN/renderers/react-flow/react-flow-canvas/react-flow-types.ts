@@ -11,6 +11,7 @@ import type {
   CanvasPlaceNode,
   CanvasTransitionNode,
 } from "../../../canvas-scene";
+import type { CanvasLinkItem } from "../../../use-canvas-interactions";
 import type { OutlineNode } from "./shared/outline-arcs";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -63,8 +64,8 @@ export type FusionEdgeType = Edge<FusionEdgeData, "fusion">;
 
 export type CanvasEdgeType = ArcEdgeType | FusionEdgeType;
 
-/** The fusion an edge draws, or `null` for an arc. */
-export const fusionIdOfEdge = (edge: Edge): string | null =>
-  edge.type === "fusion" && typeof edge.data?.fusionId === "string"
-    ? edge.data.fusionId
-    : null;
+/** The item an edge draws: an arc, or the fusion one of whose links it is. */
+export const linkItemOf = (edge: CanvasEdgeType): CanvasLinkItem =>
+  edge.type === "fusion" && edge.data
+    ? { type: "fusion", id: edge.data.fusionId }
+    : { type: "arc", id: edge.id };

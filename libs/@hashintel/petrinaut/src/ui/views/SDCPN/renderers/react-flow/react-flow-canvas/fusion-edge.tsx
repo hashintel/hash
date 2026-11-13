@@ -2,26 +2,17 @@ import { BaseEdge, type EdgeProps, getBezierPath } from "@xyflow/react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  ARC_HALO_OVERHANG,
-  ARC_WHITE_OVERHANG,
-  arcHaloColor,
-} from "../../../styles/focus";
+import { problemColor } from "../../../../../constants/problem-severity";
+import { arcHaloColor } from "../../../styles/focus";
+import { EdgeUnderlay } from "./shared/edge-underlay";
 
 import type { FusionEdgeType } from "./react-flow-types";
 
-const STROKE_WIDTH = 2;
+const strokeWidth = 2;
 /** Long dashes with wide gaps: a join, not an arc that carries tokens. */
-const DASH_PATTERN = "7 5";
-const FUSION_COLOR = "#7c3aed";
-const ERROR_COLOR = "#dc2626";
-const WARNING_COLOR = "#d97706";
-const KNOT_RADIUS = 5;
-
-const selectionIndicatorStyle = {
-  stroke: "rgba(249, 115, 22, 0.4)",
-  strokeWidth: 8,
-} as const;
+const dashPattern = "7 5";
+const fusionColor = "#7c3aed";
+const knotRadius = 5;
 
 const labelStyle = css({
   fontSize: "[11px]",
@@ -38,8 +29,9 @@ const labelBackgroundStyle = css({
 
 /**
  * A fusion link: a dashed line between two places that are one place, with a
- * knot at its middle. The name shows on the knot while the fusion is selected
- * or in focus, and the knot turns red or amber with the fusion's problems.
+ * knot at its middle. The line and its knot turn red or amber with the
+ * fusion's problems, and the fusion's name takes the knot's place while the
+ * fusion is selected or in focus.
  */
 export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
   id,
@@ -61,12 +53,9 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
     targetPosition,
   });
   const strokeColor =
-    data?.severity === "error"
-      ? ERROR_COLOR
-      : data?.severity === "warning"
-        ? WARNING_COLOR
-        : FUSION_COLOR;
-  const haloColor = arcHaloColor(data?.focus ?? "none");
+    data?.severity === "error" || data?.severity === "warning"
+      ? problemColor[data.severity]
+      : fusionColor;
   const showName =
     data?.name !== undefined && (selected === true || data.focus !== "none");
   const labelWidth = (data?.name.length ?? 0) * 6.5 + 12;
@@ -74,42 +63,22 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
   return (
     <>
       <g className="arc-strokes">
-        {selected && (
-          <BaseEdge
-            id={`${id}-selection`}
-            path={path}
-            style={selectionIndicatorStyle}
-          />
-        )}
-        {haloColor !== undefined && (
-          <>
-            <path
-              d={path}
-              fill="none"
-              stroke={haloColor}
-              strokeWidth={STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
-              strokeDasharray={DASH_PATTERN}
-              strokeLinecap="round"
-              style={{ pointerEvents: "none" }}
-            />
-            <path
-              d={path}
-              fill="none"
-              stroke="white"
-              strokeWidth={STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
-              strokeDasharray={DASH_PATTERN}
-              strokeLinecap="round"
-              style={{ pointerEvents: "none" }}
-            />
-          </>
-        )}
+        <EdgeUnderlay
+          id={id}
+          path={path}
+          selected={selected}
+          haloColor={arcHaloColor(data?.focus ?? "none")}
+          strokeWidth={strokeWidth}
+          strokeDasharray={dashPattern}
+          strokeLinecap="round"
+        />
         <BaseEdge
           id={id}
           path={path}
           style={{
             stroke: strokeColor,
-            strokeWidth: STROKE_WIDTH,
-            strokeDasharray: DASH_PATTERN,
+            strokeWidth,
+            strokeDasharray: dashPattern,
             strokeLinecap: "round",
           }}
         />
@@ -138,10 +107,10 @@ export const FusionEdge: React.FC<EdgeProps<FusionEdgeType>> = ({
           </>
         ) : (
           <circle
-            r={KNOT_RADIUS}
+            r={knotRadius}
             fill="white"
             stroke={strokeColor}
-            strokeWidth={STROKE_WIDTH}
+            strokeWidth={strokeWidth}
           />
         )}
       </g>

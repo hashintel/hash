@@ -50,15 +50,18 @@ const clearanceOf = (insets: CanvasInsets): CanvasViewportInsets => ({
 
 /**
  * The nodes a selection stands for on the canvas: the selected nodes, and both
- * ends of a selected arc, which has no geometry of its own.
+ * ends of a selected arc or of a selected fusion's links, which have no
+ * geometry of their own.
  */
 const selectedNodesOf = (scene: CanvasScene, selection: SelectionMap) => {
   const ids = new Set(selection.keys());
-  for (const arc of scene.arcs) {
-    if (selection.has(arc.id)) {
-      ids.add(arc.sourceId);
-      ids.add(arc.targetId);
-    }
+  const selectedLinks = [
+    ...scene.arcs.filter((arc) => selection.has(arc.id)),
+    ...scene.fusions.filter((link) => selection.has(link.fusionId)),
+  ];
+  for (const link of selectedLinks) {
+    ids.add(link.sourceId);
+    ids.add(link.targetId);
   }
   return scene.nodes.filter((node) => ids.has(node.id));
 };
