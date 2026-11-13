@@ -210,7 +210,6 @@ export {
   compactNodeDimensions,
   componentInstanceFooterHeight,
   componentInstanceHeaderHeight,
-  componentInstancePortRowHeight,
   getBoundsOfCenteredBoxes,
   getComponentInstanceHeight,
   getMinZoomForBounds,
