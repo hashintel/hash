@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { linkEnd, type CanvasLinkEndName } from "../../../canvas-scene";
 import { toCanvasConnection } from "./port-handles";
@@ -38,6 +38,9 @@ const endedOnPane = (event: MouseEvent | TouchEvent): boolean => {
  * `isConnecting` says whether React Flow still has the gesture in progress.
  * A gesture cancelled with Escape is reported as ended all the same, on the
  * next pointer move, and must change nothing.
+ *
+ * `isRewiring` is for what renders: a node's handles offer themselves to a
+ * moved end by other rules than to a new connection.
  */
 export const useLinkRewiring = (
   interactions: CanvasInteractions,
@@ -45,8 +48,10 @@ export const useLinkRewiring = (
 ): {
   isValidConnection: IsValidConnection;
   reconnectProps: ReconnectProps;
+  isRewiring: boolean;
 } => {
   const moving = useRef<Pick<CanvasLinkRewire, "linkId" | "end"> | null>(null);
+  const [isRewiring, setIsRewiring] = useState(false);
 
   // React Flow builds the connection around the end that stays, so the end
   // dropped has the name of the end picked up.
@@ -56,6 +61,7 @@ export const useLinkRewiring = (
   ) => linkEnd(toCanvasConnection(connection), end);
 
   return {
+    isRewiring,
     isValidConnection: (connection) =>
       moving.current
         ? interactions.canRewireLink({
@@ -73,6 +79,7 @@ export const useLinkRewiring = (
               linkId: edge.id,
               end: keptEnd === "source" ? "target" : "source",
             };
+            setIsRewiring(true);
           },
           onReconnect: (_edge, connection) => {
             if (moving.current && isConnecting()) {
@@ -92,6 +99,7 @@ export const useLinkRewiring = (
               interactions.rewireLink({ ...moving.current, onto: null });
             }
             moving.current = null;
+            setIsRewiring(false);
           },
         },
   };

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { portInHandleId } from "./port-handles";
@@ -62,6 +62,27 @@ const renderRewiring = (readonly = false) => {
 };
 
 describe("useLinkRewiring", () => {
+  it("says a link is being moved from the start of the gesture to its end", () => {
+    const { result } = renderHook(() =>
+      useLinkRewiring(
+        interactions as unknown as CanvasInteractions,
+        () => true,
+      ),
+    );
+    const { reconnectProps } = result.current;
+    expect(result.current.isRewiring).toBe(false);
+
+    act(() =>
+      reconnectProps.onReconnectStart?.(pointer as never, link, "source"),
+    );
+    expect(result.current.isRewiring).toBe(true);
+
+    act(() =>
+      reconnectProps.onReconnectEnd?.(pointer, link, "source", dropped(null)),
+    );
+    expect(result.current.isRewiring).toBe(false);
+  });
+
   it("checks a connection as an arc or a fusion until a link's end is picked up", () => {
     const { isValidConnection, start, end } = renderRewiring();
 
