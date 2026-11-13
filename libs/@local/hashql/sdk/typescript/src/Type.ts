@@ -212,15 +212,17 @@ export interface TypeLambda extends HKT.TypeLambda {
   readonly type: Any;
 }
 
-/**
- * Computes the descriptor a {@link TypeLambda} produces for an argument tuple.
- *
- * TypeScript evaluates the operation during checking. The SDK has no runtime type interpreter. The result is a static annotation on the syntax a call emits.
- */
-export type Apply<
-  Lambda extends TypeLambda,
-  Arguments extends readonly Any[],
-> = HKT.Kind<Lambda, never, never, never, Arguments>;
+export declare namespace TypeLambda {
+  /**
+   * Computes the descriptor a {@link TypeLambda} produces for an argument tuple.
+   *
+   * TypeScript evaluates the operation during checking. The SDK has no runtime type interpreter. The result is a static annotation on the syntax a call emits.
+   */
+  export type Apply<
+    Lambda extends TypeLambda,
+    Arguments extends readonly Any[],
+  > = HKT.Kind<Lambda, never, never, never, Arguments>;
+}
 
 /**
  * A generic type declaration with a fixed number of positional type arguments.
@@ -247,7 +249,7 @@ export type Apply<
  * }
  *
  * export const applied: Equal<
- *   Type.Apply<Pair, readonly [Type.PrimitiveString, Type.PrimitiveInteger]>,
+ *   Type.TypeLambda.Apply<Pair, readonly [Type.PrimitiveString, Type.PrimitiveInteger]>,
  *   Type.Tuple<readonly [Type.PrimitiveString, Type.PrimitiveInteger]>
  * > = true;
  * ```
@@ -260,7 +262,7 @@ export interface TypeConstructor extends TypeLambda {
 /**
  * Computes a function signature from the types of its call arguments.
  *
- * Given an argument descriptor tuple, {@link Apply} computes the function's `parameters` and `returns`. A signature can reject unsupported arguments with a {@link Never} parameter type. Only an argument whose descriptor is itself {@link Never} satisfies it.
+ * Given an argument descriptor tuple, {@link TypeLambda.Apply} computes the function's `parameters` and `returns`. A signature can reject unsupported arguments with a {@link Never} parameter type. Only an argument whose descriptor is itself {@link Never} satisfies it.
  *
  * @example <caption>Type-only: specialize a generic function signature.</caption>
  * ```ts
@@ -280,7 +282,7 @@ export interface TypeConstructor extends TypeLambda {
  *     : Type.Function<readonly [Type.Never, Type.Never], Type.Never>;
  * }
  *
- * type Specialized = Type.Apply<
+ * type Specialized = Type.TypeLambda.Apply<
  *   First,
  *   readonly [Type.PrimitiveString, Type.PrimitiveInteger]
  * >;

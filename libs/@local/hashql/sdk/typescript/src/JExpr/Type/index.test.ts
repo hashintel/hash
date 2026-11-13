@@ -2,14 +2,14 @@ import { expect, it, test } from "@effect/vitest";
 import { Option, Result, Schema } from "effect";
 import { describe } from "vitest";
 
-import { typeSyntax } from "../../internal/type-parser.js";
 import * as JExpr from "../index.js";
 import * as Type from "./index.js";
+import { pathGrammar } from "./schema.js";
 
 describe("roundtrip", () => {
   it.prop(
     "type_grammar",
-    [typeSyntax.arbitrary()],
+    [pathGrammar.typeSyntax.arbitrary()],
     ([type]) => {
       expect.hasAssertions();
 
@@ -117,6 +117,22 @@ describe("builder", () => {
     expect(
       Result.getOrThrow(Schema.decodeResult(Type.Schema)(encoded)),
     ).toStrictEqual(Option.getOrThrow(Type.reference("List", integer)));
+  });
+
+  test("invalid_generic", () => {
+    expect.hasAssertions();
+    const name = { _tag: "Lexical", value: "first name" } as const;
+    expect(
+      Option.isNone(Type.reference("List", { _tag: "GenericBound", name })),
+    ).toBe(true);
+    expect(
+      Option.isNone(
+        Type.reference("List", {
+          _tag: "Struct",
+          members: [[name, Type.infer()]],
+        }),
+      ),
+    ).toBe(true);
   });
 });
 

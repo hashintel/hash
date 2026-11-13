@@ -7,7 +7,7 @@
  *
  * @module
  */
-// oxlint-disable max-lines -- structural constructors and their API examples belong with the shorthand descriptors they compute
+// oxlint-disable max-lines -- type and value shorthand share one definition vocabulary with its guards and normalization
 import { Predicate, Result, Struct, Tuple, flow, pipe } from "effect";
 
 import * as StructuralSyntax from "../internal/structural.js";
@@ -37,30 +37,36 @@ export type Definition =
   | readonly Definition[]
   | Fields;
 
-/**
- * Resolves shorthand to its semantic descriptor without widening its fields.
- *
- * This conditional distributes over host alternatives: a choice between two definitions retains both possible descriptors. Inputs outside the shorthand language resolve to `never`, allowing the same operation to serve Effect's type-level mapping functions.
- */
-export type TypeOf<D> =
-  D extends TypeExpression.TypeExpression<infer T>
-    ? T
-    : D extends BigIntConstructor
-      ? Type.PrimitiveInteger
-      : D extends NumberConstructor
-        ? Type.PrimitiveNumber
-        : D extends StringConstructor
-          ? Type.PrimitiveString
-          : D extends BooleanConstructor
-            ? Type.PrimitiveBoolean
-            : D extends readonly Definition[]
-              ? {
-                  readonly _tag: "Tuple";
-                  readonly fields: { readonly [K in keyof D]: TypeOf<D[K]> };
-                }
-              : D extends Fields
-                ? Type.Struct<{ readonly [K in keyof D]: TypeOf<D[K]> }>
-                : never;
+export declare namespace Definition {
+  /**
+   * Resolves shorthand to its semantic descriptor without widening its fields.
+   *
+   * This conditional distributes over host alternatives: a choice between two definitions retains both possible descriptors. Inputs outside the shorthand language resolve to `never`, allowing the same operation to serve Effect's type-level mapping functions.
+   */
+  export type Type<D> =
+    D extends TypeExpression.TypeExpression<infer T>
+      ? T
+      : D extends BigIntConstructor
+        ? Type.PrimitiveInteger
+        : D extends NumberConstructor
+          ? Type.PrimitiveNumber
+          : D extends StringConstructor
+            ? Type.PrimitiveString
+            : D extends BooleanConstructor
+              ? Type.PrimitiveBoolean
+              : D extends readonly Definition[]
+                ? {
+                    readonly _tag: "Tuple";
+                    readonly fields: {
+                      readonly [K in keyof D]: Type<D[K]>;
+                    };
+                  }
+                : D extends Fields
+                  ? Type.Struct<{
+                      readonly [K in keyof D]: Type<D[K]>;
+                    }>
+                  : never;
+}
 
 type TupleValues<T extends readonly Type.Any[]> = {
   readonly [K in keyof T]: Value<T[K]>;
@@ -82,36 +88,57 @@ export type Value<T extends Type.Any> =
 export declare namespace Value {
   /** Expressions and host primitives, recursively nested in tuples or field records. */
   export type Any = Expression.Value.Any | readonly Any[] | FieldValues;
+
+  /**
+   * Retains the input requirements of every possible host value.
+   *
+   * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values.
+   */
+  export type Requirements<V extends Any> = Inputs.Conservative<
+    RequirementAlternatives<V>
+  >;
+
+  /** The semantic descriptor of a structural host value, without implicit widening. */
+  export type Type<V extends Any> = V extends Expression.Value.Any
+    ? Expression.Value.Type<V>
+    : V extends readonly Any[]
+      ? {
+          readonly _tag: "Tuple";
+          readonly fields: ValueTypes<V>;
+        }
+      : V extends FieldValues
+        ? Type.Struct<{ readonly [K in keyof V]: Type<V[K]> }>
+        : never;
+
+  /** Accepts `V` only when its inferred structural descriptor and `T` are mutually assignable, preventing extra fields from disappearing from the reported type. */
+  export type Exact<T extends Type.Any, V extends Any> = [T] extends [Type<V>]
+    ? [Type<V>] extends [T]
+      ? V
+      : never
+    : never;
 }
 
 interface FieldValues extends Record.ReadonlyRecord<string, Value.Any> {}
 
-/**
- * Retains the input requirements of every possible host value.
- *
- * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values.
- */
-export type Requirements<V extends Value.Any> = Inputs.Conservative<
-  RequirementAlternatives<V>
->;
-
 type RequirementAlternatives<V extends Value.Any> =
   V extends Expression.Value.Any
-    ? Expression.Inputs<V>
+    ? Expression.Value.Inputs<V>
     : V extends readonly [
           infer H extends Value.Any,
           ...infer T extends readonly Value.Any[],
         ]
-      ? Inputs.Conservative<Inputs.Merge<Requirements<H>, Requirements<T>>>
+      ? Inputs.Conservative<
+          Inputs.Merge<Value.Requirements<H>, Value.Requirements<T>>
+        >
       : V extends readonly (infer M extends Value.Any)[]
         ? [M] extends [never]
           ? Inputs.Empty
-          : Inputs.Conservative<Requirements<M>>
+          : Inputs.Conservative<Value.Requirements<M>>
         : V extends FieldValues
           ? [keyof V] extends [never]
             ? Inputs.Empty
             : Inputs.Conservative<
-                { [K in keyof V]: Requirements<V[K]> }[keyof V]
+                { [K in keyof V]: Value.Requirements<V[K]> }[keyof V]
               >
           : Inputs.Empty;
 
@@ -221,40 +248,40 @@ export const isValue = (value: unknown): value is Value.Any => {
 export const type = <const D extends Definition>(
   definition: D,
 ): Result.Result<
-  TypeExpression.TypeExpression<TypeOf<D>>,
+  TypeExpression.TypeExpression<Definition.Type<D>>,
   ProgramError.Construction
 > =>
   pipe(
     definition,
     StructuralSyntax.typeSyntax,
-    Result.map(TypeExpression.fromType<TypeOf<D>>),
+    Result.map(TypeExpression.fromType<Definition.Type<D>>),
   );
 
 /** Keeps a failed argument inside its handle, because the constructor reports argument failures through the type expression it returns. */
 const handle = <const D extends Definition>(
   definition: D,
-): TypeExpression.TypeExpression<TypeOf<D>> =>
+): TypeExpression.TypeExpression<Definition.Type<D>> =>
   pipe(
     definition,
     StructuralSyntax.typeSyntax,
-    TypeExpression.fromResult<TypeOf<D>>,
+    TypeExpression.fromResult<Definition.Type<D>>,
   );
 
 /** Applies normalization independently at every position instead of collapsing the tuple to an element union. */
 interface Normalize extends Struct.Lambda {
   readonly "~lambda.out": TypeExpression.TypeExpression<
-    TypeOf<this["~lambda.in"]>
+    Definition.Type<this["~lambda.in"]>
   >;
 
   <const D extends Definition>(
     definition: D,
-  ): TypeExpression.TypeExpression<TypeOf<D>>;
+  ): TypeExpression.TypeExpression<Definition.Type<D>>;
 }
 
 const normalize = Tuple.map(Struct.lambda<Normalize>(handle));
 
 type ArgumentTypes<A extends readonly Definition[]> = {
-  readonly [K in keyof A]: TypeOf<A[K]>;
+  readonly [K in keyof A]: Definition.Type<A[K]>;
 };
 
 /** A named generic type accepting the same shorthand as a local alias. */
@@ -266,7 +293,7 @@ export interface Constructor<F extends Type.TypeConstructor>
 
   <const A extends readonly Definition[]>(
     ...definitions: A & { readonly length: F["arity"] }
-  ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>>;
+  ): TypeExpression.TypeExpression<Type.TypeLambda.Apply<F, ArgumentTypes<A>>>;
 }
 
 /**
@@ -282,34 +309,15 @@ export const constructor = <F extends Type.TypeConstructor>(
     (source) =>
       <const A extends readonly Definition[]>(
         ...definitions: A & { readonly length: F["arity"] }
-      ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>> =>
+      ): TypeExpression.TypeExpression<
+        Type.TypeLambda.Apply<F, ArgumentTypes<A>>
+      > =>
         source<ArgumentTypes<A>>(...normalize<A>(definitions)),
   );
 
 type ValueTypes<V extends readonly Value.Any[]> = {
-  readonly [K in keyof V]: ValueType<V[K]>;
+  readonly [K in keyof V]: Value.Type<V[K]>;
 };
-
-/** The semantic descriptor of a structural host value, without implicit widening. */
-export type ValueType<V extends Value.Any> = V extends Expression.Value.Any
-  ? Expression.TypeOf<V>
-  : V extends readonly Value.Any[]
-    ? {
-        readonly _tag: "Tuple";
-        readonly fields: ValueTypes<V>;
-      }
-    : V extends FieldValues
-      ? Type.Struct<{ readonly [K in keyof V]: ValueType<V[K]> }>
-      : never;
-
-/** Accepts `V` only when its inferred structural descriptor and `T` are mutually assignable, preventing extra fields from disappearing from the reported type. */
-export type Exact<T extends Type.Any, V extends Value.Any> = [T] extends [
-  ValueType<V>,
-]
-  ? [ValueType<V>] extends [T]
-    ? V
-    : never
-  : never;
 
 /**
  * Constructs a value whose inferred structural descriptor matches the requested type.
@@ -339,12 +347,12 @@ export type Exact<T extends Type.Any, V extends Value.Any> = [T] extends [
 export const value =
   <T extends Type.Any>() =>
   <const V extends Value<T> & Value.Any>(
-    input: V & Exact<T, V>,
-  ): Expression.Expression<T, Requirements<V>> =>
+    input: V & Value.Exact<T, V>,
+  ): Expression.Expression<T, Value.Requirements<V>> =>
     pipe(
       input,
       StructuralSyntax.valueSyntax,
-      StructuralSyntax.fromSyntax<T, Requirements<V>>,
+      StructuralSyntax.fromSyntax<T, Value.Requirements<V>>,
     );
 
 /**
@@ -382,11 +390,11 @@ export const toJExpr = (
  */
 export const struct = <const V extends FieldValues>(
   fields: V,
-): Expression.Expression<ValueType<V>, Requirements<V>> =>
+): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
   pipe(
     fields,
     StructuralSyntax.valueSyntax,
-    StructuralSyntax.fromSyntax<ValueType<V>, Requirements<V>>,
+    StructuralSyntax.fromSyntax<Value.Type<V>, Value.Requirements<V>>,
   );
 
 /**
@@ -396,11 +404,11 @@ export const struct = <const V extends FieldValues>(
  */
 export const tuple = <const V extends readonly Value.Any[]>(
   members: V & { readonly length: number extends V["length"] ? never : number },
-): Expression.Expression<ValueType<V>, Requirements<V>> =>
+): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
   pipe(
     members,
     StructuralSyntax.valueSyntax,
-    StructuralSyntax.fromSyntax<ValueType<V>, Requirements<V>>,
+    StructuralSyntax.fromSyntax<Value.Type<V>, Value.Requirements<V>>,
   );
 
 /**
@@ -433,8 +441,11 @@ export const list = <
   const V extends readonly Value.Any[],
 >(
   definition: D,
-  members: V & StructuralSyntax.ExactValues<NoInfer<TypeOf<D>>, V>,
-): Expression.Expression<Type.List<TypeOf<D>>, Requirements<V>> =>
+  members: V & StructuralSyntax.ExactValues<NoInfer<Definition.Type<D>>, V>,
+): Expression.Expression<
+  Type.List<Definition.Type<D>>,
+  Value.Requirements<V>
+> =>
   pipe(
     {
       type: StructuralSyntax.collectionType("List", [definition]),
@@ -444,7 +455,10 @@ export const list = <
     Result.map(({ type, members }) =>
       JExpr.typed(JExpr.list(...members), type),
     ),
-    StructuralSyntax.fromSyntax<Type.List<TypeOf<D>>, Requirements<V>>,
+    StructuralSyntax.fromSyntax<
+      Type.List<Definition.Type<D>>,
+      Value.Requirements<V>
+    >,
   );
 
 /**
@@ -480,8 +494,15 @@ export const dict = <
   key: K,
   definition: D,
   entries: E &
-    StructuralSyntax.ExactEntries<NoInfer<TypeOf<K>>, NoInfer<TypeOf<D>>, E>,
-): Expression.Expression<Type.Dict<TypeOf<K>, TypeOf<D>>, Requirements<E>> =>
+    StructuralSyntax.ExactEntries<
+      NoInfer<Definition.Type<K>>,
+      NoInfer<Definition.Type<D>>,
+      E
+    >,
+): Expression.Expression<
+  Type.Dict<Definition.Type<K>, Definition.Type<D>>,
+  Value.Requirements<E>
+> =>
   pipe(
     {
       type: StructuralSyntax.collectionType("Dict", [key, definition]),
@@ -490,8 +511,8 @@ export const dict = <
     Result.all,
     Result.map(({ type, syntax }) => JExpr.typed(syntax, type)),
     StructuralSyntax.fromSyntax<
-      Type.Dict<TypeOf<K>, TypeOf<D>>,
-      Requirements<E>
+      Type.Dict<Definition.Type<K>, Definition.Type<D>>,
+      Value.Requirements<E>
     >,
   );
 
@@ -503,7 +524,7 @@ type InputArguments =
 type ExactDefault<T extends Type.Any, V> = V extends undefined
   ? V
   : V extends Value.Any
-    ? Exact<T, V>
+    ? Value.Exact<T, V>
     : never;
 
 type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
@@ -520,7 +541,7 @@ type InputRequirements<
       undefined extends D[0]
         ? Readonly<Record<Name, T>>
         : Readonly<Partial<Record<Name, T>>>,
-      Requirements<Exclude<D[0], undefined>>
+      Value.Requirements<Exclude<D[0], undefined>>
     >;
 
 /**
@@ -535,10 +556,10 @@ export const input = <
 >(
   name: Name,
   definition: D,
-  ...defaults: Defaults & ExactDefaults<NoInfer<TypeOf<D>>, Defaults>
+  ...defaults: Defaults & ExactDefaults<NoInfer<Definition.Type<D>>, Defaults>
 ): Expression.Expression<
-  TypeOf<D>,
-  InputRequirements<Name, TypeOf<D>, Defaults>
+  Definition.Type<D>,
+  InputRequirements<Name, Definition.Type<D>, Defaults>
 > =>
   Result.gen(function* () {
     const syntax = yield* StructuralSyntax.typeSyntax(definition);
@@ -552,7 +573,7 @@ export const input = <
     return JExpr.input(name, syntax, fallback);
   }).pipe(
     StructuralSyntax.fromSyntax<
-      TypeOf<D>,
-      InputRequirements<Name, TypeOf<D>, Defaults>
+      Definition.Type<D>,
+      InputRequirements<Name, Definition.Type<D>, Defaults>
     >,
   );
