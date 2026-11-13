@@ -10,7 +10,7 @@ mod subcommand;
 
 use core::error::Error;
 
-use clap::Parser as _;
+use clap::{CommandFactory as _, FromArgMatches as _};
 use hash_telemetry::{TracingConfig, init_tracing};
 
 pub trait Command {
@@ -28,8 +28,15 @@ pub struct Entry {
     pub subcommand: Subcommand,
 }
 
+/// The command the program parses its arguments with.
+fn cli() -> clap::Command {
+    TracingConfig::with_namespace(Entry::command(), "HASH_GRAPH")
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let entry = Entry::parse();
+    let mut matches = cli().get_matches();
+    let entry = Entry::from_arg_matches_mut(&mut matches)
+        .unwrap_or_else(|error| error.format(&mut Entry::command()).exit());
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -40,4 +47,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             entry.subcommand.execute().await
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cli;
+
+    #[test]
+    fn command_valid() {
+        cli().debug_assert();
+    }
 }
