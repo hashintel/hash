@@ -11,6 +11,10 @@ import type { TypesTableRow } from "../../shared/types-table";
 import type { TypesFilterRibbon } from "../../shared/types-table/filter-ribbon";
 import type { ComponentProps, ReactNode } from "react";
 
+const linkTypeLookup = {
+  "https://hash.ai/@alice/types/entity-type/link/v/1": { isLink: true },
+};
+
 const state = vi.hoisted(() => {
   const query: Record<string, string | string[]> = {
     shortname: "alice",
@@ -20,6 +24,10 @@ const state = vi.hoisted(() => {
     query,
     rows: [] as TypesTableRow[],
     ribbon: undefined as ComponentProps<typeof TypesFilterRibbon> | undefined,
+    isSpecialEntityTypeLookup: null as Record<
+      string,
+      { isLink: boolean }
+    > | null,
   };
 });
 
@@ -49,9 +57,7 @@ vi.mock(
   () => ({
     useEntityTypesContextRequired: () => ({
       entityTypes: [],
-      isSpecialEntityTypeLookup: {
-        "https://hash.ai/@alice/types/entity-type/link/v/1": { isLink: true },
-      },
+      isSpecialEntityTypeLookup: state.isSpecialEntityTypeLookup,
     }),
   }),
 );
@@ -139,6 +145,7 @@ describe("profile type kind links", () => {
     state.query = { shortname: "alice", tab: "Types" };
     state.rows = [];
     state.ribbon = undefined;
+    state.isSpecialEntityTypeLookup = linkTypeLookup;
   });
   afterEach(() => {
     cleanup();
@@ -171,6 +178,29 @@ describe("profile type kind links", () => {
       expect(state.ribbon?.filters).toEqual([]);
     },
   );
+
+  it.each(["entity-type", "link-type"])(
+    "holds back %s rows until the link lookup can tell entity and link types apart",
+    (kind) => {
+      state.isSpecialEntityTypeLookup = null;
+      state.query.typeKind = kind;
+      const { rerender } = render(tab());
+      expect(displayedTitles()).toEqual([]);
+
+      state.isSpecialEntityTypeLookup = linkTypeLookup;
+      rerender(tab());
+      expect(displayedTitles()).toEqual([
+        kind === "entity-type" ? "entity" : "link",
+      ]);
+    },
+  );
+
+  it("applies a data-type filter without waiting for the link lookup", () => {
+    state.isSpecialEntityTypeLookup = null;
+    state.query.typeKind = "data-type";
+    render(tab());
+    expect(displayedTitles()).toEqual(["data"]);
+  });
 
   it("applies the URL kind when navigating between kinds, the unfiltered page, and profiles", () => {
     state.query.typeKind = "data-type";

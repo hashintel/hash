@@ -270,6 +270,21 @@ export const TypesTable: FunctionComponent<{
     (filter) => filter.field === "archived",
   );
 
+  // An entity type only reads as a link type once the entity types context's
+  // lookup arrives, so a kind filter telling the two apart would show the
+  // wrong rows until then — hold the table at its loading state instead.
+  const awaitingLinkClassification =
+    !isSpecialEntityTypeLookup &&
+    typeFilters.some(
+      (filter) =>
+        filter.field === "kind" &&
+        (filter.values ?? []).some(
+          (value) => value === "entity-type" || value === "link-type",
+        ),
+    );
+
+  const tableLoading = !types || loading || awaitingLinkClassification;
+
   const typeFilterPredicate = useMemo(
     () =>
       createTypeFilterPredicate(typeFilters, {
@@ -367,6 +382,10 @@ export const TypesTable: FunctionComponent<{
       kind: TypesTableTypeKind;
     })[] = [];
 
+    if (awaitingLinkClassification) {
+      return filtered;
+    }
+
     for (const type of types ?? []) {
       const isExternal = isExternalOntologyElementMetadata(type.metadata)
         ? true
@@ -413,6 +432,7 @@ export const TypesTable: FunctionComponent<{
     onlyOneWeb,
     typeFilterPredicate,
     isSpecialEntityTypeLookup,
+    awaitingLinkClassification,
   ]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
@@ -821,7 +841,7 @@ export const TypesTable: FunctionComponent<{
         topLeft={
           <QueryCount
             count={matchingIds?.size ?? filteredRows?.length}
-            loading={!types || loading}
+            loading={tableLoading}
             noun={{ singular: "type", plural: "types" }}
           />
         }
@@ -949,7 +969,7 @@ export const TypesTable: FunctionComponent<{
               createRenderChipCell({ firstColumnLeftPadding }),
               renderDataTypeTreeCell,
             ]}
-            dataLoading={!types || loading}
+            dataLoading={tableLoading}
             enableCheckboxSelection
             drawFocusRing={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}
