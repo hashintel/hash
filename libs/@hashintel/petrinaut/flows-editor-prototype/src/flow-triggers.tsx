@@ -809,6 +809,11 @@ const scaleGroups: {
   },
 ];
 
+/** `?triggerfilter=old`: "Triggers · N" and search on one row, All · On · Paused on its own row below (before 13 Nov). */
+const filterOld =
+  new URLSearchParams(globalThis.location.search).get("triggerfilter") ===
+  "old";
+
 /** One trigger in the panel at scale, and in the sheet "Show all N" opens. */
 const ScaleTriggerRow = ({ row }: { row: ScaleRow }) => (
   <div
@@ -887,6 +892,19 @@ const TriggersPanelAtScale = () => {
     0,
   );
   const sheetGroup = shownGroups.find((group) => group.kind === sheetKind);
+  const filterControl = (
+    <SegmentedControl<ScaleFilter>
+      size="sm"
+      aria-label="Show triggers"
+      items={[
+        { value: "all", label: "All" },
+        { value: "on", label: "On" },
+        { value: "paused", label: "Paused" },
+      ]}
+      value={filter}
+      onChange={setFilter}
+    />
+  );
   const total =
     scaleTotals.schedule.on +
     scaleTotals.schedule.paused +
@@ -1009,15 +1027,19 @@ const TriggersPanelAtScale = () => {
             </>
           ) : (
             <>
-              <span
-                className={css({
-                  textStyle: "sm",
-                  fontWeight: "medium",
-                  color: "neutral.fg.heading",
-                })}
-              >
-                Triggers · {formatCount(total)}
-              </span>
+              {filterOld ? (
+                <span
+                  className={css({
+                    textStyle: "sm",
+                    fontWeight: "medium",
+                    color: "neutral.fg.heading",
+                  })}
+                >
+                  Triggers · {formatCount(total)}
+                </span>
+              ) : (
+                filterControl
+              )}
               <Button
                 size="xs"
                 variant="ghost"
@@ -1029,19 +1051,9 @@ const TriggersPanelAtScale = () => {
             </>
           )}
         </div>
-        <span className={css({ paddingY: "1" })}>
-          <SegmentedControl<ScaleFilter>
-            size="sm"
-            aria-label="Show triggers"
-            items={[
-              { value: "all", label: "All" },
-              { value: "on", label: "On" },
-              { value: "paused", label: "Paused" },
-            ]}
-            value={filter}
-            onChange={setFilter}
-          />
-        </span>
+        {filterOld ? (
+          <span className={css({ paddingY: "1" })}>{filterControl}</span>
+        ) : null}
         {shownGroups.map((group) => {
           if (group.rows.length === 0) {
             return null;
