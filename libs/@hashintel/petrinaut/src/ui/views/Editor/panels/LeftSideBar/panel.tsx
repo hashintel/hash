@@ -2,6 +2,7 @@ import { use, useMemo } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -106,17 +107,24 @@ export const LeftSideBar: React.FC = () => {
     isSearchOpen,
   } = use(EditorContext);
   const { extensions } = use(SDCPNContext);
+  const { provided } = use(CompositionContext);
 
   const { keepPanelsMounted, enableNetComponents } = use(UserSettingsContext);
 
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) =>
-    subView.id === "nets-list"
-      ? extensions.subnets && enableNetComponents
-      : true,
-  );
+  // The Nets list is behind the user's Labs setting; the Components panel
+  // shows whenever the host provides components to list.
+  const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) => {
+    if (subView.id === "nets-list") {
+      return extensions.subnets && enableNetComponents;
+    }
+    if (subView.id === "components") {
+      return extensions.subnets && provided.size > 0;
+    }
+    return true;
+  });
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 

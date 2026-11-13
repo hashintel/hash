@@ -9,6 +9,12 @@ import {
   mapInterfacePorts,
   resolveImplementation,
 } from "./interfaces";
+import {
+  providedComponentSubnetId,
+  resolveProvidedComponents,
+  toInterface,
+  type ProvidedComponent,
+} from "./provided-components";
 
 import type {
   Color,
@@ -120,6 +126,14 @@ const stage = subnet("stage", {
   ],
   parameters: [parameter("stage_rate", "rate")],
 });
+
+/** A component a host provides: one port in, nothing behind it. */
+const packer: ProvidedComponent = {
+  id: "packer",
+  name: "Packer",
+  ports: [{ name: "In", direction: "in" }],
+};
+const packerId = providedComponentSubnetId(packer);
 
 const fast = subnet("fast", {
   implements: ["stage"],
@@ -273,6 +287,20 @@ describe("checkInterfaces", () => {
       { instanceId: "s1", code: "unbound-instance" },
     ]);
     expect(problems[0]?.message).toContain("does not implement stage");
+  });
+
+  it("asks no implementation of an instance of a component the host provides", () => {
+    const sdcpn = net({
+      subnets: [toInterface(packer)],
+      componentInstances: [instance("p1", packerId)],
+    });
+
+    expect(checkInterfaces(sdcpn)).toMatchObject([
+      { instanceId: "p1", code: "unbound-instance" },
+    ]);
+    expect(checkInterfaces(sdcpn, resolveProvidedComponents([packer]))).toEqual(
+      [],
+    );
   });
 
   it("checks instances inside subnets against the document's defaults", () => {
@@ -790,6 +818,17 @@ describe("resolveImplementation", () => {
       kind: "component",
       subnet: { id: "fast" },
     });
+  });
+
+  it("reports an instance of a provided component that names an implementation it cannot run", () => {
+    const sdcpn = net({
+      subnets: [toInterface(packer)],
+      componentInstances: [instance("p1", packerId, "gone")],
+    });
+
+    expect(
+      checkInterfaces(sdcpn, resolveProvidedComponents([packer])),
+    ).toMatchObject([{ instanceId: "p1", code: "unbound-instance" }]);
   });
 });
 

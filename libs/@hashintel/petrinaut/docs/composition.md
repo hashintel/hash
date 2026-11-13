@@ -53,3 +53,11 @@ An instance of an interface runs an **implementation**:
 - An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs, and so does the card on the canvas, under the instance's name.
 
 Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it. The net does not run either while the implementation that is bound falls short of its interface, or while a component holds an instance that runs that same component, directly or through others: both are listed under **Composition**.
+
+## Components the application provides
+
+An application that embeds Petrinaut can provide components of its own. They are listed in the **Components** panel on the left, each with its name and what it does. Click one, then the canvas, to place an instance of it, or drag it from the panel onto the canvas. The cube tool in the bottom toolbar lists them too. Both show without the Net Components setting, and place instances in the root net.
+
+A provided component is a signature: ports and parameters, with no net behind it to open. It is not in the Nets panel, and an instance's properties say that the application provides it. Wire its ports as any others, with fusions and with arcs, and set its parameters on the instance.
+
+What a provided component does is up to the application, so the document holds no net to run for it: simulating a net that uses one stops with an error saying the instance has no implementation. To run it in the editor, give the component an implementation as for any interface: a subnet that ticks it under **Implements**, chosen on the instance.

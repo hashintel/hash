@@ -3,7 +3,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { useInstantiableSubnets } from "../../../../react/state/use-instantiable-subnets";
 
 const tooltipStyle = css({
   position: "fixed",
@@ -25,9 +25,7 @@ const OFFSET_Y = 18;
 
 export const CursorTooltip: React.FC = () => {
   const { editionMode, componentSubnetId } = use(EditorContext);
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
+  const subnets = useInstantiableSubnets();
 
   const [position, setPosition] = useState<{ x: number; y: number } | null>(
     null,
@@ -56,7 +54,7 @@ export const CursorTooltip: React.FC = () => {
   } else if (editionMode === "add-transition") {
     label = "Add Transition";
   } else if (editionMode === "add-component" && componentSubnetId) {
-    const subnet = (subnets ?? []).find(({ id }) => id === componentSubnetId);
+    const subnet = subnets.find(({ id }) => id === componentSubnetId);
     label = subnet ? `Instantiate ${subnet.name}` : null;
   }
 

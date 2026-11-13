@@ -112,6 +112,21 @@ export type {
   DocumentIndex,
   ImplementationBinding,
 } from "./composition/interfaces";
+export type { MutationName } from "./composition/host-rules";
+export {
+  instantiableSubnets,
+  noProvidedInterfaces,
+  providedComponentSubnetId,
+  resolveProvidedComponents,
+  runsAtHost,
+} from "./composition/provided-components";
+export type {
+  ProvidedComponent,
+  ProvidedInterfaces,
+  ProvidedParameter,
+  ProvidedPort,
+  ProvidedTokenType,
+} from "./composition/provided-components";
 export {
   describePortDirection,
   effectivePortDirection,

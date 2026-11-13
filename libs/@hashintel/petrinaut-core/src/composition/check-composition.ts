@@ -8,11 +8,16 @@ import { checkInterfaces, type InterfaceProblem } from "./check-interfaces";
 import { checkPorts, type PortProblem } from "./check-ports";
 
 import type { SDCPN } from "../types/sdcpn";
+import type { ProvidedInterfaces } from "./provided-components";
 
 export type CompositionProblem = FusionProblem | PortProblem | InterfaceProblem;
 
-export const checkComposition = (sdcpn: SDCPN): CompositionProblem[] => [
+/** `provided` are the interfaces a host provides: an instance of one needs no implementation. */
+export const checkComposition = (
+  sdcpn: SDCPN,
+  provided?: ProvidedInterfaces,
+): CompositionProblem[] => [
   ...checkFusions(sdcpn),
   ...checkPorts(sdcpn),
-  ...checkInterfaces(sdcpn),
+  ...checkInterfaces(sdcpn, provided),
 ];
