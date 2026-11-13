@@ -467,7 +467,7 @@ const iconFor: Record<FlowTrigger["kind"], IconName> = {
 
 const groups: { kind: FlowTrigger["kind"]; label: string }[] = [
   { kind: "schedule", label: "Schedules" },
-  { kind: "responsive", label: "When something happens" },
+  { kind: "responsive", label: "Responsive" },
 ];
 
 const TriggersPanelToday = ({ kind }: { kind: GhostKind }) => {
@@ -804,7 +804,7 @@ const scaleGroups: {
   { kind: "schedule", label: "Schedules", rows: scaleSchedules },
   {
     kind: "responsive",
-    label: "When something happens",
+    label: "Responsive",
     rows: scaleResponsive,
   },
 ];

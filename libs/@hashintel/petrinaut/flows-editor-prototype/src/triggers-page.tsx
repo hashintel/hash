@@ -237,7 +237,7 @@ const iconFor: Record<Kind, IconName> = {
 
 const groups: { kind: Kind; label: string }[] = [
   { kind: "schedule", label: "Schedules" },
-  { kind: "responsive", label: "When something happens" },
+  { kind: "responsive", label: "Responsive" },
 ];
 
 const statusText = (trigger: PageTrigger, on: boolean) =>
@@ -775,7 +775,7 @@ const AddMenu = ({
       },
       {
         id: "responsive",
-        text: "When something happens",
+        text: "Responsive",
         description: "Runs when an entity is created or updated",
         icon: "cube",
         onClick: () => onPick("responsive"),
