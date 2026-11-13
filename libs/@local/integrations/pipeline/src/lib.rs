@@ -3,6 +3,7 @@
     const_array,
     const_closures,
     const_trait_impl,
+    ip,
     type_info,
     variant_count
 )]
@@ -35,7 +36,10 @@ pub use self::{
         RunContext, RunId, RunInput, RunRequest, SendSettings, StageError, SystemClock, Target,
         start,
     },
-    sources::SecretValue,
+    sources::{
+        CaptureLimits, CaptureRun, CaptureStore, CapturedSource, GraphVaultConfig,
+        GraphVaultSecretStore, SecretService, SecretStore, SecretValue, SourceError, SourceReader,
+    },
     storage::{
         ArtifactError, ArtifactKey, ArtifactNamespace, ArtifactRef, ArtifactRefV1, ArtifactStorage,
         Format, S3Bucket,

@@ -1,4 +1,5 @@
 //! Shared behavioral fixtures and foundation acceptance checks.
+mod capture;
 mod current;
 mod error;
 pub(crate) mod fixtures;

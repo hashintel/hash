@@ -41,13 +41,6 @@ pub struct ArtifactStorage {
     /// The directory that run staging directories are created in.
     staging: PathBuf,
     /// The local directory artifacts are kept or staged in.
-    #[cfg_attr(
-        test,
-        expect(
-            dead_code,
-            reason = "the source reader consumes the directory accessor at the capture milestone"
-        )
-    )]
     directory: PathBuf,
     /// Only local backends use locked filesystem compare-and-replace.
     local_root: Option<PathBuf>,
@@ -103,13 +96,6 @@ impl ArtifactStorage {
     }
 
     /// Returns the canonical path of the local directory artifacts are kept or staged in.
-    #[cfg_attr(
-        test,
-        expect(
-            dead_code,
-            reason = "the source reader consumes this accessor at the capture milestone"
-        )
-    )]
     pub(crate) fn directory(&self) -> Result<PathBuf, Report<ArtifactError>> {
         self.directory
             .canonicalize()

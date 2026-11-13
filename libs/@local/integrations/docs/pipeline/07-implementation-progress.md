@@ -35,14 +35,32 @@ Expected fixtures derive from the reviewed scenario rows, fixed UUID vectors, sc
 | Milestone | State | Acceptance evidence |
 | --- | --- | --- |
 | Spec/baseline checkpoint | Accepted: `da117f9d4e` | Clean initial tree; agreed spec SHA recorded; ownership and placement settled; documentation consistency and staged `git diff --check` passed |
-| Shared foundation | Accepted; commit follows this record | 135/135 nextest tests passed (zero skipped); clippy/rustdoc/doc tests/format/diff checks passed; coordinator inspected logs and frozen diff; Astra approved with no blocking findings |
-| Stage 1: Capture | Pending | Apply/adopt/time/empty/retry/error cases and reviewed capture fixtures |
+| Shared foundation | Accepted: `295615fa24` | 135/135 nextest tests passed (zero skipped); clippy/rustdoc/doc tests/format/diff checks passed; coordinator inspected logs and frozen diff; Astra approved with no blocking findings |
+| Stage 1: Capture | Accepted; commit follows this record | 267/267 combined nextest tests passed, zero skipped; clippy/rustdoc/doc tests/format passed; coordinator fixture seam verified; Astra approved with no blocking findings |
 | Stage 2: Hash and diff | Pending | `prepare_rows` then diff; IDs/hashes, reserved inputs, guards, resend, numeric publication; actual stage-1 output |
 | Stage 3: Plan writes | Pending | Exact request JSON/order/batches/property removal; actual stage-2 output and fresh-scratch fixture resume |
 | Stage 4: Send and commit | Pending | Delivery/fallback/rejection/current authority/takeover/replay; S1–S9 and required HTTP Graph cases |
 | Final integration | Pending | Combined verification, same pipeline from both entry points, unchanged existing sources, deferred-findings reconciliation; commit resulting fixes |
 
 ## Active assignment
+
+Stage 1 assignment, base `295615fa24b3a42c845ce933327f2e96ddaeb3d3`:
+
+- Builder `capture_builder`: own stage-1 implementation, source adapters and stage-1 behavioral tests inside the new crate. Read the complete capture spec and relevant contracts, review findings, guidelines and Rust skills. Implement apply/adopt, source binding reuse, one capture time, valid empty output, retry/publication/error rules, and workspace lifecycle. Shared API changes require coordinator agreement; no later-stage implementation or edits to existing crates.
+- Coordinator: retain shared API, fixture and acceptance ownership; inspect actual output against independent expected source rows. Required tests cover real capture with source reads, retries and winning markers, empty/adopted outputs, invalid decimal before publication, and specific error classification. Existing valuable regressions remain.
+- Independent reviewer `foundation_review` (Astra), reused after builder verification: review actual diff against this base, challenge mandatory behavior and seam coverage, run targeted checks, and verify any fixes. No edits or commits.
+- Gate: targeted behavioral/seam tests plus the combined crate suite, all-feature/all-target clippy, rustdoc/doc tests, formatting and diff checks; no unresolved blocking review finding; commit before stage 2 starts.
+
+### Capture acceptance evidence
+
+- Coordinator added `src/run/tests/capture.rs`, comparing actual D0 capture to independent expected schemas and ordered rows after deleting producer scratch. The consumer uses a fresh workspace and replays the durable capture marker. Its targeted `cargo test --package hash-integrations-pipeline --lib run::tests::capture::capture_matches_independent_checkpoint_on_fresh_scratch -- --exact` passed (one test). The full frozen candidate remains to be verified/reviewed.
+- Builder's initial 15 focused capture tests passed. They cover marker precedence/races, capture-time ordering, variables/checkpoint omission, valid empty schema, partial retry reuse, local reuse, adoption/empty restore, malformed input, missing credentials and multi-batch/nested numeric failure before publication. Log: `/tmp/pipeline-capture-stage-tests.log`.
+- Shared API decisions: add the five stage-1 `Code` variants and extract `artifact_code` beside existing `capture_code`/`statement_code`, preserving a single classification policy. Numeric invalidity takes precedence through wrapper frames. No workspace interface change. Stage-2-rows sections 4.2/5 supersede the older stage-1 staging sketch: source readers expose capture only; `prepare_rows` owns loading/staging, and copied source regressions call workspace staging explicitly.
+- Combined `cargo nextest run -p hash-integrations-pipeline --all-features`: **267/267 passed, zero skipped** (18.983 s), including real PostgreSQL capture and MinIO tests. Coordinator inspected `/tmp/pipeline-capture-nextest.log` and the actual adapted source diff. The initial copied PostgreSQL test fixture selected IPv6 for a mapped IPv4 port; its host resolution now explicitly selects IPv4, without changing production destination policy, and both targeted and combined checks passed.
+- All-feature/all-target/no-deps clippy passed with zero crate warnings; rustdoc and doc tests (zero examples) passed. Coordinator inspected `/tmp/pipeline-capture-{clippy-final,doc,doctest}.log`. Existing implementation sources remain unchanged against `feb96672c5`. Review acceptance remains pending.
+- Frozen rerun `/tmp/pipeline-capture-nextest-final.log`: **267 passed, zero skipped** (20.495 s), with one nextest `LEAK` output-handle flag on the canonical capture seam. The earlier combined run and targeted `/tmp/pipeline-capture-seam-recheck.log` were clean. Both producer and consumer explicitly close workspaces; no subprocess is launched by that seam. This observation is assigned to Astra review before acceptance, not silently discarded. Formatting and staged diff checks passed; staged source diff SHA-256 excluding this record is `c7c526c03db689d20ffb0a4fda43b80c510ea79a31e766111b3e96a6a0a1354f`.
+- Leak investigation: `cargo nextest` resolves the repository's mise-pinned **0.9.137**, while `/Users/pauletscheit/.cargo/bin/cargo-nextest` is **0.9.151**. The [official 0.9.145 changelog](https://nexte.st/changelog/) fixes Apple sibling-test capture-pipe inheritance causing false leaked-handle reports. Ten targeted stress iterations passed cleanly (`/tmp/pipeline-capture-seam-stress.log`); the exact frozen full suite under the already-installed 0.9.151 passed **267/267, zero skipped, no leak flags** (19.412 s; `/tmp/pipeline-capture-nextest-0.9.151.log`). No repository tool pin, leak timeout, or candidate code changed. Astra inspected the close paths and treated the isolated flag as a nonblocking runner observation; the earlier flagged result remains recorded.
+- Astra approved the actual staged candidate against `295615fa24` with no blocking findings or required changes, independently rerunning 15 stage tests and three source-adapter tests. Coordinator verified the unchanged source hash, clean working-versus-staged implementation, check logs, independent fixture seam, and original-source preservation. Capture is accepted; no stage-2 implementation preceded this acceptance checkpoint.
 
 Baseline preparation only. Read-only contract audits were assigned to `baseline_audit`, `capture_rows_contract_audit`, and `diff_plan_send_contract_audit`. The coordinator read overview, contracts, scenarios, shared-run, workflow, review/change findings and historical verification, applicable AGENTS, Rust design guidelines, and Rust/Git skills. Audit agents read all stage specs in full before implementation.
 
@@ -54,7 +72,7 @@ Foundation assignment, base `da117f9d4e`:
 - Independent reviewer `foundation_review` (Astra): after build/test evidence, review the actual diff against the baseline, challenge missing behavioral/resource/seam coverage, verify fixes, and report blocking findings separately. No edits or commits.
 - Acceptance: marker winning/reuse including equivalent tables; `start` input stability; current-state authority and bounded CAS; separate-process local create/update races and real MinIO conditional transitions; valid/invalid/unsigned/nested decimal export before publication; bounded RowFile and valid empty schemas; independently executable expected fixtures; nextest, doc tests, all-feature/all-target clippy, rustdoc, formatting and diff checks. No skipped required test satisfies this gate.
 
-The shared foundation is accepted. Later implementation milestones remain pending.
+The shared foundation and Capture are accepted. Later implementation milestones remain pending.
 
 ### Foundation acceptance evidence
 

@@ -56,6 +56,16 @@ pub enum Code {
     DataInvalid,
     #[display("row_invalid")]
     RowInvalid,
+    #[display("source_configuration")]
+    SourceConfiguration,
+    #[display("source_credentials")]
+    SourceCredentials,
+    #[display("source_response")]
+    SourceResponse,
+    #[display("source_unavailable")]
+    SourceUnavailable,
+    #[display("secret_unavailable")]
+    SecretUnavailable,
 }
 
 impl Code {
@@ -80,6 +90,11 @@ impl Code {
         Self::QueryInvalid,
         Self::DataInvalid,
         Self::RowInvalid,
+        Self::SourceConfiguration,
+        Self::SourceCredentials,
+        Self::SourceResponse,
+        Self::SourceUnavailable,
+        Self::SecretUnavailable,
     ];
 
     /// The persisted diagnostic text.
@@ -105,6 +120,11 @@ impl Code {
             Self::QueryInvalid => "query_invalid",
             Self::DataInvalid => "data_invalid",
             Self::RowInvalid => "row_invalid",
+            Self::SourceConfiguration => "source_configuration",
+            Self::SourceCredentials => "source_credentials",
+            Self::SourceResponse => "source_response",
+            Self::SourceUnavailable => "source_unavailable",
+            Self::SecretUnavailable => "secret_unavailable",
         }
     }
 
@@ -112,9 +132,11 @@ impl Code {
     #[must_use]
     pub const fn kind(self) -> StageError {
         match self {
-            Self::StorageUnavailable | Self::ScratchUnavailable | Self::WorkspaceUnavailable => {
-                StageError::Retryable
-            }
+            Self::StorageUnavailable
+            | Self::ScratchUnavailable
+            | Self::WorkspaceUnavailable
+            | Self::SourceUnavailable
+            | Self::SecretUnavailable => StageError::Retryable,
             Self::InvalidDefinition
             | Self::TargetMissing
             | Self::NothingCommitted
@@ -130,7 +152,10 @@ impl Code {
             | Self::StoredJsonInvalid
             | Self::QueryInvalid
             | Self::DataInvalid
-            | Self::RowInvalid => StageError::Permanent,
+            | Self::RowInvalid
+            | Self::SourceConfiguration
+            | Self::SourceCredentials
+            | Self::SourceResponse => StageError::Permanent,
         }
     }
 
@@ -151,12 +176,14 @@ impl Code {
     }
 }
 
-pub(crate) fn artifact(report: Report<ArtifactError>) -> Report<StageError> {
-    let code = match report.current_context() {
+pub(crate) const fn artifact_code(error: ArtifactError) -> Code {
+    match error {
         ArtifactError::Mismatch => Code::StorageMismatch,
         ArtifactError::Read | ArtifactError::Write => Code::StorageUnavailable,
-    };
-    code.wrap(report)
+    }
+}
+pub(crate) fn artifact(report: Report<ArtifactError>) -> Report<StageError> {
+    artifact_code(*report.current_context()).wrap(report)
 }
 pub(crate) const fn statement_code(error: &StatementError) -> Code {
     match error {

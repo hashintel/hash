@@ -28,13 +28,6 @@ impl fmt::Display for Identifier<'_> {
 }
 
 /// Quotes `value` as a DuckDB string literal.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "literal encoding is consumed by the later stage SQL adapters"
-    )
-)]
 pub(crate) fn literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }

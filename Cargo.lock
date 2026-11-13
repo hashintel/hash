@@ -7123,13 +7123,18 @@ name = "hash-integrations-pipeline"
 version = "0.0.0"
 dependencies = [
  "arrow-array",
+ "axum",
+ "backon",
  "bytes",
  "derive_more",
  "duckdb",
  "error-stack",
  "futures-util",
  "hash-crypto",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hash-integrations-definition",
+ "hash-middleware",
  "hex",
  "object_store",
  "opentelemetry",
@@ -7137,6 +7142,7 @@ dependencies = [
  "parquet",
  "pretty_assertions",
  "proptest",
+ "reqwest 0.13.4",
  "rstest",
  "serde",
  "serde_json",
@@ -7148,7 +7154,9 @@ dependencies = [
  "tokio",
  "tracing",
  "type-system",
+ "url",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
