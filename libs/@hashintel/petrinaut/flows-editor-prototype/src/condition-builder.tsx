@@ -399,16 +399,30 @@ export const fullChipStyle = css({
     height: "[auto]",
     alignItems: "stretch",
   },
+  // A long attribute or operator wraps at words inside its own share instead of squeezing the value to a letter column.
+  "& [role=group][data-property] > span:not([data-part])": {
+    maxWidth: "[38%]",
+    minWidth: "[0]",
+    whiteSpace: "normal",
+    alignItems: "flex-start",
+  },
+  "& [role=group][data-property] > span:not([data-part]) *": {
+    whiteSpace: "normal",
+    overflowWrap: "break-word",
+    textAlign: "left",
+  },
   "& [role=group][data-property] > [data-part=input-slot]": {
     flex: "1",
+    minWidth: "[34%]",
     maxWidth: "[none]",
   },
   "& [data-part=input-slot] *": {
     whiteSpace: "normal",
     textOverflow: "clip",
-    overflowWrap: "anywhere",
+    overflowWrap: "break-word",
     textAlign: "left",
     justifyContent: "flex-start",
+    alignItems: "flex-start",
   },
   "& [data-part=input-slot] button, & [data-part=input-slot] [data-part=trigger]": {
     height: "[auto]",
