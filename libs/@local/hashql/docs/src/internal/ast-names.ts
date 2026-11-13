@@ -192,6 +192,12 @@ export const external = (
     Effect.as(symbol as AST.ExternalItem.InternedSymbol),
   );
 
+/** Whether `node` declares a member its class keeps to itself. */
+const isPrivateMember = (node: Syntax.Declaration): boolean =>
+  !Syntax.isSourceFile(node) &&
+  Syntax.isClassLikeDeclaration(node.parent) &&
+  TypeScript.Node.isPrivate(node);
+
 type ParseDeclaration<E, R> = (
   symbol: CompilerSymbol,
 ) => Effect.Effect<AST.Declaration.Interned, E, R>;
@@ -252,10 +258,14 @@ export const reach = Effect.fnUntraced(function* <E, R>(
   }
 
   if (Option.isSome(building)) {
-    return yield* AST.ParseError.unreservedReference({
-      name: symbol.name,
-      owner: building.value.name,
-    });
+    // A class keeps a private member out of the AST, so a name that reaches one reads like a name outside the package.
+    const declarations = yield* program.declarations(symbol);
+    if (!Array.every(declarations, isPrivateMember)) {
+      return yield* AST.ParseError.unreservedReference({
+        name: symbol.name,
+        owner: building.value.name,
+      });
+    }
   }
 
   // A symbol the package declares in syntax the AST does not hold reads like one outside the package.
