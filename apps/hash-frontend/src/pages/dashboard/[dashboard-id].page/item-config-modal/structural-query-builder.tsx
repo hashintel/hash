@@ -331,7 +331,7 @@ const useBuilderOptions = (): BuilderOptions => {
   const { latestEntityTypes, isSpecialEntityTypeLookup } =
     useLatestEntityTypesOptional();
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
-  const { dataTypes, loading: dataTypesLoading } = useDataTypesContext();
+  const { dataTypes } = useDataTypesContext();
 
   const entityTypeItems = useMemo<SelectItem[]>(
     () =>
@@ -393,7 +393,7 @@ const useBuilderOptions = (): BuilderOptions => {
     entityTypesLoading: latestEntityTypes === null,
     propertyItems,
     propertyOptions,
-    propertiesLoading: !propertyTypes || dataTypesLoading,
+    propertiesLoading: !propertyTypes || !dataTypes,
   };
 };
 
