@@ -262,9 +262,11 @@
   max-width: 50rem;
 }
 
+/* The declaration's column is as wide as a declaration's longest line can be: the 80 columns a signature is printed to, with its number before it and its button and a source link after it. The description keeps at least 24rem beside it. */
+
 @container (min-width: 64rem) {
   .api-export-body {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(24rem, 1fr) minmax(0, 46rem);
   }
 
   .api-export-body > .api-comment > .api-description {
