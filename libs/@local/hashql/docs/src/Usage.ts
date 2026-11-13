@@ -99,6 +99,7 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
 
   const notes = Array.flatMap(catalogue.entries, (entry) => {
     const parts = Parts.of(ast, entry);
+    const apart = Parts.documented(ast, entry)._tag === "Apart";
     const callers = Array.prepend(
       Array.map(Parts.members(parts, { ast, entry }), (member) => ({
         user: member.id,
@@ -143,8 +144,10 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
                 user,
               })),
             ),
-            // A function merged with the type it returns names its own declaration, which is not a use of it.
-            Array.filter(({ id }) => user !== id),
+            // A declaration whose own calls name it does not use itself, as a function that returns `typeof` itself. A value declared apart from its type does use that type.
+            Array.filter(
+              ({ id, meaning }) => user !== id || (apart && meaning === "type"),
+            ),
           );
         }),
       ),
