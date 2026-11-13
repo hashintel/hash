@@ -92,6 +92,33 @@ backend = "cargo:cargo-hack"
 version = "1.47.2"
 backend = "cargo:cargo-insta"
 
+[[tools.d2]]
+version = "0.8.2"
+backend = "aqua:d2lang/d2"
+
+[tools.d2."platforms.linux-arm64"]
+checksum = "sha256:bf1585cebf8496690668dc135dfd469068e3ae3eb38cecdc1f7d7835cdbc1228"
+checksum_source = "mise-versions"
+url = "https://github.com/d2lang/d2/releases/download/v0.8.2/d2-v0.8.2-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/d2lang/d2/releases/assets/527960112"
+
+[tools.d2."platforms.linux-x64"]
+checksum = "sha256:0ea49e35f17c3ac00ffa5d0a1fa571f5c344cd38127dbaa4bf6158fcd0c7bfb0"
+checksum_source = "mise-versions"
+url = "https://github.com/d2lang/d2/releases/download/v0.8.2/d2-v0.8.2-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/d2lang/d2/releases/assets/527960359"
+
+[tools.d2."platforms.macos-arm64"]
+checksum = "sha256:73ddb07c636bd5c5723e4bf8569a90b7329ea35dc32af2155650e1f572e823b2"
+url = "https://github.com/d2lang/d2/releases/download/v0.8.2/d2-v0.8.2-macos-arm64.tar.gz"
+url_api = "https://api.github.com/repos/d2lang/d2/releases/assets/527960107"
+
+[tools.d2."platforms.macos-x64"]
+checksum = "sha256:6c7b7a09278b131664cbc5e715dac0ee849c3f785ffc9dfaab2df6b1f91bf8ed"
+checksum_source = "mise-versions"
+url = "https://github.com/d2lang/d2/releases/download/v0.8.2/d2-v0.8.2-macos-amd64.tar.gz"
+url_api = "https://api.github.com/repos/d2lang/d2/releases/assets/527960110"
+
 [[tools."github:WebAssembly/binaryen"]]
 version = "version_131"
 backend = "github:WebAssembly/binaryen"
@@ -341,13 +368,6 @@ url_api = "https://api.github.com/repos/typst/typst/releases/assets/480299147"
 checksum = "sha256:7f9fdd9584866245de9a79e0add8f9236fae6f40a8a45e2c4771ccc14db4e0fa"
 url = "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-apple-darwin.tar.xz"
 url_api = "https://api.github.com/repos/typst/typst/releases/assets/480300018"
-
-[[tools."ubi:terrastruct/d2"]]
-version = "0.9.0"
-backend = "ubi:terrastruct/d2"
-
-[tools."ubi:terrastruct/d2"."platforms.macos-arm64-d2"]
-checksum = "blake3:f2105f786f3125f6f6f91681e2020ae0ebacd5885a1c0898329b5a45b6563ea9"
 
 [[tools.uv]]
 version = "0.13.6"
