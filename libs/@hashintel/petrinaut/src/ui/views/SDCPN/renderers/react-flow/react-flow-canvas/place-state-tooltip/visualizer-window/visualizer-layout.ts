@@ -187,10 +187,45 @@ const edgePoint = (box: Rect, target: Rect, cornerRadius: number) => {
   ).point;
 };
 
-export const getVisualizerConnector = (node: Rect, panel: Rect) =>
-  intersectionArea(node, panel) > 0
-    ? null
-    : {
-        start: edgePoint(node, panel, Math.min(node.width, node.height) / 2),
-        end: edgePoint(panel, node, 14),
-      };
+export const getVisualizerAnchor = (node: Rect, panel: Rect): XYPosition => {
+  const border = edgePoint(node, panel, Math.min(node.width, node.height) / 2);
+  const clearance = (point: XYPosition) =>
+    Math.hypot(
+      Math.max(panel.x - point.x, 0, point.x - panel.x - panel.width),
+      Math.max(panel.y - point.y, 0, point.y - panel.y - panel.height),
+    );
+  if (clearance(border) >= 10) return border;
+
+  const center = { x: node.x + node.width / 2, y: node.y + node.height / 2 };
+  const exposed = Array.from({ length: 16 }, (_, index) => {
+    const angle = (index * Math.PI) / 8;
+    return edgePoint(
+      node,
+      {
+        x: center.x + Math.cos(angle),
+        y: center.y + Math.sin(angle),
+        width: 0,
+        height: 0,
+      },
+      Math.min(node.width, node.height) / 2,
+    );
+  }).reduce(
+    (best, point) => (clearance(point) > clearance(best) ? point : best),
+    center,
+  );
+  if (clearance(exposed) < 10) return center;
+
+  // Slide onto the exposed part of the place, leaving room for the dot and a short neck.
+  let lower = 0;
+  let upper = 1;
+  const interpolate = (fraction: number) => ({
+    x: border.x + (exposed.x - border.x) * fraction,
+    y: border.y + (exposed.y - border.y) * fraction,
+  });
+  for (let index = 0; index < 16; index++) {
+    const middle = (lower + upper) / 2;
+    if (clearance(interpolate(middle)) < 10) lower = middle;
+    else upper = middle;
+  }
+  return interpolate(upper);
+};

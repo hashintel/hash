@@ -238,7 +238,7 @@ it("keeps keyboard manipulation open and closes with Escape, returning focus to 
   expect(document.activeElement).toBe(source);
 });
 
-it("keeps its screen position when explicitly fixed, while updating the connector", () => {
+it("keeps its screen position when explicitly fixed, while reshaping the bubble", () => {
   const { rerender } = render(panel());
   fireEvent.click(
     screen.getByRole("button", { name: "Fix position on screen" }),
@@ -253,7 +253,9 @@ it("keeps its screen position when explicitly fixed, while updating the connecto
     visualizer.style.height,
   ];
   expect(visualizer.parentElement?.className).toBe("react-flow__renderer");
-  const initialConnector = canvas.domNode?.querySelector("line")?.outerHTML;
+  const initialConnector = canvas.domNode?.querySelector(
+    "[data-visualizer-bubble] path",
+  )?.outerHTML;
   expect(initialConnector).toBeDefined();
 
   canvas.node.internals.positionAbsolute = { x: 750, y: 600 };
@@ -267,9 +269,9 @@ it("keeps its screen position when explicitly fixed, while updating the connecto
     visualizer.style.height,
   ]).toEqual(initialBounds);
   expect(visualizer.style.transform).toBe("");
-  expect(canvas.domNode?.querySelector("line")?.outerHTML).not.toBe(
-    initialConnector,
-  );
+  expect(
+    canvas.domNode?.querySelector("[data-visualizer-bubble] path")?.outerHTML,
+  ).not.toBe(initialConnector);
 });
 
 it("keeps the window visible when the container shrinks or panels open, restoring its preferred layout when space returns", () => {
