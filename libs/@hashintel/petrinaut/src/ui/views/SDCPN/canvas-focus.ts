@@ -267,6 +267,13 @@ export const resolveCanvasFocus = ({
 
   const isFocused = (id: string) =>
     focusIds.has(id) || selectedCanvasIds.has(id);
+  // A selected fusion is drawn by its links: they stay lit with it while the
+  // pointer is on something else.
+  const selectedLinkIds = new Set(
+    [...selectedCanvasIds].flatMap(
+      (id) => adjacency.fusionParts.get(id)?.linkIds ?? [],
+    ),
+  );
 
   return {
     active: true,
@@ -290,7 +297,7 @@ export const resolveCanvasFocus = ({
     },
 
     arcFocus: (id) => {
-      if (isFocused(id)) {
+      if (isFocused(id) || selectedLinkIds.has(id)) {
         return "focused";
       }
       const intoFocus = incoming.has(id);
