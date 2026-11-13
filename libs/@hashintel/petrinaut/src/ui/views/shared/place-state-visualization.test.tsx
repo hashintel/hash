@@ -13,9 +13,17 @@ import { afterEach, expect, it, vi } from "vitest";
 import { lowerVisualizerToHir } from "@hashintel/petrinaut-core/view-hir";
 
 import {
+  emptyExecutionFrameSource,
+  ExecutionFrameSourceContext,
+} from "../../../react/execution-frame/context";
+import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../react/lsp/context";
+import {
+  DEFAULT_SIMULATION_CONTEXT,
+  SimulationContext,
+} from "../../../react/simulation/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { PlaceStateVisualization } from "./place-state-visualization";
 
@@ -113,6 +121,62 @@ it("keeps the last drawing visible until the newest compilation completes", asyn
   expect(screen.getByText("Third picture")).toBeDefined();
   expect(screen.queryByText("First picture")).toBeNull();
   expect(screen.queryByRole("status")).toBeNull();
+});
+
+it("draws one mark per token of a place with no type, before a run and during one", async () => {
+  const code =
+    'return <Visualizer.Svg viewBox="0 0 400 200"><text>{tokens.length} in stock</text>{tokens.map((_, index) => <circle key={index} cx={20 + index * 20} cy={20} r={8} />)}</Visualizer.Svg>;';
+  const requestVisualizerHir = vi.fn(() =>
+    Promise.resolve(
+      lowerVisualizerToHir(code, {
+        surface: "visualizer",
+        parameters: [],
+        elements: null,
+      }),
+    ),
+  );
+  const Harness = ({ frameCount }: { frameCount?: number }) => (
+    <LanguageClientContext
+      value={{ ...DEFAULT_LANGUAGE_CLIENT_CONTEXT, requestVisualizerHir }}
+    >
+      <SimulationContext
+        value={{ ...DEFAULT_SIMULATION_CONTEXT, initialMarking: { place: 3 } }}
+      >
+        <ExecutionFrameSourceContext
+          value={
+            frameCount === undefined
+              ? emptyExecutionFrameSource
+              : {
+                  ...emptyExecutionFrameSource,
+                  totalFrames: 1,
+                  currentFrameReader: {
+                    number: 0,
+                    time: 0,
+                    getPlaceTokenCount: () => frameCount,
+                    getPlaceTokens: () => [],
+                    getTransitionState: () => null,
+                    toFrameState: () => ({ number: 0, places: {} }),
+                  },
+                }
+          }
+        >
+          <PlaceStateVisualization
+            place={{ ...place, colorId: null, visualizerCode: code }}
+            placeType={null}
+            size={{ width: 400, height: 240 }}
+          />
+        </ExecutionFrameSourceContext>
+      </SimulationContext>
+    </LanguageClientContext>
+  );
+
+  const { rerender, container } = await act(() => render(<Harness />));
+  expect(screen.getByText("3 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(3);
+
+  await act(async () => rerender(<Harness frameCount={5} />));
+  expect(screen.getByText("5 in stock")).toBeDefined();
+  expect(container.querySelectorAll("circle")).toHaveLength(5);
 });
 
 it("shows a compilation error only when ready and recovers on the next edit", async () => {
