@@ -204,6 +204,18 @@ export interface Listed {
   readonly own: Tree.Export.Own;
 }
 
+/** The value a name exports where it is declared apart from its type, or none for a name that exports the type alone. The canonical name documents the value whatever it exports itself. */
+const valueOf = (
+  exported: Placement.Export,
+  context: Exports,
+): Option.Option<Tree.Export.Own> => {
+  if (exported.typeOnlyExport && !exported.canonical) {
+    return Option.none();
+  }
+
+  return HashMap.get(context.values, exported.target);
+};
+
 /** What a namespace lists for the names it exports: each name's export, or its type's and then its value's where the two are declared apart. */
 export const listed =
   (context: Exports) =>
@@ -211,7 +223,7 @@ export const listed =
     Array.flatMap(exports, (exported) =>
       pipe(
         Array.prepend(
-          Option.toArray(HashMap.get(context.values, exported.target)),
+          Option.toArray(valueOf(exported, context)),
           entryAt(exported.target, context),
         ),
         Array.map((own): Listed => ({ exported, own })),
