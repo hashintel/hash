@@ -188,14 +188,17 @@ const typeParameterHead = Effect.fnUntraced(function* ({
   });
 });
 
-/** The name of the function, method or other signature that `declaration` declares, as quick info writes it where `name` stands, or nothing for one that has no name, such as a call signature. */
+/** What quick info writes before the signature that `declaration` declares, where `name` stands: the name of a function or a method, `new` for a construct signature, and nothing for one that has no name, such as a call signature. */
 const functionName = Effect.fnUntraced(function* (
   declaration: SignatureDeclaration,
   name: Identifier,
 ) {
+  if (declaration.kind === SyntaxKind.ConstructSignature) {
+    return ["new "];
+  }
+
   if (
     declaration.kind === SyntaxKind.CallSignature ||
-    declaration.kind === SyntaxKind.ConstructSignature ||
     !Predicate.hasProperty(declaration, "name") ||
     Predicate.isUndefined(declaration.name)
   ) {
@@ -251,7 +254,12 @@ export const typeParameter = Effect.fnUntraced(function* (
   const written = yield* Values.signed(
     Values.line(`${head} in `, label),
     signature,
-    { name, kind: SyntaxKind.CallSignature },
+    {
+      name,
+      kind: signature.isConstruct
+        ? SyntaxKind.ConstructSignature
+        : SyntaxKind.CallSignature,
+    },
   );
 
   return [written];

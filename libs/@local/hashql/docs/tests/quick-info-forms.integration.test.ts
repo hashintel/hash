@@ -25,6 +25,12 @@ export declare class Thing<T> {
 export declare class Options {
   constructor(options: { readonly from: string; where?: [string, number] });
 }
+export interface First { a: number; b: string; }
+export interface Second { a: number; c: number; }
+export declare function either(value: First | Second): void;
+export interface Circle { kind: "circle"; radius: number; }
+export interface Square { kind: "square"; side: number; }
+export declare function draw(shape: Circle | Square): void;
 export declare namespace Space {
   const value: number;
   namespace Inner { type Kind = string; }
@@ -249,6 +255,47 @@ new Options({ from: "x", where: ["a", 1] });`);
         );
       }),
     );
+
+    it.effect(
+      "expected_union",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`import { either, draw } from "./declarations.js";
+either({ a: 1, b: "x" });
+draw({ kind: "circle", radius: 1 });
+draw({ kind: "square", side: 2 });`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["a", "(property) a: number"],
+            ["b", "(property) First.b: string"],
+            ["kind", '(property) Circle.kind: "circle"'],
+            ["radius", "(property) Circle.radius: number"],
+            ["kind", '(property) Square.kind: "square"'],
+            ["side", "(property) Square.side: number"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "holder_constraint",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`import type { Space } from "./declarations.js";
+interface Boxed<T extends Space.Inner.Kind = Space.Inner.Kind> { value: T; }`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["Boxed", "interface Boxed<T extends string = string>"],
+            [
+              "value",
+              "(property) Boxed<T extends Space.Inner.Kind = string>.value: T",
+            ],
+          ]),
+        );
+      }),
+    );
   });
 
   describe("meanings", () => {
@@ -343,6 +390,26 @@ Nested.leaf;`);
 import { missing } from "missing-package";
 missing;`);
         expect(names).toStrictEqual([]);
+      }),
+    );
+
+    it.effect(
+      "import_alias",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`import * as all from "./declarations.js";
+import Unit = all.measure.Unit;
+import Merged = all.Shape;`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["measure", "namespace measure"],
+            ["Unit", "type measure.Unit = string"],
+            [
+              "Shape",
+              "const Shape: {\n    make(): Merged;\n}\ninterface Shape",
+            ],
+          ]),
+        );
       }),
     );
   });
@@ -513,6 +580,40 @@ function generic<Input extends string>(input: Input): Input { return input; }`);
               "(type parameter) Input extends string in generic<Input extends string>(input: Input): Input",
             ],
             ["field", "(property) Generic<T extends object = {}>.field: T"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "construct_signatures",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names =
+          yield* inspect(`interface Construct { new <T>(value: T): Construct; }
+type Constructor = new <U>(value: U) => object;`);
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["T", "(type parameter) T in new new <T>(value: T): Construct"],
+            ["U", "(type parameter) U in new <U>(value: U): object"],
+          ]),
+        );
+      }),
+    );
+
+    it.effect(
+      "enum_strings",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(
+          `enum Quoted { Said = "say \\"hi\\"", Back = "back\\\\slash", Bell = "\\u0007", Line = "a\\nb" }`,
+        );
+        expect(names).toStrictEqual(
+          expect.arrayContaining([
+            ["Said", String.raw`(enum member) Quoted.Said = "say \"hi\""`],
+            ["Back", String.raw`(enum member) Quoted.Back = "back\\slash"`],
+            ["Bell", String.raw`(enum member) Quoted.Bell = "\u0007"`],
+            ["Line", String.raw`(enum member) Quoted.Line = "a\nb"`],
           ]),
         );
       }),
