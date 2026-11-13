@@ -7119,6 +7119,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-graph-tests"
+version = "0.0.0"
+dependencies = [
+ "hash-crypto",
+ "hash-graph-authorization",
+ "hash-graph-postgres-store",
+ "hash-graph-store",
+ "hash-graph-test-data",
+ "hash-integrations-definition",
+ "hash-integrations-engine",
+ "insta",
+ "pretty_assertions",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "type-system",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [

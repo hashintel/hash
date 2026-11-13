@@ -1,0 +1,256 @@
+---
+source: tests/integrations/graph/aviation/mod.rs
+expression: snapshot
+---
+{
+  "aircraft/N100": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "link": null,
+    "properties": {
+      "https://example.com/@demo/types/property-type/empty-mass/": 69000.0,
+      "https://example.com/@demo/types/property-type/first-flight/": "1957-07-15",
+      "https://example.com/@demo/types/property-type/model/": "L-1049"
+    },
+    "propertyMetadata": {
+      "value": {
+        "https://example.com/@demo/types/property-type/empty-mass/": {
+          "metadata": {
+            "canonical": {
+              "https://example.com/@demo/types/data-type/pound/": 69000.0
+            },
+            "dataTypeId": "https://example.com/@demo/types/data-type/pound/v/1",
+            "originalDataTypeId": "https://example.com/@demo/types/data-type/pound/v/1"
+          }
+        },
+        "https://example.com/@demo/types/property-type/first-flight/": {
+          "metadata": {
+            "canonical": {
+              "https://example.com/@demo/types/data-type/date/": "1957-07-15"
+            },
+            "dataTypeId": "https://example.com/@demo/types/data-type/date/v/1",
+            "originalDataTypeId": "https://example.com/@demo/types/data-type/date/v/1"
+          }
+        },
+        "https://example.com/@demo/types/property-type/model/": {
+          "metadata": {
+            "canonical": {
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "L-1049"
+            },
+            "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  },
+  "aircraft/SE-XXX": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/aircraft/v/1"
+    ],
+    "link": null,
+    "properties": {
+      "https://example.com/@demo/types/property-type/empty-mass/": 8030.0,
+      "https://example.com/@demo/types/property-type/first-flight/": "1946-04-02",
+      "https://example.com/@demo/types/property-type/model/": "DC-3"
+    },
+    "propertyMetadata": {
+      "value": {
+        "https://example.com/@demo/types/property-type/empty-mass/": {
+          "metadata": {
+            "canonical": {
+              "https://example.com/@demo/types/data-type/kilogram/": 8030.0
+            },
+            "dataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1",
+            "originalDataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1"
+          }
+        },
+        "https://example.com/@demo/types/property-type/first-flight/": {
+          "metadata": {
+            "canonical": {
+              "https://example.com/@demo/types/data-type/date/": "1946-04-02"
+            },
+            "dataTypeId": "https://example.com/@demo/types/data-type/date/v/1",
+            "originalDataTypeId": "https://example.com/@demo/types/data-type/date/v/1"
+          }
+        },
+        "https://example.com/@demo/types/property-type/model/": {
+          "metadata": {
+            "canonical": {
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "DC-3"
+            },
+            "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  },
+  "airfield/ESSA": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/airfield/v/1"
+    ],
+    "link": null,
+    "properties": {
+      "https://example.com/@demo/types/property-type/name/": "Arlanda"
+    },
+    "propertyMetadata": {
+      "value": {
+        "https://example.com/@demo/types/property-type/name/": {
+          "metadata": {
+            "canonical": {
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Arlanda"
+            },
+            "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  },
+  "airfield/ESSB": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/airfield/v/1"
+    ],
+    "link": null,
+    "properties": {
+      "https://example.com/@demo/types/property-type/name/": "Bromma"
+    },
+    "propertyMetadata": {
+      "value": {
+        "https://example.com/@demo/types/property-type/name/": {
+          "metadata": {
+            "canonical": {
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Bromma"
+            },
+            "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  },
+  "based-at/N100/ESSA": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/based-at/v/1"
+    ],
+    "link": {
+      "source": "aircraft/N100",
+      "target": "airfield/ESSA"
+    },
+    "properties": {},
+    "propertyMetadata": {
+      "value": {}
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  },
+  "based-at/SE-XXX/ESSA": {
+    "archived": false,
+    "entityTypeIds": [
+      "https://example.com/@demo/types/entity-type/based-at/v/1"
+    ],
+    "link": {
+      "source": "aircraft/SE-XXX",
+      "target": "airfield/ESSA"
+    },
+    "properties": {},
+    "propertyMetadata": {
+      "value": {}
+    },
+    "provenance": {
+      "actorType": "machine",
+      "origin": {
+        "type": "api"
+      },
+      "sources": [
+        {
+          "location": {
+            "name": "aviation"
+          },
+          "type": "integration"
+        }
+      ]
+    },
+    "readOnly": true
+  }
+}

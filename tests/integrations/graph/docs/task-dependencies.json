@@ -1,0 +1,58 @@
+{
+  "package": "hash-integrations-graph-tests",
+  "dependencies": [
+    "hash-crypto",
+    "hash-graph-authorization",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-test-data",
+    "hash-integrations-definition",
+    "hash-integrations-engine",
+    "type-system"
+  ],
+  "tasks": {
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "hash-graph#start:test:healthcheck"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros",
+        "harpc-client",
+        "harpc-codec",
+        "harpc-net",
+        "harpc-server",
+        "harpc-system",
+        "harpc-tower",
+        "hash-graph",
+        "hash-graph-api",
+        "hash-graph-atlas",
+        "hash-graph-type-fetcher",
+        "hashql-ast",
+        "hashql-core",
+        "hashql-diagnostics",
+        "hashql-eval",
+        "hashql-hir",
+        "hashql-macros",
+        "hashql-mir",
+        "hashql-syntax-jexpr"
+      ]
+    }
+  }
+}
