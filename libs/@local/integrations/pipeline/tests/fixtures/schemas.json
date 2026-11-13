@@ -1,0 +1,347 @@
+{
+  "hashes": [
+    {
+      "name": "entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "kind",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "target",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "content_hash",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "live",
+      "type": "BOOLEAN",
+      "nullable": false
+    }
+  ],
+  "archives": [
+    {
+      "name": "entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "kind",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "target",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    }
+  ],
+  "issues": [
+    {
+      "name": "kind",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "target",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "entity_id",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "key",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "issue",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "property",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "reason",
+      "type": "VARCHAR",
+      "nullable": true
+    }
+  ],
+  "writes": [
+    {
+      "name": "seq",
+      "type": "UBIGINT",
+      "nullable": false
+    },
+    {
+      "name": "batch",
+      "type": "UINTEGER",
+      "nullable": false
+    },
+    {
+      "name": "operation",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "change",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "target",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "left_entity_id",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "right_entity_id",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "create",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "patch",
+      "type": "VARCHAR",
+      "nullable": false
+    }
+  ],
+  "rejected": [
+    {
+      "name": "entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "operation",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "change",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "target",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "status",
+      "type": "USMALLINT",
+      "nullable": true
+    },
+    {
+      "name": "reason",
+      "type": "VARCHAR",
+      "nullable": false
+    }
+  ],
+  "changes_aircraft": [
+    {
+      "name": "_row",
+      "type": "UBIGINT",
+      "nullable": false
+    },
+    {
+      "name": "_entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_change",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_key",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "EMPTY_MASS",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "MASS_UNIT",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "FIRST_FLIGHT",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "MODEL",
+      "type": "VARCHAR",
+      "nullable": true
+    }
+  ],
+  "changes_airfields": [
+    {
+      "name": "_row",
+      "type": "UBIGINT",
+      "nullable": false
+    },
+    {
+      "name": "_entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_change",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_key",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "FIELD_NAME",
+      "type": "VARCHAR",
+      "nullable": true
+    }
+  ],
+  "changes_links": [
+    {
+      "name": "_row",
+      "type": "UBIGINT",
+      "nullable": false
+    },
+    {
+      "name": "_entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_change",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_source_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_key",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "_left_entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "_right_entity_id",
+      "type": "VARCHAR",
+      "nullable": false
+    }
+  ],
+  "capture_aircraft": [
+    {
+      "name": "TAIL",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "MODEL",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "FIRST_FLIGHT",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "EMPTY_MASS",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "MASS_UNIT",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "HOME_BASE",
+      "type": "VARCHAR",
+      "nullable": true
+    }
+  ],
+  "capture_airfields": [
+    {
+      "name": "ICAO",
+      "type": "VARCHAR",
+      "nullable": true
+    },
+    {
+      "name": "FIELD_NAME",
+      "type": "VARCHAR",
+      "nullable": true
+    }
+  ]
+}

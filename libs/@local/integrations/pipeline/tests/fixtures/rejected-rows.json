@@ -1,0 +1,29 @@
+{
+  "scenario": "S6 run 1",
+  "schema": "rejected",
+  "rows": [
+    [
+      "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+      "upsert_entity",
+      "insert",
+      "sink-aircraft",
+      "N100",
+      400,
+      "graph_status"
+    ],
+    [
+      "00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c",
+      "upsert_link",
+      "insert",
+      "aircraft-based-at",
+      "https://example.com/@demo/types/entity-type/aircraft/v/1::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+      null,
+      "endpoint_rejected"
+    ]
+  ],
+  "empty": {
+    "schema": "rejected",
+    "rows": []
+  },
+  "empty_marker_reference": null
+}

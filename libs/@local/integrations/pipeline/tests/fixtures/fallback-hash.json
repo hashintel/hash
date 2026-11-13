@@ -1,0 +1,58 @@
+{
+  "note": "replay ddl+inserts, run each query, expect identical per-row hashes",
+  "duckdb": "1.5.x",
+  "ddl": "CREATE TABLE \"fallback_fixture\" (\n  \"_op\" VARCHAR, \"_key\" VARCHAR, \"_before\" JSON,\n  \"MATNR\" VARCHAR, \"MAKTX\" VARCHAR, \"BRGEW\" DOUBLE, \"ERSDA\" DATE, \"META\" JSON\n)",
+  "inserts": [
+    "INSERT INTO \"fallback_fixture\" VALUES ('snapshot', '{\"id\":\"M1\"}', NULL, 'M1', '  padded  ', 1.5, DATE '2026-01-02', '{\"a\":1}')",
+    "INSERT INTO \"fallback_fixture\" VALUES ('snapshot', '{\"id\":\"M2\"}', NULL, 'M2', '', NULL, NULL, NULL)",
+    "INSERT INTO \"fallback_fixture\" VALUES ('snapshot', '{\"id\":\"M3\"}', NULL, 'M3', NULL, 2, DATE '1999-12-31', '{\"b\":[1,2]}')",
+    "INSERT INTO \"fallback_fixture\" VALUES ('snapshot', '{\"id\":\"M4\"}', NULL, 'M4', 'NULL', 0.1, DATE '2026-01-02', '{}')",
+    "INSERT INTO \"fallback_fixture\" VALUES ('snapshot', '{\"id\":\"M5\"}', NULL, 'M5', 'Grüße, ''仓库''::x', -3.25, NULL, NULL)"
+  ],
+  "fallbackQuery": "SELECT \"MATNR\"::VARCHAR AS _entity_id, md5(data::VARCHAR) AS _content_hash\n  FROM (SELECT * EXCLUDE (\"_op\", \"_key\", \"_before\") FROM \"fallback_fixture\") data\n  ORDER BY _entity_id",
+  "fallbackRows": [
+    {
+      "_entity_id": "M1",
+      "_content_hash": "e2b21ca6379bd7c0720c249615df3f71"
+    },
+    {
+      "_entity_id": "M2",
+      "_content_hash": "a30f26690878fabccf8cafcbad9828c4"
+    },
+    {
+      "_entity_id": "M3",
+      "_content_hash": "82cab6ac76e6797a2fb1ad05658e5305"
+    },
+    {
+      "_entity_id": "M4",
+      "_content_hash": "50cf43d88cb9216e6900ca5a06039d5b"
+    },
+    {
+      "_entity_id": "M5",
+      "_content_hash": "0f315043706fa6df46c89514c35359ca"
+    }
+  ],
+  "canonicalSql": "md5(struct_pack(p0 := \"ERSDA\", p1 := NULLIF(TRIM(\"MAKTX\"), ''), p2 := \"BRGEW\")::VARCHAR)",
+  "canonicalRows": [
+    {
+      "_entity_id": "M1",
+      "_content_hash": "9527f1d39d6dcf3f63f0a369a91027a6"
+    },
+    {
+      "_entity_id": "M2",
+      "_content_hash": "e8bca8a3b3d677138e2b9bc17933dfa3"
+    },
+    {
+      "_entity_id": "M3",
+      "_content_hash": "b9bf8f6715b46c4b4bf382975a743190"
+    },
+    {
+      "_entity_id": "M4",
+      "_content_hash": "0a5f9546b1dc7159d4f60e1cf0428271"
+    },
+    {
+      "_entity_id": "M5",
+      "_content_hash": "f3594de37157d7c71e5e450c5ae09119"
+    }
+  ]
+}

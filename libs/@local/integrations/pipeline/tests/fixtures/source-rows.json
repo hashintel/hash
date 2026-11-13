@@ -1,0 +1,62 @@
+{
+  "captured_at": "2026-11-06T12:00:00Z",
+  "adopted_from": null,
+  "sources": {
+    "aircraft": {
+      "columns": [
+        "TAIL",
+        "MODEL",
+        "FIRST_FLIGHT",
+        "EMPTY_MASS",
+        "MASS_UNIT",
+        "HOME_BASE"
+      ],
+      "types": [
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      "rows": [
+        [
+          "SE-XXX",
+          "DC-3",
+          "1946-04-02",
+          "8030",
+          "KG",
+          "ESSA"
+        ],
+        [
+          "N100",
+          "L-1049",
+          "1957-07-15",
+          "69000",
+          "LB",
+          "ESSA"
+        ]
+      ]
+    },
+    "airfields": {
+      "columns": [
+        "ICAO",
+        "FIELD_NAME"
+      ],
+      "types": [
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      "rows": [
+        [
+          "ESSA",
+          "Arlanda"
+        ],
+        [
+          "ESSB",
+          "Bromma"
+        ]
+      ]
+    }
+  }
+}

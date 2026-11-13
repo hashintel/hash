@@ -1,0 +1,413 @@
+{
+  "run_1": {
+    "capture": {
+      "captured_at": "2026-11-06T12:00:00Z",
+      "adopted_from": null,
+      "sources": {
+        "aircraft": {
+          "schema": "capture_aircraft",
+          "rows": [
+            [
+              "SE-XXX",
+              "DC-3",
+              "1946-04-02",
+              "8030",
+              "KG",
+              "ESSA"
+            ],
+            [
+              "N100",
+              "L-1049",
+              "1957-07-15",
+              "69000",
+              "LB",
+              "ESSA"
+            ]
+          ],
+          "count": 2
+        },
+        "airfields": {
+          "schema": "capture_airfields",
+          "rows": [
+            [
+              "ESSA",
+              "Arlanda"
+            ],
+            [
+              "ESSB",
+              "Bromma"
+            ]
+          ],
+          "count": 2
+        }
+      }
+    },
+    "diff": {
+      "base": null,
+      "resent": [],
+      "hashes": {
+        "schema": "hashes",
+        "rows": [
+          [
+            "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+            "entity",
+            "sink-aircraft",
+            "SE-XXX",
+            "11111111111111111111111111111111",
+            true
+          ],
+          [
+            "00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c",
+            "link",
+            "aircraft-based-at",
+            "https://example.com/@demo/types/entity-type/aircraft/v/1::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+            "d41d8cd98f00b204e9800998ecf8427e",
+            true
+          ],
+          [
+            "00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb",
+            "entity",
+            "sink-airfields",
+            "ESSB",
+            "33333333333333333333333333333333",
+            true
+          ],
+          [
+            "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+            "entity",
+            "sink-airfields",
+            "ESSA",
+            "44444444444444444444444444444444",
+            true
+          ],
+          [
+            "00000000-0000-4000-8000-000000000001~b16436f1-2384-575c-b2d3-e5606539d19e",
+            "link",
+            "aircraft-based-at",
+            "https://example.com/@demo/types/entity-type/aircraft/v/1::SE-XXX::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+            "d41d8cd98f00b204e9800998ecf8427e",
+            true
+          ],
+          [
+            "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+            "entity",
+            "sink-aircraft",
+            "N100",
+            "22222222222222222222222222222222",
+            true
+          ]
+        ],
+        "producer_hash_checks": {
+          "format": "32 lowercase hexadecimal digits",
+          "equal_pairs": [
+            [
+              "L-N100-ESSA",
+              "L-SEXXX-ESSA"
+            ]
+          ],
+          "different_pairs": [
+            [
+              "AC-SEXXX",
+              "AC-N100"
+            ]
+          ],
+          "literal_values": {
+            "L-N100-ESSA": "d41d8cd98f00b204e9800998ecf8427e",
+            "L-SEXXX-ESSA": "d41d8cd98f00b204e9800998ecf8427e"
+          }
+        }
+      },
+      "changes": {
+        "entity/sink-aircraft": {
+          "schema": "changes_aircraft",
+          "rows": [
+            [
+              0,
+              "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+              "insert",
+              "SE-XXX",
+              "{\"TAIL\":\"SE-XXX\"}",
+              "8030",
+              "KG",
+              "1946-04-02",
+              "DC-3"
+            ],
+            [
+              1,
+              "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+              "insert",
+              "N100",
+              "{\"TAIL\":\"N100\"}",
+              "69000",
+              "LB",
+              "1957-07-15",
+              "L-1049"
+            ]
+          ]
+        },
+        "entity/sink-airfields": {
+          "schema": "changes_airfields",
+          "rows": [
+            [
+              0,
+              "00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb",
+              "insert",
+              "ESSB",
+              "{\"ICAO\":\"ESSB\"}",
+              "Bromma"
+            ],
+            [
+              1,
+              "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+              "insert",
+              "ESSA",
+              "{\"ICAO\":\"ESSA\"}",
+              "Arlanda"
+            ]
+          ]
+        },
+        "link/aircraft-based-at": {
+          "schema": "changes_links",
+          "rows": [
+            [
+              0,
+              "00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c",
+              "insert",
+              "https://example.com/@demo/types/entity-type/aircraft/v/1::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+              "{\"TAIL\":\"N100\"}",
+              "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+              "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+            ],
+            [
+              1,
+              "00000000-0000-4000-8000-000000000001~b16436f1-2384-575c-b2d3-e5606539d19e",
+              "insert",
+              "https://example.com/@demo/types/entity-type/aircraft/v/1::SE-XXX::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+              "{\"TAIL\":\"SE-XXX\"}",
+              "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+              "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+            ]
+          ]
+        }
+      },
+      "archives": {
+        "schema": "archives",
+        "rows": []
+      },
+      "issues": {
+        "schema": "issues",
+        "rows": []
+      },
+      "target_counts": {
+        "entity/sink-aircraft": {
+          "inserted": 2,
+          "updated": 0,
+          "resent": 0,
+          "unchanged": 0,
+          "archived": 0,
+          "without_id": 0
+        },
+        "entity/sink-airfields": {
+          "inserted": 2,
+          "updated": 0,
+          "resent": 0,
+          "unchanged": 0,
+          "archived": 0,
+          "without_id": 0
+        },
+        "link/aircraft-based-at": {
+          "inserted": 2,
+          "updated": 0,
+          "resent": 0,
+          "unchanged": 0,
+          "archived": 0,
+          "without_id": 0
+        }
+      }
+    },
+    "plan": {
+      "writes": {
+        "schema": "writes",
+        "rows": [
+          [
+            0,
+            0,
+            "upsert_entity",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+            "sink-aircraft",
+            "SE-XXX",
+            null,
+            null,
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/aircraft/v/1\"],\"entityUuid\":\"468da978-f2fd-52d7-ad32-e319a155c918\",\"properties\":{\"value\":{\"https://example.com/@demo/types/property-type/empty-mass/\":{\"metadata\":{\"dataTypeId\":\"https://example.com/@demo/types/data-type/kilogram/v/1\"},\"value\":8030.0},\"https://example.com/@demo/types/property-type/first-flight/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"1946-04-02\"},\"https://example.com/@demo/types/property-type/model/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"DC-3\"}}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/aircraft/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{\"https://example.com/@demo/types/property-type/empty-mass/\":{\"metadata\":{\"dataTypeId\":\"https://example.com/@demo/types/data-type/kilogram/v/1\"},\"value\":8030.0},\"https://example.com/@demo/types/property-type/first-flight/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"1946-04-02\"},\"https://example.com/@demo/types/property-type/model/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"DC-3\"}}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ],
+          [
+            1,
+            0,
+            "upsert_entity",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+            "sink-aircraft",
+            "N100",
+            null,
+            null,
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/aircraft/v/1\"],\"entityUuid\":\"e0db547f-47bc-5587-a517-7b9eb11d952c\",\"properties\":{\"value\":{\"https://example.com/@demo/types/property-type/empty-mass/\":{\"metadata\":{\"dataTypeId\":\"https://example.com/@demo/types/data-type/pound/v/1\"},\"value\":69000.0},\"https://example.com/@demo/types/property-type/first-flight/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"1957-07-15\"},\"https://example.com/@demo/types/property-type/model/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"L-1049\"}}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/aircraft/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{\"https://example.com/@demo/types/property-type/empty-mass/\":{\"metadata\":{\"dataTypeId\":\"https://example.com/@demo/types/data-type/pound/v/1\"},\"value\":69000.0},\"https://example.com/@demo/types/property-type/first-flight/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"1957-07-15\"},\"https://example.com/@demo/types/property-type/model/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"L-1049\"}}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ],
+          [
+            2,
+            0,
+            "upsert_entity",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb",
+            "sink-airfields",
+            "ESSB",
+            null,
+            null,
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/airfield/v/1\"],\"entityUuid\":\"9a1348a1-6ded-5391-bd06-f2a96b5bffcb\",\"properties\":{\"value\":{\"https://example.com/@demo/types/property-type/name/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"Bromma\"}}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/airfield/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{\"https://example.com/@demo/types/property-type/name/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"Bromma\"}}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ],
+          [
+            3,
+            0,
+            "upsert_entity",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+            "sink-airfields",
+            "ESSA",
+            null,
+            null,
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/airfield/v/1\"],\"entityUuid\":\"9ec2610c-ca36-53f4-b809-e9af4c4b3b68\",\"properties\":{\"value\":{\"https://example.com/@demo/types/property-type/name/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"Arlanda\"}}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/airfield/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{\"https://example.com/@demo/types/property-type/name/\":{\"metadata\":{\"dataTypeId\":null},\"value\":\"Arlanda\"}}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ],
+          [
+            4,
+            1,
+            "upsert_link",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c",
+            "aircraft-based-at",
+            "https://example.com/@demo/types/entity-type/aircraft/v/1::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+            "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+            "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/based-at/v/1\"],\"entityUuid\":\"6ab96f70-86d5-5088-99a0-b31f86e6270c\",\"linkData\":{\"leftEntityId\":\"00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c\",\"rightEntityId\":\"00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68\"},\"properties\":{\"value\":{}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/based-at/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ],
+          [
+            5,
+            1,
+            "upsert_link",
+            "insert",
+            "00000000-0000-4000-8000-000000000001~b16436f1-2384-575c-b2d3-e5606539d19e",
+            "aircraft-based-at",
+            "https://example.com/@demo/types/entity-type/aircraft/v/1::SE-XXX::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+            "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+            "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+            "{\"draft\":false,\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/based-at/v/1\"],\"entityUuid\":\"b16436f1-2384-575c-b2d3-e5606539d19e\",\"linkData\":{\"leftEntityId\":\"00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918\",\"rightEntityId\":\"00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68\"},\"properties\":{\"value\":{}},\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]},\"readOnly\":true,\"webId\":\"00000000-0000-4000-8000-000000000001\"}",
+            "{\"archived\":false,\"entityId\":\"00000000-0000-4000-8000-000000000001~b16436f1-2384-575c-b2d3-e5606539d19e\",\"entityTypeIds\":[\"https://example.com/@demo/types/entity-type/based-at/v/1\"],\"properties\":[{\"op\":\"replace\",\"path\":[],\"property\":{\"value\":{}}}],\"provenance\":{\"actorType\":\"machine\",\"origin\":{\"type\":\"api\"},\"sources\":[{\"loadedAt\":\"2026-11-06T12:00:00.000000000Z\",\"location\":{\"name\":\"aviation\"},\"type\":\"integration\"}]}}"
+          ]
+        ]
+      },
+      "issues": {
+        "schema": "issues",
+        "rows": []
+      },
+      "batches": 2,
+      "counts": {
+        "upsert_entity": 4,
+        "upsert_link": 2
+      }
+    },
+    "send": {
+      "rejected": null,
+      "counts": {
+        "created": 6,
+        "patched": 0,
+        "archived": 0,
+        "absent": 0,
+        "rejected": 0
+      }
+    },
+    "current": {
+      "committed": 1,
+      "sending": []
+    }
+  },
+  "run_2": {
+    "diff": {
+      "base": 1,
+      "resent": [],
+      "hashes_equal_to_run": 1,
+      "archives": {
+        "schema": "archives",
+        "rows": []
+      },
+      "issues": {
+        "schema": "issues",
+        "rows": []
+      },
+      "targets": {
+        "entity/sink-aircraft": {
+          "changes": null,
+          "counts": {
+            "inserted": 0,
+            "updated": 0,
+            "resent": 0,
+            "unchanged": 2,
+            "archived": 0,
+            "without_id": 0
+          }
+        },
+        "entity/sink-airfields": {
+          "changes": null,
+          "counts": {
+            "inserted": 0,
+            "updated": 0,
+            "resent": 0,
+            "unchanged": 2,
+            "archived": 0,
+            "without_id": 0
+          }
+        },
+        "link/aircraft-based-at": {
+          "changes": null,
+          "counts": {
+            "inserted": 0,
+            "updated": 0,
+            "resent": 0,
+            "unchanged": 2,
+            "archived": 0,
+            "without_id": 0
+          }
+        }
+      }
+    },
+    "plan": {
+      "writes": {
+        "schema": "writes",
+        "rows": []
+      },
+      "issues": {
+        "schema": "issues",
+        "rows": []
+      },
+      "batches": 0,
+      "counts": {}
+    },
+    "send": {
+      "rejected": null,
+      "counts": {
+        "created": 0,
+        "patched": 0,
+        "archived": 0,
+        "absent": 0,
+        "rejected": 0
+      }
+    },
+    "current": {
+      "committed": 2,
+      "sending": []
+    }
+  }
+}

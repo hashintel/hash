@@ -1,0 +1,1596 @@
+{
+  "source": "03-scenarios.md",
+  "web": "00000000-0000-4000-8000-000000000001",
+  "connector": "aviation",
+  "namespace": "aviation",
+  "first_capture_time": "2026-11-06T12:00:00Z",
+  "capture_interval_seconds": 3600,
+  "write_group_fields": [
+    "operation",
+    "change",
+    "batch",
+    "entities"
+  ],
+  "unlisted_send_counts": 0,
+  "definition_variants": {
+    "D0": {
+      "file": "aviation.yaml"
+    },
+    "n100_changed_model": {
+      "from": "D0",
+      "source_rows": {
+        "aircraft": [
+          [
+            "SE-XXX",
+            "DC-3",
+            "1946-04-02",
+            "8030",
+            "KG",
+            "ESSA"
+          ],
+          [
+            "N100",
+            "L-1049G",
+            "1957-07-15",
+            "69000",
+            "LB",
+            "ESSA"
+          ]
+        ]
+      }
+    },
+    "sexxx_blank_mass": {
+      "from": "n100_changed_model",
+      "source_rows": {
+        "aircraft": [
+          [
+            "SE-XXX",
+            "DC-3",
+            "1946-04-02",
+            "",
+            "KG",
+            "ESSA"
+          ],
+          [
+            "N100",
+            "L-1049G",
+            "1957-07-15",
+            "69000",
+            "LB",
+            "ESSA"
+          ]
+        ]
+      }
+    },
+    "without_n100": {
+      "from": "D0",
+      "source_rows": {
+        "aircraft": [
+          [
+            "SE-XXX",
+            "DC-3",
+            "1946-04-02",
+            "8030",
+            "KG",
+            "ESSA"
+          ]
+        ]
+      }
+    },
+    "empty_aircraft": {
+      "from": "D0",
+      "source_rows": {
+        "aircraft": []
+      },
+      "empty_source_sql": "Append WHERE false to the original aircraft source SELECT so its VARCHAR schema remains intact."
+    },
+    "empty_aircraft_complete_or_empty": {
+      "from": "empty_aircraft",
+      "source_coverage": {
+        "aircraft": "complete-or-empty"
+      }
+    },
+    "renamed_sink": {
+      "from": "D0",
+      "rename_sink": {
+        "sink-aircraft": "sink-planes"
+      }
+    },
+    "renamed_without_model": {
+      "from": "renamed_sink",
+      "remove_properties": {
+        "sink-planes": [
+          "https://example.com/@demo/types/property-type/model/v/1"
+        ]
+      }
+    },
+    "aircraft_v2": {
+      "from": "D0",
+      "replace_entity_type": {
+        "https://example.com/@demo/types/entity-type/aircraft/v/1": "https://example.com/@demo/types/entity-type/aircraft/v/2"
+      },
+      "applies_to": [
+        "entity sink",
+        "link from endpoint"
+      ]
+    },
+    "interrupted_change": {
+      "from": "D0",
+      "source_rows": {
+        "aircraft": [
+          [
+            "N100",
+            "L-1049G",
+            "1957-07-15",
+            "69000",
+            "LB",
+            "ESSA"
+          ],
+          [
+            "G-ABCD",
+            "DH-104",
+            "1946-09-25",
+            "2560",
+            "KG",
+            "ESSB"
+          ]
+        ]
+      }
+    },
+    "replace_airfield_and_model": {
+      "from": "n100_changed_model",
+      "source_rows": {
+        "airfields": [
+          [
+            "ESSA",
+            "Arlanda"
+          ],
+          [
+            "ESGG",
+            "Landvetter"
+          ]
+        ]
+      }
+    }
+  },
+  "scenarios": {
+    "S1": {
+      "subject": "Initial load and unchanged replay",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [],
+          "send_counts": {},
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "equal_to_run": 1
+          },
+          "changes_files": [],
+          "requests": 0
+        }
+      ]
+    },
+    "S2": {
+      "subject": "Changed values and whole-property removal",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "n100_changed_model"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "update",
+              0,
+              [
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 1
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "different_from_previous": [
+              "AC-N100"
+            ],
+            "all_others_equal": true
+          },
+          "graph": {
+            "AC-N100": {
+              "model": "L-1049G",
+              "edition_delta": 1
+            }
+          }
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "apply",
+            "definition": "sexxx_blank_mass"
+          },
+          "capture_run": 3,
+          "base": 2,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "update",
+              0,
+              [
+                "AC-SEXXX"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 1
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "different_from_previous": [
+              "AC-SEXXX"
+            ],
+            "all_others_equal": true
+          },
+          "graph": {
+            "AC-SEXXX": {
+              "absent_properties": [
+                "https://example.com/@demo/types/property-type/empty-mass/"
+              ],
+              "edition_delta": 1
+            }
+          },
+          "plan_issues": []
+        }
+      ]
+    },
+    "S3": {
+      "subject": "Deletion, revival, and empty-source coverage",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "without_n100"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "archive_link",
+              "archive",
+              0,
+              [
+                "L-N100-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              1,
+              [
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "archived": 2
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 4,
+            "archived": [
+              "AC-N100",
+              "L-N100-ESSA"
+            ]
+          }
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 3,
+          "base": 2,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "update",
+              0,
+              [
+                "AC-N100"
+              ]
+            ],
+            [
+              "upsert_link",
+              "update",
+              1,
+              [
+                "L-N100-ESSA"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 2
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6
+          }
+        },
+        {
+          "number": 4,
+          "request": {
+            "operation": "apply",
+            "definition": "empty_aircraft"
+          },
+          "capture_run": 4,
+          "base": 3,
+          "resent": [],
+          "writes": [],
+          "send_counts": {},
+          "current": {
+            "committed": 4,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "equal_to_run": 3
+          },
+          "capture_counts": {
+            "aircraft": 0,
+            "airfields": 2
+          },
+          "archives": []
+        },
+        {
+          "number": 5,
+          "request": {
+            "operation": "apply",
+            "definition": "empty_aircraft_complete_or_empty"
+          },
+          "capture_run": 5,
+          "base": 4,
+          "resent": [],
+          "writes": [
+            [
+              "archive_link",
+              "archive",
+              0,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              1,
+              [
+                "AC-SEXXX",
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "archived": 4
+          },
+          "current": {
+            "committed": 5,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 2
+          }
+        }
+      ]
+    },
+    "S4": {
+      "subject": "Sink rename preserves identity, removed mapping changes hashes",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "renamed_sink"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [],
+          "send_counts": {},
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "same_content_hashes_as_run": 1,
+            "target_changes": {
+              "AC-SEXXX": "sink-planes",
+              "AC-N100": "sink-planes"
+            }
+          },
+          "changes_files": [],
+          "archives": [],
+          "requests": 0
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "apply",
+            "definition": "renamed_without_model"
+          },
+          "capture_run": 3,
+          "base": 2,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "update",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 2
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "different_from_previous": [
+              "AC-SEXXX",
+              "AC-N100"
+            ],
+            "all_others_equal": true
+          },
+          "target_overrides": {
+            "AC-SEXXX": "sink-planes",
+            "AC-N100": "sink-planes"
+          },
+          "graph": {
+            "AC-SEXXX": {
+              "absent_properties": [
+                "https://example.com/@demo/types/property-type/model/"
+              ]
+            },
+            "AC-N100": {
+              "absent_properties": [
+                "https://example.com/@demo/types/property-type/model/"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "S5": {
+      "subject": "Type version changes replace identities",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "aircraft_v2"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC2-SEXXX",
+                "AC2-N100"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L2-SEXXX-ESSA",
+                "L2-N100-ESSA"
+              ]
+            ],
+            [
+              "archive_link",
+              "archive",
+              2,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              3,
+              [
+                "AC-SEXXX",
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "created": 4,
+            "archived": 4
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 10,
+            "live": 6
+          }
+        }
+      ]
+    },
+    "S6": {
+      "subject": "Permanent rejection commits and next run recovers",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 4,
+            "rejected": 2
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          },
+          "graph_behavior": {
+            "create_containing": "AC-N100",
+            "status": 400
+          },
+          "rejected_fixture": "rejected-rows.json",
+          "requests": [
+            {
+              "method": "create",
+              "entities": [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ],
+              "response": 400
+            },
+            {
+              "method": "create",
+              "entities": [
+                "AC-SEXXX"
+              ],
+              "response": "Applied"
+            },
+            {
+              "method": "create",
+              "entities": [
+                "AC-N100"
+              ],
+              "response": 400
+            },
+            {
+              "method": "create",
+              "entities": [
+                "AF-ESSB"
+              ],
+              "response": "Applied"
+            },
+            {
+              "method": "create",
+              "entities": [
+                "AF-ESSA"
+              ],
+              "response": "Applied"
+            },
+            {
+              "method": "create",
+              "entities": [
+                "L-SEXXX-ESSA"
+              ],
+              "response": "Applied"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "resend",
+              0,
+              [
+                "AC-N100"
+              ]
+            ],
+            [
+              "upsert_link",
+              "resend",
+              1,
+              [
+                "L-N100-ESSA"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "created": 2
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "equal_to_run": 1
+          },
+          "requests": [
+            {
+              "method": "patch",
+              "entities": [
+                "AC-N100"
+              ],
+              "response": 404
+            },
+            {
+              "method": "create",
+              "entities": [
+                "AC-N100"
+              ],
+              "response": "Applied"
+            },
+            {
+              "method": "patch",
+              "entities": [
+                "L-N100-ESSA"
+              ],
+              "response": 404
+            },
+            {
+              "method": "create",
+              "entities": [
+                "L-N100-ESSA"
+              ],
+              "response": "Applied"
+            }
+          ]
+        }
+      ]
+    },
+    "S7": {
+      "subject": "Interrupted send is repaired by the next run",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "interrupted_change"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-GABCD"
+              ]
+            ],
+            [
+              "upsert_entity",
+              "update",
+              1,
+              [
+                "AC-N100"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              2,
+              [
+                "L-GABCD-ESSB"
+              ]
+            ],
+            [
+              "archive_link",
+              "archive",
+              3,
+              [
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              4,
+              [
+                "AC-SEXXX"
+              ]
+            ]
+          ],
+          "send_counts": null,
+          "current": {
+            "committed": 1,
+            "sending": [
+              2
+            ]
+          },
+          "hashes": {
+            "total": 8,
+            "live": 6
+          },
+          "graph_behavior": {
+            "apply_requests": 2,
+            "then": "Unreachable"
+          },
+          "stage_error": {
+            "kind": "retryable"
+          },
+          "send_marker": false,
+          "graph": {
+            "AC-GABCD": {
+              "exists": true,
+              "archived": false
+            },
+            "AC-N100": {
+              "model": "L-1049G"
+            },
+            "AC-SEXXX": {
+              "archived": false
+            },
+            "L-SEXXX-ESSA": {
+              "archived": false
+            },
+            "L-GABCD-ESSB": {
+              "exists": false
+            }
+          }
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 3,
+          "base": 1,
+          "resent": [
+            2
+          ],
+          "writes": [
+            [
+              "upsert_entity",
+              "resend",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100"
+              ]
+            ],
+            [
+              "upsert_link",
+              "resend",
+              1,
+              [
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_link",
+              "archive",
+              2,
+              [
+                "L-GABCD-ESSB"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              3,
+              [
+                "AC-GABCD"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 3,
+            "archived": 1,
+            "absent": 1
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 8,
+            "live": 6,
+            "archived": [
+              "AC-GABCD",
+              "L-GABCD-ESSB"
+            ],
+            "original_six_hashes_equal_to_run": 1
+          },
+          "graph": {
+            "AC-N100": {
+              "model": "L-1049",
+              "edition_delta": 1
+            },
+            "AC-SEXXX": {
+              "edition_delta": 0
+            },
+            "L-SEXXX-ESSA": {
+              "edition_delta": 0
+            },
+            "AC-GABCD": {
+              "archived": true
+            }
+          },
+          "absent_archives": [
+            "L-GABCD-ESSB"
+          ]
+        }
+      ]
+    },
+    "S8": {
+      "subject": "Restore adopts captures and restore-to-empty archives all live rows",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "apply",
+            "definition": "replace_airfield_and_model"
+          },
+          "capture_run": 2,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AF-ESGG"
+              ]
+            ],
+            [
+              "upsert_entity",
+              "update",
+              1,
+              [
+                "AC-N100"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              2,
+              [
+                "AF-ESSB"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "created": 1,
+            "patched": 1,
+            "archived": 1
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 7,
+            "live": 6
+          }
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "restore",
+            "target": 1
+          },
+          "capture_run": 1,
+          "base": 2,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "update",
+              0,
+              [
+                "AC-N100",
+                "AF-ESSB"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              1,
+              [
+                "AF-ESGG"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 2,
+            "archived": 1
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 7,
+            "live": 6,
+            "archived": [
+              "AF-ESGG"
+            ],
+            "original_six_hashes_equal_to_run": 1
+          },
+          "adopted_from": 1,
+          "source_reads": 0
+        },
+        {
+          "number": 4,
+          "request": {
+            "operation": "restore",
+            "target": null
+          },
+          "capture_run": 4,
+          "base": 3,
+          "resent": [],
+          "writes": [
+            [
+              "archive_link",
+              "archive",
+              0,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              1,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "archived": 6
+          },
+          "current": {
+            "committed": 4,
+            "sending": []
+          },
+          "hashes": {
+            "total": 7,
+            "live": 0
+          },
+          "capture_sources": {},
+          "source_reads": 0,
+          "archive_target_counts": {
+            "entity/sink-aircraft": 2,
+            "entity/sink-airfields": 2,
+            "link/aircraft-based-at": 2
+          },
+          "resolved_definition": null
+        }
+      ]
+    },
+    "S9": {
+      "subject": "Reconcile repairs external drift and repeated archives are no-ops",
+      "runs": [
+        {
+          "number": 1,
+          "request": {
+            "operation": "apply",
+            "definition": "D0"
+          },
+          "capture_run": 1,
+          "base": null,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "insert",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "insert",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "hashes": {
+            "total": 6,
+            "live": 6
+          },
+          "send_counts": {
+            "created": 6
+          },
+          "current": {
+            "committed": 1,
+            "sending": []
+          }
+        },
+        {
+          "number": 2,
+          "request": {
+            "operation": "reconcile",
+            "resolved_target": 1
+          },
+          "capture_run": 1,
+          "base": 1,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "resend",
+              0,
+              [
+                "AC-SEXXX",
+                "AC-N100",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "resend",
+              1,
+              [
+                "L-N100-ESSA",
+                "L-SEXXX-ESSA"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 6
+          },
+          "current": {
+            "committed": 2,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 6,
+            "equal_to_run": 1
+          },
+          "adopted_from": 1,
+          "source_reads": 0,
+          "before_run_graph": {
+            "AC-N100": {
+              "archived": true
+            },
+            "AF-ESSA": {
+              "name": "Stockholm"
+            }
+          },
+          "graph": {
+            "AC-N100": {
+              "archived": false,
+              "edition_delta": 1
+            },
+            "AF-ESSA": {
+              "name": "Arlanda",
+              "edition_delta": 1
+            }
+          },
+          "all_other_edition_deltas": 0
+        },
+        {
+          "number": 3,
+          "request": {
+            "operation": "apply",
+            "definition": "without_n100"
+          },
+          "capture_run": 3,
+          "base": 2,
+          "resent": [],
+          "writes": [
+            [
+              "archive_link",
+              "archive",
+              0,
+              [
+                "L-N100-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              1,
+              [
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "archived": 2
+          },
+          "current": {
+            "committed": 3,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 4
+          }
+        },
+        {
+          "number": 4,
+          "request": {
+            "operation": "reconcile",
+            "resolved_target": 3
+          },
+          "capture_run": 3,
+          "base": 3,
+          "resent": [],
+          "writes": [
+            [
+              "upsert_entity",
+              "resend",
+              0,
+              [
+                "AC-SEXXX",
+                "AF-ESSB",
+                "AF-ESSA"
+              ]
+            ],
+            [
+              "upsert_link",
+              "resend",
+              1,
+              [
+                "L-SEXXX-ESSA"
+              ]
+            ],
+            [
+              "archive_link",
+              "archive",
+              2,
+              [
+                "L-N100-ESSA"
+              ]
+            ],
+            [
+              "archive_entity",
+              "archive",
+              3,
+              [
+                "AC-N100"
+              ]
+            ]
+          ],
+          "send_counts": {
+            "patched": 4,
+            "archived": 2
+          },
+          "current": {
+            "committed": 4,
+            "sending": []
+          },
+          "hashes": {
+            "total": 6,
+            "live": 4,
+            "equal_to_run": 3
+          },
+          "adopted_from": 3,
+          "source_reads": 0,
+          "all_edition_deltas": 0
+        }
+      ]
+    }
+  }
+}

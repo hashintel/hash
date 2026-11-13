@@ -47,6 +47,7 @@ members         = [
     "libs/@local/hashql/syntax-jexpr",
     "libs/@local/integrations/definition",
     "libs/@local/integrations/engine",
+    "libs/@local/integrations/pipeline",
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",

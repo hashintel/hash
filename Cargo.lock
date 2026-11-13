@@ -7119,6 +7119,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-pipeline"
+version = "0.0.0"
+dependencies = [
+ "arrow-array",
+ "bytes",
+ "derive_more",
+ "duckdb",
+ "error-stack",
+ "futures-util",
+ "hash-crypto",
+ "hash-integrations-definition",
+ "hex",
+ "object_store",
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "parquet",
+ "pretty_assertions",
+ "proptest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "similar-asserts",
+ "tempfile",
+ "testcontainers",
+ "testcontainers-modules",
+ "time",
+ "tokio",
+ "tracing",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [

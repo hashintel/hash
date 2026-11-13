@@ -1,0 +1,35 @@
+connector: demo
+sources:
+  left:
+    primaryKey: [ID]
+    sql: SELECT 1 AS ID
+  right:
+    primaryKey: [ID]
+    sql: SELECT 2 AS ID
+pipelines:
+  entities:
+    - source: left
+      steps:
+        - id: save-left
+          checkpoint: left
+    - source: right
+      steps:
+        - id: save-right
+          checkpoint: right
+  links:
+    - id: joined
+      inputs:
+        lhs: left
+        rhs: right
+      steps:
+        - id: join
+          sql: SELECT lhs.ID AS FROM_ID, rhs.ID AS TO_ID FROM lhs CROSS JOIN rhs
+        - id: project
+          sql: SELECT FROM_ID, TO_ID FROM input
+      from:
+        entityType: https://example.com/entity/v/1
+        column: FROM_ID
+      to:
+        entityType: https://example.com/entity/v/1
+        column: TO_ID
+      linkType: https://example.com/link/v/1

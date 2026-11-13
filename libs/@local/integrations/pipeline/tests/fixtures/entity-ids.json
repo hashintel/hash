@@ -1,0 +1,121 @@
+{
+  "web": "00000000-0000-4000-8000-000000000001",
+  "namespace": "aviation",
+  "uuid_namespace": "d6e2c7a1-f84b-4e3a-9c0d-5b7f1e3a2d4c",
+  "entities": {
+    "AC-SEXXX": {
+      "uuid": "468da978-f2fd-52d7-ad32-e319a155c918",
+      "entity_id": "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+      "entity_type": "https://example.com/@demo/types/entity-type/aircraft/v/1",
+      "source_id": "SE-XXX",
+      "kind": "entity",
+      "target": "sink-aircraft"
+    },
+    "AF-ESGG": {
+      "uuid": "5054d5ab-24dc-52f3-a197-36e4224907ce",
+      "entity_id": "00000000-0000-4000-8000-000000000001~5054d5ab-24dc-52f3-a197-36e4224907ce",
+      "entity_type": "https://example.com/@demo/types/entity-type/airfield/v/1",
+      "source_id": "ESGG",
+      "kind": "entity",
+      "target": "sink-airfields"
+    },
+    "AF-ESSB": {
+      "uuid": "9a1348a1-6ded-5391-bd06-f2a96b5bffcb",
+      "entity_id": "00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb",
+      "entity_type": "https://example.com/@demo/types/entity-type/airfield/v/1",
+      "source_id": "ESSB",
+      "kind": "entity",
+      "target": "sink-airfields"
+    },
+    "AF-ESSA": {
+      "uuid": "9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+      "entity_id": "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68",
+      "entity_type": "https://example.com/@demo/types/entity-type/airfield/v/1",
+      "source_id": "ESSA",
+      "kind": "entity",
+      "target": "sink-airfields"
+    },
+    "AC-GABCD": {
+      "uuid": "aa71f1d3-a8cc-5b22-b6ae-ad3688846530",
+      "entity_id": "00000000-0000-4000-8000-000000000001~aa71f1d3-a8cc-5b22-b6ae-ad3688846530",
+      "entity_type": "https://example.com/@demo/types/entity-type/aircraft/v/1",
+      "source_id": "G-ABCD",
+      "kind": "entity",
+      "target": "sink-aircraft"
+    },
+    "AC-N100": {
+      "uuid": "e0db547f-47bc-5587-a517-7b9eb11d952c",
+      "entity_id": "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+      "entity_type": "https://example.com/@demo/types/entity-type/aircraft/v/1",
+      "source_id": "N100",
+      "kind": "entity",
+      "target": "sink-aircraft"
+    },
+    "AC2-SEXXX": {
+      "uuid": "345b1a19-003d-56e6-a008-4471367c5a5f",
+      "entity_id": "00000000-0000-4000-8000-000000000001~345b1a19-003d-56e6-a008-4471367c5a5f",
+      "entity_type": "https://example.com/@demo/types/entity-type/aircraft/v/2",
+      "source_id": "SE-XXX",
+      "kind": "entity",
+      "target": "sink-aircraft"
+    },
+    "AC2-N100": {
+      "uuid": "b9e995c6-78ed-50af-b213-2b98cfaf5d60",
+      "entity_id": "00000000-0000-4000-8000-000000000001~b9e995c6-78ed-50af-b213-2b98cfaf5d60",
+      "entity_type": "https://example.com/@demo/types/entity-type/aircraft/v/2",
+      "source_id": "N100",
+      "kind": "entity",
+      "target": "sink-aircraft"
+    },
+    "L-GABCD-ESSB": {
+      "uuid": "67639262-b79b-579a-80e5-7687007d7ef1",
+      "entity_id": "00000000-0000-4000-8000-000000000001~67639262-b79b-579a-80e5-7687007d7ef1",
+      "entity_type": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "source_id": "https://example.com/@demo/types/entity-type/aircraft/v/1::G-ABCD::https://example.com/@demo/types/entity-type/airfield/v/1::ESSB",
+      "kind": "link",
+      "target": "aircraft-based-at",
+      "left_entity_id": "00000000-0000-4000-8000-000000000001~aa71f1d3-a8cc-5b22-b6ae-ad3688846530",
+      "right_entity_id": "00000000-0000-4000-8000-000000000001~9a1348a1-6ded-5391-bd06-f2a96b5bffcb"
+    },
+    "L-N100-ESSA": {
+      "uuid": "6ab96f70-86d5-5088-99a0-b31f86e6270c",
+      "entity_id": "00000000-0000-4000-8000-000000000001~6ab96f70-86d5-5088-99a0-b31f86e6270c",
+      "entity_type": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "source_id": "https://example.com/@demo/types/entity-type/aircraft/v/1::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+      "kind": "link",
+      "target": "aircraft-based-at",
+      "left_entity_id": "00000000-0000-4000-8000-000000000001~e0db547f-47bc-5587-a517-7b9eb11d952c",
+      "right_entity_id": "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+    },
+    "L-SEXXX-ESSA": {
+      "uuid": "b16436f1-2384-575c-b2d3-e5606539d19e",
+      "entity_id": "00000000-0000-4000-8000-000000000001~b16436f1-2384-575c-b2d3-e5606539d19e",
+      "entity_type": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "source_id": "https://example.com/@demo/types/entity-type/aircraft/v/1::SE-XXX::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+      "kind": "link",
+      "target": "aircraft-based-at",
+      "left_entity_id": "00000000-0000-4000-8000-000000000001~468da978-f2fd-52d7-ad32-e319a155c918",
+      "right_entity_id": "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+    },
+    "L2-SEXXX-ESSA": {
+      "uuid": "abe0b07a-580f-5a18-81ec-5886fec9b2ac",
+      "entity_id": "00000000-0000-4000-8000-000000000001~abe0b07a-580f-5a18-81ec-5886fec9b2ac",
+      "entity_type": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "source_id": "https://example.com/@demo/types/entity-type/aircraft/v/2::SE-XXX::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+      "kind": "link",
+      "target": "aircraft-based-at",
+      "left_entity_id": "00000000-0000-4000-8000-000000000001~345b1a19-003d-56e6-a008-4471367c5a5f",
+      "right_entity_id": "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+    },
+    "L2-N100-ESSA": {
+      "uuid": "f2142c0e-36fb-598e-8f88-8b8079a48daf",
+      "entity_id": "00000000-0000-4000-8000-000000000001~f2142c0e-36fb-598e-8f88-8b8079a48daf",
+      "entity_type": "https://example.com/@demo/types/entity-type/based-at/v/1",
+      "source_id": "https://example.com/@demo/types/entity-type/aircraft/v/2::N100::https://example.com/@demo/types/entity-type/airfield/v/1::ESSA",
+      "kind": "link",
+      "target": "aircraft-based-at",
+      "left_entity_id": "00000000-0000-4000-8000-000000000001~b9e995c6-78ed-50af-b213-2b98cfaf5d60",
+      "right_entity_id": "00000000-0000-4000-8000-000000000001~9ec2610c-ca36-53f4-b809-e9af4c4b3b68"
+    }
+  }
+}
