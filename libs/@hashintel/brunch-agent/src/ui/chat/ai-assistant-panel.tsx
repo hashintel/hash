@@ -172,6 +172,25 @@ const replyContentOf = (parts: PetrinautAiMessagePart[] = []): string =>
   JSON.stringify(parts.filter(isReplyContent));
 
 /**
+ * Whether this turn already has reply text. The turn is every assistant
+ * message after the last user message. A tool part is not reply text, and
+ * neither is whitespace.
+ */
+const hasVisibleReplyText = (messages: PetrinautAiMessage[]): boolean => {
+  const start =
+    messages.findLastIndex((message) => message.role === "user") + 1;
+  return messages
+    .slice(start)
+    .some(
+      (message) =>
+        message.role === "assistant" &&
+        message.parts.some(
+          (part) => part.type === "text" && isReplyContent(part),
+        ),
+    );
+};
+
+/**
  * What a local ending note belongs to, by an identity followed history keeps.
  * Canonical history renames a user message (Flue assigns its own ID), and a
  * reply streamed under a provisional ID gets its canonical one, but a tool call
@@ -1413,14 +1432,17 @@ const ConversationAiAssistantPanel = ({
       // A reply may append content without opening another step, and a clean
       // follow-up may publish an empty step with its metadata. The tool IDs
       // prevent a repeat send; only the continued parts, followed by nothing
-      // that is reply content, mean no reply.
+      // that is reply content, mean no reply. Reply text already in the turn
+      // is a reply, including text written before the tool.
       const finishedParts = finishedMessages.at(-1)?.parts ?? [];
+      const turnHasReplyText = hasVisibleReplyText(finishedMessages);
       const noReplyToToolStep =
         completedNormally &&
         continuedToolStepRef.current !== null &&
-        replyContentOf(finishedParts) === continuedToolStepRef.current.parts;
+        replyContentOf(finishedParts) === continuedToolStepRef.current.parts &&
+        !turnHasReplyText;
       // In-band tools continue on the server, not through sendAutomaticallyWhen.
-      // A clean finish with no reply content after their result has no reply.
+      // A clean finish on their result has no reply when the turn has none.
       const lastReplyPart = finishedMessages
         .at(-1)
         ?.parts.findLast(isReplyContent);
@@ -1430,7 +1452,8 @@ const ConversationAiAssistantPanel = ({
         isToolUIPart(lastReplyPart) &&
         lastReplyPart.providerExecuted === true &&
         (lastReplyPart.state === "output-available" ||
-          lastReplyPart.state === "output-error");
+          lastReplyPart.state === "output-error") &&
+        !turnHasReplyText;
       // A step that ended in client tool calls is followed automatically by
       // the SDK unless it was aborted or errored; that follow-up is still part
       // of this turn.

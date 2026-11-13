@@ -4830,6 +4830,221 @@ describe("AiAssistantPanel composer submissions", () => {
     },
   );
 
+  /** One response that ends on a finished server tool, with reply text before it when given. */
+  const runFinishedServerTool = async ({
+    replyText,
+    output,
+  }: {
+    replyText?: string;
+    output:
+      | { type: "tool-output-available"; output: { status: "recorded" } }
+      | { type: "tool-output-error"; errorText: string };
+  }) => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start", messageId: "commit-response" },
+          ...(replyText === undefined
+            ? [{ type: "start-step" } as const]
+            : textChunks("reply", replyText)),
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "commit-1",
+            toolName: brunchTools.ledgerCommit,
+            input: { entries: [], endTurn: true },
+          },
+          {
+            ...output,
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "commit-1",
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      initialMessage: "The reservoir is slow.",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    return {
+      noReplyNotices: screen.queryAllByText("No reply received").length,
+      requests: sendMessages.mock.calls.length,
+    };
+  };
+
+  test("does not show a missing-reply notice when reply text precedes a finished server tool", async () => {
+    expect(
+      await runFinishedServerTool({
+        replyText: "Recorded the reservoir.",
+        output: {
+          type: "tool-output-available",
+          output: { status: "recorded" },
+        },
+      }),
+    ).toEqual({ noReplyNotices: 0, requests: 1 });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when a server tool ends in an error and the turn has no reply text", async () => {
+    expect(
+      await runFinishedServerTool({
+        output: {
+          type: "tool-output-error",
+          errorText: "The batch was refused.",
+        },
+      }),
+    ).toEqual({ noReplyNotices: 1, requests: 1 });
+  });
+
+  test("does not show a missing-reply notice when reply text precedes a server tool that ends in an error", async () => {
+    expect(
+      await runFinishedServerTool({
+        replyText: "Recorded the reservoir.",
+        output: {
+          type: "tool-output-error",
+          errorText: "The batch was refused.",
+        },
+      }),
+    ).toEqual({ noReplyNotices: 0, requests: 1 });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
+  test("does not show a missing-reply notice when reply text precedes a browser tool whose follow-up is empty", async () => {
+    expect(
+      await runBrowserToolThenFollowUp(
+        [{ type: "finish", finishReason: "stop" }],
+        {
+          toolStep: [
+            ...textChunks("preamble", "Checking the net"),
+            {
+              type: "tool-input-available",
+              toolCallId: "net-read-1",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ],
+        },
+      ),
+    ).toEqual({ ...endedWithoutReply, noReplyNotices: 0 });
+    expect(screen.getByText("Checking the net")).not.toBeNull();
+  });
+
+  /**
+   * A turn whose later assistant message is a pending browser tool. The panel
+   * runs that tool and the scripted follow-up ends the turn on a server tool.
+   */
+  const runLaterServerTool = async (replyText: string | undefined) => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "commit-1",
+            toolName: brunchTools.ledgerCommit,
+            input: { entries: [], endTurn: true },
+          },
+          {
+            type: "tool-output-available",
+            dynamic: true,
+            providerExecuted: true,
+            toolCallId: "commit-1",
+            output: { status: "recorded" },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    );
+    const transport = {
+      reconnectToStream: async () => null,
+      sendMessages,
+    };
+    const host = {
+      automaticTools: [],
+      conversationId: "conversation-with-earlier-reply",
+      messages: [],
+      transport,
+    } satisfies PetrinautAiAssistant;
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: host,
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const pendingTool: PetrinautAiMessage = {
+      id: "later-tool",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-getLatestNetDefinition",
+          state: "input-available",
+          toolCallId: "pending-net-read",
+          input: {},
+        },
+      ],
+    };
+    rerenderPanel({
+      ...host,
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "The reservoir is slow." }],
+        },
+        ...(replyText === undefined
+          ? []
+          : [
+              {
+                id: "earlier-reply",
+                role: "assistant" as const,
+                parts: [{ type: "text" as const, text: replyText }],
+              },
+            ]),
+        pendingTool,
+      ],
+    });
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Stop AI response" }),
+      ).toBeNull(),
+    );
+    return {
+      noReplyNotices: screen.queryAllByText("No reply received").length,
+      requests: sendMessages.mock.calls.length,
+    };
+  };
+
+  test("does not show a missing-reply notice when an earlier message in the turn already replied", async () => {
+    expect(await runLaterServerTool("Recorded the reservoir.")).toEqual({
+      noReplyNotices: 0,
+      requests: 1,
+    });
+    expect(screen.getByText("Recorded the reservoir.")).not.toBeNull();
+  });
+
+  test("shows a missing-reply notice when a later message ends on a server tool and the turn has no reply text", async () => {
+    expect(await runLaterServerTool(undefined)).toEqual({
+      noReplyNotices: 1,
+      requests: 1,
+    });
+  });
+
   // A Flue reply whose live tool events arrive before its message starts
   // streams under a provisional ID, and history then names it canonically.
   test.each([

@@ -85,7 +85,7 @@ If the host offers voice input, only a finalized transcript captured while Voice
 
 If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
-If a tool follow-up finishes without adding a reply, the turn ends with a neutral **No reply received** note and the composer is ready. The panel does not retry automatically; send a new message to continue. The note belongs to the current turn: your next message clears it, and it is not saved in the conversation history.
+If a turn ends on a tool result and no assistant message since your last message contains reply text, the turn ends with a neutral **No reply received** note and the composer is ready. Text written before the tool counts. The panel does not retry automatically; send a new message to continue. The note belongs to the current turn: your next message clears it, and it is not saved in the conversation history.
 
 If a failed response leaves a tool call without a recorded result, its row shows **No result — response failed**. The row is neutral and offers no approval or retry controls; the panel does not execute the unanswered call. This does not mean the call never ran, so check the net before asking for the change again. Recorded results stay visible. When the host restores the conversation on reopening, the row keeps this label.
 
