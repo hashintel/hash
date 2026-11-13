@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 
+import { fusionMemberIssues } from "../composition/fusions";
 import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
 import { getParameterValueError } from "../parameter-values";
 import { canonicalizeArcId, petrinautIdSchema } from "../petrinaut-id";
@@ -444,11 +445,6 @@ export const fusionMemberSchema = arcEndpointSchema.meta({
     'A fusion member: `kind: "place"` names a place of the net the fusion belongs to; `kind: "componentPort"` names a port of one of that net\'s component instances.',
 }) satisfies z.ZodType<FusionMember>;
 
-const fusionMemberKey = (member: FusionMember): string =>
-  member.kind === "place"
-    ? `place:${member.placeId}`
-    : `componentPort:${member.componentInstanceId}:${member.portPlaceId}`;
-
 export const fusionSchema = z
   .strictObject({
     id: idSchema,
@@ -461,24 +457,18 @@ export const fusionSchema = z
       .array(fusionMemberSchema)
       .min(2)
       .check((context) => {
-        const seen = new Set<string>();
-        let anchors = 0;
-        for (const [index, member] of context.value.entries()) {
-          const key = fusionMemberKey(member);
-          if (seen.has(key)) {
-            context.issues.push({
-              code: "custom",
-              path: [index],
-              message: "A fusion names each place or port once.",
-              input: member,
-            });
-          }
-          seen.add(key);
-          if (member.kind === "place") {
-            anchors += 1;
-          }
+        const { duplicates, multipleAnchors } = fusionMemberIssues(
+          context.value,
+        );
+        for (const index of duplicates) {
+          context.issues.push({
+            code: "custom",
+            path: [index],
+            message: "A fusion names each place or port once.",
+            input: context.value[index],
+          });
         }
-        if (anchors > 1) {
+        if (multipleAnchors) {
           context.issues.push({
             code: "custom",
             message:

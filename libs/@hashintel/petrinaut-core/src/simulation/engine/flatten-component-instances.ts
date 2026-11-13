@@ -3,8 +3,10 @@ import {
   applyFusions,
   type FusionGroup,
 } from "../../composition/apply-fusions";
+import { fusionAnchor, fusionMemberIssues } from "../../composition/fusions";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
+import { scopedId, scopeSeparator } from "./scoped-id";
 
 import type {
   ArcEndpoint,
@@ -13,6 +15,7 @@ import type {
   InputArc,
   OutputArc,
   Parameter,
+  Place,
   SDCPN,
   Subnet,
   Transition,
@@ -26,11 +29,6 @@ export type FlattenedSimulationDefinition = {
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
-  /**
-   * The flat place that stands for each flat place a fusion merged away, so
-   * a consumer holding a scoped id can find the place that now carries it.
-   */
-  fusedPlaceAliases: ReadonlyMap<ID, ID>;
 };
 
 export const getArcPlaceNameOverrideKey = ({
@@ -40,25 +38,6 @@ export const getArcPlaceNameOverrideKey = ({
   transitionId: ID;
   placeId: ID;
 }): string => `${transitionId}\u0000${placeId}`;
-
-const scopeSeparator = "::";
-
-const assertScopableId = (id: ID): void => {
-  if (id.includes(scopeSeparator)) {
-    throw new Error(
-      `SDCPN IDs used with component instances must not contain the scope separator \`${scopeSeparator}\`: \`${id}\`.`,
-    );
-  }
-};
-
-const scopedId = (path: readonly ID[], id: ID): ID => {
-  for (const part of path) {
-    assertScopableId(part);
-  }
-  assertScopableId(id);
-
-  return path.length === 0 ? id : [...path, id].join(scopeSeparator);
-};
 
 const _codeIdentifier = (value: string): string => {
   const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
@@ -152,56 +131,57 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
     ),
   );
 
-const resolveComponentPortEndpoint = ({
+/**
+ * The flat place behind a port of one of `net`'s instances, for the arc or
+ * the fusion `referrer` names. Throws when the instance, its subnet or the
+ * port does not exist.
+ */
+const flatPortPlace = ({
   ctx,
   net,
   path,
   endpoint,
-  mappedTransitionId,
+  referrer,
 }: {
   ctx: FlattenContext;
   net: SDCPN | Subnet;
   path: readonly ID[];
   endpoint: Extract<ArcEndpoint, { kind: "componentPort" }>;
-  mappedTransitionId: ID;
-}): ID | null => {
+  referrer: string;
+}): { instance: ComponentInstance; port: Place; placeId: ID } => {
   const instance = (net.componentInstances ?? []).find(
     (candidate) => candidate.id === endpoint.componentInstanceId,
   );
   if (!instance) {
     throw new Error(
-      `Arc references component instance ID \`${endpoint.componentInstanceId}\` which does not exist in the containing net.`,
+      `${referrer} references component instance ID \`${endpoint.componentInstanceId}\` which does not exist in the containing net.`,
     );
   }
 
   const subnet = ctx.source.subnets?.find(({ id }) => id === instance.subnetId);
   if (!subnet) {
     throw new Error(
-      `Arc references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
+      `${referrer} references component instance \`${instance.name}\`, but its subnet ID \`${instance.subnetId}\` does not exist.`,
     );
   }
 
   const port = subnet.places.find((place) => place.id === endpoint.portPlaceId);
   if (!port) {
     throw new Error(
-      `Arc references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
+      `${referrer} references subnet port place ID \`${endpoint.portPlaceId}\` which does not exist in subnet \`${subnet.name}\`.`,
     );
   }
   if (!port.isPort) {
     throw new Error(
-      `Arc references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
+      `${referrer} references subnet place \`${port.name}\`, but only places marked \`isPort\` can be used as component ports.`,
     );
   }
 
-  const placeId = scopedId([...path, instance.id], endpoint.portPlaceId);
-  ctx.arcPlaceNameOverrides.set(
-    getArcPlaceNameOverrideKey({
-      transitionId: mappedTransitionId,
-      placeId,
-    }),
-    scopedPortPlaceName({ instance, portName: port.name }),
-  );
-  return placeId;
+  return {
+    instance,
+    port,
+    placeId: scopedId([...path, instance.id], endpoint.portPlaceId),
+  };
 };
 
 const mapArcToFlatPlace = ({
@@ -223,13 +203,18 @@ const mapArcToFlatPlace = ({
   if (endpoint.kind === "place") {
     return placeIdMap.get(endpoint.placeId) ?? null;
   }
-  return resolveComponentPortEndpoint({
+  const { instance, port, placeId } = flatPortPlace({
     ctx,
     net,
     path,
     endpoint,
-    mappedTransitionId: transitionId,
+    referrer: "Arc",
   });
+  ctx.arcPlaceNameOverrides.set(
+    getArcPlaceNameOverrideKey({ transitionId, placeId }),
+    scopedPortPlaceName({ instance, portName: port.name }),
+  );
+  return placeId;
 };
 
 const cloneInputArc = ({
@@ -418,40 +403,37 @@ const flattenNet = ({
   }
 
   for (const fusion of net.fusions ?? []) {
-    const label = fusion.name ?? fusion.id;
+    const label = `\`${fusion.name ?? fusion.id}\``;
+    if (fusionMemberIssues(fusion.members).multipleAnchors) {
+      throw new Error(
+        `Fusion ${label} holds more than one place of its net: they would become one place.`,
+      );
+    }
     const placeIds = fusion.members.map((member) => {
-      if (member.kind === "place") {
-        const placeId = placeIdMap.get(member.placeId);
-        if (placeId === undefined) {
-          throw new Error(
-            `Fusion \`${label}\` references place ID \`${member.placeId}\` which does not exist in its net.`,
-          );
-        }
-        return placeId;
+      if (member.kind === "componentPort") {
+        return flatPortPlace({
+          ctx,
+          net,
+          path,
+          endpoint: member,
+          referrer: `Fusion ${label}`,
+        }).placeId;
       }
-      const instance = (net.componentInstances ?? []).find(
-        ({ id }) => id === member.componentInstanceId,
-      );
-      if (!instance) {
+      const placeId = placeIdMap.get(member.placeId);
+      if (placeId === undefined) {
         throw new Error(
-          `Fusion \`${label}\` references component instance ID \`${member.componentInstanceId}\` which does not exist in its net.`,
+          `Fusion ${label} references place ID \`${member.placeId}\` which does not exist in its net.`,
         );
       }
-      const subnet = ctx.source.subnets?.find(
-        ({ id }) => id === instance.subnetId,
-      );
-      const port = subnet?.places.find(({ id }) => id === member.portPlaceId);
-      if (!port?.isPort) {
-        throw new Error(
-          `Fusion \`${label}\` references port ID \`${member.portPlaceId}\` of instance \`${instance.name}\`, which is not a port of its subnet.`,
-        );
-      }
-      return scopedId([...path, instance.id], member.portPlaceId);
+      return placeId;
     });
     ctx.fusionGroups.push({
-      fusionId: scopedId(path, fusion.id),
+      label,
       placeIds,
-      name: fusion.name,
+      // An anchor keeps its own name; without one the fusion names the place.
+      ...(fusionAnchor(fusion) || fusion.name === undefined
+        ? {}
+        : { name: fusion.name }),
     });
   }
 };
@@ -495,7 +477,6 @@ export const flattenComponentInstancesForSimulation = ({
         transitionParameterValues,
         placeParameterValues,
         arcPlaceNameOverrides: new Map(),
-        fusedPlaceAliases: new Map(),
       };
     }
   }
@@ -537,7 +518,18 @@ export const flattenComponentInstancesForSimulation = ({
     parameterValues: rootParameterValues,
   });
 
-  const fusedPlaceAliases = applyFusions(target, ctx.fusionGroups);
+  const { aliases: fusedPlaceAliases, dynamicsDonors } = applyFusions(
+    target,
+    ctx.fusionGroups,
+  );
+  // Equations a fused place took from a merged place read that place's
+  // parameter values, not the fused place's own.
+  for (const [fusedId, donorId] of dynamicsDonors) {
+    const donorValues = ctx.placeParameterValues.get(donorId);
+    if (donorValues) {
+      ctx.placeParameterValues.set(fusedId, donorValues);
+    }
+  }
   for (const mergedId of fusedPlaceAliases.keys()) {
     ctx.placeParameterValues.delete(mergedId);
   }
@@ -562,6 +554,5 @@ export const flattenComponentInstancesForSimulation = ({
     transitionParameterValues: ctx.transitionParameterValues,
     placeParameterValues: ctx.placeParameterValues,
     arcPlaceNameOverrides: ctx.arcPlaceNameOverrides,
-    fusedPlaceAliases,
   };
 };

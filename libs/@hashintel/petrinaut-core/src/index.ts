@@ -78,17 +78,11 @@ export {
   findFusionWithMember,
   fusionAnchor,
   fusionDisplayName,
-  fusionMemberKey,
-  fusionMembersEqual,
-  fusionNodeIds,
+  fusionHub,
   resolveFusionMember,
 } from "./composition/fusions";
 export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
-export {
-  checkFusion,
-  checkFusions,
-  colorsStructurallyEqual,
-} from "./composition/check-fusions";
+export { checkFusion, checkFusions } from "./composition/check-fusions";
 export type {
   FusionProblem,
   FusionProblemCode,

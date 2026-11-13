@@ -28,27 +28,52 @@ export type FusionNet = Pick<
   "places" | "componentInstances" | "fusions"
 >;
 
-/** A stable key for a member, equal for members that name the same place. */
-export const fusionMemberKey = (member: FusionMember): string =>
-  getArcEndpointKey(member);
-
-export const fusionMembersEqual = (
-  left: FusionMember,
-  right: FusionMember,
-): boolean => arcEndpointsEqual(left, right);
-
 /** The fusion of `net` that holds `member`, if any. */
 export const findFusionWithMember = (
   net: FusionNet,
   member: FusionMember,
 ): Fusion | undefined =>
   (net.fusions ?? []).find((fusion) =>
-    fusion.members.some((candidate) => fusionMembersEqual(candidate, member)),
+    fusion.members.some((candidate) => arcEndpointsEqual(candidate, member)),
   );
 
 /** The member that is a place of the fusion's own net, if any. */
-export const fusionAnchor = (fusion: Fusion): PlaceArcEndpoint | undefined =>
+export const fusionAnchor = (
+  fusion: Pick<Fusion, "members">,
+): PlaceArcEndpoint | undefined =>
   fusion.members.find((member) => member.kind === "place");
+
+/**
+ * The member that stands for the fused place: the anchor, else the first
+ * member. The fused place shows its name, and the canvas links the other
+ * members to it.
+ */
+export const fusionHub = (
+  fusion: Pick<Fusion, "members">,
+): FusionMember | undefined => fusionAnchor(fusion) ?? fusion.members[0];
+
+/**
+ * What is wrong with a member list on its own: the positions of the members
+ * listed a second time, and whether it holds more than one place of the net.
+ */
+export const fusionMemberIssues = (
+  members: readonly FusionMember[],
+): { duplicates: number[]; multipleAnchors: boolean } => {
+  const seen = new Set<string>();
+  const duplicates: number[] = [];
+  const anchors = new Set<ID>();
+  for (const [index, member] of members.entries()) {
+    const key = getArcEndpointKey(member);
+    if (seen.has(key)) {
+      duplicates.push(index);
+    }
+    seen.add(key);
+    if (member.kind === "place") {
+      anchors.add(member.placeId);
+    }
+  }
+  return { duplicates, multipleAnchors: anchors.size > 1 };
+};
 
 /** What a member names, once resolved against the document. */
 export type ResolvedFusionMember =
@@ -117,12 +142,6 @@ export const fusionDisplayName = (
   if (fusion.name !== undefined) {
     return fusion.name;
   }
-  const member = fusionAnchor(fusion) ?? fusion.members[0];
-  return member ? describeFusionMember(sdcpn, net, member) : fusion.id;
+  const hub = fusionHub(fusion);
+  return hub ? describeFusionMember(sdcpn, net, hub) : fusion.id;
 };
-
-/** The ids of the places and instances a fusion touches, for canvas lookups. */
-export const fusionNodeIds = (fusion: Fusion): ID[] =>
-  fusion.members.map((member) =>
-    member.kind === "place" ? member.placeId : member.componentInstanceId,
-  );

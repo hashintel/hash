@@ -1,23 +1,33 @@
 /**
  * The checks on a net's fusions: every member names a port or a place that
- * exists, the members agree on what the fused place is, and a fused flow has
- * somewhere to come from and somewhere to go. Run on a document as the editor
- * shows it, before flattening; the error-severity conditions make
- * `applyFusions` throw too.
+ * exists, the members agree on what the fused place is, no transition
+ * reaches the fused place twice, and a fused flow has somewhere to come from
+ * and somewhere to go. Run on a document as the editor shows it, before
+ * flattening. Flattening throws on each of the errors too, apart from a
+ * member listed twice and a fusion with fewer than two members, which merge
+ * nothing.
  */
 
-import { getArcEndpoint } from "../arc-endpoints";
+import { arcMatchesEndpoint, placeArcEndpoint } from "../arc-endpoints";
 import { getPlaceDynamicsEquationIds } from "../place-dynamics";
 import {
   describeFusionMember,
   fusionDisplayName,
-  fusionMemberKey,
+  fusionMemberIssues,
   resolveFusionMember,
   type FusionNet,
   type ResolvedFusionMember,
 } from "./fusions";
 
-import type { Color, Fusion, ID, Place, SDCPN, Subnet } from "../types/sdcpn";
+import type {
+  ArcEndpoint,
+  Color,
+  Fusion,
+  ID,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "../types/sdcpn";
 
 export type FusionProblemCode =
   | "unresolved-member"
@@ -27,6 +37,7 @@ export type FusionProblemCode =
   | "color-mismatch"
   | "capacity-mismatch"
   | "dynamics-conflict"
+  | "repeated-arc"
   | "no-producer"
   | "no-consumer";
 
@@ -36,16 +47,15 @@ export type FusionProblem = {
   /** The subnet the fusion belongs to; `null` for the root net. */
   subnetId: ID | null;
   fusionId: ID;
-  /** The fusion's display name, for messages that name it. */
-  fusionName: string;
   code: FusionProblemCode;
   severity: ProblemSeverity;
   message: string;
 };
 
 /**
- * Whether two token types describe the same tokens: the same dimensions, in
- * the same order, with the same value types. Names and colours do not matter.
+ * Whether two token types describe the same tokens: the same elements, in
+ * the same order, under the same names and value types. The types' own names
+ * and colours do not matter.
  */
 export const colorsStructurallyEqual = (
   left: Color | undefined,
@@ -73,8 +83,35 @@ type TokenFlow = {
   consumed: boolean;
 };
 
+const bothWays: TokenFlow = { produced: true, consumed: true };
+
+/** How `transitions` touch the place `endpoint` names. */
+const flowThrough = (
+  transitions: readonly Transition[],
+  endpoint: ArcEndpoint,
+): TokenFlow => ({
+  consumed: transitions.some(({ inputArcs }) =>
+    inputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
+  ),
+  produced: transitions.some(({ outputArcs }) =>
+    outputArcs.some((arc) => arcMatchesEndpoint(arc, endpoint)),
+  ),
+});
+
+/**
+ * How a net's own transitions touch one of its ports. A port no transition
+ * touches passes tokens through for whoever is on the other side, so it
+ * counts as both produced and consumed.
+ */
+const portFlow = (
+  subnet: Pick<Subnet, "transitions">,
+  placeId: ID,
+): TokenFlow => {
+  const flow = flowThrough(subnet.transitions, placeArcEndpoint(placeId));
+  return flow.produced || flow.consumed ? flow : bothWays;
+};
+
 type MemberFacts = TokenFlow & {
-  member: ResolvedFusionMember;
   label: string;
   color: Color | undefined;
   capacity: number | null;
@@ -82,78 +119,27 @@ type MemberFacts = TokenFlow & {
   dynamicsKey: string | null;
 };
 
-/** How the net's own transitions touch a member: its anchor's arcs, or the port arcs on an instance port. */
-const outsideFlow = (
-  net: CheckedNet,
-  resolved: ResolvedFusionMember,
-): TokenFlow => {
-  let produced = false;
-  let consumed = false;
-  const matches = (endpoint: ReturnType<typeof getArcEndpoint>) =>
-    resolved.kind === "place"
-      ? endpoint.kind === "place" && endpoint.placeId === resolved.place.id
-      : endpoint.kind === "componentPort" &&
-        endpoint.componentInstanceId === resolved.instance.id &&
-        endpoint.portPlaceId === resolved.place.id;
-  for (const transition of net.transitions) {
-    if (transition.inputArcs.some((arc) => matches(getArcEndpoint(arc)))) {
-      consumed = true;
-    }
-    if (transition.outputArcs.some((arc) => matches(getArcEndpoint(arc)))) {
-      produced = true;
-    }
-  }
-  return { produced, consumed };
-};
-
-/**
- * How a component's own transitions touch one of its ports. A port no
- * transition touches passes tokens through for the net outside to use, so it
- * counts as both produced and consumed.
- */
-const portFlow = (
-  subnet: Pick<Subnet, "transitions">,
-  placeId: ID,
-): TokenFlow => {
-  let produced = false;
-  let consumed = false;
-  for (const transition of subnet.transitions) {
-    for (const arc of transition.inputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        consumed = true;
-      }
-    }
-    for (const arc of transition.outputArcs) {
-      const endpoint = getArcEndpoint(arc);
-      if (endpoint.kind === "place" && endpoint.placeId === placeId) {
-        produced = true;
-      }
-    }
-  }
-  return produced || consumed
-    ? { produced, consumed }
-    : { produced: true, consumed: true };
-};
-
 const factsFor = (
   net: CheckedNet,
+  member: ArcEndpoint,
   resolved: ResolvedFusionMember,
   label: string,
 ): MemberFacts => {
-  const place: Place = resolved.place;
-  const types: Color[] =
-    resolved.kind === "place" ? net.types : resolved.subnet.types;
-  const scope: string =
-    resolved.kind === "place" ? "" : `${resolved.subnet.id}::`;
+  const { place } = resolved;
+  const types = resolved.kind === "place" ? net.types : resolved.subnet.types;
+  const scope = resolved.kind === "place" ? "" : `${resolved.subnet.id}::`;
   const equationIds = getPlaceDynamicsEquationIds(place);
-  const outside = outsideFlow(net, resolved);
-  const inside: TokenFlow =
+  const outside = flowThrough(net.transitions, member);
+  // What is on the far side of the member from this net's transitions: the
+  // component's own, for an instance port; for an anchor that is itself a
+  // port of this net, whatever the net above does with it.
+  const inside =
     resolved.kind === "port"
       ? portFlow(resolved.subnet, place.id)
-      : { produced: false, consumed: false };
+      : place.isPort
+        ? bothWays
+        : { produced: false, consumed: false };
   return {
-    member: resolved,
     label,
     color: place.colorId
       ? types.find(({ id }) => id === place.colorId)
@@ -170,9 +156,25 @@ const factsFor = (
   };
 };
 
+/** The transitions of `net` with two arcs of one kind onto members of `fusion`. */
+const transitionsReachingTwice = (
+  net: CheckedNet,
+  fusion: Fusion,
+): Transition[] => {
+  const reaches = (arc: Transition["inputArcs" | "outputArcs"][number]) =>
+    fusion.members.some((member) => arcMatchesEndpoint(arc, member));
+  return net.transitions.filter(({ inputArcs, outputArcs }) => {
+    const inputKinds = inputArcs.filter(reaches).map(({ type }) => type);
+    return (
+      new Set(inputKinds).size < inputKinds.length ||
+      outputArcs.filter(reaches).length > 1
+    );
+  });
+};
+
 /** The problems with one fusion of `net`. */
 export const checkFusion = (
-  sdcpn: Pick<SDCPN, "types" | "subnets">,
+  sdcpn: Pick<SDCPN, "subnets">,
   net: CheckedNet,
   fusion: Fusion,
   subnetId: ID | null,
@@ -184,14 +186,7 @@ export const checkFusion = (
     severity: ProblemSeverity,
     message: string,
   ) =>
-    problems.push({
-      subnetId,
-      fusionId: fusion.id,
-      fusionName,
-      code,
-      severity,
-      message,
-    });
+    problems.push({ subnetId, fusionId: fusion.id, code, severity, message });
 
   if (fusion.members.length < 2) {
     report(
@@ -201,23 +196,17 @@ export const checkFusion = (
     );
   }
 
-  const seen = new Set<string>();
+  const { duplicates, multipleAnchors } = fusionMemberIssues(fusion.members);
   const facts: MemberFacts[] = [];
-  let anchors = 0;
-  for (const member of fusion.members) {
-    const key = fusionMemberKey(member);
+  for (const [index, member] of fusion.members.entries()) {
     const label = describeFusionMember(sdcpn, net, member);
-    if (seen.has(key)) {
+    if (duplicates.includes(index)) {
       report(
         "duplicate-member",
         "error",
         `${label} is listed twice in ${fusionName}.`,
       );
       continue;
-    }
-    seen.add(key);
-    if (member.kind === "place") {
-      anchors += 1;
     }
     const resolved = resolveFusionMember(sdcpn, net, member);
     if (resolved === null) {
@@ -230,13 +219,20 @@ export const checkFusion = (
       );
       continue;
     }
-    facts.push(factsFor(net, resolved, label));
+    facts.push(factsFor(net, member, resolved, label));
   }
-  if (anchors > 1) {
+  if (multipleAnchors) {
     report(
       "multiple-anchors",
       "error",
       `${fusionName} holds more than one place of this net; fuse ports into one place instead.`,
+    );
+  }
+  for (const transition of transitionsReachingTwice(net, fusion)) {
+    report(
+      "repeated-arc",
+      "error",
+      `Transition ${transition.name} reaches ${fusionName} through two arcs of the same kind. Keep one of them.`,
     );
   }
 
@@ -244,14 +240,15 @@ export const checkFusion = (
   if (!first) {
     return problems;
   }
-  for (const other of rest) {
-    if (!colorsStructurallyEqual(first.color, other.color)) {
-      report(
-        "color-mismatch",
-        "error",
-        `${first.label} and ${other.label} hold different token types, so they cannot be one place.`,
-      );
-    }
+  const mistyped = rest.find(
+    (other) => !colorsStructurallyEqual(first.color, other.color),
+  );
+  if (mistyped) {
+    report(
+      "color-mismatch",
+      "error",
+      `${first.label} and ${mistyped.label} hold different token types, so they cannot be one place.`,
+    );
   }
   const capacities = new Set(
     facts.flatMap(({ capacity }) => (capacity === null ? [] : [capacity])),

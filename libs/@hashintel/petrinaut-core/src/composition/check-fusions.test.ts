@@ -348,4 +348,78 @@ describe("token flow through fused ports", () => {
 
     expect(checkFusions(sdcpn)).toEqual([]);
   });
+
+  it("leaves the flow through an anchor that is itself a port to the net above", () => {
+    const line = subnet("line", {
+      places: [place("feed", { isPort: true })],
+      componentInstances: [instance("s1", "stage")],
+      fusions: [
+        {
+          id: "f1",
+          members: [{ kind: "place", placeId: "feed" }, portOf("s1", "in")],
+        },
+      ],
+    });
+    const sdcpn = net({
+      subnets: [stage, line],
+      componentInstances: [instance("l1", "line")],
+    });
+
+    expect(checkFusions(sdcpn)).toEqual([]);
+  });
+
+  it("reports a transition that reaches the fused place through two arcs of one kind", () => {
+    const sdcpn = net({
+      places: [place("feed")],
+      transitions: [
+        {
+          ...transition("supply", [], ["feed"]),
+          outputArcs: [
+            { placeId: "feed", weight: 1 },
+            { endpoint: portOf("s1", "in"), weight: 1 },
+          ],
+        },
+      ],
+      subnets: [stage],
+      componentInstances: [instance("s1", "stage")],
+      fusions: [
+        {
+          id: "f1",
+          members: [{ kind: "place", placeId: "feed" }, portOf("s1", "in")],
+        },
+      ],
+    });
+
+    expect(checkFusions(sdcpn)).toMatchObject([
+      { fusionId: "f1", code: "repeated-arc", severity: "error" },
+    ]);
+  });
+
+  it("reports a type mismatch once, however many members disagree", () => {
+    const typed = subnet("typed", {
+      types: [
+        color("part", [{ elementId: "w", name: "weight", type: "real" }]),
+      ],
+      places: [place("in", { isPort: true, colorId: "part" })],
+    });
+    const sdcpn = net({
+      places: [place("feed")],
+      subnets: [typed],
+      componentInstances: [instance("t1", "typed"), instance("t2", "typed")],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "feed" },
+            partIn("t1"),
+            partIn("t2"),
+          ],
+        },
+      ],
+    });
+
+    expect(
+      checkFusions(sdcpn).filter(({ code }) => code === "color-mismatch"),
+    ).toHaveLength(1);
+  });
 });
