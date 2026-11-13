@@ -4,7 +4,7 @@ import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
 
-import type { SDCPN } from "./types/sdcpn";
+import type { SDCPN, Subnet } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
 
@@ -1590,5 +1590,339 @@ describe("Petrinaut core fusion actions", () => {
 
     expect(instance.definition.get().fusions).toBeUndefined();
     expect(instance.definition.get().componentInstances).toHaveLength(1);
+  });
+});
+
+describe("Petrinaut core interface actions", () => {
+  const port = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    isPort: true,
+    x: 0,
+    y: 0,
+  });
+
+  const stageSubnet = (id: string, extra: Partial<Subnet> = {}): Subnet => ({
+    id,
+    name: id,
+    places: [port(`${id}_in`, "In"), port(`${id}_out`, "Out")],
+    transitions: [],
+    types: [],
+    differentialEquations: [],
+    parameters: [],
+    ...extra,
+  });
+
+  const withInterface = (): SDCPN => ({
+    ...emptySDCPN,
+    subnets: [
+      stageSubnet("stage", { interface: true }),
+      stageSubnet("fast", { implements: ["stage"] }),
+      stageSubnet("slow", { implements: ["stage"] }),
+      stageSubnet("other"),
+    ],
+    componentInstances: [
+      {
+        id: "s1",
+        name: "S1",
+        subnetId: "stage",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+    ],
+  });
+
+  test("sets and clears the document's default implementation", () => {
+    const instance = createInstance(withInterface());
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: "fast",
+    });
+    expect(instance.definition.get().implementations).toEqual({
+      [idOf("stage")]: idOf("fast"),
+    });
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: null,
+    });
+    expect(instance.definition.get().implementations).toBeUndefined();
+  });
+
+  test("refuses a default that is not an implementation of the interface", () => {
+    const instance = createInstance(withInterface());
+
+    expect(() =>
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "other",
+      }),
+    ).toThrow(/does not implement/);
+    expect(() =>
+      instance.mutations.setImplementation({
+        interfaceId: "fast",
+        implementationId: "slow",
+      }),
+    ).toThrow(/not an interface/);
+  });
+
+  test("holds a default and an instance's choice to the one rule", () => {
+    const instance = createInstance({
+      ...withInterface(),
+      subnets: [
+        ...(withInterface().subnets ?? []),
+        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      ],
+    });
+
+    // An interface runs nothing, whatever it says it implements.
+    expect(() =>
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "draft",
+      }),
+    ).toThrow(/which is an interface itself/);
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "draft" },
+      }),
+    ).toThrow(/which is an interface itself/);
+    // An instance of a component has nothing to choose.
+    expect(() =>
+      instance.mutations.addComponentInstance({
+        id: "o1",
+        name: "O1",
+        subnetId: "other",
+        implementation: "fast",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      }),
+    ).toThrow(/is not an interface/);
+  });
+
+  test("an instance loaded with a choice that cannot run is still edited, and its choice repaired", () => {
+    const loaded = withInterface();
+    const instance = createInstance({
+      ...loaded,
+      componentInstances: loaded.componentInstances?.map((existing) => ({
+        ...existing,
+        implementation: "other",
+      })),
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { name: "Renamed" },
+    });
+    expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
+      name: "Renamed",
+      implementation: idOf("other"),
+    });
+    // Making the same choice again is held to the rule.
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "other" },
+      }),
+    ).toThrow(/does not implement/);
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "fast" },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBe(idOf("fast"));
+  });
+
+  test("a subnet that stops being an interface is implemented by none", () => {
+    const instance = createInstance(withInterface());
+
+    instance.mutations.updateSubnet({
+      subnetId: "stage",
+      update: { interface: undefined },
+    });
+    for (const id of ["fast", "slow"]) {
+      expect(
+        instance.definition
+          .get()
+          .subnets?.find((subnet) => subnet.id === idOf(id)),
+      ).not.toHaveProperty("implements");
+    }
+  });
+
+  test("an instance pointed at another subnet lets go of its implementation", () => {
+    const instance = createInstance(withInterface());
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "fast" },
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { subnetId: "other" },
+    });
+    expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
+      subnetId: idOf("other"),
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0],
+    ).not.toHaveProperty("implementation");
+  });
+
+  test("a change to one subnet leaves the defaults of the others as they are", () => {
+    const instance = createInstance({
+      ...withInterface(),
+      // Loaded as is: `other` does not say it implements the stage.
+      implementations: { stage: "other" },
+    });
+    const patches: unknown[] = [];
+    instance.handle.subscribe((event) =>
+      patches.push(...(event.patches ?? [])),
+    );
+
+    instance.mutations.updateSubnet({
+      subnetId: "slow",
+      update: { name: "Slower" },
+    });
+    expect(instance.definition.get().implementations).toEqual({
+      [idOf("stage")]: idOf("other"),
+    });
+    expect(JSON.stringify(patches)).not.toContain("implementations");
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: "fast",
+    });
+    expect(JSON.stringify(patches)).toContain(
+      JSON.stringify(["implementations", idOf("stage")]),
+    );
+  });
+
+  test("refuses a subnet that implements something that is no interface", () => {
+    const instance = createInstance(withInterface());
+
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: "other",
+        update: { implements: ["missing"] },
+      }),
+    ).toThrow(/which does not exist/);
+    expect(() =>
+      instance.mutations.addSubnet(
+        stageSubnet("another", { implements: ["fast"] }),
+      ),
+    ).toThrow(/which is not an interface/);
+  });
+
+  test("lets an instance choose and clear its own implementation", () => {
+    const instance = createInstance(withInterface());
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "slow" },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBe(idOf("slow"));
+
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "other" },
+      }),
+    ).toThrow(/does not implement/);
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: undefined },
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0]?.implementation,
+    ).toBeUndefined();
+  });
+
+  test("a subnet that stops implementing an interface, or being one, leaves no binding behind", () => {
+    const bound = () => {
+      const instance = createInstance(withInterface());
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "fast",
+      });
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "fast" },
+      });
+      return instance;
+    };
+
+    const unticked = bound();
+    unticked.mutations.updateSubnet({
+      subnetId: "fast",
+      update: { implements: undefined },
+    });
+    expect(unticked.definition.get().implementations).toBeUndefined();
+    expect(
+      unticked.definition.get().componentInstances?.[0],
+    ).not.toHaveProperty("implementation");
+    // The instance can still be edited afterwards.
+    unticked.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { name: "Renamed" },
+    });
+    expect(unticked.definition.get().componentInstances?.[0]?.name).toBe(
+      "Renamed",
+    );
+
+    const demoted = bound();
+    demoted.mutations.updateSubnet({
+      subnetId: "stage",
+      update: { interface: undefined },
+    });
+    expect(demoted.definition.get().implementations).toBeUndefined();
+    expect(demoted.definition.get().componentInstances?.[0]).not.toHaveProperty(
+      "implementation",
+    );
+  });
+
+  test("removing a subnet drops the bindings and implements entries that named it", () => {
+    const instance = createInstance(withInterface());
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: "fast",
+    });
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "fast" },
+    });
+
+    instance.mutations.removeSubnet({ subnetId: "fast" });
+    const definition = instance.definition.get();
+    expect(definition.implementations).toBeUndefined();
+    expect(definition.componentInstances?.[0]?.implementation).toBeUndefined();
+
+    instance.mutations.removeSubnet({ subnetId: "stage" });
+    expect(
+      instance.definition.get().subnets?.find(({ id }) => id === idOf("slow"))
+        ?.implements,
+    ).toBeUndefined();
+  });
+
+  test("clearing the interface flag deletes it", () => {
+    const instance = createInstance(withInterface());
+
+    instance.mutations.updateSubnet({
+      subnetId: "stage",
+      update: { interface: undefined },
+    });
+    expect(
+      instance.definition.get().subnets?.find(({ id }) => id === idOf("stage"))
+        ?.interface,
+    ).toBeUndefined();
   });
 });

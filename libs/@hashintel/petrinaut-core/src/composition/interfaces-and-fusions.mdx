@@ -1,0 +1,283 @@
+---
+title: Interfaces, injection and the three fusions
+description: "The design for the composition layers after place fusion: interfaces as port-only subnets, how the implementation an instance runs is bound and could be provided, what deriving from an interface means, and what transition and arc fusion would add."
+sidebar_order: 20
+---
+
+Place fusion joins components through shared places. This page is the design
+for what comes after it: interfaces, the binding of implementations to the
+instances that run them, where implementations can come from, what deriving
+from an interface means, and what the two other fusions, of transitions and of
+arcs, would add. Interfaces and the bindings a document carries are in
+`composition/interfaces.ts` and `composition/check-interfaces.ts`; the rest is
+design, in the order the dependencies allow.
+
+## Interfaces
+
+### What an interface is
+
+An interface is a component's signature without its body: the ports, their
+token types and directions, and the parameters an implementation must accept.
+Everything in that list is something a subnet already carries. A subnet whose
+places are all ports and that holds no transition is exactly "a component with
+ports, without an implementation". So an interface is a **subnet flagged
+`interface`**, not a new entity kind:
+
+```ts
+type Subnet = {
+  // …as today: places (the ports), types, parameters, differentialEquations
+  /** A signature: ports and parameters only, no transitions or instances. */
+  interface?: true;
+  /** The interfaces this subnet is an implementation of. */
+  implements?: ID[];
+};
+```
+
+What this buys, for free:
+
+- **Instances point at it as they point at any subnet.** `ComponentInstance.subnetId`
+  keeps its meaning, so the canvas, port arcs, fusions and the Brunch tools
+  work unchanged on an instance of an interface. Unbound, the instance still
+  draws with the interface's ports, so a net can be wired before any
+  implementation exists; running it is an error until one is bound.
+- **Fusions and port arcs attach to the interface's ports**, so the wiring of a
+  composition is written once against the signature and survives swapping the
+  implementation.
+- **A textual form reads naturally**: `component Stage { port in In port out Out }`
+  with no transition is the interface; `component FastStage implements Stage {…}`
+  is one implementation.
+
+The checks an interface adds, in `composition/check-interfaces.ts`:
+
+| Condition                                                              | Severity |
+| ---------------------------------------------------------------------- | -------- |
+| An interface holds a transition or an instance                         | error    |
+| A subnet implements something that is not an interface                 | error    |
+| An implementation lacks a port the interface declares, matched by name | error    |
+| Matching ports differ structurally in token type                       | error    |
+| Matching ports disagree on direction, declared or read off the arcs    | warning  |
+| An implementation lacks an interface parameter, by variable name       | error    |
+| Matching parameters differ in type                                     | error    |
+| An instance of an interface has no implementation bound                | error    |
+
+Matching by **name** is the rule a reader can check by eye. Extra ports and
+parameters on an implementation are allowed; through the interface they are
+unreachable, which is what width subtyping means here.
+
+### How implementations come later
+
+An implementation is a subnet with `implements: [interfaceId]`. It can be
+drawn in the document, copied in from a library, or provided at run time by a
+host or a plugin. Nothing about the interface changes when an implementation
+appears; what changes is the **binding**, the choice of which implementation
+stands behind an instance when the net runs.
+
+## Deriving from an interface
+
+Three things people mean by inheritance, and what each should be:
+
+1. **Interface extension**: `extends` on an interface, not in the model yet.
+   The derived interface includes the base's ports and parameters and adds its
+   own; a port name present in both must agree on type. An implementation of
+   the derived interface is an implementation of the base, so an instance of
+   the base accepts it. Nominal, cheap, the natural step after interfaces.
+2. **Implementation derivation**: "FastStage is Stage with a different rate".
+   Do this by **composition, not by overriding**: the derived component
+   instantiates the base inside, fixes its parameters, adds places and
+   transitions around it, and forwards ports by fusion. The chain rule in the
+   flattener already resolves a port fused with a nested instance's port. A
+   copy-and-override mechanism would have to define what overriding a
+   transition means for the checks and the flattener, and the literature on
+   behavioural inheritance of Petri nets (van der Aalst and Basten's
+   projection and protocol inheritance) shows there is no cheap answer.
+   Parameter specialisation covers most of what overriding is wanted for.
+3. **Generics**: an interface whose port types are type variables, so `Stage`
+   works over any token type. The Flows compiler already does the cheap
+   version: one subnet per combination of resolved kinds, named by the kinds.
+   That is monomorphisation, and it is the route to take later: a generic
+   implementation is cloned with its type variables substituted at flatten
+   time. Research item, after extension and the bindings.
+
+## Providing and injecting components
+
+### Where a component can come from
+
+| Source                     | Lives in the document? | Exists today                                 |
+| -------------------------- | ---------------------- | -------------------------------------------- |
+| Drawn in the document      | yes                    | yes                                          |
+| Copied from a library      | yes, with its source   | no                                           |
+| Provided at run time       | no                     | no; the Flows executor is the first consumer |
+| Referenced, pinned version | by reference           | no                                           |
+
+A copy keeps the document complete without the provider. A run-time provision
+does not, which is right when the provider is the thing that runs the net
+anyway: a host providing the real implementation of an action, or a mock of it
+for a dry run. That is a choice at simulation time, "execute the real calls, or
+simulate their responses", and it is a choice of implementation, not of net.
+
+### Binding
+
+A binding says which implementation stands behind an interface, and where:
+
+```ts
+/** Document-level defaults, by interface. In the model. */
+SDCPN.implementations?: Record<ID /* interface */, ID /* subnet */>;
+/** One instance's own choice. In the model. */
+ComponentInstance.implementation?: ID;
+/** A scenario's choices, by interface or by instance path. Next. */
+Scenario.implementations?: Record<ID, ID>;
+```
+
+Resolution at flatten time, first match wins:
+
+```
+instance.implementation
+  → scenario.implementations[instance path, then interface]
+    → sdcpn.implementations[interface]
+      → provider (host or plugin) for the interface
+        → error: no implementation bound
+```
+
+Today the chain has its two document ends: the instance's own choice, then the
+document's default. The scenario's and the provider's slots come with their
+layers and sit between those ends without changing them.
+
+The flattener resolves each instance to the subnet that runs for it and maps
+the interface's ports and parameters onto the implementation's by name; the
+rest of it is untouched: the chosen subnet is scoped under the instance's id
+exactly as a concrete one is, so port arcs and fusions written against the
+interface's ports land on the implementation's. Bindings keyed by interface
+apply to nested instances too, down the path, unless a path-keyed entry says
+otherwise; that is the scoping a dependency-injection container gives, and the
+instance path is the key the flattener already uses.
+
+An unbound instance is an error, not a silent run of the stub: a stub that
+never moves tokens is a deadlock a user would spend an hour finding.
+
+### Providers
+
+A plugin or host contribution, `implementations`, maps interface ids to
+subnets it supplies at run time, shown in the instance's properties as
+"provided by X". A library copies instead. The two differ only in whether the
+document keeps the subnet.
+
+### Experiments over implementations
+
+Once a scenario carries bindings, comparing implementations is comparing
+scenarios: "fast cutter" against "slow cutter" is two scenarios of one net. A
+sweep over implementations is a categorical axis the experiment form does not
+have; it is the first feature to add once bindings exist.
+
+### Flows
+
+The Flows compiler maps onto this directly. An action definition is an
+interface: a port per input and output plus the lifecycle ports. The subnet
+the compiler generates per resolved kinds is an implementation. The executor is
+a provider, and a dry-run mock is a second implementation of the same
+interface. A constrained editing mode, "pick from a fixed list of actions", is
+a Nets panel that lists interfaces a host provides.
+
+## The three fusions
+
+Place fusion is in. The other two are read against it.
+
+| Fusion     | Shares   | Members agree on                          | What it means for the model                        |
+| ---------- | -------- | ----------------------------------------- | -------------------------------------------------- |
+| Place      | state    | token type, capacity, equations           | one place; colliding arcs of one kind are refused  |
+| Transition | an event | at most one rate                          | one firing: all inputs taken, all outputs produced |
+| Arc        | a flow   | nothing: the outside decides kind, weight | an outer arc lands on an inner transition          |
+
+### Transition fusion
+
+Two transitions fused are one transition: enabled when every member is
+enabled on its own inputs, firing once, atomically, taking every member's
+inputs and producing every member's outputs. It is a rendezvous: a client's
+`Request` with a server's `Accept`, a scheduler's `Dispatch` with a step's
+`Start`. The literature calls it transition fusion sets or synchronisation
+(modular Petri nets, Christensen and Petrucci; the synchronous product). In
+SDCPN the pieces compose like this:
+
+- **Arcs**: the union, weights adding where two members touch one flat
+  place. Place fusion has no such rule: it refuses two arcs of one kind from
+  one transition onto one fused place.
+- **Predicates**: the conjunction.
+- **Rate**: at most one stochastic member; the others are predicate
+  transitions. This is the active-and-passive rule stochastic process algebras
+  use, and it mirrors fused places, whose members agree on their equations. Combining two
+  rates has no memoryless answer, so a second rate is an error.
+- **Kernels**: each member's kernel runs on its own `input` object and its
+  outputs merge; two members writing one fused place concatenate. Kernels are
+  not merged, so no member's code reads another's tokens. Data between
+  components flows through fused places, which is what they are for.
+- **Membership**: a transition of the net and the **port transitions** of its
+  instances, so `Transition.isPort` becomes a thing, the dual of a port place.
+
+Data model: a second collection, `transitionFusions`, with members shaped as
+`{ kind: "transition", transitionId }` or
+`{ kind: "componentTransition", componentInstanceId, portTransitionId }`, the
+same set semantics and cascades as place fusions. Flattening: union-find over
+transition groups after the instances are scoped, the outermost transition
+leading. The real cost is the engine: a flat transition today has one kernel,
+and a fused one has several to run in order on one firing. The CPU engine's
+firing path and the HIR's transition program need that, and the GPU path does
+not flatten instances yet, so it stays out until it does.
+
+Canvas: dashed links between transitions with a different knot, a bar for a
+synchronisation. Textual form: `sync Name = Dispatch, Cutter.Start`.
+
+### Arc fusion
+
+Four readings, three of which fall away:
+
+1. **Port arcs**: an arc of the containing net onto an instance's port place.
+   In before fusion; it is the boundary arc onto state.
+2. **Fusing two arcs into one**: what place and transition fusion already do
+   when arcs collide. Not a separate concept.
+3. **Dangling arcs**: a component arc whose far end is a hole the containing
+   net fills. The same thing as a port place fused outside, with a second
+   syntax. Reject.
+4. **Arcs onto port transitions**: an outer place connected by an arc to an
+   inner transition exposed as a port. This is the one with new power: the
+   **arc's kind and weight are decided outside** the component. The
+   environment can gate an inner transition with a read arc, block it with an
+   inhibitor arc, or charge it a resource per firing, without the component
+   declaring a place for it. Through a port place the component would have to
+   anticipate each of those.
+
+So arc fusion is reading 4, and it has the same prerequisite as transition
+fusion, port transitions. Its limit: the inner kernel does not know the outer
+place by name, so an outer arc onto a port transition carries uncoloured
+tokens, or coloured ones the kernel never reads. Enforce that in the checks
+rather than invent a way for the kernel to see the outside.
+
+With port transitions on both ends, an arc between an inner transition and
+another instance's port place, `Cutter.Process -> Drill.In`, also becomes
+drawable, which makes the containing net's wiring purely declarative.
+
+### Interactions
+
+| With          | Place fusion                 | Transition fusion                | Arcs onto port transitions          |
+| ------------- | ---------------------------- | -------------------------------- | ----------------------------------- |
+| Typed tokens  | structural equality required | none                             | uncoloured, or unread by the kernel |
+| Dynamics      | members agree on equations   | none                             | none                                |
+| Stochasticity | none                         | one rate among members           | none                                |
+| GPU           | not flattened yet            | needs composed kernels           | fine once flattened                 |
+| Checks        | in                           | one rate, membership, port marks | arc kind against the inner kernel   |
+
+## What follows
+
+In the model: port directions, then interfaces with their checks, the options
+in the Nets panel, the implementation picker on an instance and the document's
+defaults.
+
+Next, in the order the dependencies allow:
+
+1. **Bindings in scenarios**, then experiments over implementations.
+2. **Providers**: the `implementations` contribution, beside a library copy.
+3. **Port transitions** and arcs onto them, with instance-to-instance arcs.
+4. **Transition fusion**, once the engine fires composed kernels.
+5. **Interface extension**, then generics by monomorphisation.
+
+Fusions declared inside an instance's subnet already flatten through the chain
+rule; what remains there is the editing surface, a fusion drawn from inside a
+component against the net that holds it.

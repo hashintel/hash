@@ -156,7 +156,29 @@ const canonicalizeComponentInstance = (
     id: toPetrinautId(instance.id),
     subnetId: toPetrinautId(instance.subnetId),
     parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
+    implementation:
+      instance.implementation === undefined
+        ? undefined
+        : toPetrinautId(instance.implementation),
   });
+
+/** Interface ids to implementation ids, both converted. */
+const canonicalizeImplementations = (
+  implementations: Record<string, string>,
+): Record<string, string> => {
+  const entries = Object.entries(implementations);
+  if (
+    entries.every(
+      ([key, value]) =>
+        toPetrinautId(key) === key && toPetrinautId(value) === value,
+    )
+  ) {
+    return implementations;
+  }
+  return Object.fromEntries(
+    entries.map(([key, value]) => [toPetrinautId(key), toPetrinautId(value)]),
+  );
+};
 
 const canonicalizeFusion = (fusion: Fusion): Fusion =>
   assignChanged(fusion, {
@@ -208,7 +230,12 @@ type PetrinautIdNet = Pick<
   Partial<
     Pick<
       SDCPN,
-      "componentInstances" | "scenarios" | "metrics" | "subnets" | "fusions"
+      | "componentInstances"
+      | "scenarios"
+      | "metrics"
+      | "subnets"
+      | "fusions"
+      | "implementations"
     >
   >;
 
@@ -239,6 +266,10 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
       canonicalizeComponentInstance,
     ),
     fusions: mapOptional(net.fusions, canonicalizeFusion),
+    implementations:
+      net.implementations === undefined
+        ? undefined
+        : canonicalizeImplementations(net.implementations),
     scenarios: mapOptional(net.scenarios, canonicalizeScenario),
     metrics: mapOptional(net.metrics, (metric) =>
       assignChanged(metric, { id: toPetrinautId(metric.id) }),
@@ -246,6 +277,7 @@ export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
     subnets: mapOptional(net.subnets, (subnet) =>
       assignChanged(canonicalizePetrinautIds(subnet), {
         id: toPetrinautId(subnet.id),
+        implements: mapOptional(subnet.implements, toPetrinautId),
       }),
     ),
   }) as Net;

@@ -1,23 +1,36 @@
+import { use } from "react";
+
 import {
   Button,
   Form,
   Icon,
+  Select,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { validateEntityName } from "@hashintel/petrinaut-core";
+import {
+  defaultImplementationId,
+  describeUnboundInstance,
+  isInterface,
+  resolveImplementation,
+  validateEntityName,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
+import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
+import { implementationItems } from "../../../implementation-items";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+import type { Subnet } from "@hashintel/petrinaut-core";
 
 const fieldsSectionStyle = css({
   paddingY: "3",
@@ -44,17 +57,82 @@ const paramFieldLabelStyle = css({
   },
 });
 
-const hintTextStyle = css({
-  fontSize: "xs",
-  color: "neutral.s85",
-});
+/**
+ * Which implementation runs for an instance of an interface: the instance's
+ * own choice, or the document's default.
+ */
+const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
+  const { instance, updateComponentInstance } =
+    useComponentInstancePropertiesContext();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const isDisabled = useIsReadOnly();
+
+  const subnetName = (subnetId: string | undefined) =>
+    (petriNetDefinition.subnets ?? []).find(({ id }) => id === subnetId)?.name;
+  const binding = resolveImplementation(petriNetDefinition, instance);
+  const description =
+    binding?.kind === "bound"
+      ? binding.chosenBy === "instance"
+        ? `Runs ${binding.implementation.name}, chosen for this instance.`
+        : `Runs ${binding.implementation.name}, the document's default.`
+      : binding?.kind === "unbound"
+        ? describeUnboundInstance(binding, instance.name)
+        : undefined;
+  const defaultName = subnetName(
+    defaultImplementationId(petriNetDefinition, iface.id),
+  );
+  return (
+    <Form.Field
+      label="Implementation"
+      size="sm"
+      descriptionBottom={
+        description === undefined ? undefined : (
+          <span className={hintTextStyle}>{description}</span>
+        )
+      }
+    >
+      <Tooltip
+        content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
+        disableTooltip={!isDisabled}
+      >
+        <Select
+          required
+          size="sm"
+          value={instance.implementation ?? "default"}
+          disabled={isDisabled}
+          onChange={(value) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: {
+                implementation: value === "default" ? undefined : value,
+              },
+            })
+          }
+          items={[
+            {
+              value: "default",
+              text:
+                defaultName === undefined
+                  ? "Document default (none)"
+                  : `Document default (${defaultName})`,
+            },
+            ...implementationItems(
+              petriNetDefinition,
+              iface.id,
+              instance.implementation,
+            ),
+          ]}
+        />
+      </Tooltip>
+    </Form.Field>
+  );
+};
 
 const ComponentInstanceMainContent: React.FC = () => {
   const { instance, subnet, subnetParameters, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
-
   const nameField = useDraftField({
     sourceId: instance.id,
     sourceValue: instance.name,
@@ -123,6 +201,10 @@ const ComponentInstanceMainContent: React.FC = () => {
             {subnet?.name ?? "The referenced subnet no longer exists."}
           </div>
         </Form.Field>
+
+        {subnet && isInterface(subnet) && (
+          <ImplementationField iface={subnet} />
+        )}
       </Form.Section>
 
       {subnetParameters.length > 0 && (

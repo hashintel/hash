@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { checkComposition, checkFusions } from "./check-fusions";
+import { checkComposition } from "./check-composition";
+import { checkFusions } from "./check-fusions";
 
 import type {
   Color,

@@ -173,19 +173,26 @@ const fusionSchema = z.object({
   members: z.array(currentFusionSchema.shape.members.element),
 });
 
-const subnetSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: descriptionSchema,
-  metadata: metadataSchema,
-  places: z.array(placeSchema),
-  transitions: z.array(transitionSchema),
-  types: z.array(colorSchema).default([]),
-  differentialEquations: z.array(differentialEquationSchema).default([]),
-  parameters: z.array(parameterSchema).default([]),
-  componentInstances: z.array(componentInstanceSchema).default([]),
-  fusions: z.array(fusionSchema).optional(),
-});
+const subnetSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: descriptionSchema,
+    metadata: metadataSchema,
+    interface: z.boolean().optional(),
+    implements: z.array(z.string()).optional(),
+    places: z.array(placeSchema),
+    transitions: z.array(transitionSchema),
+    types: z.array(colorSchema).default([]),
+    differentialEquations: z.array(differentialEquationSchema).default([]),
+    parameters: z.array(parameterSchema).default([]),
+    componentInstances: z.array(componentInstanceSchema).default([]),
+    fusions: z.array(fusionSchema).optional(),
+  })
+  // The flag is `true` or absent in a document: `false` reads as absent.
+  .transform(({ interface: isInterface, ...subnet }) =>
+    isInterface ? { ...subnet, interface: true as const } : subnet,
+  );
 
 export const sdcpnSchema = z.object({
   description: descriptionSchema,
@@ -200,6 +207,7 @@ export const sdcpnSchema = z.object({
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
   fusions: z.array(fusionSchema).optional(),
+  implementations: z.record(z.string(), z.string()).optional(),
 });
 
 const fileMetaSchema = z.object({

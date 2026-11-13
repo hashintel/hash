@@ -23,6 +23,11 @@ import {
 } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
 import { findFusionWithMember } from "./composition/fusions";
+import {
+  describeUnboundInstance,
+  isInterface,
+  resolveImplementation,
+} from "./composition/interfaces";
 import { generateDefaultTransitionKernelCode } from "./default-codes";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -47,9 +52,11 @@ import type {
   ComponentInstance,
   Fusion,
   FusionMember,
+  ID,
   InputArc,
   OutputArc,
   SDCPN,
+  Subnet,
 } from "./types/sdcpn";
 
 export type MutationHelperFunctions = {
@@ -424,6 +431,87 @@ const assertEndpointReferences = (
   }
 };
 
+/** Drops the document's default implementations `drop` picks, and the record once it is empty. */
+const dropImplementations = (
+  sdcpn: SDCPN,
+  drop: (interfaceId: ID, implementationId: ID) => boolean,
+): void => {
+  const document = sdcpn;
+  const implementations = document.implementations;
+  if (!implementations) {
+    return;
+  }
+  for (const [interfaceId, implementationId] of Object.entries(
+    implementations,
+  )) {
+    if (drop(interfaceId, implementationId)) {
+      delete implementations[interfaceId];
+    }
+  }
+  if (Object.keys(implementations).length === 0) {
+    delete document.implementations;
+  }
+};
+
+/**
+ * Drops the bindings a change to `subnetId` broke: an instance's choice or a
+ * document default that names it, as the interface or as the implementation,
+ * and no longer resolves.
+ */
+const pruneImplementationBindings = (sdcpn: SDCPN, subnetId: ID): void => {
+  const broken = (interfaceId: ID, implementationId: ID): boolean =>
+    (interfaceId === subnetId || implementationId === subnetId) &&
+    resolveImplementation(sdcpn, {
+      subnetId: interfaceId,
+      implementation: implementationId,
+    })?.kind !== "bound";
+  for (const net of getAllMutableNets(sdcpn)) {
+    for (const instance of net.componentInstances ?? []) {
+      if (
+        instance.implementation !== undefined &&
+        broken(instance.subnetId, instance.implementation)
+      ) {
+        delete instance.implementation;
+      }
+    }
+  }
+  dropImplementations(sdcpn, broken);
+};
+
+/** Throws when `subnet` says it implements something that is no interface of the document. */
+const assertImplementsReferences = (
+  sdcpn: SDCPN,
+  subnet: Pick<Subnet, "name" | "implements">,
+): void => {
+  for (const interfaceId of subnet.implements ?? []) {
+    const iface = sdcpn.subnets?.find(({ id }) => id === interfaceId);
+    if (!iface) {
+      throw new Error(
+        `Subnet \`${subnet.name}\` implements subnet ID \`${interfaceId}\` which does not exist.`,
+      );
+    }
+    if (!isInterface(iface)) {
+      throw new Error(
+        `Subnet \`${subnet.name}\` implements \`${iface.name}\`, which is not an interface.`,
+      );
+    }
+  }
+};
+
+/** Takes a removed subnet out of the `implements` lists that name it. */
+const removeFromImplementsLists = (sdcpn: SDCPN, subnetId: ID): void => {
+  for (const subnet of sdcpn.subnets ?? []) {
+    if (subnet.implements?.includes(subnetId)) {
+      const remaining = subnet.implements.filter((id) => id !== subnetId);
+      if (remaining.length > 0) {
+        subnet.implements = remaining;
+      } else {
+        delete subnet.implements;
+      }
+    }
+  }
+};
+
 /** Throws when a fusion names a place or a port that is not in `net`. */
 const assertFusionReferences = (
   sdcpn: SDCPN,
@@ -454,6 +542,25 @@ const assertComponentInstanceReferences = (
         `Component instance \`${instance.name}\` provides a value for unknown subnet parameter ID \`${parameterId}\`.`,
       );
     }
+  }
+};
+
+/** Throws when the implementation an instance names cannot run for it. */
+const assertImplementationChoice = (
+  sdcpn: SDCPN,
+  instance: ComponentInstance,
+): void => {
+  if (instance.implementation === undefined) {
+    return;
+  }
+  const binding = resolveImplementation(sdcpn, instance);
+  if (binding?.kind === "component") {
+    throw new Error(
+      `Component instance \`${instance.name}\` names an implementation, but \`${binding.subnet.name}\` is not an interface.`,
+    );
+  }
+  if (binding?.kind === "unbound") {
+    throw new Error(describeUnboundInstance(binding, instance.name));
   }
 };
 
@@ -1218,6 +1325,7 @@ export function createPetrinautActions(
     addSubnet(subnet) {
       const parsedSubnet = subnetSchema.parse(subnet);
       mutateWithExtensionGuards((sdcpn) => {
+        assertImplementsReferences(sdcpn, parsedSubnet);
         const targetSdcpn = sdcpn;
         targetSdcpn.subnets ??= [];
         const subnets = targetSdcpn.subnets;
@@ -1229,8 +1337,19 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         for (const subnet of sdcpn.subnets ?? []) {
           if (subnet.id === parsed.subnetId) {
-            Object.assign(subnet, parsed.update);
+            const wasInterface = isInterface(subnet);
+            assignUpdate(subnet, parsed.update);
             subnetSchema.parse(subnet);
+            if (parsed.update.implements !== undefined) {
+              assertImplementsReferences(sdcpn, subnet);
+            }
+            // A subnet that stops being an interface is implemented by none,
+            // and one that stops being an interface or implementing one
+            // leaves the bindings that relied on it.
+            if (wasInterface && !isInterface(subnet)) {
+              removeFromImplementsLists(sdcpn, subnet.id);
+            }
+            pruneImplementationBindings(sdcpn, subnet.id);
             break;
           }
         }
@@ -1247,9 +1366,44 @@ export function createPetrinautActions(
           if (subnet.id === subnetId) {
             subnets.splice(index, 1);
             removeComponentInstancesReferencingSubnet(sdcpn, subnetId);
+            removeFromImplementsLists(sdcpn, subnetId);
+            pruneImplementationBindings(sdcpn, subnetId);
             break;
           }
         }
+      });
+    },
+    setImplementation(input) {
+      const { interfaceId, implementationId } =
+        mutationActionInputSchemas.setImplementation.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        if (implementationId === null) {
+          dropImplementations(sdcpn, (id) => id === interfaceId);
+          return;
+        }
+        const binding = resolveImplementation(sdcpn, {
+          subnetId: interfaceId,
+          implementation: implementationId,
+        });
+        if (binding === null) {
+          throw new Error(`Subnet ID \`${interfaceId}\` does not exist.`);
+        }
+        if (binding.kind === "component") {
+          throw new Error(
+            `Subnet \`${binding.subnet.name}\` is not an interface.`,
+          );
+        }
+        if (binding.kind === "unbound") {
+          throw new Error(
+            describeUnboundInstance(
+              binding,
+              `The default of ${binding.interface.name}`,
+            ),
+          );
+        }
+        const document = sdcpn;
+        document.implementations ??= {};
+        document.implementations[interfaceId] = implementationId;
       });
     },
     addComponentInstance(input) {
@@ -1260,6 +1414,7 @@ export function createPetrinautActions(
       mutateWithExtensionGuards((sdcpn) => {
         const net = resolveTargetNet(sdcpn, targetSubnetId);
         assertComponentInstanceReferences(sdcpn, parsedInstance);
+        assertImplementationChoice(sdcpn, parsedInstance);
         getComponentInstances(net).push(parsedInstance);
       });
     },
@@ -1277,10 +1432,21 @@ export function createPetrinautActions(
               parsed.update.subnetId !== instance.subnetId
             ) {
               removeReferencesToComponentInstance(net, instance.id);
+              // So does its choice of implementation, unless the update
+              // makes one.
+              delete instance.implementation;
             }
-            Object.assign(instance, parsed.update);
+            assignUpdate(instance, parsed.update);
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
+            // A choice the document was loaded with is left for the user to
+            // repair: only an update that makes one is held to the rule.
+            if (
+              parsed.update.subnetId !== undefined ||
+              "implementation" in parsed.update
+            ) {
+              assertImplementationChoice(sdcpn, instance);
+            }
             break;
           }
         }

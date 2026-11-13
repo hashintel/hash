@@ -483,6 +483,7 @@ export const hashPetrinautTools = {
   petrinaut_create_subnet: mapped("addSubnet"),
   petrinaut_update_subnet: mapped("updateSubnet"),
   petrinaut_remove_subnet: mapped("removeSubnet"),
+  petrinaut_set_implementation: mapped("setImplementation"),
   petrinaut_create_component: mapped("addComponentInstance"),
   petrinaut_update_component: mergedNodeUpdate(
     "updateComponentInstance",

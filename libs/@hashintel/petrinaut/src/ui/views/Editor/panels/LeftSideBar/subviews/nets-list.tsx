@@ -2,7 +2,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, isInterface } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -13,6 +13,7 @@ import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
+import { SubnetOptionsPopover } from "./subnet-options-popover";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -54,6 +55,11 @@ const itemStyle = cva({
       display: "none",
     },
     "&:focus-within [data-row-action]": {
+      display: "flex",
+    },
+    /* The options popover hangs off the gear: the gear has to stay laid out
+       while it is open, or the popover loses its anchor. */
+    "&[data-options-open] [data-row-action]": {
       display: "flex",
     },
   },
@@ -157,6 +163,13 @@ export const NetNavigationList: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   const cancellingRef = useRef(false);
   const targets = useRef<Map<string, HTMLElement>>(new Map());
+  const [optionsAnchor, setOptionsAnchor] = useState<{
+    subnetId: string;
+    element: Element;
+  } | null>(null);
+  const optionsSubnet = optionsAnchor
+    ? (subnets ?? []).find(({ id }) => id === optionsAnchor.subnetId)
+    : undefined;
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
@@ -173,8 +186,9 @@ export const NetNavigationList: React.FC<{
     attach,
   } = useFocusStops({
     stops,
-    // Column 0 is the row, column 1 its delete button.
-    columnCount: 2,
+    // Column 0 is the row, column 1 its options button, column 2 its
+    // delete button.
+    columnCount: 3,
     focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
   });
 
@@ -294,15 +308,22 @@ export const NetNavigationList: React.FC<{
         Root
       </div>
       {(subnets ?? []).map((subnet) => {
-        const actionTarget: FocusStopTarget = {
+        const optionsTarget: FocusStopTarget = {
           stopId: subnet.id,
           column: 1,
+        };
+        const actionTarget: FocusStopTarget = {
+          stopId: subnet.id,
+          column: 2,
         };
         return (
           <div
             key={subnet.id}
             {...rowFocusProps(subnet.id)}
             className={itemStyle({ active: activeSubnetId === subnet.id })}
+            data-options-open={
+              optionsAnchor?.subnetId === subnet.id ? "" : undefined
+            }
             onClick={() => {
               if (editingId !== subnet.id) {
                 handleSelect(subnet.id);
@@ -319,7 +340,10 @@ export const NetNavigationList: React.FC<{
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
           >
             <span className={iconStyle}>
-              <Icon name="diagramNested" size="xs" />
+              <Icon
+                name={isInterface(subnet) ? "puzzlePiece" : "diagramNested"}
+                size="xs"
+              />
             </span>
             {editingId === subnet.id ? (
               <input
@@ -339,31 +363,61 @@ export const NetNavigationList: React.FC<{
               <span className={nameStyle}>{subnet.name}</span>
             )}
             {mutationActionsVisible && editingId !== subnet.id && (
-              <RowActionCell
-                registerButton={registerTarget(actionTarget)}
-                onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                onButtonFocus={() => onFocusTarget(actionTarget)}
-              >
-                <Button
-                  aria-label="Delete subnet"
-                  size="xs"
-                  variant="ghost"
-                  tone="error"
-                  iconName="trash"
-                  disabled={isReadOnly}
-                  tooltip={
-                    isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSubnet(subnet.id);
-                  }}
-                />
-              </RowActionCell>
+              <>
+                <RowActionCell
+                  registerButton={registerTarget(optionsTarget)}
+                  onArrowKeyDown={onStopsKeyDown(optionsTarget)}
+                  onButtonFocus={() => onFocusTarget(optionsTarget)}
+                >
+                  <Button
+                    aria-label="Subnet options"
+                    size="xs"
+                    variant="ghost"
+                    iconName="gear"
+                    tooltip="Interface and implementations"
+                    onClick={(event) =>
+                      setOptionsAnchor({
+                        subnetId: subnet.id,
+                        element: event.currentTarget,
+                      })
+                    }
+                  />
+                </RowActionCell>
+                <RowActionCell
+                  registerButton={registerTarget(actionTarget)}
+                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
+                  onButtonFocus={() => onFocusTarget(actionTarget)}
+                >
+                  <Button
+                    aria-label="Delete subnet"
+                    size="xs"
+                    variant="ghost"
+                    tone="error"
+                    iconName="trash"
+                    disabled={isReadOnly}
+                    tooltip={
+                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete subnet"
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSubnet(subnet.id);
+                    }}
+                  />
+                </RowActionCell>
+              </>
             )}
           </div>
         );
       })}
+      {optionsAnchor && optionsSubnet && (
+        <SubnetOptionsPopover
+          // One popover per subnet: opening another row's starts afresh.
+          key={optionsSubnet.id}
+          subnet={optionsSubnet}
+          anchor={optionsAnchor.element}
+          onClose={() => setOptionsAnchor(null)}
+        />
+      )}
     </div>
   );
 };

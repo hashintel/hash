@@ -35,3 +35,16 @@ Drag between a place and an instance's port, or between the ports of two instanc
 The fused places must agree: the same token type, the same capacity where one is set, and the same differential equations on the places that have dynamics. A transition can reach a fused place through one arc of each kind: two arcs of the same kind from one transition onto places of one fusion are an error, and one of them has to go. Problems turn the fusion's line red, or amber for a warning. They are listed in the fusion's properties and in the **Diagnostics** tab under **Composition**, with notes for a fusion nothing fills or nothing empties, and the errors and warnings count in the bottom bar's diagnostics indicator.
 
 When the net runs, each fusion is one place: tokens a component puts into its port are in the fused place, and a transition of another component takes them from there.
+
+## Interfaces and implementations
+
+An **interface** is a component with ports and parameters but no body: it says what a component looks like from outside without saying how it works. Add a subnet, mark its places as ports, then open its options in the **Nets** panel (the gear on its row) and tick **Interface**. Its row shows a puzzle piece. An interface holds no transitions or instances; remove them before ticking the box.
+
+A component **implements** an interface when its options tick that interface under **Implements**. It needs every port the interface declares, matched by name and holding the same token type, and every parameter, matched by variable name; it may have more of each. A port used against the direction the interface declares is a warning. Problems show in the **Diagnostics** tab under **Composition**; click one to open the subnet or select the instance it is about.
+
+An instance of an interface runs an **implementation**:
+
+- The interface's options choose the **Default implementation** for the whole document.
+- An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs.
+
+Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it. The net does not run either while the implementation that is bound falls short of its interface, or while a component holds an instance that runs that same component, directly or through others: both are listed under **Composition**.

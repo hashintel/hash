@@ -424,7 +424,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "Component subnet cycle detected: outer-subnet -> inner-subnet -> outer-subnet",
+      "Component subnet cycle detected: `outer-subnet` -> `inner-subnet` -> `outer-subnet`",
     );
   });
 
@@ -789,6 +789,253 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       expect(result.sdcpn.places).toMatchObject([
         { id: "b1::pool", dynamics: [{ differentialEquationId: "b1::cool" }] },
       ]);
+    });
+  });
+
+  describe("interfaces", () => {
+    /** A stage signature: In consumed, Out produced, a rate parameter. */
+    const stage = subnet("stage", {
+      interface: true,
+      places: [
+        place("stage_in", { name: "In", isPort: true, portDirection: "in" }),
+        place("stage_out", { name: "Out", isPort: true, portDirection: "out" }),
+      ],
+      parameters: [parameter("stage_rate", { variableName: "rate" })],
+    });
+
+    /** An implementation of the stage, its ports and parameter under its own ids. */
+    const implementation = (id: string) =>
+      subnet(id, {
+        implements: ["stage"],
+        places: [
+          place(`${id}_in`, { name: "In", isPort: true }),
+          place(`${id}_out`, { name: "Out", isPort: true }),
+        ],
+        transitions: [
+          transition(`${id}_work`, {
+            inputArcs: [{ placeId: `${id}_in`, weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: `${id}_out`, weight: 1 }],
+          }),
+        ],
+        parameters: [
+          parameter(`${id}_rate`, { variableName: "rate", defaultValue: "1" }),
+        ],
+      });
+
+    it("runs the document's default implementation for an instance of an interface", () => {
+      const definition = sdcpn({
+        transitions: [
+          transition("feed", {
+            outputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "s1",
+                  portPlaceId: "stage_in",
+                },
+                weight: 1,
+              },
+            ],
+          }),
+        ],
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+        implementations: { stage: "fast" },
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.subnets).toEqual([]);
+      expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
+        "s1::fast_in",
+        "s1::fast_out",
+      ]);
+      expect(result.sdcpn.transitions).toMatchObject([
+        { id: "feed", outputArcs: [{ placeId: "s1::fast_in", weight: 1 }] },
+        {
+          id: "s1::fast_work",
+          inputArcs: [{ placeId: "s1::fast_in", weight: 1, type: "standard" }],
+        },
+      ]);
+    });
+
+    it("lets an instance choose its implementation over the document's default", () => {
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("s1", "stage"),
+          componentInstance("s2", "stage", { implementation: "slow" }),
+        ],
+        subnets: [stage, implementation("fast"), implementation("slow")],
+        implementations: { stage: "fast" },
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.transitions.map(({ id }) => id)).toEqual([
+        "s1::fast_work",
+        "s2::slow_work",
+      ]);
+    });
+
+    it("throws for an instance of an interface with nothing bound", () => {
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+      });
+
+      expect(() => flatten({ definition })).toThrow(/no implementation to run/);
+    });
+
+    it("fuses through an interface port onto the implementation's port of the same name", () => {
+      const definition = sdcpn({
+        places: [place("buffer")],
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, implementation("fast")],
+        implementations: { stage: "fast" },
+        fusions: [
+          {
+            id: "f1",
+            members: [
+              { kind: "place", placeId: "buffer" },
+              {
+                kind: "componentPort",
+                componentInstanceId: "s1",
+                portPlaceId: "stage_in",
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.places.map(({ id }) => id)).not.toContain(
+        "s1::fast_in",
+      );
+      expect(
+        result.sdcpn.transitions.find(({ id }) => id === "s1::fast_work")!
+          .inputArcs,
+      ).toEqual([{ placeId: "buffer", weight: 1, type: "standard" }]);
+    });
+
+    it("maps the interface's parameters onto the implementation's by variable name", () => {
+      const definition = sdcpn({
+        componentInstances: [
+          componentInstance("s1", "stage", {
+            parameterValues: { stage_rate: "5" },
+          }),
+        ],
+        subnets: [stage, implementation("fast")],
+        implementations: { stage: "fast" },
+      });
+
+      const result = flatten({ definition });
+
+      expect(result.sdcpn.parameters.map(({ id }) => id)).toEqual([
+        "s1::fast_rate",
+      ]);
+      expect(result.transitionParameterValues.get("s1::fast_work")).toEqual({
+        rate: 5,
+      });
+    });
+
+    it("runs an instance that sets no value at the interface's default, not the implementation's", () => {
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          {
+            ...stage,
+            parameters: [
+              parameter("stage_rate", {
+                variableName: "rate",
+                defaultValue: "5",
+              }),
+            ],
+          },
+          implementation("fast"),
+        ],
+        implementations: { stage: "fast" },
+      });
+
+      expect(
+        flatten({ definition }).transitionParameterValues.get("s1::fast_work"),
+      ).toEqual({ rate: 5 });
+    });
+
+    it("throws when the implementation's port holds another token type than the interface's", () => {
+      const colour = (id: string, type: "real" | "integer") => ({
+        id,
+        name: id,
+        iconSlug: "circle",
+        displayColor: "#000",
+        elements: [{ elementId: `${id}_x`, name: "x", type }],
+      });
+      const typed = (base: Subnet, colorId: string, type: "real" | "integer") =>
+        subnet(base.id, {
+          ...base,
+          types: [colour(colorId, type)],
+          places: base.places.map((port) => ({ ...port, colorId })),
+        });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          typed(stage, "reals", "real"),
+          typed(implementation("fast"), "integers", "integer"),
+        ],
+        implementations: { stage: "fast" },
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `fast`: Port In of fast holds a different token type/,
+      );
+    });
+
+    it("throws when an implementation runs inside itself, naming the subnets", () => {
+      const nested = subnet("fast", {
+        ...implementation("fast"),
+        componentInstances: [componentInstance("again", "stage")],
+      });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, nested],
+        implementations: { stage: "fast" },
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        "Component subnet cycle detected: `fast` -> `fast`",
+      );
+    });
+
+    it("throws when the implementation lacks a port of the interface", () => {
+      const partial = subnet("partial", {
+        implements: ["stage"],
+        places: [place("partial_in", { name: "In", isPort: true })],
+      });
+      const definition = sdcpn({
+        transitions: [
+          transition("drain", {
+            inputArcs: [
+              {
+                endpoint: {
+                  kind: "componentPort",
+                  componentInstanceId: "s1",
+                  portPlaceId: "stage_out",
+                },
+                weight: 1,
+                type: "standard",
+              },
+            ],
+          }),
+        ],
+        componentInstances: [
+          componentInstance("s1", "stage", { implementation: "partial" }),
+        ],
+        subnets: [stage, partial],
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `partial`: partial has no port named Out/,
+      );
     });
   });
 });
