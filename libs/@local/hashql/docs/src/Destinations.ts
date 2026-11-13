@@ -12,13 +12,13 @@ import {
 import * as Anchor from "./Anchor.js";
 import * as Catalogue from "./Catalogue.js";
 import * as Related from "./internal/related.js";
+import * as Placement from "./Placement.js";
 import * as Tree from "./Tree/index.js";
 
 import type * as AST from "./AST/index.js";
 import type * as Code from "./Code.js";
 import type * as Document from "./Document.js";
 import type * as ExternalTarget from "./ExternalTarget.js";
-import type * as Placement from "./Placement.js";
 
 type Target = AST.Target.Interned;
 
@@ -79,41 +79,49 @@ interface Placed {
   readonly value: Option.Option<Anchor.Anchor>;
 }
 
-/** Every public declaration's anchor on the page that documents it, in catalogue order. A page's own declaration has its file and no id. A value that is an export of its own takes its type's id with `-value` after it. */
+/** Every public declaration's anchor on the page that documents it, in catalogue order. A page's own declaration has its file and no id. A value that is an export of its own takes its names with `-value` after them, on the page that documents it. */
 const declarationsOf = (
   document: Document.Document,
   { pages, ids }: { readonly pages: Pages; readonly ids: Anchor.Ids },
-): readonly Placed[] =>
-  Array.flatMap(document.catalogue.entries, ({ id }) =>
+): readonly Placed[] => {
+  const anchored = (
+    { page, names }: Placement.Place,
+    suffix: string,
+  ): Anchor.Anchor => {
+    const file = HashMap.get(pages, page.entry.id).pipe(Option.getOrThrow);
+
+    return {
+      file,
+      id: Option.liftPredicate(names, Array.isReadonlyArrayNonEmpty).pipe(
+        Option.map((present) =>
+          ids.reserve(file, Anchor.AnchorId(`${present.join(".")}${suffix}`)),
+        ),
+      ),
+    };
+  };
+
+  return Array.flatMap(document.catalogue.entries, ({ id }) =>
     HashMap.get(document.placement.places, id).pipe(
-      Option.map((place): Placed => {
-        const file = HashMap.get(pages, place.page.entry.id).pipe(
-          Option.getOrThrow,
-        );
-        const anchored = (suffix: string): Anchor.Anchor => ({
-          file,
-          id: Option.liftPredicate(
-            place.names,
-            Array.isReadonlyArrayNonEmpty,
-          ).pipe(
-            Option.map((names) =>
-              ids.reserve(file, Anchor.AnchorId(`${names.join(".")}${suffix}`)),
+      Option.map((place): Placed => ({
+        id,
+        place,
+        anchor: anchored(place, ""),
+        value: HashMap.get(document.values, id).pipe(
+          Option.map(({ meaning }) =>
+            anchored(
+              Option.getOrElse(
+                Placement.placeOf(document.placement, { id, meaning }),
+                () => place,
+              ),
+              "-value",
             ),
           ),
-        });
-
-        return {
-          id,
-          place,
-          anchor: anchored(""),
-          value: HashMap.get(document.values, id).pipe(
-            Option.map(() => anchored("-value")),
-          ),
-        };
-      }),
+        ),
+      })),
       Option.toArray,
     ),
   );
+};
 
 /** The anchors of each declaration whose type and value are an export each. A name reads the export `Related.exportAt` gives its meaning, and links to that export's anchor. */
 const meaningsOf = (
