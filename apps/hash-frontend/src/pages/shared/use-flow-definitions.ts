@@ -44,6 +44,8 @@ export type LoadedFlowDefinition = {
   flowDefinitionEntityId: EntityId;
   /** Whether the graph lets the user update the entity. */
   userCanUpdate: boolean;
+  /** When the edition loaded was saved. */
+  lastEditedAt: string;
 } & ReturnType<typeof validateFlowDefinitionEntity>;
 
 const userCanUpdateEntity = (
@@ -93,6 +95,7 @@ const getFlowDefinitionsFromQueryResult = (
   return getRoots(subgraph).map((entity) => ({
     flowDefinitionEntityId: entity.metadata.recordId.entityId,
     userCanUpdate: userCanUpdateEntity(data, entity.metadata.recordId.entityId),
+    lastEditedAt: entity.metadata.temporalVersioning.decisionTime.start.limit,
     ...validateFlowDefinitionEntity(entity),
   }));
 };

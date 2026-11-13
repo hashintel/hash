@@ -66,10 +66,13 @@ export const RunGlyph = ({
   state,
   exclaim = false,
   size = 16,
+  label = stepStateLabels[state],
 }: {
   state: StepState;
   exclaim?: boolean;
   size?: 12 | 16;
+  /** What it's named for screen readers, when it marks something other than a step, such as a whole run. */
+  label?: string;
 }) => {
   const exclaims = exclaim && state === "failed";
 
@@ -79,7 +82,7 @@ export const RunGlyph = ({
       height={size}
       viewBox="0 0 16 16"
       role="img"
-      aria-label={stepStateLabels[state]}
+      aria-label={label}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.25"

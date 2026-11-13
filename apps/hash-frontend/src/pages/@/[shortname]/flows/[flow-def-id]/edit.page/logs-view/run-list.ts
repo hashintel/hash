@@ -1,8 +1,12 @@
 import { getShortRunId } from "../shared/run-id";
-import { getRunState, runStates, runStatesByUrgency } from "./run-state";
+import {
+  getRunState,
+  runStates,
+  runStatesByUrgency,
+} from "../shared/run-state";
 
 import type { FlowRunSummary } from "../../../../../../../graphql/api-types.gen";
-import type { RunState, RunTab } from "./run-state";
+import type { RunState, RunTab } from "../shared/run-state";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SortDirection } from "@hashintel/ds-components";
 
