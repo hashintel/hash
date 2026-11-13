@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
@@ -21,23 +21,32 @@ import type {
 import type { PropsWithChildren } from "react";
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const { data, loading, refetch } = useQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    fetchPolicy: "cache-first",
-    variables: {
-      request: {
-        filter: { all: [] },
-        temporalAxes: fullTransactionTimeAxis,
-        graphResolveDepths: {
-          inheritsFrom: 255,
-          constrainsValuesOn: 255,
+  const [enabled, setEnabled] = useState(false);
+  const ensureFetched = useCallback(() => setEnabled(true), []);
+
+  const {
+    data,
+    loading: queryLoading,
+    refetch,
+  } = useQuery<QueryDataTypeSubgraphQuery, QueryDataTypeSubgraphQueryVariables>(
+    queryDataTypeSubgraphQuery,
+    {
+      skip: !enabled,
+      fetchPolicy: "cache-first",
+      variables: {
+        request: {
+          filter: { all: [] },
+          temporalAxes: fullTransactionTimeAxis,
+          graphResolveDepths: {
+            inheritsFrom: 255,
+            constrainsValuesOn: 255,
+          },
+          traversalPaths: [],
         },
-        traversalPaths: [],
       },
     },
-  });
+  );
+  const loading = !enabled || queryLoading;
 
   const { dataTypes, latestDataTypes } = useMemo(() => {
     if (!data) {
@@ -85,9 +94,10 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       dataTypes,
       latestDataTypes,
       loading,
+      ensureFetched,
       refetch,
     };
-  }, [dataTypes, latestDataTypes, loading, refetch]);
+  }, [dataTypes, latestDataTypes, loading, ensureFetched, refetch]);
 
   return (
     <DataTypesContext.Provider value={value}>
