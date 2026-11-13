@@ -61,6 +61,22 @@ class ModelStreamIdleError extends Error {
   }
 }
 
+/**
+ * The model stopped at its output limit. The provider call succeeded and its
+ * finish reason stays `length`, but the response is incomplete, so the turn
+ * fails rather than settling as a completed reply.
+ */
+class ModelOutputLimitError extends Error {
+  public readonly code = "model_output_limit";
+
+  constructor() {
+    super(
+      "model_output_limit: the model reached its output limit before finishing its response. Send a message to continue.",
+    );
+    this.name = "ModelOutputLimitError";
+  }
+}
+
 class ModelStreamCancellationUnacknowledgedError extends Error {
   public readonly code = "model_stream_cancellation_unacknowledged";
 
@@ -118,6 +134,13 @@ export type ModelStreamIdleTimeout = {
   readonly retryClaimed: boolean;
 };
 
+/** What admission knows when a response stops at the output limit. */
+export type ModelOutputLimit = {
+  readonly provider: string;
+  readonly model: string;
+  readonly outputTokens: number;
+};
+
 type StreamIdleRecovery = {
   /** Only these independent calls may share a browser/server proposal. */
   readonly mixedToolNames?: ReadonlySet<string>;
@@ -130,6 +153,8 @@ type StreamIdleRecovery = {
   readonly reasoningStartTimeoutMs: number;
   /** Called once per idle timeout; it must not throw. */
   readonly onIdleTimeout?: (timeout: ModelStreamIdleTimeout) => void;
+  /** Called once per response stopped at the output limit; it must not throw. */
+  readonly onOutputLimit?: (limit: ModelOutputLimit) => void;
 };
 
 type ModelIdentity = { readonly provider: string; readonly id: string };
@@ -337,6 +362,14 @@ class AdmittedStream extends AssistantMessageEventStream {
       }
       const message = await Promise.race([upstream.result(), interrupted]);
       count(message);
+      if (message.stopReason === "length") {
+        idleRecovery?.onOutputLimit?.({
+          provider: this.#model.provider,
+          model: this.#model.id,
+          outputTokens: message.usage.output,
+        });
+        throw new ModelOutputLimitError();
+      }
       // Flue publishes toolcall_end inputs, then executes final-message calls.
       // Neither representation may smuggle a mixed proposal past admission.
       const finalCalls = message.content.flatMap((part) =>

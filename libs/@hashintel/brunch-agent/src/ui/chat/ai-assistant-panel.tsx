@@ -172,6 +172,25 @@ const replyContentOf = (parts: PetrinautAiMessagePart[] = []): string =>
   JSON.stringify(parts.filter(isReplyContent));
 
 /**
+ * Whether this turn already has reply text. The turn is every assistant
+ * message after the last user message. A tool part is not reply text, and
+ * neither is whitespace.
+ */
+const hasVisibleReplyText = (messages: PetrinautAiMessage[]): boolean => {
+  const start =
+    messages.findLastIndex((message) => message.role === "user") + 1;
+  return messages
+    .slice(start)
+    .some(
+      (message) =>
+        message.role === "assistant" &&
+        message.parts.some(
+          (part) => part.type === "text" && isReplyContent(part),
+        ),
+    );
+};
+
+/**
  * What a local ending note belongs to, by an identity followed history keeps.
  * Canonical history renames a user message (Flue assigns its own ID), and a
  * reply streamed under a provisional ID gets its canonical one, but a tool call
@@ -1485,9 +1504,11 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStoppedAnchor(null);
       // Both endings without a reply end in the tool result that went
-      // unanswered, so its call anchors the note.
+      // unanswered, so its call anchors the note. Reply text anywhere in the
+      // turn, including before the tool, is a reply.
       setNoReplyAnchor(
-        !(noReplyToToolStep || noReplyToServerToolStep)
+        !(noReplyToToolStep || noReplyToServerToolStep) ||
+          hasVisibleReplyText(finishedMessages)
           ? null
           : lastReplyPart !== undefined && isToolUIPart(lastReplyPart)
             ? { toolCallId: lastReplyPart.toolCallId }

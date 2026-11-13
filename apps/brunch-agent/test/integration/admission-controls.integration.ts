@@ -194,6 +194,26 @@ const run = async () => {
         providerCalls: requests.length - requestStart,
       });
     }
+    const outputLimits = [];
+    for (const [limitCase, content] of [
+      ["length-with-text", [fauxText("The account is partly")]],
+      ["length-without-text", []],
+    ] as const) {
+      caseId = limitCase;
+      const limited = clientFor();
+      faux.setResponses([
+        fauxAssistantMessage([...content], { stopReason: "length" }),
+      ]);
+      const attempt = await limited.send({
+        kind: "user",
+        body: "Synthetic output-limit probe; no plant facts.",
+      });
+      outputLimits.push({
+        caseId,
+        attempt,
+        history: await limited.client.history(),
+      });
+    }
     caseId = brunchTools.ledgerCommit;
     const conversation = clientFor();
     const seeding = await seedRevision(conversation, `${caseId}-old-revision`);
@@ -326,6 +346,7 @@ const run = async () => {
     }
     return {
       observations,
+      outputLimits,
       refusals,
       buffering,
       question,
