@@ -43,6 +43,15 @@ describe("identifier_grammar", () => {
     },
   );
 
+  test("canonical_name", () => {
+    expect.hasAssertions();
+    const precomposed = Ident.make({ _tag: "Lexical", value: "\u00E9" });
+    const combining = Ident.make({ _tag: "Lexical", value: "e\u0301" });
+    expect(Ident.name(combining)).toBe(Ident.name(precomposed));
+    expect(Ident.name(combining)).toBe("\u00E9");
+    expect(combining.value).toBe("e\u0301");
+  });
+
   test("overlapping_character_classes", () => {
     expect.hasAssertions();
     expect(Result.getOrThrow(Ident.parse("℘"))).toStrictEqual({
