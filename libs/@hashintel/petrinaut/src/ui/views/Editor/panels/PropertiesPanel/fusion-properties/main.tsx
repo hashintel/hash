@@ -60,12 +60,19 @@ const memberRowStyle = css({
   _hover: { backgroundColor: "neutral.bg.surface.hover" },
 });
 
+/** The tooltip's wrapper is the row's item: it takes the width the row has left. */
+const memberTriggerStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+});
+
 const memberButtonStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
-  flex: "[1]",
-  minWidth: "[0]",
+  width: "full",
+  // The tooltip's wrapper sets none, and a name is clipped to its line.
+  lineHeight: "[1.5]",
   padding: "0",
   border: "none",
   background: "[transparent]",
@@ -121,7 +128,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
 
   return (
     <div className={memberRowStyle}>
-      <Tooltip content="Select on the canvas">
+      <Tooltip content="Select on the canvas" className={memberTriggerStyle}>
         <button
           type="button"
           className={memberButtonStyle}
