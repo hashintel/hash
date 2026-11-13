@@ -68,11 +68,19 @@ const labelOf = (
   return Array.prepend(names, qualifier);
 };
 
-const placeOf = (
-  id: Catalogue.DeclarationId,
-  context: Context,
-): Placement.Place =>
-  HashMap.get(context.placement.places, id).pipe(Option.getOrThrow);
+type Placed = Pick<Context, "placement">;
+type Documented = Pick<Tree.Export.Own, "origin" | "meaning">;
+
+/** The place of an export. Every export of a catalogued declaration has one. */
+export const placeOf: {
+  (context: Placed): (own: Documented) => Placement.Place;
+  (own: Documented, context: Placed): Placement.Place;
+} = Function.dual(2, (own: Documented, context: Placed): Placement.Place =>
+  Placement.placeOf(context.placement, {
+    id: own.origin.id,
+    meaning: own.meaning,
+  }).pipe(Option.getOrThrow),
+);
 
 /** The export the reference distilled for a catalogued declaration. Every catalogued declaration has one. */
 export const entryAt: {
@@ -131,7 +139,7 @@ export const exportRow: {
   (context: Context): (own: Tree.Export.Own) => Row;
   (own: Tree.Export.Own, context: Context): Row;
 } = Function.dual(2, (own: Tree.Export.Own, context: Context): Row => {
-  const place = placeOf(own.origin.id, context);
+  const place = placeOf(own, context);
 
   return {
     type: "row",
@@ -149,7 +157,7 @@ const memberRow = (
   owner: Catalogue.DeclarationId,
   context: Context,
 ): Row => {
-  const place = placeOf(owner, context);
+  const place = placeOf(entryAt(owner, context), context);
 
   return {
     type: "row",
@@ -202,31 +210,50 @@ export const user = (
 export interface Listed {
   readonly exported: Placement.Export;
   readonly own: Tree.Export.Own;
+  /** The name is the export's canonical one, so the namespace documents the export rather than only listing it. A value declared apart from its type has a canonical name of its own. */
+  readonly canonical: boolean;
 }
 
-/** The value a name exports where it is declared apart from its type, or none for a name that exports the type alone. The canonical name documents the value whatever it exports itself. */
+/** The value a name exports where it is declared apart from its type, or none for a name that exports the type alone. */
 const valueOf = (
   exported: Placement.Export,
   context: Exports,
 ): Option.Option<Tree.Export.Own> => {
-  if (exported.typeOnlyExport && !exported.canonical) {
+  if (exported.typeOnlyExport) {
     return Option.none();
   }
 
   return HashMap.get(context.values, exported.target);
 };
 
-/** What a namespace lists for the names it exports: each name's export, or its type's and then its value's where the two are declared apart. */
+/** What the namespace of `owner` lists for the names it exports: each name's export, or its type's and then its value's where the two are declared apart. */
 export const listed =
-  (context: Exports) =>
+  ({
+    context,
+    owner,
+  }: {
+    readonly context: Exports & Pick<Context, "catalogue">;
+    readonly owner: Catalogue.Entry;
+  }) =>
   (exports: readonly Placement.Export[]): readonly Listed[] =>
     Array.flatMap(exports, (exported) =>
-      pipe(
-        Array.prepend(
+      Array.prepend(
+        Array.map(
           Option.toArray(valueOf(exported, context)),
-          entryAt(exported.target, context),
+          (own): Listed => ({
+            exported,
+            own,
+            canonical: Placement.namesValue(context.catalogue, {
+              owner,
+              exported,
+            }),
+          }),
         ),
-        Array.map((own): Listed => ({ exported, own })),
+        {
+          exported,
+          own: entryAt(exported.target, context),
+          canonical: exported.canonical,
+        },
       ),
     );
 
@@ -234,8 +261,8 @@ export const listed =
 export const listing =
   ({ context, depth }: { readonly context: Context; readonly depth: number }) =>
   (exports: readonly Listed[]): readonly Row[] =>
-    Array.flatMap(exports, ({ exported, own: entry }) => {
-      const place = placeOf(exported.target, context);
+    Array.flatMap(exports, ({ exported, own: entry, canonical }) => {
+      const place = placeOf(entry, context);
       const own: Row = {
         type: "row",
         kind: entry.kind,
@@ -246,7 +273,7 @@ export const listing =
         origin: originOf(entry),
       };
       if (
-        !exported.canonical ||
+        !canonical ||
         !Option.exists(context.page, (page) => page === place.page) ||
         place.names.length === 0
       ) {
@@ -267,7 +294,7 @@ export const listing =
         Array.flatMap(() =>
           Placement.exportsOf(context.catalogue, entry.origin),
         ),
-        listed(context),
+        listed({ context, owner: entry.origin }),
         listing({ context, depth: depth + 1 }),
       );
 

@@ -41,6 +41,8 @@ export interface Placement {
   /** Every entrypoint's root in the catalogue's order, then each entrypoint's modules, so a host's navigation lists the entrypoints before the modules below them. */
   readonly pages: readonly Page[];
   readonly places: HashMap.HashMap<Catalogue.DeclarationId, Place>;
+  /** The place of each declaration's value where its canonical name is type-only and another name permits value use. That place documents a value declared apart from its type. */
+  readonly values: HashMap.HashMap<Catalogue.DeclarationId, Place>;
 }
 
 const exportsOfEntry = (
@@ -82,6 +84,30 @@ export const exportsOf: {
   (catalogue: Catalogue.Catalogue, entry: Catalogue.Entry): readonly Export[];
 } = Function.dual(2, exportsOfEntry);
 
+/** A name a namespace exports, with the entry whose namespace it is. */
+export interface Spelled {
+  readonly owner: Catalogue.Entry;
+  readonly exported: Export;
+}
+
+/** Whether the name is its declaration's shortest that permits value use. Such a namespace documents a value declared apart from its type. */
+export const namesValue: {
+  (spelled: Spelled): (catalogue: Catalogue.Catalogue) => boolean;
+  (catalogue: Catalogue.Catalogue, spelled: Spelled): boolean;
+} = Function.dual(
+  2,
+  (catalogue: Catalogue.Catalogue, { owner, exported }: Spelled): boolean =>
+    HashMap.get(catalogue.byId, exported.target).pipe(
+      Option.flatMap(({ valueName }) => valueName),
+      Option.exists((name) =>
+        Equal.equals(name, {
+          entrypoint: owner.name.entrypoint,
+          path: Array.append(owner.name.path, exported.name),
+        }),
+      ),
+    ),
+);
+
 /** Whether `page`'s name is a prefix of `name`, so the page contains it. */
 const contains = (page: Page, name: Catalogue.Name): boolean =>
   Array.every(page.entry.name.path, (part, index) => name.path[index] === part);
@@ -106,6 +132,25 @@ const depth = Order.mapInput(
   Order.Number,
   (page: Page) => page.entry.name.path.length,
 );
+
+/** The deepest of `pages` whose name contains `name`, with the names below it, or none where no page of the name's entrypoint does. */
+const placed = (
+  pages: readonly Page[],
+  name: Catalogue.Name,
+): Option.Option<Place> =>
+  pipe(
+    pages,
+    Array.filter(
+      (page) =>
+        page.entry.name.entrypoint === name.entrypoint && contains(page, name),
+    ),
+    Option.liftPredicate(Array.isReadonlyArrayNonEmpty<Page>),
+    Option.map(Array.max(depth)),
+    Option.map((page) => ({
+      page,
+      names: Array.drop(name.path, page.entry.name.path.length),
+    })),
+  );
 
 /** Places every public declaration on the deepest page whose name contains its own, by public path rather than by source file. The entrypoints' pages come first, then the modules' below them. */
 export const collect = (catalogue: Catalogue.Catalogue): Placement => {
@@ -139,24 +184,49 @@ export const collect = (catalogue: Catalogue.Catalogue): Placement => {
     modules.push(...namespaces);
 
     for (const entry of own) {
-      const deepest = pipe(
-        local,
-        Array.filter((page) => contains(page, entry.name)),
-        Option.liftPredicate(Array.isReadonlyArrayNonEmpty<Page>),
-        Option.map(Array.max(depth)),
-      );
-
-      for (const page of Option.toArray(deepest)) {
-        MutableHashMap.set(places, entry.id, {
-          page,
-          names: Array.drop(entry.name.path, page.entry.name.path.length),
-        });
+      for (const place of Option.toArray(placed(local, entry.name))) {
+        MutableHashMap.set(places, entry.id, place);
       }
     }
   }
 
+  const pages = Array.appendAll(roots, modules);
+
   return {
-    pages: Array.appendAll(roots, modules),
+    pages,
     places: HashMap.fromIterable(places),
+    // A value's name can lie in another entrypoint than its declaration's canonical name, so its place is among all pages.
+    values: HashMap.fromIterable(
+      Array.flatMap(catalogue.entries, (entry) =>
+        pipe(
+          entry.valueName,
+          Option.filter((name) => !Equal.equals(name, entry.name)),
+          Option.flatMap((name) => placed(pages, name)),
+          Option.map((place) => [entry.id, place] as const),
+          Option.toArray,
+        ),
+      ),
+    ),
   };
 };
+
+/** An export, by its declaration and the meaning of its name it documents alone, if it documents one alone. */
+export interface Documented {
+  readonly id: Catalogue.DeclarationId;
+  readonly meaning: Option.Option<"type" | "value">;
+}
+
+/** The place of an export. A value declared apart from its type has its own where its declaration's canonical name is type-only. */
+export const placeOf: {
+  (documented: Documented): (placement: Placement) => Option.Option<Place>;
+  (placement: Placement, documented: Documented): Option.Option<Place>;
+} = Function.dual(
+  2,
+  (placement: Placement, { id, meaning }: Documented): Option.Option<Place> =>
+    pipe(
+      meaning,
+      Option.filter((documented) => documented === "value"),
+      Option.flatMap(() => HashMap.get(placement.values, id)),
+      Option.orElse(() => HashMap.get(placement.places, id)),
+    ),
+);

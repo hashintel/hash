@@ -133,10 +133,13 @@ const declarations = (
   exports: readonly Related.Listed[],
   composition: Composition,
 ): readonly Tree.Export.Export[] =>
-  Array.flatMap(exports, ({ exported, own: entry }) => {
-    const place = HashMap.get(composition.placement.places, exported.target);
+  Array.flatMap(exports, ({ own: entry, canonical }) => {
+    const place = Placement.placeOf(composition.placement, {
+      id: entry.origin.id,
+      meaning: entry.meaning,
+    });
     if (
-      !exported.canonical ||
+      !canonical ||
       !Option.exists(
         place,
         ({ page, names }) =>
@@ -152,7 +155,7 @@ const declarations = (
       (value): Tree.Export.Namespace => {
         const nested = pipe(
           Placement.exportsOf(composition.catalogue, entry.origin),
-          Related.listed(composition),
+          Related.listed({ context: composition, owner: entry.origin }),
         );
 
         return {
@@ -249,7 +252,7 @@ const modulePage = (
   // The sort is stable, so exports keep their order within a group.
   const groups = pipe(
     page.exports,
-    Related.listed(composition),
+    Related.listed({ context: composition, owner: page.entry }),
     Array.map(classify),
     Array.sortBy(byRank, bySlug, byKey),
     Array.match({
