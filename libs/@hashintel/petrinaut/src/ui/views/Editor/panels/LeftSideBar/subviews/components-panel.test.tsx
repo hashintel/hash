@@ -57,13 +57,7 @@ beforeEach(() => {
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <SDCPNContext value={{ ...use(SDCPNContext), readonly: editor.readonly }}>
-    <CompositionContext
-      value={{
-        imports,
-        libraries: resolvedLibraries(imports),
-        offered: [logisticsLibrary.id, toolingLibrary.id, missingLibraryId],
-      }}
-    >
+    <CompositionContext value={{ provided, compositionOnly: false }}>
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),

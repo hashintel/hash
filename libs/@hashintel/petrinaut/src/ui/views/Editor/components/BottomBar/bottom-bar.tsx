@@ -6,6 +6,7 @@ import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   type CursorMode,
   EditorContext,
@@ -121,6 +122,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
   const isReadOnly = useIsReadOnly();
+  // An editor that only composes runs nothing.
+  const { compositionOnly } = use(CompositionContext);
 
   const showDiagnostics = () => {
     setBottomPanelOpen(true);
@@ -250,11 +253,15 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                     onClick={showDiagnostics}
                     isExpanded={isBottomPanelOpen}
                   />
-                  <ToolbarDivider />
-                  <EventSimulationControls
-                    disabled={hasDiagnostics}
-                    inSubnet={isInSubnet}
-                  />
+                  {compositionOnly ? null : (
+                    <>
+                      <ToolbarDivider />
+                      <EventSimulationControls
+                        disabled={hasDiagnostics}
+                        inSubnet={isInSubnet}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>

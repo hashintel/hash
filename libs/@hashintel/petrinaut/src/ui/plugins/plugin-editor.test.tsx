@@ -137,6 +137,59 @@ describe("plugin editor", () => {
     expect(instance.definition.get().scenarios).toHaveLength(1);
   });
 
+  it("refuses an edit of a component the host provides, saying why", () => {
+    const packer: ProvidedComponent = {
+      id: "warehouse/packer",
+      name: "Packer",
+      ports: [{ name: "Orders", direction: "in" }],
+    };
+    const { instance } = renderPlugins([documentPlugin], <Probe />, {
+      components: [packer],
+    });
+
+    const refused = documentOf().edit.addPlace({
+      ...place,
+      targetSubnetId: providedComponentSubnetId(packer),
+    });
+
+    expect(refused).toEqual({
+      applied: false,
+      reason: {
+        kind: "host-restriction",
+        message:
+          "Packer is a component the application provides: it cannot be changed.",
+      },
+    });
+    expect(refused.applied ? "" : describeRefusal(refused.reason)).toContain(
+      "cannot be changed",
+    );
+    expect(documentOf().edit.addPlace(place)).toEqual({
+      applied: true,
+      value: undefined,
+    });
+    expect(instance.definition.get().places).toHaveLength(1);
+  });
+
+  it("refuses an edit beyond composing, in an editor that only composes", () => {
+    const { instance } = renderPlugins([documentPlugin], <Probe />, {
+      compositionOnly: true,
+    });
+
+    expect(documentOf().edit.addPlace(place)).toEqual({
+      applied: false,
+      reason: {
+        kind: "host-restriction",
+        message:
+          "This editor only places and connects the components it is given.",
+      },
+    });
+    expect(documentOf().edit.commitNodePositions({ commits: [] })).toEqual({
+      applied: true,
+      value: undefined,
+    });
+    expect(instance.definition.get().places).toHaveLength(0);
+  });
+
   it("refuses a title without a host setter, or while the editor is read-only", () => {
     renderPlugins([documentPlugin], <Probe />);
     expect(documentOf().setTitle("Renamed")).toEqual({

@@ -6,15 +6,13 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export type CompositionContextValue = {
+  /** The interfaces of the components the host provides for the user to instantiate. */
+  provided: ProvidedInterfaces;
   /**
-   * The state of each import of the document and of each library on offer:
-   * resolving, resolved or failed.
+   * Whether the editor only composes those components: it places and wires
+   * instances of them, and offers nothing that draws or runs a net.
    */
-  imports: ImportStates;
-  /** The libraries among them that resolved, for `resolveComponent`. */
-  libraries: ResolvedLibraries;
-  /** The ids of the libraries the host offers to place components from. */
-  offered: readonly string[];
+  compositionOnly: boolean;
 };
 
 /**
@@ -22,7 +20,6 @@ export type CompositionContextValue = {
  * nowhere else: no component resolves a library itself.
  */
 export const CompositionContext = createContext<CompositionContextValue>({
-  imports: new Map(),
-  libraries: new Map(),
-  offered: [],
+  provided: noProvidedInterfaces,
+  compositionOnly: false,
 });

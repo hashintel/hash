@@ -93,6 +93,9 @@ export type Petrinaut = {
   /** The ids of the libraries the host offers to place components from. */
   readonly libraries: readonly string[];
 
+  /** Whether the instance only composes: see `CreatePetrinautConfig`. */
+  readonly compositionOnly: boolean;
+
   dispose(this: void): void;
 };
 
@@ -104,12 +107,13 @@ export type CreatePetrinautConfig = {
    * import, when the instance is created and when an import joins the
    * document. Without it, every import fails to resolve.
    */
-  resolveImport?: ResolveImport;
+  components?: readonly ProvidedComponent[];
   /**
-   * The ids of the libraries on offer: each is resolved through
-   * `resolveImport` whether a document imports it yet or not.
+   * Keeps the instance to composing `components`: placing instances of them
+   * in the root net, wiring ports with fusions, and arranging the canvas.
+   * Every other mutation throws, and so does a paste.
    */
-  libraries?: readonly string[];
+  compositionOnly?: boolean;
 };
 
 function createDefinitionStore(
@@ -224,9 +228,13 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
   const {
     document: handle,
     readonly = false,
-    resolveImport,
-    libraries = [],
+    components = [],
+    compositionOnly = false,
   } = config;
+  const hostRules: HostRules = {
+    provided: resolveProvidedComponents(components),
+    compositionOnly,
+  };
   const handleCapabilities = resolvePetrinautHandleCapabilities(
     handle.capabilities,
   );
@@ -287,8 +295,10 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     mutations,
     commands,
     readonly: capabilities.readonly,
-    imports,
-    libraries,
+    providedInterfaces: hostRules.provided,
+    mutationRefusal: (name, input) =>
+      mutationRefusal(hostRules, readDocument(), name, input),
+    compositionOnly,
     dispose() {
       for (const dispose of disposers) {
         dispose();

@@ -100,14 +100,15 @@ const dropPortEnd = (
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
-const editor: { selection: SelectionMap } = { selection: new Map() };
-const libraries = new Map([
-  [logisticsLibrary.id, resolveLibrary(logisticsLibrary.id, logisticsLibrary)],
-]);
+const editor: { selection: SelectionMap; compositionOnly: boolean } = {
+  selection: new Map(),
+  compositionOnly: false,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   editor.selection = new Map([[belt.id, { type: "fusion", id: belt.id }]]);
+  editor.compositionOnly = false;
 });
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -119,16 +120,21 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
         getItemType: (id) => itemTypes[id] ?? null,
       }}
     >
-      <ActiveNetContext
+      <CompositionContext
         value={{
-          ...use(ActiveNetContext),
-          activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          ...use(CompositionContext),
+          compositionOnly: editor.compositionOnly,
         }}
       >
-        <NotificationsContext
-          value={{ ...use(NotificationsContext), addNotification }}
+        <ActiveNetContext
+          value={{
+            ...use(ActiveNetContext),
+            activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          }}
         >
-          <CompositionContext value={{ ...use(CompositionContext), libraries }}>
+          <NotificationsContext
+            value={{ ...use(NotificationsContext), addNotification }}
+          >
             <EditorContext
               value={{
                 ...use(EditorContext),
@@ -140,9 +146,9 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
             >
               {children}
             </EditorContext>
-          </CompositionContext>
-        </NotificationsContext>
-      </ActiveNetContext>
+          </NotificationsContext>
+        </ActiveNetContext>
+      </CompositionContext>
     </SDCPNContext>
   </PetrinautInstanceContext>
 );
@@ -187,6 +193,19 @@ describe("useCanvasInteractions", () => {
     expect(valid("buffer", null, "store", null)).toBe(false);
     // A place to a transition is an arc.
     expect(valid("buffer", null, "t", null)).toBe(true);
+  });
+
+  it("connects by fusion alone in an editor that only composes", () => {
+    editor.compositionOnly = true;
+    const { interactions } = renderInteractions();
+    const valid = (...ends: Parameters<typeof connection>) =>
+      interactions.isValidConnection(connection(...ends));
+
+    expect(valid("m1", "out", "m2", "in")).toBe(true);
+    expect(valid("store", null, "m2", "in")).toBe(true);
+    // No arc is drawn, to a place or to a port.
+    expect(valid("buffer", null, "t", null)).toBe(false);
+    expect(valid("t", null, "m2", "in")).toBe(false);
   });
 
   it("adds a port to the fusion its other end is in, and refuses a second place", () => {

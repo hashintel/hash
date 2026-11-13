@@ -218,6 +218,7 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const { compositionOnly } = use(CompositionContext);
   const assistant = useEditorAssistant();
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
@@ -627,7 +628,9 @@ const EditorViewContent = ({
             <SimulateView />
           ) : (
             <div className={workspaceStyle}>
-              {globalMode === "edit" && <EditViewSelector />}
+              {globalMode === "edit" && !compositionOnly && (
+                <EditViewSelector />
+              )}
               <Activity
                 mode={
                   globalMode === "actual" || editViewMode === "canvas"

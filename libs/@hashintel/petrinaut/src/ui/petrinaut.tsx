@@ -77,6 +77,13 @@ export type PetrinautProps = {
    */
   libraries?: readonly string[];
   /**
+   * Restricts the editor to composing `components`: the user places
+   * instances of them, wires their ports and arranges the canvas. The tools
+   * that draw a net, the Definitions view and the simulator are not offered,
+   * and Core refuses every other change to the document.
+   */
+  compositionOnly?: boolean;
+  /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
    *
@@ -149,8 +156,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
-  resolveImport,
-  libraries,
+  components,
+  compositionOnly = false,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -167,8 +174,13 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
     () =>
-      createPetrinaut({ document: handle, readonly, resolveImport, libraries }),
-    [handle, readonly, resolveImport, libraries],
+      createPetrinaut({
+        document: handle,
+        readonly,
+        components,
+        compositionOnly,
+      }),
+    [handle, readonly, components, compositionOnly],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);

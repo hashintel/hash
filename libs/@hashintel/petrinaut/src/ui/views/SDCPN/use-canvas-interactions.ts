@@ -172,6 +172,8 @@ export const useCanvasInteractions = (
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
   const { libraries } = use(CompositionContext);
   const { activeNet } = use(ActiveNetContext);
+  const instantiable = useInstantiableSubnets();
+  const { compositionOnly } = use(CompositionContext);
   const { addNotification } = use(NotificationsContext);
   const {
     addPlace,
@@ -238,21 +240,24 @@ export const useCanvasInteractions = (
     const { sourceId, targetId } = connection;
     const first = memberOf(linkEnd(connection, "source"));
     const second = memberOf(linkEnd(connection, "target"));
-    if (first && kindOf(targetId) === "transition") {
-      return {
-        kind: "arc",
-        transitionId: targetId,
-        arcDirection: "input",
-        endpoint: first,
-      };
-    }
-    if (second && kindOf(sourceId) === "transition") {
-      return {
-        kind: "arc",
-        transitionId: sourceId,
-        arcDirection: "output",
-        endpoint: second,
-      };
+    // An editor that only composes draws no arc: ports connect by fusion.
+    if (!compositionOnly) {
+      if (first && kindOf(targetId) === "transition") {
+        return {
+          kind: "arc",
+          transitionId: targetId,
+          arcDirection: "input",
+          endpoint: first,
+        };
+      }
+      if (second && kindOf(sourceId) === "transition") {
+        return {
+          kind: "arc",
+          transitionId: sourceId,
+          arcDirection: "output",
+          endpoint: second,
+        };
+      }
     }
     return first &&
       second &&
