@@ -64,6 +64,20 @@ const titleOf = ({ origin }: Tree.Export.Export): string =>
 const summaryOf = (row: Tree.Row.Row): Option.Option<string> =>
   Option.flatMap(row.summary, Tree.Prose.plain);
 
+/** The first module page of the document, which is the root of a reference with one entrypoint. */
+const rootOf = ({ document }: Reference.Reference): Tree.Page.Module =>
+  pipe(
+    document.pages,
+    Array.findFirst((tree): tree is Tree.Page.Module => tree.type === "module"),
+    Option.getOrThrow,
+  );
+
+/** The kind of each row and what it links to. */
+const targetsOf = (
+  rows: readonly Tree.Row.Row[],
+): readonly (readonly [Tree.Row.Kind, Tree.Row.Target])[] =>
+  Array.map(rows, ({ kind, origin }) => [kind, origin]);
+
 /** Prose without its origins: each node's type with its text, and each link's target. */
 type Shape =
   | readonly ["text" | "inlineCode" | "code", string]
@@ -204,6 +218,80 @@ layer(
   );
 
   it.effect(
+    "type_and_value_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** Type side. @category Models */ export interface Pair {}
+/** Value side. */ export declare const Pair: number;`,
+      });
+      const root = rootOf(reference);
+      const pair = Reference.id(reference, ["Pair"]);
+      const type: Tree.Row.Target = { _tag: "Reference", target: pair };
+      const value: Tree.Row.Target = { _tag: "Value", declaration: pair };
+      expect(
+        Array.flatMap(root.groups, ({ grouping, exports }) =>
+          Array.map(exports, ({ kind, meaning, related }) => [
+            Tree.Page.slugOf(grouping),
+            kind,
+            meaning,
+            targetsOf(related.type),
+            targetsOf(related.value),
+          ]),
+        ),
+      ).toStrictEqual([
+        ["models", "interface", Option.some("type"), [], [["const", value]]],
+        ["constants", "const", Option.some("value"), [["interface", type]], []],
+      ]);
+      expect(
+        Array.map(rowsOf(root), (row) => [
+          row.kind,
+          row.origin,
+          summaryOf(row),
+        ]),
+      ).toStrictEqual([
+        ["interface", type, Option.some("Type side.")],
+        ["const", value, Option.some("Value side.")],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "apart_namespace",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `export interface Box { readonly held: string; }
+export declare const Box: number;
+export declare namespace Box { type Inner = string; }`,
+      });
+      const root = rootOf(reference);
+      expect(
+        Array.map(rowsOf(root), ({ kind, label, depth }) => [
+          kind,
+          label.join("."),
+          depth,
+        ]),
+      ).toStrictEqual([
+        ["interface", "Box", 0],
+        ["property", "held", 1],
+        ["type", "Inner", 1],
+        ["const", "Box", 0],
+      ]);
+      expect(
+        Array.map(exportsOf(root), ({ kind, origin }) => [
+          kind,
+          origin.name.path.join("."),
+        ]),
+      ).toStrictEqual([
+        ["interface", "Box"],
+        ["type", "Box.Inner"],
+        ["const", "Box"],
+      ]);
+    }),
+  );
+
+  it.effect(
     "complete_placement",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
@@ -220,7 +308,10 @@ layer(
       expect(
         HashSet.fromIterable(Array.map(documented, ({ origin }) => origin.id)),
       ).toStrictEqual(placed);
-      expect(documented).toHaveLength(HashSet.size(placed));
+      // A value declared apart from its type is documented beside it, as an export of its own.
+      expect(documented).toHaveLength(
+        HashSet.size(placed) + HashMap.size(document.values),
+      );
       expect(Array.flatMap(documented, ({ members }) => members)).toHaveLength(
         HashMap.size(document.owners),
       );

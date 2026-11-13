@@ -20,6 +20,13 @@ const ownOf = (reference: Reference.Reference, name: string): Tree.Export.Own =>
     Option.getOrThrow,
   );
 
+/** The export of the value `name`, where its type is declared apart from it. */
+const valueOf = (
+  reference: Reference.Reference,
+  name: string,
+): Option.Option<Tree.Export.Own> =>
+  HashMap.get(reference.document.values, Reference.id(reference, [name]));
+
 /** The syntax every declaration of the export at `path` shows. */
 const syntaxOf = (
   reference: Reference.Reference,
@@ -84,6 +91,23 @@ const numbersOf = (
     Array.flatMap(({ children }) => children),
     Array.map(({ overloads }) => Array.map(overloads, ({ index }) => index)),
   );
+
+/** The meaning and the kind of an export, with the overloads each of its declarations numbers, its members' names and whether it holds a namespace. */
+const documentedOf = (
+  own: Tree.Export.Own,
+): readonly [
+  Option.Option<Tree.Export.Meaning>,
+  Tree.Export.Kind,
+  readonly (readonly number[])[],
+  readonly string[],
+  boolean,
+] => [
+  own.meaning,
+  own.kind,
+  numbersOf(own.signatures),
+  Array.map(own.members, ({ name }) => name),
+  Option.isSome(own.namespace),
+];
 
 type Applied = readonly [text: string, overloads: readonly number[]];
 
@@ -225,9 +249,17 @@ layer(Reference.layer({ source: Reference.source }), {
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
       const reference = yield* Reference.Fixture;
-      expect(summaries(ownOf(reference, "Pair"))).toStrictEqual([
-        [Option.some("Type side."), [1]],
-        [Option.some("Value side."), [2]],
+      expect(
+        Array.map(
+          [
+            ownOf(reference, "Pair"),
+            ...Option.toArray(valueOf(reference, "Pair")),
+          ],
+          (own) => [own.meaning, own.kind, summaries(own)],
+        ),
+      ).toStrictEqual([
+        [Option.some("type"), "type", [[Option.some("Type side."), [1]]]],
+        [Option.some("value"), "const", [[Option.some("Value side."), [1]]]],
       ]);
       const partial = ownOf(reference, "partial");
       expect(summaries(partial)).toStrictEqual([
@@ -240,6 +272,50 @@ layer(Reference.layer({ source: Reference.source }), {
           Array.map(({ facts }) => Option.isSome(facts)),
         ),
       ).toStrictEqual([true, false]);
+    }),
+  );
+
+  it.effect(
+    "type_and_value_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `export interface Box { readonly held: string; }
+export declare const Box: number;
+export declare namespace Box { type Inner = string; }
+export interface Run {}
+export declare function Run(input: string): Run;
+export declare function Run(input: number): Run;
+export declare class Joint { readonly held: string; }
+export declare const alone: number;
+interface Typed {}
+declare const Typed: number;
+export type { Typed };`,
+      });
+      expect(
+        Array.map(["Box", "Run", "Joint", "alone", "Typed"], (name) => [
+          documentedOf(ownOf(reference, name)),
+          Option.map(valueOf(reference, name), documentedOf),
+        ]),
+      ).toStrictEqual([
+        [
+          [Option.some("type"), "interface", [[1]], ["held"], true],
+          Option.some([Option.some("value"), "const", [[1]], [], false]),
+        ],
+        [
+          [Option.some("type"), "interface", [[1]], [], false],
+          Option.some([
+            Option.some("value"),
+            "function",
+            [[1], [2]],
+            [],
+            false,
+          ]),
+        ],
+        [[Option.none(), "class", [[1]], ["held"], false], Option.none()],
+        [[Option.none(), "const", [[1]], [], false], Option.none()],
+        [[Option.none(), "interface", [[1]], [], false], Option.none()],
+      ]);
     }),
   );
 

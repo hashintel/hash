@@ -415,24 +415,15 @@ export const summary = (
     ),
   );
 
-/** Distils every declaration, member and comment of an export without borrowing another declaration's prose. */
-export const from: {
+/** One export of `origin`: declarations the reference documents together, with their members and comments. */
+const exportOf =
+  (origin: Catalogue.Entry, context: Context) =>
   (
-    context: Context,
-  ): (origin: Catalogue.Entry) => Result.Result<Tree.Export.Own, Failure>;
-  (
-    origin: Catalogue.Entry,
-    context: Context,
-  ): Result.Result<Tree.Export.Own, Failure>;
-} = Function.dual(
-  2,
-  (
-    origin: Catalogue.Entry,
-    context: Context,
+    meaning: Tree.Export.Own["meaning"],
+    parts: readonly Parts.Part[],
   ): Result.Result<Tree.Export.Own, Failure> =>
     Result.gen(function* () {
       const { ast } = context;
-      const parts = Parts.of(ast, origin);
       const group = yield* groupOf(parts, {
         exported: Option.some({
           entry: origin,
@@ -449,6 +440,7 @@ export const from: {
 
       const namespace = yield* pipe(
         ast.get(origin.id).namespace,
+        Option.filter(() => !Option.contains(meaning, "value")),
         Option.map(ast.get),
         Option.map((value) =>
           contentOf(value.documentation, context).pipe(
@@ -469,6 +461,7 @@ export const from: {
         ...group,
         type: "export",
         kind: kindOf(origin, parts),
+        meaning,
         members,
         namespace,
         // A declaration that is only a namespace has no overloads, so its namespace's comment decides.
@@ -482,5 +475,23 @@ export const from: {
         }),
         origin,
       };
-    }),
-);
+    });
+
+type Exports = Result.Result<readonly Tree.Export.Own[], Failure>;
+
+/** Distils every declaration, member and comment of a public declaration without borrowing another declaration's prose. A type and a value declared apart are two exports, the type first, and any other declaration is one. */
+export const from: {
+  (context: Context): (origin: Catalogue.Entry) => Exports;
+  (origin: Catalogue.Entry, context: Context): Exports;
+} = Function.dual(2, (origin: Catalogue.Entry, context: Context): Exports => {
+  const distil = exportOf(origin, context);
+
+  return Parts.matchDocumented(Parts.documented(context.ast, origin), {
+    Whole: ({ parts }) => Result.map(distil(Option.none(), parts), Array.of),
+    Apart: ({ type, value }) =>
+      Result.all([
+        distil(Option.some("type"), type),
+        distil(Option.some("value"), value),
+      ]),
+  });
+});
