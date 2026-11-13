@@ -664,6 +664,44 @@ export declare function call(make: typeof Box.make): void;`,
   );
 
   it.effect(
+    "links_in_import_type",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** Type. */ export interface Box {}
+/** Value. */
+export declare const Box: { make(): string };
+export declare namespace Box { type Inner = string; }
+/** Holds. */
+export declare function hold(inner: import("./index.js").Box.Inner): void;
+/** Keeps. */
+export declare function keep(box: import("./index.js").Box): void;
+/** Takes. */
+export declare function take(box: typeof import("./index.js").Box): void;
+/** Calls. */
+export declare function call(make: typeof import("./index.js").Box.make): void;`,
+      });
+      const links = boxLinks(reference);
+      const type = ["#Box", "interface"];
+      const value = ["#Box-value", "const"];
+      expect([
+        links("hold"),
+        links("keep"),
+        links("take"),
+        links("call"),
+      ]).toStrictEqual([
+        // Before a dot, the name is the namespace, which the type documents.
+        [type],
+        // The last name of an import type is the type.
+        [type],
+        // After `typeof`, the import type reads the value, before a dot or not.
+        [value],
+        [value],
+      ]);
+    }),
+  );
+
+  it.effect(
     "members_last",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
