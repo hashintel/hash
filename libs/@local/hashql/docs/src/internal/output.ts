@@ -114,7 +114,7 @@ export interface Place {
   readonly names: readonly string[];
 }
 
-/** The place of an export this page documents. A value declared apart from its type has its type's names and an anchor of its own. */
+/** The place of an export this page documents. A value declared apart from its type has an anchor of its own, under its type's names or, where only another name exports the value, under that name. */
 export const place =
   (output: Output) =>
   (value: Tree.Export.Export): Place => ({
@@ -127,11 +127,7 @@ export const place =
       Option.getOrElse(() => ""),
     ),
     title: Related.titleOf(value.origin),
-    names: pipe(
-      HashMap.get(output.document.placement.places, value.origin.id),
-      Option.map(({ names }) => names),
-      Option.getOrElse((): readonly string[] => []),
-    ),
+    names: Related.placeOf(value, output.document).names,
   });
 
 /** The id of a member's anchor beside its owner's. */
