@@ -12,7 +12,7 @@ const maskedGlyphStyle = css({
 });
 
 /** The sizes the built-in icons take, so a component's own icon sits alike. */
-const glyphSizes: Partial<Record<NonNullable<IconProps["size"]>, number>> = {
+const glyphSizes: Record<NonNullable<IconProps["size"]>, number> = {
   xxs: 8,
   xs: 12,
   sm: 16,
@@ -36,7 +36,7 @@ export const ComponentGlyph: React.FC<{
     return <Icon name={fallback} size={size} />;
   }
   const mask = `${image} center / contain no-repeat`;
-  const side = glyphSizes[size] ?? 24;
+  const side = glyphSizes[size];
   return (
     <span
       aria-hidden
