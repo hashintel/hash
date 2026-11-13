@@ -20,6 +20,7 @@ import { DraftFieldInput } from "../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { FusionIcon } from "../../../../../constants/entity-icons";
+import { hintTextStyle } from "../../../../../constants/hint-text";
 import { problemTextStyle } from "../../../../../constants/problem-severity";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
@@ -89,9 +90,8 @@ const memberNameStyle = css({
   whiteSpace: "nowrap",
 });
 
-const hintTextStyle = css({
-  fontSize: "xs",
-  color: "neutral.s85",
+/** A member's kind stays on its row's one line. */
+const memberKindStyle = css({
   whiteSpace: "nowrap",
 });
 
@@ -145,7 +145,7 @@ const MemberRow = ({ member }: { member: FusionMember }) => {
             size="xs"
           />
           <span className={memberNameStyle}>{label}</span>
-          <span className={hintTextStyle}>
+          <span className={cx(hintTextStyle, memberKindStyle)}>
             {member.kind === "place" ? "place of this net" : "instance port"}
           </span>
         </button>
@@ -184,7 +184,11 @@ const FusionMainContent: React.FC = () => {
           label="Name"
           sourceId={fusion.id}
           sourceValue={fusion.name ?? ""}
-          placeholder="Named after its anchor place"
+          // Unnamed, the fusion goes by its anchor or its first member.
+          placeholder={fusionDisplayName(petriNetDefinition, activeNet, {
+            ...fusion,
+            name: undefined,
+          })}
           validate={validateFusionName}
           onCommit={(name) =>
             updateFusion({
@@ -211,9 +215,11 @@ const FusionMainContent: React.FC = () => {
             <MemberRow key={getArcEndpointKey(member)} member={member} />
           ))}
         </div>
-        <div className={hintTextStyle}>
-          Drag from another place or port onto one of these to add it.
-        </div>
+        {isDisabled ? null : (
+          <div className={hintTextStyle}>
+            Drag from another place or port onto one of these to add it.
+          </div>
+        )}
       </Section>
       {problems.length > 0 && (
         <Section title="Checks">
