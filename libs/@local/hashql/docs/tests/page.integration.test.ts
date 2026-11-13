@@ -727,6 +727,32 @@ export declare function call(make: typeof import("./index.js").Box.make): void;`
   );
 
   it.effect(
+    "namespace_facts",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** A model. */ export interface Model { readonly a: string }
+/** Its namespace. @since 0.2.0 @stability experimental */
+export declare namespace Model { type Any = Model; }
+/** A bare one. */ export interface Bare {}
+export declare namespace Bare {}`,
+      });
+      const { markdown } = Reference.page(reference, "pkg.html");
+      const lines = markdown.split("\n");
+      expect(
+        Array.map(
+          ["**namespace Model**", "**namespace Bare**"],
+          (label) => lines[lines.indexOf(label) + 2],
+        ),
+      ).toStrictEqual([
+        "Since 0.2.0 · experimental · [Source](index.d.ts#L3)",
+        // A namespace with nothing to list still says where it is.
+        "[Source](index.d.ts#L5)",
+      ]);
+    }),
+  );
+
+  it.effect(
     "member_calls",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
