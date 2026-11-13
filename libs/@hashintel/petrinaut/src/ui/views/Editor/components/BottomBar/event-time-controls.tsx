@@ -7,12 +7,11 @@ import { EventPlaybackContext } from "../../../../../react/event-playback/contex
 import { useEventPlaybackFrame } from "../../../../../react/event-playback/use-event-playback-frame";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
-import { stepAt } from "../../shared/run-position";
-import { formatEventPlaybackTimes } from "./event-playback-time";
+import { formatRunPosition, stepAt } from "../../shared/run-position";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
-/** What the controls call a position and the things between positions, per clock. */
+/** What the steppers and the scrubber are called, per clock. */
 const WORDING = {
   time: {
     previous: "Previous event",
@@ -139,7 +138,9 @@ export const EventTimeControls: React.FC<{
   const { clock, continuity } = use(SimulationContext);
   const { coveredTime, setTime, stepToEvent } = use(EventPlaybackContext);
   const { time, hasPreviousEvent, hasNextEvent } = useEventPlaybackFrame();
-  const times = formatEventPlaybackTimes({ clock, time, coveredTime });
+  const inSteps = clock === "steps";
+  const elapsed = formatRunPosition(clock, time);
+  const total = formatRunPosition(clock, coveredTime);
   const wording = WORDING[clock];
 
   return (
@@ -165,44 +166,34 @@ export const EventTimeControls: React.FC<{
         </>
       ) : null}
 
-      {clock === "steps" ? (
-        <div
-          role="timer"
-          aria-label={`Step ${times.elapsed} of ${times.total} computed`}
-          className={timeReadoutStyle({
-            compact: presentation.compactControls,
-          })}
-        >
-          <span className={elapsedTimeStyle}>
-            <span className={timeUnitStyle}>Step </span>
-            {times.elapsed}
-          </span>
-          <span className={totalTimeStyle}>of {times.total}</span>
-        </div>
-      ) : (
-        <div
-          role="timer"
-          aria-label={`Elapsed ${times.elapsed} seconds of ${times.total} seconds computed`}
-          className={timeReadoutStyle({
-            compact: presentation.compactControls,
-          })}
-        >
-          <span className={elapsedTimeStyle}>
-            {times.elapsed}
-            <span className={timeUnitStyle}> s</span>
-          </span>
-          <span className={totalTimeStyle}>of {times.total} s</span>
-        </div>
-      )}
+      <div
+        role="timer"
+        aria-label={
+          inSteps
+            ? `Step ${elapsed} of ${total} computed`
+            : `Elapsed ${elapsed} seconds of ${total} seconds computed`
+        }
+        className={timeReadoutStyle({ compact: presentation.compactControls })}
+      >
+        <span className={elapsedTimeStyle}>
+          {inSteps ? <span className={timeUnitStyle}>Step </span> : null}
+          {elapsed}
+          {inSteps ? null : <span className={timeUnitStyle}> s</span>}
+        </span>
+        <span className={totalTimeStyle}>
+          of {total}
+          {inSteps ? null : " s"}
+        </span>
+      </div>
 
       <input
         type="range"
         min="0"
         max={coveredTime}
-        step={clock === "steps" ? 1 : "any"}
+        step={inSteps ? 1 : "any"}
         // Between two steps the thumb stays on the one reached, as the
         // readout does.
-        value={clock === "steps" ? stepAt(time) : time}
+        value={inSteps ? stepAt(time) : time}
         disabled={disabled || coveredTime === 0}
         onChange={(event) => setTime(Number(event.target.value))}
         onKeyDown={(event) => {

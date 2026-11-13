@@ -5,6 +5,10 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import {
+  acceptsRunEnd,
+  runEndOf,
+} from "../../../../../../../react/simulation/run-end";
+import {
   findSimulator,
   simulatorRefusal,
   SimulatorsContext,
@@ -178,11 +182,11 @@ export const RunSettingsPopoverContent: React.FC<{
     setMaxTime,
   } = use(SimulationContext);
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const stepped = clock === "steps";
+  const inSteps = clock === "steps";
   // A simulator's parameters say how it advances time, which a run in steps
   // has none of.
   const parameters =
-    selected && !stepped
+    selected && !inSteps
       ? visibleSimulatorParameters(
           selected.parameters,
           simulatorSelection.parameters,
@@ -335,7 +339,7 @@ export const RunSettingsPopoverContent: React.FC<{
             />
             <label htmlFor={END_TIME_ID}>
               <span className={fieldLabelStyle}>
-                {stepped ? (
+                {inSteps ? (
                   <span>End at step</span>
                 ) : (
                   <span>
@@ -344,7 +348,7 @@ export const RunSettingsPopoverContent: React.FC<{
                 )}
                 <PointerHelpTooltip
                   content={
-                    stepped
+                    inSteps
                       ? "The step every run stops at. Runs are compared at the same steps, so a Stochastic simulation needs an end."
                       : "The simulated time every run stops at. Runs are compared at the same times, so a Stochastic simulation needs an end."
                   }
@@ -355,17 +359,12 @@ export const RunSettingsPopoverContent: React.FC<{
               htmlForId={END_TIME_ID}
               size="xs"
               width="xs"
-              min={stepped ? 1 : 0}
-              step={stepped ? 1 : "any"}
+              min={inSteps ? 1 : 0}
+              step={inSteps ? 1 : "any"}
               hideStepper
-              // A run in steps stops at the first step at or past its end.
-              value={stepped && maxTime !== null ? Math.ceil(maxTime) : maxTime}
+              value={maxTime === null ? null : runEndOf(clock, maxTime)}
               onChange={(next) => {
-                if (
-                  next !== null &&
-                  next > 0 &&
-                  (!stepped || Number.isInteger(next))
-                ) {
+                if (next !== null && acceptsRunEnd(clock, next)) {
                   setMaxTime(next);
                 }
               }}
@@ -400,7 +399,7 @@ export const RunSettingsPopoverContent: React.FC<{
     <Popover.Container className={containerStyle}>
       {[
         <Popover.Header key="header" title="Simulator" />,
-        ...(stepped ? [steppedPanel] : []),
+        ...(inSteps ? [steppedPanel] : []),
         simulatorsPanel,
         ...(hasFields ? [fieldsPanel] : []),
         ...(locked ? [lockedPanel] : []),

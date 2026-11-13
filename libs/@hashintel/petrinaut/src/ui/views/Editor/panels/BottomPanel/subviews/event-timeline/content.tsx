@@ -14,8 +14,6 @@ import { useTimelineViewRange } from "./use-view-range";
 /** Samples a continuous series is read at across the visible range. */
 const SAMPLE_COUNT = 400;
 
-const NO_REFERENCES: readonly number[] = [];
-
 /**
  * The timeline of a run: token counts step at the events, metrics follow the
  * interpolated state, and every firing is marked on the ruler. So are the
@@ -57,7 +55,7 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
       stacked={chartType === "stacked" && timelineView.kind !== "solver-error"}
       error={metricError}
       firings={firings}
-      references={continuity === "discrete" ? NO_REFERENCES : references}
+      references={continuity === "discrete" ? undefined : references}
       transitionNames={transitionNames}
       onStep={stepToEvent}
       showLegend={showLegend}

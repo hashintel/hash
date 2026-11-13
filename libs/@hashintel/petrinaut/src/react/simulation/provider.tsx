@@ -71,6 +71,7 @@ import {
   simulatorSelectionIn,
   type SimulatorChoices,
 } from "./provider/simulator-selection";
+import { runEndOf } from "./run-end";
 import { useScenarioHir } from "./use-scenario-hir";
 
 /**
@@ -951,12 +952,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           runCount: currentState.runs,
           seed,
           clock: experimentClock,
-          // An experiment without an end is refused before it starts. A run
-          // in steps stops at the first step at or past its end.
-          maxTime:
-            experimentClock === "steps"
-              ? Math.ceil(maxTime ?? 0)
-              : (maxTime ?? 0),
+          // An experiment without an end is refused before it starts.
+          maxTime: runEndOf(experimentClock, maxTime ?? 0),
           samplePeriod,
           metricSpecs,
           simulator: selection,

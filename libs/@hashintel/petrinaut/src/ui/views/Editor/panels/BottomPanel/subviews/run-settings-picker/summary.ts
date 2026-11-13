@@ -1,3 +1,4 @@
+import { runEndOf } from "../../../../../../../react/simulation/run-end";
 import { visibleSimulatorParameters } from "../../../../../../components/simulator-parameter-input";
 
 import type { SimulationMode } from "../../../../../../../react/simulators/context";
@@ -79,11 +80,8 @@ export const summarizeRunSettings = ({
   if (mode === "stochastic") {
     details.push(`${runs.toLocaleString("en-US")} runs`);
     if (maxTime !== null) {
-      details.push(
-        clock === "steps"
-          ? `to step ${formatSettingNumber(Math.ceil(maxTime))}`
-          : `to ${formatSettingNumber(maxTime)} s`,
-      );
+      const end = formatSettingNumber(runEndOf(clock, maxTime));
+      details.push(clock === "steps" ? `to step ${end}` : `to ${end} s`);
     }
   }
   return details;

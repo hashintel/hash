@@ -877,6 +877,7 @@ export const CreateExperimentDrawer = ({
   // An untimed net's runs count steps: the form asks for a step to end at,
   // and shows no parameter of how a simulator advances time.
   const clock = runClockOf(petriNetDefinition, extensions);
+  const inSteps = clock === "steps";
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
   const optimizationSource = use(PetrinautOptimizationContext);
@@ -1355,23 +1356,23 @@ export const CreateExperimentDrawer = ({
                           className={labelStyle}
                           htmlFor="experiment-max-time"
                           title={
-                            clock === "steps"
+                            inSteps
                               ? "This net is untimed: its runs are fired step by step, and every step is sampled."
                               : undefined
                           }
                         >
-                          {clock === "steps" ? "End at step" : "Max time (s)"}
+                          {inSteps ? "End at step" : "Max time (s)"}
                         </label>
                         <NumberInput
                           htmlForId="experiment-max-time"
                           aria-label={
-                            clock === "steps"
+                            inSteps
                               ? "Step the runs end at"
                               : "Max time (seconds)"
                           }
                           size="sm"
-                          min={clock === "steps" ? 1 : 0}
-                          step={clock === "steps" ? 1 : "any"}
+                          min={inSteps ? 1 : 0}
+                          step={inSteps ? 1 : "any"}
                           value={maxTime === "" ? null : Number(maxTime)}
                           onChange={(nextMaxTime) =>
                             setMaxTime(

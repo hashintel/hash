@@ -15,9 +15,12 @@ import { EventTimeControls } from "./event-time-controls";
 import type { EventPlaybackContextValue } from "../../../../../react/event-playback/context";
 import type { RunClock, RunContinuity } from "@hashintel/petrinaut-core";
 
-afterEach(cleanup);
-
 const stepToEvent = vi.fn<(direction: -1 | 1) => void>();
+
+afterEach(() => {
+  cleanup();
+  stepToEvent.mockClear();
+});
 
 const playback = (time: number, coveredTime: number) =>
   ({
@@ -60,7 +63,9 @@ describe("EventTimeControls", () => {
       name: "Viewed simulation time",
     });
     expect(slider.getAttribute("step")).toBe("any");
-    expect(screen.getByRole("button", { name: "Go to the next event" }));
+    expect(
+      screen.getByRole("button", { name: "Go to the next event" }),
+    ).toBeTruthy();
   });
 
   it("reads an untimed run in steps, with a scrubber that moves a step at a time", () => {
@@ -74,12 +79,15 @@ describe("EventTimeControls", () => {
     expect(slider.getAttribute("step")).toBe("1");
     // Between two steps the thumb is on the one reached, as the readout is.
     expect((slider as HTMLInputElement).value).toBe("3");
-    expect(screen.getByRole("button", { name: "Go to the next step" }));
-    expect(screen.getByRole("button", { name: "Go to the previous step" }));
+    expect(
+      screen.getByRole("button", { name: "Go to the next step" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to the previous step" }),
+    ).toBeTruthy();
   });
 
   it("moves the scrubber of a discrete run from event to event with the arrow keys", () => {
-    stepToEvent.mockClear();
     renderControls("time", "discrete");
     const slider = screen.getByRole("slider", {
       name: "Viewed simulation time",
@@ -94,7 +102,6 @@ describe("EventTimeControls", () => {
   });
 
   it("leaves the arrow keys of a continuous run to the scrubber", () => {
-    stepToEvent.mockClear();
     renderControls("time", "continuous");
 
     fireEvent.keyDown(

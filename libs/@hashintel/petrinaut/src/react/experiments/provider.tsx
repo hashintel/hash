@@ -472,9 +472,9 @@ export const ExperimentsProvider: React.FC<React.PropsWithChildren> = ({
     });
     options?.ownership?.signal.throwIfAborted();
 
+    const clock = runClockOf(experimentSdcpn, experimentExtensions);
     // Resolved before the record exists, so a simulator nobody registered
     // rejects the creation instead of listing an experiment that cannot run.
-    const clock = runClockOf(experimentSdcpn, experimentExtensions);
     const { registrations, samplePeriod } = experimentSimulatorBackends(
       simulatorsRef.current,
       input,

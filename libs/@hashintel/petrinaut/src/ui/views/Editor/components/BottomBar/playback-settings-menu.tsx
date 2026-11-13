@@ -10,6 +10,10 @@ import {
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
+import {
+  acceptsRunEnd,
+  runEndOf,
+} from "../../../../../react/simulation/run-end";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SettingsIcon } from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
@@ -161,8 +165,6 @@ const CLOCK_SETTINGS = {
     endNeeded: "A Stochastic simulation needs an end time",
     endMin: 0.1,
     endStep: 0.1,
-    shownEnd: (maxTime: number) => maxTime,
-    acceptsEnd: (value: number) => value > 0,
   },
   steps: {
     speedLabel: "Steps per second",
@@ -174,9 +176,6 @@ const CLOCK_SETTINGS = {
     endNeeded: "A Stochastic simulation needs a step to end at",
     endMin: 1,
     endStep: 1,
-    // A run stops at the first step at or past its end.
-    shownEnd: (maxTime: number) => Math.ceil(maxTime),
-    acceptsEnd: (value: number) => Number.isInteger(value) && value >= 1,
   },
 } as const;
 
@@ -481,14 +480,14 @@ export const PlaybackSettingsMenu = ({
                               size="sm"
                               min={settings.endMin}
                               step={settings.endStep}
-                              value={settings.shownEnd(maxTime ?? 10)}
+                              value={runEndOf(clock, maxTime ?? 10)}
                               align="right"
                               hideStepper
                               disabled={hasSimulation}
                               onChange={(nextMaxTime) => {
                                 if (
                                   nextMaxTime !== null &&
-                                  settings.acceptsEnd(nextMaxTime)
+                                  acceptsRunEnd(clock, nextMaxTime)
                                 ) {
                                   setMaxTime(nextMaxTime);
                                 }

@@ -16,6 +16,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { runEndOf } from "../../simulation/run-end";
 import { findSimulator } from "../../simulators/context";
 import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
@@ -408,8 +409,7 @@ export const newExperimentRecord = ({
   seed: input.seed,
   clock,
   dt: input.dt,
-  // A run in steps stops at the first step at or past its end.
-  maxTime: clock === "steps" ? Math.ceil(input.maxTime) : input.maxTime,
+  maxTime: runEndOf(clock, input.maxTime),
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
@@ -603,20 +603,20 @@ export const experimentSimulatorBackends = (
     fallbackSelection.simulatorId,
   );
   // A run in steps reads no time step, so any simulator can stand in.
-  const fallbackTimeStep =
+  const fallbackTimeStepParameter =
     clock === "steps" ? undefined : fallback?.samplePeriodParameter;
   if (
     timeStep !== null &&
     fallback !== undefined &&
     fallback.id !== registration.id &&
-    (clock === "steps" || fallbackTimeStep !== undefined)
+    (clock === "steps" || fallbackTimeStepParameter !== undefined)
   ) {
     registrations.push(
       experimentBackendOfSimulator(fallback, {
         ...fallbackSelection.parameters,
-        ...(fallbackTimeStep === undefined
+        ...(fallbackTimeStepParameter === undefined
           ? {}
-          : { [fallbackTimeStep]: samplePeriod }),
+          : { [fallbackTimeStepParameter]: samplePeriod }),
       }),
     );
   }

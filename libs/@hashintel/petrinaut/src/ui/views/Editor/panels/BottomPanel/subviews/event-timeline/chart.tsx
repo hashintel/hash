@@ -62,12 +62,12 @@ const ACCENT_COLOR = "#2563eb";
 /** A position in the tooltip: a time, or the step it falls in. */
 const formatPosition = (clock: RunClock, position: number): string =>
   clock === "steps"
-    ? `step ${formatRunPosition(clock, position)}`
+    ? describeRunPosition(clock, position)
     : `${formatRunPosition(clock, position)}s`;
 
 /** A tick of the axis. A run in steps has ticks on whole steps only. */
 const formatAxisPosition = (clock: RunClock, position: number): string =>
-  clock === "steps" ? String(position) : `${position.toFixed(3)}s`;
+  clock === "steps" ? String(position) : formatPosition(clock, position);
 
 /** Tick spacings of a run in steps: 1, 2 and 5 times each power of ten. */
 const STEP_INCREMENTS = Array.from({ length: 10 }, (_, power) =>

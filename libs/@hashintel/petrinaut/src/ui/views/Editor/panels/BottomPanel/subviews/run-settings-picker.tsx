@@ -124,11 +124,11 @@ export const RunSettingsPicker: React.FC<{ locked: boolean }> = ({
   const [open, setOpen] = useState(false);
 
   const selected = findSimulator(registrations, simulatorSelection.simulatorId);
-  const unused = clock === "steps" && mode === "quick";
-  const simulatorName = unused
+  const simulatorUnused = clock === "steps" && mode === "quick";
+  const simulatorName = simulatorUnused
     ? STEP_BY_STEP
     : (selected?.label ?? "No simulator");
-  const details = unused
+  const details = simulatorUnused
     ? ""
     : summarizeRunSettings({
         mode,
