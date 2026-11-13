@@ -93,6 +93,18 @@ const assertNamedOnce = (
  * name a port `In`. Throws when two items of one kind share a name, since
  * they would share an id.
  */
+/** Whether two declarations of a token type say the same, element by element. */
+const sameTokenType = (
+  first: ProvidedTokenType,
+  second: ProvidedTokenType,
+): boolean =>
+  first.displayColor === second.displayColor &&
+  first.elements.length === second.elements.length &&
+  first.elements.every((element, index) => {
+    const other = second.elements[index];
+    return element.name === other?.name && element.type === other.type;
+  });
+
 export const toInterface = (component: ProvidedComponent): Subnet => {
   const scoped = (kind: string, name: string): ID =>
     toPetrinautId(`${component.id}/${kind}/${name}`);
@@ -114,7 +126,7 @@ export const toInterface = (component: ProvidedComponent): Subnet => {
       continue;
     }
     const declared = tokenTypes.get(tokenType.name);
-    if (declared && JSON.stringify(declared) !== JSON.stringify(tokenType)) {
+    if (declared && !sameTokenType(declared, tokenType)) {
       throw new Error(
         `Provided component \`${component.name}\` declares the token type \`${tokenType.name}\` in two ways.`,
       );
