@@ -125,7 +125,7 @@ const meaningsOf = (
       Array.map(Option.toArray(value), (apart) => {
         const read = (meaning: ExternalTarget.Meaning): Anchor.Anchor =>
           Related.exportAt({ id, meaning }, document).meaning.pipe(
-            Option.contains("value"),
+            Option.contains<Tree.Export.Meaning>("value"),
           )
             ? apart
             : anchor;
