@@ -113,7 +113,7 @@ export type {
   ImplementationBinding,
   UnboundReason,
 } from "./composition/interfaces";
-export type { MutationName } from "./composition/host-rules";
+export type { CommandName, MutationName } from "./composition/host-rules";
 export {
   instantiableSubnets,
   noProvidedInterfaces,

@@ -263,9 +263,15 @@ const writeDocument = (
         if (readOnlyReason !== null) {
           return { applied: false, reason: readOnlyReason };
         }
-        const value = await instance.commands.applyAutoLayout({
-          targetSubnetId: activeSubnetId,
-        });
+        const targeted = { targetSubnetId: activeSubnetId };
+        const message = instance.commandRefusal("applyAutoLayout", targeted);
+        if (message !== null) {
+          return {
+            applied: false,
+            reason: { kind: "host-restriction", message },
+          };
+        }
+        const value = await instance.commands.applyAutoLayout(targeted);
         await frameSceneAfterRender();
 
         return { applied: true, value };

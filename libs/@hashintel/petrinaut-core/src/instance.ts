@@ -7,8 +7,11 @@ import {
   createPetrinautCommands,
 } from "./commands";
 import {
+  commandRefusal,
   enforceHostRules,
+  enforceHostRulesOnCommands,
   mutationRefusal,
+  type CommandName,
   type HostRules,
   type MutationName,
 } from "./composition/host-rules";
@@ -100,6 +103,8 @@ export type Petrinaut = {
     name: MutationName,
     input: unknown,
   ): string | null;
+  /** The same for a command: `commands` throw the same sentence. */
+  commandRefusal(this: void, name: CommandName, input: unknown): string | null;
 
   dispose(this: void): void;
 };
@@ -269,10 +274,13 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     }),
     hostRules,
   );
-  const commands = createPetrinautCommands(
-    mutate,
-    () => definition.get(),
-    capabilities.extensions,
+  const commands = enforceHostRulesOnCommands(
+    createPetrinautCommands(
+      mutate,
+      () => definition.get(),
+      capabilities.extensions,
+    ),
+    hostRules,
   );
 
   return {
@@ -286,6 +294,7 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     readonly: capabilities.readonly,
     providedInterfaces: hostRules.provided,
     mutationRefusal: (name, input) => mutationRefusal(hostRules, name, input),
+    commandRefusal: (name, input) => commandRefusal(hostRules, name, input),
     dispose() {
       for (const dispose of disposers) {
         dispose();

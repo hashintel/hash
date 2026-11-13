@@ -234,6 +234,28 @@ describe("resolveProvidedComponents", () => {
       ]),
     ).toThrow("declares the token type `Order` in two ways");
   });
+
+  it("takes one token type written twice, whatever the order of its keys", () => {
+    const [first] = order.elements;
+    const rewritten = {
+      elements: order.elements.map(({ name, type }) => ({ type, name })),
+      displayColor: order.displayColor,
+      name: order.name,
+    };
+
+    expect(first).toBeDefined();
+    expect(() =>
+      resolveProvidedComponents([
+        {
+          ...sorter,
+          ports: [
+            { name: "Orders", direction: "out", tokenType: order },
+            { name: "Returns", direction: "in", tokenType: rewritten },
+          ],
+        },
+      ]),
+    ).not.toThrow();
+  });
 });
 
 describe("instantiableSubnets", () => {

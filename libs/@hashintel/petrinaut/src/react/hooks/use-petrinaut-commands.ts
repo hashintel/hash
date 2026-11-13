@@ -1,6 +1,7 @@
 import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
+import { NotificationsContext } from "../notifications/context";
 import { ActiveNetContext } from "../state/active-net-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
 import { useReadOnlyFeedback } from "./use-read-only-feedback";
@@ -26,7 +27,22 @@ export function usePetrinautCommands(): PetrinautCommands {
   const isReadOnly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
   const { activeSubnetId } = use(ActiveNetContext);
+  const { addNotification } = use(NotificationsContext);
   const { commands } = instance;
+
+  /** Says why the host's rules refuse a command, where Core itself would throw. */
+  const refused = (name: keyof PetrinautCommands, input: unknown): boolean => {
+    const refusal = instance.commandRefusal(name, input);
+    if (refusal !== null) {
+      addNotification({
+        id: "host-rules",
+        message: refusal,
+        tone: "neutral",
+        durationMs: 4500,
+      });
+    }
+    return refusal !== null;
+  };
 
   return {
     applyClipboardPaste(input) {
@@ -34,17 +50,20 @@ export function usePetrinautCommands(): PetrinautCommands {
         notifyReadOnly();
         return { newItemIds: [] };
       }
-      return commands.applyClipboardPaste({
-        ...input,
-        targetSubnetId: activeSubnetId,
-      });
+      const targeted = { ...input, targetSubnetId: activeSubnetId };
+      return refused("applyClipboardPaste", targeted)
+        ? { newItemIds: [] }
+        : commands.applyClipboardPaste(targeted);
     },
     async applyAutoLayout() {
       if (isReadOnly) {
         notifyReadOnly();
         return { commitCount: 0 };
       }
-      return commands.applyAutoLayout({ targetSubnetId: activeSubnetId });
+      const targeted = { targetSubnetId: activeSubnetId };
+      return refused("applyAutoLayout", targeted)
+        ? { commitCount: 0 }
+        : commands.applyAutoLayout(targeted);
     },
   };
 }

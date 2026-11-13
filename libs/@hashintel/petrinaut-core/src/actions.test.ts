@@ -2207,6 +2207,33 @@ describe("Petrinaut core provided components", () => {
     expect(instance.definition.get().subnets).toEqual([]);
   });
 
+  test("no subnet is added under the id of a provided component, and no command targets one", () => {
+    const instance = createHostedInstance();
+    const refused = "Packer is a component the application provides";
+
+    // Before the document holds its copy, the id is still the host's.
+    expect(() =>
+      instance.mutations.addSubnet({
+        ...toInterface(packer),
+        name: "Impostor",
+        interface: undefined,
+      }),
+    ).toThrow(refused);
+    expect(instance.definition.get().subnets ?? []).toEqual([]);
+
+    instance.mutations.addComponentInstance(packerInstance("p1"));
+    expect(() =>
+      instance.commands.applyAutoLayout({ targetSubnetId: packerId }),
+    ).toThrow(refused);
+    expect(
+      instance.commandRefusal("applyClipboardPaste", {
+        targetSubnetId: packerId,
+      }),
+    ).toContain(refused);
+    expect(instance.commandRefusal("applyAutoLayout", {})).toBeNull();
+    expect(instance.definition.get().subnets).toEqual([toInterface(packer)]);
+  });
+
   test("a subnet neither the document nor the host has is still refused", () => {
     const instance = createHostedInstance();
 

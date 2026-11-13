@@ -455,11 +455,12 @@ user's Net Components setting.
   saved document reads the same without its host: the instances point at an
   interface the document holds.
 - **No mutation changes it.** A mutation that targets a provided interface,
-  or `updateSubnet` on one, throws. `instance.mutationRefusal(name, input)`
-  gives the sentence without running the mutation, or `null`; the React
-  bindings show it as a notice, and a plugin's `edit` returns it as a refusal
-  of kind `host-restriction`. `removeSubnet` still takes the copy out, with
-  its instances.
+  `updateSubnet` on one, or `addSubnet` under the id of one, throws, and so
+  does a command that targets one. `instance.mutationRefusal(name, input)`
+  and `instance.commandRefusal(name, input)` give the sentence without
+  running anything, or `null`; the React bindings show it as a notice, and a
+  plugin's `edit` returns it as a refusal of kind `host-restriction`.
+  `removeSubnet` still takes the copy out, with its instances.
 - **Token types.** A port names the tokens it carries with `tokenType`. Two
   ports can be fused when their token types have the same elements, whatever
   the components.
