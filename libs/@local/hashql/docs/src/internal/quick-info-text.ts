@@ -1,4 +1,4 @@
-import { Array, Effect, Function, Option, pipe } from "effect";
+import { Array, Effect, Function, HashSet, Option, pipe } from "effect";
 import {
   isBindingElement,
   isIdentifier,
@@ -407,9 +407,12 @@ const qualifiers: (
   return Array.append(outer, parent.value);
 });
 
-/** The name `symbol` declares. The compiler names a default export `default`, and quick info shows the name of its declaration. */
+/** The names the compiler gives a symbol itself: a default export's, and that of a `declare global` block. */
+const internal = HashSet.make("default", "__global");
+
+/** The name `symbol` declares. Where the compiler names the symbol itself, quick info shows the name of its declaration. */
 const written = Effect.fnUntraced(function* (symbol: CompilerSymbol) {
-  if (symbol.name !== "default") {
+  if (!HashSet.has(internal, symbol.name)) {
     return symbol.name;
   }
 

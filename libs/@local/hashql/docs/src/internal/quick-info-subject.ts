@@ -1,7 +1,16 @@
-import { Array, Boolean, Effect, Function, Option, Predicate } from "effect";
+import {
+  Array,
+  Boolean,
+  Effect,
+  Function,
+  Option,
+  Predicate,
+  pipe,
+} from "effect";
 import {
   SyntaxKind,
   isComputedPropertyName,
+  isMetaProperty,
   isObjectLiteralExpression,
   isSpreadAssignment,
 } from "typescript/ast";
@@ -217,6 +226,22 @@ const expected = Effect.fnUntraced(function* (name: Identifier) {
   return Array.head(candidates);
 });
 
+/** The symbol of the type of `import.meta`, where `name` is its `meta`. An editor reads that name as the whole expression. */
+const metaOf = Effect.fnUntraced(function* (name: Identifier) {
+  const { parent } = name;
+  if (
+    !isMetaProperty(parent) ||
+    parent.keywordToken !== SyntaxKind.ImportKeyword
+  ) {
+    return Option.none<CompilerSymbol>();
+  }
+
+  const checker = yield* Checker.Checker;
+  const [whole] = yield* checker.getSymbolAtLocation([parent]);
+
+  return Option.flatten(Option.fromUndefinedOr(whole));
+});
+
 /** What `name` names where it stands, given the symbol `found` that the compiler resolves it to, or none for a name the program cannot resolve. */
 export const of = Effect.fnUntraced(function* (
   name: Identifier,
@@ -224,7 +249,12 @@ export const of = Effect.fnUntraced(function* (
 ) {
   const checker = yield* Checker.Checker;
   const property = yield* expected(name);
-  const resolved = Option.getOrElse(property, () => found);
+  const whole = yield* metaOf(name);
+  const resolved = pipe(
+    property,
+    Option.orElse(() => whole),
+    Option.getOrElse(() => found),
+  );
   let symbol = resolved;
   if (Symbol.hasFlag(resolved, SymbolFlags.Alias)) {
     symbol = yield* checker.getAliasedSymbol(resolved);

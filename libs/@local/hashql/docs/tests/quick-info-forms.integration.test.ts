@@ -352,6 +352,25 @@ interface Boxed<T extends Space.Inner.Kind = Space.Inner.Kind> { value: T; }`);
     );
   });
 
+  describe("names read at another node", () => {
+    it.effect(
+      "import_meta",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const names = yield* inspect(`export {};
+declare global { interface ImportMeta { readonly url: string } }
+import.meta.url;`);
+        expect(names).toStrictEqual([
+          ["global", "namespace global"],
+          ["ImportMeta", "interface ImportMeta"],
+          ["url", "(property) ImportMeta.url: string"],
+          ["meta", "interface ImportMeta"],
+          ["url", "(property) ImportMeta.url: string"],
+        ]);
+      }),
+    );
+  });
+
   describe("names without a symbol", () => {
     it.effect(
       "tuple_labels",
