@@ -120,18 +120,19 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
             Option.map((id) => read(part, id)),
             Option.toArray,
           );
-          const accepts = Array.appendAll(
-            Array.map(
-              Array.fromIterable(call.typeParameters),
-              (id) => ast.get(id).node,
-            ),
-            Array.flatMap(Array.fromIterable(call.parameters), (id) =>
-              pipe(
-                ast.get(id).type,
-                Option.map((type) => read(part, type)),
-                Option.toArray,
+          const accepts = pipe(
+            Array.fromIterable(call.typeParameters),
+            Array.flatMap((id) => {
+              const { constraint, default: fallback } = ast.get(id);
+
+              return Array.getSomes([constraint, fallback]);
+            }),
+            Array.appendAll(
+              Array.flatMap(Array.fromIterable(call.parameters), (id) =>
+                Option.toArray(ast.get(id).type),
               ),
             ),
+            Array.map((type) => read(part, type)),
           );
 
           return pipe(
