@@ -106,14 +106,16 @@ export function advanceRun(run: MonteCarloRunState): boolean {
     run.currentFrame = workingFrame;
     run.frameNumber++;
 
-    if (run.frameNumber >= run.maxFrameNumber) {
+    const idle = firedTransitions.size === 0;
+    if (idle && run.endsWhenIdle) {
+      // Nothing changes while nothing fires, so the run is stuck, at its
+      // last step as at any other.
+      completeRun(run, "deadlock");
+    } else if (run.frameNumber >= run.maxFrameNumber) {
       completeRun(run, "maxTime");
-    } else if (
-      firedTransitions.size === 0 &&
+    } else if (idle && !hasStructurallyEnabledTransition(run)) {
       // A timed net may fire later with nothing fired now: a rate is a
       // chance per step. It is over once no transition has its tokens.
-      (run.endsWhenIdle || !hasStructurallyEnabledTransition(run))
-    ) {
       completeRun(run, "deadlock");
     }
 

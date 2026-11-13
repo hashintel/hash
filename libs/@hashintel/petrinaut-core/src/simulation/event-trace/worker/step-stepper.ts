@@ -47,13 +47,12 @@ export function createStepStepper(config: RunStepperConfig): RunStepper {
       }
       if (!advanceRun(run)) {
         // The run was already over, or the step failed: there is no new
-        // state. The step that ended the run handed its state back.
+        // state.
         return advanceOf("stopped", []);
       }
       const fired = firedTransitionIds(run);
       if (fired.length === 0) {
-        run.status = "complete";
-        run.completionReason = "deadlock";
+        // The engine ended the run as a deadlock. The step is not counted.
         return advanceOf("stopped", []);
       }
       steps += 1;

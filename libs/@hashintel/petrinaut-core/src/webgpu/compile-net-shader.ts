@@ -423,16 +423,18 @@ export function compileNetShader(
       );
     }
     // A run with nothing enabled and nothing fired is deadlocked; one that
-    // reaches the frame limit is complete. Both stop consuming work. In an
-    // untimed net nothing changes while nothing fires, so a frame that fires
-    // nothing is a deadlock whatever is enabled, as in the CPU engine.
-    const deadlocked = isTimedNet(sdcpn, extensions)
-      ? "!any_fired && !any_enabled"
-      : "!any_fired";
-    push(`      if (${deadlocked}) { status = 1u; }`);
-    push(
-      `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`,
-    );
+    // reaches the frame limit is complete. Both stop consuming work, and the
+    // later test wins. In an untimed net nothing changes while nothing
+    // fires, so a frame that fires nothing is a deadlock whatever is
+    // enabled, at the frame limit too, as in the CPU engine.
+    const frameLimit = `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`;
+    if (isTimedNet(sdcpn, extensions)) {
+      push(`      if (!any_fired && !any_enabled) { status = 1u; }`);
+      push(frameLimit);
+    } else {
+      push(frameLimit);
+      push(`      if (!any_fired) { status = 1u; }`);
+    }
     // Derived capacities detect overflow instead of blocking: the highest slot
     // a frame writes is its post-fold count minus one, so a post-fold count
     // past the slab means this frame wrote out of bounds (harmlessly — robust

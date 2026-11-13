@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { bicycleAssembly } from "../examples/bicycle-assembly";
 import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
@@ -228,38 +229,14 @@ describe("compileNetShader", () => {
     );
   });
 
-  it("marks a run of an untimed net deadlocked as soon as nothing fired", () => {
-    const untimed: SDCPN = {
-      places: ["source", "sink"].map((id) => ({
-        id,
-        name: id,
-        colorId: null,
-        dynamicsEnabled: false,
-        x: 0,
-        y: 0,
-      })),
-      transitions: [
-        {
-          id: "move",
-          name: "Move",
-          inputArcs: [{ placeId: "source", weight: 1, type: "standard" }],
-          outputArcs: [{ placeId: "sink", weight: 1 }],
-          lambdaType: "predicate",
-          lambdaCode: "",
-          transitionKernelCode: "",
-          x: 0,
-          y: 0,
-        },
-      ],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
-    };
-    const result = compileFor(untimed);
+  it("marks a run of an untimed net deadlocked as soon as nothing fired, at the frame limit too", () => {
+    const result = compileFor(bicycleAssembly.petriNetDefinition);
     if (!result.ok) throw new Error(result.reason);
+    const { wgsl } = result.shader;
 
-    expect(result.shader.wgsl).toContain("if (!any_fired) { status = 1u; }");
-    expect(result.shader.wgsl).not.toContain("!any_fired && !any_enabled");
+    // The later assignment wins: the deadlock test follows the frame limit.
+    const deadlock = wgsl.indexOf("if (!any_fired) { status = 1u; }");
+    expect(deadlock).toBeGreaterThan(wgsl.indexOf("{ status = 2u; }"));
   });
 
   it.each([

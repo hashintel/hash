@@ -361,61 +361,66 @@ describe("an experiment whose runs a stepper advances", () => {
     expect(sampleTimes(false)).toEqual([0, 0.1, 0.2, 0.3]);
   });
 
-  it("steps an untimed net in steps whichever simulator is selected, as the engine does at a step of one", () => {
-    const sinkPerStep = (
-      createRunDriver?: ReturnType<typeof createStepperRunDriverFactory>,
-    ) => {
-      const { metric, samples } = readingsOf((frame) =>
-        frame.getPlaceTokenCount("sink"),
-      );
-      const simulator = createMonteCarloSimulator({
-        sdcpn: drain,
-        hirArtifacts: compileHirArtifacts(drain).artifacts,
-        initialMarking: { source: 3, sink: 0, hold: 1 },
-        parameterValues: {},
-        seed: 4,
-        // A sample per step, and a tenth step to stop at.
-        dt: 1,
-        maxTime: 10,
-        runCount: 2,
-        metrics: [metric],
-        ...(createRunDriver ? { createRunDriver } : {}),
-      });
-      simulator.runUntilComplete();
-      return {
-        samples,
-        ends: simulator
-          .getSummaries()
-          .map(({ status, completionReason }) => [status, completionReason]),
+  // The fourth step fires nothing. A run told to stop at it ends as one
+  // told to stop later does.
+  it.each([10, 4])(
+    "steps an untimed net to step %i as the engine does at a step of one, whichever simulator is selected",
+    (maxTime) => {
+      const sinkPerStep = (
+        createRunDriver?: ReturnType<typeof createStepperRunDriverFactory>,
+      ) => {
+        const { metric, samples } = readingsOf((frame) =>
+          frame.getPlaceTokenCount("sink"),
+        );
+        const simulator = createMonteCarloSimulator({
+          sdcpn: drain,
+          hirArtifacts: compileHirArtifacts(drain).artifacts,
+          initialMarking: { source: 3, sink: 0, hold: 1 },
+          parameterValues: {},
+          seed: 4,
+          // A sample per step.
+          dt: 1,
+          maxTime,
+          runCount: 2,
+          metrics: [metric],
+          ...(createRunDriver ? { createRunDriver } : {}),
+        });
+        simulator.runUntilComplete();
+        return {
+          samples,
+          ends: simulator
+            .getSummaries()
+            .map(({ status, completionReason }) => [status, completionReason]),
+        };
       };
-    };
 
-    const engine = sinkPerStep();
-    // Three steps move the tokens. The fourth fires nothing and ends the
-    // run, though `never` still has its token.
-    expect(engine.samples).toEqual([
-      [0, 0],
-      [1, 1],
-      [2, 2],
-      [3, 3],
-      [3, 3],
-    ]);
-    expect(engine.ends).toEqual([
-      ["complete", "deadlock"],
-      ["complete", "deadlock"],
-    ]);
+      const engine = sinkPerStep();
+      // Three steps move the tokens. The fourth fires nothing and ends the
+      // run, though `never` still has its token.
+      expect(engine.samples).toEqual([
+        [0, 0],
+        [1, 1],
+        [2, 2],
+        [3, 3],
+        [3, 3],
+      ]);
+      expect(engine.ends).toEqual([
+        ["complete", "deadlock"],
+        ["complete", "deadlock"],
+      ]);
 
-    // Neither simulator's own stepper is used: the adaptive one would
-    // compute the whole run at time 0, and the fixed-step one would take a
-    // hundred steps per sample.
-    const selections: StepperSelection[] = [
-      { id: ADAPTIVE_SIMULATOR_ID, parameters: { tolerance: 1e-6 } },
-      { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.01 } },
-    ];
-    for (const selection of selections) {
-      expect(sinkPerStep(createStepperRunDriverFactory(selection))).toEqual(
-        engine,
-      );
-    }
-  });
+      // Neither simulator's own stepper is used: the adaptive one would
+      // compute the whole run at time 0, and the fixed-step one would take a
+      // hundred steps per sample.
+      const selections: StepperSelection[] = [
+        { id: ADAPTIVE_SIMULATOR_ID, parameters: { tolerance: 1e-6 } },
+        { id: FIXED_STEP_SIMULATOR_ID, parameters: { dt: 0.01 } },
+      ];
+      for (const selection of selections) {
+        expect(sinkPerStep(createStepperRunDriverFactory(selection))).toEqual(
+          engine,
+        );
+      }
+    },
+  );
 });
