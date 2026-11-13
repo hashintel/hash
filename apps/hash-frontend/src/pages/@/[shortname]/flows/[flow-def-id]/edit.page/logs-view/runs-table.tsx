@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 
 import { Icon, SortMenu, Tabs } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   formatDuration,
@@ -10,6 +10,7 @@ import {
   formatRunTime,
   getRunDuration,
 } from "../shared/run-times";
+import { tableStyle } from "../shared/table";
 import {
   countRunsByTab,
   defaultRunSort,
@@ -77,35 +78,7 @@ const noFilters: RunFilters = { states: [], trigger: null };
 
 const tabCount = css({ color: "fg.subtle", ml: "1.5" });
 const filterBar = css({ mt: "3" });
-const table = css({
-  width: "full",
-  mt: "3",
-  borderCollapse: "collapse",
-  textStyle: "sm",
-  "& th": {
-    height: "8",
-    px: "4",
-    textAlign: "left",
-    textStyle: "xs",
-    fontWeight: "medium",
-    color: "fg.muted",
-    whiteSpace: "nowrap",
-    borderBottomWidth: "1px",
-    borderBottomStyle: "solid",
-    borderBottomColor: "bd.subtle",
-  },
-  "& td": {
-    height: "12",
-    px: "4",
-    color: "fg.body",
-    whiteSpace: "nowrap",
-    fontVariantNumeric: "tabular-nums",
-    borderBottomWidth: "1px",
-    borderBottomStyle: "solid",
-    borderBottomColor: "bd.subtle",
-  },
-  "& [data-align=right]": { textAlign: "right" },
-});
+const table = css({ mt: "3" });
 const openableRow = css({
   cursor: "pointer",
   _hover: { backgroundColor: "bg.subtle" },
@@ -251,7 +224,7 @@ export const RunsTable = ({
           />
         </div>
       )}
-      <table className={table}>
+      <table className={cx(tableStyle, table)}>
         <thead>
           <tr>
             {columns.map((column) => (
