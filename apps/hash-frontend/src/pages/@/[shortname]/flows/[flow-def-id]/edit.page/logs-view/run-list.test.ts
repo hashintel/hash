@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
-import {
-  countRunsByTab,
-  filterRuns,
-  getRunDuration,
-  sortRuns,
-  toRunRow,
-} from "./run-list";
+import { countRunsByTab, filterRuns, sortRuns, toRunRow } from "./run-list";
 
-import type { RunRow, RunSummary } from "./run-list";
+import type { RunSummary } from "../shared/use-flow-runs";
+import type { RunRow } from "./run-list";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -96,33 +91,6 @@ describe("toRunRow", () => {
       row("aaaaaa", { flowScheduleId: "5c1e" as EntityUuid }).trigger,
     ).toBe("scheduled");
     expect(row("bbbbbb").trigger).toBe("manual");
-  });
-});
-
-describe("getRunDuration", () => {
-  it("counts a running run to now, but not a stopped run with no end recorded", () => {
-    const startedAt = "2026-11-09T11:00:00Z";
-
-    expect(
-      getRunDuration(
-        row("aaaaaa", {
-          status: FlowRunStatus.Running,
-          startedAt,
-          closedAt: null,
-        }),
-        now,
-      ),
-    ).toBe(60 * 60_000);
-    expect(
-      getRunDuration(
-        row("bbbbbb", {
-          status: FlowRunStatus.Unknown,
-          startedAt,
-          closedAt: null,
-        }),
-        now,
-      ),
-    ).toBeNull();
   });
 });
 
