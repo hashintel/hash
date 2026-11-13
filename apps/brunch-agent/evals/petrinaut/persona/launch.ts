@@ -25,10 +25,6 @@ import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { brunchEnv } from "../../../src/env.ts";
 import {
-  defaultChatOrigin,
-  localPanelListen,
-} from "../../../src/server/http/local-origins.ts";
-import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
 } from "../../../src/shared/chat-model.ts";
@@ -58,7 +54,13 @@ import {
 } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import { showPersonaPanel } from "./launch/browser.ts";
+import { initialNetFileData } from "./launch/initial-net.ts";
 import { interviewLengthStorage } from "./launch/interview-length.ts";
+import {
+  personaAliasName,
+  registerPortlessAlias,
+} from "./launch/portless-alias.ts";
+import { localOrigin, resolvePersonaPorts } from "./launch/ports.ts";
 import {
   openRetainedPersonaBrowser,
   personaSessionFileText,
@@ -82,7 +84,6 @@ const execute = promisify(execFile);
 const report = (text: string) => process.stdout.write(`${text}\n`);
 const appRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const repoRoot = resolve(appRoot, "../..");
-const panelOrigin = `http://${localPanelListen.host}:${localPanelListen.port}`;
 const casesRoot = join(repoRoot, "apps/brunch-agent/evals/petrinaut/cases");
 
 const listPersonaCases = async () => {
@@ -330,11 +331,19 @@ const launchPersona = async ({
     throw new Error(
       "Without Herdr the persona agent needs an interactive terminal; run from a terminal or Herdr, or omit --agent and start the agent yourself",
     );
+  const ports = await resolvePersonaPorts({
+    environment: process.env,
+    resumePanelOrigin: resume?.config.panelOrigin,
+  });
+  const panelOrigin = localOrigin(ports.panel);
+  const chatOrigin = localOrigin(ports.chat);
   if (resume && panelOrigin !== resume.config.panelOrigin)
     throw new Error(
-      `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
+      `Resume requires the original panel origin ${resume.config.panelOrigin}; unset ${brunchEnv.panelPort} or set it accordingly`,
     );
   const env = personaEnvironment(settings);
+  env[brunchEnv.chatPort] = String(ports.chat);
+  env[brunchEnv.panelPort] = String(ports.panel);
   const interviewLengthEntries =
     interviewLength === undefined
       ? undefined
@@ -343,7 +352,9 @@ const launchPersona = async ({
     initialNetPath === undefined
       ? undefined
       : await readFile(initialNetPath).then((bytes) => {
-          const parsed = parseSDCPNFile(JSON.parse(bytes.toString("utf8")));
+          const parsed = parseSDCPNFile(
+            initialNetFileData(JSON.parse(bytes.toString("utf8"))),
+          );
           if (!parsed.ok) throw new Error(parsed.error);
           const { title, ...sdcpn } = parsed.sdcpn;
           const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
@@ -442,6 +453,7 @@ const launchPersona = async ({
   let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
   let documentId: string | undefined;
   let agentProcess: PersonaAgentProcess | undefined;
+  let removePortlessAlias: (() => Promise<void>) | undefined;
   // Set from bridge and child-process callbacks. Once `held`, the operator owns
   // the browser: the persona can send nothing, and its exit ends nothing.
   const lifecycle = { endedByPersona: false, agentExited: false, held: false };
@@ -490,7 +502,7 @@ const launchPersona = async ({
       `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested.`,
     );
     const services = [
-      { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
+      { url: `${chatOrigin}/health`, script: "dev:brunch:server" },
       { url: panelOrigin, script: "dev:brunch:panel" },
     ];
     const available = await Promise.all(
@@ -546,6 +558,11 @@ const launchPersona = async ({
       if (!resume || service.script === "dev:brunch:panel")
         await startService(service);
     }
+    removePortlessAlias = await registerPortlessAlias(
+      personaAliasName(run),
+      ports.panel,
+      report,
+    );
     browser = await chromium.launchPersistentContext(browserProfile, {
       executablePath: chromeExecutable,
       headless: false,
@@ -843,6 +860,7 @@ const launchPersona = async ({
           await browser?.close();
         }
       } finally {
+        await removePortlessAlias?.();
         await stopStartedServices();
         // After the services stop, the server log and conversation store are final.
         await writeRunPacket(run)
@@ -895,13 +913,13 @@ if (
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--interview-length quick|standard|thorough|deep] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --interview-length turns on the website's Interview length at that level for the whole run; without it the run has none. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). --max-messages <n> stops the run once Brunch has replied to the persona's nth message (the case's opening is not counted). --hold keeps Chrome and services open for you when the persona stops, at that limit, on persona end or when its agent exits, until Ctrl-C or closing Chrome. Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--interview-length quick|standard|thorough|deep] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --interview-length turns on the website's Interview length at that level for the whole run; without it the run has none. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). --max-messages <n> stops the run once Brunch has replied to the persona's nth message (the case's opening is not counted). --hold keeps Chrome and services open for you when the persona stops, at that limit, on persona end or when its agent exits, until Ctrl-C or closing Chrome. Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Takes free ports unless ${brunchEnv.chatPort} or ${brunchEnv.panelPort} is set, and names the panel in portless when it is installed. --initial-net also takes a retained run's evidence/net.json. Requires macOS Chrome and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
     );
     report(
-      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Set the original ${brunchEnv.panelPort}; choose an unused ${brunchEnv.chatPort}. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/petrinaut/persona/README.md`,
+      `Resume the Brunch conversation: yarn brunch:persona --resume <run-directory> [agent options] [--skip-recording-pause]\nReuses the original profile and database, and starts a fresh persona agent session with a resume notice (the original agent and model unless agent options are given); the earlier agent session is not resumed. Fresh-run options are rejected; --objective is neither retained nor reapplied. Returns to the panel port in run.json and takes a free chat port unless ${brunchEnv.panelPort} or ${brunchEnv.chatPort} is set. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/evals/petrinaut/persona/README.md`,
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
