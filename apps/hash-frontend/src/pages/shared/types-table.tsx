@@ -20,6 +20,7 @@ import {
   gridHorizontalScrollbarHeight,
   type GridSort,
 } from "../../components/grid/grid";
+import { getCellSearchableText } from "../../components/grid/utils";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { extractWebId } from "../../lib/user-and-org";
@@ -53,6 +54,14 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import {
+  buildDataTypeTree,
+  type DataTypeTreePosition,
+} from "./types-table/data-type-tree";
+import {
+  renderDataTypeTreeCell,
+  type DataTypeTreeCell,
+} from "./types-table/data-type-tree-cell";
 import { TypesFilterRibbon } from "./types-table/filter-ribbon";
 import {
   createTypeFilterPredicate,
@@ -98,6 +107,8 @@ export type TypesTableRow = {
   lastEditedBy?: MinimalActor;
   icon?: string;
   typeId: VersionedUrl;
+  parentIds: VersionedUrl[];
+  hierarchy?: DataTypeTreePosition;
   title: string;
   external: boolean;
   webShortname?: string;
@@ -165,6 +176,19 @@ export const TypesTable: FunctionComponent<{
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
+  const hierarchical = kind === "data-type";
+  const [searchValue, setSearchValue] = useState("");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [collapsedSearchRows, setCollapsedSearchRows] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const onSearchValueChange = useCallback((value: string) => {
+    setSearchValue(value);
+    setCollapsedSearchRows(new Set());
+  }, []);
+
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [showGraphSearch, setShowGraphSearch] = useState<boolean>(false);
 
@@ -172,6 +196,7 @@ export const TypesTable: FunctionComponent<{
     _setView(newView);
     setShowSearch(false);
     setShowGraphSearch(false);
+    setSearchValue("");
   }, []);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
@@ -383,6 +408,10 @@ export const TypesTable: FunctionComponent<{
           rowId: type.schema.$id,
           typeId: type.schema.$id,
           title: type.schema.title,
+          parentIds:
+            type.schema.kind === "dataType"
+              ? (type.schema.allOf ?? []).map(({ $ref }) => $ref)
+              : [],
           icon: "icon" in type.schema ? type.schema.icon : undefined,
           lastEdited,
           lastEditedBy,
@@ -425,13 +454,36 @@ export const TypesTable: FunctionComponent<{
     [filteredRows, activeSort],
   );
 
+  const treeSearchValue = hierarchical && showSearch ? searchValue : "";
+  const toggleRow = useCallback(
+    (rowId: string) => {
+      const setRows = treeSearchValue
+        ? setCollapsedSearchRows
+        : setExpandedRows;
+      setRows((previous) => {
+        const next = new Set(previous);
+        if (next.has(rowId)) {
+          next.delete(rowId);
+        } else {
+          next.add(rowId);
+        }
+        return next;
+      });
+    },
+    [treeSearchValue],
+  );
+
   const { pushToSlideStack } = useSlideStack();
 
   const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
-      ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
+      ([colIndex, rowIndex]: Item):
+        | TextCell
+        | TextIconCell
+        | ChipCell
+        | DataTypeTreeCell => {
         const row = rows[rowIndex];
 
         if (!row) {
@@ -444,8 +496,36 @@ export const TypesTable: FunctionComponent<{
           throw new Error("column not found");
         }
 
+        const themeOverride =
+          row.hierarchy?.matchesSearch === false
+            ? {
+                textDark: theme.palette.gray[70],
+                textHeader: theme.palette.gray[70],
+              }
+            : undefined;
+
         switch (column.id) {
           case "title": {
+            if (row.hierarchy) {
+              return {
+                kind: GridCellKind.Custom,
+                themeOverride,
+                readonly: true,
+                allowOverlay: false,
+                copyData: row.title,
+                cursor: "pointer",
+                data: {
+                  kind: "data-type-tree-cell",
+                  title: row.title,
+                  icon: row.icon,
+                  ...row.hierarchy,
+                  muted: !row.hierarchy.matchesSearch,
+                  onToggle: () => toggleRow(row.rowId),
+                  onOpen: () =>
+                    pushToSlideStack({ kind: "dataType", itemId: row.typeId }),
+                },
+              };
+            }
             const isClickable =
               row.kind === "entity-type" ||
               row.kind === "link-type" ||
@@ -453,6 +533,7 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               copyData: row.title,
@@ -490,6 +571,7 @@ export const TypesTable: FunctionComponent<{
           case "kind":
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               displayData: String(row.kind),
@@ -504,6 +586,7 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               allowOverlay: false,
               readonly: true,
               cursor: isClickable ? "pointer" : "default",
@@ -524,6 +607,7 @@ export const TypesTable: FunctionComponent<{
             const value = row.archived ? "Yes" : "No";
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               displayData: String(value),
@@ -533,6 +617,7 @@ export const TypesTable: FunctionComponent<{
           case "lastEdited": {
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               displayData: String(row.lastEdited),
@@ -554,6 +639,7 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               copyData: String(actorName),
@@ -576,7 +662,40 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme],
+    [typesTableColumns, pushToSlideStack, router, theme, toggleRow],
+  );
+
+  const matchingIds = useMemo(() => {
+    if (!treeSearchValue) {
+      return undefined;
+    }
+    const rows = sortedRows ?? [];
+    const getCellContent = createGetCellContent(rows);
+    const query = treeSearchValue.toLowerCase();
+    return new Set(
+      rows
+        .filter((_, rowIndex) =>
+          typesTableColumns.some((_column, colIndex) =>
+            getCellSearchableText(getCellContent([colIndex, rowIndex]))
+              ?.toLowerCase()
+              .includes(query),
+          ),
+        )
+        .map(({ typeId }) => typeId),
+    );
+  }, [treeSearchValue, sortedRows, createGetCellContent, typesTableColumns]);
+
+  const visibleRows = useMemo(
+    () =>
+      hierarchical
+        ? buildDataTypeTree({
+            rows: sortedRows ?? [],
+            expandedRows,
+            matchingIds,
+            collapsedSearchRows,
+          })
+        : sortedRows,
+    [hierarchical, sortedRows, expandedRows, matchingIds, collapsedSearchRows],
   );
 
   const contentTopRef = useRef<HTMLDivElement>(null);
@@ -609,7 +728,7 @@ export const TypesTable: FunctionComponent<{
         }px + ${theme.spacing(2)} + ${theme.spacing(5)})`
   })`;
 
-  const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
+  const displayedRowCount = Math.max(visibleRows?.length ?? 1, 1);
 
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
@@ -655,7 +774,7 @@ export const TypesTable: FunctionComponent<{
       <VisualizerHeader
         topLeft={
           <QueryCount
-            count={filteredRows?.length}
+            count={matchingIds?.size ?? filteredRows?.length}
             loading={!types || loading}
             noun={{ singular: "type", plural: "types" }}
           />
@@ -694,12 +813,15 @@ export const TypesTable: FunctionComponent<{
                   <SearchPill
                     title={
                       view === "Table"
-                        ? "Search for text in visible rows"
+                        ? hierarchical
+                          ? "Search all data types, including collapsed groups"
+                          : "Search for text in visible rows"
                         : "Search for a type in the graph"
                     }
                     onClick={() => {
                       if (view === "Table") {
                         setShowSearch(!showSearch);
+                        onSearchValueChange("");
                       } else {
                         setShowGraphSearch(!showGraphSearch);
                       }
@@ -779,9 +901,11 @@ export const TypesTable: FunctionComponent<{
             customRenderers={[
               createRenderTextIconCell({ firstColumnLeftPadding }),
               createRenderChipCell({ firstColumnLeftPadding }),
+              renderDataTypeTreeCell,
             ]}
             dataLoading={!types || loading}
             enableCheckboxSelection
+            drawFocusRing={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}
             freezeColumns={1}
             height={`min(
@@ -796,7 +920,32 @@ export const TypesTable: FunctionComponent<{
             onSelectedRowsChange={(updatedSelectedRows) =>
               setSelectedRows(updatedSelectedRows)
             }
-            rows={sortedRows}
+            rows={visibleRows}
+            searchValue={searchValue}
+            onSearchValueChange={onSearchValueChange}
+            onKeyDown={(event) => {
+              const [column, index] = event.location ?? [-1, -1];
+              const row = visibleRows?.[index];
+              // Glide includes the checkbox column in keyboard event locations.
+              if (
+                column !== 1 ||
+                !row?.hierarchy ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey
+              ) {
+                return;
+              }
+              if (event.key === " " && row.hierarchy.hasChildren) {
+                event.cancel();
+                event.preventDefault();
+                toggleRow(row.rowId);
+              } else if (event.key === "Enter") {
+                event.cancel();
+                event.preventDefault();
+                pushToSlideStack({ kind: "dataType", itemId: row.typeId });
+              }
+            }}
             selectedRows={selectedRows}
             setSort={setSort}
             showSearch={showSearch}
