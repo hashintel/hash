@@ -404,6 +404,30 @@ export interface Box {
   );
 
   it.effect(
+    "wrapped_template_literal",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source: `/** A box. */
+export interface Box {
+  readonly line: \`first
+    \${string}
+    second\`;
+}`,
+      });
+      expect(Reference.page(result, "pkg.html").markdown).toContain(
+        [
+          "```ts",
+          "readonly line: `first",
+          `    \${string}`,
+          "    second`;",
+          "```",
+        ].join("\n"),
+      );
+    }),
+  );
+
+  it.effect(
     "external_meanings",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
