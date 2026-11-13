@@ -485,8 +485,8 @@ const cloneSubnet = (
  * stripped out.
  *
  * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
- * `subnets`, `componentInstances`) are only set when they are present on the
- * source. Writing them
+ * `subnets`, `componentInstances`, `fusions`) are only set when they are
+ * present on the source. Writing them
  * unconditionally would leave them present with a value of `undefined`, which
  * is not the same shape as a definition loaded back from JSON — where absent
  * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
@@ -571,7 +571,6 @@ export const sanitizeSDCPNForExtensions = (
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
-    delete next.fusions;
   }
 
   return next;

@@ -535,6 +535,34 @@ describe("transition logic availability", () => {
     ).not.toHaveProperty("dynamics");
   });
 
+  it("copies fusions without sharing them, and drops them when subnets are disabled", () => {
+    const sdcpn: SDCPN = {
+      ...createComponentPortSDCPN(),
+      places: createSDCPN().places,
+      fusions: [
+        {
+          id: "fusion-1",
+          members: [
+            { kind: "place", placeId: "place-1" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "instance-1",
+              portPlaceId: "port-1",
+            },
+          ],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+    expect(sanitized.fusions).toEqual(sdcpn.fusions);
+    expect(sanitized.fusions![0]!.members).not.toBe(sdcpn.fusions![0]!.members);
+
+    expect(
+      sanitizeSDCPNForExtensions(sdcpn, { ...allEnabled, subnets: false }),
+    ).not.toHaveProperty("fusions");
+  });
+
   it("leaves a freshly loaded net comparing equal to its persisted form", () => {
     // The in-memory document, as the editor holds it.
     const inMemory = sanitizeSDCPNForExtensions(createSDCPN(), allEnabled);

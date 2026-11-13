@@ -160,6 +160,16 @@ const componentInstanceSchema = z.object({
   y: z.number().optional(),
 });
 
+/**
+ * A net without fusions carries no `fusions` key, here as in the editor, so a
+ * file that never had one exports as it was read.
+ */
+const fusionSchema = z.object({
+  ...currentFusionSchema.shape,
+  id: z.string(),
+  name: z.string().optional(),
+});
+
 const subnetSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -171,7 +181,7 @@ const subnetSchema = z.object({
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
-  fusions: z.array(currentFusionSchema).default([]),
+  fusions: z.array(fusionSchema).optional(),
 });
 
 export const sdcpnSchema = z.object({
@@ -186,7 +196,7 @@ export const sdcpnSchema = z.object({
   metrics: z.array(metricSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
-  fusions: z.array(currentFusionSchema).default([]),
+  fusions: z.array(fusionSchema).optional(),
 });
 
 const fileMetaSchema = z.object({
