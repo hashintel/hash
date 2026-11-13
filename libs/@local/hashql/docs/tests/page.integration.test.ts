@@ -351,6 +351,47 @@ layer(
   );
 
   it.effect(
+    "value_under_its_own_name",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const result = yield* Reference.success({
+        source: `/** Box type. */ interface Box { readonly a: string }
+/** Box value. */ declare const Box: number;
+export type { Box };
+export declare namespace Deep { export { Box as Again }; }
+/** Takes one. */ export declare function take(input: typeof Deep.Again): Box;`,
+      });
+      /** The headings of a page's exports and every row that links to one of the two halves. */
+      const linesOf = (file: string): readonly string[] =>
+        Array.filter(
+          Reference.page(result, file).markdown.split("\n"),
+          (line) =>
+            line.startsWith("### ") ||
+            line.includes("#Box)") ||
+            line.includes("#Again-value)"),
+        );
+      expect([
+        linesOf("pkg/index.html"),
+        linesOf("pkg/Deep.html"),
+      ]).toStrictEqual([
+        // The root documents the type, and its value is one link away, on the page of the name that exports it.
+        [
+          "* [`Box`](#Box) Box type.",
+          '### <a id="Box"></a>Box',
+          "* [`Deep.Again`](./Deep.html#Again-value) Box value.",
+          '### <a id="take"></a>take',
+        ],
+        [
+          "* [`Again`](./index.html#Box) Box type.",
+          "* [`Again`](#Again-value) Box value.",
+          '### <a id="Again-value"></a>Again',
+          "* [`pkg.Box`](./index.html#Box) Box type.",
+        ],
+      ]);
+    }),
+  );
+
+  it.effect(
     "module_description",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
