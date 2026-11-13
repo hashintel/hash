@@ -92,6 +92,8 @@ import type {
 import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
 
+export type { TypesTableTypeKind } from "./types-table/shared/type-filters";
+
 export type TypesTableColumnId =
   | "title"
   | "kind"
@@ -183,7 +185,8 @@ export const TypesTable: FunctionComponent<{
     | DataTypeWithMetadata
   )[];
   kind: TypesTableKind;
-}> = ({ types, kind, onlyOneWeb, loading = false }) => {
+  initialKindFilter?: TypesTableTypeKind;
+}> = ({ types, kind, onlyOneWeb, loading = false, initialKindFilter }) => {
   const router = useRouter();
 
   const [view, _setView] = useState<VisualizerView>("Table");
@@ -220,7 +223,18 @@ export const TypesTable: FunctionComponent<{
     includeOtherWebs: false,
   }));
 
-  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>(() =>
+    initialKindFilter
+      ? [
+          {
+            id: "initial-kind",
+            field: "kind",
+            operator: "anyOf",
+            values: [initialKindFilter],
+          },
+        ]
+      : [],
+  );
 
   const { entityTypes, isSpecialEntityTypeLookup } =
     useEntityTypesContextRequired();
