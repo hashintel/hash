@@ -205,6 +205,16 @@ describe("an instance that only composes", () => {
     ).toThrow("nothing can be pasted into it");
   });
 
+  it("lays out the root net, and no subnet the document holds", async () => {
+    const { commands, commandRefusal } = compose();
+
+    expect(() => commands.applyAutoLayout({ targetSubnetId: "own" })).toThrow(
+      "only places and connects the components it is given",
+    );
+    expect(commandRefusal("applyAutoLayout", {})).toBeNull();
+    await expect(commands.applyAutoLayout()).resolves.toBeDefined();
+  });
+
   it("answers for one mutation without running it", () => {
     const { mutationRefusal, definition } = compose();
 

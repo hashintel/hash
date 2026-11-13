@@ -298,6 +298,8 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     providedInterfaces: hostRules.provided,
     mutationRefusal: (name, input) =>
       mutationRefusal(hostRules, readDocument(), name, input),
+    commandRefusal: (name, input) =>
+      commandRefusal(hostRules, readDocument(), name, input),
     compositionOnly,
     dispose() {
       for (const dispose of disposers) {
