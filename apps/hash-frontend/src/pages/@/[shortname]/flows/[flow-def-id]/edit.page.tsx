@@ -407,7 +407,7 @@ const FlowEditor = ({
       ) : (
         <div className={editorBody}>
           <LeftPanel
-            steps={flowDefinition.steps}
+            flowDefinition={flowDefinition}
             selectedStepIds={selectedStepIds}
             onStepClick={(stepId) =>
               setSession((current) => ({

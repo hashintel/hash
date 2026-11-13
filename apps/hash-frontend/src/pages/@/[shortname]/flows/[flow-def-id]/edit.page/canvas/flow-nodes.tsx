@@ -305,11 +305,10 @@ const forEachTitle = css({
 
 /** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
 export const ForEachNode = ({
-  data: { step, problems, inner, collapsed, run },
+  data: { step, problems, inner, collapsed, itemName, run },
   selected,
 }: NodeProps<ForEachStepNode>) => {
   const { editing, toggleCollapsed } = useCanvasActions();
-  const { title, description } = getStepDisplay(step);
   const connectable = !inner && editing !== null;
 
   return (
@@ -326,7 +325,9 @@ export const ForEachNode = ({
             />
           </div>
         )}
-        <span className={forEachTitle}>{description || title}</span>
+        <span className={forEachTitle}>
+          {step.description || `For each ${itemName}`}
+        </span>
         <TitleMarks problems={problems} run={run} />
       </div>
       <Handle

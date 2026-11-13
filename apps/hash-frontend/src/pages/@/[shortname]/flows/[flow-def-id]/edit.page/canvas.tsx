@@ -34,6 +34,7 @@ import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { stepCardSize, stepGap } from "./canvas/sizes";
 import { useSelectedStepInView, useStepFocus } from "./canvas/use-step-focus";
+import { useItemNames } from "./shared/item-name";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -219,6 +220,7 @@ const FlowCanvas = ({
 
   useSelectedStepInView(selectedStepIds, coveredRight);
 
+  const getItemName = useItemNames(flowDefinition);
   const graph = useMemo(
     () =>
       forEachLayouts
@@ -227,9 +229,16 @@ const FlowCanvas = ({
             problemsByStepId,
             forEachLayouts,
             collapsedStepIds,
+            getItemName,
           })
         : { nodes: [], edges: [] },
-    [flowDefinition, problemsByStepId, forEachLayouts, collapsedStepIds],
+    [
+      flowDefinition,
+      problemsByStepId,
+      forEachLayouts,
+      collapsedStepIds,
+      getItemName,
+    ],
   );
   /* Connections removed other than by Delete (hover, right-click or a side panel) are no longer selected. */
   useEffect(() => {

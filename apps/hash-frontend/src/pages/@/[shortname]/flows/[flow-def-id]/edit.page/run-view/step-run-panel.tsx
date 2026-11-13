@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { getStepName } from "../shared/find-step";
+import { useItemNames } from "../shared/item-name";
 import { getNameLabel } from "../shared/name-label";
 import { RunGlyph } from "../shared/run-marks";
 import { PanelSection, PanelTitle, SidePanel } from "../shared/side-panel";
@@ -251,8 +252,12 @@ export const StepRunPanel = ({
     [flowDefinition],
   );
 
+  const getItemName = useItemNames(flowDefinition);
   const { icon, tone } = getStepDisplay(step);
-  const name = getStepName(step);
+  const name =
+    step.kind === "for-each" && !step.description
+      ? `For each ${getItemName(step.stepId)}`
+      : getStepName(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)

@@ -201,7 +201,7 @@ export const RunView = ({
   return (
     <div className={body}>
       <RunLeftPanel
-        steps={flowDefinition.steps}
+        flowDefinition={flowDefinition}
         runMarks={marks}
         selectedStepIds={selectedStepIds}
         onStepClick={(stepId) => {
