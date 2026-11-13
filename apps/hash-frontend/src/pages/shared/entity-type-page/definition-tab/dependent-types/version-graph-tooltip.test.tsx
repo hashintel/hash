@@ -8,6 +8,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
@@ -36,32 +37,40 @@ const machine = makeRow("Machine", 2, [
   [2, 2, 2],
 ]);
 
+const Row = ({ row }: { row: DependentTypeRow }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <VersionGraphTooltip
+      row={row}
+      parentTitle="Company"
+      parentLatestVersion={3}
+      expanded={expanded}
+    >
+      {({ rowRef, toggleProps, hide }) => (
+        <ExpandableRow
+          ref={rowRef}
+          data-testid={row.entityType.schema.title}
+          type={{ ...row, isLink: false }}
+          expanded={expanded}
+          onToggle={() => {
+            hide();
+            setExpanded(!expanded);
+          }}
+          toggleProps={toggleProps}
+          openButton={null}
+        />
+      )}
+    </VersionGraphTooltip>
+  );
+};
+
 const renderRows = (rows: DependentTypeRow[]) => {
   render(
     <ThemeProvider theme={theme}>
-      {rows.map((row) => {
-        const { title } = row.entityType.schema;
-        return (
-          <VersionGraphTooltip
-            key={title}
-            row={row}
-            parentTitle="Company"
-            parentLatestVersion={3}
-          >
-            {({ rowRef, toggleProps, hide }) => (
-              <ExpandableRow
-                ref={rowRef}
-                data-testid={title}
-                type={{ ...row, isLink: false }}
-                expanded={false}
-                onToggle={hide}
-                toggleProps={toggleProps}
-                openButton={null}
-              />
-            )}
-          </VersionGraphTooltip>
-        );
-      })}
+      {rows.map((row) => (
+        <Row key={row.entityType.schema.title} row={row} />
+      ))}
     </ThemeProvider>,
   );
 };
@@ -255,6 +264,47 @@ describe("VersionGraphTooltip", () => {
     fireEvent.click(toggle);
 
     waitForFadeOut();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("keeps the graph closed when the row is toggled within the hover delay", () => {
+    renderRows([shellCompany]);
+
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
+    wait(200);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Shell Company, former" }),
+    );
+    wait(1000);
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("keeps the graph closed while the pointer moves inside an expanded row", () => {
+    renderRows([shellCompany]);
+
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
+    fireEvent.mouseOver(screen.getByTestId("Shell Company"));
+    wait(300);
+    fireEvent.click(toggle);
+    waitForFadeOut();
+    fireEvent.mouseOver(toggle);
+    wait(1000);
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("keeps the graph closed when an expanded row's toggle gets keyboard focus", () => {
+    renderRows([shellCompany]);
+
+    const toggle = screen.getByRole("button", {
+      name: "Shell Company, former",
+    });
+    fireEvent.click(toggle);
+    focusWithKeyboard(toggle);
+
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 

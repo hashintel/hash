@@ -95,6 +95,7 @@ const DependentTypeTableRow = ({
         row={row}
         parentTitle={parentTitle}
         parentLatestVersion={parentLatestVersion}
+        expanded={expanded}
       >
         {({ rowRef, toggleProps, hide }) => (
           <ExpandableRow

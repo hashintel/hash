@@ -235,22 +235,26 @@ const VersionGraphCard = ({
 
 /**
  * Shows a graph of a dependent type's versions against the parent's versions
- * while its row is hovered or its toggle has keyboard focus.
+ * while its row is collapsed and hovered, or its toggle has keyboard focus.
  */
 export const VersionGraphTooltip = ({
   row,
   parentTitle,
   parentLatestVersion,
+  expanded,
   children,
 }: {
   row: DependentTypeRow;
   parentTitle: string;
   parentLatestVersion: number;
+  /** Whether the row is expanded, which already shows its versions, so the tooltip stays closed. */
+  expanded: boolean;
   /** Renders the row; hovering it shows the tooltip. */
   children: (props: VersionGraphTooltipTriggerProps) => ReactElement;
 }) => {
   const id = useId();
-  const [open, setOpen] = useState(false);
+  const [openRequested, setOpen] = useState(false);
+  const open = openRequested && !expanded;
   const [maxWidth, setMaxWidth] = useState(0);
   const rowElement = useRef<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
