@@ -35,6 +35,7 @@ const undimmed = (stepIds: string[], collapsedStepIds = new Set<string>()) =>
         problemsByStepId: new Map(),
         forEachLayouts: new Map(),
         collapsedStepIds,
+        getItemName: () => "item",
       }).nodes,
     }),
   ].toSorted();

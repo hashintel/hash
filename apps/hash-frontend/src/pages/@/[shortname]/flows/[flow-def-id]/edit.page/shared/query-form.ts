@@ -265,6 +265,20 @@ const readEvery = <T>(
   return read.every((item) => item !== undefined) ? read : undefined;
 };
 
+/** The types of `{ any: [type clauses] }`, the filter's first part when `toEntityQuery` limits the types. */
+const readTypes = (part: unknown) =>
+  readEvery(onlyValue(part, "any"), readTypeClause);
+
+/**
+ * The types a saved query limits its entities to, read even where `readQueryForm` can't read its conditions. Empty
+ * for entities of any type.
+ */
+export const readQueryEntityTypes = (query: unknown): BaseUrl[] => {
+  const parts = isRecord(query) ? onlyValue(query.filter, "all") : undefined;
+
+  return (Array.isArray(parts) ? readTypes(parts[0]) : undefined) ?? [];
+};
+
 const readSort = (sortingPaths: unknown): SortOrder | undefined => {
   if (sortingPaths === undefined) {
     return "lastEditedFirst";
@@ -328,10 +342,7 @@ export const readQueryForm = (
   };
   const remaining: unknown[] = [...parts];
 
-  const entityTypeBaseUrls = readEvery(
-    onlyValue(remaining[0], "any"),
-    readTypeClause,
-  );
+  const entityTypeBaseUrls = readTypes(remaining[0]);
 
   if (entityTypeBaseUrls) {
     form.entityTypeBaseUrls = entityTypeBaseUrls;

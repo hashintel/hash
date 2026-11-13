@@ -6,6 +6,7 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { findStep } from "./shared/find-step";
+import { useItemNames } from "./shared/item-name";
 import { getNameLabel } from "./shared/name-label";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
@@ -171,6 +172,7 @@ const SelectedStepPanel = ({
   onSelectStart: () => void;
 }) => {
   const { title, icon } = getStepDisplay(step);
+  const getItemName = useItemNames(flowDefinition);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -206,7 +208,12 @@ const SelectedStepPanel = ({
           variant="subtle"
           size="sm"
           value={step.description}
-          placeholder="Add a description…"
+          placeholder={
+            /* With no description, a for-each is named after its list, as on the canvas. */
+            step.kind === "for-each"
+              ? `For each ${getItemName(step.stepId)}`
+              : "Add a description…"
+          }
           aria-label="Description"
           readonly={inner}
           onChange={(description) =>
