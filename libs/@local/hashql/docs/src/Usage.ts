@@ -60,12 +60,15 @@ const usesOf = (
   return HashMap.fromIterable(uses);
 };
 
-/** What states the parameters and the result of each call a part makes. Reading a member calls its getter, and writing it calls its setter. */
+/** What states the parameters and the result of each call a part makes: the part's own declaration where that is the call, or the calls it numbers. */
 const signaturesOf = ({
   source,
   calls,
 }: Parts.Part): readonly AST.Signature.Signature[] =>
-  source._tag === "Getter" || source._tag === "Setter" ? [source] : calls;
+  Option.match(Parts.called(source), {
+    onSome: (call): readonly AST.Signature.Signature[] => [call],
+    onNone: () => calls,
+  });
 
 /** Reads the references in every public call's parameters, type parameters and result, including type-parameter constraints and defaults. */
 export const collect = (catalogue: Catalogue.Catalogue): Index => {

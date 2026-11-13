@@ -165,6 +165,24 @@ describe("usage", () => {
   );
 
   it.effect(
+    "constructors_and_signatures",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users } = yield* collect(`
+      export interface A {} export interface B {}
+      export declare class Box { constructor(value: A); }
+      export declare class Sealed { private constructor(value: A); }
+      export interface Make { new (value: A): B; (value: B): A }
+    `);
+      expect(Array.map(["A", "B"], users)).toStrictEqual([
+        // `new` calls the constructor, which is a member, and an interface's own signatures are its calls. A private constructor is no one's to call.
+        { accepted: ["constructor", "Make"], returned: ["Make"] },
+        { accepted: ["Make"], returned: ["Make"] },
+      ]);
+    }),
+  );
+
+  it.effect(
     "private_and_self",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();

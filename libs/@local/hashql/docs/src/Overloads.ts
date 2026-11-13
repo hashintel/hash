@@ -65,13 +65,6 @@ const group = <A, Origin>(
   return groups;
 };
 
-/** A getter or a setter is the call that reading or writing its member makes. */
-const accessed: (source: Parts.Source) => Option.Option<Tree.Callable.Call> =
-  Option.liftPredicate(
-    (source: Parts.Source): source is AST.Getter.Getter | AST.Setter.Setter =>
-      source._tag === "Getter" || source._tag === "Setter",
-  );
-
 /**
  * A nested comment on a call of a callable constant or property takes precedence over its enclosing declaration's comment.
  *
@@ -86,7 +79,7 @@ const entriesOf = (
     Array.flatMap((part) => {
       const own = Option.map(part.source.documentation, ast.get);
       if (part.calls.length === 0) {
-        return [{ part, call: accessed(part.source), comment: own }];
+        return [{ part, call: Parts.called(part.source), comment: own }];
       }
 
       return Array.map(part.calls, (call) => ({
