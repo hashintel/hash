@@ -157,8 +157,12 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profileWebId,
   });
 
-  const { latestDataTypes } = useDataTypesContext();
-  const dataTypesLoading = latestDataTypes === null;
+  const {
+    latestDataTypes,
+    loading: dataTypesLoading,
+    error: dataTypesError,
+  } = useDataTypesContext();
+  const initialDataTypesLoading = dataTypesLoading && latestDataTypes === null;
 
   const webTypes = useMemo(() => {
     const types: (
@@ -401,8 +405,9 @@ const ProfilePage: NextPageWithLayout = () => {
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}
         webTypes={webTypes}
+        webTypesError={latestDataTypes === null ? dataTypesError : null}
         webTypesLoading={
-          entityTypesLoading || propertyTypesLoading || dataTypesLoading
+          entityTypesLoading || propertyTypesLoading || initialDataTypesLoading
         }
       />
       {profile && profile.kind === "user" ? (

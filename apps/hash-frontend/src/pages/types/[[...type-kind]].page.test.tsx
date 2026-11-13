@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
 
 import { DataTypesContext } from "../shared/data-types-context";
+import { DataTypesLoadError } from "../shared/data-types-load-error";
 import { TypesTable } from "../shared/types-table";
 import TypesPage from "./[[...type-kind]].page";
 
@@ -52,6 +53,9 @@ vi.mock("../shared/top-context-bar", () => ({ TopContextBar: () => null }));
 vi.mock("./[[...type-kind]].page/types-page-tabs", () => ({
   TypesPageTabs: () => null,
 }));
+vi.mock("../shared/data-types-load-error", () => ({
+  DataTypesLoadError: vi.fn(() => null),
+}));
 vi.mock("../shared/types-table", () => ({
   TypesTable: vi.fn(() => null),
 }));
@@ -90,6 +94,7 @@ describe("data types in the Types listing", () => {
         dataTypes: null,
         latestDataTypes: null,
         loading: true,
+        error: null,
         refetch: vi.fn().mockResolvedValue(true),
         onDataTypeSaved: vi.fn(),
       };
@@ -99,6 +104,37 @@ describe("data types in the Types listing", () => {
         </DataTypesContext.Provider>,
       );
       expect(vi.mocked(TypesTable).mock.lastCall?.[0].types).toBeUndefined();
+
+      vi.mocked(TypesTable).mockClear();
+      rerender(
+        <DataTypesContext.Provider
+          value={{
+            ...loadingContext,
+            loading: false,
+            error: new Error("Catalogue unavailable"),
+          }}
+        >
+          <TypesPage currentTab={currentTab} />
+        </DataTypesContext.Provider>,
+      );
+      expect(DataTypesLoadError).toHaveBeenCalled();
+      expect(TypesTable).not.toHaveBeenCalled();
+
+      rerender(
+        <DataTypesContext.Provider
+          value={{
+            ...loadingContext,
+            dataTypes: {},
+            latestDataTypes: {},
+            loading: false,
+          }}
+        >
+          <TypesPage currentTab={currentTab} />
+        </DataTypesContext.Provider>,
+      );
+      await waitFor(() =>
+        expect(vi.mocked(TypesTable).mock.lastCall?.[0].types).toEqual([]),
+      );
 
       const loadedContext: DataTypesContextValue = {
         ...loadingContext,
@@ -112,6 +148,7 @@ describe("data types in the Types listing", () => {
           latest.map((type) => [type.metadata.recordId.baseUrl, type]),
         ),
         loading: false,
+        error: null,
       };
       rerender(
         <DataTypesContext.Provider value={loadedContext}>

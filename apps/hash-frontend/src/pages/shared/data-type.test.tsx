@@ -28,6 +28,16 @@ import type * as MuiSystem from "@mui/system";
 import type { PropsWithChildren } from "react";
 
 const push = vi.hoisted(() => vi.fn());
+vi.mock("../../shared/ui/button", () => ({
+  Button: ({
+    children,
+    onClick,
+  }: PropsWithChildren<{ onClick: () => void }>) => (
+    <Box component="button" onClick={onClick}>
+      {children}
+    </Box>
+  ),
+}));
 vi.mock("next/router", () => ({ useRouter: () => ({ push }) }));
 vi.mock("next-seo", () => ({ NextSeo: () => null }));
 vi.mock("@mui/system", async (importOriginal) => ({
@@ -45,6 +55,7 @@ vi.mock("@local/hash-graph-sdk/data-type", () => ({
 vi.mock("../../shared/use-user-permissions-on-data-type", () => ({
   useUserPermissionsOnDataType: () => ({
     loading: false,
+    error: null,
     userPermissions: { edit: true },
   }),
 }));
@@ -123,6 +134,7 @@ const loadedContext = (): DataTypesContextValue => ({
   dataTypes: { [dataType(1).schema.$id]: dataType(1) },
   latestDataTypes: { [dataType(1).metadata.recordId.baseUrl]: dataType(1) },
   loading: false,
+  error: null,
   refetch: vi.fn().mockResolvedValue(true),
   onDataTypeSaved: vi.fn(),
 });
@@ -152,10 +164,26 @@ describe("data type editor catalogue synchronization", () => {
         dataTypes: null,
         latestDataTypes: null,
         loading: true,
+        error: null,
       }),
     );
     expect(screen.getByText("Loading editor")).toBeTruthy();
     expect(screen.queryByLabelText("Conversion")).toBeNull();
+    rerender(
+      view({
+        ...context,
+        dataTypes: null,
+        latestDataTypes: null,
+        error: new Error("Catalogue unavailable"),
+      }),
+    );
+    expect(screen.queryByText("Loading editor")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Could not load data types.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(context.refetch).toHaveBeenCalledOnce();
+
     rerender(view(context));
     const input = screen.getByLabelText<HTMLInputElement>("Conversion");
     fireEvent.change(input, { target: { value: "42" } });
@@ -163,6 +191,10 @@ describe("data type editor catalogue synchronization", () => {
     expect(screen.getByLabelText("Conversion")).toBe(input);
     expect(input.value).toBe("42");
     expect(screen.queryByText("Loading editor")).toBeNull();
+    rerender(view({ ...context, error: new Error("Refresh unavailable") }));
+    expect(screen.getByLabelText("Conversion")).toBe(input);
+    expect(input.value).toBe("42");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it.each([true, false])(

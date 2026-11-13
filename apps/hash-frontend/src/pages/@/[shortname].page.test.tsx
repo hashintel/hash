@@ -225,6 +225,26 @@ describe("profile data type catalogue", () => {
     ).toEqual([{ all: [] }, { all: [] }, { all: [] }]);
   });
 
+  it("stops loading after an initial failure and accepts an empty catalogue on retry", async () => {
+    const { respond } = setup(dataType("unused"));
+    await respond(new Error("Catalogue unavailable"));
+    const failed = vi.mocked(ProfilePageContent).mock.lastCall?.[0];
+    expect(failed?.webTypesLoading).toBe(false);
+    expect(failed?.webTypesError).toMatchObject({
+      message: "Catalogue unavailable",
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    expect(
+      vi.mocked(ProfilePageContent).mock.lastCall?.[0].webTypesLoading,
+    ).toBe(true);
+    await respond({ queryDataTypes: { dataTypes: [] } });
+    const loaded = vi.mocked(ProfilePageContent).mock.lastCall?.[0];
+    expect(loaded?.webTypesLoading).toBe(false);
+    expect(loaded?.webTypesError).toBeNull();
+    expect(loaded?.webTypes).toEqual([]);
+  });
+
   it("adds a newly created type to the owning profile immediately", async () => {
     const created = dataType("new-type");
     const { respond } = setup(created);

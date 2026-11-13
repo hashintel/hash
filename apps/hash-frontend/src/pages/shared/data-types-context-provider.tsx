@@ -159,8 +159,15 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   }, [dataTypes]);
 
   const value = useMemo(
-    () => ({ dataTypes, latestDataTypes, loading, refetch, onDataTypeSaved }),
-    [dataTypes, latestDataTypes, loading, refetch, onDataTypeSaved],
+    () => ({
+      dataTypes,
+      latestDataTypes,
+      loading,
+      error,
+      refetch,
+      onDataTypeSaved,
+    }),
+    [dataTypes, latestDataTypes, loading, error, refetch, onDataTypeSaved],
   );
 
   return (

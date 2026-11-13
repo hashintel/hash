@@ -36,6 +36,7 @@ export const queryDataTypeCatalogue = async (
         },
       },
       fetchPolicy: "no-cache",
+      errorPolicy: "none",
       context: {
         queryDeduplication: false,
         fetchOptions: { signal },

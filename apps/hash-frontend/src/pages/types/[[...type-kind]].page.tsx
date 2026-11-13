@@ -13,6 +13,7 @@ import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
 import { useDataTypesContext } from "../shared/data-types-context";
+import { DataTypesLoadError } from "../shared/data-types-load-error";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
@@ -139,7 +140,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const latestNonLinkEntityTypes = latestEntityTypesByKind?.nonLink;
   const latestLinkEntityTypes = latestEntityTypesByKind?.link;
 
-  const { latestDataTypes: latestDataTypesObject } = useDataTypesContext();
+  const { latestDataTypes: latestDataTypesObject, error: dataTypesError } =
+    useDataTypesContext();
 
   const { propertyTypes: latestPropertyTypesObject } = usePropertyTypes({
     latestOnly: true,
@@ -273,7 +275,13 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        <TypesTable kind={currentTab} types={currentTypes} />
+        {dataTypesError &&
+        latestDataTypesObject === null &&
+        (currentTab === "all" || currentTab === "data-type") ? (
+          <DataTypesLoadError />
+        ) : (
+          <TypesTable kind={currentTab} types={currentTypes} />
+        )}
       </Container>
     </>
   );

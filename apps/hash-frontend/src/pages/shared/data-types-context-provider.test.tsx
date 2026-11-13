@@ -11,6 +11,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { GraphQLError } from "graphql";
 import { SnackbarProvider } from "notistack";
 import { StrictMode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +26,11 @@ import type { QueryDataTypesQuery } from "../../graphql/api-types.gen";
 import type { Operation } from "@apollo/client";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import type { ReactElement, ReactNode } from "react";
+
+type CatalogueResponse =
+  | QueryDataTypesQuery
+  | Error
+  | { errors: GraphQLError[]; data?: QueryDataTypesQuery };
 
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("../../shared/ui/button", () => ({
@@ -64,8 +70,14 @@ const request = {
 };
 const Catalogue = () => {
   const [refreshResult, setRefreshResult] = useState("idle");
-  const { dataTypes, latestDataTypes, loading, refetch, onDataTypeSaved } =
-    useDataTypesContext();
+  const {
+    dataTypes,
+    latestDataTypes,
+    loading,
+    error,
+    refetch,
+    onDataTypeSaved,
+  } = useDataTypesContext();
   return (
     <Box>
       {loading ? <Box>Loading catalogue</Box> : null}
@@ -86,6 +98,7 @@ const Catalogue = () => {
           ? "unavailable"
           : Object.keys(latestDataTypes).length}
       </Box>
+      <Box data-testid="catalogue-error">{error?.message ?? "none"}</Box>
       <Box data-testid="refresh-result">{refreshResult}</Box>
       <Box
         component="button"
@@ -114,15 +127,18 @@ const Catalogue = () => {
 
 const createCatalogueLink = () => {
   const operations: Operation[] = [];
-  const pending: ((result: QueryDataTypesQuery | Error) => void)[] = [];
+  const pending: ((result: CatalogueResponse) => void)[] = [];
   const responses: typeof pending = [];
   const link = new ApolloLink(
     (operation) =>
       new Observable((observer) => {
         operations.push(operation);
-        const reply = (result: QueryDataTypesQuery | Error) => {
+        const reply = (result: CatalogueResponse) => {
           if (result instanceof Error) {
             observer.error(result);
+          } else if ("errors" in result) {
+            observer.next(result);
+            observer.complete();
           } else {
             observer.next({ data: result });
             observer.complete();
@@ -132,17 +148,14 @@ const createCatalogueLink = () => {
         responses.push(reply);
       }),
   );
-  const respond = async (result: QueryDataTypesQuery | Error) => {
+  const respond = async (result: CatalogueResponse) => {
     const next = pending.shift();
     if (!next) {
       throw new Error("No catalogue request is pending");
     }
     await act(() => Promise.resolve(next(result)));
   };
-  const respondAt = async (
-    index: number,
-    result: QueryDataTypesQuery | Error,
-  ) => {
+  const respondAt = async (index: number, result: CatalogueResponse) => {
     const reply = responses[index];
     if (!reply) {
       throw new Error(`No catalogue request at index ${index}`);
@@ -236,6 +249,56 @@ describe("data type catalogue pagination", () => {
       ).toBeNull(),
     );
   });
+
+  it.each(["first", "later"])(
+    "rejects a GraphQL error on the %s page and retries without publishing partial data",
+    async (page) => {
+      const { link, operations, respond } = createCatalogueLink();
+      render(
+        <MockedProvider
+          link={link}
+          defaultOptions={{ query: { errorPolicy: "all" } }}
+        >
+          <DataTypesContextProvider>
+            <Catalogue />
+          </DataTypesContextProvider>
+        </MockedProvider>,
+      );
+      if (page === "later") {
+        await respond({
+          queryDataTypes: {
+            dataTypes: [meters(1)],
+            cursor: meters(1).schema.$id,
+          },
+        });
+      }
+      await respond({
+        data: { queryDataTypes: { dataTypes: [meters(2)] } },
+        errors: [new GraphQLError("Catalogue unavailable")],
+      });
+      expect(screen.getByTestId("catalogue-error").textContent).toBe(
+        "Catalogue unavailable",
+      );
+      expect(screen.getByText("No catalogue")).toBeTruthy();
+      expect(screen.queryByText("Loading catalogue")).toBeNull();
+      expect(captureException).toHaveBeenCalledWith(
+        expect.objectContaining({
+          graphQLErrors: [
+            expect.objectContaining({ message: "Catalogue unavailable" }),
+          ],
+        }),
+      );
+
+      fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+      expect(screen.getByTestId("catalogue-error").textContent).toBe("none");
+      expect(screen.getByText("Loading catalogue")).toBeTruthy();
+      expect(operations.at(-1)?.variables).toEqual({ request });
+      await respond({ queryDataTypes: { dataTypes: [] } });
+      expect(screen.getByTestId("all-versions").textContent).toBe("0");
+      expect(screen.getByTestId("latest-versions").textContent).toBe("0");
+      expect(screen.queryByText("Loading catalogue")).toBeNull();
+    },
+  );
 
   it("keeps the complete catalogue available until every refresh page arrives", async () => {
     const { link, operations, respond } = createCatalogueLink();

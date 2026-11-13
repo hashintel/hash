@@ -35,6 +35,7 @@ import { DataTypeLabels } from "./data-type/data-type-labels";
 import { DataTypesParents } from "./data-type/data-type-parents";
 import { InheritedConstraintsProvider } from "./data-type/shared/inherited-constraints-provider";
 import { useDataTypesContext } from "./data-types-context";
+import { DataTypesLoadError } from "./data-types-load-error";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
 import { inSlideContainerStyles } from "./shared/slide-styles";
@@ -82,6 +83,7 @@ export const DataType = ({
 
   const {
     dataTypes: allDataTypes,
+    error: dataTypesError,
     refetch: refetchAllDataTypes,
     onDataTypeSaved,
   } = useDataTypesContext();
@@ -322,6 +324,10 @@ export const DataType = ({
         }
       />
     );
+  }
+
+  if (allDataTypes === null && dataTypesError) {
+    return <DataTypesLoadError />;
   }
 
   if (
