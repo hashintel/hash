@@ -135,6 +135,8 @@ export interface Builtin extends Scope.Scope<{
  *
  * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as {@link Semantic.Arithmetic | Prelude.Arithmetic} describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
  *
+ * {@link @local/hashql!Program.Namespace.flatten | Namespace.flatten} joins the three tables of `builtin` into one object. In it, `Uuid` is both the type and its constructor. The module `cmp` exposes `eq` directly.
+ *
  * @example <caption>Use built-in types and functions outside a program callback.</caption>
  * ```ts
  * import assert from "node:assert/strict";
@@ -153,6 +155,22 @@ export interface Builtin extends Scope.Scope<{
  * assert.equal(
  *   compile(values.add(Expression.input("offset", types.Integer), 1n)),
  *   '["::core::math::add",["::kernel::special_form::input","offset","::kernel::type::Integer"],{"#literal":1}]',
+ * );
+ * ```
+ *
+ * @example <caption>Use one flattened name as a type and as a value constructor.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Namespace, Prelude } = Program;
+ * const nil = "00000000-0000-0000-0000-000000000000";
+ * const { Uuid, cmp } = Namespace.flatten(Prelude.builtin);
+ * const result = cmp.eq(Expression.input("id", Uuid), Uuid(nil));
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(result))),
+ *   `["::core::cmp::eq",["::kernel::special_form::input","id","::core::uuid::Uuid"],["::core::uuid::Uuid",{"#literal":"${nil}"}]]`,
  * );
  * ```
  */
