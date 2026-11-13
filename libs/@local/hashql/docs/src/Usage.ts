@@ -2,6 +2,7 @@ import { Array, Function, HashMap, MutableHashMap, Option, pipe } from "effect";
 
 import * as AST from "./AST/index.js";
 import * as ExternalTarget from "./ExternalTarget.js";
+import * as AppliedTypes from "./internal/applied-types.js";
 import * as Parts from "./internal/parts.js";
 import * as References from "./internal/references.js";
 import * as Node from "./TypeScript/Node.js";
@@ -70,6 +71,7 @@ const signaturesOf = ({
 export const collect = (catalogue: Catalogue.Catalogue): Index => {
   const { ast } = catalogue;
   const names = References.namesOf(ast);
+  const read = AppliedTypes.of({ ast, names });
   const mentioned = (
     nodes: readonly Node.Node[],
   ): readonly Pick<Note, "id" | "meaning">[] =>
@@ -108,9 +110,10 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
     return Array.flatMap(callers, ({ user, parts: own }) =>
       Array.flatMap(own, (part) =>
         Array.flatMap(signaturesOf(part), (call) => {
+          // A callable constant or property reads its calls' types as its annotation applies them, which is how its page states them.
           const returns = pipe(
             call.returns,
-            Option.map((id) => ast.get(id).node),
+            Option.map((id) => read(part, id)),
             Option.toArray,
           );
           const accepts = Array.appendAll(
@@ -118,9 +121,12 @@ export const collect = (catalogue: Catalogue.Catalogue): Index => {
               Array.fromIterable(call.typeParameters),
               (id) => ast.get(id).node,
             ),
-            Array.map(
-              Array.fromIterable(call.parameters),
-              (id) => ast.get(id).node,
+            Array.flatMap(Array.fromIterable(call.parameters), (id) =>
+              pipe(
+                ast.get(id).type,
+                Option.map((type) => read(part, type)),
+                Option.toArray,
+              ),
             ),
           );
 
