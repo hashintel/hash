@@ -1,5 +1,6 @@
 import {
   Array,
+  Equal,
   Function,
   HashMap,
   HashSet,
@@ -40,6 +41,8 @@ export interface Entry {
   readonly nameTypeOnlyExport: boolean;
   /** False if any public path permits value use. Each alias retains its own restriction in the AST. */
   readonly typeOnlyExport: boolean;
+  /** The shortest spelling that permits value use, the first of them where two are as short, or none where every path is type-only. It is `name` unless that spelling is type-only. */
+  readonly valueName: Option.Option<Name>;
 }
 
 /**
@@ -65,12 +68,13 @@ interface Pending {
   readonly reexported: boolean;
 }
 
-/** Gives a declaration its entry at the shortest path that may name it, the first of them where two are as short, and lifts the entry's restriction once a path permits value use. */
+/** Gives a declaration its entry at the shortest path that may name it, the first of them where two are as short. Once a path permits value use, the entry's restriction lifts, and the shortest such path names the declaration's value. */
 const record = (
   byId: MutableHashMap.MutableHashMap<DeclarationId, Entry>,
   { id, name, typeOnlyExport, reexported }: Pending,
 ): void => {
   const previous = MutableHashMap.get(byId, id);
+  const valued = Option.liftPredicate(name, () => !typeOnlyExport);
 
   if (Option.isNone(previous)) {
     if (!reexported) {
@@ -79,21 +83,30 @@ const record = (
         name,
         nameTypeOnlyExport: typeOnlyExport,
         typeOnlyExport,
+        valueName: valued,
       });
     }
-  } else if (
-    !reexported &&
-    name.path.length < previous.value.name.path.length
-  ) {
-    MutableHashMap.set(byId, id, {
-      id,
-      name,
-      nameTypeOnlyExport: typeOnlyExport,
-      typeOnlyExport: previous.value.typeOnlyExport && typeOnlyExport,
-    });
-  } else if (previous.value.typeOnlyExport && !typeOnlyExport) {
-    MutableHashMap.set(byId, id, { ...previous.value, typeOnlyExport });
+
+    return;
   }
+
+  const entry = previous.value;
+  const shorter = (known: Name): boolean =>
+    name.path.length < known.path.length;
+  const canonical = !reexported && shorter(entry.name);
+
+  MutableHashMap.set(byId, id, {
+    id,
+    name: canonical ? name : entry.name,
+    nameTypeOnlyExport: canonical ? typeOnlyExport : entry.nameTypeOnlyExport,
+    typeOnlyExport: entry.typeOnlyExport && typeOnlyExport,
+    valueName: Option.orElse(
+      Option.filter(valued, () =>
+        Option.match(entry.valueName, { onNone: () => true, onSome: shorter }),
+      ),
+      () => entry.valueName,
+    ),
+  });
 };
 
 /** Collects public names without consulting the compiler or visiting package-private declarations. */
@@ -179,6 +192,20 @@ export const fromAST = (ast: AST.Store["Service"]): Catalogue => {
     byName: HashMap.fromIterable(byName),
   };
 };
+
+/**
+ * `entry` under the shortest name that permits value use, or none where no path permits it.
+ *
+ * A value declared apart from its type is an export of its own, and this is its entry: the page of that name documents it, with the names that page's namespace exports it by.
+ */
+export const valued = (entry: Entry): Option.Option<Entry> =>
+  Option.map(entry.valueName, (name): Entry => {
+    if (Equal.equals(name, entry.name)) {
+      return entry;
+    }
+
+    return { ...entry, name, nameTypeOnlyExport: false };
+  });
 
 /** The declaration a finite export path ends at, and whether an export along the path is type-only. A path may cross a namespace cycle more than once. */
 const walk = (

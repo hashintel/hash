@@ -484,10 +484,14 @@ export const from: {
 
   return Parts.matchDocumented(Parts.documented(context.ast, origin), {
     Whole: ({ parts }) => Result.map(distil(Option.none(), parts), Array.of),
+    // The value is an export of its own, under the shortest name that permits value use.
     Apart: ({ type, value }) =>
       Result.all([
         distil(Option.some("type"), type),
-        distil(Option.some("value"), value),
+        exportOf(
+          Option.getOrElse(Catalogue.valued(origin), () => origin),
+          context,
+        )(Option.some("value"), value),
       ]),
   });
 });
