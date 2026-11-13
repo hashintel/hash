@@ -13,6 +13,7 @@ import * as AST from "../AST/index.js";
 import * as Tree from "../Tree/index.js";
 import * as TypeScript from "../TypeScript/index.js";
 import * as Output from "./output.js";
+import * as Related from "./related.js";
 
 import type * as Code from "../Code.js";
 import type { Element, ElementContent, Properties } from "hast";
@@ -60,10 +61,13 @@ const externalKinds = [
   [SymbolFlags.Module, "module"],
 ] as const;
 
-/** The kind of what `target` names, which colours a link whose label is code. */
+/** The kind of what `target` names as a name with `meaning` reads it, which colours a link whose label is code. */
 const kindOf =
   (output: Output.Output) =>
-  (target: AST.Target.Interned): Option.Option<Tree.Row.Kind> => {
+  ({
+    target,
+    meaning,
+  }: Pick<Code.Link, "target" | "meaning">): Option.Option<Tree.Row.Kind> => {
     const external = Output.external(output)(target);
     if (Option.isSome(external)) {
       return pipe(
@@ -89,7 +93,8 @@ const kindOf =
     return document.catalogue.ast
       .narrow(target, AST.Declaration.isDeclaration)
       .pipe(
-        Option.flatMap((id) => HashMap.get(document.entries, id)),
+        Option.filter((id) => HashMap.has(document.entries, id)),
+        Option.map((id) => Related.exportAt({ id, meaning }, document)),
         Option.map(({ kind }) => kind),
       );
   };
@@ -110,7 +115,9 @@ export const codeLink =
     tagName: "a",
     properties: {
       href,
-      dataKind: Option.getOrUndefined(kindOf(output)(target)),
+      dataKind: Option.getOrUndefined(
+        kindOf(output)({ target, meaning: "type" }),
+      ),
     },
     children: [inlineCode(label)],
   });
@@ -152,7 +159,7 @@ const nameOf =
           tagName: "a",
           properties: {
             href,
-            dataKind: Option.getOrUndefined(kindOf(output)(name.target)),
+            dataKind: Option.getOrUndefined(kindOf(output)(name)),
             title: Option.getOrUndefined(name.quickInfo),
           },
           children: [text(spelling)],
@@ -227,7 +234,7 @@ export const phrasing =
       node.children.length === 1 &&
       node.children[0]?.type === "inlineCode"
     ) {
-      kind = kindOf(output)(destination);
+      kind = kindOf(output)({ target: destination, meaning: "type" });
     }
 
     return Result.succeed(

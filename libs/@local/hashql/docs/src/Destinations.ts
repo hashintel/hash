@@ -1,11 +1,23 @@
-import { Array, Function, HashMap, Option, Result, Tuple, pipe } from "effect";
+import {
+  Array,
+  Function,
+  HashMap,
+  Option,
+  Result,
+  Struct,
+  Tuple,
+  pipe,
+} from "effect";
 
 import * as Anchor from "./Anchor.js";
 import * as Catalogue from "./Catalogue.js";
+import * as Related from "./internal/related.js";
 import * as Tree from "./Tree/index.js";
 
 import type * as AST from "./AST/index.js";
+import type * as Code from "./Code.js";
 import type * as Document from "./Document.js";
+import type * as ExternalTarget from "./ExternalTarget.js";
 import type * as Placement from "./Placement.js";
 
 type Target = AST.Target.Interned;
@@ -20,8 +32,13 @@ export interface Destinations {
   readonly traits: Anchor.File;
   /** The file of each module page, by the entry the page documents. */
   readonly pages: HashMap.HashMap<Catalogue.DeclarationId, Anchor.File>;
-  /** The anchor of each public declaration, keyed as any node is so a reference's target finds it directly. A page's own declaration has a file and no id. */
+  /** The anchor of each public declaration, keyed as any node is so a reference's target finds it directly. A page's own declaration has a file and no id. A type and a value declared apart are an export each, and this is the type's. */
   readonly declarations: HashMap.HashMap<AST.Node.Interned, Anchor.Anchor>;
+  /** The anchors of each declaration whose type and value are an export each, by what a name that reads the declaration means. */
+  readonly meanings: HashMap.HashMap<
+    AST.Node.Interned,
+    Readonly<Record<ExternalTarget.Meaning, Anchor.Anchor>>
+  >;
   readonly members: HashMap.HashMap<AST.Node.Interned, Anchor.Anchor>;
   /** The id of each group's heading on its module page, by the page's entry and the group's grouping. A group that only links elsewhere has none. */
   readonly groups: HashMap.HashMap<
@@ -58,9 +75,11 @@ interface Placed {
   readonly id: Catalogue.DeclarationId;
   readonly place: Placement.Place;
   readonly anchor: Anchor.Anchor;
+  /** The anchor of the declaration's value, where that is an export of its own. */
+  readonly value: Option.Option<Anchor.Anchor>;
 }
 
-/** Every public declaration's anchor on the page that documents it, in catalogue order. A page's own declaration has its file and no id. */
+/** Every public declaration's anchor on the page that documents it, in catalogue order. A page's own declaration has its file and no id. A value that is an export of its own takes its type's id with `-value` after it. */
 const declarationsOf = (
   document: Document.Document,
   { pages, ids }: { readonly pages: Pages; readonly ids: Anchor.Ids },
@@ -71,20 +90,55 @@ const declarationsOf = (
         const file = HashMap.get(pages, place.page.entry.id).pipe(
           Option.getOrThrow,
         );
+        const anchored = (suffix: string): Anchor.Anchor => ({
+          file,
+          id: Option.liftPredicate(
+            place.names,
+            Array.isReadonlyArrayNonEmpty,
+          ).pipe(
+            Option.map((names) =>
+              ids.reserve(file, Anchor.AnchorId(`${names.join(".")}${suffix}`)),
+            ),
+          ),
+        });
 
         return {
           id,
           place,
-          anchor: {
-            file,
-            id: Option.map(
-              Option.liftPredicate(place.names, Array.isReadonlyArrayNonEmpty),
-              (names) => ids.reserve(file, Anchor.AnchorId(names.join("."))),
-            ),
-          },
+          anchor: anchored(""),
+          value: HashMap.get(document.values, id).pipe(
+            Option.map(() => anchored("-value")),
+          ),
         };
       }),
       Option.toArray,
+    ),
+  );
+
+/** The anchors of each declaration whose type and value are an export each. A name reads the export `Related.exportAt` gives its meaning, and links to that export's anchor. */
+const meaningsOf = (
+  document: Document.Document,
+  placed: readonly Placed[],
+): Destinations["meanings"] =>
+  HashMap.fromIterable(
+    Array.flatMap(placed, ({ id, anchor, value }) =>
+      Array.map(Option.toArray(value), (apart) => {
+        const read = (meaning: ExternalTarget.Meaning): Anchor.Anchor =>
+          Related.exportAt({ id, meaning }, document).meaning.pipe(
+            Option.contains("value"),
+          )
+            ? apart
+            : anchor;
+
+        return [
+          id,
+          {
+            type: read("type"),
+            value: read("value"),
+            namespace: read("namespace"),
+          },
+        ] as const;
+      }),
     ),
   );
 
@@ -207,6 +261,7 @@ export const collect = (
           ],
         ),
       ),
+      meanings: meaningsOf(document, placed),
       members: HashMap.fromIterable(members),
       groups: HashMap.fromIterable(
         Array.map(headings, ({ id, groups }) => [id, groups] as const),
@@ -218,16 +273,27 @@ export const collect = (
     };
   });
 
-/** The anchor of the public declaration or documented member `target` names. A private declaration and an item outside the package have none. */
+/** The anchor of the public declaration or documented member `target` names, as a name with `meaning` reads it. A private declaration and an item outside the package have none. */
 export const local: {
   (
-    target: Target,
+    link: Pick<Code.Link, "target" | "meaning">,
   ): (destinations: Destinations) => Option.Option<Anchor.Anchor>;
-  (destinations: Destinations, target: Target): Option.Option<Anchor.Anchor>;
+  (
+    destinations: Destinations,
+    link: Pick<Code.Link, "target" | "meaning">,
+  ): Option.Option<Anchor.Anchor>;
 } = Function.dual(
   2,
-  (destinations: Destinations, target: Target): Option.Option<Anchor.Anchor> =>
+  (
+    destinations: Destinations,
+    { target, meaning }: Pick<Code.Link, "target" | "meaning">,
+  ): Option.Option<Anchor.Anchor> =>
     HashMap.get(destinations.members, target).pipe(
+      Option.orElse(() =>
+        HashMap.get(destinations.meanings, target).pipe(
+          Option.map(Struct.get(meaning)),
+        ),
+      ),
       Option.orElse(() => HashMap.get(destinations.declarations, target)),
     ),
 );

@@ -22,20 +22,17 @@ export const grouping: (value: Tree.Page.Grouping) => string =
 
 /** The heading of a group of related exports. */
 export const related: Record<keyof Tree.Row.Related, string> = {
+  type: "Type",
+  value: "Value",
   traits: "Traits",
   implementedBy: "Implemented by",
   acceptedBy: "Accepted by",
   returnedBy: "Returned by",
 };
 
-/** The heading of an export's declarations. More than one get a count, as overloads or as declarations. */
-export const signatures = ({
-  total,
-  counted,
-}: {
-  readonly total: number;
-  readonly counted: "overloads" | "declarations";
-}): string => (total > 1 ? `Signatures · ${total} ${counted}` : "Signature");
+/** The heading of an export's declarations, which counts its overloads when it has several. */
+export const signatures = (overloads: number): string =>
+  overloads > 1 ? `Signatures · ${overloads} overloads` : "Signature";
 
 export const sections = {
   typeParameters: "Type parameters",

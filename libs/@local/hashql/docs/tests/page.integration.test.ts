@@ -506,24 +506,105 @@ export declare const value: Option.Option.Value<Option.Option<string>>;`,
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
       const reference = yield* Reference.Fixture;
-      const counted = (name: string): readonly Properties[string][] =>
+      const counts = (name: string): readonly Properties[string][] =>
         pipe(
           exportOf(reference, name),
           elementChildren,
           Array.filter(({ tagName }) => tagName === "api-signatures"),
-          Array.flatMap((element) => [
-            propertyOf(element, "overloads"),
-            propertyOf(element, "counted"),
-          ]),
+          Array.map((element) => propertyOf(element, "overloads")),
         );
-      expect([counted("choose"), counted("Pair")]).toStrictEqual([
-        [2, "overloads"],
-        [2, "declarations"],
-      ]);
+      expect([counts("choose"), counts("Pair")]).toStrictEqual([[2], [1]]);
       const { markdown } = Reference.page(reference, "pkg/index.html");
       expect(markdown).toContain(
-        "(2) Value side.\n\n**Signatures · 2 declarations**",
+        "(2) Second call.\n\n**Signatures · 2 overloads**",
       );
+    }),
+  );
+
+  it.effect(
+    "type_and_value_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.Fixture;
+      const within = (name: string, tagName: string): readonly Element[] =>
+        Array.filter(
+          elementsOf(exportOf(reference, name)),
+          (element) => element.tagName === tagName,
+        );
+      const headed = (name: string): readonly Properties[string][] => [
+        propertyOf(exportOf(reference, name), "kind"),
+        propertyOf(exportOf(reference, name), "title"),
+        ...Array.map(within(name, "api-signature"), textOf),
+      ];
+      const related = (name: string): readonly Properties[string][] =>
+        Array.flatMap(within(name, "api-relation"), (relation) => [
+          propertyOf(relation, "title"),
+          ...Array.flatMap(elementChildren(relation), (row) => [
+            propertyOf(row, "kind"),
+            propertyOf(row, "href"),
+          ]),
+        ]);
+      expect([headed("Pair"), headed("Pair-value")]).toStrictEqual([
+        ["type", "Pair", "export type Pair = Value;"],
+        ["const", "Pair", "export const Pair: number;"],
+      ]);
+      expect([related("Pair"), related("Pair-value")]).toStrictEqual([
+        ["Value", "const", "#Pair-value"],
+        ["Type", "type", "#Pair"],
+      ]);
+    }),
+  );
+
+  it.effect(
+    "links_by_meaning",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** Type. */ export interface Box {}
+/** Value.
+ * @example
+ * \`\`\`ts
+ * import * as pkg from "@scope/pkg";
+ * const box: pkg.Box = pkg.Box;
+ * \`\`\`
+ */
+export declare const Box: Box;
+/** Opens with {@link Box}. */
+export declare function open(box: Box, as: typeof Box): void;`,
+      });
+      const page = namesPage(reference);
+      const links = (
+        name: string,
+      ): readonly (readonly Properties[string][])[] =>
+        pipe(
+          Page.toHast(page),
+          Result.getOrThrow,
+          elementsOf,
+          Array.findFirst(
+            (element) =>
+              element.tagName === "api-export" &&
+              propertyOf(element, "name") === name,
+          ),
+          Option.getOrThrow,
+          elementsOf,
+          Array.filter(
+            (element) => element.tagName === "a" && textOf(element) === "Box",
+          ),
+          Array.map((element) => [
+            propertyOf(element, "href"),
+            propertyOf(element, "dataKind"),
+          ]),
+        );
+      const type = ["#Box", "interface"];
+      const value = ["#Box-value", "const"];
+      expect([links("Box"), links("Box-value"), links("open")]).toStrictEqual([
+        // The interface declares the type.
+        [type],
+        // The constant declares the value, of the type. Its example reads the type, then the value.
+        [value, type, type, value],
+        // The comment's link names the type, as the first parameter does, and the second reads the value.
+        [type, type, value],
+      ]);
     }),
   );
 

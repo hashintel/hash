@@ -45,6 +45,10 @@ import * as pkg from "@scope/pkg";
 * [`again`](#choose) First call.
 * [`identity`](#identity) Generic docs.
 
+**Constants**
+
+* [`Pair`](#Pair-value) Value side.
+
 ## <a id="category-types"></a>Types
 
 ### <a id="Value"></a>Value
@@ -88,23 +92,19 @@ readonly text: string;
 
 ### <a id="Pair"></a>Pair
 
-(1) Type side.
+Type side.
 
-(2) Value side.
+**Signature**
 
-**Signatures · 2 declarations**
-
-(1) · [Source](index.d.ts#L22)
+[Source](index.d.ts#L22)
 
 ```ts
 export type Pair = Value;
 ```
 
-(2) · [Source](index.d.ts#L23)
+**Value**
 
-```ts
-export const Pair: number;
-```
+* [`Pair`](#Pair-value) Value side.
 
 ### <a id="Derived"></a>Derived
 
@@ -453,3 +453,21 @@ identity(1);
 **See also**
 
 [`choose`](#choose)
+
+## <a id="category-constants"></a>Constants
+
+### <a id="Pair-value"></a>Pair
+
+Value side.
+
+**Signature**
+
+[Source](index.d.ts#L23)
+
+```ts
+export const Pair: number;
+```
+
+**Type**
+
+* [`Pair`](#Pair) Type side.
