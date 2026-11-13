@@ -185,33 +185,35 @@ const termsOf =
       Result.map(joined),
     );
 
-/** An example's code as written, with each name `ast` resolves as a link that shows the name's quick info. */
+/** An example's code as written, with each name `ast` resolves as a link that shows the name's quick info. A name that resolves to nothing shows the type an editor shows at it, and links nowhere. */
 const example = Effect.fnUntraced(function* (
   program: SourceFile,
   ast: AST.Store["Service"],
 ) {
-  const names = Array.flatMap(TypeScript.Node.identifiers(program), (name) =>
+  const identifiers = TypeScript.Node.identifiers(program);
+  const names = Array.flatMap(identifiers, (name) =>
     Array.map(
       Option.toArray(ast.nameOf(name)),
       (resolved) => [name, resolved] as const,
     ),
   );
-  const quickInfo = yield* Effect.forEach(
-    names,
-    ([name, { quickInfo: info }]) =>
-      Option.match(info, {
-        onNone: () => Effect.succeedNone,
-        onSome: (value) =>
-          QuickInfo.display(value).pipe(
-            Effect.map((text) =>
-              Option.some({
-                offset: name.getStart(),
-                length: name.getWidth(),
-                text,
-              }),
-            ),
-          ),
-      }),
+  const shown = Array.flatMap(identifiers, (name) =>
+    pipe(
+      ast.nameOf(name),
+      Option.flatMap(({ quickInfo: info }) => info),
+      Option.orElse(() => ast.hoverOf(name)),
+      Option.map((info) => [name, info] as const),
+      Option.toArray,
+    ),
+  );
+  const quickInfo = yield* Effect.forEach(shown, ([name, info]) =>
+    QuickInfo.display(info).pipe(
+      Effect.map((text) => ({
+        offset: name.getStart(),
+        length: name.getWidth(),
+        text,
+      })),
+    ),
   );
 
   return yield* Effect.fromResult(
@@ -220,7 +222,7 @@ const example = Effect.fnUntraced(function* (
       links: Array.map(names, ([name, { target }]) =>
         Code.linkOf(name, ast.idOf(target)),
       ),
-      quickInfo: Array.getSomes(quickInfo),
+      quickInfo,
     }),
   );
 });
