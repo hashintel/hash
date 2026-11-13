@@ -34,7 +34,11 @@ import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
 import { ForEachNode, StartNode, StepNode } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
 import { stepCardSize, stepGap } from "./canvas/sizes";
-import { useSelectedStepInView, useStepFocus } from "./canvas/use-step-focus";
+import {
+  getCenterToReveal,
+  useSelectedStepInView,
+  useStepFocus,
+} from "./canvas/use-step-focus";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
 import type { CanvasTool } from "./canvas/canvas-toolbar";
@@ -142,7 +146,9 @@ const FlowCanvas = ({
     flowToScreenPosition,
     getInternalNode,
     getNodes,
+    getViewport,
     screenToFlowPosition,
+    setCenter,
   } = useReactFlow<FlowNode, ConnectionEdgeType>();
   const store = useStoreApi<FlowNode, ConnectionEdgeType>();
   const nodesInitialized = useNodesInitialized();
@@ -377,6 +383,31 @@ const FlowCanvas = ({
 
   useImperativeHandle(ref, () => ({ addStepInView }));
 
+  /** Opens the add menu beside its ghost card, first panning the card out from under a panel or the canvas's edge. */
+  const openAddMenu = useCallback(
+    (menu: AddMenuState) => {
+      const viewport = getViewport();
+      const { width, height } = store.getState();
+      const center = getCenterToReveal(
+        { ...menu.position, ...stepCardSize },
+        viewport,
+        { width, height },
+        coveredRight,
+      );
+
+      if (!center) {
+        setAddMenu(menu);
+        return;
+      }
+
+      void setCenter(center.x, center.y, {
+        zoom: viewport.zoom,
+        duration: 300,
+      }).then(() => setAddMenu(menu));
+    },
+    [getViewport, store, coveredRight, setCenter],
+  );
+
   /* Kept the same while dragging, as every card and line reads it. */
   const canvasActions = useMemo<CanvasActions>(
     () => ({
@@ -401,7 +432,7 @@ const FlowCanvas = ({
             getTakenPlaces(),
           );
 
-          setAddMenu({
+          openAddMenu({
             position,
             addStep: (actionDefinitionId) =>
               selectStep(
@@ -416,7 +447,14 @@ const FlowCanvas = ({
       },
       toggleCollapsed: onToggleCollapsed,
     }),
-    [editor, getInternalNode, getTakenPlaces, selectStep, onToggleCollapsed],
+    [
+      editor,
+      getInternalNode,
+      getTakenPlaces,
+      openAddMenu,
+      selectStep,
+      onToggleCollapsed,
+    ],
   );
 
   const openAddMenuAtContextPoint = (addStep: AddStepAt) => {
@@ -426,7 +464,7 @@ const FlowCanvas = ({
       getTakenPlaces(),
     );
 
-    setAddMenu({
+    openAddMenu({
       position,
       addStep: (actionDefinitionId) => addStep(actionDefinitionId, position),
     });
@@ -570,7 +608,7 @@ const FlowCanvas = ({
       getTakenPlaces(),
     );
 
-    setAddMenu({
+    openAddMenu({
       position,
       addStep: (actionDefinitionId) => {
         if (fromStepId === null) {
@@ -791,6 +829,13 @@ const FlowCanvas = ({
               });
             }}
             onPaneContextMenu={refuseContextMenu}
+            /* The menu beside a ghost card would stay put as the card moves, so panning or zooming by hand closes
+               it; moves made in code, such as panning the card into view, have no event. */
+            onMoveStart={(event) => {
+              if (event) {
+                setAddMenu(null);
+              }
+            }}
             panOnDrag={tool === "hand" ? true : [1]}
             selectionOnDrag={tool === "select"}
             proOptions={{ hideAttribution: true }}
