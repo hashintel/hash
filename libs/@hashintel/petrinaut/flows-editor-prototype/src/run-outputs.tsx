@@ -158,6 +158,10 @@ const pdfViewerRedraw =
   new URLSearchParams(globalThis.location.search).get("pdfviewer") ===
   "redraw";
 
+/** `?pdfopen=panel`: a certificate opens in HASH's viewer inside the right panel (9d05ed617), not over the canvas. */
+const pdfOpenPanel =
+  new URLSearchParams(globalThis.location.search).get("pdfopen") === "panel";
+
 /** `?outputheading=old`: Fetch file's run Outputs heading reads "Certificates · 18 PDFs" (before 13 Nov). */
 const outputHeadingOld =
   new URLSearchParams(globalThis.location.search).get("outputheading") ===
@@ -3469,6 +3473,148 @@ const OutputSheet = ({
   );
 };
 
+/** Over the canvas (13 Nov): a certificate opens in HASH's viewer here; the steps list, top bar and panel stay. */
+const opensOverCanvas = (next: ViewerState): next is FilesView =>
+  next.kind === "files" &&
+  next.files[next.index]?.kind === "certificate" &&
+  !pdfOpenPanel &&
+  !pdfViewerRedraw &&
+  !drawnPages &&
+  !docViewerSheet;
+
+const canvasLayerStyle = css({
+  position: "fixed",
+  zIndex: "[30]",
+  display: "flex",
+  flexDirection: "column",
+  backgroundColor: "neutral.bgSolid.min",
+  outline: "none",
+  "& [data-hash-pdf-viewer]": { height: "[100%]", gap: "[0]" },
+  "& [data-hash-pdf-viewer] > :nth-child(2)": { marginY: "4" },
+});
+
+const canvasLayerHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: 0,
+  height: "[52px]",
+  paddingLeft: "4",
+  paddingRight: "4",
+  borderBottomWidth: "thin",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.bd.subtle",
+});
+
+const canvasLayerTitleStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+  display: "flex",
+  alignItems: "baseline",
+  gap: "2",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  "& > span": { overflow: "hidden", textOverflow: "ellipsis" },
+});
+
+/** Header 52 px, and 16 px above and below the viewer. */
+const canvasLayerChrome = 52 + 16 * 2;
+
+/** The certificate in HASH's PDF viewer, laid over the canvas area's box. Close or Esc removes it. */
+const CanvasPdfLayer = ({
+  view,
+  onClose,
+}: {
+  view: FilesView;
+  onClose: () => void;
+}) => {
+  const file = view.files[view.index]!;
+  const [box, setBox] = useState<Box | null>(null);
+  const portalRef = usePortalContainerRef();
+  useLayoutEffect(() => {
+    const area = document.querySelector<HTMLElement>("[data-canvas-area]");
+    if (!area) {
+      return;
+    }
+    const host = portalRef?.current ?? document.body;
+    const measure = () => {
+      const rect = area.getBoundingClientRect();
+      setBox({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        host,
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [portalRef]);
+  // Esc closes the layer before the panel or the canvas sees it, so the panel keeps its step and state.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || document.fullscreenElement) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  if (!box) {
+    return null;
+  }
+  return createPortal(
+    <section
+      aria-label={fileHeading(file)}
+      data-canvas-pdf-layer
+      className={canvasLayerStyle}
+      style={{
+        top: box.top,
+        left: box.left,
+        width: box.width,
+        height: box.height,
+      }}
+    >
+      <HashPdfViewer
+        key={pdfUrlOf(file.fileName)}
+        url={pdfUrlOf(file.fileName)}
+        maxHeight={box.height - canvasLayerChrome}
+        header={(controls) => (
+          <div className={canvasLayerHeadStyle} data-canvas-pdf-head>
+            <span className={canvasLayerTitleStyle}>
+              <span className={strongTitleStyle}>{fileHeading(file)}</span>
+              <span className={quietStyle}>
+                {fileMeta(file)} · {file.supplier}
+              </span>
+            </span>
+            {controls}
+            <Button
+              size="sm"
+              variant="ghost"
+              tone="neutral"
+              iconName="close"
+              aria-label="Close"
+              tooltip="Close · Esc"
+              onClick={onClose}
+              data-canvas-pdf-close
+            />
+          </div>
+        )}
+      />
+    </section>,
+    box.host,
+  );
+};
+
 /**
  * The viewer's state and where it opens; `node` goes anywhere in the tree (the modal, the column and the sheet
  * portal out). `anchor` is an element inside the right column the inline takes swap.
@@ -3482,6 +3628,8 @@ export const useOutputViewer = (
   const flow = useReactFlow();
   const [stack, setStack] = useState<ViewerState[]>([]);
   const [wide, setWide] = useState(false);
+  /** A certificate open over the canvas; the panel's stack is left as it was. */
+  const [overCanvas, setOverCanvas] = useState<FilesView | null>(null);
   /** The canvas view before the sheet panned it, put back when the sheet closes. */
   const before = useRef<Viewport | null>(null);
   /** Pans the canvas, at the same zoom, so the selected step sits in what the sheet leaves visible. */
@@ -3516,6 +3664,10 @@ export const useOutputViewer = (
     }
   };
   const open = (next: ViewerState) => {
+    if (container !== "modal" && opensOverCanvas(next)) {
+      setOverCanvas(next);
+      return;
+    }
     setStack([next]);
     collapse();
   };
@@ -3526,7 +3678,13 @@ export const useOutputViewer = (
       expand();
     }
   };
-  const push = (next: ViewerState) => setStack((current) => [...current, next]);
+  const push = (next: ViewerState) => {
+    if (container !== "modal" && opensOverCanvas(next)) {
+      setOverCanvas(next);
+      return;
+    }
+    setStack((current) => [...current, next]);
+  };
   const replace = (next: ViewerState) =>
     setStack((current) => [...current.slice(0, -1), next]);
   const back = () => setStack((current) => current.slice(0, -1));
@@ -3535,8 +3693,11 @@ export const useOutputViewer = (
     collapse();
   };
   const view = stack.at(-1);
+  const layer = overCanvas ? (
+    <CanvasPdfLayer view={overCanvas} onClose={() => setOverCanvas(null)} />
+  ) : null;
   if (!view || !outputs) {
-    return { open, openAll, container, node: null };
+    return { open, openAll, container, node: layer };
   }
   if (container === "modal") {
     return {
@@ -3594,6 +3755,7 @@ export const useOutputViewer = (
             />
           )}
         </ColumnHost>
+        {layer}
         {container === "expand" && wide ? (
           <OutputSheet
             view={view}

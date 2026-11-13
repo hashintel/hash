@@ -810,6 +810,7 @@ export const Editor = ({
                   )}
                   {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
                   <div
+                    data-canvas-area
                     className={css({
                       position: "relative",
                       flex: "1",
