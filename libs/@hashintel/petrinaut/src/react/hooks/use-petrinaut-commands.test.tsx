@@ -70,6 +70,7 @@ const editorContextValue = (
   clearHoveredItem: () => {},
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   bringVisualizerToFront: () => {},

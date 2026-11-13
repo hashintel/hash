@@ -892,6 +892,7 @@ export function FakeEditorProvider({
     clearHoveredItem: () => {},
     keepPlaceVisualizerOpen: () => {},
     closePlaceVisualizer: () => {},
+    toggleComponentInstanceFold: () => {},
     openPlaceVisualizer: () => {},
     setVisualizerEditorFocus: () => {},
     bringVisualizerToFront: () => {},

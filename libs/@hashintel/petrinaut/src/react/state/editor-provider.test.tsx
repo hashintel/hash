@@ -228,6 +228,14 @@ describe("EditorProvider selection gestures", () => {
     expect(editor.focusedVisualizerPlaceId).toBeNull();
   });
 
+  it("unfolds and folds one component instance at a time", () => {
+    act(() => editor.toggleComponentInstanceFold("m1"));
+    act(() => editor.toggleComponentInstanceFold("m2"));
+    expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m1", "m2"]);
+    act(() => editor.toggleComponentInstanceFold("m1"));
+    expect([...editor.unfoldedComponentInstanceIds]).toEqual(["m2"]);
+  });
+
   it("leaves hover preview dismissal to its grace period when crossing another place", () => {
     act(() => editor.openPlaceVisualizer("place-a"));
     act(() => editor.setHoveredItem({ type: "place", id: "place-b" }));

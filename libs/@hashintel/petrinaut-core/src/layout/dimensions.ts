@@ -20,20 +20,28 @@ export type RenderNodeDimensions = {
 export const compactNodeDimensions: RenderNodeDimensions = {
   place: { width: 180, height: 50 },
   transition: { width: 180, height: 50 },
-  componentInstance: { width: 180, height: 96 },
+  componentInstance: { width: 200, height: 96 },
 };
 
 export const classicNodeDimensions: RenderNodeDimensions = {
   place: { width: 104, height: 104 },
   transition: { width: 180, height: 60 },
-  componentInstance: { width: 180, height: 96 },
+  componentInstance: { width: 200, height: 96 },
 };
 
-const PORT_ROW_HEIGHT = 28;
+/**
+ * The header of a component instance card: the icon tile, the instance's
+ * name and what it runs. Its ports sit in rows under it, one per port, so
+ * the card and the canvas agree on where every pin is.
+ */
+export const componentInstanceHeaderHeight = 48;
+export const componentInstancePortRowHeight = 26;
+export const componentInstanceFooterHeight = 6;
 
 /**
- * Component instances grow vertically with their port count, so the ports
- * have room to spread along the node's edge.
+ * Component instances grow vertically with their port count: the header,
+ * one row per port and a margin under the last row, never less than the
+ * base height.
  */
 export const getComponentInstanceHeight = (
   dimensions: RenderNodeDimensions,
@@ -41,7 +49,9 @@ export const getComponentInstanceHeight = (
 ): number =>
   Math.max(
     dimensions.componentInstance.height,
-    (portCount + 1) * PORT_ROW_HEIGHT,
+    componentInstanceHeaderHeight +
+      portCount * componentInstancePortRowHeight +
+      componentInstanceFooterHeight,
   );
 
 const maxDimensions = (

@@ -8,7 +8,9 @@ Composition is experimental. Enable **User settings → Labs → Net Components*
 
 A component is a subnet: a net of its own with places, transitions, types, parameters and equations. Draw one from the **Nets** panel (**+**). Mark the places that form its boundary as **ports** in the place properties (**Options → Component port**).
 
-To use a component, place an **instance** of it: pick the component from the cube tool in the bottom toolbar and click the canvas. An instance shows its ports as dots on its box. Select it to name it, describe it and set its parameters.
+To use a component, place an **instance** of it: pick the component from the cube tool in the bottom toolbar and click the canvas. An instance draws as a card: its name, the component it runs, and a labelled pin on its edge for each port, coloured by the port's token type. Inside the component, a port place wears the same pin on its own edge and says which kind of port it is beside its name, so the boundary reads alike from inside and outside. Select an instance to name it, describe it and set its parameters.
+
+A component with more than four ports starts **folded**: its card keeps its base height, says how many ports go in and out, and its arcs and fusion links meet its edges. The chevron in the card's header unfolds it to show every port with its pin and name, and folds it again. The card unfolds downward, so its header stays where it is.
 
 A transition of the net can connect to a port with an arc, as to any place. The arc reaches the place inside the instance.
 
@@ -21,7 +23,7 @@ A port can declare a **direction** in the place properties, under Component port
 - **Input and output** -- both, as a shared pool of resources is.
 - **Inferred** -- whatever the component's arcs do with it.
 
-Input ports draw on the left of an instance, output ports on the right, two-way ports on both sides. The checks tell you when a component uses a port against its declaration, in the **Diagnostics** tab under **Composition**.
+Input ports pin the left edge of an instance, output ports the right, two-way ports both. The checks tell you when a component uses a port against its declaration, in the **Diagnostics** tab under **Composition**.
 
 ## Fusing places
 
@@ -45,6 +47,6 @@ A component **implements** an interface when its options tick that interface und
 An instance of an interface runs an **implementation**:
 
 - The interface's options choose the **Default implementation** for the whole document.
-- An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs.
+- An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs, and so does the card on the canvas, under the instance's name.
 
 Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it. The net does not run either while the implementation that is bound falls short of its interface, or while a component holds an instance that runs that same component, directly or through others: both are listed under **Composition**.

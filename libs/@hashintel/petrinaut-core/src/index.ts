@@ -213,6 +213,8 @@ export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
+  componentInstanceFooterHeight,
+  componentInstanceHeaderHeight,
   getBoundsOfCenteredBoxes,
   getComponentInstanceHeight,
   getMinZoomForBounds,

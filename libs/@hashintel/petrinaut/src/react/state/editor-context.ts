@@ -104,6 +104,11 @@ export type EditorState = {
   keptOpenVisualizerPlaceIds: Set<string>;
   /** Visualizer place IDs ordered from back to front. */
   visualizerStack: string[];
+  /**
+   * Component instances whose ports are unfolded on the canvas. A component
+   * with many ports starts folded, its wires meeting the card's edges.
+   */
+  unfoldedComponentInstanceIds: Set<string>;
   /** The temporary hover or keyboard preview. */
   openVisualizerPlaceId: string | null;
   focusedVisualizerPlaceId: string | null;
@@ -170,6 +175,8 @@ export type EditorActions = {
   keepPlaceVisualizerOpen: (placeId: string) => void;
   closePlaceVisualizer: (placeId: string) => void;
   bringVisualizerToFront: (placeId: string) => void;
+  /** Unfold a component instance's ports on the canvas, or fold them again. */
+  toggleComponentInstanceFold: (instanceId: string) => void;
   /** Show or dismiss a temporary preview. */
   openPlaceVisualizer: (placeId: string | null) => void;
   setVisualizerEditorFocus: (placeId: string, focused: boolean) => void;
@@ -217,6 +224,7 @@ export const initialEditorState: EditorState = {
   hoveredItem: null,
   keptOpenVisualizerPlaceIds: new Set<string>(),
   visualizerStack: [],
+  unfoldedComponentInstanceIds: new Set<string>(),
   openVisualizerPlaceId: null,
   focusedVisualizerPlaceId: null,
   draggingStateByNodeId: {},
@@ -261,6 +269,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   keepPlaceVisualizerOpen: () => {},
   closePlaceVisualizer: () => {},
   bringVisualizerToFront: () => {},
+  toggleComponentInstanceFold: () => {},
   openPlaceVisualizer: () => {},
   setVisualizerEditorFocus: () => {},
   setDraggingStateByNodeId: () => {},

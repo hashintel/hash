@@ -2,6 +2,7 @@ import { MarkerType } from "@xyflow/react";
 
 import { arcHaloColor } from "../../../styles/focus";
 import { useStableItems } from "../../../use-stable-items";
+import { instanceFlowOrigin, instanceFlowPosition } from "./instance-anchor";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineNode } from "./shared/outline-arcs";
 
@@ -42,7 +43,13 @@ const toReactFlowNode = (node: CanvasNode): NodeType => {
     case "transition":
       return { ...common, type: "transition", data: node };
     case "componentInstance":
-      return { ...common, type: "componentInstance", data: node };
+      return {
+        ...common,
+        position: instanceFlowPosition(node),
+        origin: instanceFlowOrigin,
+        type: "componentInstance",
+        data: node,
+      };
   }
 };
 
