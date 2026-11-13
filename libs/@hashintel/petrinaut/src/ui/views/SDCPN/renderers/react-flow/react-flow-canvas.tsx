@@ -55,13 +55,14 @@ import {
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useEscapeCancelsConnection } from "./react-flow-canvas/use-escape-cancels-connection";
+import { useLinkRewiring } from "./react-flow-canvas/use-link-rewiring";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
 import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
-import type { Connection, IsValidConnection } from "@xyflow/react";
+import type { Connection } from "@xyflow/react";
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -154,8 +155,10 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
 
-  const isValidConnection: IsValidConnection = (connection) =>
-    interactions.isValidConnection(toCanvasConnection(connection));
+  const { isValidConnection, reconnectProps } = useLinkRewiring(
+    interactions,
+    () => flowStore.getState().connection.inProgress,
+  );
 
   const connect = (connection: Connection) => {
     const { connection: gesture, connectionClickStartHandle } =
@@ -260,6 +263,9 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           connectionLineComponent={OutlineConnectionLine}
           isValidConnection={isValidConnection}
           onConnect={interactions.readonly ? undefined : connect}
+          // Only a fusion link offers its ends to drag: each says so itself.
+          edgesReconnectable={false}
+          {...reconnectProps}
           onEdgeClick={(_event, edge) =>
             interactions.selectLink(linkItemOf(edge))
           }

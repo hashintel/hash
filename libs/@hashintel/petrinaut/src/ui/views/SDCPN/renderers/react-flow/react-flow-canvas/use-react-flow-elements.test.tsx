@@ -109,6 +109,44 @@ const scene: CanvasScene = {
 const arcEdges = (edges: CanvasEdgeType[]): ArcEdgeType[] =>
   edges.filter((edge): edge is ArcEdgeType => edge.type === "default");
 
+describe("fusion links", () => {
+  it("offers the ends the scene says can move", () => {
+    const linkBase = {
+      fusionId: "belt",
+      name: "Belt",
+      sourceId: "place",
+      targetId: "subnet",
+      sourcePortId: null,
+      targetPortId: "port",
+      selected: false,
+      severity: null,
+      focus: "none" as const,
+    };
+    const { result } = renderHook(() =>
+      useReactFlowElements({
+        ...scene,
+        fusions: [
+          { ...linkBase, id: "two", movableEnds: "both" },
+          { ...linkBase, id: "three", movableEnds: "target" },
+        ],
+      }),
+    );
+
+    expect(
+      result.current.edges
+        .filter((edge) => edge.type === "fusion")
+        .map(({ id, reconnectable, targetHandle }) => [
+          id,
+          reconnectable,
+          targetHandle,
+        ]),
+    ).toEqual([
+      ["two", true, "port-in-port"],
+      ["three", "target", "port-in-port"],
+    ]);
+  });
+});
+
 describe("arc rendering", () => {
   it.each([false, true])(
     "attaches diagonal arcs to square transition corners with compact nodes %s",
