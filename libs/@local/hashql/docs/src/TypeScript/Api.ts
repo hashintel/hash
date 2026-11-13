@@ -22,8 +22,10 @@ import type {
   SyntheticProjectId,
 } from "typescript/async";
 
-/** What a program reads besides the files on disk. */
+/** What a program reads besides the files on disk, and where its own files are. */
 export interface Options {
+  /** The directory that holds the package's own files, such as its declarations. A file outside it, or in a `node_modules` directory below it, belongs to a dependency or to the standard library. */
+  readonly directory: string;
   /** The files each module specifier resolves to, as the compiler option `paths` maps them. */
   readonly paths: Record.ReadonlyRecord<string, readonly string[]>;
   /** Files the program reads from memory, by path, in place of whatever the disk holds there. */
@@ -34,6 +36,8 @@ export interface Options {
 export interface Snapshot {
   /** The program's project, with its checker. */
   readonly project: Project;
+  /** The directory that holds the package's own files. */
+  readonly directory: string;
   /**
    * The program with `files` added to its roots, closed with the calling scope.
    *
@@ -44,19 +48,22 @@ export interface Snapshot {
   ) => Effect.Effect<Snapshot, Cause.UnknownError, Scope.Scope>;
 }
 
-/** `program` in `snapshot`, whose roots are `roots`, compiled with `options`. */
+/** `program` in `snapshot`, whose roots are `roots`, compiled with `options`, for the package whose own files `directory` holds. */
 export const snapshot = ({
   snapshot: current,
   program,
   roots,
   options,
+  directory,
 }: {
   readonly snapshot: $Snapshot;
   readonly program: Program<SyntheticProjectId>;
   readonly roots: readonly string[];
   readonly options: RawCompilerOptions;
+  readonly directory: string;
 }): Snapshot => ({
   project: program.getProject(),
+  directory,
   extend: (files) => {
     const extended = Array.appendAll(roots, HashMap.keys(files));
 
@@ -78,6 +85,7 @@ export const snapshot = ({
               program: updated,
               roots: extended,
               options,
+              directory,
             }),
           ),
           Effect.fromOption(
@@ -131,7 +139,7 @@ export const layer: Layer.Layer<Api, Cause.UnknownError> = Effect.gen(
           api.printer.printNode(node, { neverAsciiEscape: true }),
         ),
       // A program lives in the snapshot that creates it, and the snapshot reads the files in memory before the disk.
-      createProgram: (roots, { paths, files }) => {
+      createProgram: (roots, { directory, paths, files }) => {
         const options: RawCompilerOptions = {
           module: ModuleKind.NodeNext,
           moduleResolution: ModuleResolutionKind.NodeNext,
@@ -154,6 +162,7 @@ export const layer: Layer.Layer<Api, Cause.UnknownError> = Effect.gen(
               program: created.operation.createdPrograms[0],
               roots,
               options,
+              directory,
             }),
           ),
         );

@@ -238,8 +238,7 @@ export const reach = Effect.fnUntraced(function* <E, R>(
   let building = Option.none<CompilerSymbol>();
 
   for (const node of yield* program.declarations(symbol)) {
-    const isExternal = yield* program.isExternal(node.getSourceFile());
-    if (isExternal) {
+    if (program.isExternal(node.getSourceFile())) {
       continue;
     }
 

@@ -3,30 +3,52 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "HashQL documentation",
+  "files": [
+    ".generated",
+    "content",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts"
+  ],
   "type": "module",
+  "exports": {
+    "./Source": {
+      "types": "./dist/Source.d.ts",
+      "default": "./dist/Source.js"
+    },
+    "./components": {
+      "types": "./dist/components.d.ts",
+      "default": "./dist/components.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
+    "build": "tsc --project tsconfig.build.json",
     "build:reference": "cd reference && typst compile --root ../../../../.. --features html,bundle --format bundle main.typ dist",
     "codegen": "node scripts/copy-dts.ts",
     "codegen:dev": "cd preview && next typegen",
     "dev": "cd preview && next dev --hostname 127.0.0.1 --port ${PORT:-4323}",
     "dev:reference": "cd reference && typst watch --root ../../../../.. --features html,bundle --format bundle --no-serve main.typ dist",
+    "generate": "node scripts/generate.ts",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
+    "prepack": "turbo run build --filter=@local/hashql-docs",
     "test:integration": "vitest run --project integration",
     "test:unit": "vitest run --project unit"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.3",
+    "@effect/platform-node": "catalog:",
     "@jridgewell/trace-mapping": "0.3.31",
     "@microsoft/tsdoc": "0.16.0",
     "@microsoft/tsdoc-config": "0.18.1",
-    "effect": "4.0.3",
+    "effect": "catalog:",
     "mdast-util-to-markdown": "2.1.2",
-    "oxfmt": "0.71.0"
+    "oxfmt": "0.71.0",
+    "typescript": "catalog:beta"
   },
   "devDependencies": {
     "@base-ui/react": "1.9.0",
-    "@effect/vitest": "4.0.3",
+    "@effect/vitest": "catalog:",
     "@fumadocs/base-ui": "16.17.8",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",
@@ -45,7 +67,10 @@
     "oxlint": "catalog:",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "typescript": "catalog:beta",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "fumadocs-core": "^16.17.8",
+    "react": "^19.0.0"
   }
 }

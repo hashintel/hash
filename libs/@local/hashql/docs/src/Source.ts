@@ -1,4 +1,5 @@
 // oxlint-disable typescript/promise-function-async -- Effect owns execution until the host's Promise boundary.
+// oxlint-disable import/max-dependencies -- Source is the aggregation of all dependencies.
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
   Array,
@@ -18,6 +19,7 @@ import * as Generation from "./Generation.js";
 import * as Page from "./Page.js";
 import * as TypeScript from "./TypeScript/index.js";
 
+import type * as Tree from "./Tree/index.js";
 import type {
   StructuredData,
   StructuredDataContent,
@@ -39,7 +41,7 @@ import type {
 
 /** A heading in a page's outline. A heading that names an entry carries the entry's kind, for a host that draws it as the page does. */
 export interface OutlineEntry extends TOCItemType {
-  readonly kind?: HeadingData["kind"];
+  readonly kind?: Tree.Row.Kind | undefined;
 }
 
 /** A page whose body is hast, with what a docs host lists and searches it by. */

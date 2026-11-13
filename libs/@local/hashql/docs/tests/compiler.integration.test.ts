@@ -1,5 +1,15 @@
 import { describe, expect, layer } from "@effect/vitest";
-import { Array, Effect, Equal, Hash, Option, pipe } from "effect";
+import {
+  Array,
+  Context,
+  Effect,
+  Equal,
+  Hash,
+  HashMap,
+  Layer,
+  Option,
+  pipe,
+} from "effect";
 import {
   SyntaxKind,
   isClassDeclaration,
@@ -354,6 +364,55 @@ layer(Compiler.layer(), { excludeTestServices: true })("compiler", (it) => {
           local,
           local,
           local,
+        ]);
+      }),
+    );
+  });
+
+  describe("program files", () => {
+    it.effect(
+      "own_below_node_modules",
+      Effect.fnUntraced(function* () {
+        expect.hasAssertions();
+        const directory = "/consumer/node_modules/package/declarations";
+        const main = `${directory}/main.d.ts`;
+        const part = `${directory}/nested/part.d.ts`;
+        const dependency = "/consumer/node_modules/dependency/index.d.ts";
+        const nested = `${directory}/node_modules/nested/index.d.ts`;
+        const files = HashMap.make(
+          [
+            main,
+            'export * from "./nested/part.js";\nexport type { Dependency } from "dependency";\nexport type { Nested } from "./node_modules/nested/index.js";\n',
+          ],
+          [part, "export declare const part: string;\n"],
+          [
+            "/consumer/node_modules/dependency/package.json",
+            '{ "name": "dependency", "types": "index.d.ts" }',
+          ],
+          [dependency, "export interface Dependency {}\n"],
+          [nested, "export interface Nested {}\n"],
+        );
+        const context = yield* Layer.build(
+          TypeScript.Program.layer([main], {
+            directory,
+            paths: {},
+            files,
+          }).pipe(Layer.provide(TypeScript.Api.layer)),
+        );
+        const program = Context.get(context, TypeScript.Program.Program);
+        const external = yield* Effect.forEach(
+          [main, part, dependency, nested],
+          (file) =>
+            Effect.map(
+              program.sourceFile(file),
+              Option.map(program.isExternal),
+            ),
+        );
+        expect(external).toStrictEqual([
+          Option.some(false),
+          Option.some(false),
+          Option.some(true),
+          Option.some(true),
         ]);
       }),
     );

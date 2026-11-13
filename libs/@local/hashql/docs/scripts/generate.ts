@@ -5,11 +5,12 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, HashMap, Layer, Option } from "effect";
 
-import * as Generation from "../src/Generation.js";
-import * as Page from "../src/Page.js";
-import * as TypeScript from "../src/TypeScript/index.js";
+// uses dist to allow for generation through node instead of tsx
+import * as Generation from "../dist/Generation.js";
+import * as Page from "../dist/Page.js";
+import * as TypeScript from "../dist/TypeScript/index.js";
 
-import type * as Catalogue from "../src/Catalogue.js";
+import type * as Catalogue from "../dist/Catalogue.js";
 
 const spelling = (name: Catalogue.Name): string =>
   `${name.entrypoint} ${name.path.join(".")}`;

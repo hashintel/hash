@@ -5,6 +5,14 @@
     "@local/tsconfig"
   ],
   "tasks": {
+    "build": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
     "build:reference": {
       "dependsOn": [
         "railroad-plugin#build:wasm"
@@ -48,6 +56,15 @@
         "railroad-plugin"
       ]
     },
+    "generate": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
     "lint:oxlint": {
       "dependsOn": [
         "@local/oxlint#build",
@@ -59,8 +76,7 @@
     },
     "lint:tsc": {
       "dependsOn": [
-        "@local/oxlint#build",
-        "codegen"
+        "build"
       ],
       "affectedBy": [
         "@local/hashql"
