@@ -5,6 +5,7 @@ import {
   generateDefaultVisualizerCode,
 } from "../default-codes";
 import {
+  bicycleAssembly,
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
   supplyChainProfit,
@@ -120,6 +121,7 @@ describe("the view HIR", () => {
       supplyChainWithDisruption,
       supplyChainProfit,
       wheelTruing,
+      bicycleAssembly,
     ].filter((example) =>
       example.petriNetDefinition.places.some((place) => place.visualizerCode),
     ),
