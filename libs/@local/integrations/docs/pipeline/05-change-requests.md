@@ -1,6 +1,6 @@
 # Integration pipeline: change requests
 
-These are change requests from the review of the contracts and the six specs. CR-1 and CR-3 are approved and applied to the documents below; this does not mean the pipeline is implemented. CR-2, CR-4, CR-5 and CR-6 are deferred. CR-7 and CR-8 are settled in a reduced form: the contracts and the overview state the limits, and the code changes are deferred as D17 and D18 in `00-overview.md`. Query readers still use ranges, UUID generation stays in Rust, and the four-stage pipeline stays intact.
+These are change requests from the review of the contracts and the six specs. CR-1 and CR-3 are approved and applied. The later review also addresses CR-7 through producer-side validation, as described below. This does not mean the pipeline is implemented. CR-2, CR-4, CR-5 and CR-6 remain deferred. CR-7 supersedes the former D17 deferral; CR-8 remains a recorded limit with its check deferred under D18 in `00-overview.md`. Query readers still use ranges, UUID generation stays in Rust, and the four-stage pipeline stays intact.
 
 The original drafts described 209 functions. The original estimate of 35 to 45 fewer functions covered the full list of requests, not the two approved here. CR-3 retains buffering that bounds memory and keeps blocking IO off the async executor, as agreed in review.
 
@@ -12,7 +12,7 @@ The original drafts described 209 functions. The original estimate of 35 to 45 f
 | CR-4 | Compute the entity ID in SQL | Deferred; UUID generation stays in Rust | About 12 functions less in stage 2 if adopted later |
 | CR-5 | Take the rows of a failed run from its `writes` file | Deferred | One download and one table less in stage 2 |
 | CR-6 | Merge error codes that no caller tells apart | Deferred | Fewer variants of `Code` |
-| CR-7 | State what happens to a `HUGEINT` column | Settled: stated in the contracts, the cast is deferred (D17) | One sentence in the contracts |
+| CR-7 | State what happens to a `HUGEINT` column | Addressed in specs through shared export validation | Valid decimal checkpoints or a permanent producer error |
 | CR-8 | State what happens to an integer above 2^53 | Settled: recorded as a limit, the check is deferred (D18) | One test case |
 
 ## CR-1: Order `writes` by target inside an operation
@@ -111,17 +111,13 @@ The original drafts described 209 functions. The original estimate of 35 to 45 f
 
 ## CR-7: State what happens to a `HUGEINT` column
 
-**Status.** The contract "Tables as files" now states the type change. The explicit cast described below is deferred as D17.
+**Addressed in specs.** A signed `HUGEINT` is exported as `Decimal128(38,0)` and read as `DECIMAL(38,0)`. Shared export validation checks decimal precision before writing each batch, including nested decimal arrays. Values that do not fit fail the producer permanently with `data_invalid` before capture publication or a checkpoint marker. Unsupported unsigned `UHUGEINT` logical types are rejected before Arrow conversion; a definition may explicitly cast them to a supported type.
 
-**Change.** The contracts state that a `HUGEINT` column of a target's table is written to `changes` as `DECIMAL(38,0)`, and that a value with more than 38 digits fails stage 2 as permanent.
+**Implementation choice.** The original request proposed a cast in `changes_sql`. The shared export check covers SQL source captures and stage-2 exports alike, keeps ID/hash calculation unchanged, and avoids stage-specific casts or an extra file readback. It lives in the existing workspace capture path; stage 3 keeps its existing reader.
 
-**Reason.** The verification shows that a `HUGEINT` column comes back from Parquet as `DECIMAL(38,0)`, so the planner sees `Value::Decimal`, and that a value with 39 digits makes `Workspace::load_capture` fail (`verification/results.md`, A7). The contracts say a column keeps the type DuckDB gives it when it reads the file, and name no exception. All other tested types keep their type.
+**Touches.** `01-contracts.md`, `shared-run.md` ("Checkpoint decimal validation" and error mapping), `stage-1-capture.md`, `stage-2-rows.md`, `stage-2-diff.md`, and `stage-3-plan.md`. The required cases include signed bounds, invalid data after a valid batch, nested values, unsupported unsigned types and no publication on failure.
 
-**Touches.**
-
-- `01-contracts.md`, "Tables as files" and "`changes`".
-- `stage-2-diff.md`, `changes_sql`: an explicit cast, so that the failure comes from stage 2 with a code and not from stage 3's load.
-- `stage-3-plan.md`, "P9".
+The original verification remains historical evidence of the defect. The new validation still needs implementation and execution.
 
 ## CR-8: State what happens to an integer above 2^53
 
@@ -166,4 +162,4 @@ Stage 3 could be merged into stage 4: the send stage would plan each changed row
 - **What it removes:** checkpoint 3, the `writes` file with its writer and its reader, and the batch numbers stored in a file. That is about 12 functions and one stored format.
 - **What it costs:** the send stage then needs DuckDB and the planner, a restart of the send stage plans again, and a deploy between two attempts can change the request bodies of a run. Decision P6 kept checkpoint 3 for these reasons.
 
-This option remains deferred. CR-1 and CR-3 are applied; CR-2 has not been approved.
+This option remains deferred. CR-1 and CR-3 are applied, and CR-7 is addressed in the specs through export validation; CR-2 has not been approved. Private helper simplification under `04-implementation-workflow.md` does not authorize changing these shared contracts.

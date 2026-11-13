@@ -118,9 +118,11 @@ New and shared: `finished` and `finish`, `store_query`, `load_table`, `RowFile`,
 
 Two labs defects are handled differently. Unit maps are missing from the labs config hash (item 2): the first version has no config hash, and D1 records what that leaves unsent. The hash depends on DuckDB's rendering of a struct (item 35): a changed rendering changes every hash, and every row is sent once.
 
+The workspace export path additionally gains the decimal validation specified in `shared-run.md`; reuse of `Workspace::capture` does not mean preserving its invalid-HUGEINT export behavior. Mutable current-state storage uses conditional updates on both local storage and S3.
+
 ## Tests to port
 
-`03-scenarios.md` maps the existing tests onto the scenarios. The test vectors with fixed expected values are:
+`03-scenarios.md` maps the existing tests onto the scenarios. `04-implementation-workflow.md` sets the initial high-value test gate; the lists below are reference material and candidates, not a requirement to reproduce every private-function test. The test vectors with fixed expected values are:
 
 | Vector | Where | Used by |
 | --- | --- | --- |

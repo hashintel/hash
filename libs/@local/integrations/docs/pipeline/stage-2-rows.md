@@ -1,5 +1,7 @@
 # Stage 2, steps 2 and 3: rows, content hash and entity ID
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 This file specifies the function `prepare_rows` of the contracts' section "Inside stage 2" and all code below it. [`01-contracts.md`](01-contracts.md) fixes the shared types, the stage signatures and the columns of each target's table. [`shared-run.md`](shared-run.md) specifies the shared `run` module, including `Code` and the error mapping functions. `stage-2-diff.md` specifies the stage function `diff`, the parsing of the definition, the opening and closing of the workspace, step 4 and the files of checkpoint 2.
 
 Paths are relative to `libs/@local/integrations/` unless they start with `tests/`. Line numbers refer to `origin/main` at `c47a17eed3`. A reference marked (checkout) refers to the branch `pe/be-1137-add-state-version-and-work-manifest-records`, which holds `engine/src/sources`, `engine/src/storage` and the function `literal` of `engine/src/sql.rs`.
@@ -201,7 +203,7 @@ impl Kind {
 
 Errors are built with the functions of `run/error.rs` (`shared-run.md` section 4.2). `Code::X.report()` builds a new report with the code `X` and its kind. `error::artifact`, `error::capture`, `error::statement`, `error::preparation` and `error::scratch` map the report of an existing error type, and the functions of this file call them in `map_err`. Section 6 lists the codes that steps 2 and 3 add.
 
-Every function of the directory carries `#[tracing::instrument(level = "debug", skip_all)]`, as `SourceReader::stage_sources` does today (`engine/src/sources/mod.rs:294`, checkout). A function that works on one target records `target = %target` as a span field. No function logs or attaches a source ID or another row value, because the `issues` file holds no row values (contracts, "`issues`").
+Functions that perform significant work carry `#[tracing::instrument(level = "debug", skip_all)]`; private forwarding helpers need no separate span, as `SourceReader::stage_sources` does today (`engine/src/sources/mod.rs:294`, checkout). A function that works on one target records `target = %target` as a span field. No function logs or attaches a source ID or another row value, because the `issues` file holds no row values (contracts, "`issues`").
 
 ### 4.1 `prepare_rows`
 
@@ -321,7 +323,7 @@ Errors:
 | Condition | Kind | Code |
 | --- | --- | --- |
 | A source with a primary key has no entry in `capture.sources`. | `Permanent` | `capture_missing` |
-| The capture has a column named `_op`, `_key` or `_content_hash` in any letter case (`engine/src/workspace/connection/staging.rs:75-84`). | `Permanent` | `reserved_column`, as the contract "Reserved column names" requires. `error::preparation` gives `query_invalid` for `PreparationError::ReservedColumn` today; section 8 states the conflict. |
+| The capture has a column named `_op`, `_key` or `_content_hash` in any letter case (`engine/src/workspace/connection/staging.rs:75-84`). | `Permanent` | `reserved_column`, as the contract "Reserved column names" requires. `error::preparation` preserves that code through `PreparationError::Step` wrappers, as specified in shared-run section 4.2. |
 | The capture lacks a primary key column (`engine/src/workspace/connection/staging.rs:85-94`). | `Permanent` | `query_invalid`, from `error::preparation` for `PreparationError::MissingColumn`. |
 | `load_table` fails. | As `shared-run.md` sections 4.7 and 6 give it. | |
 | Another `PreparationError`. | As `error::preparation` maps it (`shared-run.md` section 6). | |
@@ -520,6 +522,8 @@ fn check_reserved(schema: &[(String, String)]) -> Result<(), Report<PreparationE
 }
 ```
 
+The accessor-name rule is separate from this table-schema check. `check_properties` first scans all accessor names against `RESERVED`, ignoring ASCII case, and returns `PreparationError::ReservedColumn` for a match. Only after that pass does it check whether the columns exist. Both `Execution::sink` and `Connection::prepare_link_pipeline` already call `check_properties` before `hashed_table`, so this ordering rejects even an absent reserved accessor such as `_row` with the required code. It runs for empty tables too. `_key` and `_op` remain allowed as table metadata but forbidden as property inputs. A non-reserved SQL alias is the explicit way to map a metadata value as a property.
+
 Staging refuses `_op`, `_key` and `_content_hash` on a source (`engine/src/workspace/connection/staging.rs:75-84`). An SQL step can still add a column with one of the other names. A column named `rowid` hides DuckDB's `rowid`, which step 3 uses as the row key. `prepare_pipeline` checks `_op` and `_key` after every SQL step (`engine/src/workspace/connection/pipeline.rs:183`). A link step is not checked for them (section 4.8), so a column `_op` or `_key` that a link step produces is accepted as the staging column.
 
 **`Connection::hashed_table`** is the body that `Execution::sink` has today (`engine/src/workspace/connection/pipeline.rs:224-235`), with the reserved check:
@@ -553,7 +557,7 @@ impl Connection {
 
 **`Connection::prepare_link_pipeline`** (`engine/src/workspace/connection/pipeline.rs:57-101`) keeps its signature. After the checks of the `from` column, the `to` column and the properties (`:92-96`), it calls `self.hashed_table(&table, &request.pipeline.properties, &schema)` and returns that table in `PreparedLink::table`. A link pipeline without steps therefore returns a copy of its input checkpoint's table with `_content_hash`, and the checkpoint's table stays unchanged.
 
-`check_properties` (`engine/src/workspace/connection/pipeline.rs:276-291`) keeps its signature and iterates `accessor_columns`.
+`check_properties` (`engine/src/workspace/connection/pipeline.rs:276-291`) keeps its signature. It first scans `accessor_columns` for reserved names, then checks column existence; it does not combine these passes in a way that hides a reserved accessor behind an earlier missing-column error.
 
 Generated statements for the aviation example:
 
@@ -568,7 +572,7 @@ SELECT source.*, md5(struct_pack(p0 := "EMPTY_MASS", p1 := "MASS_UNIT", p2 := "F
 SELECT source.*, md5('') AS _content_hash FROM "_step/{uuid of the checkpoint aviation/aircraft}" AS source
 ```
 
-Errors: `PreparationError::ReservedColumn` for a reserved column, `PreparationError::MissingColumn` for a column an accessor reads and the table lacks, `PreparationError::Statement` for a failed statement. `error::preparation` maps them (`shared-run.md` section 6). The contract "Reserved column names" requires the code `reserved_column` for the first; section 8 states the conflict with the shared table.
+Errors: `PreparationError::ReservedColumn` for a reserved column, `PreparationError::MissingColumn` for a column an accessor reads and the table lacks, `PreparationError::Statement` for a failed statement. `error::preparation` maps them (`shared-run.md` section 6). The shared mapper returns `reserved_column` for the first, including when `PreparationError::Step` wraps it.
 
 ### 4.5 Step 3, the functions of `engine/src/entity_id.rs`
 
@@ -948,7 +952,7 @@ pub(super) fn property_columns(properties, table) -> Result<Vec<Box<str>>, Repor
 
 How the case of a column name is resolved: the name in the definition is compared with each column of the table ignoring ASCII case, and the first match in the table's column order is taken in the table's spelling. `check_column` (`engine/src/workspace/connection/pipeline.rs:294-305`) and `SinkColumns` (`engine/src/graph/property/mod.rs:44-54`) compare the same way. An accessor on `MODEL` over a table column `model` gives `model`.
 
-`TargetRows::columns` is this list. For `entity/sink-aircraft` it is `EMPTY_MASS`, `MASS_UNIT`, `FIRST_FLIGHT`, `MODEL`. For `entity/sink-airfields` it is `FIELD_NAME`. For `link/aircraft-based-at` it is empty. The `entity_id` column and the `from` and `to` columns are in the list only when a property accessor also reads them.
+`TargetRows::columns` is this list. The preceding accessor check guarantees that it contains no reserved engine names; preserving `_key` as metadata does not add it to this list. For `entity/sink-aircraft` it is `EMPTY_MASS`, `MASS_UNIT`, `FIRST_FLIGHT`, `MODEL`. For `entity/sink-airfields` it is `FIELD_NAME`. For `link/aircraft-based-at` it is empty. The `entity_id` column and the `from` and `to` columns are in the list only when a property accessor also reads them.
 
 `has_key` returns whether a name equals `_key` ignoring ASCII case.
 
@@ -1067,7 +1071,7 @@ Each source is also written twice before the pipelines run: once as `_capture/{s
 | `engine/src/workspace/connection/pipeline.rs:57-101` | `Connection::prepare_link_pipeline(&self, request: &LinkRequest) -> Result<PreparedLink, Report<PreparationError>>` | The signature stays. After line 96 it calls `hashed_table` and returns that table. |
 | `engine/src/workspace/connection/pipeline.rs:207-236` | `Execution::sink(&self, input: &str, sink: &EntitySink) -> Result<Box<str>, Report<PreparationError>>` | The signature stays. Lines 213-235 become one call of `Connection::hashed_table`. |
 | `engine/src/workspace/connection/pipeline.rs:245-273` | `hash_expression` | Used as is. |
-| `engine/src/workspace/connection/pipeline.rs:276-291` | `check_properties` | The signature stays. The body iterates `accessor_columns`. |
+| `engine/src/workspace/connection/pipeline.rs:276-291` | `check_properties` | The signature stays. First reject reserved accessor names, then check existence through accessor_columns. |
 | `engine/src/workspace/connection/pipeline.rs:294-305` | `check_column` | Used as is. |
 | `engine/src/workspace/connection/pipeline.rs` | `Connection::hashed_table`, `check_reserved`, `RESERVED`, `STAGED` | New, as in 4.4. |
 | `engine/src/workspace/connection/staging.rs:69-114` | `Connection::stage_table` | Used as is. |
@@ -1110,6 +1114,8 @@ Steps 2 and 3 add these variants to `Code`:
 Each variant gets its entry in `Code::ALL` (`shared-run.md` section 3.3).
 
 ## 7. Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 Test names follow `<subject>_<case>`. Assertion messages use the "should" form of the existing tests.
 
@@ -1316,7 +1322,7 @@ The `_content_hash` of each aircraft row equals the hash of the same `TAIL` in a
 
 **`stage_sources_capture_missing`**. D0 and a `CaptureOutput` without the entry `aircraft`. Expected: `Permanent`, `capture_missing`.
 
-**`stage_sources_invalid_columns`** (rstest). A capture file made from `SELECT 1 AS ID, 2 AS "_KeY"` gives `Permanent`, `reserved_column`, the code of the contract "Reserved column names". This case passes only once the shared table maps `PreparationError::ReservedColumn` to `reserved_column` (section 8). A capture file made from `SELECT 1 AS OTHER` for a source with the primary key `ID` gives `Permanent`, `query_invalid`. Both port `staging_invalid_columns` (`engine/tests/pipeline.rs:184`) to the stage error.
+**`stage_sources_invalid_columns`** (rstest). A capture file made from `SELECT 1 AS ID, 2 AS "_KeY"` gives `Permanent`, `reserved_column`, the code of the contract "Reserved column names". A capture file made from `SELECT 1 AS OTHER` for a source with the primary key `ID` gives `Permanent`, `query_invalid`. Both port `staging_invalid_columns` (`engine/tests/pipeline.rs:184`) to the stage error.
 
 **`run_pipelines_checkpoint_source`**. Namespace `demo`. The pipeline of `saved-orders` is declared before the pipeline of `orders` and reads the definition checkpoint `demo/orders` as its source, as in `definition/tests/ui/valid-forms.yaml:13-21`:
 
@@ -1464,4 +1470,10 @@ The shared mapping functions are tested in `shared-run.md` section 7.2. This spe
 
 ### Contract problems
 
-1. **`reserved_column` and the shared mapping.** The contract "Reserved column names" says that step 3 fails with `reserved_column`, and staging refuses `_op`, `_key` and `_content_hash`. Both checks raise `PreparationError::ReservedColumn`: staging today, and `check_reserved` inside `prepare_pipeline` and `prepare_link_pipeline`, which step 2 calls because the hash is computed there. `shared-run.md` section 6 maps `PreparationError::ReservedColumn` to `query_invalid`, and a stage writes no mapping of its own for that type. So the stage cannot return `reserved_column`. Change needed: the shared table maps `PreparationError::ReservedColumn` to `reserved_column`. The contract could also say that the check runs while a pipeline runs, as it says for the hash.
+1. **Reserved-column classification, resolved in this review.** Shared error mapping now preserves `reserved_column` through `PreparationError::Step`; accessor validation precedes column-existence checks. Stage 2 does not add its own mapping.
+
+### Required reserved-accessor cases
+
+Test this application rule through target preparation, not only the name-check helper. For both a sink and a link target, a plain accessor on present `_key`, an accessor on absent `_row`, a coerced accessor on `_OP`, and a measure with a reserved amount or unit column fail with permanent `reserved_column`, including with zero rows. A normal target still carries `_key` metadata; selecting `_key AS source_key` and mapping `source_key` succeeds and produces one metadata column plus one property column. The resulting `changes` file must load and plan without duplicate column names.
+
+The shared export validation in `shared-run.md`, "Checkpoint decimal validation", applies when prepared rows are stored. It changes no hash or ID calculation here.

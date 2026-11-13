@@ -1,5 +1,7 @@
 # Integration pipeline: stage 4, Send and commit
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 This file specifies `engine/src/stage/send/` and the changes to `engine/src/graph/client/`. It implements the sections "`writes`", "`SendOutput`", "`current.json`", "Rules of stage 4" and "Stage functions" of [`01-contracts.md`](01-contracts.md) and refers to them by title. The scenario names (S1 to S9) and the entity names (`AC-N100` and so on) are those of [`03-scenarios.md`](03-scenarios.md).
 
 Paths are relative to `libs/@local/integrations/` unless they start with `libs/`, `tests/` or `src/`. A path that starts with `src/` is in labs `pocs/integrations_rs` at `40a8d14`. `engine/src/graph/` and `tests/integrations/graph/` are cited from `origin/main` at `c47a17eed3`. `engine/src/storage/`, `engine/src/sources/` and `engine/Cargo.toml` are cited from the BE-933 checkout. The Graph server is cited from `origin/main`.
@@ -14,7 +16,7 @@ Stage 4 reads the `writes` file of checkpoint 3 and sends its request bodies to 
 
 | File | Content | Visibility |
 | --- | --- | --- |
-| `mod.rs` | The stage function `send`, `SendOutput`, `SendCounts`, the `superseded` check, and `deliver`, which sends every batch. | `send`, `SendOutput` and `SendCounts` are `pub`. `superseded` and `deliver` are private. |
+| `mod.rs` | The stage function `send`, `SendOutput`, `SendCounts`, `SendGuard`, and `deliver`, which sends every batch. | `send`, `SendOutput` and `SendCounts` are `pub`. `SendGuard` is `pub(super)` and `deliver` is private. |
 | `writes.rs` | `Write`, `Requests`, `First`, and `WriteReader`, which reads the `writes` file one record batch at a time. | `pub(super)`. |
 | `request.rs` | `Answer`, `Size`, `Class`, `classify`, `SendSettings::wait`, and `request`, which sends one request and repeats it as the response tables say. | `pub(super)`. `Class` and `classify` are private. |
 | `single.rs` | `send_write`, `Outcome`, `Reason`: the response table for a single write. | `pub(super)`. |
@@ -31,7 +33,7 @@ The contract "The Graph client" puts the trait, the response and the fake in `gr
 | `graph.rs` | The trait `Graph`, `GraphResponse`, `RequestKind`. | `pub`. |
 | `fake.rs` | `FakeGraph`, `FakeEntity`, `Recorded`: the in-memory implementation of `Graph`. | `pub`, compiled under `#[cfg(any(test, feature = "test-utils"))]`. |
 
-The stage imports them as `crate::graph::{Graph, GraphResponse, RequestKind, OperationKind}`. It imports `SendSettings`, `RunContext`, `Code`, `error`, `Change`, `RunId`, `Current`, `RowFile`, `Column`, `ColumnKind`, `Cell`, `finished` and `finish` from `crate::run`. No module under `graph/` imports from `stage::send`.
+The stage imports them as `crate::graph::{Graph, GraphResponse, RequestKind, OperationKind}`. It imports `SendSettings`, `RunContext`, `Code`, `error`, `Change`, `RunId`, `RowFile`, `Column`, `ColumnKind`, `Cell`, `finished` and `finish` from `crate::run`. No module under `graph/` imports from `stage::send`.
 
 ### Changed files
 
@@ -363,26 +365,21 @@ pub async fn send(
 
 Steps, in the order of the contracts' "Order of the stage":
 
-1. Call `finished::<SendOutput>` with the marker key. When it returns an output, go to step 7 with it.
-2. Call `current::read`.
-3. When `superseded(&current, input.run, &diff.resent)` is true, return `Code::Superseded.report()`.
-4. Call `current::mark_sending(context, input.run, diff.base)`.
-5. Call `deliver` with `input.actor`, `plan` and `graph`. It reads `context.send`, sends every batch, stores `rejected` and returns the `SendOutput`.
-6. Call `finish` with the marker key and the output. Use the output `finish` returns.
-7. Call `current::commit(context, input.run, diff.base, &diff.resent)`.
-8. Return the output.
+1. Read the send marker. When it exists, skip delivery and call `commit` with the stored output.
+2. Call `current::mark_sending(context, input.run, diff.base, &diff.resent)`. The supersession check and append use one conditional state transition.
+3. Build a borrowed `SendGuard` and call `deliver`. Every Graph attempt checks that guard, including retries and fallback requests.
+4. Check sending authority again after delivery. Store the immutable send marker with `finish`, using the winning output if another attempt published first.
+5. Call `current::commit(context, input.run, diff.base, &diff.resent)` and return the output.
 
 ```rust
 let key = context.namespace.send_output(Uuid::from(input.run));
 let output = match finished::<SendOutput>(context, &key).await? {
     Some(output) => output,
     None => {
-        let current = current::read(context).await?;
-        if superseded(&current, input.run, &diff.resent) {
-            return Err(Code::Superseded.report());
-        }
-        current::mark_sending(context, input.run, diff.base).await?;
-        let output = deliver(context, input.actor, plan, graph).await?;
+        current::mark_sending(context, input.run, diff.base, &diff.resent).await?;
+        let guard = SendGuard { context, run: input.run, base: diff.base, resent: &diff.resent };
+        let output = deliver(&guard, input.actor, plan, graph).await?;
+        current::check_sending(context, input.run, diff.base, &diff.resent).await?;
         finish(context, &key, &output).await?
     }
 };
@@ -390,31 +387,30 @@ current::commit(context, input.run, diff.base, &diff.resent).await?;
 Ok(output)
 ```
 
-Errors:
-
-| Kind | Code | Condition |
-| --- | --- | --- |
-| Permanent | `superseded` | Step 3. |
-| Permanent | `base_moved` | Returned by `mark_sending` or `commit`. `mark_sending` checks the base first, also when the run is already listed. It runs before the first request, so nothing is sent. |
-| Any | Any | Returned by `finished`, `finish`, `read`, `mark_sending`, `commit` or `deliver` and passed on unchanged. |
+`base_moved` and `superseded` stop the stage and are never recorded as rejected writes. A storage failure while checking authority also stops the stage. A send marker that exists does not bypass the conditional commit checks. If another run takes over after the final check but before publication, the old marker may exist, but the old run cannot commit over the newer sender.
 
 The function carries `#[tracing::instrument(level = "info", skip_all, fields(run = %input.run))]`.
 
-### 4.2 `superseded`
+### 4.2 Sending authority
 
 ```rust
-fn superseded(current: &Current, run: RunId, resent: &[RunId]) -> bool {
-    current.sending.iter().any(|listed| *listed != run && !resent.contains(listed))
+pub(super) struct SendGuard<'a> {
+    pub context: &'a RunContext,
+    pub run: RunId,
+    pub base: Option<RunId>,
+    pub resent: &'a [RunId],
 }
 ```
 
-This is the rule of the contract "Order of the stage", step 2: `sending` lists a run that is neither this run nor in `DiffOutput::resent`. Such a run started sending after stage 2 of this run read `current.json`. Stage 2 records every run it finds in `sending` (contracts, "The resend set"), so a run listed before this run is always in `resent`. When this run is already listed, the function is true exactly when a run is listed after it. The function returns no error.
+This is borrowed input to the request loop, not a lease or a new trait. `deliver`, `send_batch`, `send_together`, `send_write` and `request` pass the same guard. The predicates live once in `run/current.rs`; stage 4 does not duplicate them. An implementation may combine private helpers while keeping these checks and their placement.
+
+The request loop calls `current::check_sending` immediately before invoking `Graph::create` or `Graph::patch`, after any stage retry backoff. This costs one current-state read per Graph attempt. It covers a takeover between batches, during a backoff, and between a failed bulk call and its single-write fallbacks. A call already authorized before takeover can still complete late, including a delay inside the client. The Graph has no fencing token; an explicit reconcile repairs that residual race. Do not claim that the check makes Graph writes atomic with the state file.
 
 ### 4.3 `deliver`
 
 ```rust
 async fn deliver(
-    context: &RunContext,
+    guard: &SendGuard<'_>,
     actor: ActorEntityUuid,
     plan: &PlanOutput,
     graph: &impl Graph,
@@ -423,17 +419,18 @@ async fn deliver(
 
 Steps:
 
-1. Start an empty `Tally`.
+1. Bind `context = guard.context` and start an empty `Tally`.
 2. When `plan.batches` is 0, go to step 7. The `writes` file is not downloaded.
 3. Download the file with `context.fetch(&plan.writes)` (`shared-run.md` section 4.5).
 4. Open a `WriteReader` on the local file with the sum of `plan.counts` as the expected row count.
 5. Read the next batch. When there is none, go to step 7.
-6. Call `send_batch` with the batch, `&tally.rejected_entities` and `&context.send`. Record each returned outcome with `Tally::record`, in the order of the batch. Go to step 5.
-7. Return `tally.finish(context)`.
+6. Call `send_batch` with the guard, the batch, `&tally.rejected_entities` and `&context.send`. Record each returned outcome with `Tally::record`, in the order of the batch. Go to step 5.
+7. Call `current::check_sending` once more, then return `tally.finish(context)`. A takeover after this check can leave an orphan rejected artifact; the stage checks again before binding its marker and commit revalidates independently.
 
 The reader does blocking file IO. `open` and each `next_batch` run in `tokio::task::spawn_blocking`, and the reader is moved into the closure and returned from it. `engine/src/sources/rest.rs:161-166` moves its spool the same way.
 
 ```rust
+let context = guard.context;
 let stopped = |error: JoinError| Code::ReaderStopped.wrap(Report::new(error));
 let mut tally = Tally::default();
 if plan.batches > 0 {
@@ -448,12 +445,13 @@ if plan.batches > 0 {
         }).await.map_err(stopped)??;
         reader = returned;
         let Some(batch) = batch else { break };
-        let outcomes = send_batch(graph, actor, &batch, &tally.rejected_entities, &context.send).await?;
+        let outcomes = send_batch(guard, graph, actor, &batch, &tally.rejected_entities, &context.send).await?;
         for (write, outcome) in batch.iter().zip(outcomes) {
             tally.record(context, write, outcome)?;
         }
     }
 }
+current::check_sending(guard.context, guard.run, guard.base, guard.resent).await?;
 tally.finish(context).await
 ```
 
@@ -550,6 +548,7 @@ Errors:
 ```rust
 /// Sends one request and repeats it as the response tables say.
 pub(super) async fn request(
+    guard: &SendGuard<'_>,
     graph: &impl Graph,
     actor: ActorEntityUuid,
     kind: RequestKind,
@@ -587,7 +586,7 @@ For a request of more than one write, 499 and 500 are "any other status", so the
 
 1. `size` is `Size::Bulk` when `bodies` has more than one entry and `Size::Single` otherwise.
 2. Set `attempt` to 1.
-3. Call `graph.create` or `graph.patch` by `kind` and classify the response.
+3. Call `current::check_sending(guard.context, guard.run, guard.base, guard.resent)`. Only on success call `graph.create` or `graph.patch` by `kind` and classify the response. Repeat this check on every attempt, after waiting.
 4. `Class::Applied` returns `Answer::Applied`. `Class::Decide(status)` returns `Answer::Status(status)`.
 5. `Class::Unavailable` on attempt `max_attempts` returns `Code::GraphUnavailable.report()` with the last response attached.
 6. `Class::Failing(status)` on attempt `max_attempts` returns `Answer::Status(status)`. The single-write table says for 500: "Wait and send again; after `max_attempts` reject".
@@ -598,6 +597,7 @@ For a request of more than one write, 499 and 500 are "any other status", so the
 let size = if bodies.len() > 1 { Size::Bulk } else { Size::Single };
 let mut attempt = 1;
 loop {
+    current::check_sending(guard.context, guard.run, guard.base, guard.resent).await?;
     let response = match kind {
         RequestKind::Create => graph.create(actor, bodies).await,
         RequestKind::Patch => graph.patch(actor, bodies).await,
@@ -625,6 +625,7 @@ Errors:
 
 | Kind | Code | Condition |
 | --- | --- | --- |
+| Any | From `check_sending` | Authority changed or current state could not be read; no Graph call is issued for that attempt. |
 | Retryable | `graph_unavailable` | Attempt `max_attempts` of one request is answered 429, 502, 503, 504 or `Unreachable`, or 499 for a single write. |
 
 ### 4.6 `send_write`
@@ -632,6 +633,7 @@ Errors:
 ```rust
 /// Sends one write on its own and returns what became of it.
 pub(super) async fn send_write(
+    guard: &SendGuard<'_>,
     graph: &impl Graph,
     actor: ActorEntityUuid,
     write: &Write,
@@ -661,7 +663,7 @@ The `status` of a `Rejected` outcome is the status of the last response.
 
 ```rust
 let rejected = |status, reason| Outcome::Rejected { status: Some(status), reason };
-let one = |kind, body: &RawValue| request(graph, actor, kind, &[body], settings);
+let one = |kind, body: &RawValue| request(guard, graph, actor, kind, &[body], settings);
 
 Ok(match &write.requests {
     Requests::Upsert { first: First::Create, create, patch } => {
@@ -694,13 +696,14 @@ Ok(match &write.requests {
 })
 ```
 
-Errors: `graph_unavailable` from `request`, passed on unchanged.
+Errors: every error from `request`, including `graph_unavailable`, `base_moved`, `superseded` and current-state storage errors, passed on unchanged.
 
 ### 4.7 `send_batch`
 
 ```rust
 /// Sends the writes of one batch and returns one outcome per write, in the order of the batch.
 pub(super) async fn send_batch(
+    guard: &SendGuard<'_>,
     graph: &impl Graph,
     actor: ActorEntityUuid,
     batch: &[Write],
@@ -713,6 +716,7 @@ fn endpoint_rejected(write: &Write, rejected: &HashSet<Box<str>>) -> bool
 
 /// Sends `writes` in one request when there is more than one, and one by one when that request is refused.
 async fn send_together(
+    guard: &SendGuard<'_>,
     graph: &impl Graph,
     actor: ActorEntityUuid,
     writes: &[&Write],
@@ -739,7 +743,7 @@ async fn send_together(
 ```rust
 // send_batch
 let open: Vec<&Write> = batch.iter().filter(|write| !endpoint_rejected(write, rejected)).collect();
-let mut sent = send_together(graph, actor, &open, settings).await?.into_iter();
+let mut sent = send_together(guard, graph, actor, &open, settings).await?.into_iter();
 Ok(batch.iter().map(|write| {
     if endpoint_rejected(write, rejected) {
         Outcome::Rejected { status: None, reason: Reason::EndpointRejected }
@@ -751,15 +755,15 @@ Ok(batch.iter().map(|write| {
 // send_together
 match writes {
     [] => Ok(Vec::new()),
-    [write] => Ok(vec![send_write(graph, actor, write, settings).await?]),
+    [write] => Ok(vec![send_write(guard, graph, actor, write, settings).await?]),
     [first, ..] => {
         let bodies: Vec<&RawValue> = writes.iter().map(|write| write.first_body()).collect();
-        match request(graph, actor, first.first_kind(), &bodies, settings).await? {
+        match request(guard, graph, actor, first.first_kind(), &bodies, settings).await? {
             Answer::Applied => Ok(writes.iter().map(|write| write.first_outcome()).collect()),
             Answer::Status(_) => {
                 let mut outcomes = Vec::with_capacity(writes.len());
                 for write in writes {
-                    outcomes.push(send_write(graph, actor, write, settings).await?);
+                    outcomes.push(send_write(guard, graph, actor, write, settings).await?);
                 }
                 Ok(outcomes)
             }
@@ -770,7 +774,7 @@ match writes {
 
 The set of rejected entity IDs is read once, before the batch is sent. An entity upsert and a link upsert are never in the same batch, so every endpoint of the batch was sent in an earlier batch.
 
-Errors: `graph_unavailable` from `request`, passed on unchanged. A batch that fails this way ends the stage, and no later batch is sent.
+Errors: every error from `request`, including `graph_unavailable`, `base_moved`, `superseded` and current-state storage errors, passed on unchanged. A batch that fails this way ends the stage, and no later batch is sent.
 
 ### 4.8 `Tally`
 
@@ -978,7 +982,7 @@ How this matches the Graph:
 
 | The first execution stopped | State | The second execution |
 | --- | --- | --- |
-| Before `mark_sending` returned | No request was sent. `current.json` is unchanged, or lists the run when the write happened and the call did not return. | Runs steps 1 to 8. `mark_sending` first returns `base_moved` when another run committed in between. Otherwise it does nothing when the run is listed. |
+| Before `mark_sending` returned | No request was sent. `current.json` is unchanged, or lists the run when the write happened and the call did not return. | Runs the stage sequence again. `mark_sending` first returns `base_moved` when another run committed in between. Otherwise it succeeds without writing only when this run is newest and all other senders were recorded in `resent`. |
 | While sending | Some batches reached the Graph. `sending` lists the run. No marker exists. | Sends every batch again from `seq` 0 (D8). The outcomes and the `rejected` file are built again from the start. |
 | After the last batch, before the marker | Every batch reached the Graph. No marker exists. The `rejected` file may be stored. | The same as the row above. A `rejected` file of the first execution stays in storage without a reference. |
 | After the marker, before `commit` returned | The marker exists. `sending` lists the run. | `finished` returns the stored output. No request is sent. `commit` runs. |
@@ -1045,8 +1049,8 @@ The stage uses the shared mapping functions of `run/error.rs` (`shared-run.md` s
 
 | Source | Error | Kind | Code |
 | --- | --- | --- | --- |
-| `finished`, `finish`, `current::read`, `current::mark_sending`, `current::commit`, `RunContext::fetch`, `RowFile::create`, `RowFile::push`, `RowFile::store` | `Report<StageError>` | Unchanged | Unchanged, `base_moved` included |
-| `send`, step 3 | A run that is neither this run nor in `DiffOutput::resent` is listed in `sending` | Permanent | `superseded` |
+| `finished`, `finish`, `current::read`, `current::mark_sending`, `current::check_sending`, `current::commit`, `RunContext::fetch`, `RowFile::create`, `RowFile::push`, `RowFile::store` | `Report<StageError>` | Unchanged | Unchanged, `base_moved` included |
+| Current-state checks | This run is not the newest recorded sender, or an unhandled run is listed | Permanent | `superseded` |
 | `RunContext::fetch`, through `error::artifact` | `ArtifactError::Read`, `ArtifactError::Write` | Retryable | `storage_unavailable` |
 | `RunContext::fetch`, through `error::artifact` | `ArtifactError::Mismatch` | Permanent | `storage_mismatch` |
 | `tokio::task::spawn_blocking` around `WriteReader` | `JoinError` | Retryable | `reader_stopped` |
@@ -1068,6 +1072,8 @@ The `Code` variants this stage adds to `run/error.rs`, each with its entry in `C
 `ArtifactError::Read` also covers a missing object. The stage cannot tell the two cases apart, and a missing `writes` file fails as retryable until the engine's retry policy ends.
 
 ## 7. Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 The unit tests are in `engine/src/stage/send/tests/`. Tests that wait use `#[tokio::test(start_paused = true)]`, so `tokio::time::sleep` returns at once and `tokio::time::Instant` shows the waited time. The tests of the HTTP implementation use real time, because a paused clock fires the client's timeout.
 
@@ -1417,3 +1423,18 @@ Not ported: `duplicate_key_bodies_prove_conflict_only_for_create_requests` (`src
 ### Contract problems
 
 The contracts and the scenarios now fix every point this section listed before. None remains open.
+
+### Required takeover and replay cases
+
+Existing request-helper tests construct a local `RunContext`, mark their run as sending, and pass its `SendGuard`. The guard is never bypassed in production code or replaced with a boolean test switch. Coordinate the races with barriers or scripted responses rather than wall-clock timing.
+
+| Case | Expected |
+| --- | --- |
+| A pauses after one batch; B records A in its resend set and starts sending | A's next attempt fails `superseded`; no further Graph call or send marker from A, and A cannot commit. |
+| B takes over during A's retry backoff | A checks after the wait and stops before the retry. |
+| B takes over after A's failed bulk request, before single-write fallback; also between create conflict and patch fallback | The next fallback is not called. A leaves no send marker and cannot commit. |
+| A finishes delivery, then B takes over before A publishes its marker | A's marker may remain, but its commit fails; B's control state is preserved. |
+| Commit succeeds but its response is lost | Retrying the stage uses its marker, sends no Graph request, and recognizes the existing commit. |
+| A's authorized Graph call finishes after B's takeover | The late call is explicitly allowed; A issues no next call. A subsequent explicit reconcile repairs the simulated late effect. |
+
+The same state-transition rules apply to the local runner and workflow runner. Run the storage race cases against local storage and S3/MinIO; use the fake Graph for controlled delivery interleavings.

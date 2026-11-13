@@ -4,7 +4,7 @@ This file fixes everything that more than one stage uses: the shared types, the 
 
 [`00-overview.md`](00-overview.md) gives the goal, the terms and the decisions (A1 to A7, P1 to P14, D1 to D12). [`02-reference-inventory.md`](02-reference-inventory.md) lists the existing code each stage reuses.
 
-All Rust in this file is a contract for names, fields and signatures. Derives, visibility and doc comments are left to the stage specs.
+The shared names, fields and signatures in this file are contracts. Private decomposition in the stage specs is orientation: implementers may merge functions and reorganize internal modules while preserving stage/step boundaries and all observable behavior. Follow `04-implementation-workflow.md` and `RUST_DESIGN_GUIDELINES.md`; those documents also define the initial high-value test gate.
 
 [`shared-run.md`](shared-run.md) specifies the shared `run` module in full: derives, text and JSON forms, error codes and their mapping functions, key builders, the marker and table functions, `current.json`, `start`, the runner and the entry points. A stage spec uses its names for everything shared.
 
@@ -165,7 +165,7 @@ Codes defined by these contracts. `shared-run.md` section 3.3 lists the codes of
 | `duplicate_entity_id` | Permanent | stage 2 | Two rows of the run have the same entity ID. |
 | `archive_limit` | Permanent | stage 2 | The run would archive more than the archive limit and `allow_mass_archive` is false. |
 | `base_moved` | Permanent | stage 4 | The committed run differs from the run stage 2 diffed against. |
-| `superseded` | Permanent | stage 4 | Another run that this run did not resend is listed in `Current::sending`. |
+| `superseded` | Permanent | current-state checks, stage 4 | Another unhandled run is listed, or this run is absent or is no longer the newest sender. |
 | `request_mismatch` | Permanent | start | The run ID has a stored input that another request produced. |
 | `integration_mismatch` | Permanent | start | The request, its definition and the `RunContext` do not name the same web and connector. |
 | `reserved_column` | Permanent | stage 2 | A target's table has a column with a reserved name. |
@@ -278,11 +278,11 @@ impl RowFile {
 - Each file is still stored and verified by its own sha256. If attempts publish different encodings, `finish` returns the first bound marker, and every later stage reads that marker's files. Request JSON stored in a cell remains deterministic; stage 4 sends that exact text.
 - A file with no rows is a valid Parquet file with the declared columns.
 - A column's type in a stage is the type DuckDB gives it when it reads the Parquet file. Stage 3 reads rows only this way (P9).
-- One type changes on the way through a file: a `HUGEINT` column comes back as `DECIMAL(38,0)`. A value with more than 38 digits fails the load (D17).
+- A signed `HUGEINT` is stored as Arrow `Decimal128(38, 0)` and read as `DECIMAL(38,0)`. Only values in `[-(10^38 - 1), 10^38 - 1]` are supported by that representation. Export validates decimal precision, including nested decimal arrays, before writing each record batch. Unsigned `UHUGEINT` result types, including nested ones, are rejected before Arrow conversion unless the definition explicitly casts them to a supported type. An out-of-range value fails the producing stage with permanent `data_invalid`, before its marker is published; it is never rounded, omitted, or changed to text. The same rule applies to SQL source captures. `shared-run.md`, "Checkpoint decimal validation", owns this check.
 
 ### `current.json`
 
-One file per integration, overwritten in place.
+One mutable file per integration, replaced conditionally.
 
 ```rust
 pub struct Current {
@@ -293,14 +293,18 @@ pub struct Current {
 }
 ```
 
-Three functions read and write it:
+Four functions read, check and update it:
 
 ```rust
 /// Returns the stored value, or an empty `Current` when the file does not exist.
 async fn read(context: &RunContext) -> Result<Current, Report<StageError>>;
 
 /// Adds `run` to `sending`.
-async fn mark_sending(context: &RunContext, run: RunId, base: Option<RunId>)
+async fn mark_sending(context: &RunContext, run: RunId, base: Option<RunId>, resent: &[RunId])
+    -> Result<(), Report<StageError>>;
+
+/// Checks that this run may issue its next Graph request.
+async fn check_sending(context: &RunContext, run: RunId, base: Option<RunId>, resent: &[RunId])
     -> Result<(), Report<StageError>>;
 
 /// Sets `committed` to `run` and removes `run` and `resent` from `sending`.
@@ -308,9 +312,12 @@ async fn commit(context: &RunContext, run: RunId, base: Option<RunId>, resent: &
     -> Result<(), Report<StageError>>;
 ```
 
-- `mark_sending` first returns `base_moved` when `committed` differs from `base`. It then does nothing when `run` is already listed.
-- `commit` does nothing when `committed` is already `run`. Otherwise it returns `base_moved` when `committed` differs from `base`.
-- Each write shall replace the file only if it is unchanged since the read. `ArtifactStorage` has no such write today, and `object_store` returns `NotImplemented` for it on the local file system (D9). Until the coordination work adds it, the write is a plain overwrite, and one active run per integration is the engine's guarantee.
+- `mark_sending` checks the base and refuses any listed run other than `run` or a member of `resent`. It appends `run` only after those checks. When `run` is already listed, it succeeds only if `run` is last in `sending`; otherwise it returns `superseded`.
+- `check_sending` returns `base_moved` when `committed` differs from `base`, and `superseded` when `run` is not last in `sending` or any listed run is neither `run` nor in `resent`. Stage 4 calls it before every Graph attempt, including retries and fallback requests.
+- `commit` does nothing when `committed` is already `run`. Otherwise it applies the same checks as `check_sending`, sets `committed` to `run`, and removes exactly `run` and `resent` from `sending`.
+- Every update uses compare-and-swap against the version returned with the bytes it read, including creation when the key is absent. On contention, re-read and recheck all predicates before rebuilding the update. After eight unsuccessful conditional writes, return retryable `storage_unavailable`. Lost responses are recovered by the idempotent checks above.
+- S3 uses conditional create/update. Local storage uses a stable per-key cross-process lock, a comparison under that lock, and an atomic file replacement. `shared-run.md` specifies both implementations. There is no unconditional-overwrite fallback. A backend that cannot provide these semantics fails before sending.
+- The workflow still schedules one run per integration. These checks also cover local runners and stale workers. They do not fence the Graph: a call already authorized before takeover may complete afterward. Sequential sending and per-attempt checks prevent further calls once the changed state is observed; an explicit reconcile repairs the remaining in-flight-call race.
 
 ## The stored files
 
@@ -417,6 +424,8 @@ Rules:
 #### Reserved column names
 
 A target's table shall not have a column named `_op`, `_key`, `_content_hash`, `_entity_id`, `_source_id`, `_left_entity_id`, `_right_entity_id`, `_row`, `_change` or `rowid`, other than the ones the engine adds. Staging refuses the first three today (`engine/src/workspace/connection/staging.rs:76`). Step 3 checks the others and fails with `reserved_column`.
+
+Property accessors shall not read any of those ten names, including `_op` and `_key`, ignoring ASCII case. This applies to plain, coerced, and both amount/unit columns of measure accessors for entities and links. Stage 2 checks the accessor names even for an empty table and fails with `reserved_column`. Keeping `_key` as engine metadata does not make it a property input. An author who needs its value as a property must select it under a non-reserved alias. Consequently, `TargetRows::columns` never overlaps the metadata columns of `changes`.
 
 #### `archives`
 
@@ -706,9 +715,9 @@ For a single write:
 ### Order of the stage
 
 1. When `send/_done.json` exists, skip to step 5 and return the stored `SendOutput`.
-2. Read `current.json`. Fail with `superseded` when `sending` lists a run that is neither this run nor in `DiffOutput::resent`.
-3. Call `mark_sending` with `DiffOutput::base`.
-4. Send every batch. Write `rejected` and `send/_done.json`.
+2. Call `mark_sending` with `DiffOutput::base` and `DiffOutput::resent`. It checks supersession and records the run in one conditional update.
+3. Before every Graph attempt, including a retry or create/patch fallback, call `check_sending`. Waits in the stage's retry loop happen before this check. A failure stops delivery without a send marker.
+4. Send every batch. After delivery, check sending authority before storing `rejected` and again before binding `send/_done.json`. A takeover between a check and publication may leave an orphan artifact or an uncommitted marker. A marker records delivery completion, not ownership of `current.json`; `commit` always revalidates ownership.
 5. Call `commit` with `DiffOutput::base` and `DiffOutput::resent`.
 
 A stage that runs again after step 3 sends every batch again. That is safe: a create that finds the entity is followed by its patch, and the Graph writes nothing for a patch that changes nothing.
@@ -819,13 +828,13 @@ pub async fn run(
 
 ## Module tree
 
-All new code is in the engine crate, next to the code it reuses. Paths are under `libs/@local/integrations/engine/src/`.
+The tree below describes logical module responsibilities in the new replacement crate. The coordinator records its name and location under the rules of `04-implementation-workflow.md`. Paths elsewhere in the specs under `libs/@local/integrations/engine/src/` identify existing reference implementations; they no longer authorize changes to that crate. Existing public APIs may be reused without modifying their source, and required adaptations live in the new crate.
 
 ```text
 run/
   mod.rs          RunId, RunRequest, OperationRequest, RunInput, Operation, start, run
   context.rs      RunContext, SendSettings, Clock, SystemClock, FixedClock
-  current.rs      Current, read, mark_sending, commit
+  current.rs      Current, read, mark_sending, check_sending, commit
   marker.rs       finished, finish
   table.rs        store_query, load_table, RowFile, Column, ColumnKind, Cell
   error.rs        StageError and the error codes
@@ -846,4 +855,4 @@ capture.rs        existing: SourceCapture
 
 - A stage module depends on `run` and on the existing modules. From another stage module it imports the output type and nothing else.
 - Code that two stages need is in `run` or in an existing module. Stage specs place each function they add by this rule.
-- The files inside each stage module are fixed by the stage specs.
+- The private files and functions inside each stage module are suggested by the stage specs. Implementers may simplify them under `04-implementation-workflow.md`; shared interfaces and stage/step responsibilities stay fixed.

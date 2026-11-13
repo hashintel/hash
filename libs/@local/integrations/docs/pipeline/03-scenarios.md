@@ -4,6 +4,19 @@ Each scenario is a sequence of runs over the aviation example, with the expected
 
 The file and column names are those of [`01-contracts.md`](01-contracts.md). The decision IDs are those of [`00-overview.md`](00-overview.md).
 
+## Test priority and ownership
+
+S1–S9 form one shared run-level behavioral suite. Stage owners contribute checkpoint expectations to its single harness owner; they do not each recreate the full suite. Implement the initial seam and recovery cases in [04-implementation-workflow.md](04-implementation-workflow.md) first. Other per-stage case tables are a backlog of useful candidates rather than a quota of private-function tests.
+
+The shared fixture set must be executable independently of each producer. Consumer tests load its files on fresh scratch; expected schemas, rows and request JSON come from the reviewed expectations, not automatically from the implementation under test. Use local storage and MinIO for conditional-update races, and the real HTTP Graph path for the required transport contract. Recorded store-level probes are supporting evidence, not a substitute for those tests.
+
+Additional initial cases from the current review:
+
+- Two senders race to mark or commit against one base; a stale CAS cannot overwrite the winner, and every retry revalidates the state.
+- Takeover while a sender waits or prepares a fallback prevents its next Graph call; a lost commit acknowledgment is idempotent. An already authorized late call is explicitly allowed and repaired by reconcile.
+- Reserved property inputs fail even with no rows, while metadata and a non-reserved alias remain usable.
+- Signed HUGEINT values within decimal precision round-trip; oversized or nested invalid decimals fail before publication; unsupported unsigned logical types fail before Arrow conversion.
+
 ## Fixture
 
 The base definition is `definition/examples/aviation.yaml`, called D0 below. It has two SQL sources, two sinks and one link pipeline:

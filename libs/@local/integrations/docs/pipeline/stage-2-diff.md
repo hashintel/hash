@@ -1,5 +1,7 @@
 # Stage 2: the stage function and step 4 (diff)
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 This spec implements the stage function `diff` and step 4 of [`01-contracts.md`](01-contracts.md). [`stage-2-rows.md`](stage-2-rows.md) covers `prepare_rows` and everything below it.
 
 Paths are relative to `libs/@local/integrations/` unless they start with `apps/` or `tests/`. Line numbers under `engine/src/storage` and the line `engine/src/sql.rs:31` are those of the checkout branch. All other monorepo line numbers are those of `origin/main` at `c47a17eed3`. Labs paths are relative to `pocs/integrations_rs` at `40a8d14`. No SQL in this file was run.
@@ -971,6 +973,8 @@ Errors: Permanent, `query_invalid`, for a row of another shape. Otherwise those 
 
 ### `changes_sql` (`files.rs`)
 
+`store_query` uses the shared checkpoint decimal validation. Signed `HUGEINT` values arrive at stage 3 as `DECIMAL(38,0)`; out-of-range decimal values or unsupported unsigned logical types fail permanently before checkpoint 2 is bound. `changes_sql` does not add casts or reimplement that validation. A schema round-trip test covers this file through `load_table` and planning.
+
 ```rust
 fn changes_sql(rows: &TargetRows, has_key: bool) -> String
 ```
@@ -981,7 +985,7 @@ Steps:
 2. Join the target's table with `_diff/result` on entity ID and keep the rows labelled `insert`, `update` or `resend`.
 3. Order by entity ID.
 
-The kind, the target ID and the labels are written with `literal` of `Kind::as_str`, `Target::id` and `Change::as_str`. Step 3 of `stage-2-rows.md` refuses a column of the target's table with a reserved name (`reserved_column`), so no name of `TargetRows::columns` equals an engine column of the file.
+The kind, the target ID and the labels are written with `literal` of `Kind::as_str`, `Target::id` and `Change::as_str`. The accessor validation in `stage-2-rows.md` refuses every reserved property input, including `_key` and `_op`, even though those metadata columns may remain in the target table. Therefore no name of `TargetRows::columns` equals an engine column of the file.
 
 For `entity/sink-airfields` of D0, with the columns `["FIELD_NAME"]`:
 
@@ -1105,6 +1109,8 @@ Step 4 writes no mapping of its own for a shared error type. It calls the mappin
 A result row of another shape means that the SQL of step 4 does not select what the code reads. No later attempt changes that, so `unexpected_row` uses `query_invalid`.
 
 ## 7. Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 All tests of this section are in `engine/src/stage/diff/tests.rs`. They open a workspace in a `TempDir`, as `engine/tests/workspace.rs:25-38` does. A test builds a table with `Workspace::create_table` and a `SELECT * FROM (VALUES …) AS t(…)`, and reads a table with `Workspace::query` and an `ORDER BY`.
 

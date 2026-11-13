@@ -1,5 +1,7 @@
 # Integration pipeline: stage 3, Plan writes
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 ## Purpose
 
 Stage 3 reads the changed rows and the archives of checkpoint 2 and writes checkpoint 3: the `writes` file with one row per entity ID in send order, the `issues` file, and the marker `plan/_done.json`. Each upsert row holds the create body and the patch body of its entity, and each archive row holds the archive body. The patch body replaces the whole property object (P7), every body carries the same edition provenance (P14), and entity IDs are read from the `changes` files (A2). The same planning inputs and engine build give the same schema and ordered rows, including exact request JSON; the Parquet bytes may differ (CR-3).
@@ -349,10 +351,10 @@ The first subsections state the rules that several functions apply, one per deci
 Stage 3 reads row values only from the `changes` files of `DiffOutput`. A value takes this path:
 
 1. `load_table` (contracts, "Tables as files") downloads the file and calls `Workspace::load_capture` (`engine/src/workspace/mod.rs:156`). The table gets one column per Parquet column, with the DuckDB type of the Arrow type stored in the file (`engine/src/workspace/connection/capture.rs:135-157`, `:170`).
-2. `Workspace::query` (`engine/src/workspace/mod.rs:369`) reads each cell with `row.get::<_, Value>(index)` of the `duckdb` crate (`engine/src/workspace/connection/mod.rs:289`). The variant of `duckdb::types::Value` follows from the column type: `VARCHAR` gives `Value::Text`, `UBIGINT` gives `Value::UBigInt`, `BIGINT` gives `Value::BigInt`, `DECIMAL` gives `Value::Decimal`, `DATE` gives `Value::Date32`, and so on. Stage 3 adds no conversion.
+2. `Workspace::query` (`engine/src/workspace/mod.rs:369`) reads each cell with `row.get::<_, Value>(index)` of the `duckdb` crate (`engine/src/workspace/connection/mod.rs:289`). The variant of `duckdb::types::Value` follows from the column type: `VARCHAR` gives `Value::Text`, `UBIGINT` gives `Value::UBigInt`, `BIGINT` gives `Value::BigInt`, `DECIMAL` gives `Value::Decimal`, `DATE` gives `Value::Date32`, and so on. Signed `HUGEINT` is exported as `DECIMAL(38,0)` and therefore arrives as `Value::Decimal`. The producer validates its range before publishing (shared-run, "Checkpoint decimal validation"); stage 3 adds no conversion or repair.
 3. `SinkColumns` (`engine/src/graph/property/mod.rs:41`) is built from `Rows::columns()` of the query, and `SinkRow::new` (`:66`) takes the row's values in that order. `SinkRow::resolve` (`:74`) then reads the accessor columns by name.
 
-Every range query is `SELECT *`, so the row holds the engine columns beside the accessor columns. `resolve` reads only the columns the accessors name. An accessor column never has the name of an engine column, because stage 2 fails with `reserved_column` (contracts, "Reserved column names").
+Every range query is `SELECT *`, so the row holds the engine columns beside the accessor columns. `resolve` reads only the columns the accessors name. An accessor column never has the name of an engine column, because stage 2 explicitly rejects reserved accessor names, including `_key` and `_op`, with `reserved_column` (contracts, "Reserved column names").
 
 ### A2: entity IDs come from the row
 
@@ -1195,6 +1197,8 @@ Stage 3 adds three variants to `Code`. Each has its `#[display]` text and an ent
 | `PlanTooLarge` | `plan_too_large` | Permanent | The run has more than `u32::MAX` batches. |
 
 ## Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 ### Notation
 

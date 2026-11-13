@@ -1,5 +1,7 @@
 # Integration pipeline: stage 1, Capture
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 This spec implements the stage function `capture` of [`01-contracts.md`](01-contracts.md). It names a contract by its section title and does not repeat it. Decision IDs are those of [`00-overview.md`](00-overview.md).
 
 Paths are relative to `libs/@local/integrations/` unless they start with `libs/`, `apps/` or `tests/`. Lines in `engine/src/sources` and `engine/src/storage` are those of the checkout (the BE-933 branch). All other monorepo lines are those of `origin/main` at `c47a17eed3`. Labs paths are relative to `pocs/integrations_rs` at `40a8d14`. Every signature below was read in the source.
@@ -37,7 +39,8 @@ Changed files, under `engine/`:
 | `src/run/error.rs` | `Code` gets the five variants of stage 1 (4.11). |
 | `src/lib.rs` | The export list changes (section 5). |
 | `Cargo.toml` | `time` moves to the public dependencies and gets the features `formatting` and `serde` beside `parsing` (`engine/Cargo.toml:40`). |
-| `src/capture.rs` | No change. |
+| `src/capture.rs` | Add CaptureError::InvalidData for shared decimal export validation. |
+| `src/workspace/connection/capture.rs` | Validate checkpoint decimal values before writing/publishing, as specified in shared-run. |
 
 ## 3. Types
 
@@ -552,23 +555,24 @@ pub(super) fn source_error(report: Report<SourceError>) -> Report<StageError> {
 }
 
 fn source_code(report: &Report<SourceError>) -> Code {
-    use SourceError::*;
-
+    if matches!(report.downcast_ref::<CaptureError>(), Some(CaptureError::InvalidData)) {
+        return Code::DataInvalid;
+    }
     match report.current_context() {
-        Configuration | Destination => Code::SourceConfiguration,
-        Query => frame_code(report, Code::WorkspaceUnavailable),
-        Secret | SecretEntityCount { .. } | SecretEntity | SecretExpiry | SecretExpired
-        | SecretPath | SecretValue => Code::SourceCredentials,
-        SecretRequest { .. } => Code::SecretUnavailable,
-        SecretStatus { status, .. } if temporary(*status) => Code::SecretUnavailable,
-        SecretStatus { .. } => Code::SourceCredentials,
-        SecretResponse { .. } if report.contains::<reqwest::Error>() => Code::SecretUnavailable,
-        SecretResponse { .. } => Code::SourceCredentials,
-        Postgres | Request => Code::SourceUnavailable,
-        Status { status: 401 | 403 } => Code::SourceCredentials,
-        Status { status } if temporary(*status) => Code::SourceUnavailable,
-        Status { .. } | Response | Pagination => Code::SourceResponse,
-        Read | Write | Load => frame_code(report, Code::StorageUnavailable),
+        SourceError::Configuration | SourceError::Destination => Code::SourceConfiguration,
+        SourceError::Query => frame_code(report, Code::WorkspaceUnavailable),
+        SourceError::Secret | SourceError::SecretEntityCount { .. } | SourceError::SecretEntity | SourceError::SecretExpiry | SourceError::SecretExpired
+        | SourceError::SecretPath | SourceError::SecretValue => Code::SourceCredentials,
+        SourceError::SecretRequest { .. } => Code::SecretUnavailable,
+        SourceError::SecretStatus { status, .. } if temporary(*status) => Code::SecretUnavailable,
+        SourceError::SecretStatus { .. } => Code::SourceCredentials,
+        SourceError::SecretResponse { .. } if report.contains::<reqwest::Error>() => Code::SecretUnavailable,
+        SourceError::SecretResponse { .. } => Code::SourceCredentials,
+        SourceError::Postgres | SourceError::Request => Code::SourceUnavailable,
+        SourceError::Status { status: 401 | 403 } => Code::SourceCredentials,
+        SourceError::Status { status } if temporary(*status) => Code::SourceUnavailable,
+        SourceError::Status { .. } | SourceError::Response | SourceError::Pagination => Code::SourceResponse,
+        SourceError::Read | SourceError::Write | SourceError::Load => frame_code(report, Code::StorageUnavailable),
     }
 }
 
@@ -581,6 +585,7 @@ fn frame_code(report: &Report<SourceError>, fallback: Code) -> Code {
     }
     let statement = report.downcast_ref::<StatementError>().map(error::statement_code);
     match report.downcast_ref::<CaptureError>() {
+        Some(CaptureError::InvalidData) => Code::DataInvalid,
         Some(CaptureError::Query) => statement.unwrap_or(Code::WorkspaceUnavailable),
         Some(
             CaptureError::Read | CaptureError::Write | CaptureError::SyncDirectory { .. }
@@ -638,9 +643,9 @@ Stage 1 adds these variants to `Code` (`shared-run.md` section 3.3), with their 
 | `engine/src/storage/artifact/mod.rs:80`, `:95`, `:110`, `:142` | `ArtifactStorage::stage`, `staging_file`, `publish`, `materialize` | Used as is. |
 | `engine/src/storage/artifact/binding.rs:14`, `:28`, `:50` | `Bound`, `ArtifactStorage::bind`, `ArtifactStorage::bound` | Used as is. |
 | `engine/src/storage/artifact/reference.rs:37` | `ArtifactRef` | Used as is. |
-| `engine/src/capture.rs:39`, `:51`, `:72`, `:88` | `SourceCapture`, `open`, `copy_from`, `rows` | Used as is. The file does not change. |
-| `engine/src/workspace/mod.rs:189`, `:455` | `Workspace::capture`, `Workspace::close` | Used as is. The stage opens the workspace with `RunContext::open_workspace`, which calls `Workspace::open`. |
-| `engine/src/capture.rs:13`, `engine/src/storage/mod.rs:16`, `engine/src/workspace/error.rs:49`, `:175`, `:259` | `CaptureError`, `ArtifactError`, `OpenError`, `StatementError`, `CloseError` | Used as is. `shared-run.md` section 6 gives their codes. |
+| `engine/src/capture.rs:39`, `:51`, `:72`, `:88` | `SourceCapture`, `open`, `copy_from`, `rows` | These helper signatures stay unchanged; CaptureError in the same file gains InvalidData. |
+| `engine/src/workspace/mod.rs:189`, `:455` | `Workspace::capture`, `Workspace::close` | Signatures stay; capture gains the shared decimal export validation. The stage opens the workspace with `RunContext::open_workspace`, which calls `Workspace::open`. |
+| `engine/src/capture.rs:13`, `engine/src/storage/mod.rs:16`, `engine/src/workspace/error.rs:49`, `:175`, `:259` | `CaptureError`, `ArtifactError`, `OpenError`, `StatementError`, `CloseError` | CaptureError gains InvalidData; other types stay unchanged. `shared-run.md` section 6 gives their codes. |
 | `engine/src/run/` | `RunInput::parse_definition`, `RunContext::open_workspace`, `finished`, `finish`, `Code`, `error::close` | Used as `shared-run.md` specifies them. |
 | `engine/src/lib.rs:39-42` | The exports of `sources` | `SourceCaptures` leaves the list and `CapturedSource` joins it. |
 | `engine/src/lib.rs:19-28` | The module list | `mod stage;` is added. Open question 6 covers how the stage functions are exported. |
@@ -692,6 +697,7 @@ The stage adds no limit. These exist:
 | `SourceError::Response` | Bad definition or limit exceeded: the body is not JSON, is larger than 16 MiB, has no row list at `resultsField`, or has more than 1,024 columns. | Permanent | `source_response` |
 | `SourceError::Pagination` | Bad definition or limit exceeded: a page repeats, a next link is not valid, or 10,000 pages were read without `maxPages`. | Permanent | `source_response` |
 | `SourceError::Postgres` | Network failure, bad credentials, a missing table or a failed extension load. The reader removes the cause on purpose, because DuckDB's message holds the connection string (`engine/src/sources/postgres.rs:167-209`). | Retryable | `source_unavailable` |
+| Any `SourceError` with a `CaptureError::InvalidData` frame | Invalid decimal export or unsupported unsigned logical type; this check precedes the wrapper classification. | Permanent | `data_invalid` |
 | `SourceError::Read` or `Write` over an `ArtifactError` | `ArtifactError::Read` or `Write` from `bound`, `materialize`, `publish`, `bind` or `stage` gives `storage_unavailable`. `ArtifactError::Mismatch` gives `storage_mismatch`: a stored capture does not match its reference, or another object is stored under the file's sha256 key. | Shared table | Shared table |
 | `SourceError::Read` or `Write` over a `CaptureError` | A local source file is not a Parquet file, the copy failed, or a stored capture has no readable footer. The shared table gives `CaptureError::Read`, `Write` and the other file variants `scratch_unavailable`. | Retryable | `scratch_unavailable` |
 | `SourceError::Read` or `Write` with no such frame | A local source file that does not exist or cannot be resolved. | Retryable | `storage_unavailable` |
@@ -705,6 +711,8 @@ The stage adds no limit. These exist:
 Cancel by the engine drops the stage call. No error is returned then. A capture that was bound before the drop is used by the next attempt.
 
 ## 7. Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 ### Fixtures of the stage tests
 
@@ -826,7 +834,7 @@ The case "A stage runs twice with the same input" of `03-scenarios.md` is the te
 | New: `stage_sources_needs_a_loaded_capture` | `engine/src/sources/tests.rs` | `stage_sources` on a workspace without the table `_capture/items` fails with `SourceError::Load`. |
 | `namespace_keys_are_stable` | `engine/src/storage/tests.rs:390` | Extend. The expected capture key becomes `{root}/runs/00000000-0000-0000-0000-000000000002/capture/items.fingerprint.json`. A new assertion expects `{root}/runs/00000000-0000-0000-0000-000000000002/capture/_done.json` from `capture_output(Uuid::from_u128(2))`. `{root}` is unchanged. |
 | `bound_returns_the_bound_reference`, `bind_keeps_the_first_reference` | `engine/src/storage/tests.rs:120`, `:160` | No change. They build the key with the helper `capture` (`:100`), which follows the moved key. |
-| All tests | `engine/tests/capture.rs` | No change. They test `Workspace::capture`, `Workspace::load_capture` and `SourceCapture`, which the stage uses as they are. `capture_empty_schema` (`:258`) is the file-level form of S3 run 4. |
+| All tests | `engine/tests/capture.rs` | No change. They test `Workspace::capture`, `Workspace::load_capture` and `SourceCapture`. Retain the existing valid-input coverage and add the shared export-validation cases. `capture_empty_schema` (`:258`) is the file-level form of S3 run 4. |
 | `empty_response_preserves_key_schema`, `pagination_stops_at_the_page_ceiling`, `pagination_honours_max_pages_beyond_the_ceiling` | `engine/src/sources/rest.rs:673`, `:620`, `:642` | No change. They hold the REST rules of section 5. |
 | `fetch_does_not_retry_other_failures` | `engine/src/sources/http/response_tests.rs:56` | No change. Its case with a body that is not JSON still expects `SourceError::Response`. No test covers a failed read of a body chunk. Not found. |
 | `retry_reads_rotated_credentials_and_reuses_completed_captures` | Labs `tests/worker_e2e_test.rs:65` | Port in part, as `apply_retry_uses_finished_captures`. The ported rule is that a second attempt does not read a source whose capture the first attempt bound. The rotated credential is not ported: the REST reader refuses a local test server (`engine/src/sources/http/mod.rs:63-80`), and the reader that takes a test client is private (`engine/src/sources/rest.rs:96`), so a stage test cannot read a REST source. |
@@ -849,3 +857,7 @@ The case "A stage runs twice with the same input" of `03-scenarios.md` is the te
 1. **Where `CapturedSource` is defined.** The module tree puts it in `stage/capture/`. This spec defines it in `sources/mod.rs` and re-exports it from `stage::capture` (section 3), because `SourceReader::capture_sources` builds it and `sources` does not depend on a stage module.
 2. **`time` as a public dependency.** `CaptureOutput::captured_at` and `Clock::now` put `OffsetDateTime` into the engine's public API. `time` is a private dependency today (`engine/Cargo.toml:40`). The contracts do not say that it becomes public.
 3. **Shared codes for frames below a `SourceError`.** The shared mapping functions take a report whose top context is their own type. A `SourceError` report holds `ArtifactError`, `CaptureError` and `StatementError` as lower frames, so stage 1 cannot call `error::artifact`, `error::capture` or `error::statement` on it. `frame_code` (4.11) therefore repeats the `ArtifactError` and `CaptureError` rows of `shared-run.md` section 6 and calls `statement_code`, which `shared-run.md` section 4.2 makes private. Change needed: `run/error.rs` makes `statement_code` `pub(crate)` and gives one `pub(crate)` function that returns the shared code of the first shared frame in a report of any context.
+
+### Checkpoint numeric validity
+
+SQL captures use the shared export validation in `shared-run.md`, "Checkpoint decimal validation". `CaptureError::InvalidData`, including in a lower frame of `SourceError`, always maps to permanent `data_invalid` before source-specific retry classification. A source capture with an invalid decimal or unsupported unsigned logical type creates neither its binding nor `capture/_done.json`. Other valid source bindings from the attempt may remain reusable. Include the multi-batch and nested invalid-decimal cases in the high-value producer-boundary tests; do not duplicate the validator in `sources`.

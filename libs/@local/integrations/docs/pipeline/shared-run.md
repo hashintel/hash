@@ -1,5 +1,7 @@
 # Integration pipeline: the shared `run` module, the runner and the entry points
 
+**Implementation guidance.** Follow [04-implementation-workflow.md](04-implementation-workflow.md) and [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md). Stage/step contracts, shared APIs, persisted schemas and behavior remain mandatory. Private functions, local signatures, file layouts and pseudocode are orientation and may be simplified. Test tables are a case inventory; the workflow defines the high-value initial acceptance set.
+
 This spec implements the parts of [`01-contracts.md`](01-contracts.md) that every stage uses, and the two ways a run is started. It names a contract by its section title and does not repeat it.
 
 Paths are relative to `libs/@local/integrations/` unless they start with `apps/` or `libs/`. Line numbers come from four places:
@@ -23,7 +25,7 @@ The `run` module holds the types, error kinds, storage helpers and Parquet helpe
 | --- | --- |
 | `mod.rs` | The run ID, the request and input types, `RunInput::parse_definition`, `start` with its private helpers, and `run`. |
 | `context.rs` | `RunContext` with its helper methods, `SendSettings`, the `Clock` trait and its two implementations. |
-| `current.rs` | `Current` and the three functions that read and write `current.json`. |
+| `current.rs` | `Current` and the four functions that read, check and update `current.json`. |
 | `marker.rs` | `finished` and `finish`. |
 | `table.rs` | `store_query`, `load_table` and `RowFile` with its column types. |
 | `error.rs` | `StageError`, `Code`, and one mapping function per error type of the existing engine code. |
@@ -39,8 +41,8 @@ Visibility of each item. "Exported" means `pub` and re-exported from `engine/src
 | `mod.rs` | `resolve`, `parse`, `check_definition`, `stored_input`, `resolved_from` | Private |
 | `context.rs` | `RunContext`, `RunContext::new`, `SendSettings`, `Clock`, `SystemClock`, `FixedClock` | Exported |
 | `context.rs` | `RunContext::scratch_file`, `publish`, `fetch`, `open_workspace` | `pub(crate)` |
-| `current.rs` | `Current`, `read`, `mark_sending`, `commit` | `pub(crate)` |
-| `current.rs` | `save` | Private |
+| `current.rs` | `Current`, `read`, `mark_sending`, `check_sending`, `commit` | `pub(crate)` |
+| `current.rs` | the conditional update helper | Private |
 | `marker.rs` | `finished`, `finish` | `pub(crate)` |
 | `table.rs` | `store_query`, `load_table`, `RowFile`, `Column`, `ColumnKind`, `Cell` | `pub(crate)` |
 | `table.rs` | `RowFile::write_pending`, `batch`, `check` | Private |
@@ -55,7 +57,7 @@ Visibility of each item. "Exported" means `pub` and re-exported from `engine/src
 | File | Holds |
 | --- | --- |
 | `engine/src/storage/namespace.rs` | The key builders of section 4.3. |
-| `engine/src/storage/artifact/mutable.rs` (new) | `ArtifactStorage::read` and `ArtifactStorage::overwrite`, both `pub(crate)`. |
+| `engine/src/storage/artifact/mutable.rs` (new) | `ArtifactStorage::read_versioned` and `ArtifactStorage::replace_if`, both `pub(crate)`. |
 
 ### App: `apps/hash-integrations/src/`
 
@@ -429,7 +431,7 @@ let artifact = context.storage.bound(key).await.map_err(error::artifact)?;
 | `scratch` | `fn scratch<E: Error + Send + Sync + 'static>(error: E) -> Report<StageError>` |
 | `stored_json` | `fn stored_json(error: serde_json::Error) -> Report<StageError>` |
 
-Each of the first six has the same three steps:
+The shared mappings use the following steps; `preparation` first resolves step wrappers as specified below:
 
 1. It reads `report.current_context()`.
 2. It picks the code from the table of section 6. For the rows that say "the code of the statement", it calls `report.downcast_ref::<StatementError>()` and uses the code the `statement` row gives for that value.
@@ -438,6 +440,7 @@ Each of the first six has the same three steps:
 ```rust
 pub(crate) fn capture(report: Report<CaptureError>) -> Report<StageError> {
     let code = match report.current_context() {
+        CaptureError::InvalidData => Code::DataInvalid,
         CaptureError::Query => report
             .downcast_ref::<StatementError>()
             .map_or(Code::WorkspaceUnavailable, statement_code),
@@ -455,6 +458,8 @@ pub(crate) fn capture(report: Report<CaptureError>) -> Report<StageError> {
 ```
 
 `statement_code(error: &StatementError) -> Code` is a private function that holds the `statement` rows of section 6. `statement`, `capture` and `preparation` call it.
+
+`error::preparation` must not classify only the top `PreparationError::Step`. Iterate the report frames from newest to oldest, read each `PreparationError` frame, and skip `Step` wrappers to select the nearest underlying preparation cause. Map `ReservedColumn` to permanent `reserved_column`; map the other causes by section 6. Only `Statement` (or a Step with no underlying preparation cause) uses the StatementError lookup and fallback. `Report::downcast_ref::<PreparationError>()` alone is insufficient because it returns the outer Step. Preserve the report chain when applying the chosen Code. Test the mapping through entity-sink preparation and link preparation, not merely a constructed bare ReservedColumn.
 
 `scratch` returns `Code::ScratchUnavailable.wrap(Report::new(error))`. Its callers pass a `std::io::Error`, a `parquet::errors::ParquetError`, the Arrow error that `RecordBatch::try_from_iter_with_nullable` returns, or a `tokio::task::JoinError`. `stored_json` returns `Code::StoredJsonInvalid.wrap(Report::new(error))`.
 
@@ -478,49 +483,44 @@ A private `fn run(&self, run: Uuid, rest: &str) -> ArtifactKey` writes `{root}/r
 
 For web `00000000-0000-4000-8000-000000000001` and connector `aviation`, `{root}` is `tenants/00000000-0000-4000-8000-000000000001/integrations/615b1c9940913ae65656b12d3e9936aba1e0fdbfb11754db10afd6bcb52e8f59`.
 
-### 4.4 `ArtifactStorage::read` and `ArtifactStorage::overwrite`
+### 4.4 Conditional mutable storage
 
-`ArtifactStorage` can write a key once (`bind`, `engine/src/storage/artifact/binding.rs:28`) and can store a file under its digest (`publish`, `engine/src/storage/artifact/mod.rs:110`). It has no method that replaces the content of a key. `current.json` needs one. Both new methods are in `engine/src/storage/artifact/mutable.rs`.
+`ArtifactStorage` gains two concrete methods in `storage/artifact/mutable.rs`. Immutable artifacts and bindings keep their existing implementation. There is no unconditional mutable write API.
 
 ```rust
-/// The largest object `read` returns, in bytes.
-const MAX_MUTABLE_BYTES: u64 = 1024 * 1024;
+pub(crate) struct MutableObject {
+    pub bytes: Bytes,
+    pub version: MutableVersion,
+}
+
+pub(crate) enum MutableVersion {
+    Object(object_store::UpdateVersion),
+    Local(Sha256Digest),
+}
 
 impl ArtifactStorage {
-    /// Returns the bytes stored at `key`, or `None` when the key does not exist.
-    pub(crate) async fn read(&self, key: &ArtifactKey) -> Result<Option<Bytes>, Report<ArtifactError>>;
+    pub(crate) async fn read_versioned(&self, key: &ArtifactKey)
+        -> Result<Option<MutableObject>, Report<ArtifactError>>;
 
-    /// Stores `bytes` at `key` and replaces what is stored there.
-    pub(crate) async fn overwrite(&self, key: &ArtifactKey, bytes: Bytes) -> Result<(), Report<ArtifactError>>;
+    /// Returns false only when the expected state no longer matches.
+    pub(crate) async fn replace_if(
+        &self,
+        key: &ArtifactKey,
+        expected: Option<&MutableVersion>,
+        bytes: Bytes,
+    ) -> Result<bool, Report<ArtifactError>>;
 }
 ```
 
-`read`:
+`None` means the key must be absent. An existing object's token belongs to the bytes returned by that same read. Both reads and replacement payloads are limited to 1,048,576 bytes. Only not-found means absence; authentication, IO, unsupported atomic operations and other storage errors fail the operation. A version for another backend is rejected. `ArtifactStorage` records the local root in its local constructor; an S3 staging directory is never treated as local mutable storage.
 
-1. It calls `self.store.get(&Location::from(&*key.0))`.
-2. `object_store::Error::NotFound` gives `Ok(None)`. Any other error gives `ArtifactError::Read`.
-3. A `meta.size` above `MAX_MUTABLE_BYTES` gives `ArtifactError::Read`.
-4. It returns the bytes of the result. A failed download gives `ArtifactError::Read`.
+**S3:** `read_versioned` uses one `get`, returning its bytes and `UpdateVersion { e_tag: meta.e_tag, version: meta.version }`. Preserve both token fields when supplied. `replace_if` uses `put_opts` with `PutMode::Create` for absence or `PutMode::Update` for an existing token. `AlreadyExists` and `Precondition` return `false`; other errors return `ArtifactError::Write`. A missing usable update token is an error, never permission to overwrite. A successful put returns `true`.
 
-`overwrite`:
+**Local:** use an exclusive cross-process file lock on a stable sidecar of the key, for example `current.json.lock`. Every read and conditional replacement opens and locks that same sidecar; never delete it or lock the `current.json` inode that will be replaced. Under the lock, read the complete current file, enforce the size limit and compute its SHA-256. Compare absence or that digest with `expected`. On a mismatch return `false` without writing. Otherwise write a temporary file beside the destination, sync the temporary file, atomically rename it over the destination, sync the containing directory, and release the lock. Readers return bytes and digest under the same lock. All blocking lock/file work runs in `spawn_blocking`; closing the OS file handle or process exit releases the OS lock. Dropping a Tokio JoinHandle does not stop a blocking task: it may finish a conditional update, which the next attempt recovers by reading current state. Unsupported locking or atomic replacement fails closed. Lock-file creation alone is not a lock.
 
-1. It calls `self.store.put(&Location::from(&*key.0), PutPayload::from(bytes))`. `put` uses `PutMode::Overwrite`.
-2. An error gives `ArtifactError::Write`.
+The local token identifies the current bytes; a change back to identical bytes is equivalent for these state predicates. `Current` transitions never deliberately rewind a committed run. Temporary files left by a crashed writer do not become current state. Do not implement conditional replacement as a separate unlocked read followed by `put` or rename.
 
-```rust
-pub(crate) async fn read(&self, key: &ArtifactKey) -> Result<Option<Bytes>, Report<ArtifactError>> {
-    match self.store.get(&Location::from(&*key.0)).await {
-        Ok(result) if result.meta.size > MAX_MUTABLE_BYTES => Err(Report::new(ArtifactError::Read)),
-        Ok(result) => result.bytes().await.map(Some).change_context(ArtifactError::Read),
-        Err(object_store::Error::NotFound { .. }) => Ok(None),
-        Err(error) => Err(Report::new(error).change_context(ArtifactError::Read)),
-    }
-}
-```
-
-The body follows `bound` (`engine/src/storage/artifact/binding.rs:50-67`). One mebibyte holds about 26,000 run IDs in `Current::sending`.
-
-Where the conditional overwrite of D9 goes: `read` will also return the `object_store::UpdateVersion` built from `meta.e_tag` and `meta.version`, and `overwrite` will take `Option<UpdateVersion>` and call `put_opts` with `PutMode::Update(version)`, or with `PutMode::Create` when `read` returned `None`. `object_store::Error::Precondition` and `AlreadyExists` then mean that another writer changed the file. The only caller is `save` in `run/current.rs`, so `read`, `mark_sending` and `commit` keep their signatures.
+Errors are `ArtifactError::Read` or `ArtifactError::Write`, retaining the underlying cause. An ambiguous response is not a conflict: propagate it and let the stage retry by reading current state. The idempotent rules in section 4.8 recover an update that succeeded before its response was lost.
 
 ### 4.5 `run/context.rs`
 
@@ -789,83 +789,66 @@ impl RowFile {
 
 Errors: `create` returns `row_invalid` or `scratch_unavailable`. `push` returns `row_invalid` or `scratch_unavailable`. `close` returns `scratch_unavailable`. `store` returns those of `close`, and `storage_unavailable` or `storage_mismatch`.
 
+### Checkpoint decimal validation
+
+The owner is the existing `workspace/connection/capture.rs` export path, shared by source captures and `store_query`. This closes the measured `HUGEINT` round-trip failure without a second workspace, a full-file readback, or stage-specific casts.
+
+- DuckDB exports signed `HUGEINT` as Arrow `Decimal128(38, 0)`. The resulting checkpoint loads as `DECIMAL(38,0)`. Preserve this existing representation and its exact values when they fit; hashing and Rust ID derivation before export do not change.
+- Before converting result values to Arrow, inspect the query's DuckDB logical result types, including their nested children. An `UHUGEINT` anywhere in a result is unsupported for v1 checkpoint export and fails with `CaptureError::InvalidData`. Its unsigned range cannot be assumed safe in a signed Arrow carrier. The definition can explicitly cast it to `DECIMAL(38,0)` (which range-checks) or `VARCHAR`. Do not infer unsigned safety from an already converted decimal array.
+- Before each `ArrowWriter::write`, validate every non-null decimal element against that array's declared precision, recursively through nested arrays. Use the Arrow decimal array precision-validation methods for Decimal128/Decimal256 rather than treating construction of an Arrow array or successful Parquet writing as proof of valid decimal values. `PrimitiveArray::validate_decimal_precision` is available in arrow-array 60.0.0. Retain bounded batches and the workspace's existing blocking thread; do not collect the file in memory.
+- An invalid value or unsupported unsigned logical type returns the new `CaptureError::InvalidData`, mapped to permanent `data_invalid`. Attach the column/path and type information, not row values; do not attach a library diagnostic that prints the offending value. No rounding, null substitution, or implicit text conversion is permitted.
+- Failure drops the temporary capture and prevents its publication. Earlier complete artifact files may exist, but the producing stage must not bind its `_done.json`. A SQL source capture also must not create the invalid source's capture binding. The check applies to every exported batch, including batches after a valid prefix and nested decimals.
+- `load_table` and stage 3 retain the existing reader. This change is a producer guarantee for pipeline-generated exports, not validation of all externally supplied Parquet files or a general numeric policy for Graph JSON (deferred finding F3).
+
+Add `InvalidData` to `CaptureError` in `capture.rs`; add the export checks in `workspace/connection/capture.rs`. The shared `error::capture` and stage 1's lower-frame mapping both map it to `Code::DataInvalid`, even when a source wrapper would otherwise be retryable. Other mappings remain as specified.
+
+High-value cases for the shared export/import boundary:
+
+| Case | Expected |
+| --- | --- |
+| Signed `HUGEINT` values 0, negative values, `10^38 - 1`, `-(10^38 - 1)`, and NULL | Capture and load preserve values, with the declared checkpoint type `DECIMAL(38,0)`. |
+| `10^38`, `-10^38`, and the signed 128-bit extrema, after a valid first batch | Permanent `data_invalid`; no published capture or producing-stage marker. A retry gives the same classification. |
+| Valid and invalid decimal values nested in supported list/struct columns | The same precision rule applies recursively; invalid nested values cannot reach the next stage's checkpoint. |
+| Top-level and nested `UHUGEINT`, including a value whose unsigned carrier could appear negative after conversion | Permanent `data_invalid` before Arrow conversion. Explicit valid SQL casts are accepted. |
+| Stage 1 SQL capture and stage 2 changed-row export containing an invalid decimal | Both fail permanently before publishing their checkpoint; stage 3 is never invoked with that output. |
+
 ### 4.8 `run/current.rs`
 
-`read`, `mark_sending` and `commit` have the signatures of the contract "`current.json`". The file is the JSON form of `Current` in section 3.1, at the key `context.namespace.current()`.
+`read`, `mark_sending`, `check_sending` and `commit` have the signatures in the contracts. The stored JSON remains `Current`; storage versions are transient and are not extra fields in that JSON.
 
-`read`:
+`read` decodes `read_versioned` and discards its version. An absent key gives `Current::default()`. Private helpers may share decoding and predicate checks; their decomposition is not a contract.
 
-1. It calls `context.storage.read(&context.namespace.current())`.
-2. `None` gives `Current::default()`.
-3. It decodes the bytes with `serde_json::from_slice`.
+`mark_sending(context, run, base, resent)`:
 
-`save(context: &RunContext, current: &Current) -> Result<(), Report<StageError>>`, private:
+1. Read the current value and its version together.
+2. Return `base_moved` when `committed` differs from `base`.
+3. Return `superseded` when any entry in `sending` is neither `run` nor in `resent`.
+4. When `run` is already listed, return success only if it is last; otherwise return `superseded`.
+5. Append `run`, encode the new value, and call `replace_if` with the version of step 1 (or absence).
+6. On a conflict, start again at step 1, rechecking every predicate. After eight failed conditional writes, return retryable `storage_unavailable`. On a storage error, propagate it.
 
-1. It encodes `current` with `serde_json::to_vec` and calls `context.storage.overwrite`.
+`check_sending(context, run, base, resent)`:
 
-`mark_sending`:
+1. Read current state.
+2. Return `base_moved` when `committed` differs from `base`.
+3. Return `superseded` unless `sending.last()` is `Some(run)` and every other listed run is in `resent`. An absent run does not pass.
+4. Return success without writing.
 
-1. It calls `read`.
-2. It returns `base_moved` when `current.committed` differs from `base`.
-3. It returns `Ok(())` when `current.sending` contains `run`.
-4. It appends `run` to `current.sending` and calls `save`.
+`commit(context, run, base, resent)`:
 
-`commit`:
+1. Read the current value and its version together.
+2. Return success when `committed` is already `Some(run)`, recovering a lost commit response.
+3. Apply the predicates of `check_sending` to the value just read. Do not perform a separate read for those checks.
+4. Set `committed` to `Some(run)` and remove exactly `run` and every member of `resent` from `sending`.
+5. Call `replace_if` with the version of step 1. On a conflict re-read, revalidate, and rebuild the update; use the same eight-attempt bound as `mark_sending`.
 
-1. It calls `read`.
-2. It returns `Ok(())` when `current.committed` is `Some(run)`.
-3. It returns `base_moved` when `current.committed` differs from `base`.
-4. It sets `current.committed` to `Some(run)`, removes `run` and every run of `resent` from `current.sending`, keeps the order of the remaining runs, and calls `save`.
+A takeover from run A to run B succeeds only when B's diff recorded A in `resent`. A cannot append itself again while B is listed, overwrite B's state, or commit a completed send marker after B took over. Two runs that diffed the same base before either started sending race at `mark_sending`: only one can enter; the loser re-reads and returns `superseded`.
 
-```rust
-pub(crate) async fn read(context: &RunContext) -> Result<Current, Report<StageError>> {
-    let key = context.namespace.current();
-    match context.storage.read(&key).await.map_err(error::artifact)? {
-        Some(bytes) => serde_json::from_slice(&bytes).map_err(error::stored_json),
-        None => Ok(Current::default()),
-    }
-}
+Each Graph attempt is preceded by `check_sending`, including single-write fallbacks and retries after waiting. Delivery also checks again before finalizing its output. A marker is immutable evidence of completed delivery, not a lock: a takeover between the final check and marker publication is harmless to `current.json` because `commit` rechecks and conditionally writes. The marker may remain as an uncommitted run's output.
 
-pub(crate) async fn mark_sending(
-    context: &RunContext,
-    run: RunId,
-    base: Option<RunId>,
-) -> Result<(), Report<StageError>> {
-    let mut current = read(context).await?;
-    if current.committed != base {
-        return Err(Code::BaseMoved.report());
-    }
-    if current.sending.contains(&run) {
-        return Ok(());
-    }
-    current.sending.push(run);
-    save(context, &current).await
-}
+This protects control state on S3 and local storage. It does not atomically combine a check with a Graph side effect. A Graph call authorized before a takeover can finish afterward, including a call whose client was delayed. There is at most one such call per sequential sender. Its late effect may require an explicit reconcile; no automatic detection or Graph-side fencing is claimed. The workflow's one-run-per-integration scheduling remains required normal operation, while the checks bound stale-worker behavior.
 
-pub(crate) async fn commit(
-    context: &RunContext,
-    run: RunId,
-    base: Option<RunId>,
-    resent: &[RunId],
-) -> Result<(), Report<StageError>> {
-    let mut current = read(context).await?;
-    if current.committed == Some(run) {
-        return Ok(());
-    }
-    if current.committed != base {
-        return Err(Code::BaseMoved.report());
-    }
-    current.committed = Some(run);
-    current.sending.retain(|listed| *listed != run && !resent.contains(listed));
-    save(context, &current).await
-}
-```
-
-`mark_sending` appends, so a run that is later in `sending` started sending later. Stage 4 calls `read` for the `superseded` check of the contract "Order of the stage" and then calls `mark_sending`. The check fails with `superseded` when `sending` lists a run that is neither this run nor in `DiffOutput::resent`. `current.rs` holds no code for that check.
-
-Each of `mark_sending` and `commit` reads once and writes at most once. Until D9 is implemented, a second writer between the read and the write is not detected.
-
-Errors of all three: `storage_unavailable`, `stored_json_invalid`. `mark_sending` and `commit` also return `base_moved`.
+Errors: `storage_unavailable`, `stored_json_invalid`, `base_moved`, `superseded`. Do not translate a stale sender into a rejected entity or continue to the next write.
 
 ### 4.9 `start`
 
@@ -1235,7 +1218,7 @@ Files that need a decision when the three are combined:
 | `engine/Cargo.toml:40` | `time` | Add the feature `std`, which `OffsetDateTime::now_utc` needs, and `serde`, which with `formatting` and `parsing` gives `time::serde::rfc3339`. |
 | `engine/src/storage/namespace.rs:33-35` | `ArtifactNamespace::capture` | The signature stays. The key changes from `{root}/captures/{run}/{source}.{fingerprint}.json` to `{root}/runs/{run}/capture/{source}.{fingerprint}.json` (C5). |
 | `engine/src/storage/namespace.rs:20-44` | `impl ArtifactNamespace` | Add `current`, `input`, `capture_output`, `diff_output`, `plan_output`, `send_output` and the private `run` of section 4.3. |
-| `engine/src/storage/artifact/mod.rs:1-4` | Module list | Add `mod mutable;` with `read` and `overwrite` of section 4.4. |
+| `engine/src/storage/artifact/mod.rs:1-4` | Module list | Add `mod mutable;` with the conditional storage API of section 4.4, and retain the local backend root for its lock/replace implementation. |
 | `engine/src/storage/artifact/mod.rs:35` | `ArtifactStorage` | `#[derive(Debug)]` becomes `#[derive(Debug, Clone)]`. The runner gives one clone to `CaptureStore::new` and one to `RunContext`. |
 | `engine/src/storage/artifact/mod.rs:95` | `ArtifactStorage::staging_file` | Used as is. |
 | `engine/src/storage/artifact/mod.rs:110`, `:142` | `publish`, `materialize` | Used as is. |
@@ -1243,10 +1226,10 @@ Files that need a decision when the three are combined:
 | `engine/src/storage/mod.rs:16`, `:30` | `ArtifactError`, `ArtifactKey` | Used as is. |
 | `engine/src/storage/artifact/reference.rs:12`, `:37` | `Format`, `ArtifactRef` | Used as is. |
 | `engine/src/workspace/mod.rs:39` | `WorkspaceConfig` | `#[derive(Debug)]` becomes `#[derive(Debug, Clone)]`. Stages 1, 2 and 3 each open a workspace from the one config in `RunContext`. |
-| `engine/src/workspace/mod.rs:156`, `:189`, `:222`, `:455` | `load_capture`, `capture`, `open`, `close` | Used as is. |
+| `engine/src/workspace/mod.rs:156`, `:189`, `:222`, `:455` | `load_capture`, `capture`, `open`, `close` | Signatures unchanged; `capture` adds the shared export validation. |
 | `engine/src/workspace/error.rs:49`, `:175`, `:259` | `OpenError`, `StatementError`, `CloseError` | Used as is. |
 | `engine/src/pipeline/mod.rs:47` | `PreparationError` | Used as is. |
-| `engine/src/capture.rs:13`, `:51`, `:105`, `:114` | `CaptureError`, `SourceCapture::open`, `stage`, `publish` | Used as is. |
+| `engine/src/capture.rs:13`, `:51`, `:105`, `:114` | `CaptureError`, `SourceCapture::open`, `stage`, `publish` | Add `CaptureError::InvalidData`; file helpers keep their signatures. |
 | `engine/src/capture.rs:45` | `impl SourceCapture` | Add `pub(crate) fn writer_properties() -> WriterProperties`, which returns Snappy compression and at most `64 * 1024` rows per row group. |
 | `engine/src/workspace/connection/capture.rs:61-64`, `engine/src/sources/rest.rs:356-359` | The two `WriterProperties::builder()` blocks | Each becomes a call of `SourceCapture::writer_properties()`. |
 | `engine/src/sources/rest.rs:244` | `Spool` | Used as is. `RowFile` is new code that follows it. |
@@ -1280,8 +1263,8 @@ Codes and their kinds:
 | `nothing_committed` | Permanent | `start` |
 | `duplicate_entity_id` | Permanent | Not raised in `run`. |
 | `archive_limit` | Permanent | Not raised in `run`. |
-| `base_moved` | Permanent | `mark_sending`, `commit` |
-| `superseded` | Permanent | Not raised in `run`. |
+| `base_moved` | Permanent | `mark_sending`, `check_sending`, `commit` |
+| `superseded` | Permanent | `mark_sending`, `check_sending`, `commit` |
 | `request_mismatch` | Permanent | `start` |
 | `integration_mismatch` | Permanent | `start` |
 | `reserved_column` | Permanent | Not raised in `run`. Stage 2 raises it. |
@@ -1299,9 +1282,10 @@ Existing errors and their codes. "Called in `run`" names the functions of this s
 
 | Error | Variant | Code | Called in `run` by |
 | --- | --- | --- | --- |
-| `ArtifactError` (`engine/src/storage/mod.rs:16`) | `Read`, `Write` | `storage_unavailable` | `finished`, `finish`, `read`, `save`, `RunContext::publish`, `RunContext::fetch` |
+| `ArtifactError` (`engine/src/storage/mod.rs:16`) | `Read`, `Write` | `storage_unavailable` | `finished`, `finish`, `read`, conditional updates, `RunContext::publish`, `RunContext::fetch` |
 | | `Mismatch` | `storage_mismatch` | The same |
 | `CaptureError` (`engine/src/capture.rs:13`) | `Query` | The code of the statement in the report; `workspace_unavailable` when the report holds no `StatementError` | `store_query`, `load_table` |
+| | `InvalidData` | `data_invalid` | Decimal precision or unsupported unsigned checkpoint type during export |
 | | `Read`, `Write`, `SyncDirectory`, `Exists`, `WorkspaceFile` | `scratch_unavailable` | `store_query`, `load_table`, `RowFile::create`, `RowFile::close` |
 | | `DiskUsage`, `Cancelled`, `Stopped` | `workspace_unavailable` | `store_query`, `load_table` |
 | `StatementError` (`engine/src/workspace/error.rs:175`) | `NotSelect`, `StatementCount`, `TableFunction`, `UnknownParameter`, `UnsupportedType`, `InvalidQuery` | `query_invalid` | Through `CaptureError::Query` in `store_query` |
@@ -1309,23 +1293,25 @@ Existing errors and their codes. "Called in `run`" names the functions of this s
 | | `Failed`, `DiskLimit`, `DiskUsage`, `Stopped` | `workspace_unavailable` | The same |
 | `OpenError` (`engine/src/workspace/error.rs:49`) | Every variant | `workspace_unavailable` | `RunContext::open_workspace` |
 | `CloseError` (`engine/src/workspace/error.rs:259`) | Every variant | `workspace_unavailable` | Not called in `run`. Stages call `error::close`. |
-| `PreparationError` (`engine/src/pipeline/mod.rs:47`) | `Statement`, `Step` | The code of the statement in the report; `query_invalid` when the report holds no `StatementError` | Not called in `run`. Stage 2 calls `error::preparation`. |
+| `PreparationError` (`engine/src/pipeline/mod.rs:47`) | `Statement`, or `Step` without an underlying preparation cause | The code of the statement in the report; `query_invalid` when the report holds no `StatementError` | Not called in `run`. Stage 2 calls `error::preparation`. |
 | | `ReservedColumn` | `reserved_column` | The same |
 | | `MissingColumn`, `Metadata`, `MissingCheckpoint`, `LinkInputs` | `query_invalid` | The same |
 | | `Assertions` | `data_invalid` | The same |
 | | `Cancelled`, `Stopped` | `workspace_unavailable` | The same |
 | `ParseError` (`definition/src/yaml/mod.rs:148`, main) | Every variant | `invalid_definition` | `parse`, called by `check_definition` and `RunInput::parse_definition` |
 | `std::io::Error`, `ParquetError`, `ArrowError`, `JoinError` | | `scratch_unavailable` | `finished`, `finish`, `RowFile` |
-| `serde_json::Error` | | `stored_json_invalid` | `finished`, `finish`, `read`, `save` |
+| `serde_json::Error` | | `stored_json_invalid` | `finished`, `finish`, `read`, conditional updates |
 
 Reasons for the kinds that are a choice:
 
 - `StatementError::DiskLimit` and `OpenError::Configure` depend on the worker's settings. Another worker or a changed setting can let the same input succeed, so both are retryable. The retry policy of the run interface limits the attempts (`apps/hash-integrations/src/service/start.rs:12-17`, BE-1136).
 - `StatementError::InvalidData` is permanent, because the rows come from stored captures and are the same in every attempt.
-- `CaptureError::Read` is retryable. `RunContext::fetch` has checked the file against its digest, so a Parquet file that cannot be read was damaged on the local disk.
+- `CaptureError::InvalidData` is permanent `data_invalid`; retrying the same export cannot repair its numeric range or unsupported logical type. `CaptureError::Read` remains retryable for IO failures. A digest verifies bytes, not semantic validity; the producer-side decimal check prevents the known invalid decimal export, but does not prove arbitrary external Parquet data is valid.
 - `ArtifactError::Read` is retryable also when the object is missing, because `materialize` reports a missing object and a failed request with the same variant (`engine/src/storage/artifact/mod.rs:162-166`).
 
 ## 7. Tests
+
+Use the workflow's initial acceptance set first. The cases below supply expected behavior and additional regression candidates, not a requirement to reproduce one test per listed private function.
 
 The engine tests are unit tests in `engine/src/run/tests/`. They use local storage in a `TempDir`. The cases that name S3 use the MinIO helpers `minio` and `s3_storage` (`engine/src/storage/tests.rs:23`, `:61`).
 
@@ -1376,9 +1362,11 @@ Scenarios: S4 run 2 has `entity/sink-planes` as a key of `DiffOutput::targets`. 
 | Test | Input | Expected |
 | --- | --- | --- |
 | `namespace_keys_are_stable` (`engine/src/storage/tests.rs:390`), extended | Web `00000000-0000-0000-0000-000000000001`, connector `aviation`, run `00000000-0000-0000-0000-000000000002`, source `items`, fingerprint `fingerprint` | With `{root}` as in the test today: `{root}/current.json`, `{root}/runs/00000000-0000-0000-0000-000000000002/input.json`, `{root}/runs/00000000-0000-0000-0000-000000000002/capture/items.fingerprint.json`, and `…/capture/_done.json`, `…/diff/_done.json`, `…/plan/_done.json`, `…/send/_done.json` under the same run. The assertion at `:396-402` changes to the moved capture key. |
-| `overwrite_replaces` (new, local and S3) | `read` of a new key, `overwrite` with `a`, `read`, `overwrite` with `bc`, `read` through a second `ArtifactStorage` | `None`, then `a`, then `bc` |
-| `read_s3_error` (new) | `read` on S3 storage with a wrong secret | `ArtifactError::Read`. The result is not `None`. It follows `s3_errors_are_not_missing_bindings` (`engine/src/storage/tests.rs:191`). |
-| `read_oversized` (new) | `overwrite` with 1,048,577 bytes, then `read` | `ArtifactError::Read` |
+| `conditional_writers` (local and S3) | Two independent storage handles read absence and race to create; then both read one existing version and race to replace | Exactly one write succeeds in each race; the loser returns conflict and cannot clobber the winner. Local variant uses separate processes sharing the root. |
+| `conditional_crash` (local) | Stop a writer before rename, and after rename before its acknowledgment; then acquire the same sidecar lock in another process | The current file is complete old or complete new JSON, the lock is released, and retry resolves from the observed value. |
+| `conditional_unavailable` | Unsupported local lock/replace, S3 conditional failure other than precondition, or absent version on an existing remote object | Error; no unconditional overwrite. |
+| `read_s3_error` (new) | `read_versioned` on S3 storage with a wrong secret | `ArtifactError::Read`. The result is not `None`. It follows `s3_errors_are_not_missing_bindings` (`engine/src/storage/tests.rs:191`). |
+| `read_oversized` (new) | An externally seeded 1,048,577-byte object, then `read_versioned`; also an oversized `replace_if` payload | `ArtifactError::Read` for the read; `ArtifactError::Write` for the replacement, without changing the key. |
 
 The tests `bound_returns_the_bound_reference` (`:120`) and `bind_keeps_the_first_reference` (`:160`) and the capture tests in `engine/src/sources/tests.rs:177`, `:266`, `:326` build their keys with `ArtifactNamespace::capture` and need no change.
 
@@ -1424,20 +1412,21 @@ Scenarios: S1 run 1 writes `archives` and both `issues` files with no rows, and 
 
 Existing tests that cover the reused code: `capture_batch_boundaries`, `capture_empty_schema`, `load_capture_types_and_empty_schema` (`engine/tests/capture.rs:65`, `:258`, `:465`) and `publish_bounds_buffered_rows_by_size` (`engine/src/sources/rest.rs:745`). They stay as they are.
 
-### 7.6 `read`, `mark_sending`, `commit` (`tests/current.rs`)
+### 7.6 Current-state transitions (`tests/current.rs`)
 
 | Test | State before | Call | Expected |
 | --- | --- | --- | --- |
 | `read_absent` | No file | `read` | `Current { committed: None, sending: [] }` |
-| `mark_sending_first` | No file | `mark_sending(a2, None)` | The file holds `{"committed":null,"sending":["00000000-0000-4000-8000-0000000000a2"]}`. |
-| `mark_sending_appends` | `committed` a1, `sending` [a2] | `mark_sending(a3, Some(a1))` | `sending` is [a2, a3]. |
-| `mark_sending_listed` | `committed` a1, `sending` [a2] | `mark_sending(a2, Some(a1))` | `Ok`. The bytes of the file are unchanged. |
-| `mark_sending_base_moved` | `committed` a1, `sending` [] and, as a second case, `sending` [a2] | `mark_sending(a2, None)` | `base_moved`, `Permanent`. The bytes of the file are unchanged. |
-| `commit_first` | No file | `commit(a1, None, &[])` | `committed` a1, `sending` [] |
-| `commit_clears_resent` | `committed` a1, `sending` [a2, a3, a4] | `commit(a4, Some(a1), &[a2])` | `committed` a4, `sending` [a3] |
-| `commit_repeated` | `committed` a4, `sending` [a3] | `commit(a4, Some(a1), &[a2])` | `Ok`. The bytes of the file are unchanged. |
-| `commit_base_moved` | `committed` a5 | `commit(a4, Some(a1), &[])` | `base_moved`, `Permanent`. The bytes of the file are unchanged. |
-| `read_invalid_json` | The file holds `{"committed":7,"sending":[]}` | `read` | `stored_json_invalid`, `Permanent` |
+| `mark_sending_first` | No file | `mark_sending(a2, None, &[])` | `committed` absent, `sending` [a2]. |
+| `mark_sending_takeover` | `committed` a1, `sending` [a2] | `mark_sending(a3, Some(a1), &[a2])` | `sending` [a2, a3]. a2 subsequently fails `check_sending` and `commit` with `superseded`. |
+| `mark_sending_listed` | `committed` a1, `sending` [a2] | Repeat `mark_sending(a2, Some(a1), &[])` | Success, no write. |
+| `mark_sending_race` | Two callers read base a1 with no sender | Both mark with empty `resent`, synchronized before conditional replacement | One enters; the other re-reads and returns `superseded`. No sender is lost. |
+| `commit_race` | a2 is sending against a1; a3's diff resends a2 | Race a2's commit with a3's mark | If commit wins, a3 gets `base_moved`; if takeover wins, a2 gets `superseded`. Neither overwrites the winner. |
+| `commit_lost_response` | a2 is sending against a1 | Commit is stored but its response is lost; retry commit | Success with committed a2, without another write. |
+| `commit_base_moved` | Another run committed after the caller read | Attempt the stale CAS and retry | `base_moved`, without restoring the old base or clearing newer senders. |
+| `check_sending_absent` | Correct base, no sending entry | Check a2 | `superseded`. |
+| `cas_contention_bound` | Eight competing updates invalidate the token before replacement | Mark or commit | Retryable `storage_unavailable`; no unconditional fallback. |
+| `read_invalid_json` | The file holds `{"committed":7,"sending":[]}` | `read` | `stored_json_invalid`, Permanent. |
 
 Scenarios: S1 run 1 (`committed` 1) and run 2 (`committed` 2). S6 run 1 commits with rejected writes. S7 run 2 leaves `committed` 1 and `sending` [2]; S7 run 3 commits with `resent` [2] and leaves `sending` empty. The stage 4 case "`committed` differs from `DiffOutput::base`" is `mark_sending_base_moved`.
 
@@ -1453,13 +1442,13 @@ Scenarios: S1 run 1 (`committed` 1) and run 2 (`committed` 2). S6 run 1 commits 
 | `start_changed_request` | Run a1 started | One case each: the definition `connector: aviation\n\n`; `resend_all: true`; the namespace `other`; another actor; `allow_mass_archive: true`; `Reconcile` | `request_mismatch`, `Permanent` |
 | `start_restore_run` | Run a1 started with `MINIMAL` | `Restore { target: Some(a1) }` as run a2 | `operation` `Restore { target: Some(a1) }`, `definition` `Some(MINIMAL)`, `namespace` `aviation` |
 | `start_restore_missing_target` | Empty storage | `Restore { target: Some(a9) }` as run a2 | `target_missing`, `Permanent` |
-| `start_restore_empty` | Run a1 started and `commit(a1, None, &[])` called | `Restore { target: None }` as run a2 | `definition` `None`, `namespace` `aviation` |
+| `start_restore_empty` | Run a1 started and `mark_sending(a1, None, &[])` then `commit(a1, None, &[])` called | `Restore { target: None }` as run a2 | `definition` `None`, `namespace` `aviation` |
 | `start_restore_empty_uncommitted` | Empty storage | `Restore { target: None }` as run a2 | `definition` `None`, `namespace` empty |
 | `start_restore_of_empty` | The state after `start_restore_empty` | `Restore { target: Some(a2) }` as run a3 | `operation` `Restore { target: Some(a2) }`, `definition` `None`, `namespace` `aviation` |
 | `start_reconcile` | Run a1 started and committed | `Reconcile` as run a2 | `operation` `Reconcile { target: a1 }`, `definition` `Some(MINIMAL)`, `namespace` `aviation` |
 | `start_reconcile_uncommitted` | Empty storage | `Reconcile` as run a2 | `nothing_committed`, `Permanent` |
-| `start_reconcile_after_commit` | The state after `start_reconcile`, then `commit(a2, Some(a1), &[])` | `Reconcile` as run a2 again | `operation` is still `Reconcile { target: a1 }`. |
-| `start_committed_without_input` | `commit(a7, None, &[])` called, no input for a7 | `Reconcile` as run a2 | `target_missing`, `Permanent` |
+| `start_reconcile_after_commit` | The state after `start_reconcile`, then `mark_sending(a2, Some(a1), &[])` and `commit(a2, Some(a1), &[])` | `Reconcile` as run a2 again | `operation` is still `Reconcile { target: a1 }`. |
+| `start_committed_without_input` | `mark_sending(a7, None, &[])` then `commit(a7, None, &[])` called, no input for a7 | `Reconcile` as run a2 | `target_missing`, `Permanent` |
 
 Tests of `RunInput::parse_definition`, in the same file. Each builds a `RunInput` by hand:
 

@@ -4,7 +4,11 @@ The monorepo tickets plan to port the labs integration pipeline as it is: a stor
 
 Nothing described here is implemented. This file is the entry point for the specs that follow. It records the goal, the architecture, what the review of labs and the monorepo found, which decisions are made, which are open, and how the specs will be written.
 
-Review update: CR-1 and CR-3 from [`05-change-requests.md`](05-change-requests.md) are applied to the contracts and affected specs. Writes are ordered by operation, first request, target and entity ID. Repeated computations preserve schemas and ordered rows, including exact request JSON, without requiring identical Parquet bytes. Memory bounds and blocking-IO safeguards remain. CR-2, CR-4, CR-5 and CR-6 remain deferred; readers still use ranges and UUID generation stays in Rust. CR-7 and CR-8 are recorded as limits with their code changes deferred under D17 and D18.
+Review update: CR-1 and CR-3 from [`05-change-requests.md`](05-change-requests.md) are applied to the contracts and affected specs. Writes are ordered by operation, first request, target and entity ID. Repeated computations preserve schemas and ordered rows, including exact request JSON, without requiring identical Parquet bytes. Memory bounds and blocking-IO safeguards remain. CR-7 is now addressed by shared export-side decimal validation. Recovery safety uses conditional current-state updates and a check before each Graph attempt. Readers still use ranges and UUID generation stays in Rust. CR-2, CR-4, CR-5 and CR-6 remain deferred. CR-8 remains a recorded limit with its check deferred under D18. Other findings are tracked in `06-review-findings.md`.
+
+Implementation follows [04-implementation-workflow.md](04-implementation-workflow.md): one coordinator owns the completion goal and assigns builder/reviewer subagents sequentially, starting with shared foundations and then stages 1–4. Each accepted milestone is committed before the next starts. Stage and step contracts stay fixed, private decomposition is flexible, and high-value behavioral tests come first. [RUST_DESIGN_GUIDELINES.md](RUST_DESIGN_GUIDELINES.md) is included beside the specs so every implementation agent reads the same guidance.
+
+The replacement will be built in one new Rust crate on a new implementation branch. Existing implementation sources remain unchanged and serve as references alongside labs. The workflow's placement rule overrides the earlier specs' instructions to modify the existing engine crate; production caller migration is outside the implementation goal.
 
 ## Documents
 
@@ -15,6 +19,9 @@ Review update: CR-1 and CR-3 from [`05-change-requests.md`](05-change-requests.m
 | `02-reference-inventory.md` | Per stage: what each stage takes from labs and the monorepo, and what is new. | Draft for review |
 | `reference/monorepo.md`, `reference/labs.md` | The existing code and tests in detail: signatures, rules, expected values, recommendations. | Collected from the code |
 | `03-scenarios.md` | The multi-run test scenarios and their expected checkpoint contents. | Draft for review |
+| `04-implementation-workflow.md` | Contract boundaries, private implementation freedom, ownership and initial test gates. | Agreed workflow |
+| `RUST_DESIGN_GUIDELINES.md` | Concrete Rust, focused modules and few abstractions. | User guidelines |
+| `06-review-findings.md` | Addressed and deferred findings from the review. | Tracked |
 | `shared-run.md` | The shared `run` module: types, error codes, markers, tables, `current.json`, `start`, the runner, the entry points. | Draft for review |
 | `stage-1-capture.md` | Stage 1. | Draft for review |
 | `stage-2-rows.md` | Stage 2, steps 2 and 3: running the definition, hashes, entity IDs. | Draft for review |
@@ -276,7 +283,6 @@ Each item states what the first version does and what has to happen before the i
 | D6 | Sources with `coverage: partial`. Rows that were not read have a hash and no values. | Sinks fed by a partial source archive nothing. Reconcile and restore resend only the rows that were read. | The first source declared partial. |
 | D7 | Per-property provenance (H-6831). Values that are the same in every run are compatible with this design. A value that changes per run would make every resend create an edition. | The planner writes none. | H-6831. |
 | D8 | A progress counter for the send stage. | A restarted send stage sends every batch again. | A restart of the send stage takes too long. |
-| D9 | The conditional overwrite of `current.json`. `object_store` supports it for S3 and returns `NotImplemented` for the local file system. | The contracts state the condition. The implementation belongs to the coordination work. | The coordination work. |
 | D10 | Retention. The committed run, every run listed in `current.json`, and every run that should stay restorable must be kept. | Nothing is deleted. | BE-944. |
 | D11 | Fair scheduling across integrations (BE-1114, BE-1110). | All workers share one rate limit. | One integration starves others. |
 | D12 | Step SQL that calls `now()`, `random()` or `uuid()`. A column mapped from such a value changes its hash on every run, so every row is sent on every run. A restore or reconcile recomputes such a column with the value of the day it runs. | Allowed. | A definition check that warns is wanted. |
@@ -284,8 +290,11 @@ Each item states what the first version does and what has to happen before the i
 | D14 | A limit on rejected writes. A Graph that answers 500 to every write rejects every write, the run commits, and the next run sends them all again (P2, C3). | Each repeated 500 waits before the next attempt. There is no limit. | The first production integration. |
 | D15 | A REST read that stops at `maxPages` counts as a full read. With `coverage: complete` the entities past the page limit are archived, or the run fails with `archive_limit`. | As in labs. A definition check that requires `coverage: partial` together with `maxPages` does not exist. | The first REST source with `maxPages` in production. |
 | D16 | Errors that hide their cause. `SourceError::Postgres` covers a wrong password and a failed connection, and `StatementError::Failed` covers a memory limit and an IO error. | Each is mapped to retryable, so a permanent fault is retried until the retry policy ends. | A source error variant per cause is added. |
-| D17 | A `HUGEINT` column, which a `SUM` over integers produces, has no Parquet type. It comes back from a `changes` file as `DECIMAL(38,0)`, and a value with more than 38 digits fails the load. | The contracts state the type change. No cast and no check exist. A 39-digit value fails the run with a data error. | A source has integers above 10^38, or the planner has to tell a 128-bit integer from a decimal. |
 | D18 | The Graph rounds a number with more than about 15 significant digits. The stored value then differs from the source, and nothing reports it. A resend of such a value wrote a new edition at store level. | The pipeline sends the number as it is. A definition should map such a column as text. The test against a real Graph records whether a resend over HTTP keeps the edition. | A customer needs exact long numbers, or the test shows a new edition on every resend. The fix is a check in stage 3 that leaves the property out and writes an issue (`05-change-requests.md`, CR-8). |
+
+`D9` is no longer deferred: `shared-run.md` specifies conditional updates on S3 and a locked atomic compare-and-replace on local storage. `mark_sending`, every Graph attempt, and commit validate current sending authority. These are implementation requirements, not completed runtime work.
+
+`D17` is no longer deferred: shared export validation rejects out-of-range decimal values before publication and specifies the `HUGEINT` to `DECIMAL(38,0)` boundary. CR-7 records the replacement for the earlier cast proposal. This is an implementation requirement, not completed runtime work.
 
 ## Later: sources that send only changes
 
@@ -331,20 +340,20 @@ The expected output of one stage is the input fixture of the next. Stage tests a
 
 ### Pass 2: one spec per stage
 
-Each stage spec is written by one subagent that owns one file. Stage 2 is the largest and is split between two: staging, SQL, hash and entity ID in one, the diff, the guards and links in the other. Stage 1 is mostly existing code.
+This pass describes how the specifications were authored, not the implementation schedule. Each stage spec is written by one subagent that owns one file. Stage 2 is the largest and is split between two: staging, SQL, hash and entity ID in one, the diff, the guards and links in the other. Stage 1 is mostly existing code. Implementation instead follows the sequential builder/reviewer milestones in `04-implementation-workflow.md`.
 
 A stage spec contains:
 
 - the purpose of the stage and of each step;
 - the modules and files, with what each one holds;
 - the types, with fields;
-- each function with its signature and pseudocode;
+- mandatory stage and step interfaces, plus suggested private functions and pseudocode as orientation;
 - the errors each function returns and their kind;
 - the code it reuses, by path and function name, taken from the inventory;
-- the tests: the scenarios it covers, and unit tests for each function;
+- the tests: high-value behavior and seam cases first, with further candidates recorded for later coverage;
 - the questions it could not settle.
 
-A subagent reads this file, the contracts, the inventory and the scenarios. It does not change a contract. When a contract does not fit, it reports the problem and the change it needs.
+A subagent reads this file, the contracts, the inventory, the scenarios, the implementation workflow and the Rust design guidelines. It may merge or remove private helpers and adjust internal layout without approval when behavior and boundaries stay intact. It does not change a stage, step or shared contract. When a contract does not fit, it reports the problem and the change it needs.
 
 ### Pass 3: one pass over all specs
 
@@ -352,7 +361,7 @@ One reader checks that the specs use the same names and types, that every contra
 
 ### Open points for pass 3
 
-The six specs agree with the contracts. These points are left for the pass over all specs:
+The remaining review points below and `06-review-findings.md` are recorded explicitly; the private sketches are not a claim that every interface is ready to copy unchanged:
 
 - **Error codes of lower frames.** The shared mapping functions take a report of their own error type. A `SourceError` holds those types as lower frames, so `stage-1-capture.md` repeats some mapping rows. `shared-run.md` should offer one function that returns the code of a frame.
 - **`TargetRows` and `_key`.** `TargetRows` does not say whether a target's table has a `_key` column, so `stage-2-diff.md` asks the workspace for each `changes` file. A `has_key` field would remove that.
@@ -362,7 +371,7 @@ The six specs agree with the contracts. These points are left for the pass over 
 
 ### Code rules for the specs
 
-- One module per stage. Code that two stages use lives in one shared module.
+- One module per stage. Code that two stages use has one shared owner. Private child modules and functions may be combined or reorganized under the Rust design guidelines.
 - A trait is added only when two implementations exist.
 - Concrete types are preferred over generic parameters.
 - No new macros.
@@ -380,10 +389,10 @@ The six specs agree with the contracts. These points are left for the pass over 
 
 **Now**
 
-- Review of the six specs.
+- Implement from the clarified contracts and workflow; the deferred findings remain recorded.
 
 **Later**
 
-- The pass over all specs.
+- Establish executable shared fixtures and the initial acceptance suite before independent stages are declared complete.
 - Implementation from the specs.
 - Changes to the tickets BE-1108, BE-1111, BE-1112, BE-1115 to BE-1120, BE-1137 and BE-1153 to BE-1155. No ticket has changed yet.

@@ -1,0 +1,18 @@
+# Pipeline review findings
+
+Reviewed against the approved simplification revision and the Rust design guidelines. F1 and F2 are addressed in the specs in this pass; implementation and runtime verification are still required. The user accepted deferring F3–F8. Deferral preserves the current behavior and does not assert that the concern is resolved.
+
+| ID | Finding | Status and next action |
+| --- | --- | --- |
+| F1 | Recovery safety: unconditional current-state updates and no check after sender entry | Specified now: S3/local conditional updates, revalidation on contention, newest-sender checks before each Graph attempt, conditional commit and lost-response recovery. The in-flight-call race remains explicit and requires reconcile. See `01-contracts.md`, `shared-run.md` 4.4/4.8, and `stage-4-send.md` 4.1–4.5. |
+| F2 | Producer/consumer schema mismatch: reserved accessor names and invalid 128-bit decimal exports | Specified now: reject reserved property inputs while retaining engine metadata; validate export decimal ranges before publication, including nested decimals; signed HUGEINT loads as DECIMAL(38,0); unsupported unsigned logical types require an explicit definition cast. See `stage-2-rows.md` and `shared-run.md`, "Checkpoint decimal validation". |
+| F3 | Numeric evidence: the direct-store experiment does not establish repeated editions for the serialized pipeline path | Deferred. The planner serializes Real through f64 before HTTP, so precision loss is real but CR-8's repeated-edition claim needs a planned-body HTTP replay test. Choose the numeric policy from that evidence; do not treat the recorded store-level result as a full transport test. |
+| F4 | Coverage protection excludes resend-set IDs; REST maxPages can look complete | Deferred. Absent resend-set IDs are archived even for protected targets, unlike the original partial-source recovery proposal. Add explicit mixed coverage/recovery cases and decide the supported v1 input envelope. D6/D15 remain. |
+| F5 | Type-version replacement archives count toward the mass-archive guard | Deferred. The original proposal excluded them; the current contract requires an override when they exceed the threshold. Decide whether that is intended and add an above-threshold version-bump case. |
+| F6 | A shared global rate cap is promised but only a future hook is specified | Deferred. D11 says workers share one cap, while `pace` currently only honors Retry-After. Specify the global bucket integration separately from fair scheduling. |
+| F7 | Stage 4's rejection writer can do blocking IO on the async executor | Deferred. `Tally::record` pushes RowFile synchronously, unlike the shared blocking-IO rule. Give large rejection output a bounded blocking flush and a volume test. The general resource rule remains mandatory; this sketch has not yet been corrected. |
+| F8 | Stage 1 calls a private shared error classifier and duplicates mappings | Deferred. Settle the shared classifier API and visibility before independent stage implementations rely on it. This pass only adds the InvalidData classification needed by F2; it does not redesign the remaining error mapping. |
+
+The later workflow decision is applied in [04-implementation-workflow.md](04-implementation-workflow.md): private functions/layouts are orientation, stage and step contracts remain mandatory, and high-value behavioral tests form the initial acceptance set. The full stage test catalogs are candidates for additional coverage, not implementation quotas.
+
+Historical verification output in `verification/results.md` is retained as observed. It is not evidence that the new concurrency or export validation has been implemented or run.
