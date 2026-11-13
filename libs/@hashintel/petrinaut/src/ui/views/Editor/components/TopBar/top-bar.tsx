@@ -8,6 +8,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   EditorContext,
   type EditorState,
@@ -93,6 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     use(EditorContext);
   const undoRedo = use(UndoRedoContext);
   const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const { compositionOnly } = use(CompositionContext);
 
   return (
     <div className={topBarStyle}>
@@ -151,12 +153,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
       </div>
 
-      {/* Center section - mode switcher */}
-      <ModeSelector
-        actualModeAvailable={actualModeAvailable}
-        mode={mode}
-        onChange={onModeChange}
-      />
+      {/* Center section - mode switcher. An editor that only composes has one mode. */}
+      {compositionOnly ? null : (
+        <ModeSelector
+          actualModeAvailable={actualModeAvailable}
+          mode={mode}
+          onChange={onModeChange}
+        />
+      )}
 
       <div className={rightSectionStyle}>
         <RunningExperimentsPopover

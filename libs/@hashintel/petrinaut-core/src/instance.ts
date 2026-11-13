@@ -106,6 +106,9 @@ export type Petrinaut = {
   /** The same for a command: `commands` throw the same sentence. */
   commandRefusal(this: void, name: CommandName, input: unknown): string | null;
 
+  /** Whether the instance only composes: see `CreatePetrinautConfig`. */
+  readonly compositionOnly: boolean;
+
   dispose(this: void): void;
 };
 
@@ -118,6 +121,12 @@ export type CreatePetrinautConfig = {
    * `createPetrinaut` throws on one that does not.
    */
   components?: readonly ProvidedComponent[];
+  /**
+   * Keeps the instance to composing `components`: placing instances of them
+   * in the root net, wiring ports with fusions, and arranging the canvas.
+   * Every other mutation throws, and so does a paste.
+   */
+  compositionOnly?: boolean;
 };
 
 function createDefinitionStore(
@@ -229,9 +238,15 @@ function createPatchStream(handle: PetrinautDocHandle): {
 }
 
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
-  const { document: handle, readonly = false, components = [] } = config;
+  const {
+    document: handle,
+    readonly = false,
+    components = [],
+    compositionOnly = false,
+  } = config;
   const hostRules: HostRules = {
     provided: resolveProvidedComponents(components),
+    compositionOnly,
   };
   const handleCapabilities = resolvePetrinautHandleCapabilities(
     handle.capabilities,
@@ -295,6 +310,7 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     providedInterfaces: hostRules.provided,
     mutationRefusal: (name, input) => mutationRefusal(hostRules, name, input),
     commandRefusal: (name, input) => commandRefusal(hostRules, name, input),
+    compositionOnly,
     dispose() {
       for (const dispose of disposers) {
         dispose();

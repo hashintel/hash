@@ -61,3 +61,9 @@ An application that embeds Petrinaut can provide components of its own. They are
 A provided component is a signature: ports and parameters, with no net behind it to open. It is not in the Nets panel, and an instance's properties say that the application provides it. Wire its ports as any others, with fusions and with arcs, and set its parameters on the instance.
 
 What a provided component does is up to the application, so the document holds no net to run for it: simulating a net that uses one stops with an error saying the instance has no implementation. To run it in the editor, give the component an implementation as for any interface: a subnet that ticks it under **Implements**, chosen on the instance.
+
+### Composing only
+
+An application can set Petrinaut up to compose its components and nothing else. The editor then shows the canvas, the **Components** panel and the **Diagnostics** tab. It has no tools that draw places or transitions, no Nets panel, no Definitions view and no simulator.
+
+What is left is composing: place instances, name them and set their parameters, fuse their ports by dragging from one pin to another, move or detach the ends of a fusion's line, delete instances and fusions, and arrange the canvas. Anything else, a paste included, is refused with a notice.

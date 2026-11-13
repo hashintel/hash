@@ -42,7 +42,7 @@ const Passthrough = ({ children }: { children: ReactNode }) => children;
 /**
  * Renders `view` as the editor view beside `plugins`, under the editor's
  * providers over a new document, read-only with `readonly`, with the host's
- * `components`; `Around` wraps the
+ * `components` and composing only with `compositionOnly`; `Around` wraps the
  * plugins provider inside them, and `navigation` makes the host own
  * navigation. `rerender` keeps the core instance unless given another.
  */
@@ -54,6 +54,7 @@ export const renderPlugins = (
     navigation,
     readonly = false,
     components,
+    compositionOnly,
     Around = Passthrough,
     ...options
   }: RenderOptions & {
@@ -61,6 +62,7 @@ export const renderPlugins = (
     navigation?: PetrinautNavigationController;
     readonly?: boolean;
     components?: readonly ProvidedComponent[];
+    compositionOnly?: boolean;
     Around?: ComponentType<{ children: ReactNode }>;
   } = {},
 ) => {
@@ -68,6 +70,7 @@ export const renderPlugins = (
     document: createJsonDocHandle({ initial: emptyNet }),
     readonly,
     components,
+    compositionOnly,
   });
   const tree = (
     nextPlugins: readonly PetrinautPlugin[],

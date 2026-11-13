@@ -33,6 +33,7 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
+import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -214,6 +215,7 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const { compositionOnly } = use(CompositionContext);
   const assistant = useEditorAssistant();
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
@@ -595,7 +597,9 @@ const EditorViewContent = ({
             <SimulateView />
           ) : (
             <div className={workspaceStyle}>
-              {globalMode === "edit" && <EditViewSelector />}
+              {globalMode === "edit" && !compositionOnly && (
+                <EditViewSelector />
+              )}
               <Activity
                 mode={
                   globalMode === "actual" || editViewMode === "canvas"

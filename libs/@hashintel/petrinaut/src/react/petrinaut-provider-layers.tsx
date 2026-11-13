@@ -38,7 +38,12 @@ export const PetrinautDocumentProvider: React.FC<
 
   const document = (
     <UserSettingsProvider>
-      <CompositionContext value={{ provided: instance.providedInterfaces }}>
+      <CompositionContext
+        value={{
+          provided: instance.providedInterfaces,
+          compositionOnly: instance.compositionOnly,
+        }}
+      >
         <SDCPNProvider>{children}</SDCPNProvider>
       </CompositionContext>
     </UserSettingsProvider>

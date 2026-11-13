@@ -48,7 +48,7 @@ beforeEach(() => {
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <SDCPNContext value={{ ...use(SDCPNContext), readonly: editor.readonly }}>
-    <CompositionContext value={{ provided }}>
+    <CompositionContext value={{ provided, compositionOnly: false }}>
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),

@@ -5,7 +5,9 @@ import {
   usePetrinautCommands,
 } from "../../../../../react";
 import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
+import { PetrinautInstanceContext } from "../../../../../react/instance-context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
@@ -44,7 +46,10 @@ export function useKeyboardShortcuts(
   const { petriNetId } = use(SDCPNContext);
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
+  const petrinaut = use(PetrinautInstanceContext);
   const isReadonly = useIsReadOnly();
+  // An editor that only composes has no place or transition to add.
+  const { compositionOnly } = use(CompositionContext);
   // Undo stays available in Simulate mode, as the palette's Undo is: only a
   // read-only document has nothing to undo.
   const undoBlocked = useReadOnlyReason()?.kind === "host-readonly";
@@ -173,8 +178,15 @@ export function useKeyboardShortcuts(
         notifyReadOnly();
         return;
       }
-      deleteItemsByIds({ items: Array.from(selection.values()) });
-      clearSelection();
+      const items = Array.from(selection.values());
+      deleteItemsByIds({ items });
+      // What the host's rules refuse stays in the document, and selected.
+      if (
+        (petrinaut?.mutationRefusal("deleteItemsByIds", { items }) ?? null) ===
+        null
+      ) {
+        clearSelection();
+      }
       return;
     }
 
@@ -202,6 +214,9 @@ export function useKeyboardShortcuts(
         onEditionModeChange("cursor");
         break;
       case "n":
+        if (compositionOnly) {
+          break;
+        }
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
@@ -211,6 +226,9 @@ export function useKeyboardShortcuts(
         }
         break;
       case "t":
+        if (compositionOnly) {
+          break;
+        }
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();

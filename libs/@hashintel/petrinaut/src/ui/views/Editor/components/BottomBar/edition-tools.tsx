@@ -67,29 +67,20 @@ const ComponentDropdown: React.FC<{
   );
 };
 
-/**
- * The tools that add nodes to the net. Nothing to offer on a read-only net,
- * where every one of them is refused.
- */
-export const EditionTools: React.FC<{
+type EditionToolsProps = {
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
-}> = ({ editionMode, onEditionModeChange }) => {
-  const isReadOnly = useIsReadOnly();
-  const { activeSubnetId } = use(ActiveNetContext);
-  const isRootNet = activeSubnetId === null;
-  const { extensions } = use(SDCPNContext);
-  const { provided } = use(CompositionContext);
-  const { enableNetComponents, enableExperimentalIconPack } =
-    use(UserSettingsContext);
+};
 
-  if (isReadOnly) {
-    return null;
-  }
+/** The tools that draw a net: a place, a transition. */
+const DrawingTools: React.FC<EditionToolsProps> = ({
+  editionMode,
+  onEditionModeChange,
+}) => {
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
 
   return (
     <>
-      <ToolbarDivider />
       <ToolbarButton
         tooltip="Add Place"
         shortcut="n"
@@ -142,11 +133,36 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet &&
-        extensions.subnets &&
-        (enableNetComponents || provided.size > 0) && (
-          <ComponentDropdown editionMode={editionMode} />
-        )}
+    </>
+  );
+};
+
+/**
+ * The tools that add nodes to the net. Nothing to offer on a read-only net,
+ * where every one of them is refused, and components alone in an editor
+ * that only composes.
+ */
+export const EditionTools: React.FC<EditionToolsProps> = (tools) => {
+  const { editionMode } = tools;
+  const isReadOnly = useIsReadOnly();
+  const { activeSubnetId } = use(ActiveNetContext);
+  const { extensions } = use(SDCPNContext);
+  const { provided, compositionOnly } = use(CompositionContext);
+  const { enableNetComponents } = use(UserSettingsContext);
+  const offersComponents =
+    activeSubnetId === null &&
+    extensions.subnets &&
+    (enableNetComponents || provided.size > 0);
+
+  if (isReadOnly || (compositionOnly && !offersComponents)) {
+    return null;
+  }
+
+  return (
+    <>
+      <ToolbarDivider />
+      {compositionOnly ? null : <DrawingTools {...tools} />}
+      {offersComponents && <ComponentDropdown editionMode={editionMode} />}
     </>
   );
 };

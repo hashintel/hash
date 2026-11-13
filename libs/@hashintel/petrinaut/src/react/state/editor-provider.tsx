@@ -8,6 +8,7 @@ import {
   usePetrinautNavigation,
 } from "../navigation";
 import { resolveNavigatedItems } from "../navigation/resolve-navigated-ids";
+import { CompositionContext } from "./composition-context";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -46,6 +47,7 @@ const raiseVisualizer = (state: EditorState, placeId: string): EditorState =>
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
+  const { compositionOnly } = use(CompositionContext);
   const actualMode = use(ActualModeContext);
   const navigation = usePetrinautNavigation();
   const { getItemType, petriNetDefinition } = use(SDCPNContext);
@@ -628,8 +630,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const selection = selectionFromNavigation(resolved.selection);
   const effectiveState: EditorState = {
     ...state,
-    globalMode: navigation.state.mode,
-    editViewMode: navigation.state.editView,
+    // An editor that only composes has one mode and one view of it.
+    globalMode: compositionOnly ? "edit" : navigation.state.mode,
+    editViewMode: compositionOnly ? "canvas" : navigation.state.editView,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       resolved.simulateResource,

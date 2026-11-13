@@ -499,11 +499,13 @@ const HandleSpikeRender = ({
   initial,
   initialTitle,
   components,
+  compositionOnly,
 }: {
   capabilities?: PetrinautHandleCapabilities;
   initial: SDCPN;
   initialTitle: string;
   components?: readonly ProvidedComponent[];
+  compositionOnly?: boolean;
 }) => {
   const handle = useMemo(
     () => createJsonDocHandle({ id: "spike-net", initial, capabilities }),
@@ -530,6 +532,7 @@ const HandleSpikeRender = ({
         setTitle={setTitle}
         hideNetManagementControls="all"
         components={components}
+        compositionOnly={compositionOnly}
       />
       <pre
         style={{
@@ -1074,6 +1077,19 @@ export const HostComponents: Story = {
       initial={emptySDCPN}
       initialTitle="Packing line"
       components={packingLineComponents}
+    />
+  ),
+};
+
+export const CompositionOnly: Story = {
+  name: "Composition only",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={emptySDCPN}
+      initialTitle="Packing line"
+      components={packingLineComponents}
+      compositionOnly
     />
   ),
 };

@@ -3,10 +3,13 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { noProvidedInterfaces } from "@hashintel/petrinaut-core";
+
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../../../../react/navigation";
+import { CompositionContext } from "../../../../react/state/composition-context";
 import { SimulationPanel } from "../panels/SimulateView/shared/simulation-panel";
 import { SimulationWorkspace } from "./simulation-workspace";
 
@@ -153,4 +156,32 @@ it("restores a tab's fullscreen resource directly and only animates presentation
   fireEvent.click(screen.getByRole("button", { name: "experiments" }));
   fireEvent.click(screen.getByRole("button", { name: "scenarios" }));
   expect(screen.queryByRole("region", { name: "Mars Orbit" })).toBeNull();
+});
+
+it("leaves an editor that only composes usable when its navigation says fullscreen Simulate", () => {
+  const view = (compositionOnly: boolean) =>
+    render(
+      <CompositionContext
+        value={{ provided: noProvidedInterfaces, compositionOnly }}
+      >
+        <PetrinautNavigationProvider
+          initialState={{
+            mode: "simulate",
+            simulatePresentation: "fullscreen",
+          }}
+        >
+          <SimulationWorkspace>
+            <p>Canvas</p>
+          </SimulationWorkspace>
+        </PetrinautNavigationProvider>
+      </CompositionContext>,
+    );
+  const inert = () => screen.getByText("Canvas").closest("[inert]") !== null;
+
+  view(false);
+  expect(inert()).toBe(true);
+  cleanup();
+
+  view(true);
+  expect(inert()).toBe(false);
 });
