@@ -364,12 +364,7 @@ export declare class Joint {}`,
             ),
           ),
         ).toStrictEqual([
-          // A name before a dot reads a value that has no namespace.
-          [
-            Option.some("Box"),
-            Option.some("Box-value"),
-            Option.some("Box-value"),
-          ],
+          [Option.some("Box"), Option.some("Box-value"), Option.some("Box")],
           // A namespace is documented with the type.
           [Option.some("Held"), Option.some("Held-value"), Option.some("Held")],
           [Option.some("Joint"), Option.some("Joint"), Option.some("Joint")],

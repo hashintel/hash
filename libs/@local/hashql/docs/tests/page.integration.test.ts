@@ -253,6 +253,35 @@ const thrownSections = (markdown: string): readonly (readonly string[])[] =>
 const namesPage = (reference: Reference.Reference): Reference.Written =>
   Reference.page(reference, "pkg.html");
 
+/** The `api-export` element of the export `name` on the names page. */
+const namedExport = (reference: Reference.Reference, name: string): Element =>
+  pipe(
+    Page.toHast(namesPage(reference)),
+    Result.getOrThrow,
+    elementsOf,
+    Array.findFirst(
+      (element) =>
+        element.tagName === "api-export" &&
+        propertyOf(element, "name") === name,
+    ),
+    Option.getOrThrow,
+  );
+
+/** Where each `Box` below the export `name` links, and the kind the link takes its colour from. */
+const boxLinks =
+  (reference: Reference.Reference) =>
+  (name: string): readonly (readonly Properties[string][])[] =>
+    pipe(
+      elementsOf(namedExport(reference, name)),
+      Array.filter(
+        (element) => element.tagName === "a" && textOf(element) === "Box",
+      ),
+      Array.map((element) => [
+        propertyOf(element, "href"),
+        propertyOf(element, "dataKind"),
+      ]),
+    );
+
 layer(
   Reference.layer({
     source,
@@ -572,29 +601,7 @@ export declare const Box: Box;
 /** Opens with {@link Box}. */
 export declare function open(box: Box, as: typeof Box): void;`,
       });
-      const page = namesPage(reference);
-      const links = (
-        name: string,
-      ): readonly (readonly Properties[string][])[] =>
-        pipe(
-          Page.toHast(page),
-          Result.getOrThrow,
-          elementsOf,
-          Array.findFirst(
-            (element) =>
-              element.tagName === "api-export" &&
-              propertyOf(element, "name") === name,
-          ),
-          Option.getOrThrow,
-          elementsOf,
-          Array.filter(
-            (element) => element.tagName === "a" && textOf(element) === "Box",
-          ),
-          Array.map((element) => [
-            propertyOf(element, "href"),
-            propertyOf(element, "dataKind"),
-          ]),
-        );
+      const links = boxLinks(reference);
       const type = ["#Box", "interface"];
       const value = ["#Box-value", "const"];
       expect([links("Box"), links("Box-value"), links("open")]).toStrictEqual([
@@ -605,6 +612,54 @@ export declare function open(box: Box, as: typeof Box): void;`,
         // The comment's link names the type, as the first parameter does, and the second reads the value.
         [type, type, value],
       ]);
+    }),
+  );
+
+  it.effect(
+    "links_before_dot",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const reference = yield* Reference.success({
+        source: `/** Type. */ export interface Box {}
+/** Value.
+ * @example
+ * \`\`\`ts
+ * import { Box } from "@scope/pkg";
+ * const made: Box.Inner = Box.make();
+ * \`\`\`
+ */
+export declare const Box: { make(): string };
+export declare namespace Box { type Inner = string; }
+/** Holds. */
+export declare function hold(inner: Box.Inner): void;
+/** Calls. */
+export declare function call(make: typeof Box.make): void;`,
+      });
+      const links = boxLinks(reference);
+      const type = ["#Box", "interface"];
+      const value = ["#Box-value", "const"];
+      expect([links("Box-value"), links("hold"), links("call")]).toStrictEqual([
+        // The constant's name, then its example: the import, the namespace of the type and the value it calls.
+        [value, value, type, value],
+        // In a type, the name before the dot is the namespace, which the type documents.
+        [type],
+        // After `typeof`, it is the value.
+        [value],
+      ]);
+
+      // What reads the value after `typeof` accepts the value.
+      expect(
+        pipe(
+          elementsOf(namedExport(reference, "Box-value")),
+          Array.filter(
+            (element) =>
+              element.tagName === "api-relation" &&
+              propertyOf(element, "relation") === "acceptedBy",
+          ),
+          Array.flatMap(elementChildren),
+          Array.map((row) => propertyOf(row, "href")),
+        ),
+      ).toStrictEqual(["#call"]);
     }),
   );
 
