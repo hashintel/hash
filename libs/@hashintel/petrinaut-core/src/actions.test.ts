@@ -1420,7 +1420,7 @@ describe("Petrinaut core fusion actions", () => {
         id: "f1",
         members: [buffer, port("m1", "missing")],
       }),
-    ).toThrow(/does not exist/);
+    ).toThrow(/Fusion references .* which does not exist/);
     expect(() =>
       instance.mutations.addFusion({
         id: "f1",

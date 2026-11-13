@@ -1,4 +1,4 @@
-import { getArcEndpoint } from "../../arc-endpoints";
+import { getArcEndpoint, getArcEndpointKey } from "../../arc-endpoints";
 import {
   applyFusions,
   type FusionGroup,
@@ -402,12 +402,23 @@ const flattenNet = ({
     });
   }
 
+  // A place or port in two fusions would chain them, and with them their
+  // anchors, into one place.
+  const fusedEndpoints = new Set<string>();
   for (const fusion of net.fusions ?? []) {
     const label = `\`${fusion.name ?? fusion.id}\``;
     if (fusionMemberIssues(fusion.members).multipleAnchors) {
       throw new Error(
         `Fusion ${label} holds more than one place of its net: they would become one place.`,
       );
+    }
+    for (const key of new Set(fusion.members.map(getArcEndpointKey))) {
+      if (fusedEndpoints.has(key)) {
+        throw new Error(
+          `Fusion ${label} shares a member with another fusion of its net: a place or port belongs to one fusion.`,
+        );
+      }
+      fusedEndpoints.add(key);
     }
     const placeIds = fusion.members.map((member) => {
       if (member.kind === "componentPort") {
@@ -453,6 +464,7 @@ export const flattenComponentInstancesForSimulation = ({
 
   if (
     (sdcpn.componentInstances ?? []).length === 0 &&
+    (sdcpn.fusions ?? []).length === 0 &&
     !hasRootComponentPortArcs
   ) {
     let hasNestedInstances = false;

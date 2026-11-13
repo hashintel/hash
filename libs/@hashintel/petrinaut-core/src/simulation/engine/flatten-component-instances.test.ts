@@ -630,6 +630,46 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
     );
   });
 
+  it("rejects a fusion of a net with no instance, which has nothing to take a shortcut past", () => {
+    const definition = sdcpn({
+      places: [place("first"), place("second")],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "first" },
+            { kind: "place", placeId: "second" },
+          ],
+        },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `f1` holds more than one place of its net/,
+    );
+  });
+
+  it("rejects two fusions of one net that share a member", () => {
+    const port = {
+      kind: "componentPort" as const,
+      componentInstanceId: "m1",
+      portPlaceId: "in",
+    };
+    const definition = sdcpn({
+      places: [place("first"), place("second")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        { id: "f1", members: [{ kind: "place", placeId: "first" }, port] },
+        { id: "f2", members: [{ kind: "place", placeId: "second" }, port] },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(
+      /Fusion `f2` shares a member with another fusion of its net/,
+    );
+  });
+
   it("keeps the name of an anchor inside a subnet, whatever its fusion is called", () => {
     const definition = sdcpn({
       componentInstances: [componentInstance("line", "line")],

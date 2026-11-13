@@ -252,6 +252,19 @@ describe("serializeSDCPN", () => {
     expect(parsed.ok).toBe(true);
   });
 
+  it("reads a fusion the editor would refuse, for the checks to report", () => {
+    const [first] = sourceDocument.fusions;
+    const parsed = parseSDCPNFile({
+      ...sourceDocument,
+      fusions: [{ ...first!, members: first!.members.slice(0, 1) }],
+    });
+
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    expect(parsed.sdcpn.fusions?.[0]?.members).toHaveLength(1);
+  });
+
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {
     const result = parseSDCPNDocument("places: [");
     expect(result.ok).toBe(false);

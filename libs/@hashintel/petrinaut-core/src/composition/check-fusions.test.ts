@@ -216,7 +216,10 @@ describe("checkFusions", () => {
     const sdcpn = net({
       places: [place("a"), place("b")],
       subnets: [subnet("machine", { places: [place("in", { isPort: true })] })],
-      componentInstances: [instance("m1", "machine")],
+      componentInstances: [
+        instance("m1", "machine"),
+        instance("m2", "machine"),
+      ],
       fusions: [
         {
           id: "f1",
@@ -227,7 +230,7 @@ describe("checkFusions", () => {
             partIn("m1"),
           ],
         },
-        { id: "f2", members: [partIn("m1")] },
+        { id: "f2", members: [partIn("m2")] },
       ],
     });
 
@@ -236,6 +239,53 @@ describe("checkFusions", () => {
         .filter(({ severity }) => severity === "error")
         .map(({ code }) => code),
     ).toEqual(["duplicate-member", "multiple-anchors", "too-few-members"]);
+  });
+
+  it("reports a place or port that two fusions of one net hold", () => {
+    const sdcpn = net({
+      places: [place("a"), place("b")],
+      subnets: [subnet("machine", { places: [place("in", { isPort: true })] })],
+      componentInstances: [instance("m1", "machine")],
+      fusions: [
+        { id: "f1", members: [{ kind: "place", placeId: "a" }, partIn("m1")] },
+        { id: "f2", members: [{ kind: "place", placeId: "b" }, partIn("m1")] },
+      ],
+    });
+
+    const shared = checkFusions(sdcpn).filter(
+      ({ code }) => code === "shared-member",
+    );
+    expect(
+      shared.map(({ fusionId, severity }) => [fusionId, severity]),
+    ).toEqual([
+      ["f1", "error"],
+      ["f2", "error"],
+    ]);
+    expect(shared[0]?.message).toBe(
+      "m1.in is in the fusion a and in another fusion of this net: a place or port belongs to one fusion.",
+    );
+  });
+
+  it("says a message is about a fusion, whatever names it", () => {
+    const sdcpn = net({
+      places: [place("a"), place("b")],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "a" },
+            { kind: "place", placeId: "b" },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      checkFusions(sdcpn).find(({ code }) => code === "multiple-anchors")
+        ?.message,
+    ).toBe(
+      "More than one place of this net is in the fusion a; fuse ports into one place instead.",
+    );
   });
 
   it("checks the fusions inside subnets, naming the subnet", () => {

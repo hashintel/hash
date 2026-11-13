@@ -386,6 +386,41 @@ test("query_basis finds an element inside a subnet and the call that added it th
   });
 });
 
+test("query_basis finds a fusion by its name or its ID, and never mistakes it for an arc", () => {
+  const readWithFusions = {
+    ...read,
+    output: {
+      brunchBrowserResult: true,
+      output: {
+        title: "Queue",
+        definition: {
+          ...definition,
+          fusions: [
+            { id: "belt", name: "Belt", members: [] },
+            { id: "unnamed", members: [] },
+          ],
+        },
+      },
+      metadata: { documentRevision: { before: "revision-2" } },
+    },
+  };
+  const history = {
+    ...snapshot,
+    messages: [user, { ...assistant, parts: [commit, add, readWithFusions] }],
+  } as FlueConversationSnapshot;
+  const find = (query: { kind: "fusion"; name?: string; id?: string }) =>
+    queryBasis({ snapshot: history, browser, query });
+
+  expect(find({ kind: "fusion", name: "Belt" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "belt" },
+  });
+  expect(find({ kind: "fusion", id: "unnamed" })).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "unnamed" },
+  });
+});
+
 test("query_basis answers from the read-back of a change made after the latest read", () => {
   const [queue] = definition.places;
   const dryer = { ...queue, id: "dryer", name: "Dryer" };
