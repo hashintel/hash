@@ -40,5 +40,15 @@ export {
   type NetElementAddress,
 } from "./ledger/construction/reflections";
 export { vOriginWith, vOrigin, vStatus } from "./ledger/shared/epistemics";
+export {
+  basisQueryReasons,
+  queryBasisToolDescription,
+  vBasisQueryInput,
+  type BasisQuerySelector,
+} from "./ledger/basis-query";
+export {
+  commitToolDescription,
+  compileToolDescription,
+} from "./ledger/tool-descriptions";
 export { traceLedger, type LedgerTrace } from "./ledger/trace";
 export * from "./ledger/projection";

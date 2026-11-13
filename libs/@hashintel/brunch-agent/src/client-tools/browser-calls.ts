@@ -57,3 +57,36 @@ export type BrowserCallResultBody = v.InferOutput<
 export type BrowserCallFailureBody = v.InferOutput<
   typeof vBrowserCallFailureBody
 >;
+
+/** What the model is told of a call that never started: it had no effect. */
+export const browserCallUnstartedRefusal =
+  "Browser call was not started; no document operation was invoked.";
+
+/** What the model is told of a call the browser refused because the document changed since the model's last view of the net. */
+export const browserCallStaleRefusal =
+  "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
+
+/**
+ * What the model is told of a started call that ended without a result: it
+ * failed in the browser, its lease expired, or it was stopped. `unchanged`
+ * says the call's tool cannot have changed the document when it fails.
+ */
+export const browserCallEndedWithoutResult = (
+  cause: "failed" | "expired" | "stopped",
+  unchanged: boolean,
+): string => {
+  switch (cause) {
+    case "failed":
+      return unchanged
+        ? "The non-mutating browser call failed; the document is unchanged."
+        : "The browser result failed; an attempted document effect is unknown.";
+    case "expired":
+      return unchanged
+        ? "Browser call lease expired; the document is unchanged."
+        : "Browser call lease expired; an attempted document effect is unknown.";
+    case "stopped":
+      return unchanged
+        ? "Browser call stopped; the document is unchanged."
+        : "Browser call stopped; an attempted document effect is unknown.";
+  }
+};

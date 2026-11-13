@@ -3,7 +3,12 @@ import { expect, test } from "vitest";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { hashPetrinautTools, hashProcessEditorId } from "./petrinaut-tools";
+import {
+  hashNoNetViewRefusal,
+  hashPetrinautTools,
+  hashProcessEditorId,
+  unknownEditorRefusal,
+} from "./petrinaut-tools";
 
 /** Catalogue operations the HASH agent drops for its per-kind tools. */
 const dropped = ["deleteItemsByIds", "commitNodePositions"];
@@ -241,4 +246,13 @@ test("petrinaut_create_experiment enforces cross-field experiment rules on its i
       execution: { mode: "simulate" },
     }),
   ).toThrow(/Metric IDs must be unique/u);
+});
+
+test("the refusals of a call that is not started are pinned", () => {
+  expect(unknownEditorRefusal("other-editor")).toMatchInlineSnapshot(
+    `"Not started: editor_id "other-editor" names no open editor; the open editor is "process-editor"."`,
+  );
+  expect(hashNoNetViewRefusal).toMatchInlineSnapshot(
+    `"Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (petrinaut_get_net), then make the change."`,
+  );
 });

@@ -26,6 +26,7 @@ import {
   brunchTools,
   canonicalContent,
   hashProcessEditorId,
+  hashSaveUnconfirmedNote,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -33,7 +34,6 @@ import {
   failBrowserCall,
   settleBrowserCall,
 } from "../../../shared/conversation/browser-call-rendezvous.ts";
-import { hashSaveUnconfirmedNote } from "./save-net.ts";
 
 // Only the Flue build packages skills; the save doesn't depend on their content.
 vi.mock("../skills/eliciting/SKILL.md", () => ({

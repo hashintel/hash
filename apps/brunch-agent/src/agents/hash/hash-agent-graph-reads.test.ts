@@ -24,6 +24,7 @@ import {
   type ClientToolResult,
   brunchTools,
   canonicalContent,
+  hashEntityReadEmptyNote,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
 
@@ -32,7 +33,6 @@ import {
   failBrowserCall,
   settleBrowserCall,
 } from "../../shared/conversation/browser-call-rendezvous.ts";
-import { hashEntityReadEmptyNote } from "./tools/hash-graph-reads.ts";
 
 // Only the Flue build packages skills; the read doesn't depend on their content.
 vi.mock("./skills/eliciting/SKILL.md", () => ({

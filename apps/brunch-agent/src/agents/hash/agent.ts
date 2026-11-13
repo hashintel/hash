@@ -21,6 +21,7 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolFacts,
   canonicalContent,
+  hashNoNetViewRefusal,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -46,10 +47,7 @@ import { useGuidance } from "./guidance.ts";
 import { createHashPetrinautSaveTool } from "./petrinaut/save-net.ts";
 import { withPetrinautVersionLoadNotes } from "./petrinaut/version-load-note.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
-import {
-  createHashPetrinautTools,
-  hashNoNetViewRefusal,
-} from "./tools/hash-petrinaut-tools.ts";
+import { createHashPetrinautTools } from "./tools/hash-petrinaut-tools.ts";
 
 import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 

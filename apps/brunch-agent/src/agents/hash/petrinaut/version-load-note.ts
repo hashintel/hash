@@ -2,13 +2,10 @@ import {
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type VersionLoad,
+  versionLoadNote,
 } from "@hashintel/brunch-agent";
 
 import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
-
-/** What the model reads on the turn after the user loaded another saved version. */
-export const versionLoadNote = ({ decisionTime }: VersionLoad): string =>
-  `Host note: The user loaded the version saved at ${decisionTime}; later saves build on it.`;
 
 const textsOf = (entry: ContextProjectionEntry): string[] => {
   const { message } = entry;

@@ -1,8 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
-  BROWSER_CALL_STALE_ERROR,
-  BROWSER_CALL_UNSTARTED_ERROR,
+  browserCallEndedWithoutResult,
+  browserCallStaleRefusal,
+  browserCallUnstartedRefusal,
+} from "@hashintel/brunch-agent";
+
+import {
   claimBrowserCall,
   failBrowserCall,
   issueBrowserCall,
@@ -159,7 +163,7 @@ it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted w
   };
   const stopped = issueBrowserCall(call);
   const stoppedRejection = expect(stopped).rejects.toThrow(
-    BROWSER_CALL_UNSTARTED_ERROR,
+    browserCallUnstartedRefusal,
   );
   controller.abort();
   await stoppedRejection;
@@ -173,7 +177,7 @@ it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted w
   };
   const expired = issueBrowserCall(expiredCall);
   const expiredRejection = expect(expired).rejects.toThrow(
-    BROWSER_CALL_UNSTARTED_ERROR,
+    browserCallUnstartedRefusal,
   );
   await vi.advanceTimersByTimeAsync(25_001);
   await expiredRejection;
@@ -190,9 +194,7 @@ it("a bound negative result marks an explicitly skipped sibling as unstarted", a
     verify,
   };
   const result = issueBrowserCall(call);
-  const rejection = expect(result).rejects.toThrow(
-    BROWSER_CALL_UNSTARTED_ERROR,
-  );
+  const rejection = expect(result).rejects.toThrow(browserCallUnstartedRefusal);
   const issued = claimBrowserCall(call);
   expect(
     failBrowserCall({
@@ -226,10 +228,10 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
   const sibling = { ...call, toolCallId: crypto.randomUUID() };
   const siblingResult = issueBrowserCall(sibling);
   const rejection = expect(result).rejects.toThrow(
-    "Browser call lease expired; the document is unchanged.",
+    browserCallEndedWithoutResult("expired", true),
   );
   const siblingRejection = expect(siblingResult).rejects.toThrow(
-    "Browser call lease expired; the document is unchanged.",
+    browserCallEndedWithoutResult("expired", true),
   );
   const issued = claimBrowserCall(call);
   const siblingIssued = claimBrowserCall(sibling);
@@ -268,7 +270,7 @@ it("a renewal keeps calls queued behind it on the same document claimable", asyn
   const queuedResult = issueBrowserCall(queued);
   const otherDocumentRejection = expect(
     issueBrowserCall(otherDocument),
-  ).rejects.toThrow(BROWSER_CALL_UNSTARTED_ERROR);
+  ).rejects.toThrow(browserCallUnstartedRefusal);
   const issued = claimBrowserCall(running);
   await vi.advanceTimersByTimeAsync(20_000);
   expect(renewBrowserCall({ ...running, capability: issued!.capability })).toBe(
@@ -305,7 +307,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   };
   const stoppedDraft = issueBrowserCall(draft);
   const stoppedRejection = expect(stoppedDraft).rejects.toThrow(
-    "Browser call stopped; the document is unchanged.",
+    browserCallEndedWithoutResult("stopped", true),
   );
   claimBrowserCall(draft);
   controller.abort();
@@ -319,7 +321,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   };
   const expiredWrite = issueBrowserCall(write);
   const expiredRejection = expect(expiredWrite).rejects.toThrow(
-    "Browser call lease expired; an attempted document effect is unknown.",
+    browserCallEndedWithoutResult("expired", false),
   );
   claimBrowserCall(write);
   await vi.advanceTimersByTimeAsync(25_001);
@@ -347,7 +349,7 @@ it("hands the browser the expected revision and reports a stale document without
       disposition: "stale",
     }),
   ).toBe(true);
-  await expect(result).rejects.toThrow(BROWSER_CALL_STALE_ERROR);
+  await expect(result).rejects.toThrow(browserCallStaleRefusal);
 });
 
 it("addresses a call only through the agent that issued it, even under the same instance and call ids", async () => {
