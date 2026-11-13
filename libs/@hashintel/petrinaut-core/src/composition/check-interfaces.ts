@@ -1,8 +1,9 @@
 /**
  * The checks on interfaces and their implementations: an interface has no
  * body, an implementation has every port and parameter its interfaces
- * declare with the same token type and a compatible direction, and every
- * instance of an interface has an implementation to run.
+ * declare with the same token type and a compatible direction, every
+ * instance of an interface has an implementation to run, and no component
+ * runs inside itself.
  */
 
 import { colorsStructurallyEqual } from "./check-fusions";
@@ -13,6 +14,7 @@ import {
   mapInterfaceParameters,
   mapInterfacePorts,
   resolveImplementation,
+  runningSubnet,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirection } from "./ports";
 
@@ -26,7 +28,8 @@ export type InterfaceProblemCode =
   | "port-direction-mismatch"
   | "missing-parameter"
   | "parameter-type-mismatch"
-  | "unbound-instance";
+  | "unbound-instance"
+  | "component-cycle";
 
 export type InterfaceProblem = {
   kind: "interface";
@@ -42,7 +45,8 @@ export type InterfaceProblem = {
   message: string;
 };
 
-const checkImplementation = (
+/** Where `implementation` falls short of what `iface` declares. */
+export const checkImplementation = (
   implementation: Subnet,
   iface: Subnet,
 ): InterfaceProblem[] => {
@@ -122,6 +126,30 @@ const checkImplementation = (
   return problems;
 };
 
+/** Whether `subnet` is `targetId`, or runs it through its instances and theirs. */
+const runs = (
+  sdcpn: SDCPN,
+  subnet: Subnet,
+  targetId: ID,
+  seen = new Set<ID>(),
+): boolean => {
+  if (subnet.id === targetId) {
+    return true;
+  }
+  if (seen.has(subnet.id)) {
+    return false;
+  }
+  seen.add(subnet.id);
+  return (subnet.componentInstances ?? []).some((instance) => {
+    const binding = resolveImplementation(sdcpn, instance);
+    return (
+      binding !== null &&
+      binding.kind !== "unbound" &&
+      runs(sdcpn, runningSubnet(binding).running, targetId, seen)
+    );
+  });
+};
+
 /** The problems with the document's interfaces, their implementations and the instances bound to them. */
 export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
@@ -162,15 +190,33 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
   for (const [netId, net] of nets) {
     for (const instance of net.componentInstances ?? []) {
       const binding = resolveImplementation(sdcpn, instance);
-      if (binding?.kind === "unbound") {
+      if (binding === null) {
+        continue;
+      }
+      const report = (code: InterfaceProblemCode, message: string) =>
         problems.push({
           kind: "interface",
           subnetId: netId,
           instanceId: instance.id,
-          code: "unbound-instance",
+          code,
           severity: "error",
-          message: describeUnboundInstance(binding, instance.name),
+          message,
         });
+      if (binding.kind === "unbound") {
+        report(
+          "unbound-instance",
+          describeUnboundInstance(binding, instance.name),
+        );
+        continue;
+      }
+      const { running } = runningSubnet(binding);
+      if (netId !== null && runs(sdcpn, running, netId)) {
+        report(
+          "component-cycle",
+          running.id === netId
+            ? `${instance.name} runs ${running.name} inside itself: a component cannot contain itself.`
+            : `${instance.name} runs ${running.name}, which holds this component in turn: a component cannot contain itself.`,
+        );
       }
     }
   }

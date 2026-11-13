@@ -3,12 +3,13 @@ import {
   applyFusions,
   type FusionGroup,
 } from "../../composition/apply-fusions";
+import { checkImplementation } from "../../composition/check-interfaces";
 import { fusionAnchor, fusionMemberIssues } from "../../composition/fusions";
 import {
   describeUnboundInstance,
-  mapInterfaceParameters,
-  mapInterfacePorts,
   resolveImplementation,
+  runningSubnet,
+  type RunningSubnet,
 } from "../../composition/interfaces";
 import { remapPlaceDynamics } from "../../place-dynamics";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
@@ -138,18 +139,10 @@ const netHasComponentPortArcs = (net: SDCPN | Subnet): boolean =>
   );
 
 /**
- * The subnet an instance declares, the one that runs for it, and the running
- * subnet's ids for the declared one's ports and parameters: identities for a
- * component, the name-matched ports and parameters of the bound
- * implementation for an instance of an interface.
+ * What runs for `instance`. Throws when nothing does, or when the bound
+ * implementation falls short of its interface: the kernels around the
+ * instance are compiled against the interface's ports.
  */
-type RunningSubnet = {
-  declared: Subnet;
-  running: Subnet;
-  portId: (declaredPortId: ID) => ID;
-  parameterId: (declaredParameterId: ID) => ID;
-};
-
 const resolveRunningSubnet = (
   ctx: FlattenContext,
   instance: ComponentInstance,
@@ -165,38 +158,18 @@ const resolveRunningSubnet = (
       `Component instance \`${instance.name}\` has no implementation to run: ${describeUnboundInstance(binding, instance.name)}`,
     );
   }
-  if (binding.kind === "component") {
-    const identity = (id: ID): ID => id;
-    return {
-      declared: binding.subnet,
-      running: binding.subnet,
-      portId: identity,
-      parameterId: identity,
-    };
+  if (binding.kind === "bound") {
+    const shortfall = checkImplementation(
+      binding.implementation,
+      binding.interface,
+    ).find(({ severity }) => severity === "error");
+    if (shortfall) {
+      throw new Error(
+        `Component instance \`${instance.name}\` cannot run \`${binding.implementation.name}\`: ${shortfall.message}`,
+      );
+    }
   }
-  const ports = mapInterfacePorts(binding.interface, binding.implementation);
-  const parameters = mapInterfaceParameters(
-    binding.interface,
-    binding.implementation,
-  );
-  return {
-    declared: binding.interface,
-    running: binding.implementation,
-    portId: (declaredPortId) => {
-      const target = ports.get(declaredPortId);
-      if (target === undefined) {
-        const port = binding.interface.places.find(
-          ({ id }) => id === declaredPortId,
-        );
-        throw new Error(
-          `Implementation \`${binding.implementation.name}\` of interface \`${binding.interface.name}\` has no port named \`${port?.name ?? declaredPortId}\`.`,
-        );
-      }
-      return target;
-    },
-    parameterId: (declaredParameterId) =>
-      parameters.get(declaredParameterId) ?? declaredParameterId,
-  };
+  return runningSubnet(binding);
 };
 
 /**
@@ -439,11 +412,12 @@ const flattenNet = ({
   for (const instance of net.componentInstances ?? []) {
     const { running, parameterId } = resolveRunningSubnet(ctx, instance);
     if (activeSubnetIds.includes(running.id)) {
+      const nameOf = (subnetId: ID) =>
+        ctx.source.subnets?.find(({ id }) => id === subnetId)?.name ?? subnetId;
       throw new Error(
-        `Component subnet cycle detected: ${[
-          ...activeSubnetIds,
-          running.id,
-        ].join(" -> ")}.`,
+        `Component subnet cycle detected: ${[...activeSubnetIds, running.id]
+          .map((subnetId) => `\`${nameOf(subnetId)}\``)
+          .join(" -> ")}.`,
       );
     }
     // The instance's values are keyed by the declared subnet's parameter ids;

@@ -12,7 +12,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   defaultImplementationId,
   describeUnboundInstance,
-  implementationsOf,
   isInterface,
   resolveImplementation,
   validateEntityName,
@@ -24,8 +23,10 @@ import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only
 import { DescriptionField } from "../../../../../../components/description-field";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
+import { hintTextStyle } from "../../../../../../constants/hint-text";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
+import { implementationItems } from "../../../implementation-items";
 import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -56,11 +57,6 @@ const paramFieldLabelStyle = css({
   },
 });
 
-const hintTextStyle = css({
-  fontSize: "xs",
-  color: "neutral.s85",
-});
-
 /**
  * Which implementation runs for an instance of an interface: the instance's
  * own choice, or the document's default.
@@ -85,20 +81,6 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
   const defaultName = subnetName(
     defaultImplementationId(petriNetDefinition, iface.id),
   );
-  const implementations = implementationsOf(petriNetDefinition, iface.id);
-  // A loaded document may name a subnet that does not implement the
-  // interface: it stays listed under its name until the choice changes.
-  const chosenElsewhere =
-    instance.implementation !== undefined &&
-    !implementations.some(({ id }) => id === instance.implementation)
-      ? [
-          {
-            value: instance.implementation,
-            text: subnetName(instance.implementation) ?? "Unknown subnet",
-          },
-        ]
-      : [];
-
   return (
     <Form.Field
       label="Implementation"
@@ -134,11 +116,11 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
                   ? "Document default (none)"
                   : `Document default (${defaultName})`,
             },
-            ...implementations.map(({ id, name }) => ({
-              value: id,
-              text: name,
-            })),
-            ...chosenElsewhere,
+            ...implementationItems(
+              petriNetDefinition,
+              iface.id,
+              instance.implementation,
+            ),
           ]}
         />
       </Tooltip>

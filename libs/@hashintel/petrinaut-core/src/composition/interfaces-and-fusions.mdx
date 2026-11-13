@@ -183,7 +183,7 @@ Place fusion is in. The other two are read against it.
 
 | Fusion     | Shares   | Members agree on                          | What it means for the model                        |
 | ---------- | -------- | ----------------------------------------- | -------------------------------------------------- |
-| Place      | state    | token type, capacity, equation            | one place; weights of colliding arcs add           |
+| Place      | state    | token type, capacity, equations           | one place; colliding arcs of one kind are refused  |
 | Transition | an event | at most one rate                          | one firing: all inputs taken, all outputs produced |
 | Arc        | a flow   | nothing: the outside decides kind, weight | an outer arc lands on an inner transition          |
 
@@ -197,12 +197,13 @@ inputs and producing every member's outputs. It is a rendezvous: a client's
 (modular Petri nets, Christensen and Petrucci; the synchronous product). In
 SDCPN the pieces compose like this:
 
-- **Arcs**: the union, weights adding where two members touch one flat place,
-  the rule place fusion already uses.
+- **Arcs**: the union, weights adding where two members touch one flat
+  place. Place fusion has no such rule: it refuses two arcs of one kind from
+  one transition onto one fused place.
 - **Predicates**: the conjunction.
 - **Rate**: at most one stochastic member; the others are predicate
   transitions. This is the active-and-passive rule stochastic process algebras
-  use, and it mirrors "at most one equation" on fused places. Combining two
+  use, and it mirrors fused places, whose members agree on their equations. Combining two
   rates has no memoryless answer, so a second rate is an error.
 - **Kernels**: each member's kernel runs on its own `input` object and its
   outputs merge; two members writing one fused place concatenate. Kernels are
@@ -258,7 +259,7 @@ drawable, which makes the containing net's wiring purely declarative.
 | With          | Place fusion                 | Transition fusion                | Arcs onto port transitions          |
 | ------------- | ---------------------------- | -------------------------------- | ----------------------------------- |
 | Typed tokens  | structural equality required | none                             | uncoloured, or unread by the kernel |
-| Dynamics      | one equation among members   | none                             | none                                |
+| Dynamics      | members agree on equations   | none                             | none                                |
 | Stochasticity | none                         | one rate among members           | none                                |
 | GPU           | not flattened yet            | needs composed kernels           | fine once flattened                 |
 | Checks        | in                           | one rate, membership, port marks | arc kind against the inner kernel   |

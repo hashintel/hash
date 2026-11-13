@@ -47,4 +47,4 @@ An instance of an interface runs an **implementation**:
 - The interface's options choose the **Default implementation** for the whole document.
 - An instance's properties choose an **Implementation** for that instance alone, or keep the document's default. The properties say which implementation the instance runs.
 
-Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it.
+Wire the net against the interface: arcs and fusions attach to the interface's ports and follow whichever implementation runs. An instance with nothing bound is an error, and the net does not run until an implementation is chosen for it. The net does not run either while the implementation that is bound falls short of its interface, or while a component holds an instance that runs that same component, directly or through others: both are listed under **Composition**.

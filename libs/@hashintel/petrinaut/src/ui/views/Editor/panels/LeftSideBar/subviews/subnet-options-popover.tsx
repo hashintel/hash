@@ -5,7 +5,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   defaultImplementationId,
   hasBody,
-  implementationsOf,
   implementsInterface,
   isInterface,
 } from "@hashintel/petrinaut-core";
@@ -13,6 +12,8 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { hintTextStyle } from "../../../../../constants/hint-text";
+import { implementationItems } from "../../implementation-items";
 
 import type { Subnet } from "@hashintel/petrinaut-core";
 
@@ -21,11 +22,6 @@ const bodyStyle = css({
   flexDirection: "column",
   gap: "3",
   width: "[260px]",
-});
-
-const hintStyle = css({
-  fontSize: "xs",
-  color: "neutral.s85",
 });
 
 const checkboxListStyle = css({
@@ -50,7 +46,12 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
   const interfaces = (petriNetDefinition.subnets ?? []).filter(
     (candidate) => isInterface(candidate) && candidate.id !== subnet.id,
   );
-  const implementations = implementationsOf(petriNetDefinition, subnet.id);
+  const defaultId = defaultImplementationId(petriNetDefinition, subnet.id);
+  const implementations = implementationItems(
+    petriNetDefinition,
+    subnet.id,
+    defaultId,
+  );
 
   return (
     <>
@@ -69,7 +70,7 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
             })
           }
         />
-        <div className={hintStyle}>
+        <div className={hintTextStyle}>
           {cannotBecomeOne
             ? "An interface is ports and parameters alone: remove the transitions and instances first."
             : "An interface is ports and parameters alone. Its instances run the implementation bound to them."}
@@ -80,9 +81,7 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
           <Select
             required
             size="sm"
-            value={
-              defaultImplementationId(petriNetDefinition, subnet.id) ?? "none"
-            }
+            value={defaultId ?? "none"}
             disabled={isReadOnly}
             onChange={(value) =>
               setImplementation({
@@ -98,10 +97,7 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
                     ? "None: no subnet implements this yet"
                     : "None",
               },
-              ...implementations.map((implementation) => ({
-                value: implementation.id,
-                text: implementation.name,
-              })),
+              ...implementations,
             ]}
           />
         </Form.Field>
@@ -130,7 +126,7 @@ const InterfaceOptions: React.FC<{ subnet: Subnet }> = ({ subnet }) => {
           </div>
         </Form.Field>
       ) : (
-        <div className={hintStyle}>
+        <div className={hintTextStyle}>
           Mark another subnet as an interface to implement it here.
         </div>
       )}

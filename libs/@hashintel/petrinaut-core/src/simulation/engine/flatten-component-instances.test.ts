@@ -424,7 +424,7 @@ describe("flattenComponentInstancesForSimulation", () => {
     });
 
     expect(() => flatten({ definition })).toThrow(
-      "Component subnet cycle detected: outer-subnet -> inner-subnet -> outer-subnet",
+      "Component subnet cycle detected: `outer-subnet` -> `inner-subnet` -> `outer-subnet`",
     );
   });
 
@@ -939,7 +939,51 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
       });
     });
 
-    it("throws when the implementation lacks the port an arc names", () => {
+    it("throws when the implementation's port holds another token type than the interface's", () => {
+      const colour = (id: string, type: "real" | "integer") => ({
+        id,
+        name: id,
+        iconSlug: "circle",
+        displayColor: "#000",
+        elements: [{ elementId: `${id}_x`, name: "x", type }],
+      });
+      const typed = (base: Subnet, colorId: string, type: "real" | "integer") =>
+        subnet(base.id, {
+          ...base,
+          types: [colour(colorId, type)],
+          places: base.places.map((port) => ({ ...port, colorId })),
+        });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [
+          typed(stage, "reals", "real"),
+          typed(implementation("fast"), "integers", "integer"),
+        ],
+        implementations: { stage: "fast" },
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `fast`: Port In of fast holds a different token type/,
+      );
+    });
+
+    it("throws when an implementation runs inside itself, naming the subnets", () => {
+      const nested = subnet("fast", {
+        ...implementation("fast"),
+        componentInstances: [componentInstance("again", "stage")],
+      });
+      const definition = sdcpn({
+        componentInstances: [componentInstance("s1", "stage")],
+        subnets: [stage, nested],
+        implementations: { stage: "fast" },
+      });
+
+      expect(() => flatten({ definition })).toThrow(
+        "Component subnet cycle detected: `fast` -> `fast`",
+      );
+    });
+
+    it("throws when the implementation lacks a port of the interface", () => {
       const partial = subnet("partial", {
         implements: ["stage"],
         places: [place("partial_in", { name: "In", isPort: true })],
@@ -966,7 +1010,9 @@ describe("flattenComponentInstancesForSimulation with fusions", () => {
         subnets: [stage, partial],
       });
 
-      expect(() => flatten({ definition })).toThrow(/has no port named `Out`/);
+      expect(() => flatten({ definition })).toThrow(
+        /`s1` cannot run `partial`: partial has no port named Out/,
+      );
     });
   });
 });

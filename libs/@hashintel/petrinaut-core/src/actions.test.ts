@@ -1670,6 +1670,106 @@ describe("Petrinaut core interface actions", () => {
     ).toThrow(/not an interface/);
   });
 
+  test("holds a default and an instance's choice to the one rule", () => {
+    const instance = createInstance({
+      ...withInterface(),
+      subnets: [
+        ...(withInterface().subnets ?? []),
+        stageSubnet("draft", { interface: true, implements: ["stage"] }),
+      ],
+    });
+
+    // An interface runs nothing, whatever it says it implements.
+    expect(() =>
+      instance.mutations.setImplementation({
+        interfaceId: "stage",
+        implementationId: "draft",
+      }),
+    ).toThrow(/which is an interface itself/);
+    expect(() =>
+      instance.mutations.updateComponentInstance({
+        instanceId: "s1",
+        update: { implementation: "draft" },
+      }),
+    ).toThrow(/which is an interface itself/);
+    // An instance of a component has nothing to choose.
+    expect(() =>
+      instance.mutations.addComponentInstance({
+        id: "o1",
+        name: "O1",
+        subnetId: "other",
+        implementation: "fast",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      }),
+    ).toThrow(/is not an interface/);
+  });
+
+  test("an instance pointed at another subnet lets go of its implementation", () => {
+    const instance = createInstance(withInterface());
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { implementation: "fast" },
+    });
+
+    instance.mutations.updateComponentInstance({
+      instanceId: "s1",
+      update: { subnetId: "other" },
+    });
+    expect(instance.definition.get().componentInstances?.[0]).toMatchObject({
+      subnetId: idOf("other"),
+    });
+    expect(
+      instance.definition.get().componentInstances?.[0],
+    ).not.toHaveProperty("implementation");
+  });
+
+  test("a change to one subnet leaves the defaults of the others as they are", () => {
+    const instance = createInstance({
+      ...withInterface(),
+      // Loaded as is: `other` does not say it implements the stage.
+      implementations: { stage: "other" },
+    });
+    const patches: unknown[] = [];
+    instance.handle.subscribe((event) =>
+      patches.push(...(event.patches ?? [])),
+    );
+
+    instance.mutations.updateSubnet({
+      subnetId: "slow",
+      update: { name: "Slower" },
+    });
+    expect(instance.definition.get().implementations).toEqual({
+      [idOf("stage")]: idOf("other"),
+    });
+    expect(JSON.stringify(patches)).not.toContain("implementations");
+
+    instance.mutations.setImplementation({
+      interfaceId: "stage",
+      implementationId: "fast",
+    });
+    expect(JSON.stringify(patches)).toContain(
+      JSON.stringify(["implementations", idOf("stage")]),
+    );
+  });
+
+  test("refuses a subnet that implements something that is no interface", () => {
+    const instance = createInstance(withInterface());
+
+    expect(() =>
+      instance.mutations.updateSubnet({
+        subnetId: "other",
+        update: { implements: ["missing"] },
+      }),
+    ).toThrow(/which does not exist/);
+    expect(() =>
+      instance.mutations.addSubnet(
+        stageSubnet("another", { implements: ["fast"] }),
+      ),
+    ).toThrow(/which is not an interface/);
+  });
+
   test("lets an instance choose and clear its own implementation", () => {
     const instance = createInstance(withInterface());
 

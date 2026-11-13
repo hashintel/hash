@@ -209,6 +209,43 @@ describe("checkInterfaces", () => {
   });
 });
 
+describe("a component that runs inside itself", () => {
+  it("is reported on the instance that closes the loop, through a binding or not", () => {
+    // The decorator shape: an implementation that wraps an instance of its
+    // own interface, which the default then binds back to it.
+    const wrapper = subnet("wrapper", {
+      ...fast,
+      id: "wrapper",
+      name: "wrapper",
+      componentInstances: [instance("inner", "stage")],
+    });
+    const sdcpn = net({
+      subnets: [stage, fast, wrapper],
+      implementations: { stage: "wrapper" },
+    });
+
+    const problems = checkInterfaces(sdcpn);
+    expect(problems).toMatchObject([
+      { subnetId: "wrapper", instanceId: "inner", code: "component-cycle" },
+    ]);
+    expect(problems[0]?.message).toContain("inner runs wrapper inside itself");
+    expect(
+      checkInterfaces({ ...sdcpn, implementations: { stage: "fast" } }),
+    ).toEqual([]);
+
+    const outer = subnet("outer", {
+      componentInstances: [instance("o", "middle")],
+    });
+    const middle = subnet("middle", {
+      componentInstances: [instance("m", "outer")],
+    });
+    expect(checkInterfaces(net({ subnets: [outer, middle] }))).toMatchObject([
+      { subnetId: "outer", instanceId: "o", code: "component-cycle" },
+      { subnetId: "middle", instanceId: "m", code: "component-cycle" },
+    ]);
+  });
+});
+
 describe("a fusion on a port of an interface", () => {
   it("is checked against the port of the implementation that runs", () => {
     const narrow = subnet("narrow", {
