@@ -1,10 +1,7 @@
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  affineConversion,
-  scaledConversion,
-} from "../034-add-si-unit-data-types/shared/conversions";
 import { siUnitGroups } from "../034-add-si-unit-data-types/si-unit-groups";
+import { affineConversion, scaledConversion } from "../shared/conversions";
 
 import type {
   SiUnitDefinition,

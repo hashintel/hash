@@ -7,10 +7,10 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
-import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
 import { siUnitGroups } from "./034-add-si-unit-data-types/si-unit-groups";
 import migrate from "./035-add-common-unit-data-types.migration";
 import { commonUnitGroups } from "./035-add-common-unit-data-types/common-unit-groups";
+import { ensureUnitDataType } from "./shared/ensure-unit-data-type";
 
 import type { MigrationFunction } from "../types";
 import type {
@@ -21,7 +21,7 @@ import type {
   DataTypeWithMetadata,
 } from "@blockprotocol/type-system";
 
-vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
+vi.mock("./shared/ensure-unit-data-type", () => ({
   ensureUnitDataType: vi.fn(),
 }));
 

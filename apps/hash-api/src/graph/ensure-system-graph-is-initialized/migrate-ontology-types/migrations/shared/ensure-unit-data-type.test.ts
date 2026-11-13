@@ -6,8 +6,8 @@ import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 
 import { updateDataType } from "../../../../ontology/primitive/data-type";
 import { createSystemDataTypeIfNotExists } from "../../util";
+import { scaledConversion } from "./conversions";
 import { ensureUnitDataType } from "./ensure-unit-data-type";
-import { scaledConversion } from "./shared/conversions";
 
 import type { BaseUrl, DataTypeWithMetadata } from "@blockprotocol/type-system";
 

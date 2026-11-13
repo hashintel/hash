@@ -1,6 +1,6 @@
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { affineConversion, scaledConversion } from "./shared/conversions";
+import { affineConversion, scaledConversion } from "../shared/conversions";
 import { expandSiPrefixes } from "./si-unit-groups/expand-si-prefixes";
 import { fluidPermeabilityUnits } from "./si-unit-groups/fluid-permeability-units";
 import { imperialUnits } from "./si-unit-groups/imperial-units";

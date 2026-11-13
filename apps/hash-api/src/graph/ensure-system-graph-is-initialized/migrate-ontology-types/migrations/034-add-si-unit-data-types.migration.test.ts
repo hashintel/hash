@@ -10,7 +10,7 @@ import {
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
 import migrate from "./034-add-si-unit-data-types.migration";
-import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
+import { ensureUnitDataType } from "./shared/ensure-unit-data-type";
 
 import type { MigrationFunction } from "../types";
 import type {
@@ -20,7 +20,7 @@ import type {
   DataTypeWithMetadata,
 } from "@blockprotocol/type-system";
 
-vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
+vi.mock("./shared/ensure-unit-data-type", () => ({
   ensureUnitDataType: vi.fn(),
 }));
 
