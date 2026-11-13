@@ -7,6 +7,20 @@ import {
   createPetrinautCommands,
 } from "./commands";
 import {
+  commandRefusal,
+  enforceHostRules,
+  enforceHostRulesOnCommands,
+  mutationRefusal,
+  type CommandName,
+  type HostRules,
+  type MutationName,
+} from "./composition/host-rules";
+import {
+  resolveProvidedComponents,
+  type ProvidedComponent,
+  type ProvidedInterfaces,
+} from "./composition/provided-components";
+import {
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
   stripDisabledExtensionData,
@@ -77,12 +91,33 @@ export type Petrinaut = {
 
   readonly readonly: boolean;
 
+  /** The interfaces of the components the host provides, by their id in a document. */
+  readonly providedInterfaces: ProvidedInterfaces;
+
+  /**
+   * Why the host's rules refuse a mutation, as a sentence a user can read,
+   * or `null` when they allow it. `mutations` throw the same sentence.
+   */
+  mutationRefusal(
+    this: void,
+    name: MutationName,
+    input: unknown,
+  ): string | null;
+  /** The same for a command: `commands` throw the same sentence. */
+  commandRefusal(this: void, name: CommandName, input: unknown): string | null;
+
   dispose(this: void): void;
 };
 
 export type CreatePetrinautConfig = {
   document: PetrinautDocHandle;
   readonly?: boolean;
+  /**
+   * Components the host provides: the user instantiates them and wires their
+   * ports, and no mutation changes one. Each must give a valid interface;
+   * `createPetrinaut` throws on one that does not.
+   */
+  components?: readonly ProvidedComponent[];
 };
 
 function createDefinitionStore(
@@ -194,7 +229,10 @@ function createPatchStream(handle: PetrinautDocHandle): {
 }
 
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
-  const { document: handle, readonly = false } = config;
+  const { document: handle, readonly = false, components = [] } = config;
+  const hostRules: HostRules = {
+    provided: resolveProvidedComponents(components),
+  };
   const handleCapabilities = resolvePetrinautHandleCapabilities(
     handle.capabilities,
   );
@@ -229,13 +267,20 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     });
   };
 
-  const mutations = createPetrinautActions(mutate, capabilities.extensions, {
-    sanitizeAfterMutation: false,
-  });
-  const commands = createPetrinautCommands(
-    mutate,
-    () => definition.get(),
-    capabilities.extensions,
+  const mutations = enforceHostRules(
+    createPetrinautActions(mutate, capabilities.extensions, {
+      sanitizeAfterMutation: false,
+      providedInterfaces: hostRules.provided,
+    }),
+    hostRules,
+  );
+  const commands = enforceHostRulesOnCommands(
+    createPetrinautCommands(
+      mutate,
+      () => definition.get(),
+      capabilities.extensions,
+    ),
+    hostRules,
   );
 
   return {
@@ -247,6 +292,9 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     mutations,
     commands,
     readonly: capabilities.readonly,
+    providedInterfaces: hostRules.provided,
+    mutationRefusal: (name, input) => mutationRefusal(hostRules, name, input),
+    commandRefusal: (name, input) => commandRefusal(hostRules, name, input),
     dispose() {
       for (const dispose of disposers) {
         dispose();

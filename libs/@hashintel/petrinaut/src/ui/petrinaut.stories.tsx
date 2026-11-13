@@ -5,6 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
+  type ProvidedComponent,
+  type ProvidedTokenType,
   type Subnet,
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -496,10 +498,12 @@ const HandleSpikeRender = ({
   capabilities,
   initial,
   initialTitle,
+  components,
 }: {
   capabilities?: PetrinautHandleCapabilities;
   initial: SDCPN;
   initialTitle: string;
+  components?: readonly ProvidedComponent[];
 }) => {
   const handle = useMemo(
     () => createJsonDocHandle({ id: "spike-net", initial, capabilities }),
@@ -525,6 +529,7 @@ const HandleSpikeRender = ({
         title={title}
         setTitle={setTitle}
         hideNetManagementControls="all"
+        components={components}
       />
       <pre
         style={{
@@ -1012,6 +1017,63 @@ export const ManyPorts: Story = {
       capabilities={subnetsWithColorsCapabilities}
       initial={manyPortsNet}
       initialTitle="Assembly cell"
+    />
+  ),
+};
+
+const parcel: ProvidedTokenType = {
+  name: "Parcel",
+  displayColor: "#3b82f6",
+  elements: [{ name: "weight", type: "real" }],
+};
+
+/** The stations of a packing line, as a host would provide them. */
+const packingLineComponents: ProvidedComponent[] = [
+  {
+    id: "packing-line/feeder",
+    name: "Feeder",
+    description: "Puts parcels on the line",
+    ports: [{ name: "Out", direction: "out", tokenType: parcel }],
+  },
+  {
+    id: "packing-line/scale",
+    name: "Scale",
+    description: "Weighs each parcel",
+    displayColor: "#8b5cf6",
+    ports: [
+      { name: "In", direction: "in", tokenType: parcel },
+      { name: "Out", direction: "out", tokenType: parcel },
+    ],
+    parameters: [
+      {
+        name: "Tolerance",
+        variableName: "tolerance",
+        type: "real",
+        defaultValue: "0.05",
+      },
+    ],
+  },
+  {
+    id: "packing-line/sorter",
+    name: "Sorter",
+    description: "Sends parcels down one of two lanes",
+    displayColor: "#10b981",
+    ports: [
+      { name: "In", direction: "in", tokenType: parcel },
+      { name: "Light", direction: "out", tokenType: parcel },
+      { name: "Heavy", direction: "out", tokenType: parcel },
+    ],
+  },
+];
+
+export const HostComponents: Story = {
+  name: "Components provided by the host",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={emptySDCPN}
+      initialTitle="Packing line"
+      components={packingLineComponents}
     />
   ),
 };

@@ -398,12 +398,94 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `slots`                                                                       | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
+| `components`                                                                  | Components the host provides for the user to instantiate. Define the list at module scope. See Providing components.                     |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
 Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
 `@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
 calls; without it they are dropped.
+
+## Providing components
+
+A host can hand the editor components of its own: signatures the user
+instantiates and wires, with no net behind them. `components` on `<Petrinaut>`
+and on `createPetrinaut` takes the list:
+
+```tsx
+import { Petrinaut, type ProvidedComponent } from "@hashintel/petrinaut";
+
+const components: ProvidedComponent[] = [
+  {
+    id: "warehouse/packer",
+    name: "Packer",
+    description: "Packs an order into a parcel",
+    ports: [
+      { name: "Orders", direction: "in" },
+      { name: "Parcels", direction: "out" },
+    ],
+    parameters: [
+      {
+        name: "Packing rate",
+        variableName: "packing_rate",
+        type: "real",
+        defaultValue: "2",
+      },
+    ],
+  },
+];
+
+<Petrinaut handle={handle} components={components} />;
+```
+
+A provided component carries ports and parameters and nothing else: no
+places besides its ports, no transitions, no instances. In a document it is an
+[interface](doc:core.composition/interfaces-and-fusions), and can be nothing
+more. The editor lists the components in a Components panel, keeps them out
+of the Nets panel, and refuses to open one. The panel and the toolbar's
+component tool show whenever the host provides components, whatever the
+user's Net Components setting.
+
+- **Identity.** `id` names the component in every document that uses it, so it
+  has to stay the same across sessions. `providedComponentSubnetId(component)`
+  is the id of its interface in the document, and every id inside that
+  interface derives from the component's id and the item's name.
+- **The document's copy.** Pointing an instance at a component the document
+  has no copy of puts its interface into `subnets`, in the same change. A
+  saved document reads the same without its host: the instances point at an
+  interface the document holds.
+- **No mutation changes it.** A mutation that targets a provided interface,
+  `updateSubnet` on one, or `addSubnet` under the id of one, throws, and so
+  does a command that targets one. `instance.mutationRefusal(name, input)`
+  and `instance.commandRefusal(name, input)` give the sentence without
+  running anything, or `null`; the React bindings show it as a notice, and a
+  plugin's `edit` returns it as a refusal of kind `host-restriction`.
+  `removeSubnet` still takes the copy out, with its instances.
+- **Token types.** A port names the tokens it carries with `tokenType`. Two
+  ports can be fused when their token types have the same elements, whatever
+  the components.
+- **Reading the wiring back.** The host finds its instances in
+  `componentInstances` by `subnetId`, their parameter values on the instance,
+  and how their ports are joined in `fusions` and in the arcs of the net's
+  transitions. `providedComponentSubnetId` is exported from
+  `@hashintel/petrinaut` too, and `instance.providedInterfaces` maps each
+  subnet id to its interface.
+- **Validity.** `createPetrinaut` throws on two components under one id, on a
+  component with two ports, parameters or token type elements of one name, on
+  a token type name it declares in two ways, and on an interface the document
+  schema refuses.
+
+An instance of a provided component has nothing bound, and the composition
+checks do not report it: what runs behind it is the host's business. The
+simulator reads the document alone, where such an instance is an interface
+with no implementation, so a run of a net that holds one fails saying that.
+A subnet of the document that implements the interface can be bound to it
+like to any other, and the net then runs in the editor.
+
+:::caution
+The document keeps the copy it took. A component the host later changes keeps
+its earlier ports and parameters in the documents that already hold it.
+:::
 
 ## Capabilities
 

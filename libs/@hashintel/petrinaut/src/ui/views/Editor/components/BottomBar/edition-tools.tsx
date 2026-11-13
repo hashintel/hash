@@ -3,11 +3,13 @@ import { use } from "react";
 import { Icon, type MenuItem, Menu } from "@hashintel/ds-components";
 
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
+import { CompositionContext } from "../../../../../react/state/composition-context";
 import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { useInstantiableSubnets } from "../../../../../react/state/use-instantiable-subnets";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import {
@@ -21,16 +23,16 @@ import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 type EditorEditionMode = EditorState["editionMode"];
 
-/** Picks which subnet the next component instance comes from. */
+/**
+ * Picks which subnet the next component instance comes from: one of the
+ * document's, or a component the host provides.
+ */
 const ComponentDropdown: React.FC<{
   editionMode: EditorEditionMode;
 }> = ({ editionMode }) => {
-  const {
-    petriNetDefinition: { subnets },
-  } = use(SDCPNContext);
   const { componentSubnetId, setAddComponentMode } = use(EditorContext);
 
-  const items: MenuItem[] = (subnets ?? []).map((subnet) => ({
+  const items: MenuItem[] = useInstantiableSubnets().map((subnet) => ({
     id: subnet.id,
     icon: "cube",
     text: subnet.name,
@@ -77,6 +79,7 @@ export const EditionTools: React.FC<{
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
   const { extensions } = use(SDCPNContext);
+  const { provided } = use(CompositionContext);
   const { enableNetComponents, enableExperimentalIconPack } =
     use(UserSettingsContext);
 
@@ -139,9 +142,11 @@ export const EditionTools: React.FC<{
           <Icon name="squarePlus" />
         )}
       </ToolbarButton>
-      {isRootNet && extensions.subnets && enableNetComponents && (
-        <ComponentDropdown editionMode={editionMode} />
-      )}
+      {isRootNet &&
+        extensions.subnets &&
+        (enableNetComponents || provided.size > 0) && (
+          <ComponentDropdown editionMode={editionMode} />
+        )}
     </>
   );
 };

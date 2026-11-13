@@ -14,10 +14,12 @@ import {
   describeUnboundInstance,
   isInterface,
   resolveImplementation,
+  runsAtHost,
   validateEntityName,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { CompositionContext } from "../../../../../../../react/state/composition-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
@@ -69,18 +71,34 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
 
   const subnetName = (subnetId: string | undefined) =>
     (petriNetDefinition.subnets ?? []).find(({ id }) => id === subnetId)?.name;
+  const { provided } = use(CompositionContext);
   const binding = resolveImplementation(petriNetDefinition, instance);
+  const hostRuns = runsAtHost(binding, provided);
   const description =
     binding?.kind === "bound"
       ? binding.chosenBy === "instance"
         ? `Runs ${binding.implementation.name}, chosen for this instance.`
         : `Runs ${binding.implementation.name}, the document's default.`
-      : binding?.kind === "unbound"
-        ? describeUnboundInstance(binding, instance.name)
-        : undefined;
+      : hostRuns
+        ? "Provided by the application."
+        : binding?.kind === "unbound"
+          ? describeUnboundInstance(binding, instance.name)
+          : undefined;
   const defaultName = subnetName(
     defaultImplementationId(petriNetDefinition, iface.id),
   );
+  const implementations = implementationItems(
+    petriNetDefinition,
+    iface.id,
+    instance.implementation,
+  );
+
+  // A component the host provides has an implementation to choose only once
+  // the document holds one.
+  if (hostRuns && implementations.length === 0) {
+    return null;
+  }
+
   return (
     <Form.Field
       label="Implementation"
@@ -116,11 +134,7 @@ const ImplementationField: React.FC<{ iface: Subnet }> = ({ iface }) => {
                   ? "Document default (none)"
                   : `Document default (${defaultName})`,
             },
-            ...implementationItems(
-              petriNetDefinition,
-              iface.id,
-              instance.implementation,
-            ),
+            ...implementations,
           ]}
         />
       </Tooltip>
@@ -133,6 +147,8 @@ const ComponentInstanceMainContent: React.FC = () => {
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
   const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
+  const { provided } = use(CompositionContext);
+
   const nameField = useDraftField({
     sourceId: instance.id,
     sourceValue: instance.name,
@@ -198,7 +214,11 @@ const ComponentInstanceMainContent: React.FC = () => {
 
         <Form.Field label="Subnet" size="sm">
           <div className={hintTextStyle}>
-            {subnet?.name ?? "The referenced subnet no longer exists."}
+            {!subnet
+              ? "The referenced subnet no longer exists."
+              : provided.has(subnet.id)
+                ? `${subnet.name}, provided by the application`
+                : subnet.name}
           </div>
         </Form.Field>
 

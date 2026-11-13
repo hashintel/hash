@@ -6,6 +6,9 @@ import {
   generateArcId,
   getArcEndpointKey,
   getComponentInstanceHeight,
+  noProvidedInterfaces,
+  providedComponentSubnetId,
+  resolveProvidedComponents,
 } from "@hashintel/petrinaut-core";
 
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
@@ -14,6 +17,8 @@ import { arcStrokeColor } from "./styles/type-colors";
 
 import type {
   Place,
+  ProvidedComponent,
+  ProvidedInterfaces,
   SDCPN,
   Subnet,
   Transition,
@@ -65,6 +70,7 @@ const input: CanvasSceneInput = {
   net: { ...sdcpn, componentInstances: [], fusions: [] },
   sdcpn,
   fusionStatuses: new Map(),
+  provided: noProvidedInterfaces,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
   draggingStateByNodeId: {},
@@ -373,6 +379,43 @@ describe("buildCanvasScene", () => {
       });
       expect(nodes.find((node) => node.id === "p1")).toMatchObject({
         portDirection: null,
+      });
+    });
+
+    it("draws an instance of a component the host provides as a component", () => {
+      const packer: ProvidedComponent = {
+        id: "packer",
+        name: "Packer",
+        ports: [{ name: "Orders", direction: "in" }],
+      };
+      const provided = resolveProvidedComponents([packer]);
+      const hosted: SDCPN = {
+        ...sdcpn,
+        subnets: [...provided.values()],
+        componentInstances: [
+          instance("packer1", providedComponentSubnetId(packer)),
+        ],
+      };
+      const bindingOf = (hostInterfaces: ProvidedInterfaces) =>
+        buildCanvasScene({
+          ...input,
+          sdcpn: hosted,
+          provided: hostInterfaces,
+          net: {
+            ...hosted,
+            componentInstances: hosted.componentInstances ?? [],
+            fusions: [],
+          },
+        }).nodes.find((node) => node.id === "packer1");
+
+      expect(bindingOf(provided)).toMatchObject({
+        subnetName: "Packer",
+        binding: { kind: "component" },
+        ports: [{ name: "Orders", direction: "in" }],
+      });
+      // Without its host, the same document shows an interface with nothing bound.
+      expect(bindingOf(noProvidedInterfaces)).toMatchObject({
+        binding: { kind: "interface", implementationName: null },
       });
     });
 

@@ -19,6 +19,7 @@ import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useInstantiableSubnets } from "../../../react/state/use-instantiable-subnets";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
@@ -102,6 +103,8 @@ export type CanvasInteractions = {
   clickPane: (scenePosition: CanvasPoint) => void;
   /** A node dragged in from the toolbar. */
   dropNode: (kind: DraggedNodeKind, scenePosition: CanvasPoint) => void;
+  /** A component dragged in from the Components panel, named by its subnet. */
+  dropComponent: (subnetId: string, scenePosition: CanvasPoint) => void;
 };
 
 /**
@@ -146,8 +149,9 @@ const isCanvasItemType = (type: string) =>
 export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { getItemType } = use(SDCPNContext);
   const { activeNet } = use(ActiveNetContext);
+  const instantiable = useInstantiableSubnets();
   const { addNotification } = use(NotificationsContext);
   const {
     addPlace,
@@ -352,20 +356,18 @@ export const useCanvasInteractions = (
     setEditionMode("cursor");
   };
 
-  const createComponentInstanceAt = (rawPosition: CanvasPoint) => {
-    if (!componentSubnetId) {
-      return;
-    }
-    const subnet = (petriNetDefinition.subnets ?? []).find(
-      ({ id }) => id === componentSubnetId,
-    );
+  const createComponentInstanceAt = (
+    subnetId: string,
+    rawPosition: CanvasPoint,
+  ) => {
+    const subnet = instantiable.find(({ id }) => id === subnetId);
     const position = snap(rawPosition);
     const id = generatePetrinautId();
 
     addComponentInstance({
       id,
       name: subnet ? toInstanceName(subnet.name) : "Instance",
-      subnetId: componentSubnetId,
+      subnetId,
       parameterValues: {},
       x: position.x,
       y: position.y,
@@ -378,7 +380,9 @@ export const useCanvasInteractions = (
     if (editionMode === "cursor") {
       clearSelection();
     } else if (editionMode === "add-component") {
-      createComponentInstanceAt(scenePosition);
+      if (componentSubnetId) {
+        createComponentInstanceAt(componentSubnetId, scenePosition);
+      }
     } else if (editionMode === "add-place") {
       createNodeAt("place", scenePosition);
     } else {
@@ -490,5 +494,6 @@ export const useCanvasInteractions = (
     rewireLink,
     clickPane,
     dropNode: createNodeAt,
+    dropComponent: createComponentInstanceAt,
   };
 };

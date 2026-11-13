@@ -17,6 +17,11 @@ import {
   runningSubnet,
 } from "./interfaces";
 import { describePortDirection, effectivePortDirection } from "./ports";
+import {
+  noProvidedInterfaces,
+  runsAtHost,
+  type ProvidedInterfaces,
+} from "./provided-components";
 
 import type { ComponentInstance, ID, SDCPN, Subnet } from "../types/sdcpn";
 
@@ -150,8 +155,15 @@ const runs = (
   });
 };
 
-/** The problems with the document's interfaces, their implementations and the instances bound to them. */
-export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
+/**
+ * The problems with the document's interfaces, their implementations and the
+ * instances bound to them. An instance of an interface a host provides needs
+ * no implementation in the document.
+ */
+export const checkInterfaces = (
+  sdcpn: SDCPN,
+  provided: ProvidedInterfaces = noProvidedInterfaces,
+): InterfaceProblem[] => {
   const problems: InterfaceProblem[] = [];
   const subnets = sdcpn.subnets ?? [];
 
@@ -203,10 +215,12 @@ export const checkInterfaces = (sdcpn: SDCPN): InterfaceProblem[] => {
           message,
         });
       if (binding.kind === "unbound") {
-        report(
-          "unbound-instance",
-          describeUnboundInstance(binding, instance.name),
-        );
+        if (!runsAtHost(binding, provided)) {
+          report(
+            "unbound-instance",
+            describeUnboundInstance(binding, instance.name),
+          );
+        }
         continue;
       }
       const { running } = runningSubnet(binding);

@@ -161,6 +161,12 @@ subnets it supplies at run time, shown in the instance's properties as
 "provided by X". A library copies instead. The two differ only in whether the
 document keeps the subnet.
 
+A host provides the interfaces themselves through `components` on
+`createPetrinaut`: signatures the user instantiates, each an interface the
+document copies in the first time it is used (see
+[Host integration](doc:core.handle/host-integration)). An instance of one has
+nothing bound, and the checks leave it alone.
+
 ### Experiments over implementations
 
 Once a scenario carries bindings, comparing implementations is comparing
