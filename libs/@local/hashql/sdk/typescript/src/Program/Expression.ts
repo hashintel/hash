@@ -40,7 +40,6 @@ import type {
   Conditional,
 } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
-import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
 import type { ReadonlyRecord } from "effect/Record";
 
