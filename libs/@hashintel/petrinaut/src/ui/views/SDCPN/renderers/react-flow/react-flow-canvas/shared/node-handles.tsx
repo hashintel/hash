@@ -1,6 +1,9 @@
 import { Handle, Position, useNodeId, useStore } from "@xyflow/react";
+import { use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+
+import { LinkRewiringContext } from "../link-rewiring-context";
 
 import type { CSSProperties, KeyboardEvent } from "react";
 
@@ -64,6 +67,22 @@ const acceptsConnection = (
   sourceKind === "componentInstance";
 
 /**
+ * Whether a place or a transition offers itself to what is being dragged. The
+ * moved end of a fusion link lands on places, whatever its other end is:
+ * what the drop does, or why it is refused, is for the rewiring to say.
+ */
+export const receivesDrag = ({
+  rewiring,
+  sourceKind,
+  nodeKind,
+}: {
+  rewiring: boolean;
+  sourceKind: string | undefined;
+  nodeKind: string | undefined;
+}): boolean =>
+  rewiring ? nodeKind === "place" : acceptsConnection(sourceKind, nodeKind);
+
+/**
  * A place's or transition's two handles. Hovering the node reveals the
  * outgoing one; while an arc is being drawn, the whole node of a kind that
  * can receive it becomes its target.
@@ -87,7 +106,9 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
       state.connection.toNode?.id === nodeId,
   );
 
-  const canReceive = isConnectable && acceptsConnection(sourceKind, nodeKind);
+  const rewiring = use(LinkRewiringContext);
+  const canReceive =
+    isConnectable && receivesDrag({ rewiring, sourceKind, nodeKind });
 
   return (
     <>
