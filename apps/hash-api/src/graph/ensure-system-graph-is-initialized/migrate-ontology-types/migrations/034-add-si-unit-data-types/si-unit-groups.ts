@@ -18,7 +18,7 @@ export type SiUnitDefinition = {
   conversions?: Record<BaseUrl, Conversions>;
 };
 
-type SiUnitGroup = {
+export type SiUnitGroup = {
   title: string;
   description: string;
   units: SiUnitDefinition[];
