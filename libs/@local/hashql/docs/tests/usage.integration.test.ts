@@ -156,7 +156,8 @@ describe("usage", () => {
       }
     `);
       expect(Array.map(["A", "B", "C"], users)).toStrictEqual([
-        { accepted: ["run", "pick"], returned: ["pick"] },
+        // `step` takes its call from `Step<S>`, where `S` is `A`.
+        { accepted: ["run", "pick", "step"], returned: ["pick"] },
         { accepted: ["pick"], returned: ["run", "pick"] },
         { accepted: [], returned: ["step"] },
       ]);
