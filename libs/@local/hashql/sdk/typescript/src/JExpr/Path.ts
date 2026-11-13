@@ -85,14 +85,34 @@ export interface Path extends Equal.Equal, Pipeable.Pipeable {
   readonly segments: readonly [Segment, ...Segment[]];
 }
 
-/** Constructs a positional path argument from decoded type syntax. */
+/**
+ * Constructs a positional path argument from decoded type syntax.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const GenericArgument = Type.PathGenericArgument;
-/** Constructs a named path constraint from a decoded name and type. */
+/**
+ * Constructs a named path constraint from a decoded name and type.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const GenericConstraint = Type.PathGenericConstraint;
 
-/** Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record. */
+/**
+ * Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const SegmentArgument: typeof Type.PathArgument = Type.PathArgument;
-/** Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets. */
+/**
+ * Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets.
+ *
+ * @category Schemas
+ * @since 0.1.0
+ */
 export const Segment: typeof Type.PathSegment = Type.PathSegment;
 /**
  * Decodes field records into a {@link Path} and its segment and argument instances, validating every name and nested type.
