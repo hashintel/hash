@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import { Box, Stack } from "@mui/material";
+import { Box, CircularProgress, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useContext } from "react";
@@ -88,6 +88,18 @@ export const CreateDataTypeForm = ({
 
   if (!activeWorkspace) {
     return null;
+  }
+
+  if (extendsDataTypeId && !dataTypes) {
+    /**
+     * The new type's constraints are derived from its parent, so the form can't
+     * be submitted until the data type catalogue has loaded.
+     */
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
   }
 
   if (
