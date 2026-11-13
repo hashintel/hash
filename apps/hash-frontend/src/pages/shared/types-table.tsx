@@ -742,18 +742,30 @@ export const TypesTable: FunctionComponent<{
     [pushToSlideStack],
   );
 
+  // The tree only renders expanded rows, and repeats a type under each of its
+  // parents. Export the whole filtered catalogue instead, each type once.
+  const csvRows = useMemo(
+    () =>
+      hierarchical
+        ? (sortedRows ?? []).filter(
+            (row) => !matchingIds || matchingIds.has(row.typeId),
+          )
+        : null,
+    [hierarchical, sortedRows, matchingIds],
+  );
+
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
-    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+    const rowsToExport = csvRows ?? currentlyDisplayedRowsRef.current;
     const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
-    if (!currentlyDisplayedRows || !currentlyDisplayedColumns) {
+    if (!rowsToExport || !currentlyDisplayedColumns) {
       return null;
     }
     return buildCsvFile({
       columns: currentlyDisplayedColumns,
-      rows: currentlyDisplayedRows,
+      rows: rowsToExport,
       title: typesTablesToTitle[kind],
     });
-  }, [kind]);
+  }, [csvRows, kind]);
 
   const selectedTypes = types?.filter((type) =>
     selectedRows.some(({ typeId }) => type.schema.$id === typeId),

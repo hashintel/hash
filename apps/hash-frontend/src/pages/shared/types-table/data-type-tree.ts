@@ -93,11 +93,18 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
     }
   }
 
-  const roots = rows.filter(
-    (row) =>
-      row.typeId !== hiddenValueId &&
-      [...(parents.get(row.typeId) ?? [])].every((id) => id === hiddenValueId),
-  );
+  // A child of the hidden Value is a top-level row, even when it also inherits
+  // from a displayed type and so appears under that parent as well.
+  const roots = rows.filter((row) => {
+    if (row.typeId === hiddenValueId) {
+      return false;
+    }
+    const parentIds = parents.get(row.typeId);
+    return (
+      !parentIds?.size ||
+      (hiddenValueId !== undefined && parentIds.has(hiddenValueId))
+    );
+  });
 
   // Keep malformed cyclic components reachable, even when they have no root.
   const reachable = new Set<VersionedUrl>();
