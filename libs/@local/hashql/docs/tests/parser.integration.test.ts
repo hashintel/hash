@@ -471,6 +471,18 @@ export declare const choose: {
       "declare function run(value: string): string;\nexport declare const applied: typeof run;",
       "ConstantDeclaration",
     ],
+    [
+      "export type Fn<S> = ((value: S) => S);\nexport declare const applied: Fn<string>;",
+      "FunctionDeclaration",
+    ],
+    [
+      "export declare const applied: ((value: string) => void) | ((value: number) => void);",
+      "ConstantDeclaration",
+    ],
+    [
+      "export interface Box<T> { readonly value: T }\nexport type Fn<S> = S extends Box<infer U> ? (value: U) => U : never;\nexport declare const applied: Fn<Box<string>>;",
+      "ConstantDeclaration",
+    ],
   ] as const)(
     "applied_declaration_%#",
     Effect.fnUntraced(function* ([source, tag]: readonly [string, string]) {
@@ -541,6 +553,8 @@ export declare const choose: {
     "declare function run(value: string): string;\nexport interface Api { readonly run: typeof run }",
     'import type { Api as Shapes } from "shapes";\nexport interface Api { readonly run: Shapes["run"] }',
     "export interface Api { readonly run: string }",
+    "export interface Api { readonly run: ((value: string) => void) | ((value: number) => void) }",
+    "export interface Api<F extends (value: string) => string> { readonly run: F }",
   ])(
     "plain_property_%#",
     Effect.fnUntraced(function* (source: string) {

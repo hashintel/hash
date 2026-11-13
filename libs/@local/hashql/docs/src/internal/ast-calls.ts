@@ -59,12 +59,31 @@ const within = (node: Syntax.Node, holder: Syntax.Node): boolean => {
   return current === holder;
 };
 
+/** Whether the named declaration `holder` states `call` itself: an interface states its call signatures, and an alias the function type it names or the call signatures of the type literal it names. */
+const states = (holder: Syntax.Node, call: Syntax.Node): boolean => {
+  if (Syntax.isInterfaceDeclaration(holder)) {
+    return call.parent === holder;
+  }
+  if (!Syntax.isTypeAliasDeclaration(holder)) {
+    return false;
+  }
+
+  let { type } = holder;
+  while (Syntax.isParenthesizedTypeNode(type)) {
+    ({ type } = type);
+  }
+
+  return (
+    type === call || (Syntax.isTypeLiteralNode(type) && call.parent === type)
+  );
+};
+
 /**
- * The syntax that may state the calls of an annotation. The annotation states them itself, or a type of the package that it names does, as `Draft` does for `Draft<Prelude.Builtin>`.
+ * The declarations of the package that an annotation names, which may state its calls, as `Draft` does for `Draft<Prelude.Builtin>`. An annotation that names none, a `typeof` and a type outside the package have none.
  *
- * The annotation's arguments bind the type parameters of such a type, and its comments are the package's own, so its calls read as the annotated value's. A `typeof` names a value, whose own declaration states and documents its calls.
+ * The annotation's arguments bind the type parameters of such a type, and its comments are the package's own, so the calls it states itself read as the annotated value's. A call that stands deeper in it, as in a branch of a conditional type or in the constraint of a type parameter, can depend on a type parameter the arguments do not bind. A `typeof` names a value, whose own declaration states and documents its calls.
  */
-const callHolders = Effect.fnUntraced(function* (
+const namedBy = Effect.fnUntraced(function* (
   type: AST.TypeNode.Interned,
 ): Effect.fn.Return<readonly Syntax.Node[], Failure, Requirements> {
   const store = yield* AST.Store;
@@ -75,7 +94,7 @@ const callHolders = Effect.fnUntraced(function* (
     !AST.TypeReference.isTypeReference(annotation) ||
     Syntax.isTypeQueryNode(annotation.node)
   ) {
-    return [annotation.node];
+    return [];
   }
 
   // A declaration the parse is still building is one of the package's, because an item outside it builds at once.
@@ -84,18 +103,16 @@ const callHolders = Effect.fnUntraced(function* (
     !store.isPending(named) &&
     AST.ExternalItem.isExternalItem(store.get(named))
   ) {
-    return [annotation.node];
+    return [];
   }
 
-  const declarations = yield* program.declarations(annotation.target);
-
-  return [annotation.node, ...declarations];
+  return yield* program.declarations(annotation.target);
 });
 
 /**
  * The calls a constant or a property states, in order: every call of its type `value`, when its annotation states each of them. Any other value states none.
  *
- * An annotation states a call when the syntax that declares the call lies in the annotation, or in the type of the package that the annotation names.
+ * An annotation states a call when the syntax that declares the call lies in the annotation, or when the type of the package that the annotation names states it. The calls of a union of function types are not stated: a call of the union must suit every member, and no member's syntax says that.
  */
 export const stated = Effect.fnUntraced(function* ({
   name,
@@ -110,6 +127,10 @@ export const stated = Effect.fnUntraced(function* ({
   Failure,
   Requirements
 > {
+  if (value.isUnionType()) {
+    return [];
+  }
+
   const signatures = yield* TypeScript.Checker.getSignaturesOfType(
     value,
     SignatureKind.Call,
@@ -119,9 +140,14 @@ export const stated = Effect.fnUntraced(function* ({
     return [];
   }
 
-  const holders = yield* callHolders(annotation);
-  const own = Array.every(calls, (call) =>
-    Array.some(holders, (holder) => within(call, holder)),
+  const store = yield* AST.Store;
+  const written = store.get(annotation).node;
+  const named = yield* namedBy(annotation);
+  const own = Array.every(
+    calls,
+    (call) =>
+      within(call, written) ||
+      Array.some(named, (holder) => states(holder, call)),
   );
   if (!own) {
     return [];
