@@ -199,6 +199,44 @@ describe("usage", () => {
   );
 
   it.effect(
+    "own_type_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users, valueUsers } = yield* collect(`
+      export interface Run {}
+      export declare function Run(input: Run): Run;
+      export interface Loop {}
+      export declare function Loop(): typeof Loop;
+    `);
+      expect([users("Run"), valueUsers("Run")]).toStrictEqual([
+        { accepted: ["Run"], returned: ["Run"] },
+        { accepted: [], returned: [] },
+      ]);
+      // The value names itself, which is no use of it.
+      expect([users("Loop"), valueUsers("Loop")]).toStrictEqual([
+        { accepted: [], returned: [] },
+        { accepted: [], returned: [] },
+      ]);
+    }),
+  );
+
+  it.effect(
+    "member_of_value_apart",
+    Effect.fnUntraced(function* () {
+      expect.hasAssertions();
+      const { users, valueUsers } = yield* collect(`
+      export interface Box {}
+      export declare const Box: { make(): void };
+      export declare function pick(value: typeof Box.make): void;
+    `);
+      expect([users("Box"), valueUsers("Box")]).toStrictEqual([
+        { accepted: [], returned: [] },
+        { accepted: ["pick"], returned: [] },
+      ]);
+    }),
+  );
+
+  it.effect(
     "type_only_members",
     Effect.fnUntraced(function* () {
       expect.hasAssertions();
