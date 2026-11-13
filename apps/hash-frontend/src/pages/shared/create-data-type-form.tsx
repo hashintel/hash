@@ -90,19 +90,20 @@ export const CreateDataTypeForm = ({
     return null;
   }
 
-  if (
-    extendsDataTypeId &&
-    dataTypes &&
-    Object.keys(dataTypes).length &&
-    !parentType
-  ) {
+  if (extendsDataTypeId && dataTypes && !parentType) {
     throw new Error(
       `Could not find parent data type ${extendsDataTypeId} in data type options`,
     );
   }
 
+  const waitingForParentType = !!extendsDataTypeId && !parentType;
+
   const handleFormSubmit = handleSubmit(async (data) => {
     const { extendsDataTypeId: parentId } = data;
+
+    if (parentId && !parentType) {
+      return;
+    }
 
     const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
       title: data.title,
@@ -273,8 +274,8 @@ export const CreateDataTypeForm = ({
           <Button
             type="submit"
             size="small"
-            loading={isSubmitting}
-            disabled={isSubmitting || !!titleError}
+            loading={isSubmitting || waitingForParentType}
+            disabled={isSubmitting || waitingForParentType || !!titleError}
             loadingWithoutText
           >
             Create new data type
