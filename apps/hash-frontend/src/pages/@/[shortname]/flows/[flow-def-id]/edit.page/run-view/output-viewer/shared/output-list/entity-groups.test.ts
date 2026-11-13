@@ -60,13 +60,20 @@ describe("groupByType", () => {
 });
 
 describe("getPropertyColumns", () => {
-  const closedType = {
-    properties: {
-      [name]: { $ref: `${name}v/1` },
-      [region]: { $ref: `${region}v/3` },
-      [tier]: { type: "array", items: { $ref: `${tier}v/1` } },
-    },
-  } as unknown as ClosedMultiEntityType;
+  const supplierType = (labelProperty?: BaseUrl) =>
+    ({
+      allOf: [
+        {
+          title: "Supplier",
+          allOf: [{ $id: supplier, depth: 0, labelProperty }],
+        },
+      ],
+      properties: {
+        [tier]: { type: "array", items: { $ref: `${tier}v/1` } },
+        [region]: { $ref: `${region}v/3` },
+        [name]: { $ref: `${name}v/1` },
+      },
+    }) as unknown as ClosedMultiEntityType;
   const definitions = {
     propertyTypes: {
       [`${name}v/1`]: { title: "Name" },
@@ -75,15 +82,28 @@ describe("getPropertyColumns", () => {
     },
   } as unknown as ClosedMultiEntityTypesDefinitions;
 
-  it("has a column for each of the type's properties that any of the entities has, in the type's order", () => {
+  it("has a column for each of the type's properties that any of the entities has, by title, but not their names", () => {
     expect(
-      getPropertyColumns(closedType, definitions, [
-        entity([supplier], { [tier]: ["A"] }),
-        entity([supplier], { [tier]: ["B"], [name]: "Kestrel Seals" }),
+      getPropertyColumns(supplierType(), definitions, [
+        entity([supplier], { [name]: "Kestrel Seals", [tier]: ["A"] }),
+        entity([supplier], {
+          [name]: "Pinecrest Minerals",
+          [tier]: ["B"],
+          [region]: "North",
+        }),
       ]),
     ).toEqual([
-      { baseUrl: name, title: "Name" },
+      { baseUrl: region, title: "Region" },
       { baseUrl: tier, title: "Tier" },
     ]);
+  });
+
+  it("leaves out the property the entities are named by, whatever it's called", () => {
+    expect(
+      getPropertyColumns(supplierType(region), definitions, [
+        entity([supplier], { [name]: "Kestrel Seals", [region]: "North" }),
+        entity([supplier], { [name]: "Pinecrest Minerals", [region]: "South" }),
+      ]),
+    ).toEqual([{ baseUrl: name, title: "Name" }]);
   });
 });

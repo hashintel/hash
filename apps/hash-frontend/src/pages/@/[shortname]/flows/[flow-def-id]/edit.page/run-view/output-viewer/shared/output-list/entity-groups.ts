@@ -1,4 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import type {
   BaseUrl,
@@ -57,23 +59,40 @@ export const getGroupLabel = (closedType: ClosedMultiEntityType) =>
     .map(({ title, titlePlural }) => titlePlural ?? title)
     .join(", ");
 
-/** A table's property columns: each of the type's properties that any of its entities has, in the type's order. */
+/**
+ * A table's property columns: each of the type's properties that any of its entities has, but none that only repeats
+ * their names, which the table shows first. By title, as in HASH's entities table: a type's properties come in no
+ * fixed order.
+ */
 export const getPropertyColumns = (
   closedType: ClosedMultiEntityType,
   definitions: ClosedMultiEntityTypesDefinitions,
   entities: HashEntity[],
-): { baseUrl: BaseUrl; title: string }[] =>
-  typedEntries(closedType.properties).flatMap(([baseUrl, schema]) => {
-    if (!entities.some(({ properties }) => properties[baseUrl] !== undefined)) {
-      return [];
-    }
+): { baseUrl: BaseUrl; title: string }[] => {
+  const names = entities.map((entity) =>
+    generateEntityLabel(closedType, entity),
+  );
 
-    const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
+  return typedEntries(closedType.properties)
+    .flatMap(([baseUrl, schema]) => {
+      if (
+        entities.every(
+          ({ properties }, index) =>
+            properties[baseUrl] === undefined ||
+            stringifyPropertyValue(properties[baseUrl]) === names[index],
+        )
+      ) {
+        return [];
+      }
 
-    return [
-      {
-        baseUrl,
-        title: definitions.propertyTypes[propertyTypeId]?.title ?? baseUrl,
-      },
-    ];
-  });
+      const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
+
+      return [
+        {
+          baseUrl,
+          title: definitions.propertyTypes[propertyTypeId]?.title ?? baseUrl,
+        },
+      ];
+    })
+    .sort((first, second) => first.title.localeCompare(second.title));
+};

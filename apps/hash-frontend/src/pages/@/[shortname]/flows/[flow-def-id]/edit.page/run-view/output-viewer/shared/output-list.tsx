@@ -9,6 +9,8 @@ import { useGetOwnerForEntity } from "../../../../../../../../../components/hook
 import { tableStyle } from "../../../shared/table";
 import { EntityRows } from "../../shared/entity-rows";
 import { isFileEntity } from "../../shared/run-entities";
+import { getListPeek } from "../../shared/run-value-display";
+import { ShowAllButton } from "../../shared/show-all-button";
 import { TextValue } from "../../shared/text-value";
 import {
   getGroupLabel,
@@ -24,6 +26,8 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
 const stack = css({ display: "flex", flexDirection: "column", gap: "3" });
+/* A tab's label, not its pill, starts at the title's x. */
+const tabList = css({ ml: "-2" });
 const tabCount = css({ color: "fg.subtle" });
 const loading = css({ display: "flex", justifyContent: "center", py: "6" });
 const tableScroll = css({ overflowX: "auto" });
@@ -118,32 +122,36 @@ const EntityTable = ({
   );
 };
 
-/** Files, and entities that couldn't be loaded, as rows; any other entities as a table. */
+/** A peek, files, and entities that couldn't be loaded, as rows; any other entities as a table. */
 const GroupBody = ({
   group,
   entities,
+  peek,
   onOpenFile,
 }: {
   group: EntityGroup;
   entities: RunEntities;
+  /** How many of the first to show, as rows; without it, all of them. */
+  peek: number | undefined;
   onOpenFile: (index: number) => void;
 }) => {
-  const groupEntities = group.indexes.map((index) => entities.entities[index]);
+  const indexes = group.indexes.slice(0, peek);
+  const groupEntities = indexes.map((index) => entities.entities[index]);
   const closedType =
     group.entityTypeIds && entities.typesMap
       ? getClosedMultiEntityTypeFromMap(entities.typesMap, group.entityTypeIds)
       : null;
   const allFiles = groupEntities.every(isFileEntity);
 
-  if (!closedType || !entities.definitions || allFiles) {
+  if (peek !== undefined || !closedType || !entities.definitions || allFiles) {
     return (
       <EntityRows
         entities={{ ...entities, entities: groupEntities }}
-        /* Only files open: an entity that couldn't be loaded has nothing more to show. */
+        /* Only files open: other entities show whole in their table, and one that couldn't be loaded has nothing to show. */
         onOpen={
           allFiles
             ? (position) => {
-                const index = group.indexes[position];
+                const index = indexes[position];
 
                 if (index !== undefined) {
                   onOpenFile(index);
@@ -164,13 +172,14 @@ const GroupBody = ({
   );
 };
 
-/** A list a run got or gave, whole, with a tab per type when its entities are of several. */
+/** A list a run got or gave, with a tab per type when its entities are of several. */
 export const OutputList = ({
   list,
   entities,
   typeKey,
   onPickType,
   onOpenFile,
+  onShowAll,
 }: {
   list: ListDisplay;
   entities: RunEntities;
@@ -179,15 +188,27 @@ export const OutputList = ({
   onPickType: (typeKey: string) => void;
   /** Opens the file at this position in the list. */
   onOpenFile: (index: number) => void;
+  /**
+   * Shows only the first values, or the picked type's first entities as rows, then "Show all N", which calls this.
+   * Without it, the list shows whole.
+   */
+  onShowAll?: () => void;
 }) => {
   if (list.kind === "inline") {
+    const peek = getListPeek(list.values.length);
+
     return (
       <div className={stack}>
-        {list.values.map((value, index) => (
-          // Values can repeat, and are only ever shown in this order.
-          // eslint-disable-next-line react/no-array-index-key
-          <TextValue key={index} text={value} />
-        ))}
+        {(onShowAll ? list.values.slice(0, peek.shown) : list.values).map(
+          (value, index) => (
+            // Values can repeat, and are only ever shown in this order.
+            // eslint-disable-next-line react/no-array-index-key
+            <TextValue key={index} text={value} />
+          ),
+        )}
+        {onShowAll && peek.showAll !== null && (
+          <ShowAllButton count={peek.showAll} onClick={onShowAll} />
+        )}
       </div>
     );
   }
@@ -215,42 +236,49 @@ export const OutputList = ({
     return null;
   }
 
-  const body = (
-    <GroupBody
-      key={picked.key}
-      group={picked}
-      entities={entities}
-      onOpenFile={onOpenFile}
-    />
-  );
-
-  if (typeGroups.length === 1) {
-    return body;
-  }
+  const getLabel = (group: EntityGroup) =>
+    group.entityTypeIds && entities.typesMap
+      ? getGroupLabel(
+          getClosedMultiEntityTypeFromMap(
+            entities.typesMap,
+            group.entityTypeIds,
+          ),
+        )
+      : undefined;
+  const peek = getListPeek(picked.indexes.length);
 
   return (
     <div className={stack}>
-      <Tabs value={picked.key} onChange={onPickType} variant="pill" size="sm">
-        <Tabs.TabList
-          items={typeGroups.map((group) => ({
-            id: group.key,
-            children: (
-              <>
-                {group.entityTypeIds && entities.typesMap
-                  ? getGroupLabel(
-                      getClosedMultiEntityTypeFromMap(
-                        entities.typesMap,
-                        group.entityTypeIds,
-                      ),
-                    )
-                  : "Not found"}
-                <span className={tabCount}>{group.indexes.length}</span>
-              </>
-            ),
-          }))}
+      {typeGroups.length > 1 && (
+        <Tabs value={picked.key} onChange={onPickType} variant="pill" size="sm">
+          <Tabs.TabList
+            className={tabList}
+            items={typeGroups.map((group) => ({
+              id: group.key,
+              children: (
+                <>
+                  {getLabel(group) ?? "Not found"}
+                  <span className={tabCount}>{group.indexes.length}</span>
+                </>
+              ),
+            }))}
+          />
+        </Tabs>
+      )}
+      <GroupBody
+        key={picked.key}
+        group={picked}
+        entities={entities}
+        peek={onShowAll ? peek.shown : undefined}
+        onOpenFile={onOpenFile}
+      />
+      {onShowAll && peek.showAll !== null && (
+        <ShowAllButton
+          count={peek.showAll}
+          noun={getLabel(picked)}
+          onClick={onShowAll}
         />
-      </Tabs>
-      {body}
+      )}
     </div>
   );
 };

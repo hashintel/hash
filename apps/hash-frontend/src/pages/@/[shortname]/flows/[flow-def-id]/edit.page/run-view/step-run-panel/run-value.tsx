@@ -1,9 +1,9 @@
-import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EntityRows } from "../shared/entity-rows";
 import { isFileEntity, useRunEntities } from "../shared/run-entities";
 import { getListLength, getListPeek } from "../shared/run-value-display";
+import { ShowAllButton } from "../shared/show-all-button";
 import { TextValue } from "../shared/text-value";
 
 import type { ListDisplay, ValueDisplay } from "../shared/run-value-display";
@@ -11,7 +11,6 @@ import type { OutputContent } from "../shared/use-output-viewer";
 
 const values = css({ display: "flex", flexDirection: "column", gap: "1" });
 const quiet = css({ textStyle: "sm", color: "fg.subtle" });
-const showAll = css({ alignSelf: "flex-start" });
 
 /** A file opens on its own, and any other entity opens the whole list. */
 const EntityPeek = ({
@@ -71,16 +70,12 @@ export const RunValue = ({
         <EntityPeek list={display} shown={peek.shown} onOpen={onOpen} />
       )}
       {peek.showAll !== null && (
-        <Button
-          variant="ghost"
-          size="xs"
-          className={showAll}
+        <ShowAllButton
+          count={peek.showAll}
           onClick={() =>
             onOpen({ kind: "list", list: display }, { wide: true })
           }
-        >
-          Show all {peek.showAll}
-        </Button>
+        />
       )}
     </div>
   );

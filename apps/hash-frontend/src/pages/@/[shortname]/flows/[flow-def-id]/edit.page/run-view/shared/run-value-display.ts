@@ -127,7 +127,7 @@ export const isLongText = (text: string) =>
 
 const peekLength = 5;
 
-/** How many of a list's values a panel shows, and the "Show all N" after them, if any. */
+/** How many of a list's values the panel or the column shows, and the "Show all N" after them, if any. */
 export const getListPeek = (length: number) => ({
   shown: Math.min(length, peekLength),
   showAll: length > peekLength ? length : null,

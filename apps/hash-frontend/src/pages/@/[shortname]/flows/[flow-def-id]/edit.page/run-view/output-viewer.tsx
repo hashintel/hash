@@ -196,6 +196,7 @@ export const OutputViewer = ({ viewer }: { viewer: OutputViewerState }) => {
                 typeKey={view.typeKey}
                 onPickType={pickType}
                 onOpenFile={openFile}
+                onShowAll={viewer.expand}
               />
             </>
           ) : file ? (
